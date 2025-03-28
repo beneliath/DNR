@@ -1,6 +1,6 @@
-# DNR: Deputation and Report
+# DNR: Deploy and Report
 
-DNR (Deputation and Report) is a project designed to [*provide a brief description of the project's purpose and functionality*].
+DNR (Deploy and Report) is a project designed to [*provide a brief description of the project's purpose and functionality*].
 
 ## To Do
 
