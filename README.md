@@ -54,12 +54,11 @@ VARIABLE_NAME: Description of the variable.
 
 We welcome contributions to the DNR project. To contribute:
 
-- [ ] fork the repository
-- [ ] create a new branch for your feature or bug fix
-- [ ] commit your changes with descriptive messages
-- [ ] push your branch to your forked repository
-
-- [ ] submit a pull request to the main repository
+- fork the repository
+- create a new branch for your feature or bug fix
+- commit your changes with descriptive messages
+- push your branch to your forked repository
+- submit a pull request to the main repository
 
 Please ensure that your contributions adhere to the project's coding standards and include appropriate tests.
 
