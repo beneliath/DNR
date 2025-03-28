@@ -1,129 +1,107 @@
-/* Default (light) theme variables */
 :root {
-    --bg-color: #ffffff;
-    --text-color: #000000;
-    --link-color: #1a0dab;
+  --bg-color: #ffffff;
+  --text-color: #000000;
+  --link-color: #1a0dab;
 }
 
-body {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;  /* Stack header, content, and footer in a single column */
-    height: 100vh;  /* Make the body take the full viewport height */
-}
-
-/* Header and footer also use our theme variables */
-header, footer {
-    background-color: var(--bg-color);
-    color: var(--text-color);
-    padding: 10px;
-    text-align: center;
-    width: 100%;  /* Ensure header and footer stretch across the full width */
-}
-
-/* Navigation Styling */
-nav ul {
-    list-style-type: none;  /* Removes bullets */
-    margin: 0;
-    padding: 0;
-    display: flex;  /* Use flexbox to display items in a row */
-    justify-content: center;  /* Optional: Centers the items horizontally */
-}
-
-nav ul li {
-    margin-right: 15px;  /* Adds space between navigation items */
-}
-
-nav ul li a {
-    text-decoration: none;
-    color: var(--link-color);
-    font-size: 16px;  /* Adjust the font size as needed */
-}
-
-/* Layout for the main content */
-.container {
-    flex: 1;  /* Make the content take the remaining space between header and footer */
-    padding: 20px;
-}
-
-.error {
-    color: red;
-}
-
-.success {
-    color: green;
-}
-
-/* Dark theme overrides */
-body.dark-mode {
-    --bg-color: #121212;
-    --text-color: #ffffff;
-    --link-color: #8ab4f8;
-}
-
-.add-org-button {
-    display: inline-block;
-    margin-left: 10px;
-    padding: 5px 10px;
-    background-color: #008cba;
-    color: #fff;
-    text-decoration: none;
-    border-radius: 4px;
-}
-.add-org-button:hover {
-    background-color: #00608c;
-}
-
-/* Make the organization select and engagement notes ~50 characters wide */
-#organization_id,
-#engagement_notes {
-  width: 50ch;
-  box-sizing: border-box; /* Ensures padding/border are included within the width */
-}
-
-/* Optionally override the textarea width to ~54 characters */
-#engagement_notes {
-  width: 54ch;
-  box-sizing: border-box;
-}
-
-/* Ensure body and html take full height for proper centering */
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-}
-
-body {
-  display: flex;
-  justify-content: center; /* Centers horizontally */
-  align-items: center; /* Centers vertically */
-  background-color: var(--bg-color);
   font-family: Arial, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
 
-/* Style the login container */
-.login-container {
-  max-width: 400px;
-  width: 100%;
-  padding: 40px; /* Adds padding inside the container */
-  background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+/* Wrapper for vertically centered pages like login */
+.fullscreen-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+}
+
+/* Header/Footer */
+header, footer {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  padding: 10px;
   text-align: center;
+  width: 100%;
 }
 
-/* Styling for heading */
-h2 {
-  margin-bottom: 20px;
-  font-size: 24px;
+/* ASCII Art in Footer */
+footer .ascii-art-container {
+  width: 100%;
+  text-align: center;
+  margin-top: 20px;
 }
 
-/* Label styles */
+footer .ascii-art-container pre {
+  display: inline-block;
+  font-family: monospace;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-x: auto;
+  margin: 0 auto;
+  text-align: left;
+  max-width: 100%;
+}
+
+/* Navigation */
+nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+nav ul li {
+  margin-right: 15px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: var(--link-color);
+  font-size: 16px;
+}
+
+/* Page container */
+.container {
+  flex: 1;
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+/* Buttons */
+.add-org-button,
+input[type="submit"] {
+  display: inline-block;
+  padding: 10px 20px;
+  background-color: #008cba;
+  color: #fff;
+  text-decoration: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.add-org-button:hover,
+input[type="submit"]:hover {
+  background-color: #00608c;
+}
+
+input[type="submit"] {
+  background-color: #4CAF50;
+}
+
+input[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* Labels & Inputs */
 label {
   display: block;
   margin-bottom: 10px;
@@ -131,98 +109,116 @@ label {
   text-align: left;
 }
 
-/* Input styling */
-input[type="text"], input[type="password"], input[type="date"], select {
+input[type="text"],
+input[type="password"],
+input[type="date"],
+select,
+textarea {
   width: 100%;
   padding: 12px;
   margin-bottom: 20px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 16px;
+  box-sizing: border-box;
 }
 
-/* Make the event-type dropdown and the status dropdown half their normal width */
+#organization_id,
+#engagement_notes {
+  width: 72ch;
+}
+
+/* Date fields */
+.date-fields {
+  display: flex;
+  gap: 20px;
+}
+
+.date-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Event type alignment */
+.event-type-container {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.event-type-field {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
 #event_type,
 #confirmation_status {
-  width: 50%;
+  width: 100%;
 }
 
-/* Hide the "other event type" container by default */
 #other_event_type_div {
   display: none;
 }
 
-/* Put the event type dropdown and "other" input side by side */
-.event-type-container {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-/* Submit button styling */
-input[type="submit"] {
+#other_event_type_div input {
   width: 100%;
-  padding: 12px;
-  background-color: #4CAF50; /* Green button */
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
 }
 
-input[type="submit"]:hover {
-  background-color: #45a049;
-}
-
-/* Error message styling */
-.error {
-  color: red;
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-
-/* Date fields container */
-.date-fields {
-  display: flex;
-  gap: 20px; /* Space between the two date-field blocks */
-}
-
-/* Each label–input pair is its own flex container */
-.date-field {
-  display: flex;
-  align-items: center; /* Vertically center label and input */
-  gap: 8px; /* Space between label and input */
-}
-
-/* Ensure the caller field is on the same line as its label */
-label[for="caller_name"], #caller_name {
+/* Caller field inline */
+label[for="caller_name"],
+#caller_name {
   display: inline-block;
   width: auto;
   margin-right: 5px;
 }
 
 #caller_name {
-  width: 250px;  /* Sets a fixed width for the caller field */
+  width: 250px;
 }
 
-/* ASCII Art Styling for Centering in Footer */
-footer .ascii-art-container {
-    width: 100%; /* Full width container */
-    display: block; /* Block level element */
-    text-align: center; /* Center content horizontally */
-    margin-top: 20px; /* Some spacing above the ASCII art */
+/* Login box */
+.login-container {
+  max-width: 400px;
+  width: 100%;
+  padding: 40px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
 }
 
-/* Styling the ASCII art content */
-footer .ascii-art-container pre {
-    display: inline-block; /* Ensure it's inline and centered */
-    font-family: monospace; /* Use monospace font for fixed width */
-    white-space: pre-wrap; /* Preserve whitespace formatting */
-    word-wrap: break-word; /* Allow wrapping if needed */
-    overflow-x: auto; /* Add horizontal scroll if the content is too wide */
-    margin: 0 auto; /* Center horizontally */
-    text-align: left; /* Align ASCII art to the left */
-    max-width: 100%; /* Ensures it doesn't overflow */
+/* Headings */
+h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+/* Messages */
+.success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #c3e6cb;
+  border-radius: 4px;
+}
+
+.error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 10px;
+  margin-bottom: 10px;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Dark Mode Support */
+body.dark-mode {
+  --bg-color: #121212;
+  --text-color: #ffffff;
+  --link-color: #8ab4f8;
 }
 
