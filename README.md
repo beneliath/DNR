@@ -5,20 +5,20 @@ DNR (Deputation and Report) is a project designed to [*provide a brief descripti
 ## To Do
 
 - [ ] code Event Mailing Address / Event Physical Address
-- [ ] code selection: Is Mailing the same as Physical?
-- [ ] consider what of the above should be included in Event and/or Organization
-- [ ] code/build out for Contact(s): Admin, Pastor
-- [ ] code/build out for Anticipated Compensation
-- [ ] code for 'Caller' in Engagement/Event to be listed system user
-- [ ] code/build out profiles for users that includes email and phone for contact
+- [ ] code: Is Mailing the same as Physical?
+- [ ] consider address data locus in Event or Organization
+- [ ] build out for Contact(s): Admin, Pastor
+- [ ] build out for Anticipated Compensation
+- [ ] 'Caller' in Engagement/Event to be listed system user
+- [ ] build out profiles for users that includes email and phone for contact
 - [ ] convert from plaintext to hashed passwords
-- [ ] code/build out Presentation functionality (e.g., single Engagement may have multiple Presentations)
+- [ ] build out Presentation functionality (e.g., single Engagement may have multiple Presentations)
 - [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
 - [ ] evaluate for sql-injection vulnerabilities
 - [ ] minify JS and CSS
-- [ ] when above is complete: code/build out REPORT functionality
-- [ ] when above is complete: code/build out FOLLOW-UP functionality
-- [ ] when above is complete: code/build out printed document support
+- [ ] when above is complete: build out REPORT functionality
+- [ ] when above is complete: build out FOLLOW-UP functionality
+- [ ] when above is complete: build out printed document support
 
 ## Installation
 
