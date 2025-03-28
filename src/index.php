@@ -6,6 +6,7 @@ include 'config.php';
 include 'functions.php';
 
 session_start();
+session_regenerate_id(true);
 // Redirect to login page if the user is not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
@@ -36,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         !$event_end_date ||
         ($event_type_raw === 'other' && $event_type_other === '')
     ) {
-        $error_message = "Please fill in all required fields, including 'other event type' if selected.";
+$error_message = htmlspecialchars("Please fill in all required fields, including 'other event type' if selected.");
     } else {
         // Prepare SQL statement to insert engagement data
         $stmt = $conn->prepare("INSERT INTO engagements (
@@ -101,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         // Fetch and display organizations in the dropdown
         $orgs = $conn->query("SELECT id, organization_name FROM organizations");
         while ($row = $orgs->fetch_assoc()) {
-            echo "<option value='{$row['id']}'>" . htmlspecialchars($row['organization_name']) . "</option>";
+echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['organization_name']) . "</option>";
         }
         ?>
     </select>
@@ -147,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <br>
 
         <label>
-            <input type="checkbox" name="book_table"> book table
+            <input type="checkbox" name="book_table"> book table provided
         </label><br>
         <label>
             <input type="checkbox" name="brochures"> brochures permitted

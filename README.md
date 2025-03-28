@@ -11,7 +11,11 @@ DNR (Deputation and Report) is a project designed to [*provide a brief descripti
 - [ ] code/build out for Anticipated Compensation
 - [ ] code for 'Caller' in Engagement/Event to be listed system user
 - [ ] code/build out profiles for users that includes email and phone for contact
+- [ ] convert from plaintext to hashed passwords
 - [ ] code/build out Presentation functionality (e.g., single Engagement may have multiple Presentations)
+- [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
+- [ ] evaluate for sql-injection vulnerabilities
+- [ ] minify JS and CSS
 - [ ] when above is complete: code/build out REPORT functionality
 - [ ] when above is complete: code/build out FOLLOW-UP functionality
 - [ ] when above is complete: code/build out printed document support
