@@ -1,0 +1,228 @@
+/* Default (light) theme variables */
+:root {
+    --bg-color: #ffffff;
+    --text-color: #000000;
+    --link-color: #1a0dab;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;  /* Stack header, content, and footer in a single column */
+    height: 100vh;  /* Make the body take the full viewport height */
+}
+
+/* Header and footer also use our theme variables */
+header, footer {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding: 10px;
+    text-align: center;
+    width: 100%;  /* Ensure header and footer stretch across the full width */
+}
+
+/* Navigation Styling */
+nav ul {
+    list-style-type: none;  /* Removes bullets */
+    margin: 0;
+    padding: 0;
+    display: flex;  /* Use flexbox to display items in a row */
+    justify-content: center;  /* Optional: Centers the items horizontally */
+}
+
+nav ul li {
+    margin-right: 15px;  /* Adds space between navigation items */
+}
+
+nav ul li a {
+    text-decoration: none;
+    color: var(--link-color);
+    font-size: 16px;  /* Adjust the font size as needed */
+}
+
+/* Layout for the main content */
+.container {
+    flex: 1;  /* Make the content take the remaining space between header and footer */
+    padding: 20px;
+}
+
+.error {
+    color: red;
+}
+
+.success {
+    color: green;
+}
+
+/* Dark theme overrides */
+body.dark-mode {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --link-color: #8ab4f8;
+}
+
+.add-org-button {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 5px 10px;
+    background-color: #008cba;
+    color: #fff;
+    text-decoration: none;
+    border-radius: 4px;
+}
+.add-org-button:hover {
+    background-color: #00608c;
+}
+
+/* Make the organization select and engagement notes ~50 characters wide */
+#organization_id,
+#engagement_notes {
+  width: 50ch;
+  box-sizing: border-box; /* Ensures padding/border are included within the width */
+}
+
+/* Optionally override the textarea width to ~54 characters */
+#engagement_notes {
+  width: 54ch;
+  box-sizing: border-box;
+}
+
+/* Ensure body and html take full height for proper centering */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  display: flex;
+  justify-content: center; /* Centers horizontally */
+  align-items: center; /* Centers vertically */
+  background-color: var(--bg-color);
+  font-family: Arial, sans-serif;
+}
+
+/* Style the login container */
+.login-container {
+  max-width: 400px;
+  width: 100%;
+  padding: 40px; /* Adds padding inside the container */
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  text-align: center;
+}
+
+/* Styling for heading */
+h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+}
+
+/* Label styles */
+label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 16px;
+  text-align: left;
+}
+
+/* Input styling */
+input[type="text"], input[type="password"], input[type="date"], select {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+/* Make the event-type dropdown and the status dropdown half their normal width */
+#event_type,
+#confirmation_status {
+  width: 50%;
+}
+
+/* Hide the "other event type" container by default */
+#other_event_type_div {
+  display: none;
+}
+
+/* Put the event type dropdown and "other" input side by side */
+.event-type-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Submit button styling */
+input[type="submit"] {
+  width: 100%;
+  padding: 12px;
+  background-color: #4CAF50; /* Green button */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+input[type="submit"]:hover {
+  background-color: #45a049;
+}
+
+/* Error message styling */
+.error {
+  color: red;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+/* Date fields container */
+.date-fields {
+  display: flex;
+  gap: 20px; /* Space between the two date-field blocks */
+}
+
+/* Each label–input pair is its own flex container */
+.date-field {
+  display: flex;
+  align-items: center; /* Vertically center label and input */
+  gap: 8px; /* Space between label and input */
+}
+
+/* Ensure the caller field is on the same line as its label */
+label[for="caller_name"], #caller_name {
+  display: inline-block;
+  width: auto;
+  margin-right: 5px;
+}
+
+#caller_name {
+  width: 250px;  /* Sets a fixed width for the caller field */
+}
+
+/* ASCII Art Styling for Centering in Footer */
+footer .ascii-art-container {
+    width: 100%; /* Full width container */
+    display: block; /* Block level element */
+    text-align: center; /* Center content horizontally */
+    margin-top: 20px; /* Some spacing above the ASCII art */
+}
+
+/* Styling the ASCII art content */
+footer .ascii-art-container pre {
+    display: inline-block; /* Ensure it's inline and centered */
+    font-family: monospace; /* Use monospace font for fixed width */
+    white-space: pre-wrap; /* Preserve whitespace formatting */
+    word-wrap: break-word; /* Allow wrapping if needed */
+    overflow-x: auto; /* Add horizontal scroll if the content is too wide */
+    margin: 0 auto; /* Center horizontally */
+    text-align: left; /* Align ASCII art to the left */
+    max-width: 100%; /* Ensures it doesn't overflow */
+}
+
