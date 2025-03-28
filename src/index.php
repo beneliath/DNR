@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <!-- HTML structure for the dashboard interface -->
 <html>
 <head>
-    <title>Dashboard</title>
+    <title>DNR dashboard</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="assets/js/main.js"></script>
 </head>
@@ -84,28 +84,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
-    <h1>DNR Dashboard</h1>
+    <h1>DNR dashboard</h1>
 
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
 
-    <h2>Add Speaking Engagement</h2>
+    <h2>Add Engagement</h2>
     <!-- Form for adding a new speaking engagement -->
     <form method="post" action="index.php">
-        <label for="organization_id">organization:</label><br>
-        <select name="organization_id" id="organization_id" required>
-            <option value="" disabled selected>select an organization</option>
-            <?php
-            // Fetch and display organizations in the dropdown
-            $orgs = $conn->query("SELECT id, organization_name FROM organizations");
-            while ($row = $orgs->fetch_assoc()) {
-                echo "<option value='{$row['id']}'>" . htmlspecialchars($row['organization_name']) . "</option>";
-            }
-            ?>
-        </select>
-        <a href="organizations.php" class="add-org-button">Add Organization</a>
-        <br><br>
+<div class="organization-container">
+    <label for="organization_id">organization:</label>
+    <select name="organization_id" id="organization_id" required>
+        <option value="" disabled selected>select an organization</option>
+        <?php
+        // Fetch and display organizations in the dropdown
+        $orgs = $conn->query("SELECT id, organization_name FROM organizations");
+        while ($row = $orgs->fetch_assoc()) {
+            echo "<option value='{$row['id']}'>" . htmlspecialchars($row['organization_name']) . "</option>";
+        }
+        ?>
+    </select>
+                    <a href="organizations.php" class="add-org-button">Add New Organization</a>
+</div>
+
 
         <label for="engagement_notes" style="vertical-align: top;">chron:</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"></textarea>
@@ -142,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
         </div>
 
-        <br><br>
+        <br>
 
         <label>
             <input type="checkbox" name="book_table"> book table
@@ -161,8 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             <option value="confirmed">confirmed</option>
         </select>
         <br><br>
-
-        <input type="submit" name="save_engagement" value="Save Engagement" class="add-org-button" style="width: 50%; margin: 0 0 0 auto; display: block;">
+<div class="save-button-container">
+        <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-event-button"></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
