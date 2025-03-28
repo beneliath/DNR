@@ -162,7 +162,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             <option value="under_review">under review</option>
             <option value="confirmed">confirmed</option>
         </select>
-        <br><br>
+
 <div class="save-button-container">
         <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-event-button"></div>
     </form>
