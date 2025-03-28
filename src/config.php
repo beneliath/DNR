@@ -1,5 +1,4 @@
 <?php
-session_start();
 
 // Use environment variables with defaults
 $DB_HOST = getenv('DB_HOST') ? getenv('DB_HOST') : 'db';

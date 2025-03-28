@@ -1,14 +1,18 @@
 <?php
+// This file serves as the main dashboard for managing speaking engagements.
+// It handles form submissions for adding engagements and displays the dashboard interface.
+
 include 'config.php';
 include 'functions.php';
 
 session_start();
+// Redirect to login page if the user is not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: login.php");
     exit();
 }
 
-// Handle form submission
+// Handle form submission for adding a new engagement
 $success_message = '';
 $error_message = '';
 
@@ -25,6 +29,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $caller_name = trim($_POST['caller_name'] ?? '');
     $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
 
+    // Validate required fields
     if (
         !$organization_id ||
         !$event_start_date ||
@@ -33,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     ) {
         $error_message = "Please fill in all required fields, including 'other event type' if selected.";
     } else {
+        // Prepare SQL statement to insert engagement data
         $stmt = $conn->prepare("INSERT INTO engagements (
             organization_id, engagement_notes, event_start_date, event_end_date,
             event_type, book_table, brochures, caller_name, confirmation_status
@@ -67,6 +73,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 ?>
 
 <!DOCTYPE html>
+<!-- HTML structure for the dashboard interface -->
 <html>
 <head>
     <title>Dashboard</title>
@@ -75,6 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
+<!-- Main container for the dashboard content -->
 <div class="container">
     <h1>DNR Dashboard</h1>
 
@@ -83,11 +91,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <?php endif; ?>
 
     <h2>Add Speaking Engagement</h2>
+    <!-- Form for adding a new speaking engagement -->
     <form method="post" action="index.php">
         <label for="organization_id">organization:</label><br>
         <select name="organization_id" id="organization_id" required>
             <option value="" disabled selected>select an organization</option>
             <?php
+            // Fetch and display organizations in the dropdown
             $orgs = $conn->query("SELECT id, organization_name FROM organizations");
             while ($row = $orgs->fetch_assoc()) {
                 echo "<option value='{$row['id']}'>" . htmlspecialchars($row['organization_name']) . "</option>";
@@ -156,6 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
+<!-- Display success message as an alert if present -->
 
 <?php if (!empty($success_message)): ?>
 <script>
@@ -164,6 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php endif; ?>
 
 <script>
+    // Toggle visibility of the "other event type" input based on selection
     function toggleOtherEventType(selectElement) {
         const otherDiv = document.getElementById("other_event_type_div");
         const otherInput = document.getElementById("event_type_other");
@@ -177,6 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
     }
 
+    // Initialize the event type toggle on page load
     document.addEventListener('DOMContentLoaded', function () {
         toggleOtherEventType(document.getElementById("event_type"));
     });

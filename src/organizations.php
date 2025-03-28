@@ -1,5 +1,6 @@
 <?php
 // We assume session_start() is already called earlier (e.g., in index.php or header.php)
+session_start(); // Start session to access session variables
 include 'config.php';
 include 'functions.php';
 
