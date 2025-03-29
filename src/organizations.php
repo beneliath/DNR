@@ -17,12 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $phone = $conn->real_escape_string($_POST['phone']);
     $fax = $conn->real_escape_string($_POST['fax']);
     $email = $conn->real_escape_string($_POST['email']);
-    $mailing_address = $conn->real_escape_string($_POST['mailing_address']);
-    $physical_address = $conn->real_escape_string($_POST['physical_address']);
+    $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
+    $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
+    $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
+    $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
+    $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
+    $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
+    $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
+    $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
+    $physical_city = $conn->real_escape_string($_POST['physical_city']);
+    $physical_state = $conn->real_escape_string($_POST['physical_state']);
+    $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
+    $physical_country = $conn->real_escape_string($_POST['physical_country']);
 
     // Insert new organization into the database
-    $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, email, mailing_address, physical_address)
-            VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$email', '$mailing_address', '$physical_address')";
+    $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, email, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
+            VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$email', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
 
     if ($conn->query($sql) === TRUE) {
         $message = "Organization saved successfully.";
@@ -55,8 +65,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         <label>Phone: <input type="text" name="phone"></label><br>
         <label>Fax: <input type="text" name="fax"></label><br>
         <label>Email: <input type="email" name="email"></label><br>
-        <label>Mailing Address: <input type="text" name="mailing_address"></label><br>
-        <label>Physical Address: <input type="text" name="physical_address"></label><br>
+        <label>Mailing Address Line 1: <input type="text" name="mailing_address_line_1" required></label><br>
+        <label>Mailing Address Line 2: <input type="text" name="mailing_address_line_2"></label><br>
+        <label>Mailing City: <input type="text" name="mailing_city" required></label><br>
+        <label>Mailing State: <input type="text" name="mailing_state" required></label><br>
+        <label>Mailing Zipcode: <input type="text" name="mailing_zipcode" required></label><br>
+        <label>Mailing Country: <input type="text" name="mailing_country" required></label><br>
+        <label>Physical Address Line 1: <input type="text" name="physical_address_line_1" required></label><br>
+        <label>Physical Address Line 2: <input type="text" name="physical_address_line_2"></label><br>
+        <label>Physical City: <input type="text" name="physical_city" required></label><br>
+        <label>Physical State: <input type="text" name="physical_state" required></label><br>
+        <label>Physical Zipcode: <input type="text" name="physical_zipcode" required></label><br>
+        <label>Physical Country: <input type="text" name="physical_country" required></label><br>
         <input type="submit" name="save_org" value="Save Organization">
     </form>
 </div>

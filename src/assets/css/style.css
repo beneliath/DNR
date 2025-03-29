@@ -249,5 +249,38 @@ body.dark-mode {
   --bg-color: #121212;
   --text-color: #ffffff;
   --link-color: #8ab4f8;
+  background-color: var(--bg-color);
+  color: var(--text-color);
 }
+
+body.dark-mode * {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}
+
+/* Ensure all containers and sections are covered */
+body.dark-mode .container,
+body.dark-mode header,
+body.dark-mode footer,
+body.dark-mode nav,
+body.dark-mode .login-container,
+body.dark-mode .fullscreen-center {
+  background-color: var(--bg-color) !important;
+  color: var(--text-color) !important;
+}
+
+/* Exclude specific buttons from dark mode */
+body.dark-mode .add-org-button,
+body.dark-mode .save-event-button,
+body.dark-mode input[type="submit"] {
+  background-color: #888888 !important; /* Light mode color */
+  color: #fff !important;
+}
+
+body.dark-mode .add-org-button:hover,
+body.dark-mode .save-event-button:hover,
+body.dark-mode input[type="submit"]:hover {
+  background-color: #00608c !important; /* Light mode hover color */
+}
+
 
