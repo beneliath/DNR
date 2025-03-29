@@ -6,6 +6,11 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'editor', 'reviewer') NOT NULL
 );
 
+-- Insert default admin account
+INSERT INTO users (username, password, role) 
+VALUES ('admin', 'p@55word', 'admin')
+ON DUPLICATE KEY UPDATE username=username;
+
 -- Organizations table
 CREATE TABLE IF NOT EXISTS organizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -17,8 +22,18 @@ CREATE TABLE IF NOT EXISTS organizations (
     phone VARCHAR(50),
     fax VARCHAR(50),
     email VARCHAR(100),
-    mailing_address VARCHAR(255),
-    physical_address VARCHAR(255)
+    mailing_address_line_1 VARCHAR(255),
+    mailing_address_line_2 VARCHAR(255),
+    mailing_city VARCHAR(100),
+    mailing_state VARCHAR(100),
+    mailing_zipcode VARCHAR(20),
+    mailing_country VARCHAR(100),
+    physical_address_line_1 VARCHAR(255),
+    physical_address_line_2 VARCHAR(255),
+    physical_city VARCHAR(100),
+    physical_state VARCHAR(100),
+    physical_zipcode VARCHAR(20),
+    physical_country VARCHAR(100)
 );
 
 -- Engagements table (sample fields; extend as needed)
@@ -34,6 +49,12 @@ CREATE TABLE IF NOT EXISTS engagements (
     brochures TINYINT(1) DEFAULT 0,
     caller_name VARCHAR(255),
     confirmation_status VARCHAR(50),
+    event_address_line_1 VARCHAR(255),
+    event_address_line_2 VARCHAR(255),
+    event_city VARCHAR(100),
+    event_state VARCHAR(100),
+    event_zipcode VARCHAR(20),
+    event_country VARCHAR(100),
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
 

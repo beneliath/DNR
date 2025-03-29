@@ -26,6 +26,7 @@ To set up the project on your local machine, follow these steps:
 
 - [x] rename project to "deploy and report"
 - [x] include check for Event End Date >= Event Start Date
+- [x] add default username/password (admin/p@55word)
 - [ ] code Event Mailing Address / Event Physical Address
 - [ ] code: Is Mailing the same as Physical?
 - [ ] consider address data locus in Event or Organization
