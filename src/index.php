@@ -85,7 +85,7 @@ $error_message = htmlspecialchars("Please fill in all required fields, including
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
-    <h1>DNR dashboard</h1>
+    <h1>DNR</h1>
 
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
