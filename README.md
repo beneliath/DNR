@@ -25,6 +25,7 @@ To set up the project on your local machine, follow these steps:
 ### Roadmap / To Do
 
 - [x] rename project to "deploy and report"
+- [ ] include check for Event End Date >= Event Start Date
 - [ ] code Event Mailing Address / Event Physical Address
 - [ ] code: Is Mailing the same as Physical?
 - [ ] consider address data locus in Event or Organization
