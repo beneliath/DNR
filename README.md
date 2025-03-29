@@ -27,13 +27,23 @@ To set up the project on your local machine, follow these steps:
 - [x] rename project to "deploy and report"
 - [x] include check for Event End Date >= Event Start Date
 - [x] add default username/password (admin/p@55word)
+- [x] complete minimal buildout of 'Add Engagement' functionality
+- [ ] !!! fix Mailing & Physical Address issue with 'Add Organization' (_n.b._, problem stems for alteration of database schema to include multiple fields for addresses instead of just one field)
+- [ ] complete minimal buildout of 'Add Organization' functionality
+- [ ] complete minimal buildout of 'Add Contact' functionality
+- [ ] complete minimal buildout of 'Add Presentation(s)' functionality
+- [ ] fix white-stripe at bottom for dark theme on 'Add Organization'
 - [ ] code Event Mailing Address / Event Physical Address
 - [ ] code: Is Mailing the same as Physical?
 - [ ] consider address data locus in Event or Organization
+- [ ] header navigation bar redesign
+- [ ] doublecheck password entry for new user creation
+- [ ] mod edit user to allow for change of password (with doublecheck)
+- [ ] build out profiles for users that includes email and phone for contact
+- [ ] add functionality to activate/deactivate users
 - [ ] build out for Contact(s): Admin, Pastor
 - [ ] build out for Anticipated Compensation
 - [ ] 'Caller' in Engagement/Event to be listed system user
-- [ ] build out profiles for users that includes email and phone for contact
 - [ ] convert from plaintext to hashed passwords
 - [ ] build out Presentation functionality (e.g., single Engagement may have multiple Presentations)
 - [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
