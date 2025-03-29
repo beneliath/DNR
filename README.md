@@ -28,7 +28,9 @@ To set up the project on your local machine, follow these steps:
 - [x] include check for Event End Date >= Event Start Date
 - [x] add default username/password (admin/p@55word)
 - [x] complete minimal buildout of 'Add Engagement' functionality
-- [ ] !!! fix Mailing & Physical Address issue with 'Add Organization' (_n.b._, problem stems for alteration of database schema to include multiple fields for addresses instead of just one field)
+- [x] !!! fix Mailing & Physical Address issue with 'Add Organization' (_n.b._, problem stems for alteration of database schema to include multiple fields for addresses instead of just one field)
+- [ ] globbing for Mailing & Physical Address entry
+- [ ] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
 - [ ] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
