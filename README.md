@@ -1,8 +1,40 @@
-# DNR: Deploy and Report
+## DNR: Deploy and Report
+
+### Description
 
 DNR (Deploy and Report) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
 
-## To Do
+### Installation
+
+To set up the project on your local machine, follow these steps:
+
+1. **Clone the repository**
+
+   ```
+   git clone https://github.com/beneliath/DNR.git
+   ```
+
+2. **Navigate to the project directory**
+   ```
+   cd DNR
+   ```
+3. **Build and run the application using Docker Compose**
+   `docker-compose up --build`
+   This command will build the Docker images and start the services defined in the docker-compose.yaml file.
+
+## Add your files
+
+- [ ] Create or upload files
+- [ ] Add files using the command line or push an existing Git repository with the following command:
+
+```
+cd existing_repo
+git remote add origin https://github.com/beneliath/DNR.git
+git branch -M main
+git push -uf origin main
+```
+
+### Roadmap / To Do
 
 - [x] rename project to "deploy and report"
 - [ ] code Event Mailing Address / Event Physical Address
@@ -20,24 +52,6 @@ DNR (Deploy and Report) is a web-based application for managing speaking engagem
 - [ ] when above is complete: build out REPORT functionality
 - [ ] when above is complete: build out FOLLOW-UP functionality
 - [ ] when above is complete: build out printed document support
-
-## Installation
-
-To set up the project on your local machine, follow these steps:
-
-1. **Clone the repository**
-
-   ```
-   git clone https://github.com/beneliath/DNR.git
-   ```
-
-2. **Navigate to the project directory**
-   ```
-   cd DNR
-   ```
-3. **Build and run the application using Docker Compose**
-   `docker-compose up --build`
-   This command will build the Docker images and start the services defined in the docker-compose.yaml file.
 
 ### Configuration
 
@@ -67,6 +81,12 @@ We welcome contributions to the DNR project. To contribute:
 
 Please ensure that your contributions adhere to the project's coding standards and include appropriate tests.
 
+### Authors and Acknowledgment
+
 ### License
 
 This project is licensed under the MIT License. See the LICENSE file for more details.
+
+### Project Status
+
+Under active development as of 2025-03-28 23:05:30
