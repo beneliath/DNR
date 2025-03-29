@@ -22,18 +22,6 @@ To set up the project on your local machine, follow these steps:
    `docker-compose up --build`
    This command will build the Docker images and start the services defined in the docker-compose.yaml file.
 
-## Add your files
-
-- [ ] Create or upload files
-- [ ] Add files using the command line or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://github.com/beneliath/DNR.git
-git branch -M main
-git push -uf origin main
-```
-
 ### Roadmap / To Do
 
 - [x] rename project to "deploy and report"
