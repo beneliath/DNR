@@ -1,7 +1,6 @@
 function toggleTheme() {
-    const body = document.body;
-    body.classList.toggle('dark-mode');
-    const isDarkMode = body.classList.contains('dark-mode');
+    document.documentElement.classList.toggle('dark-mode');
+    const isDarkMode = document.documentElement.classList.contains('dark-mode');
     localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
 }
 
@@ -9,6 +8,6 @@ function toggleTheme() {
 document.addEventListener('DOMContentLoaded', () => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
-        document.body.classList.add('dark-mode');
+        document.documentElement.classList.add('dark-mode');
     }
 });

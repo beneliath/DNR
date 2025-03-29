@@ -29,8 +29,8 @@ To set up the project on your local machine, follow these steps:
 - [x] add default username/password (admin/p@55word)
 - [x] complete minimal buildout of 'Add Engagement' functionality
 - [x] !!! fix Mailing & Physical Address issue with 'Add Organization'
+- [x] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
 - [ ] globbing for Mailing & Physical Address entry
-- [ ] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
 - [ ] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
