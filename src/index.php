@@ -93,7 +93,7 @@ $error_message = htmlspecialchars("Please fill in all required fields, including
 
     <h2>Add Engagement</h2>
     <!-- Form for adding a new speaking engagement -->
-    <form method="post" action="index.php">
+    <form method="post" action="index.php" onsubmit="return validateDates();">
 <div class="organization-container">
     <label for="organization_id">organization:</label>
     <select name="organization_id" id="organization_id" required>
@@ -178,6 +178,18 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 <?php endif; ?>
 
 <script>
+    // Validate that the event end date is on or after the event start date
+    function validateDates() {
+        const startDate = document.getElementById("event_start_date").value;
+        const endDate = document.getElementById("event_end_date").value;
+
+        if (new Date(endDate) < new Date(startDate)) {
+            alert("The end date must be later than or equal to the start date.");
+            return false;
+        }
+        return true;
+    }
+
     // Toggle visibility of the "other event type" input based on selection
     function toggleOtherEventType(selectElement) {
         const otherDiv = document.getElementById("other_event_type_div");
