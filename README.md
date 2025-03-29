@@ -1,9 +1,10 @@
 # DNR: Deploy and Report
 
-DNR (Deploy and Report) is a project designed to [*provide a brief description of the project's purpose and functionality*].
+DNR (Deploy and Report) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
 
 ## To Do
 
+- [x] rename project to "deploy and report"
 - [ ] code Event Mailing Address / Event Physical Address
 - [ ] code: Is Mailing the same as Physical?
 - [ ] consider address data locus in Event or Organization
