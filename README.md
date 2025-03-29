@@ -49,7 +49,7 @@ Environment Variables:
 
 Configure the following environment variables to customize the application's behavior:
 
-_VARIABLE_NAME: Description of the variable._
+{_VARIABLE_NAME: Description of the variable._}
 
 ### Usage
 
