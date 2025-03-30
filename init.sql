@@ -6,10 +6,29 @@ CREATE TABLE IF NOT EXISTS users (
     role ENUM('admin', 'editor', 'reviewer') NOT NULL
 );
 
+-- for production (default admin account)
 -- Insert default admin account
 INSERT INTO users (username, password, role) 
 VALUES ('admin', 'p@55word', 'admin')
 ON DUPLICATE KEY UPDATE username=username;
+
+-- ! REMOVE BLOCK BELOW THIS LINE ON FINAL BUILD ! =======
+
+-- for development (editor and reviewer accounts)
+-- we will want to see what things look like from the perspective
+-- of and editor and a reviewer ...
+
+-- Insert default editor account
+INSERT INTO users (username, password, role) 
+VALUES ('editor', 'p@55word', 'editor')
+ON DUPLICATE KEY UPDATE username=username;
+
+-- Insert default reviewer account
+INSERT INTO users (username, password, role) 
+VALUES ('reviewer', 'p@55word', 'reviewer')
+ON DUPLICATE KEY UPDATE username=username;
+
+-- ! REMOVE BLOCK ABOVE THIS LINE ON FINAL BUILD ! =======
 
 -- Organizations table
 CREATE TABLE IF NOT EXISTS organizations (

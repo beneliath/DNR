@@ -290,7 +290,7 @@ h2 {
 .dark-mode .add-org-button:hover,
 .dark-mode .save-event-button:hover,
 .dark-mode input[type="submit"]:hover {
-  background-color: #00608c !important;
+  background-color: #FF9800 !important;
 }
 
 /* Ensure all containers and sections are covered */
