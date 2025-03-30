@@ -31,6 +31,7 @@ To set up the project on your local machine, follow these steps:
 - [x] fix Mailing & Physical Address issue with 'Add Organization'
 - [x] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
 - [x] globbing for Mailing & Physical Address entry
+- [x] login ui/ux redesign
 - [ ] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality

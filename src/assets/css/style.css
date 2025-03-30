@@ -214,14 +214,77 @@ label[for="caller_name"],
   width: 250px;
 }
 
-/* Login box */
+/* Login page specific styles */
 .login-container {
-  max-width: 400px;
-  width: 100%;
+  background: linear-gradient(135deg, #00a99d 0%, #4b6cb7 50%, #6b4b8a 100%);
   padding: 40px;
-  background: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
+  border-radius: 30px;
+  width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.login-container h1 {
+  color: #fff;
+  font-size: 48px;
+  margin-bottom: 40px;
+  font-weight: 300;
+  text-align: center;
+}
+
+.login-container .form-group {
+  margin-bottom: 25px;
+}
+
+.login-container label {
+  color: #fff;
+  font-size: 20px;
+  margin-bottom: 10px;
+  font-weight: 300;
+}
+
+.login-container input[type="text"],
+.login-container input[type="password"] {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 25px;
+  background-color: rgba(255, 255, 255, 0.9);
+  font-size: 16px;
+  margin-top: 8px;
+}
+
+.login-container .login-button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 25px;
+  background-color: #4a90e2;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  margin-top: 20px;
+  transition: background-color 0.3s ease;
+}
+
+.login-container .login-button:hover {
+  background-color: #357abd;
+}
+
+body.fullscreen-center {
+  background-color: #ffd7d0;
+  min-height: 100vh;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-container .error {
+  color: #fff;
+  background-color: rgba(255, 0, 0, 0.2);
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 20px;
   text-align: center;
 }
 

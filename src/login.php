@@ -36,16 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body class="fullscreen-center">
   <div class="login-container">
-    <h2>Login to DNR</h2>
+    <h1>Login</h1>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
-      <label for="username">username:</label>
-      <input type="text" name="username" required>
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input type="text" name="username" id="username" required>
+      </div>
 
-      <label for="password">password:</label>
-      <input type="password" name="password" required>
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input type="password" name="password" id="password" required>
+      </div>
 
-      <input type="submit" value="Login">
+      <button type="submit" class="login-button">Login</button>
     </form>
   </div>
 </body>
