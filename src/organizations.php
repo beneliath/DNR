@@ -139,7 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h1>Organizations</h1>
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <h2>Add Organization</h2>

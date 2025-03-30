@@ -85,8 +85,6 @@ $error_message = htmlspecialchars("Please fill in all required fields, including
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
-    <h1>DNR</h1>
-
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
@@ -128,7 +126,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
         <!-- FIXED: Event type and other field inline -->
         <div class="event-type-container">
-            <div class="event-type-field">
+            <div class="form-field">
                 <label for="event_type">event type:</label>
                 <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
                     <option value="conference">conference</option>
@@ -147,25 +145,43 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
         <br>
 
-        <label>
-            <input type="checkbox" name="book_table"> book table provided
-        </label><br>
-        <label>
-            <input type="checkbox" name="brochures"> brochures permitted
-        </label><br><br>
+        <div class="checkbox-row">
+            <label class="checkbox-label">
+                <input type="checkbox" name="book_table"> book table provided
+            </label>
+            <label class="checkbox-label" style="margin-left: 40px;">
+                <input type="checkbox" name="brochures"> brochures permitted
+            </label>
+        </div>
 
-        <label for="caller_name">caller:</label>
-        <input type="text" name="caller_name" id="caller_name"><br><br>
+        <div class="form-row">
+            <div class="form-field">
+                <label for="caller_name">caller:</label>
+                <select name="caller_name" id="caller_name">
+                    <option value="" disabled selected>select a caller</option>
+                    <?php
+                    // Fetch and display users in the dropdown
+                    $users = $conn->query("SELECT username FROM users ORDER BY username");
+                    while ($row = $users->fetch_assoc()) {
+                        echo "<option value='" . htmlspecialchars($row['username']) . "'>" . htmlspecialchars($row['username']) . "</option>";
+                    }
+                    ?>
+                </select>
+            </div>
 
-        <label for="confirmation_status">status:</label>
-        <select name="confirmation_status" id="confirmation_status">
-            <option value="work_in_progress">work in progress</option>
-            <option value="under_review">under review</option>
-            <option value="confirmed">confirmed</option>
-        </select>
+            <div class="form-field" style="margin-left: 20px;">
+                <label for="confirmation_status">status:</label>
+                <select name="confirmation_status" id="confirmation_status">
+                    <option value="work_in_progress">work in progress</option>
+                    <option value="under_review">under review</option>
+                    <option value="confirmed">confirmed</option>
+                </select>
+            </div>
 
-<div class="save-button-container">
-        <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-event-button"></div>
+            <div class="save-button-container">
+                <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-event-button">
+            </div>
+        </div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
@@ -209,6 +225,66 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         toggleOtherEventType(document.getElementById("event_type"));
     });
 </script>
+
+<style>
+    .form-row {
+        margin-bottom: 15px;
+        display: flex;
+        align-items: baseline;
+        max-width: calc(100% - 5px);
+    }
+    .form-field {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .form-field label {
+        min-width: 60px;
+        margin-top: -8px;
+    }
+    /* Make event type label 20% wider */
+    .event-type-container .form-field label {
+        min-width: 90px;  /* 60px + 50% */
+    }
+    .form-field select {
+        width: 200px;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        height: 35px;
+        outline: none;
+    }
+    #caller_name {
+        width: 180px;
+    }
+    #confirmation_status {
+        width: 200px;
+    }
+    /* Dark mode styles */
+    .dark-mode .form-field select {
+        background-color: #1e1e1e;
+        color: #fff;
+        border-color: #333;
+    }
+    .save-button-container {
+        margin-left: auto;
+        padding-left: 20px;
+        transform: translateY(-10px);  /* Increased negative value to move the button up 2 more pixels */
+    }
+    .save-event-button {
+        padding: 5px 15px;
+    }
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+</style>
 
 </body>
 </html>

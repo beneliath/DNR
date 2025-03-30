@@ -6,7 +6,7 @@
     <nav>
         <ul>
             <li><a href="index.php">Add Engagement</a></li>|&nbsp;&nbsp;&nbsp;
-            <li><a href="organizations.php">Organizations</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="organizations.php">Add Organizations</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="engagements.php">Engagements</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="logout.php">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</a></li>|&nbsp;&nbsp;&nbsp;
             
