@@ -16,6 +16,7 @@ html, body {
   margin: 0;
   padding: 0;
   font-family: Arial, sans-serif;
+  line-height: 1.6;
   background-color: var(--bg-color);
   color: var(--text-color);
 }
@@ -26,6 +27,7 @@ html, body {
   align-items: center;
   justify-content: center;
   height: 100vh;
+  background-color: var(--bg-color);
 }
 
 /* Header/Footer */
@@ -245,12 +247,12 @@ label[for="caller_name"],
 .login-container input[type="text"],
 .login-container input[type="password"] {
   width: 100%;
-  padding: 15px;
-  border: none;
-  border-radius: 25px;
-  background-color: rgba(255, 255, 255, 0.9);
-  font-size: 16px;
-  margin-top: 8px;
+  padding: 10px;
+  margin: 8px 0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #333;
 }
 
 .login-container .login-button {
@@ -268,15 +270,6 @@ label[for="caller_name"],
 
 .login-container .login-button:hover {
   background-color: #357abd;
-}
-
-body.fullscreen-center {
-  background-color: #ffd7d0;
-  min-height: 100vh;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .login-container .error {
@@ -315,25 +308,23 @@ h2 {
 }
 
 /* Dark Mode Support */
-:root.dark-mode {
+html.dark-mode {
   --bg-color: var(--dark-bg-color);
   --text-color: var(--dark-text-color);
   --link-color: var(--dark-link-color);
 }
 
 /* Dark mode specific styles */
-.dark-mode {
+html.dark-mode,
+html.dark-mode body,
+html.dark-mode .fullscreen-center {
   background-color: var(--dark-bg-color) !important;
   color: var(--dark-text-color) !important;
 }
 
-.dark-mode body {
-  background-color: var(--dark-bg-color) !important;
-}
-
-/* Form inputs in dark mode */
-.dark-mode input[type="text"],
-.dark-mode input[type="password"],
+/* Form inputs in dark mode - exclude login container */
+.dark-mode input[type="text"]:not(.login-container input[type="text"]),
+.dark-mode input[type="password"]:not(.login-container input[type="password"]),
 .dark-mode input[type="date"],
 .dark-mode select,
 .dark-mode textarea {
@@ -342,7 +333,7 @@ h2 {
   color: var(--dark-text-color) !important;
 }
 
-/* Exclude specific buttons from dark mode */
+/* Dark mode button styles */
 .dark-mode .add-org-button,
 .dark-mode .save-event-button,
 .dark-mode input[type="submit"] {
@@ -356,18 +347,38 @@ h2 {
   background-color: #FF9800 !important;
 }
 
-/* Ensure all containers and sections are covered */
+/* Ensure all containers and sections are covered - exclude login container */
 .dark-mode .container,
 .dark-mode header,
 .dark-mode footer,
 .dark-mode nav,
-.dark-mode .login-container,
 .dark-mode .fullscreen-center,
 .dark-mode .left-column,
 .dark-mode .right-column,
 .dark-mode main,
 .dark-mode section,
-.dark-mode div {
+.dark-mode div:not(.login-container):not(.login-container *) {
   background-color: var(--dark-bg-color) !important;
   color: var(--dark-text-color) !important;
+}
+
+/* Ensure login container maintains its style in both modes */
+.login-container,
+.dark-mode .login-container {
+  background: linear-gradient(135deg, #00a99d 0%, #4b6cb7 50%, #6b4b8a 100%) !important;
+  color: #fff !important;
+}
+
+.login-container input[type="text"],
+.login-container input[type="password"],
+.dark-mode .login-container input[type="text"],
+.dark-mode .login-container input[type="password"] {
+  background-color: #fff !important;
+  color: #333 !important;
+  border: 1px solid #ddd !important;
+}
+
+.login-container label,
+.dark-mode .login-container label {
+  color: #fff !important;
 }

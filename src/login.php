@@ -33,10 +33,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <meta charset="UTF-8">
   <title>DNR - Login</title>
   <link rel="stylesheet" href="assets/css/style.css">
+  <script>
+    // Load theme before page renders
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark-mode');
+    }
+  </script>
 </head>
 <body class="fullscreen-center">
   <div class="login-container">
-    <h1>DNR Login</h1>
+    <h1>Login</h1>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
       <div class="form-group">
@@ -52,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       <button type="submit" class="login-button">Login</button>
     </form>
   </div>
+  <script src="assets/js/theme.js"></script>
 </body>
 </html>
 
