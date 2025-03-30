@@ -182,7 +182,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         </div>
 
         <div class="radio-group">
-            <label class="required">Event Mailing and Physical Address the same?</label>
+            <label class="required">Mailing and Physical Address the same?</label>
             <div>
                 <label><input type="radio" name="same_address" value="yes" checked> Yes</label>
                 <label><input type="radio" name="same_address" value="no"> No</label>
@@ -190,7 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         </div>
 
         <div id="physical_address_section" class="address-section">
-            <h3 class="required">Event Physical Address</h3>
+            <h3 class="required">Physical Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
                     <input type="text" name="physical_address_line_1" placeholder="Address Line 1" required>
@@ -219,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         </div>
 
         <div id="mailing_address_section" class="address-section">
-            <h3 class="required">Event Mailing Address</h3>
+            <h3 class="required">Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
                     <input type="text" name="mailing_address_line_1" placeholder="Address Line 1">

@@ -34,7 +34,7 @@ To set up the project on your local machine, follow these steps:
 - [ ] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
-- [ ] code Event Mailing Address / Event Physical Address
+- [ ] code Mailing Address / Physical Address
 - [ ] code: Is Mailing the same as Physical?
 - [ ] consider address data locus in Event or Organization
 - [ ] header navigation bar redesign (only after base functionality completed)
