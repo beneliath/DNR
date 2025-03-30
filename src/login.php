@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </head>
 <body class="fullscreen-center">
   <div class="login-container">
-    <h1>Login</h1>
+    <h1>DNR Login</h1>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
       <div class="form-group">
