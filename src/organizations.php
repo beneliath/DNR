@@ -16,7 +16,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $website_url = $conn->real_escape_string($_POST['website_url']);
     $phone = $conn->real_escape_string($_POST['phone']);
     $fax = $conn->real_escape_string($_POST['fax']);
-    $email = $conn->real_escape_string($_POST['email']);
     $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
     $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
     $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
@@ -31,8 +30,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $physical_country = $conn->real_escape_string($_POST['physical_country']);
 
     // Insert new organization into the database
-    $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, email, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
-            VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$email', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
+    $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
+            VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
 
     if ($conn->query($sql) === TRUE) {
         $message = "Organization saved successfully.";
@@ -46,6 +45,96 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 <head>
     <title>Organizations - DNR</title>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        /* Add box-sizing to ensure consistent sizing */
+        *, *:before, *:after {
+            box-sizing: border-box;
+        }
+        .form-group input[type="text"],
+        .form-group input[type="url"],
+        .form-group input[type="email"],
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #000;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Dark mode styles */
+        .dark-mode .form-group input[type="text"],
+        .dark-mode .form-group input[type="url"],
+        .dark-mode .form-group input[type="email"],
+        .dark-mode .form-group textarea,
+        .dark-mode .form-group select {
+            background-color: #1e1e1e;
+            color: #fff;
+            border-color: #444;
+        }
+        
+        .form-group input[type="text"]:focus,
+        .form-group input[type="url"]:focus,
+        .form-group input[type="email"]:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4a9eff;
+        }
+
+        .address-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        .dark-mode .address-section {
+            border-color: #444;
+        }
+
+        .address-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .address-full-width {
+            grid-column: 1 / -1;
+        }
+        .required::after {
+            content: " *";
+            color: red;
+            display: inline;
+        }
+        #mailing_address_section {
+            display: none;
+        }
+        .radio-group {
+            margin: 15px 0;
+        }
+        .radio-group label {
+            margin-right: 20px;
+        }
+        .contact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+    </style>
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -55,31 +144,139 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <h2>Add Organization</h2>
     <form method="post" action="organizations.php">
-        <label>Organization Name: <input type="text" name="organization_name" required></label><br>
-        <label>Notes:<br>
-            <textarea name="notes" rows="3" cols="50"></textarea>
-        </label><br>
-        <label>Affiliation: <input type="text" name="affiliation"></label><br>
-        <label>Distinctives: <input type="text" name="distinctives"></label><br>
-        <label>Website URL: <input type="url" name="website_url"></label><br>
-        <label>Phone: <input type="text" name="phone"></label><br>
-        <label>Fax: <input type="text" name="fax"></label><br>
-        <label>Email: <input type="email" name="email"></label><br>
-        <label>Mailing Address Line 1: <input type="text" name="mailing_address_line_1" required></label><br>
-        <label>Mailing Address Line 2: <input type="text" name="mailing_address_line_2"></label><br>
-        <label>Mailing City: <input type="text" name="mailing_city" required></label><br>
-        <label>Mailing State: <input type="text" name="mailing_state" required></label><br>
-        <label>Mailing Zipcode: <input type="text" name="mailing_zipcode" required></label><br>
-        <label>Mailing Country: <input type="text" name="mailing_country" required></label><br>
-        <label>Physical Address Line 1: <input type="text" name="physical_address_line_1" required></label><br>
-        <label>Physical Address Line 2: <input type="text" name="physical_address_line_2"></label><br>
-        <label>Physical City: <input type="text" name="physical_city" required></label><br>
-        <label>Physical State: <input type="text" name="physical_state" required></label><br>
-        <label>Physical Zipcode: <input type="text" name="physical_zipcode" required></label><br>
-        <label>Physical Country: <input type="text" name="physical_country" required></label><br>
-        <input type="submit" name="save_org" value="Save Organization">
+        <div class="form-group">
+            <label class="required">Organization Name</label>
+            <input type="text" name="organization_name" required>
+        </div>
+        
+        <div class="form-group">
+            <label>Notes</label>
+            <textarea name="notes" rows="3"></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label>Affiliation</label>
+            <input type="text" name="affiliation">
+        </div>
+        
+        <div class="form-group">
+            <label>Distinctives</label>
+            <input type="text" name="distinctives">
+        </div>
+        
+        <div class="form-group">
+            <label>Website URL</label>
+            <input type="url" name="website_url">
+        </div>
+        
+        <div class="contact-grid">
+            <div class="form-group">
+                <label>Phone</label>
+                <input type="text" name="phone">
+            </div>
+            
+            <div class="form-group">
+                <label>Fax</label>
+                <input type="text" name="fax">
+            </div>
+        </div>
+
+        <div class="radio-group">
+            <label class="required">Event Mailing and Physical Address the same?</label>
+            <div>
+                <label><input type="radio" name="same_address" value="yes" checked> Yes</label>
+                <label><input type="radio" name="same_address" value="no"> No</label>
+            </div>
+        </div>
+
+        <div id="physical_address_section" class="address-section">
+            <h3 class="required">Event Physical Address</h3>
+            <div class="address-grid">
+                <div class="address-full-width">
+                    <input type="text" name="physical_address_line_1" placeholder="Address Line 1" required>
+                </div>
+                <div class="address-full-width">
+                    <input type="text" name="physical_address_line_2" placeholder="Address Line 2">
+                </div>
+                <div>
+                    <input type="text" name="physical_city" placeholder="City" required>
+                </div>
+                <div>
+                    <input type="text" name="physical_state" placeholder="State/Province" required>
+                </div>
+                <div>
+                    <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required>
+                </div>
+                <div class="address-full-width">
+                    <select name="physical_country" required>
+                        <option value="">Select Country</option>
+                        <option value="USA">United States</option>
+                        <option value="CAN">Canada</option>
+                        <!-- Add more countries as needed -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="mailing_address_section" class="address-section">
+            <h3 class="required">Event Mailing Address</h3>
+            <div class="address-grid">
+                <div class="address-full-width">
+                    <input type="text" name="mailing_address_line_1" placeholder="Address Line 1">
+                </div>
+                <div class="address-full-width">
+                    <input type="text" name="mailing_address_line_2" placeholder="Address Line 2">
+                </div>
+                <div>
+                    <input type="text" name="mailing_city" placeholder="City">
+                </div>
+                <div>
+                    <input type="text" name="mailing_state" placeholder="State/Province">
+                </div>
+                <div>
+                    <input type="text" name="mailing_zipcode" placeholder="Zip/Postal">
+                </div>
+                <div class="address-full-width">
+                    <select name="mailing_country">
+                        <option value="">Select Country</option>
+                        <option value="USA">United States</option>
+                        <option value="CAN">Canada</option>
+                        <!-- Add more countries as needed -->
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input type="submit" name="save_org" value="Save Organization">
+        </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sameAddressRadios = document.querySelectorAll('input[name="same_address"]');
+    const mailingSection = document.getElementById('mailing_address_section');
+    const mailingInputs = mailingSection.querySelectorAll('input, select');
+
+    function toggleMailingAddress(showMailing) {
+        mailingSection.style.display = showMailing ? 'block' : 'none';
+        mailingInputs.forEach(input => {
+            input.required = showMailing;
+        });
+    }
+
+    sameAddressRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            toggleMailingAddress(this.value === 'no');
+        });
+    });
+
+    // Initial state
+    toggleMailingAddress(false);
+});
+</script>
+
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

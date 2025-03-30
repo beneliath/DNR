@@ -1,5 +1,5 @@
 <?php
-session_start(); // Start session to access session variables
+// Session is already started in index.php
 ?>
 
 <header>
