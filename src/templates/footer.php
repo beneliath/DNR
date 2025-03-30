@@ -1,5 +1,5 @@
 <footer>
-    <p>&copy; <?php echo date("Y"); ?> beneliath&nbsp;&nbsp;&nbsp;<span style="color: lightgrey;">|&nbsp;&nbsp;&nbsp;Shalom in Messiah Ministries</span></p>
+    <p>&copy; <?php echo date("Y"); ?> beneliath&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;Shalom in Messiah Ministries&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<a href="logout.php" style="text-decoration: none; color: var(--link-color);">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</a></p>
     
     <!-- ASCII Art Container -->
     <div class="ascii-art-container">

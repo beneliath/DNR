@@ -8,7 +8,6 @@
             <li><a href="index.php">Add Engagement</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="organizations.php">Add Organizations</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="engagements.php">Engagements</a></li>|&nbsp;&nbsp;&nbsp;
-            <li><a href="logout.php">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</a></li>|&nbsp;&nbsp;&nbsp;
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
                 <!-- Only display 'New User' link if the user is logged in as an admin -->
