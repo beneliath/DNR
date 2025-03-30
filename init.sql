@@ -89,3 +89,15 @@ CREATE TABLE IF NOT EXISTS presentations (
     FOREIGN KEY (engagement_id) REFERENCES engagements(id)
 );
 
+-- Contacts table
+CREATE TABLE IF NOT EXISTS contacts (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    organization_id INT NOT NULL,
+    contact_name VARCHAR(255) NOT NULL,
+    contact_role ENUM('pastor', 'admin', 'other') NOT NULL,
+    contact_role_other VARCHAR(255),
+    contact_email VARCHAR(255) NOT NULL,
+    contact_phone VARCHAR(50),
+    FOREIGN KEY (organization_id) REFERENCES organizations(id)
+);
+

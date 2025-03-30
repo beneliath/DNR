@@ -8,35 +8,71 @@ include 'functions.php';
 requireLogin(); // Will redirect to login.php if not logged in
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
-    // Sanitize user input
-    $organization_name = $conn->real_escape_string($_POST['organization_name']);
-    $notes = $conn->real_escape_string($_POST['notes']);
-    $affiliation = $conn->real_escape_string($_POST['affiliation']);
-    $distinctives = $conn->real_escape_string($_POST['distinctives']);
-    $website_url = $conn->real_escape_string($_POST['website_url']);
-    $phone = $conn->real_escape_string($_POST['phone']);
-    $fax = $conn->real_escape_string($_POST['fax']);
-    $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
-    $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
-    $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
-    $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
-    $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
-    $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
-    $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
-    $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
-    $physical_city = $conn->real_escape_string($_POST['physical_city']);
-    $physical_state = $conn->real_escape_string($_POST['physical_state']);
-    $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
-    $physical_country = $conn->real_escape_string($_POST['physical_country']);
+    $error = false;
+    $errorMessages = array();
 
-    // Insert new organization into the database
-    $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
-            VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
+    // Validate contact email match
+    if ($_POST['contact_email'] !== $_POST['contact_email_confirm']) {
+        $error = true;
+        $errorMessages[] = "Email addresses do not match.";
+    }
 
-    if ($conn->query($sql) === TRUE) {
-        $message = "Organization saved successfully.";
-    } else {
-        $error = "Error: " . $conn->error;
+    // Validate contact role other
+    if ($_POST['contact_role'] === 'other' && empty($_POST['contact_role_other'])) {
+        $error = true;
+        $errorMessages[] = "Please specify the other role.";
+    }
+
+    if (!$error) {
+        // Sanitize user input for organization
+        $organization_name = $conn->real_escape_string($_POST['organization_name']);
+        $notes = $conn->real_escape_string($_POST['notes']);
+        $affiliation = $conn->real_escape_string($_POST['affiliation']);
+        $distinctives = $conn->real_escape_string($_POST['distinctives']);
+        $website_url = $conn->real_escape_string($_POST['website_url']);
+        $phone = $conn->real_escape_string($_POST['phone']);
+        $fax = $conn->real_escape_string($_POST['fax']);
+        $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
+        $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
+        $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
+        $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
+        $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
+        $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
+        $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
+        $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
+        $physical_city = $conn->real_escape_string($_POST['physical_city']);
+        $physical_state = $conn->real_escape_string($_POST['physical_state']);
+        $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
+        $physical_country = $conn->real_escape_string($_POST['physical_country']);
+
+        // Insert new organization into the database
+        $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
+                VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
+
+        if ($conn->query($sql) === TRUE) {
+            $organization_id = $conn->insert_id;
+
+            // Sanitize contact information
+            $contact_name = $conn->real_escape_string($_POST['contact_name']);
+            $contact_role = $conn->real_escape_string($_POST['contact_role']);
+            $contact_role_other = $conn->real_escape_string($_POST['contact_role_other']);
+            $contact_email = $conn->real_escape_string($_POST['contact_email']);
+            $contact_phone = $conn->real_escape_string($_POST['contact_phone']);
+
+            // Insert contact information
+            $contact_sql = "INSERT INTO contacts (organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone)
+                          VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
+
+            if ($conn->query($contact_sql) === TRUE) {
+                $message = "Organization and contact information saved successfully.";
+            } else {
+                $error = true;
+                $errorMessages[] = "Error saving contact information: " . $conn->error;
+            }
+        } else {
+            $error = true;
+            $errorMessages[] = "Error saving organization: " . $conn->error;
+        }
     }
 }
 ?>
@@ -60,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .form-group input[type="text"],
         .form-group input[type="url"],
         .form-group input[type="email"],
+        .form-group input[type="tel"],
         .form-group textarea,
         .form-group select {
             width: 100%;
@@ -79,6 +116,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .dark-mode .form-group input[type="text"],
         .dark-mode .form-group input[type="url"],
         .dark-mode .form-group input[type="email"],
+        .dark-mode .form-group input[type="tel"],
         .dark-mode .form-group textarea,
         .dark-mode .form-group select {
             background-color: #1e1e1e;
@@ -89,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .form-group input[type="text"]:focus,
         .form-group input[type="url"]:focus,
         .form-group input[type="email"]:focus,
+        .form-group input[type="tel"]:focus,
         .form-group textarea:focus,
         .form-group select:focus {
             outline: none;
@@ -129,10 +168,65 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .radio-group label {
             margin-right: 20px;
         }
+        /* Style for radio buttons */
+        .radio-group input[type="radio"] {
+            accent-color: #357abd;
+        }
+        /* Dark mode radio buttons */
+        .dark-mode .radio-group input[type="radio"] {
+            accent-color: #357abd;
+        }
         .contact-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 15px;
+        }
+        .narrow-select {
+            width: 200px !important;
+        }
+        .role-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 30px;
+            justify-content: space-between;
+        }
+        #other_role_group {
+            flex: 0 0 60%;
+        }
+        .email-container {
+            display: flex;
+            align-items: flex-end;
+            gap: 30px;
+            justify-content: flex-start;
+        }
+        .email-field {
+            flex: 0 0 calc(50% - 15px);
+        }
+        .form-group select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #fff;
+            color: #000;
+            margin: 0;
+            box-sizing: border-box;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 1em;
+            padding-right: 32px;
+        }
+
+        /* Dark mode styles */
+        .dark-mode .form-group select {
+            background-color: #1e1e1e;
+            color: #fff;
+            border-color: #444;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
         }
     </style>
 </head>
@@ -140,7 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    <?php if (isset($error)) echo "<p class='error'>" . implode("<br>", $errorMessages) . "</p>"; ?>
     <h2>Add Organization</h2>
     <form method="post" action="organizations.php">
         <div class="form-group">
@@ -150,7 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         
         <div class="form-group">
             <label>Notes</label>
-            <textarea name="notes" rows="3"></textarea>
+            <textarea name="notes" rows="4"></textarea>
         </div>
         
         <div class="form-group">
@@ -246,6 +340,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             </div>
         </div>
 
+        <div class="address-section">
+            <h3 class="required">Contact Information</h3>
+            <div class="role-container">
+                <div class="form-group" style="flex: 1;">
+                    <label class="required">Name</label>
+                    <input type="text" name="contact_name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="required">Phone</label>
+                    <input type="tel" name="contact_phone" class="narrow-select" required>
+                </div>
+            </div>
+
+            <div class="role-container">
+                <div class="form-group">
+                    <label class="required">Role</label>
+                    <select name="contact_role" id="contact_role" class="narrow-select" required onchange="toggleOtherRole()">
+                        <option value="">Select Role</option>
+                        <option value="pastor">Pastor</option>
+                        <option value="admin">Admin</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="other_role_group" style="display: none;">
+                    <label class="required">Describe Other Role</label>
+                    <input type="text" name="contact_role_other" id="contact_role_other">
+                </div>
+            </div>
+
+            <div class="email-container">
+                <div class="form-group email-field">
+                    <label class="required">Email</label>
+                    <input type="email" name="contact_email" required>
+                </div>
+
+                <div class="form-group email-field">
+                    <label class="required">Confirm Email</label>
+                    <input type="email" name="contact_email_confirm" required>
+                </div>
+            </div>
+        </div>
+
         <div class="form-group">
             <input type="submit" name="save_org" value="Save Organization">
         </div>
@@ -253,6 +391,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 </div>
 
 <script>
+function toggleOtherRole() {
+    const roleSelect = document.getElementById('contact_role');
+    const otherRoleGroup = document.getElementById('other_role_group');
+    const otherRoleInput = document.getElementById('contact_role_other');
+    
+    if (roleSelect.value === 'other') {
+        otherRoleGroup.style.display = 'block';
+        otherRoleInput.required = true;
+    } else {
+        otherRoleGroup.style.display = 'none';
+        otherRoleInput.required = false;
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const sameAddressRadios = document.querySelectorAll('input[name="same_address"]');
     const mailingSection = document.getElementById('mailing_address_section');
