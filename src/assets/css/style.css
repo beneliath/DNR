@@ -570,3 +570,18 @@ h3 {
 .narrow-select {
     width: 50% !important;
 }
+
+.field-group input[type="text"] {
+    height: 35px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dark-mode .field-group input[type="text"] {
+    background-color: #1e1e1e;
+    color: #fff;
+    border-color: #333;
+}

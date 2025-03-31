@@ -74,11 +74,11 @@ CREATE TABLE IF NOT EXISTS engagements (
     event_state VARCHAR(100),
     event_zipcode VARCHAR(20),
     event_country VARCHAR(100),
-    travel_covered ENUM('yes', 'no') DEFAULT NULL,
+    travel_covered ENUM('unknown', 'yes', 'no') DEFAULT 'unknown',
     travel_amount DECIMAL(10,2) DEFAULT NULL,
     compensation_type ENUM('Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other') DEFAULT 'Unknown',
     other_compensation TEXT,
-    housing_type ENUM('Unknown', 'None', 'Hotel', 'Other') DEFAULT 'Unknown',
+    housing_type ENUM('Unknown', 'Provided', 'Not Provided', 'Other') DEFAULT 'Unknown',
     other_housing TEXT,
     housing_amount DECIMAL(10,2) DEFAULT NULL,
     FOREIGN KEY (organization_id) REFERENCES organizations(id)

@@ -34,14 +34,14 @@ To set up the project on your local machine, follow these steps:
 - [x] login ui/ux redesign
 - [x] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
-- [ ] add anticipated compensation block for 'Add Engagement'
+- [x] add anticipated compensation block for 'Add Engagement'
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
 - [ ] header navigation bar redesign (only after base functionality completed)
 - [ ] doublecheck password entry for new user creation
 - [ ] mod edit user to allow for change of password (with doublecheck)
-- [ ] build out profiles for users that includes email and phone for contact
+- [ ] build out profiles for users (including email sub-system for initialization and password reset)
 - [ ] add functionality to activate/deactivate users
 - [ ] build out for Contact(s): Admin, Pastor
 - [ ] build out for Anticipated Compensation

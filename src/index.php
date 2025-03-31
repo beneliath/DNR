@@ -157,6 +157,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             <div class="radio-row">
                 <label>All Travel Covered?</label>
                 <div class="radio-options">
+                    <label><input type="radio" name="travel_covered" value="unknown" checked> Unknown</label>
                     <label><input type="radio" name="travel_covered" value="yes"> Yes</label>
                     <label><input type="radio" name="travel_covered" value="no"> No</label>
                 </div>
@@ -188,46 +189,43 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 <br>
             <div class="amount-row">
                 <div class="form-field">
-                    <label for="travel_amount">Travel (not in Compensation)</label>
+                    <label>Travel (not in Compensation)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="travel_amount" id="travel_amount">
+                        <input type="number" name="travel_amount" step="0.01" min="0">
                     </div>
                 </div>
-
                 <div class="form-field">
-                    <label for="housing_amount">Housing (not in Travel)</label>
+                    <label>Lodging (not in Travel)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="housing_amount" id="housing_amount">
+                        <input type="number" name="housing_amount" step="0.01" min="0">
                     </div>
                 </div>
             </div>
         </div>
 <br>
-        <div class="compensation-grid">
-            <div class="compensation-type-row">
-                <div class="form-field">
-                    <div class="field-group">
-                        <label for="housing_type">Housing (not in Compensation)</label>
-                        <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
-                            <option value="Unknown">Unknown</option>
-                            <option value="None">None</option>
-                            <option value="Hotel">Hotel</option>
-                            <option value="Other">Other</option>
-                        </select>
-                    </div>
+        <div class="compensation-type-row">
+            <div class="form-field">
+                <div class="field-group">
+                    <label for="housing_type">Lodging Type</label>
+                    <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
+                        <option value="Unknown">Unknown</option>
+                        <option value="Provided">Provided</option>
+                        <option value="Not Provided">Not Provided</option>
+                        <option value="Other">Other</option>
+                    </select>
                 </div>
+            </div>
 
-                <div class="form-field" id="other_housing_div" style="display: none;">
-                    <div class="field-group">
-                        <label for="other_housing" class="required">Describe Other Housing</label>
-                        <input type="text" name="other_housing" id="other_housing">
-                    </div>
+            <div class="form-field" id="other_housing_div" style="display: none;">
+                <div class="field-group">
+                    <label for="other_housing" class="required">Describe Other Lodging</label>
+                    <input type="text" name="other_housing" id="other_housing">
                 </div>
             </div>
         </div>
-
+<br>
         <div class="form-row">
             <div class="form-field">
                 <label for="caller_name">caller:</label>
@@ -313,17 +311,17 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
     // Toggle visibility of other housing field
     function toggleOtherHousing() {
-        const select = document.getElementById("housing_type");
-        const otherDiv = document.getElementById("other_housing_div");
-        const otherInput = document.getElementById("other_housing");
+        const housingType = document.getElementById('housing_type');
+        const otherHousingDiv = document.getElementById('other_housing_div');
+        const otherHousingInput = document.getElementById('other_housing');
         
-        if (select.value === "Other") {
-            otherDiv.style.display = "block";
-            otherInput.required = true;
+        if (housingType.value === 'Other') {
+            otherHousingDiv.style.display = 'block';
+            otherHousingInput.required = true;
         } else {
-            otherDiv.style.display = "none";
-            otherInput.required = false;
-            otherInput.value = ""; // Clear the input when hidden
+            otherHousingDiv.style.display = 'none';
+            otherHousingInput.required = false;
+            otherHousingInput.value = '';
         }
     }
 </script>
