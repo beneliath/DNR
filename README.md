@@ -33,7 +33,7 @@ To set up the project on your local machine, follow these steps:
 - [x] globbing for Mailing & Physical Address entry
 - [x] login ui/ux redesign
 - [x] complete minimal buildout of 'Add Organization' functionality
-- [ ] ensure docker container auto-restarts
+- [x] ensure docker container auto-restarts
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [x] add anticipated compensation block for 'Add Engagement'
 - [ ] complete minimal buildout of 'Add Presentation' functionality
