@@ -35,13 +35,13 @@ To set up the project on your local machine, follow these steps:
 - [x] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [x] add anticipated compensation block for 'Add Engagement'
-- [ ] complete minimal buildout of 'Add Presentation(s)' functionality
+- [ ] complete minimal buildout of 'Add Presentation' functionality
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
-- [ ] test 'Add Engagement'; on pass, tag restore point
-- [ ] test 'Add Organization'; on pass, tag restore point
-- [ ] test 'Add Contact'; on pass, tag restore point
-- [ ] test 'Add Presentation'; on pass, tag restore point
+- [ ] TEST 'Add Engagement'; on pass, tag restore point
+- [ ] TEST 'Add Organization'; on pass, tag restore point
+- [ ] TEST 'Add Contact'; on pass, tag restore point
+- [ ] TEST 'Add Presentation'; on pass, tag restore point
 - [ ] header navigation bar redesign (only after base functionality completed)
 - [ ] doublecheck password entry for new user creation
 - [ ] mod edit user to allow for change of password (with doublecheck)
@@ -51,7 +51,7 @@ To set up the project on your local machine, follow these steps:
 - [ ] build out for Anticipated Compensation
 - [ ] 'Caller' in Engagement/Event to be listed system user
 - [ ] convert from plaintext to hashed passwords
-- [ ] build out Presentation functionality (e.g., single Engagement may have multiple Presentations)
+- [ ] build out multiple Presentation functionality
 - [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
 - [ ] evaluate for sql-injection vulnerabilities
 - [ ] minify JS and CSS
