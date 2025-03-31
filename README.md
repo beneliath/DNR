@@ -38,6 +38,10 @@ To set up the project on your local machine, follow these steps:
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
+- [ ] test 'Add Engagement'; on pass, tag restore point
+- [ ] test 'Add Organization'; on pass, tag restore point
+- [ ] test 'Add Contact'; on pass, tag restore point
+- [ ] test 'Add Presentation'; on pass, tag restore point
 - [ ] header navigation bar redesign (only after base functionality completed)
 - [ ] doublecheck password entry for new user creation
 - [ ] mod edit user to allow for change of password (with doublecheck)
