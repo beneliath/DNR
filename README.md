@@ -34,6 +34,7 @@ To set up the project on your local machine, follow these steps:
 - [x] login ui/ux redesign
 - [x] complete minimal buildout of 'Add Organization' functionality
 - [ ] complete minimal buildout of 'Add Contact' functionality
+- [ ] add anticipated compensation block for 'Add Engagement'
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
 - [ ] code Mailing Address / Physical Address
 - [ ] code: Is Mailing the same as Physical?
