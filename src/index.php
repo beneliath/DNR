@@ -138,7 +138,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             </div>
 
             <div class="event-type-field" id="other_event_type_div">
-                <label for="event_type_other">other event type:</label>
+                <label for="event_type_other" class="required">other event type</label>
                 <input type="text" name="event_type_other" id="event_type_other">
             </div>
         </div>
@@ -146,12 +146,86 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         <br>
 
         <div class="checkbox-row">
-            <label class="checkbox-label">
-                <input type="checkbox" name="book_table"> book table provided
-            </label>
-            <label class="checkbox-label" style="margin-left: 40px;">
-                <input type="checkbox" name="brochures"> brochures permitted
-            </label>
+            <div class="checkbox-group">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="book_table"> book table provided
+                </label>
+                <label class="checkbox-label">
+                    <input type="checkbox" name="brochures"> brochures permitted
+                </label>
+            </div>
+            <div class="radio-row">
+                <label>All Travel Covered?</label>
+                <div class="radio-options">
+                    <label><input type="radio" name="travel_covered" value="yes"> Yes</label>
+                    <label><input type="radio" name="travel_covered" value="no"> No</label>
+                </div>
+            </div>
+        </div>
+<br>
+        <div class="compensation-grid">
+            <div class="compensation-type-row">
+                <div class="form-field">
+                    <div class="field-group">
+                        <label for="compensation_type">Type of Compensation</label>
+                        <select name="compensation_type" id="compensation_type" class="narrow-select" onchange="toggleOtherCompensation()">
+                            <option value="Unknown">Unknown</option>
+                            <option value="Honorarium">Honorarium</option>
+                            <option value="Offering">Offering</option>
+                            <option value="Honorarium and Offering">Honorarium and Offering</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field" id="other_compensation_div" style="display: none;">
+                    <div class="field-group">
+                        <label for="other_compensation" class="required">Describe Other Compensation</label>
+                        <input type="text" name="other_compensation" id="other_compensation">
+                    </div>
+                </div>
+            </div>
+<br>
+            <div class="amount-row">
+                <div class="form-field">
+                    <label for="travel_amount">Travel (not in Compensation)</label>
+                    <div class="currency-input">
+                        <span>$</span>
+                        <input type="number" name="travel_amount" id="travel_amount">
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="housing_amount">Housing (not in Travel)</label>
+                    <div class="currency-input">
+                        <span>$</span>
+                        <input type="number" name="housing_amount" id="housing_amount">
+                    </div>
+                </div>
+            </div>
+        </div>
+<br>
+        <div class="compensation-grid">
+            <div class="compensation-type-row">
+                <div class="form-field">
+                    <div class="field-group">
+                        <label for="housing_type">Housing (not in Compensation)</label>
+                        <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
+                            <option value="Unknown">Unknown</option>
+                            <option value="None">None</option>
+                            <option value="Hotel">Hotel</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-field" id="other_housing_div" style="display: none;">
+                    <div class="field-group">
+                        <label for="other_housing" class="required">Describe Other Housing</label>
+                        <input type="text" name="other_housing" id="other_housing">
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="form-row">
@@ -198,32 +272,60 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     function validateDates() {
         const startDate = document.getElementById("event_start_date").value;
         const endDate = document.getElementById("event_end_date").value;
-
-        if (new Date(endDate) < new Date(startDate)) {
-            alert("The end date must be later than or equal to the start date.");
+        
+        if (startDate && endDate && endDate < startDate) {
+            alert("End date must be on or after the start date");
             return false;
         }
         return true;
     }
 
-    // Toggle visibility of the "other event type" input based on selection
-    function toggleOtherEventType(selectElement) {
+    // Toggle visibility of other event type field
+    function toggleOtherEventType(select) {
         const otherDiv = document.getElementById("other_event_type_div");
         const otherInput = document.getElementById("event_type_other");
-
-        if (selectElement.value === "other") {
+        
+        if (select.value === "other") {
             otherDiv.style.display = "block";
-            otherInput.setAttribute("required", "required");
+            otherInput.required = true;
         } else {
             otherDiv.style.display = "none";
-            otherInput.removeAttribute("required");
+            otherInput.required = false;
+            otherInput.value = ""; // Clear the input when hidden
         }
     }
 
-    // Initialize the event type toggle on page load
-    document.addEventListener('DOMContentLoaded', function () {
-        toggleOtherEventType(document.getElementById("event_type"));
-    });
+    // Toggle visibility of other compensation field
+    function toggleOtherCompensation() {
+        const select = document.getElementById("compensation_type");
+        const otherDiv = document.getElementById("other_compensation_div");
+        const otherInput = document.getElementById("other_compensation");
+        
+        if (select.value === "Other") {
+            otherDiv.style.display = "block";
+            otherInput.required = true;
+        } else {
+            otherDiv.style.display = "none";
+            otherInput.required = false;
+            otherInput.value = ""; // Clear the input when hidden
+        }
+    }
+
+    // Toggle visibility of other housing field
+    function toggleOtherHousing() {
+        const select = document.getElementById("housing_type");
+        const otherDiv = document.getElementById("other_housing_div");
+        const otherInput = document.getElementById("other_housing");
+        
+        if (select.value === "Other") {
+            otherDiv.style.display = "block";
+            otherInput.required = true;
+        } else {
+            otherDiv.style.display = "none";
+            otherInput.required = false;
+            otherInput.value = ""; // Clear the input when hidden
+        }
+    }
 </script>
 
 <style>

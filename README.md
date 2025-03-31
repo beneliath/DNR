@@ -36,9 +36,8 @@ To set up the project on your local machine, follow these steps:
 - [ ] complete minimal buildout of 'Add Contact' functionality
 - [ ] add anticipated compensation block for 'Add Engagement'
 - [ ] complete minimal buildout of 'Add Presentation(s)' functionality
-- [ ] code Mailing Address / Physical Address
-- [ ] code: Is Mailing the same as Physical?
-- [ ] consider address data locus in Event or Organization
+- [x] code Mailing Address / Physical Address
+- [x] code: Is Mailing the same as Physical?
 - [ ] header navigation bar redesign (only after base functionality completed)
 - [ ] doublecheck password entry for new user creation
 - [ ] mod edit user to allow for change of password (with doublecheck)
