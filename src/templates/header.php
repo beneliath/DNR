@@ -15,8 +15,8 @@
             <?php endif; ?>
 
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
-                <!-- Only display 'View Users' link if the user is logged in as an admin -->
-                <li><a href="users.php">View Users</a></li>
+                <!-- Only display 'Manage Users' link if the user is logged in as an admin -->
+                <li><a href="users.php">Manage Users</a></li>
             <?php endif; ?>
  
         </ul>
