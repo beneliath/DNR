@@ -35,9 +35,9 @@ To set up the project on your local machine, follow these steps:
 - [x] complete minimal buildout of 'Add Organization' functionality
 - [x] ensure docker container auto-restarts
 - [x] add creation and last-modification dates for user accounts
-- [ ] complete minimal buildout of 'Add Contact' functionality
+- [x] minimal buildout of 'Add Contact' functionality
 - [x] add anticipated compensation block for 'Add Engagement'
-- [ ] complete minimal buildout of 'Add Presentation' functionality
+- [ ] minimal buildout of 'Add Presentation' functionality
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
 - [ ] TEST 'Add Engagement'; on pass, tag restore point

@@ -133,6 +133,22 @@ input[type="submit"]:hover {
   background-color: #45a049;
 }
 
+/* Save button styling */
+.save-button {
+    background-color: #4CAF50;
+    padding: 20px 40px;
+    font-size: 16px;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 0;
+}
+
+.save-button:hover {
+    background-color: #45a049;
+}
+
 /* Labels & Inputs */
 label {
   display: block;

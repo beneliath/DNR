@@ -6,7 +6,8 @@
     <nav>
         <ul>
             <li><a href="index.php">Add Engagement</a></li>|&nbsp;&nbsp;&nbsp;
-            <li><a href="organizations.php">Add Organizations</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="add_contact.php">Add Contact</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="organizations.php">Add Organization</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="engagements.php">Engagements</a></li>|&nbsp;&nbsp;&nbsp;
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>

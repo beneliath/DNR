@@ -384,8 +384,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             </div>
         </div>
 
-        <div class="form-group">
-            <input type="submit" name="save_org" value="Save Organization">
+        <div class="form-group" style="padding-left: 0; margin-left: 0;">
+            <input type="submit" name="save_org" value="SAVE ORGANIZATION" class="save-button" style="margin-left: 0;">
         </div>
     </form>
 </div>
