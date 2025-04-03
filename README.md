@@ -38,6 +38,7 @@ To set up the project on your local machine, follow these steps:
 - [x] minimal buildout of 'Add Contact' functionality
 - [x] add anticipated compensation block for 'Add Engagement'
 - [ ] minimal buildout of 'Add Presentation' functionality
+- [ ] add view contacts for selected Organization;
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
 - [ ] TEST 'Add Engagement'; on pass, tag restore point
