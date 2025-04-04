@@ -154,6 +154,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .address-full-width {
             grid-column: 1 / -1;
         }
+        .required {
+            color: inherit;
+        }
         .required::after {
             content: " *";
             color: red;
@@ -167,14 +170,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         }
         .radio-group label {
             margin-right: 20px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: var(--text-color);
+            cursor: pointer;
         }
         /* Style for radio buttons */
         .radio-group input[type="radio"] {
-            accent-color: #357abd;
+            appearance: none;
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border: 2px solid #666;
+            border-radius: 50%;
+            margin: 0;
+            cursor: pointer;
+            position: relative;
         }
-        /* Dark mode radio buttons */
+
         .dark-mode .radio-group input[type="radio"] {
-            accent-color: #357abd;
+            border-color: #888;
+        }
+
+        .radio-group input[type="radio"]:checked {
+            border-color: #357abd;
+            background-color: transparent;
+        }
+
+        .radio-group input[type="radio"]:checked::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #357abd;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .radio-group input[type="radio"]:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(53, 122, 189, 0.3);
         }
         .contact-grid {
             display: grid;

@@ -321,7 +321,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 <br>
         <div class="form-row">
             <div class="form-field">
-                <label for="caller_name">caller:</label>
+                <div class="label-container">caller:</div>
                 <select name="caller_name" id="caller_name">
                     <option value="" disabled selected>select a caller</option>
                     <?php
@@ -334,8 +334,8 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                 </select>
             </div>
 
-            <div class="form-field" style="margin-left: 20px;">
-                <label for="confirmation_status">status:</label>
+            <div class="form-field">
+                <div class="label-container">status:</div>
                 <select name="confirmation_status" id="confirmation_status">
                     <option value="work_in_progress">work in progress</option>
                     <option value="under_review">under review</option>
@@ -723,12 +723,13 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             margin: 0;
         }
 
-        .radio-options label {
+        .radio-options label,
+        .radio-row > label {
             display: flex;
             align-items: center;
             gap: 5px;
             margin: 0;
-            color: #fff;
+            color: var(--text-color);
             cursor: pointer;
         }
 
@@ -742,6 +743,10 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             margin: 0;
             cursor: pointer;
             position: relative;
+        }
+
+        .dark-mode .radio-options input[type="radio"] {
+            border-color: #888;
         }
 
         .radio-options input[type="radio"]:checked {
@@ -789,7 +794,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     .label-container {
         position: absolute;
         top: -30px;
-        color: #fff;
+        color: var(--text-color);
         font-size: 16px;
         white-space: nowrap;
     }
@@ -814,12 +819,19 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     .event-group input[type="text"] {
         height: 35px;
         padding: 0 8px;
-        background-color: #1e1e1e;
-        color: #fff;
-        border: 1px solid #333;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid #ccc;
         border-radius: 4px;
         box-sizing: border-box;
         font-size: 14px;
+    }
+
+    .dark-mode .event-group select,
+    .dark-mode .event-group input[type="text"] {
+        background-color: var(--dark-input-bg);
+        color: var(--dark-text-color);
+        border-color: #333;
     }
 
     .event-group select {
@@ -832,7 +844,10 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
     #other_event_type_div input[type="text"] {
         width: 300px;
-        background-color: #333;
+    }
+
+    .dark-mode #other_event_type_div input[type="text"] {
+        background-color: var(--dark-input-bg);
         border-color: #666;
     }
 
@@ -841,16 +856,22 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         align-items: center;
         margin-bottom: 15px;
     }
+
     .checkbox-label {
         display: flex;
         align-items: center;
         gap: 5px;
     }
+
     .presentation-entry {
         border: 1px solid #ddd;
         padding: 15px;
         margin-bottom: 15px;
         border-radius: 4px;
+    }
+
+    .dark-mode .presentation-entry {
+        border-color: #333;
     }
 
     .presentation-fields {
@@ -901,7 +922,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     }
 
     .form-field label {
-        color: #fff;
+        color: var(--text-color);
         white-space: nowrap;
         margin: 0;
         padding: 0;
@@ -911,10 +932,65 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     .form-field input[type="number"],
     .form-field input[type="date"] {
         padding: 8px;
-        background-color: #333;
-        color: #fff;
-        border: 1px solid #666;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid #ccc;
         border-radius: 4px;
+    }
+
+    .dark-mode .form-field input[type="text"],
+    .dark-mode .form-field input[type="number"],
+    .dark-mode .form-field input[type="date"] {
+        background-color: var(--dark-input-bg);
+        color: var(--dark-text-color);
+        border-color: #666;
+    }
+
+    /* Reset and contain all event field styles in a single block */
+    .form-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 20px;
+        position: relative;
+        padding-top: 35px;
+    }
+
+    .form-row .form-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        position: relative;
+    }
+
+    .form-row .form-field .label-container {
+        position: absolute;
+        top: -30px;
+        left: 0;
+        color: var(--text-color);
+        font-size: 16px;
+        white-space: nowrap;
+    }
+
+    .form-row .form-field select {
+        width: 200px;
+        height: 35px;
+        padding: 0 8px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-size: 14px;
+    }
+
+    .dark-mode .form-row .form-field select {
+        background-color: var(--dark-input-bg);
+        color: var(--dark-text-color);
+        border-color: #333;
+    }
+
+    .save-button-container {
+        margin-left: auto;
     }
 </style>
 

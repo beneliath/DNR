@@ -171,6 +171,77 @@ textarea {
   box-sizing: border-box;
 }
 
+/* Dark mode form inputs - exclude login container */
+.dark-mode input[type="text"]:not(.login-container input[type="text"]),
+.dark-mode input[type="password"]:not(.login-container input[type="password"]),
+.dark-mode input[type="date"],
+.dark-mode select,
+.dark-mode textarea {
+  background-color: var(--dark-input-bg) !important;
+  border-color: #333;
+  color: var(--dark-text-color) !important;
+}
+
+/* Dark mode labels */
+.dark-mode label,
+.dark-mode .label-container {
+    color: var(--dark-text-color);
+}
+
+/* Time input container specific styles */
+.time-input-container input[type="text"] {
+    width: 80px;
+    padding: 5px;
+}
+
+.dark-mode .time-input-container input[type="text"] {
+    background-color: #333;
+    border-color: #666;
+}
+
+/* Event group specific styles */
+.event-group select,
+.event-group input[type="text"] {
+    height: 35px;
+    padding: 0 8px;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px;
+}
+
+.dark-mode .event-group select,
+.dark-mode .event-group input[type="text"] {
+    background-color: #1e1e1e;
+    color: #fff;
+    border-color: #333;
+}
+
+/* Currency input styles */
+.currency-input input[type="number"] {
+    padding-left: 20px;
+}
+
+.dark-mode .currency-input input[type="number"] {
+    background-color: #1e1e1e;
+    color: #fff;
+    border-color: #666;
+}
+
+/* Field group input styles */
+.field-group input[type="text"] {
+    height: 35px;
+    padding: 8px;
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.dark-mode .field-group input[type="text"] {
+    background-color: #1e1e1e;
+    color: #fff;
+    border-color: #333;
+}
+
 /* Align organization dropdown and button */
 .organization-container {
   display: flex;
@@ -586,17 +657,39 @@ h3 {
     width: 50% !important;
 }
 
-.field-group input[type="text"] {
-    height: 35px;
-    padding: 8px;
-    border: 1px solid #ddd;
+/* Presentation fields specific styles */
+.presentation-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    background-color: var(--bg-color);
+    padding: 15px;
     border-radius: 4px;
-    width: 100%;
-    box-sizing: border-box;
 }
 
-.dark-mode .field-group input[type="text"] {
-    background-color: #1e1e1e;
-    color: #fff;
-    border-color: #333;
+.presentation-fields .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.presentation-fields .form-field label {
+    color: var(--text-color);
+    margin: 0;
+}
+
+.presentation-fields input[type="text"],
+.presentation-fields input[type="number"],
+.presentation-fields input[type="date"],
+.presentation-fields select {
+    background-color: var(--light-bg-color);
+    color: var(--light-text-color);
+}
+
+.dark-mode .presentation-fields input[type="text"],
+.dark-mode .presentation-fields input[type="number"],
+.dark-mode .presentation-fields input[type="date"],
+.dark-mode .presentation-fields select {
+    background-color: var(--dark-input-bg);
+    color: var(--dark-text-color);
 }
