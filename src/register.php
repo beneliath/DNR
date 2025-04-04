@@ -45,13 +45,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="register.php">
-        <label for="username">username: <input type="text" name="username" id="username" required></label><br>
-        <label for="password">password: <input type="password" name="password" id="password" required></label><br>
-        <label for="role">role:
+        <label for="username">Username <input type="text" name="username" id="username" required></label><br>
+        <label for="password">Password <input type="password" name="password" id="password" required></label><br>
+        <label for="role">Role
             <select name="role" id="role" required>
-                <option value="admin">admin</option>
-                <option value="editor">editor</option>
-                <option value="reviewer">reviewer</option>
+                <option value="admin">Admin</option>
+                <option value="editor">Editor</option>
+                <option value="reviewer">Reviewer</option>
             </select>
         </label><br>
         <input type="submit" value="Register">

@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <!-- Form for adding a new speaking engagement -->
     <form method="post" action="index.php" onsubmit="return validateDates();">
 <div class="organization-container">
-    <label for="organization_id">organization:</label>
+    <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
         <option value="" disabled selected>select an organization</option>
         <?php
@@ -158,17 +158,17 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 </div>
 
 
-        <label for="engagement_notes" style="vertical-align: top;">chron:</label>
+        <label for="engagement_notes" style="vertical-align: top;">Chron</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"></textarea>
         <br><br>
 
         <div class="date-fields">
             <div class="date-field">
-                <label for="event_start_date">start:</label>
+                <label for="event_start_date">Start</label>
                 <input type="date" name="event_start_date" id="event_start_date" required>
             </div>
             <div class="date-field">
-                <label for="event_end_date">end:</label>
+                <label for="event_end_date">End</label>
                 <input type="date" name="event_end_date" id="event_end_date" required>
             </div>
         </div>
@@ -177,7 +177,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         <!-- Event type fields -->
         <div class="event-row">
             <div class="event-group">
-                <div class="label-container">event type</div>
+                <div class="label-container">Event Type</div>
                 <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
                     <option value="conference">conference</option>
                     <option value="service">service</option>
@@ -188,7 +188,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             </div>
 
             <div class="event-group" id="other_event_type_div">
-                <div class="label-container">other event type<span class="required">*</span></div>
+                <div class="label-container">Other Event Type<span class="required">*</span></div>
                 <input type="text" name="event_type_other" id="event_type_other">
             </div>
         </div>
@@ -201,7 +201,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             <div class="presentation-entry" id="presentation-1">
                 <div class="presentation-fields">
                     <div class="form-field topic">
-                        <label for="presentation_topic_1">Topic/Title</label>
+                        <label for="presentation_topic_1">Topic Title</label>
                         <input type="text" name="presentations[0][topic_title]" id="presentation_topic_1">
                     </div>
                     <div class="datetime-row">
@@ -248,7 +248,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                 </label>
             </div>
             <div class="radio-row">
-                <label>All Travel Covered?</label>
+                <label>All Travel Covered</label>
                 <div class="radio-options">
                     <label><input type="radio" name="travel_covered" value="unknown" checked> Unknown</label>
                     <label><input type="radio" name="travel_covered" value="yes"> Yes</label>
@@ -282,14 +282,14 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 <br>
             <div class="amount-row">
                 <div class="form-field">
-                    <label>Travel (not in Compensation)</label>
+                    <label>Travel (Not in Compensation)</label>
                     <div class="currency-input">
                         <span>$</span>
                         <input type="number" name="travel_amount" step="0.01" min="0">
                     </div>
                 </div>
                 <div class="form-field">
-                    <label>Lodging (not in Travel)</label>
+                    <label>Lodging (Not in Travel)</label>
                     <div class="currency-input">
                         <span>$</span>
                         <input type="number" name="housing_amount" step="0.01" min="0">
@@ -320,31 +320,33 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         </div>
 <br>
         <div class="form-row">
-            <div class="form-field">
-                <div class="label-container">caller:</div>
-                <select name="caller_name" id="caller_name">
-                    <option value="" disabled selected>select a caller</option>
-                    <?php
-                    // Fetch and display users in the dropdown
-                    $users = $conn->query("SELECT username FROM users ORDER BY username");
-                    while ($row = $users->fetch_assoc()) {
-                        echo "<option value='" . htmlspecialchars($row['username']) . "'>" . htmlspecialchars($row['username']) . "</option>";
-                    }
-                    ?>
-                </select>
+            <div style="display: flex; gap: 20px;">
+                <div class="form-field">
+                    <label for="caller_name">Caller</label>
+                    <select name="caller_name" id="caller_name">
+                        <option value="" disabled selected>select a caller</option>
+                        <?php
+                        // Fetch and display users in the dropdown
+                        $users = $conn->query("SELECT username FROM users ORDER BY username");
+                        while ($row = $users->fetch_assoc()) {
+                            echo "<option value='" . htmlspecialchars($row['username']) . "'>" . htmlspecialchars($row['username']) . "</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+
+                <div class="form-field">
+                    <label for="confirmation_status">Status</label>
+                    <select name="confirmation_status" id="confirmation_status">
+                        <option value="work_in_progress">work in progress</option>
+                        <option value="under_review">under review</option>
+                        <option value="confirmed">confirmed</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="form-field">
-                <div class="label-container">status:</div>
-                <select name="confirmation_status" id="confirmation_status">
-                    <option value="work_in_progress">work in progress</option>
-                    <option value="under_review">under review</option>
-                    <option value="confirmed">confirmed</option>
-                </select>
-            </div>
-
-            <div class="save-button-container">
-                <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-event-button">
+            <div class="form-group" style="padding-left: 0; margin-left: 0;">
+                <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-button" style="margin-left: 0;">
             </div>
         </div>
     </form>
@@ -430,7 +432,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         newPresentation.innerHTML = `
             <div class="presentation-fields">
                 <div class="form-field topic">
-                    <label for="presentation_topic_${presentationCount}">Topic/Title<span>*</span></label>
+                    <label for="presentation_topic_${presentationCount}">Topic Title<span>*</span></label>
                     <input type="text" name="presentations[${presentationCount-1}][topic_title]" id="presentation_topic_${presentationCount}" required>
                 </div>
                 <div class="datetime-row">
@@ -613,50 +615,87 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         .presentation-fields .form-field.topic {
             grid-column: 1 / -1;
             display: flex;
+            flex-direction: row !important;
             align-items: center;
+            gap: 10px !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         .presentation-fields .form-field.topic label {
-            margin-right: 15px;
+            margin: 0 !important;
+            padding: 0 !important;
+            white-space: nowrap !important;
+            width: auto !important;
+            min-width: 0 !important;
         }
         .presentation-fields .form-field.topic input {
             flex: 1;
-            max-width: calc(100% - 20px);
+            max-width: none !important;
+            margin: 0 !important;
+            padding: 8px !important;
         }
         .presentation-fields .datetime-row {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: 0.5fr 1fr;
             gap: 15px;
         }
         .presentation-fields .datetime-row .form-field {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .presentation-fields .datetime-row .form-field label {
+            margin: 0 !important;
+            padding: 0 !important;
+            white-space: nowrap !important;
+        }
+        .presentation-fields .datetime-row .form-field input[type="date"] {
+            width: 180px !important;
+            margin: 0 !important;
         }
         .presentation-fields .speaker-row {
-            display: flex;
-            gap: 30px;
-            align-items: center;
-            margin-top: 10px;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 30px !important;
+            margin-top: 10px !important;
+            width: 100% !important;
         }
         .speaker-row .form-field {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0;
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            gap: 10px !important;
+            margin: 0 !important;
+            padding: 0 !important;
         }
         .speaker-row .form-field.speaker {
-            flex: 1;
+            flex: 1 !important;
+            min-width: 0 !important;
         }
         .speaker-row .form-field.speaker input {
-            width: 300px;
+            width: 300px !important;
+            min-width: 0 !important;
         }
         .speaker-row .form-field.attendance {
-            width: auto;
-            min-width: unset;
-            white-space: nowrap;
+            width: auto !important;
+            min-width: unset !important;
+            white-space: nowrap !important;
+            flex: 0 0 auto !important;
         }
         .speaker-row .form-field.attendance input {
             width: 70px !important;
+            min-width: 70px !important;
+        }
+        .speaker-row .form-field label {
+            margin: 0 !important;
+            padding: 0 !important;
+            white-space: nowrap !important;
+            width: auto !important;
+            min-width: 0 !important;
         }
         .form-field {
             display: flex;
@@ -886,39 +925,76 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
     .presentation-fields .datetime-row {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: 0.5fr 1fr;
         gap: 15px;
     }
 
+    .presentation-fields .datetime-row .form-field {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .presentation-fields .datetime-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    .presentation-fields .datetime-row .form-field input[type="date"] {
+        width: 180px !important;
+        margin: 0 !important;
+    }
+
     .presentation-fields .speaker-row {
-        display: flex;
-        gap: 30px;
-        align-items: center;
-        margin-top: 10px;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 30px !important;
+        margin-top: 10px !important;
+        width: 100% !important;
     }
 
     .speaker-row .form-field {
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 
     .speaker-row .form-field.speaker {
-        flex: 1;
+        flex: 1 !important;
+        min-width: 0 !important;
     }
 
     .speaker-row .form-field.speaker input {
-        width: 300px;
+        width: 300px !important;
+        min-width: 0 !important;
     }
 
     .speaker-row .form-field.attendance {
-        width: auto;
-        min-width: unset;
-        white-space: nowrap;
+        width: auto !important;
+        min-width: unset !important;
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
     }
 
     .speaker-row .form-field.attendance input {
         width: 70px !important;
+        min-width: 70px !important;
+    }
+
+    .speaker-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        width: auto !important;
+        min-width: 0 !important;
     }
 
     .form-field label {
@@ -949,48 +1025,50 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
     /* Reset and contain all event field styles in a single block */
     .form-row {
         display: flex;
-        align-items: flex-start;
+        align-items: flex-end !important;
         gap: 20px;
         position: relative;
-        padding-top: 35px;
+        justify-content: space-between !important;
+        width: 100% !important;
     }
 
     .form-row .form-field {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-        position: relative;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
     }
 
-    .form-row .form-field .label-container {
-        position: absolute;
-        top: -30px;
-        left: 0;
-        color: var(--text-color);
-        font-size: 16px;
-        white-space: nowrap;
+    .form-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        min-width: fit-content !important;
     }
 
     .form-row .form-field select {
-        width: 200px;
-        height: 35px;
-        padding: 0 8px;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        box-sizing: border-box;
-        font-size: 14px;
+        width: 200px !important;
+        height: 35px !important;
+        margin: 0 !important;
+        padding: 0 8px !important;
     }
 
-    .dark-mode .form-row .form-field select {
-        background-color: var(--dark-input-bg);
-        color: var(--dark-text-color);
-        border-color: #333;
+    .form-row .form-group {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: flex-end !important;
     }
 
-    .save-button-container {
-        margin-left: auto;
+    .form-row .save-button {
+        margin: 0 !important;
+        height: 45px !important;
+        padding: 0 20px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 16px !important;
     }
 </style>
 

@@ -313,7 +313,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         </div>
 
         <div class="radio-group">
-            <label class="required">Mailing and Physical Address the same?</label>
+            <label class="required">Mailing and Physical Address the Same</label>
             <div>
                 <label><input type="radio" name="same_address" value="yes" checked> Yes</label>
                 <label><input type="radio" name="same_address" value="no"> No</label>

@@ -61,8 +61,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="edit_user.php?id=<?php echo $user['id']; ?>">
-        <label for="username">Username: <input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></label><br>
-        <label for="role">Role:
+        <label for="username">Username <input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></label><br>
+        <label for="role">Role
             <select name="role" required>
                 <option value="admin" <?php if ($user['role'] === 'admin') echo 'selected'; ?>>Admin</option>
                 <option value="editor" <?php if ($user['role'] === 'editor') echo 'selected'; ?>>Editor</option>
