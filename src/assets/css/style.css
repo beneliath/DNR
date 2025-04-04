@@ -197,7 +197,7 @@ textarea {
 /* Event type alignment */
 .event-type-container {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 20px;
 }
 
@@ -576,8 +576,7 @@ h3 {
 }
 
 /* Required field marker */
-.required::after {
-    content: " *";
+.required {
     color: #ff0000;
     font-weight: bold;
 }
