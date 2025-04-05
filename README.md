@@ -1,8 +1,8 @@
-## DNR: Deploy and Report
+## DNR: deploy and report
 
 ### Description
 
-DNR (Deploy and Report) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
+DNR (deploy and report) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
 
 ### Installation
 
@@ -21,10 +21,10 @@ To set up the project on your local machine, follow these steps:
 3. **Build and run the application using Docker Compose**
    `docker-compose up --build`
    This command will build the Docker images and start the services defined in the docker-compose.yaml file.
-   - browse to localhost:8080
+   - browse to localhost:8080 (default port)
    - user=admin / pass=p@55word
 
-### Roadmap / To Do
+### Dev Roadmap / To Do
 
 - [x] rename project to "deploy and report"
 - [x] include check for Event End Date >= Event Start Date
@@ -77,7 +77,7 @@ Environment Variables:
 
 Configure the following environment variables to customize the application's behavior:
 
-[*VARIABLE_NAME: Description of the variable.*]
+placeholder >> [*VARIABLE_NAME: Description of the variable.*]
 
 ### Usage
 
@@ -85,7 +85,7 @@ Configure the following environment variables to customize the application's beh
 
 ### Contributing
 
-We welcome contributions to the DNR project. To contribute:
+Contributions to the DNR project are welcome. To contribute:
 
 - fork the repository
 - create a new branch for your feature or bug fix
