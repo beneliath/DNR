@@ -33,7 +33,7 @@ ON DUPLICATE KEY UPDATE username=username;
 -- Organizations table
 CREATE TABLE IF NOT EXISTS organizations (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    organization_name VARCHAR(255) NOT NULL,
+    organization_name VARCHAR(255) NOT NULL UNIQUE,
     notes TEXT,
     affiliation VARCHAR(255),
     distinctives VARCHAR(255),

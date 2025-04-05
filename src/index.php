@@ -154,7 +154,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         }
         ?>
     </select>
-                    <a href="organizations.php" class="add-org-button">Add New Organization</a>
+                    <a href="add_organization.php" class="add-org-button">Add New Organization</a>
 </div>
 
 

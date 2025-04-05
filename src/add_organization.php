@@ -26,52 +26,76 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     if (!$error) {
         // Sanitize user input for organization
         $organization_name = $conn->real_escape_string($_POST['organization_name']);
-        $notes = $conn->real_escape_string($_POST['notes']);
-        $affiliation = $conn->real_escape_string($_POST['affiliation']);
-        $distinctives = $conn->real_escape_string($_POST['distinctives']);
-        $website_url = $conn->real_escape_string($_POST['website_url']);
-        $phone = $conn->real_escape_string($_POST['phone']);
-        $fax = $conn->real_escape_string($_POST['fax']);
-        $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
-        $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
-        $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
-        $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
-        $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
-        $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
-        $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
-        $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
-        $physical_city = $conn->real_escape_string($_POST['physical_city']);
-        $physical_state = $conn->real_escape_string($_POST['physical_state']);
-        $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
-        $physical_country = $conn->real_escape_string($_POST['physical_country']);
+        
+        // Check if organization name already exists
+        $check_sql = "SELECT id FROM organizations WHERE organization_name = '$organization_name'";
+        $result = $conn->query($check_sql);
+        
+        if ($result->num_rows > 0) {
+            $error = true;
+            $errorMessages[] = "An organization with this name already exists.";
+        } else {
+            $notes = $conn->real_escape_string($_POST['notes']);
+            $affiliation = $conn->real_escape_string($_POST['affiliation']);
+            $distinctives = $conn->real_escape_string($_POST['distinctives']);
+            $website_url = $conn->real_escape_string($_POST['website_url']);
+            $phone = $conn->real_escape_string($_POST['phone']);
+            $fax = $conn->real_escape_string($_POST['fax']);
+            $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
+            $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
+            $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
+            $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
+            $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
+            $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
+            $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
+            $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
+            $physical_city = $conn->real_escape_string($_POST['physical_city']);
+            $physical_state = $conn->real_escape_string($_POST['physical_state']);
+            $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
+            $physical_country = $conn->real_escape_string($_POST['physical_country']);
 
-        // Insert new organization into the database
-        $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
-                VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
+            // Insert new organization into the database
+            $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
+                    VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
 
-        if ($conn->query($sql) === TRUE) {
-            $organization_id = $conn->insert_id;
+            if ($conn->query($sql) === TRUE) {
+                $organization_id = $conn->insert_id;
 
-            // Sanitize contact information
-            $contact_name = $conn->real_escape_string($_POST['contact_name']);
-            $contact_role = $conn->real_escape_string($_POST['contact_role']);
-            $contact_role_other = $conn->real_escape_string($_POST['contact_role_other']);
-            $contact_email = $conn->real_escape_string($_POST['contact_email']);
-            $contact_phone = $conn->real_escape_string($_POST['contact_phone']);
+                // Only proceed with contact information if contact name is provided
+                if (!empty($_POST['contact_name'])) {
+                    // Sanitize contact information
+                    $contact_name = $conn->real_escape_string($_POST['contact_name']);
+                    $contact_role = strtolower($conn->real_escape_string($_POST['contact_role']));
+                    $contact_role_other = $conn->real_escape_string($_POST['contact_role_other']);
+                    $contact_email = $conn->real_escape_string($_POST['contact_email']);
+                    $contact_phone = $conn->real_escape_string($_POST['contact_phone']);
 
-            // Insert contact information
-            $contact_sql = "INSERT INTO contacts (organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone)
-                          VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
+                    // Validate contact role is one of the allowed ENUM values
+                    if (!in_array($contact_role, ['pastor', 'admin', 'other'])) {
+                        $error = true;
+                        $errorMessages[] = "Invalid contact role selected.";
+                    }
 
-            if ($conn->query($contact_sql) === TRUE) {
-                $message = "Organization and contact information saved successfully.";
+                    // Insert contact information only if no errors
+                    if (!$error) {
+                        $contact_sql = "INSERT INTO contacts (organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone)
+                                      VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
+
+                        if ($conn->query($contact_sql) === TRUE) {
+                            $message = "Organization and contact information saved successfully.";
+                        } else {
+                            $error = true;
+                            $errorMessages[] = "Error saving contact information: " . $conn->error;
+                        }
+                    }
+                } else {
+                    // If no contact name provided, just show success message for organization
+                    $message = "Organization saved successfully.";
+                }
             } else {
                 $error = true;
-                $errorMessages[] = "Error saving contact information: " . $conn->error;
+                $errorMessages[] = "Error saving organization: " . $conn->error;
             }
-        } else {
-            $error = true;
-            $errorMessages[] = "Error saving organization: " . $conn->error;
         }
     }
 }
@@ -333,51 +357,51 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error)) echo "<p class='error'>" . implode("<br>", $errorMessages) . "</p>"; ?>
+    <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", $errorMessages) . "</p>"; ?>
     <h2>Add Organization</h2>
-    <form method="post" action="organizations.php">
+    <form method="post" action="add_organization.php">
         <div class="form-group">
             <label class="required">Organization Name</label>
-            <input type="text" name="organization_name" required>
+            <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
         </div>
         
         <div class="form-group">
             <label>Notes</label>
-            <textarea name="notes" rows="4"></textarea>
+            <textarea name="notes" rows="4"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
         </div>
         
         <div class="form-group">
             <label>Affiliation</label>
-            <input type="text" name="affiliation">
+            <input type="text" name="affiliation" value="<?php echo htmlspecialchars($_POST['affiliation'] ?? ''); ?>">
         </div>
         
         <div class="form-group">
             <label>Distinctives</label>
-            <input type="text" name="distinctives">
+            <input type="text" name="distinctives" value="<?php echo htmlspecialchars($_POST['distinctives'] ?? ''); ?>">
         </div>
         
         <div class="form-group">
             <label>Website URL</label>
-            <input type="url" name="website_url">
+            <input type="url" name="website_url" value="<?php echo htmlspecialchars($_POST['website_url'] ?? ''); ?>">
         </div>
         
         <div class="contact-grid">
             <div class="form-group">
                 <label>Phone</label>
-                <input type="text" name="phone">
+                <input type="text" name="phone" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
             </div>
             
             <div class="form-group">
                 <label>Fax</label>
-                <input type="text" name="fax">
+                <input type="text" name="fax" value="<?php echo htmlspecialchars($_POST['fax'] ?? ''); ?>">
             </div>
         </div>
 
         <div class="radio-group">
             <label class="required">Mailing and Physical Address the Same</label>
             <div>
-                <label><input type="radio" name="same_address" value="yes" checked> Yes</label>
-                <label><input type="radio" name="same_address" value="no"> No</label>
+                <label><input type="radio" name="same_address" value="yes" <?php echo (!isset($_POST['same_address']) || $_POST['same_address'] === 'yes') ? 'checked' : ''; ?>> Yes</label>
+                <label><input type="radio" name="same_address" value="no" <?php echo (isset($_POST['same_address']) && $_POST['same_address'] === 'no') ? 'checked' : ''; ?>> No</label>
             </div>
         </div>
 
@@ -385,26 +409,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             <h3 class="required">Physical Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_1" placeholder="Address Line 1" required>
+                    <input type="text" name="physical_address_line_1" placeholder="Address Line 1" required value="<?php echo htmlspecialchars($_POST['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_2" placeholder="Address Line 2">
+                    <input type="text" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="physical_city" placeholder="City" required>
+                    <input type="text" name="physical_city" placeholder="City" required value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="physical_state" placeholder="State/Province" required>
+                    <input type="text" name="physical_state" placeholder="State/Province" required value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required>
+                    <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
                     <select name="physical_country" required>
                         <option value="">Select Country</option>
-                        <option value="USA">United States</option>
-                        <option value="CAN">Canada</option>
-                        <!-- Add more countries as needed -->
+                        <option value="USA" <?php echo (isset($_POST['physical_country']) && $_POST['physical_country'] === 'USA') ? 'selected' : ''; ?>>United States</option>
+                        <option value="CAN" <?php echo (isset($_POST['physical_country']) && $_POST['physical_country'] === 'CAN') ? 'selected' : ''; ?>>Canada</option>
                     </select>
                 </div>
             </div>
@@ -414,26 +437,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             <h3 class="required">Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_1" placeholder="Address Line 1">
+                    <input type="text" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_2" placeholder="Address Line 2">
+                    <input type="text" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="mailing_city" placeholder="City">
+                    <input type="text" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="mailing_state" placeholder="State/Province">
+                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="mailing_zipcode" placeholder="Zip/Postal">
+                    <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
                     <select name="mailing_country">
                         <option value="">Select Country</option>
-                        <option value="USA">United States</option>
-                        <option value="CAN">Canada</option>
-                        <!-- Add more countries as needed -->
+                        <option value="USA" <?php echo (isset($_POST['mailing_country']) && $_POST['mailing_country'] === 'USA') ? 'selected' : ''; ?>>United States</option>
+                        <option value="CAN" <?php echo (isset($_POST['mailing_country']) && $_POST['mailing_country'] === 'CAN') ? 'selected' : ''; ?>>Canada</option>
                     </select>
                 </div>
             </div>
@@ -447,12 +469,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                         <div class="name-phone-row">
                             <div class="form-group">
                                 <label>Name</label>
-                                <input type="text" name="contact_name">
+                                <input type="text" name="contact_name" value="<?php echo htmlspecialchars($_POST['contact_name'] ?? ''); ?>">
                             </div>
 
                             <div class="form-group">
                                 <label>Phone</label>
-                                <input type="tel" name="contact_phone">
+                                <input type="tel" name="contact_phone" value="<?php echo htmlspecialchars($_POST['contact_phone'] ?? ''); ?>">
                             </div>
                         </div>
 
@@ -461,27 +483,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                                 <label>Role</label>
                                 <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
                                     <option value="">Select Role</option>
-                                    <option value="pastor">Pastor</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="other">Other</option>
+                                    <option value="pastor" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'pastor') ? 'selected' : ''; ?>>Pastor</option>
+                                    <option value="admin" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
+                                    <option value="other" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="other_role_group" style="display: none;">
+                            <div class="form-group" id="other_role_group" style="display: <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'block' : 'none'; ?>;">
                                 <label>Describe Other Role</label>
-                                <input type="text" name="contact_role_other" id="contact_role_other">
+                                <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($_POST['contact_role_other'] ?? ''); ?>">
                             </div>
                         </div>
 
                         <div class="email-container">
                             <div class="form-group">
                                 <label>Email</label>
-                                <input type="email" name="contact_email">
+                                <input type="email" name="contact_email" value="<?php echo htmlspecialchars($_POST['contact_email'] ?? ''); ?>">
                             </div>
 
                             <div class="form-group">
                                 <label>Confirm Email</label>
-                                <input type="email" name="contact_email_confirm">
+                                <input type="email" name="contact_email_confirm" value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? ''); ?>">
                             </div>
                         </div>
                     </div>

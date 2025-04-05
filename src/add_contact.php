@@ -52,6 +52,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     <title>Add Contact - DNR</title>
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
+        .success {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .dark-mode .success {
+            background-color: #d4edda !important;
+            color: #155724 !important;
+        }
+        .dark-mode .error {
+            background-color: #f8d7da !important;
+            color: #721c24 !important;
+        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -82,6 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             content: " *";
             color: red;
         }
+        .required {
+            color: inherit;
+        }
         .organization-container {
             display: flex;
             align-items: center;
@@ -101,21 +128,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         }
         .role-container {
             display: flex;
-            align-items: flex-end;
             gap: 30px;
-            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+        .role-container .form-group {
+            margin-bottom: 0;
         }
         #other_role_group {
-            flex: 0 0 60%;
+            flex: 1;
         }
         .email-container {
             display: flex;
-            align-items: flex-end;
             gap: 30px;
-            justify-content: flex-start;
+            margin-bottom: 15px;
+        }
+        .email-container .form-group {
+            margin-bottom: 0;
         }
         .email-field {
-            flex: 0 0 calc(50% - 15px);
+            flex: 1;
         }
     </style>
 </head>
@@ -123,10 +154,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <?php if (!empty($error_message)): ?>
-        <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
+        <div class="error" style="background-color: #f8d7da !important; color: #721c24 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #f5c6cb;"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
-        <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
+        <div class="success" style="background-color: #d4edda !important; color: #155724 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb;"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
     <h2>Add Contact</h2>
@@ -139,48 +170,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     <?php
                     $orgs = $conn->query("SELECT id, organization_name FROM organizations ORDER BY organization_name");
                     while ($row = $orgs->fetch_assoc()) {
-                        echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['organization_name']) . "</option>";
+                        $selected = (!empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id']) ? 'selected' : '';
+                        echo "<option value='" . htmlspecialchars($row['id']) . "' $selected>" . htmlspecialchars($row['organization_name']) . "</option>";
                     }
                     ?>
                 </select>
             </div>
-            <a href="organizations.php" class="add-org-button">Add New Organization</a>
+            <a href="add_organization.php" class="add-org-button">Add New Organization</a>
         </div>
 
         <div class="form-group">
             <label for="contact_name" class="required">Contact Name</label>
-            <input type="text" name="contact_name" id="contact_name" required>
+            <input type="text" name="contact_name" id="contact_name" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_name'] ?? '') : ''; ?>">
         </div>
 
         <div class="role-container">
             <div class="form-group" style="flex: 0 0 200px;">
                 <label for="contact_role" class="required">Role</label>
                 <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
-                    <option value="Pastor">Pastor</option>
-                    <option value="Admin">Admin</option>
-                    <option value="other">Other</option>
+                    <option value="Pastor" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'Pastor') ? 'selected' : ''; ?>>Pastor</option>
+                    <option value="Admin" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'Admin') ? 'selected' : ''; ?>>Admin</option>
+                    <option value="other" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
                 </select>
             </div>
-            <div class="form-group" id="other_role_group" style="display: none;">
+            <div class="form-group" id="other_role_group" style="display: <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'block' : 'none'; ?>;">
                 <label for="contact_role_other" class="required">Other Role Description</label>
-                <input type="text" name="contact_role_other" id="contact_role_other">
+                <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_role_other'] ?? '') : ''; ?>">
             </div>
         </div>
 
         <div class="email-container">
             <div class="form-group email-field">
                 <label for="contact_email" class="required">Email</label>
-                <input type="email" name="contact_email" id="contact_email" required>
+                <input type="email" name="contact_email" id="contact_email" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_email'] ?? '') : ''; ?>">
             </div>
             <div class="form-group email-field">
                 <label for="contact_email_confirm" class="required">Confirm Email</label>
-                <input type="email" name="contact_email_confirm" id="contact_email_confirm" required>
+                <input type="email" name="contact_email_confirm" id="contact_email_confirm" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_email_confirm'] ?? '') : ''; ?>">
             </div>
         </div>
 
         <div class="form-group">
             <label for="contact_phone">Phone Number</label>
-            <input type="tel" name="contact_phone" id="contact_phone">
+            <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_phone'] ?? '') : ''; ?>">
         </div>
 <br>
         <div class="form-group" style="padding-left: 0; margin-left: 0;">
