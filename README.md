@@ -39,8 +39,9 @@ To set up the project on your local machine, follow these steps:
 - [x] add anticipated compensation block for 'Add Engagement'
 - [x] minimal buildout of 'Add Presentation' functionality
 - [x] !! CORRECT FORMATTING ERRORS INTRODUCED IN PRESENTATION BUILDOUT !! 2025-04-04 15:12:56
-- [x] add contacts during Organization add;
-- [ ] view/add contact for selected Organization;
+- [x] add contacts during Organization add
+- [ ] view/add contact for selected Organization
+- [ ] view/add presentation for selected Event
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
 - [ ] TEST 'Add Engagement'; on pass, tag restore point
