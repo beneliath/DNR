@@ -294,6 +294,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         .name-phone-row .form-group:last-child {
             width: 200px;
         }
+
+        .add-contact-btn {
+            background-color: #666;
+            color: white;
+            padding: 5px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-family: inherit;
+            font-size: inherit;
+        }
+        .add-contact-btn:hover {
+            background-color: #FF9800;
+        }
+        .remove-contact-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .remove-contact-btn:hover {
+            background-color: #da190b;
+        }
+        .contact-entry {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #444;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -454,10 +487,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     </div>
                 </div>
             </div>
+            <button type="button" onclick="addContact()" class="add-contact-btn">Add Another Contact</button>
         </div>
 
-        <div class="form-group" style="padding-left: 0; margin-left: 0;">
-            <input type="submit" name="save_org" value="SAVE ORGANIZATION" class="save-button" style="margin-left: 0;">
+        <div class="form-group" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+            <input type="submit" name="save_org" value="SAVE ORGANIZATION" class="save-button">
         </div>
     </form>
 </div>
@@ -512,20 +546,20 @@ function addContact() {
         <div class="contact-fields">
             <div class="name-phone-row">
                 <div class="form-group">
-                    <label for="contact_name_${contactCount}">Contact Name<span>*</span></label>
-                    <input type="text" name="contacts[${contactCount-1}][contact_name]" id="contact_name_${contactCount}" required>
+                    <label class="required">Name</label>
+                    <input type="text" name="contacts[${contactCount-1}][name]" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="contact_phone_${contactCount}">Phone<span>*</span></label>
-                    <input type="tel" name="contacts[${contactCount-1}][contact_phone]" id="contact_phone_${contactCount}" required>
+                    <label class="required">Phone</label>
+                    <input type="tel" name="contacts[${contactCount-1}][phone]" required>
                 </div>
             </div>
 
             <div class="role-container">
                 <div class="form-group">
-                    <label for="contact_role_${contactCount}">Role<span>*</span></label>
-                    <select name="contacts[${contactCount-1}][contact_role]" id="contact_role_${contactCount}" required>
+                    <label class="required">Role</label>
+                    <select name="contacts[${contactCount-1}][role]" class="narrow-select" required onchange="toggleOtherRole(${contactCount})">
                         <option value="">Select Role</option>
                         <option value="pastor">Pastor</option>
                         <option value="admin">Admin</option>
@@ -535,28 +569,26 @@ function addContact() {
 
                 <div class="form-group" id="other_role_group_${contactCount}" style="display: none;">
                     <label class="required">Describe Other Role</label>
-                    <input type="text" name="contacts[${contactCount-1}][contact_role_other]" id="contact_role_other_${contactCount}">
+                    <input type="text" name="contacts[${contactCount-1}][role_other]">
                 </div>
             </div>
 
             <div class="email-container">
                 <div class="form-group">
                     <label class="required">Email</label>
-                    <input type="email" name="contacts[${contactCount-1}][contact_email]" id="contact_email_${contactCount}" required>
+                    <input type="email" name="contacts[${contactCount-1}][email]" required>
                 </div>
 
                 <div class="form-group">
                     <label class="required">Confirm Email</label>
-                    <input type="email" name="contacts[${contactCount-1}][contact_email_confirm]" id="contact_email_confirm_${contactCount}" required>
+                    <input type="email" name="contacts[${contactCount-1}][email_confirm]" required>
                 </div>
             </div>
         </div>
-        <div class="remove-btn-container">
-            <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
-        </div>
+        <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
     `;
     
-    container.insertBefore(newContact, document.querySelector('.add-contact-btn'));
+    container.appendChild(newContact);
 }
 
 function removeContact(id) {
@@ -564,6 +596,22 @@ function removeContact(id) {
     const contact = document.getElementById(`contact-${id}`);
     if (contact) {
         contact.remove();
+    }
+}
+
+function toggleOtherRole(id = '') {
+    const suffix = id ? `_${id}` : '';
+    const roleSelect = document.querySelector(`select[name="contacts[${id-1}][role]"]`) || document.getElementById('contact_role');
+    const otherRoleGroup = document.getElementById(`other_role_group${suffix}`);
+    const otherRoleInput = otherRoleGroup.querySelector('input');
+    
+    if (roleSelect.value === 'other') {
+        otherRoleGroup.style.display = 'block';
+        otherRoleInput.required = true;
+    } else {
+        otherRoleGroup.style.display = 'none';
+        otherRoleInput.required = false;
+        otherRoleInput.value = '';
     }
 }
 </script>
