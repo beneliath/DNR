@@ -11,14 +11,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $error = false;
     $errorMessages = array();
 
-    // Validate contact email match
-    if ($_POST['contact_email'] !== $_POST['contact_email_confirm']) {
+    // Remove the email validation check since it's no longer required
+    if (!empty($_POST['contact_email']) && $_POST['contact_email'] !== $_POST['contact_email_confirm']) {
         $error = true;
         $errorMessages[] = "Email addresses do not match.";
     }
 
-    // Validate contact role other
-    if ($_POST['contact_role'] === 'other' && empty($_POST['contact_role_other'])) {
+    // Update the role validation to only check if a role is provided
+    if (!empty($_POST['contact_role']) && $_POST['contact_role'] === 'other' && empty($_POST['contact_role_other'])) {
         $error = true;
         $errorMessages[] = "Please specify the other role.";
     }
@@ -224,21 +224,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         }
         .role-container {
             display: flex;
-            align-items: flex-end;
+            align-items: center;
             gap: 30px;
-            justify-content: space-between;
+            margin-bottom: 15px;
         }
-        #other_role_group {
-            flex: 0 0 60%;
+        
+        .role-container .form-group {
+            margin-bottom: 0;
+        }
+        
+        .role-container .form-group:first-child {
+            flex: 1;
+        }
+        
+        .role-container .form-group:last-child {
+            flex: 0 0 200px;
         }
         .email-container {
             display: flex;
-            align-items: flex-end;
             gap: 30px;
-            justify-content: flex-start;
+            align-items: flex-start;
         }
-        .email-field {
-            flex: 0 0 calc(50% - 15px);
+        .email-container .form-group {
+            flex: 1;
+            margin-bottom: 0;
         }
         .form-group select {
             width: 100%;
@@ -265,6 +274,25 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             color: #fff;
             border-color: #444;
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+        }
+
+        .contact-fields {
+            display: grid;
+            gap: 15px;
+        }
+
+        .name-phone-row {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .name-phone-row .form-group:first-child {
+            flex: 1;
+        }
+
+        .name-phone-row .form-group:last-child {
+            width: 200px;
         }
     </style>
 </head>
@@ -378,46 +406,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             </div>
         </div>
 
+        <h3>Contact(s)</h3>
         <div class="address-section">
-            <h3 class="required">Contact Information</h3>
-            <div class="role-container">
-                <div class="form-group" style="flex: 1;">
-                    <label class="required">Name</label>
-                    <input type="text" name="contact_name" required>
-                </div>
+            <div id="contacts-container">
+                <div class="contact-entry">
+                    <div class="contact-fields">
+                        <div class="name-phone-row">
+                            <div class="form-group">
+                                <label>Name</label>
+                                <input type="text" name="contact_name">
+                            </div>
 
-                <div class="form-group">
-                    <label class="required">Phone</label>
-                    <input type="tel" name="contact_phone" class="narrow-select" required>
-                </div>
-            </div>
+                            <div class="form-group">
+                                <label>Phone</label>
+                                <input type="tel" name="contact_phone">
+                            </div>
+                        </div>
 
-            <div class="role-container">
-                <div class="form-group">
-                    <label class="required">Role</label>
-                    <select name="contact_role" id="contact_role" class="narrow-select" required onchange="toggleOtherRole()">
-                        <option value="">Select Role</option>
-                        <option value="pastor">Pastor</option>
-                        <option value="admin">Admin</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
+                        <div class="role-container">
+                            <div class="form-group">
+                                <label>Role</label>
+                                <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
+                                    <option value="">Select Role</option>
+                                    <option value="pastor">Pastor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
 
-                <div class="form-group" id="other_role_group" style="display: none;">
-                    <label class="required">Describe Other Role</label>
-                    <input type="text" name="contact_role_other" id="contact_role_other">
-                </div>
-            </div>
+                            <div class="form-group" id="other_role_group" style="display: none;">
+                                <label>Describe Other Role</label>
+                                <input type="text" name="contact_role_other" id="contact_role_other">
+                            </div>
+                        </div>
 
-            <div class="email-container">
-                <div class="form-group email-field">
-                    <label class="required">Email</label>
-                    <input type="email" name="contact_email" required>
-                </div>
+                        <div class="email-container">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="contact_email">
+                            </div>
 
-                <div class="form-group email-field">
-                    <label class="required">Confirm Email</label>
-                    <input type="email" name="contact_email_confirm" required>
+                            <div class="form-group">
+                                <label>Confirm Email</label>
+                                <input type="email" name="contact_email_confirm">
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -464,6 +498,74 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial state
     toggleMailingAddress(false);
 });
+
+let contactCount = 1;
+
+function addContact() {
+    contactCount++;
+    const container = document.getElementById('contacts-container');
+    const newContact = document.createElement('div');
+    newContact.className = 'contact-entry';
+    newContact.id = `contact-${contactCount}`;
+    
+    newContact.innerHTML = `
+        <div class="contact-fields">
+            <div class="name-phone-row">
+                <div class="form-group">
+                    <label for="contact_name_${contactCount}">Contact Name<span>*</span></label>
+                    <input type="text" name="contacts[${contactCount-1}][contact_name]" id="contact_name_${contactCount}" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="contact_phone_${contactCount}">Phone<span>*</span></label>
+                    <input type="tel" name="contacts[${contactCount-1}][contact_phone]" id="contact_phone_${contactCount}" required>
+                </div>
+            </div>
+
+            <div class="role-container">
+                <div class="form-group">
+                    <label for="contact_role_${contactCount}">Role<span>*</span></label>
+                    <select name="contacts[${contactCount-1}][contact_role]" id="contact_role_${contactCount}" required>
+                        <option value="">Select Role</option>
+                        <option value="pastor">Pastor</option>
+                        <option value="admin">Admin</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="other_role_group_${contactCount}" style="display: none;">
+                    <label class="required">Describe Other Role</label>
+                    <input type="text" name="contacts[${contactCount-1}][contact_role_other]" id="contact_role_other_${contactCount}">
+                </div>
+            </div>
+
+            <div class="email-container">
+                <div class="form-group">
+                    <label class="required">Email</label>
+                    <input type="email" name="contacts[${contactCount-1}][contact_email]" id="contact_email_${contactCount}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="required">Confirm Email</label>
+                    <input type="email" name="contacts[${contactCount-1}][contact_email_confirm]" id="contact_email_confirm_${contactCount}" required>
+                </div>
+            </div>
+        </div>
+        <div class="remove-btn-container">
+            <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
+        </div>
+    `;
+    
+    container.insertBefore(newContact, document.querySelector('.add-contact-btn'));
+}
+
+function removeContact(id) {
+    if (id === 1) return; // Prevent removing the first contact
+    const contact = document.getElementById(`contact-${id}`);
+    if (contact) {
+        contact.remove();
+    }
+}
 </script>
 
 <?php include 'templates/footer.php'; ?>
