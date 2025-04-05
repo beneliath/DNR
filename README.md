@@ -20,7 +20,9 @@ To set up the project on your local machine, follow these steps:
    ```
 3. **Build and run the application using Docker Compose**
    `docker-compose up --build`
-   This command will build the Docker images and start the services defined in the docker-compose.yaml file. Browse to localhost:8080. Admin account: user=admin / pass=p@55word
+   This command will build the Docker images and start the services defined in the docker-compose.yaml file.
+   - browse to localhost:8080
+   - user=admin / pass=p@55word
 
 ### Roadmap / To Do
 
