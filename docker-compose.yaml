@@ -8,6 +8,8 @@ services:
       - ./src:/var/www/html
     depends_on:
       - db
+    environment:
+      - DEFAULT_SPEAKER=Default Speaker # or whatever default speaker name you want
 
   db:
     image: mysql:8.0

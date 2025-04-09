@@ -13,6 +13,9 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 
+// Get default speaker name from environment variable
+$DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+
 // Handle form submission for adding a new engagement
 $success_message = '';
 $error_message = '';
@@ -40,7 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     'topic_title' => $topic_title,
                     'presentation_date' => !empty($presentation['presentation_date']) ? $presentation['presentation_date'] : null,
                     'presentation_time' => !empty($presentation['presentation_time']) ? $presentation['presentation_time'] : null,
-                    'speaker_name' => trim($presentation['speaker_name'] ?? 'Olivier Melnick'),
+                    'speaker_name' => trim($presentation['speaker_name'] ?? $DEFAULT_SPEAKER),
                     'expected_attendance' => !empty($presentation['expected_attendance']) ? intval($presentation['expected_attendance']) : null
                 ];
             }
@@ -212,7 +215,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 $topic_title = htmlspecialchars($presentation['topic_title'] ?? '');
                 $presentation_date = htmlspecialchars($presentation['presentation_date'] ?? '');
                 $presentation_time = htmlspecialchars($presentation['presentation_time'] ?? '');
-                $speaker_name = htmlspecialchars($presentation['speaker_name'] ?? 'Olivier Melnick');
+                $speaker_name = htmlspecialchars($presentation['speaker_name'] ?? $DEFAULT_SPEAKER);
                 $expected_attendance = htmlspecialchars($presentation['expected_attendance'] ?? '');
             ?>
             <div class="presentation-entry" id="presentation-<?php echo $index + 1; ?>">
@@ -246,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     <div class="speaker-row">
                         <div class="form-field speaker">
                             <label for="speaker_name_<?php echo $index + 1; ?>">Speaker Name</label>
-                            <input type="text" name="presentations[<?php echo $index; ?>][speaker_name]" id="speaker_name_<?php echo $index + 1; ?>" value="<?php echo $speaker_name; ?>">
+                            <input type="text" name="presentations[<?php echo $index; ?>][speaker_name]" id="speaker_name_<?php echo $index + 1; ?>" value="<?php echo htmlspecialchars($speaker_name ?? $DEFAULT_SPEAKER); ?>">
                         </div>
                         <div class="form-field attendance">
                             <label for="expected_attendance_<?php echo $index + 1; ?>">Expected Attendance</label>
@@ -479,6 +482,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
     }
 
+    // Make default speaker available to JavaScript
+    const defaultSpeaker = <?php echo json_encode($DEFAULT_SPEAKER); ?>;
+
     function addPresentation() {
         // Find the highest numbered presentation currently in the form
         const presentations = document.querySelectorAll('.presentation-entry');
@@ -511,7 +517,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 <div class="datetime-row">
                     <div class="form-field">
                         <label for="presentation_date_${newPresentationId}">Date</label>
-                        <input type="date" name="presentations[${newPresentationId-1}][presentation_date]" id="presentation_date_${newPresentationId}" required>
+                        <input type="date" name="presentations[${newPresentationId-1}][presentation_date]" id="presentation_date_${newPresentationId}">
                     </div>
                     <div class="form-field">
                         <label for="presentation_time_${newPresentationId}">Time</label>
@@ -527,12 +533,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
                 <div class="speaker-row">
                     <div class="form-field speaker">
-                        <label for="speaker_name_${newPresentationId}">Speaker Name<span>*</span></label>
-                        <input type="text" name="presentations[${newPresentationId-1}][speaker_name]" id="speaker_name_${newPresentationId}" value="Olivier Melnick" required>
+                        <label for="speaker_name_${newPresentationId}">Speaker Name</label>
+                        <input type="text" name="presentations[${newPresentationId-1}][speaker_name]" id="speaker_name_${newPresentationId}" value="${defaultSpeaker}">
                     </div>
                     <div class="form-field attendance">
-                        <label for="expected_attendance_${newPresentationId}">Expected Attendance<span>*</span></label>
-                        <input type="number" name="presentations[${newPresentationId-1}][expected_attendance]" id="expected_attendance_${newPresentationId}" min="1" required>
+                        <label for="expected_attendance_${newPresentationId}">Expected Attendance</label>
+                        <input type="number" name="presentations[${newPresentationId-1}][expected_attendance]" id="expected_attendance_${newPresentationId}" min="1">
                     </div>
                 </div>
                 <div class="remove-btn-container">
