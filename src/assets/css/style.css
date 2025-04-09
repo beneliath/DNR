@@ -9,6 +9,20 @@
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
   --link-color: var(--light-link-color);
+  
+  /* Error colors */
+  --error-color: #f44336;
+  --error-bg-light: rgba(244, 67, 54, 0.1);
+  --error-bg-dark: rgba(244, 67, 54, 0.08);
+  --error-border-light: rgba(244, 67, 54, 0.5);
+  --error-border-dark: rgba(244, 67, 54, 0.3);
+  
+  /* Success colors */
+  --success-color: #4CAF50;
+  --success-bg-light: rgba(76, 175, 80, 0.1);
+  --success-bg-dark: rgba(76, 175, 80, 0.08);
+  --success-border-light: rgba(76, 175, 80, 0.5);
+  --success-border-dark: rgba(76, 175, 80, 0.3);
 }
 
 html, body {
@@ -394,23 +408,33 @@ h2 {
 }
 
 /* Messages */
-.success {
-  background-color: #d4edda;
-  color: #155724;
+.error {
+  background-color: var(--error-bg-light) !important;
+  border: 1px solid var(--error-border-light);
+  color: var(--error-color);
   padding: 10px;
   margin-bottom: 10px;
-  border: 1px solid #c3e6cb;
   border-radius: 4px;
 }
 
-.error {
-  background-color: #f8d7da;
-  color: #721c24;
+.success {
+  background-color: var(--success-bg-light) !important;
+  border: 1px solid var(--success-border-light);
+  color: var(--success-color);
   padding: 10px;
   margin-bottom: 10px;
-  border: 1px solid #f5c6cb;
   border-radius: 4px;
-  font-size: 14px;
+}
+
+/* Dark mode adjustments for messages */
+.dark-mode .error {
+  background-color: var(--error-bg-dark) !important;
+  border-color: var(--error-border-dark);
+}
+
+.dark-mode .success {
+  background-color: var(--success-bg-dark) !important;
+  border-color: var(--success-border-dark);
 }
 
 /* Dark Mode Support */
@@ -424,8 +448,28 @@ html.dark-mode {
 html.dark-mode,
 html.dark-mode body,
 html.dark-mode .fullscreen-center {
-  background-color: var(--dark-bg-color) !important;
-  color: var(--dark-text-color) !important;
+  background-color: var(--dark-bg-color);
+  color: var(--dark-text-color);
+}
+
+/* Ensure all containers and sections are covered - exclude error/success messages */
+.dark-mode .container,
+.dark-mode header,
+.dark-mode footer,
+.dark-mode nav,
+.dark-mode .fullscreen-center,
+.dark-mode .left-column,
+.dark-mode .right-column,
+.dark-mode main,
+.dark-mode section {
+  background-color: var(--dark-bg-color);
+  color: var(--dark-text-color);
+}
+
+/* Separate rule for divs to properly handle exclusions */
+.dark-mode div:not(.error):not(.success):not(.login-container):not(.login-container *) {
+  background-color: var(--dark-bg-color);
+  color: var(--dark-text-color);
 }
 
 /* Form inputs in dark mode - exclude login container */
@@ -451,21 +495,6 @@ html.dark-mode .fullscreen-center {
 .dark-mode .save-event-button:hover,
 .dark-mode input[type="submit"]:hover {
   background-color: #FF9800 !important;
-}
-
-/* Ensure all containers and sections are covered - exclude login container */
-.dark-mode .container,
-.dark-mode header,
-.dark-mode footer,
-.dark-mode nav,
-.dark-mode .fullscreen-center,
-.dark-mode .left-column,
-.dark-mode .right-column,
-.dark-mode main,
-.dark-mode section,
-.dark-mode div:not(.login-container):not(.login-container *) {
-  background-color: var(--dark-bg-color) !important;
-  color: var(--dark-text-color) !important;
 }
 
 /* Ensure login container maintains its style in both modes */
