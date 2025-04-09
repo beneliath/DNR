@@ -38,10 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             if (!empty($topic_title)) {
                 $presentations[] = [
                     'topic_title' => $topic_title,
-                    'presentation_date' => $presentation['presentation_date'],
-                    'presentation_time' => $presentation['presentation_time'],
-                    'speaker_name' => trim($presentation['speaker_name']),
-                    'expected_attendance' => intval($presentation['expected_attendance'])
+                    'presentation_date' => !empty($presentation['presentation_date']) ? $presentation['presentation_date'] : null,
+                    'presentation_time' => !empty($presentation['presentation_time']) ? $presentation['presentation_time'] : null,
+                    'speaker_name' => trim($presentation['speaker_name'] ?? 'Olivier Melnick'),
+                    'expected_attendance' => !empty($presentation['expected_attendance']) ? intval($presentation['expected_attendance']) : null
                 ];
             }
         }
@@ -86,24 +86,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     $engagement_id = $conn->insert_id;
                     
                     // Insert presentations
-                    $presentation_stmt = $conn->prepare("INSERT INTO presentations (
-                        engagement_id, topic_title, presentation_date, presentation_time,
-                        speaker_name, expected_attendance
-                    ) VALUES (?, ?, ?, ?, ?, ?)");
+                    if (!empty($presentations)) {
+                        $presentation_stmt = $conn->prepare("INSERT INTO presentations (
+                            engagement_id, topic_title, presentation_date, presentation_time,
+                            speaker_name, expected_attendance
+                        ) VALUES (?, ?, ?, ?, ?, ?)");
 
-                    foreach ($presentations as $presentation) {
-                        $presentation_stmt->bind_param(
-                            "issssi",
-                            $engagement_id,
-                            $presentation['topic_title'],
-                            $presentation['presentation_date'],
-                            $presentation['presentation_time'],
-                            $presentation['speaker_name'],
-                            $presentation['expected_attendance']
-                        );
-                        
-                        if (!$presentation_stmt->execute()) {
-                            throw new Exception("Error saving presentation: " . $presentation_stmt->error);
+                        foreach ($presentations as $presentation) {
+                            $presentation_stmt->bind_param(
+                                "issssi",
+                                $engagement_id,
+                                $presentation['topic_title'],
+                                $presentation['presentation_date'],
+                                $presentation['presentation_time'],
+                                $presentation['speaker_name'],
+                                $presentation['expected_attendance']
+                            );
+                            
+                            if (!$presentation_stmt->execute()) {
+                                throw new Exception("Error saving presentation: " . $presentation_stmt->error);
+                            }
                         }
                     }
                     
@@ -167,11 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         <div class="date-fields">
             <div class="date-field">
-                <label for="event_start_date">Start</label>
+                <label for="event_start_date">Start<span class="required">*</span></label>
                 <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($_POST['event_start_date'] ?? ''); ?>">
             </div>
             <div class="date-field">
-                <label for="event_end_date">End</label>
+                <label for="event_end_date">End<span class="required">*</span></label>
                 <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($_POST['event_end_date'] ?? ''); ?>">
             </div>
         </div>
@@ -508,13 +510,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
                 <div class="datetime-row">
                     <div class="form-field">
-                        <label for="presentation_date_${newPresentationId}">Date<span>*</span></label>
+                        <label for="presentation_date_${newPresentationId}">Date</label>
                         <input type="date" name="presentations[${newPresentationId-1}][presentation_date]" id="presentation_date_${newPresentationId}" required>
                     </div>
                     <div class="form-field">
-                        <label for="presentation_time_${newPresentationId}">Time<span>*</span></label>
+                        <label for="presentation_time_${newPresentationId}">Time</label>
                         <div class="time-input-container">
-                            <input type="text" name="presentation_time_${newPresentationId}" id="presentation_time_${newPresentationId}" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM" required>
+                            <input type="text" name="presentation_time_${newPresentationId}" id="presentation_time_${newPresentationId}" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM">
                             <div class="ampm-radio">
                                 <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="AM" checked> AM</label>
                                 <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="PM"> PM</label>
