@@ -24,49 +24,6 @@ To set up the project on your local machine, follow these steps:
    - browse to localhost:8080 (default port)
    - user=admin / pass=p@55word
 
-### Dev Roadmap / To Do
-
-- [x] rename project to "deploy and report"
-- [x] include check for Event End Date >= Event Start Date
-- [x] add default username/password (admin/p@55word)
-- [x] complete minimal buildout of 'Add Engagement' functionality
-- [x] fix Mailing & Physical Address issue with 'Add Organization'
-- [x] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
-- [x] globbing for Mailing & Physical Address entry
-- [x] login ui/ux redesign
-- [x] complete minimal buildout of 'Add Organization' functionality
-- [x] ensure docker container auto-restarts
-- [x] add creation and last-modification dates for user accounts
-- [x] minimal buildout of 'Add Contact' functionality
-- [x] add anticipated compensation block for 'Add Engagement'
-- [x] minimal buildout of 'Add Presentation' functionality
-- [x] !! CORRECT FORMATTING ERRORS INTRODUCED IN PRESENTATION BUILDOUT !! 2025-04-04 15:12:56
-- [x] add contacts during Organization add
-- [ ] view/add contact for selected Organization
-- [ ] view/add presentation for selected Event
-- [x] code Mailing Address / Physical Address
-- [x] code: Is Mailing the same as Physical?
-- [ ] TEST 'Add Engagement'; on pass, tag restore point
-- [ ] TEST 'Add Organization'; on pass, tag restore point
-- [ ] TEST 'Add Contact'; on pass, tag restore point
-- [ ] TEST 'Add Presentation'; on pass, tag restore point
-- [ ] header navigation bar redesign (only after base functionality completed)
-- [ ] doublecheck password entry for new user creation
-- [ ] mod edit user to allow for change of password (with doublecheck)
-- [ ] build out profiles for users (including email sub-system for initialization and password reset)
-- [ ] add functionality to activate/deactivate users
-- [ ] build out for Contact(s): Admin, Pastor
-- [ ] build out for Anticipated Compensation
-- [ ] 'Caller' in Engagement/Event to be listed system user
-- [ ] convert from plaintext to hashed passwords
-- [ ] build out multiple Presentation functionality
-- [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
-- [ ] evaluate for sql-injection vulnerabilities
-- [ ] minify JS and CSS
-- [ ] when above is complete: build out REPORT functionality
-- [ ] when above is complete: build out FOLLOW-UP functionality
-- [ ] when above is complete: build out printed document support
-
 ### Configuration
 
 Database Initialization:
