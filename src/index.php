@@ -147,31 +147,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
-        <option value="" disabled selected>select an organization</option>
+        <option value="" disabled <?php echo !isset($_POST['organization_id']) ? 'selected' : ''; ?>>select an organization</option>
         <?php
         // Fetch and display organizations in the dropdown
         $orgs = $conn->query("SELECT id, organization_name FROM organizations");
         while ($row = $orgs->fetch_assoc()) {
-echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars($row['organization_name']) . "</option>";
+            $selected = isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
+            echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
         }
         ?>
     </select>
-                    <a href="add_organization.php" class="add-org-button">Add New Organization</a>
+    <a href="add_organization.php" class="add-org-button">Add New Organization</a>
 </div>
 
 
         <label for="engagement_notes" style="vertical-align: top;">Chron</label>
-        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"></textarea>
+        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($_POST['engagement_notes'] ?? ''); ?></textarea>
         <br><br>
 
         <div class="date-fields">
             <div class="date-field">
                 <label for="event_start_date">Start</label>
-                <input type="date" name="event_start_date" id="event_start_date" required>
+                <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($_POST['event_start_date'] ?? ''); ?>">
             </div>
             <div class="date-field">
                 <label for="event_end_date">End</label>
-                <input type="date" name="event_end_date" id="event_end_date" required>
+                <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($_POST['event_end_date'] ?? ''); ?>">
             </div>
         </div>
         <br>
@@ -181,17 +182,20 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
             <div class="event-group">
                 <div class="label-container">Event Type</div>
                 <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
-                    <option value="conference">conference</option>
-                    <option value="service">service</option>
-                    <option value="study or teaching">study or teaching</option>
-                    <option value="Passover Seder">Passover Seder</option>
-                    <option value="other">other</option>
+                    <?php
+                    $event_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
+                    $selected_type = $_POST['event_type'] ?? '';
+                    foreach ($event_types as $type) {
+                        $selected = ($selected_type === $type) ? 'selected' : '';
+                        echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
+                    }
+                    ?>
                 </select>
             </div>
 
-            <div class="event-group" id="other_event_type_div">
+            <div class="event-group" id="other_event_type_div" style="display: <?php echo isset($_POST['event_type']) && $_POST['event_type'] === 'other' ? 'block' : 'none'; ?>">
                 <div class="label-container">Other Event Type<span class="required">*</span></div>
-                <input type="text" name="event_type_other" id="event_type_other">
+                <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
             </div>
         </div>
 
@@ -200,41 +204,61 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         <!-- Presentation(s) Section -->
         <div id="presentations-container">
             <h3>Presentation(s)</h3>
-            <div class="presentation-entry" id="presentation-1">
+            <?php
+            $presentations = isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
+            foreach ($presentations as $index => $presentation) {
+                $topic_title = htmlspecialchars($presentation['topic_title'] ?? '');
+                $presentation_date = htmlspecialchars($presentation['presentation_date'] ?? '');
+                $presentation_time = htmlspecialchars($presentation['presentation_time'] ?? '');
+                $speaker_name = htmlspecialchars($presentation['speaker_name'] ?? 'Olivier Melnick');
+                $expected_attendance = htmlspecialchars($presentation['expected_attendance'] ?? '');
+            ?>
+            <div class="presentation-entry" id="presentation-<?php echo $index + 1; ?>">
                 <div class="presentation-fields">
                     <div class="form-field topic">
-                        <label for="presentation_topic_1">Topic Title</label>
-                        <input type="text" name="presentations[0][topic_title]" id="presentation_topic_1">
+                        <label for="presentation_topic_<?php echo $index + 1; ?>">Topic Title</label>
+                        <input type="text" name="presentations[<?php echo $index; ?>][topic_title]" id="presentation_topic_<?php echo $index + 1; ?>" value="<?php echo $topic_title; ?>">
                     </div>
                     <div class="datetime-row">
                         <div class="form-field">
-                            <label for="presentation_date_1">Date</label>
-                            <input type="date" name="presentations[0][presentation_date]" id="presentation_date_1">
+                            <label for="presentation_date_<?php echo $index + 1; ?>">Date</label>
+                            <input type="date" name="presentations[<?php echo $index; ?>][presentation_date]" id="presentation_date_<?php echo $index + 1; ?>" value="<?php echo $presentation_date; ?>">
                         </div>
                         <div class="form-field">
-                            <label for="presentation_time_1">Time</label>
+                            <label for="presentation_time_<?php echo $index + 1; ?>">Time</label>
                             <div class="time-input-container">
-                                <input type="text" name="presentation_time_1" id="presentation_time_1" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM">
+                                <?php
+                                $time_parts = explode(' ', $presentation_time);
+                                $time_value = isset($time_parts[0]) ? $time_parts[0] : '';
+                                $ampm = isset($time_parts[1]) ? strtoupper($time_parts[1]) : 'AM';
+                                ?>
+                                <input type="text" name="presentation_time_<?php echo $index + 1; ?>" id="presentation_time_<?php echo $index + 1; ?>" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM" value="<?php echo $time_value; ?>">
                                 <div class="ampm-radio">
-                                    <label><input type="radio" name="presentation_ampm_1" value="AM" checked> AM</label>
-                                    <label><input type="radio" name="presentation_ampm_1" value="PM"> PM</label>
+                                    <label><input type="radio" name="presentation_ampm_<?php echo $index + 1; ?>" value="AM" <?php echo $ampm === 'AM' ? 'checked' : ''; ?>> AM</label>
+                                    <label><input type="radio" name="presentation_ampm_<?php echo $index + 1; ?>" value="PM" <?php echo $ampm === 'PM' ? 'checked' : ''; ?>> PM</label>
                                 </div>
                             </div>
-                            <input type="hidden" name="presentations[0][presentation_time]" id="presentation_time_hidden_1">
+                            <input type="hidden" name="presentations[<?php echo $index; ?>][presentation_time]" id="presentation_time_hidden_<?php echo $index + 1; ?>" value="<?php echo $presentation_time; ?>">
                         </div>
                     </div>
                     <div class="speaker-row">
                         <div class="form-field speaker">
-                            <label for="speaker_name_1">Speaker Name</label>
-                            <input type="text" name="presentations[0][speaker_name]" id="speaker_name_1" value="Olivier Melnick">
+                            <label for="speaker_name_<?php echo $index + 1; ?>">Speaker Name</label>
+                            <input type="text" name="presentations[<?php echo $index; ?>][speaker_name]" id="speaker_name_<?php echo $index + 1; ?>" value="<?php echo $speaker_name; ?>">
                         </div>
                         <div class="form-field attendance">
-                            <label for="expected_attendance_1">Expected Attendance</label>
-                            <input type="number" name="presentations[0][expected_attendance]" id="expected_attendance_1" min="1">
+                            <label for="expected_attendance_<?php echo $index + 1; ?>">Expected Attendance</label>
+                            <input type="number" name="presentations[<?php echo $index; ?>][expected_attendance]" id="expected_attendance_<?php echo $index + 1; ?>" min="1" value="<?php echo $expected_attendance; ?>">
                         </div>
                     </div>
+                    <?php if ($index > 0): ?>
+                    <div class="remove-btn-container">
+                        <button type="button" onclick="removePresentation(<?php echo $index + 1; ?>)" class="remove-presentation-btn">Remove</button>
+                    </div>
+                    <?php endif; ?>
                 </div>
             </div>
+            <?php } ?>
             <button type="button" onclick="addPresentation()" class="add-presentation-btn">Add Another Presentation</button>
         </div>
 
@@ -243,18 +267,23 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" name="book_table"> book table provided
+                    <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> book table provided
                 </label>
                 <label class="checkbox-label">
-                    <input type="checkbox" name="brochures"> brochures permitted
+                    <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> brochures permitted
                 </label>
             </div>
             <div class="radio-row">
                 <label>All Travel Covered</label>
                 <div class="radio-options">
-                    <label><input type="radio" name="travel_covered" value="unknown" checked> Unknown</label>
-                    <label><input type="radio" name="travel_covered" value="yes"> Yes</label>
-                    <label><input type="radio" name="travel_covered" value="no"> No</label>
+                    <?php
+                    $travel_covered = $_POST['travel_covered'] ?? 'unknown';
+                    $options = ['unknown', 'yes', 'no'];
+                    foreach ($options as $option) {
+                        $checked = ($travel_covered === $option) ? 'checked' : '';
+                        echo "<label><input type='radio' name='travel_covered' value='{$option}' {$checked}> " . ucfirst($option) . "</label>";
+                    }
+                    ?>
                 </div>
             </div>
         </div>
@@ -265,19 +294,22 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                     <div class="field-group">
                         <label for="compensation_type">Type of Compensation</label>
                         <select name="compensation_type" id="compensation_type" class="narrow-select" onchange="toggleOtherCompensation()">
-                            <option value="Unknown">Unknown</option>
-                            <option value="Honorarium">Honorarium</option>
-                            <option value="Offering">Offering</option>
-                            <option value="Honorarium and Offering">Honorarium and Offering</option>
-                            <option value="Other">Other</option>
+                            <?php
+                            $comp_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
+                            $selected_comp = $_POST['compensation_type'] ?? 'Unknown';
+                            foreach ($comp_types as $type) {
+                                $selected = ($selected_comp === $type) ? 'selected' : '';
+                                echo "<option value='{$type}' {$selected}>{$type}</option>";
+                            }
+                            ?>
                         </select>
                     </div>
                 </div>
 
-                <div class="form-field" id="other_compensation_div" style="display: none;">
+                <div class="form-field" id="other_compensation_div" style="display: <?php echo isset($_POST['compensation_type']) && $_POST['compensation_type'] === 'Other' ? 'block' : 'none'; ?>">
                     <div class="field-group">
                         <label for="other_compensation">Describe Other Compensation<span class="required">*</span></label>
-                        <input type="text" name="other_compensation" id="other_compensation">
+                        <input type="text" name="other_compensation" id="other_compensation" value="<?php echo htmlspecialchars($_POST['other_compensation'] ?? ''); ?>">
                     </div>
                 </div>
             </div>
@@ -287,14 +319,14 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                     <label>Travel (Not in Compensation)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="travel_amount" step="0.01" min="0">
+                        <input type="number" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['travel_amount'] ?? ''); ?>">
                     </div>
                 </div>
                 <div class="form-field">
                     <label>Lodging (Not in Travel)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="housing_amount" step="0.01" min="0">
+                        <input type="number" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['housing_amount'] ?? ''); ?>">
                     </div>
                 </div>
             </div>
@@ -305,18 +337,22 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                 <div class="field-group">
                     <label for="housing_type">Lodging Type</label>
                     <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
-                        <option value="Unknown">Unknown</option>
-                        <option value="Provided">Provided</option>
-                        <option value="Not Provided">Not Provided</option>
-                        <option value="Other">Other</option>
+                        <?php
+                        $housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
+                        $selected_housing = $_POST['housing_type'] ?? 'Unknown';
+                        foreach ($housing_types as $type) {
+                            $selected = ($selected_housing === $type) ? 'selected' : '';
+                            echo "<option value='{$type}' {$selected}>{$type}</option>";
+                        }
+                        ?>
                     </select>
                 </div>
             </div>
 
-            <div class="form-field" id="other_housing_div" style="display: none;">
+            <div class="form-field" id="other_housing_div" style="display: <?php echo isset($_POST['housing_type']) && $_POST['housing_type'] === 'Other' ? 'block' : 'none'; ?>">
                 <div class="field-group">
                     <label for="other_housing">Describe Other Lodging<span class="required">*</span></label>
-                    <input type="text" name="other_housing" id="other_housing">
+                    <input type="text" name="other_housing" id="other_housing" value="<?php echo htmlspecialchars($_POST['other_housing'] ?? ''); ?>">
                 </div>
             </div>
         </div>
@@ -326,12 +362,13 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                 <div class="form-field">
                     <label for="caller_name">Caller</label>
                     <select name="caller_name" id="caller_name">
-                        <option value="" disabled selected>select a caller</option>
+                        <option value="" disabled <?php echo !isset($_POST['caller_name']) ? 'selected' : ''; ?>>select a caller</option>
                         <?php
                         // Fetch and display users in the dropdown
                         $users = $conn->query("SELECT username FROM users ORDER BY username");
                         while ($row = $users->fetch_assoc()) {
-                            echo "<option value='" . htmlspecialchars($row['username']) . "'>" . htmlspecialchars($row['username']) . "</option>";
+                            $selected = isset($_POST['caller_name']) && $_POST['caller_name'] === $row['username'] ? 'selected' : '';
+                            echo "<option value='" . htmlspecialchars($row['username']) . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
                         }
                         ?>
                     </select>
@@ -340,9 +377,14 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
                 <div class="form-field">
                     <label for="confirmation_status">Status</label>
                     <select name="confirmation_status" id="confirmation_status">
-                        <option value="work_in_progress">work in progress</option>
-                        <option value="under_review">under review</option>
-                        <option value="confirmed">confirmed</option>
+                        <?php
+                        $statuses = ['work_in_progress', 'under_review', 'confirmed'];
+                        $selected_status = $_POST['confirmation_status'] ?? 'work_in_progress';
+                        foreach ($statuses as $status) {
+                            $selected = ($selected_status === $status) ? 'selected' : '';
+                            echo "<option value='{$status}' {$selected}>" . str_replace('_', ' ', $status) . "</option>";
+                        }
+                        ?>
                     </select>
                 </div>
             </div>
@@ -1076,4 +1118,5 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
 </body>
 </html>
+
 
