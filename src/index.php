@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 </div>
 
 
-        <label for="engagement_notes" style="vertical-align: top;">Chron</label>
+        <label for="engagement_notes" style="vertical-align: top;">Notes/Chron</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>
         <br><br>
 
@@ -220,7 +220,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         <!-- Presentation(s) Section -->
         <div id="presentations-container">
-            <h3>Presentation(s)</h3>
+            <div class="section-heading">Presentation(s)</div>
             <?php
             $presentations = !empty($error_message) && isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
             foreach ($presentations as $index => $presentation) {
@@ -1200,6 +1200,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         align-items: center !important;
         justify-content: center !important;
         font-size: 16px !important;
+    }
+
+    /* Reset and contain all event field styles in a single block */
+    .section-heading {
+        font-size: 1.17em;
+        margin: 1em 0;
+        color: var(--text-color);
+        font-weight: normal;
     }
 </style>
 
