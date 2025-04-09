@@ -122,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     }
                     
                     $conn->commit();
-                    $success_message = "Engagement and presentations saved successfully!";
+                    $success_message = "Engagement saved successfully!";
                 } else {
                     throw new Exception("Error saving engagement: " . $stmt->error);
                 }
@@ -151,22 +151,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
+    <h2>Add Engagement</h2>
+    <!-- Form for adding a new speaking engagement -->
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
+    <?php if (!empty($success_message)): ?>
+        <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
+    <?php endif; ?>
 
-    <h2>Add Engagement</h2>
-    <!-- Form for adding a new speaking engagement -->
     <form method="post" action="index.php" onsubmit="return validateDates();">
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
-        <option value="" disabled <?php echo !isset($_POST['organization_id']) ? 'selected' : ''; ?>>select an organization</option>
+        <option value="" disabled <?php echo empty($_POST['organization_id']) || !empty($success_message) ? 'selected' : ''; ?>>select an organization</option>
         <?php
         // Fetch and display organizations in the dropdown
         $orgs = $conn->query("SELECT id, organization_name FROM organizations");
         while ($row = $orgs->fetch_assoc()) {
-            $selected = isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
+            $selected = !empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
             echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
         }
         ?>
@@ -176,17 +179,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
 
         <label for="engagement_notes" style="vertical-align: top;">Chron</label>
-        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($_POST['engagement_notes'] ?? ''); ?></textarea>
+        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>
         <br><br>
 
         <div class="date-fields">
             <div class="date-field">
                 <label for="event_start_date">Start<span class="required">*</span></label>
-                <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($_POST['event_start_date'] ?? ''); ?>">
+                <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_start_date'] ?? '') : ''; ?>">
             </div>
             <div class="date-field">
                 <label for="event_end_date">End<span class="required">*</span></label>
-                <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($_POST['event_end_date'] ?? ''); ?>">
+                <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_end_date'] ?? '') : ''; ?>">
             </div>
         </div>
         <br>
@@ -219,7 +222,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <div id="presentations-container">
             <h3>Presentation(s)</h3>
             <?php
-            $presentations = isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
+            $presentations = !empty($error_message) && isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
             foreach ($presentations as $index => $presentation) {
                 $topic_title = htmlspecialchars($presentation['topic_title'] ?? '');
                 $presentation_date = htmlspecialchars($presentation['presentation_date'] ?? '');
@@ -410,13 +413,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
-<!-- Display success message as an alert if present -->
-
-<?php if (!empty($success_message)): ?>
-<script>
-    alert("<?php echo addslashes($success_message); ?>");
-</script>
-<?php endif; ?>
 
 <script>
     // Validate that the event end date is on or after the event start date
@@ -938,6 +934,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
     `;
     document.head.appendChild(style);
+
+    // Update the JavaScript to scroll to success message if present
+    document.addEventListener('DOMContentLoaded', function() {
+        const successMessage = document.querySelector('.success');
+        if (successMessage) {
+            successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    });
 </script>
 
 <style>
