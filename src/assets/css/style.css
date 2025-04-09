@@ -667,8 +667,14 @@ h3 {
 
 /* Required field marker */
 .required {
-    color: #ff0000;
-    font-weight: bold;
+    color: #f44336;
+    margin-left: 4px;
+}
+
+/* Remove any pseudo-elements that might add asterisks */
+.required::before,
+.required::after {
+    content: none;
 }
 
 /* Narrow select style */

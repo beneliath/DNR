@@ -52,7 +52,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         !$event_start_date ||
         !$event_end_date ||
         ($event_type_raw === 'other' && $event_type_other === '') ||
-        empty($presentations)
+        empty($presentations) ||
+        ($_POST['compensation_type'] === 'Other' && empty($_POST['other_compensation'])) ||
+        ($_POST['housing_type'] === 'Other' && empty($_POST['other_housing']))
     ) {
         $error_message = htmlspecialchars("Please fill in all required fields, including at least one presentation.");
     } else {
@@ -274,7 +276,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
                 <div class="form-field" id="other_compensation_div" style="display: none;">
                     <div class="field-group">
-                        <label for="other_compensation" class="required">Describe Other Compensation</label>
+                        <label for="other_compensation">Describe Other Compensation<span class="required">*</span></label>
                         <input type="text" name="other_compensation" id="other_compensation">
                     </div>
                 </div>
@@ -313,7 +315,7 @@ echo "<option value='" . htmlspecialchars($row['id']) . "'>" . htmlspecialchars(
 
             <div class="form-field" id="other_housing_div" style="display: none;">
                 <div class="field-group">
-                    <label for="other_housing" class="required">Describe Other Lodging</label>
+                    <label for="other_housing">Describe Other Lodging<span class="required">*</span></label>
                     <input type="text" name="other_housing" id="other_housing">
                 </div>
             </div>
