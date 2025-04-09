@@ -34,9 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $presentations = [];
     if (isset($_POST['presentations']) && is_array($_POST['presentations'])) {
         foreach ($_POST['presentations'] as $index => $presentation) {
-            if (!empty($presentation['topic_title'])) {
+            $topic_title = trim($presentation['topic_title'] ?? '');
+            if (!empty($topic_title)) {
                 $presentations[] = [
-                    'topic_title' => trim($presentation['topic_title']),
+                    'topic_title' => $topic_title,
                     'presentation_date' => $presentation['presentation_date'],
                     'presentation_time' => $presentation['presentation_time'],
                     'speaker_name' => trim($presentation['speaker_name']),
@@ -52,11 +53,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         !$event_start_date ||
         !$event_end_date ||
         ($event_type_raw === 'other' && $event_type_other === '') ||
-        empty($presentations) ||
         ($_POST['compensation_type'] === 'Other' && empty($_POST['other_compensation'])) ||
         ($_POST['housing_type'] === 'Other' && empty($_POST['other_housing']))
     ) {
-        $error_message = htmlspecialchars("Please fill in all required fields, including at least one presentation.");
+        $error_message = htmlspecialchars("Please fill in all required fields.");
     } else {
         // Start transaction
         $conn->begin_transaction();
