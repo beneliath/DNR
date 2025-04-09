@@ -216,7 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             <div class="presentation-entry" id="presentation-<?php echo $index + 1; ?>">
                 <div class="presentation-fields">
                     <div class="form-field topic">
-                        <label for="presentation_topic_<?php echo $index + 1; ?>">Topic Title</label>
+                        <label for="presentation_topic_<?php echo $index + 1; ?>">Topic/Title</label>
                         <input type="text" name="presentations[<?php echo $index; ?>][topic_title]" id="presentation_topic_<?php echo $index + 1; ?>" value="<?php echo $topic_title; ?>">
                     </div>
                     <div class="datetime-row">
@@ -466,61 +466,81 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
     let presentationCount = 1;
 
-    function addPresentation() {
-        presentationCount++;
-        const container = document.getElementById('presentations-container');
-        const newPresentation = document.createElement('div');
-        newPresentation.className = 'presentation-entry';
-        newPresentation.id = `presentation-${presentationCount}`;
-        
-        newPresentation.innerHTML = `
-            <div class="presentation-fields">
-                <div class="form-field topic">
-                    <label for="presentation_topic_${presentationCount}">Topic Title<span>*</span></label>
-                    <input type="text" name="presentations[${presentationCount-1}][topic_title]" id="presentation_topic_${presentationCount}" required>
-                </div>
-                <div class="datetime-row">
-                    <div class="form-field">
-                        <label for="presentation_date_${presentationCount}">Date<span>*</span></label>
-                        <input type="date" name="presentations[${presentationCount-1}][presentation_date]" id="presentation_date_${presentationCount}" required>
-                    </div>
-                    <div class="form-field">
-                        <label for="presentation_time_${presentationCount}">Time<span>*</span></label>
-                        <div class="time-input-container">
-                            <input type="text" name="presentation_time_${presentationCount}" id="presentation_time_${presentationCount}" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM" required>
-                            <div class="ampm-radio">
-                                <label><input type="radio" name="presentation_ampm_${presentationCount}" value="AM" checked> AM</label>
-                                <label><input type="radio" name="presentation_ampm_${presentationCount}" value="PM"> PM</label>
-                            </div>
-                        </div>
-                        <input type="hidden" name="presentations[${presentationCount-1}][presentation_time]" id="presentation_time_hidden_${presentationCount}">
-                    </div>
-                </div>
-                <div class="speaker-row">
-                    <div class="form-field speaker">
-                        <label for="speaker_name_${presentationCount}">Speaker Name<span>*</span></label>
-                        <input type="text" name="presentations[${presentationCount-1}][speaker_name]" id="speaker_name_${presentationCount}" value="Olivier Melnick" required>
-                    </div>
-                    <div class="form-field attendance">
-                        <label for="expected_attendance_${presentationCount}">Expected Attendance<span>*</span></label>
-                        <input type="number" name="presentations[${presentationCount-1}][expected_attendance]" id="expected_attendance_${presentationCount}" min="1" required>
-                    </div>
-                </div>
-                <div class="remove-btn-container">
-                    <button type="button" onclick="removePresentation(${presentationCount})" class="remove-presentation-btn">Remove</button>
-                </div>
-            </div>
-        `;
-        
-        container.insertBefore(newPresentation, document.querySelector('.add-presentation-btn'));
-    }
-
     function removePresentation(id) {
         if (id === 1) return; // Prevent removing the first presentation
         const presentation = document.getElementById(`presentation-${id}`);
         if (presentation) {
             presentation.remove();
+            // Update presentationCount to reflect the highest numbered presentation still in the form
+            const presentations = document.querySelectorAll('.presentation-entry');
+            presentationCount = presentations.length;
         }
+    }
+
+    function addPresentation() {
+        // Find the highest numbered presentation currently in the form
+        const presentations = document.querySelectorAll('.presentation-entry');
+        const lastPresentation = presentations[presentations.length - 1];
+        const lastPresentationId = lastPresentation ? parseInt(lastPresentation.id.split('-')[1]) : 1;
+        
+        // Check if the last presentation's topic title is filled
+        const lastTopicInput = document.getElementById(`presentation_topic_${lastPresentationId}`);
+        if (!lastTopicInput || !lastTopicInput.value.trim()) {
+            alert('Please fill in the Topic/Title for the current presentation before adding another.');
+            if (lastTopicInput) {
+                lastTopicInput.focus();
+            }
+            return;
+        }
+
+        // Increment from the last presentation ID
+        const newPresentationId = lastPresentationId + 1;
+        const container = document.getElementById('presentations-container');
+        const newPresentation = document.createElement('div');
+        newPresentation.className = 'presentation-entry';
+        newPresentation.id = `presentation-${newPresentationId}`;
+        
+        newPresentation.innerHTML = `
+            <div class="presentation-fields">
+                <div class="form-field topic">
+                    <label for="presentation_topic_${newPresentationId}">Topic/Title<span>*</span></label>
+                    <input type="text" name="presentations[${newPresentationId-1}][topic_title]" id="presentation_topic_${newPresentationId}" required>
+                </div>
+                <div class="datetime-row">
+                    <div class="form-field">
+                        <label for="presentation_date_${newPresentationId}">Date<span>*</span></label>
+                        <input type="date" name="presentations[${newPresentationId-1}][presentation_date]" id="presentation_date_${newPresentationId}" required>
+                    </div>
+                    <div class="form-field">
+                        <label for="presentation_time_${newPresentationId}">Time<span>*</span></label>
+                        <div class="time-input-container">
+                            <input type="text" name="presentation_time_${newPresentationId}" id="presentation_time_${newPresentationId}" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM" required>
+                            <div class="ampm-radio">
+                                <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="AM" checked> AM</label>
+                                <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="PM"> PM</label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="presentations[${newPresentationId-1}][presentation_time]" id="presentation_time_hidden_${newPresentationId}">
+                    </div>
+                </div>
+                <div class="speaker-row">
+                    <div class="form-field speaker">
+                        <label for="speaker_name_${newPresentationId}">Speaker Name<span>*</span></label>
+                        <input type="text" name="presentations[${newPresentationId-1}][speaker_name]" id="speaker_name_${newPresentationId}" value="Olivier Melnick" required>
+                    </div>
+                    <div class="form-field attendance">
+                        <label for="expected_attendance_${newPresentationId}">Expected Attendance<span>*</span></label>
+                        <input type="number" name="presentations[${newPresentationId-1}][expected_attendance]" id="expected_attendance_${newPresentationId}" min="1" required>
+                    </div>
+                </div>
+                <div class="remove-btn-container">
+                    <button type="button" onclick="removePresentation(${newPresentationId})" class="remove-presentation-btn">Remove</button>
+                </div>
+            </div>
+        `;
+        
+        container.insertBefore(newPresentation, document.querySelector('.add-presentation-btn'));
+        presentationCount = newPresentationId;
     }
 
     // Update time input validation and formatting
