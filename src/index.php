@@ -39,9 +39,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         foreach ($_POST['presentations'] as $index => $presentation) {
             $topic_title = trim($presentation['topic_title'] ?? '');
             if (!empty($topic_title)) {
+                // Check if presentation has a date
+                $presentation_date = !empty($presentation['presentation_date']) ? $presentation['presentation_date'] : null;
+                if ($presentation_date !== null) {
+                    // Validate presentation date is within engagement date range
+                    if ($presentation_date < $event_start_date || $presentation_date > $event_end_date) {
+                        throw new Exception("Presentation date for '" . htmlspecialchars($topic_title) . "' must be between the engagement start and end dates.");
+                    }
+                }
+
                 $presentations[] = [
                     'topic_title' => $topic_title,
-                    'presentation_date' => !empty($presentation['presentation_date']) ? $presentation['presentation_date'] : null,
+                    'presentation_date' => $presentation_date,
                     'presentation_time' => !empty($presentation['presentation_time']) ? $presentation['presentation_time'] : null,
                     'speaker_name' => trim($presentation['speaker_name'] ?? $DEFAULT_SPEAKER),
                     'expected_attendance' => !empty($presentation['expected_attendance']) ? intval($presentation['expected_attendance']) : null
@@ -411,6 +420,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
 <script>
     // Validate that the event end date is on or after the event start date
+    // and that all presentation dates are within range
     function validateDates() {
         const startDate = document.getElementById("event_start_date").value;
         const endDate = document.getElementById("event_end_date").value;
@@ -419,8 +429,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             alert("End date must be on or after the start date");
             return false;
         }
+
+        // Check all presentation dates
+        const presentations = document.querySelectorAll('.presentation-entry');
+        for (const presentation of presentations) {
+            const presentationId = presentation.id.split('-')[1];
+            const dateInput = document.getElementById(`presentation_date_${presentationId}`);
+            const topicInput = document.getElementById(`presentation_topic_${presentationId}`);
+            
+            if (dateInput && dateInput.value) {
+                if (dateInput.value < startDate || dateInput.value > endDate) {
+                    alert(`Presentation "${topicInput.value}" date must be between the engagement start and end dates.`);
+                    dateInput.focus();
+                    return false;
+                }
+            }
+        }
         return true;
     }
+
+    // Add event listeners to update presentation date constraints when engagement dates change
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDateInput = document.getElementById('event_start_date');
+        const endDateInput = document.getElementById('event_end_date');
+        
+        function updatePresentationDateConstraints() {
+            const startDate = startDateInput.value;
+            const endDate = endDateInput.value;
+            
+            if (startDate && endDate) {
+                const presentations = document.querySelectorAll('.presentation-entry');
+                presentations.forEach(presentation => {
+                    const presentationId = presentation.id.split('-')[1];
+                    const dateInput = document.getElementById(`presentation_date_${presentationId}`);
+                    if (dateInput) {
+                        dateInput.min = startDate;
+                        dateInput.max = endDate;
+                    }
+                });
+            }
+        }
+
+        startDateInput.addEventListener('change', updatePresentationDateConstraints);
+        endDateInput.addEventListener('change', updatePresentationDateConstraints);
+        
+        // Initial setup of constraints
+        updatePresentationDateConstraints();
+    });
 
     // Toggle visibility of other event type field
     function toggleOtherEventType(select) {
