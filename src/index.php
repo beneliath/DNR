@@ -178,7 +178,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 </div>
 
 
-        <label for="engagement_notes" style="vertical-align: top;">Notes/Chron</label>
+        <label for="engagement_notes" style="vertical-align: top;">Chron</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>
         <br><br>
 
@@ -221,6 +221,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <!-- Presentation(s) Section -->
         <div id="presentations-container">
             <div class="section-heading">Presentation(s)</div>
+            <div class="presentations-outer-box">
+            <div class="presentations-inner-container">
             <?php
             $presentations = !empty($error_message) && isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
             foreach ($presentations as $index => $presentation) {
@@ -276,7 +278,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
             </div>
             <?php } ?>
+            </div>
             <button type="button" onclick="addPresentation()" class="add-presentation-btn">Add Another Presentation</button>
+            </div>
         </div>
 
         <br>
@@ -554,7 +558,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         // Increment from the last presentation ID
         const newPresentationId = lastPresentationId + 1;
-        const container = document.getElementById('presentations-container');
+        const container = document.querySelector('.presentations-inner-container');
         const newPresentation = document.createElement('div');
         newPresentation.className = 'presentation-entry';
         newPresentation.id = `presentation-${newPresentationId}`;
@@ -598,7 +602,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
         `;
         
-        container.insertBefore(newPresentation, document.querySelector('.add-presentation-btn'));
+        container.appendChild(newPresentation);
         presentationCount = newPresentationId;
     }
 
@@ -852,13 +856,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         .add-presentation-btn {
             background-color: #666;
             color: white;
-            padding: 5px 15px;
+            padding: 8px 15px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            margin-bottom: 20px;
             font-family: inherit;
             font-size: inherit;
+            display: block;
+            width: fit-content;
         }
         .add-presentation-btn:hover {
             background-color: #FF9800;
@@ -1208,6 +1213,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         margin: 1em 0;
         color: var(--text-color);
         font-weight: normal;
+    }
+
+    /* Add new styles for presentations outer box */
+    .presentations-outer-box {
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .presentations-inner-container {
+        margin-bottom: 15px;
+    }
+
+    .presentation-entry {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid #444;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        max-width: 100%;
+        overflow: visible;
+    }
+
+    /* Update the last presentation entry to remove bottom margin */
+    .presentation-entry:last-child {
+        margin-bottom: 0;
+    }
+
+    .add-presentation-btn {
+        background-color: #666;
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: inherit;
+        font-size: inherit;
+        display: block;
+        width: fit-content;
     }
 </style>
 

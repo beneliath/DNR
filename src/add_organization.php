@@ -461,7 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             </div>
         </div>
 
-        <h3>Contact(s)</h3>
+        <div class="section-heading">Contact(s)</div>
         <div class="address-section">
             <div id="contacts-container">
                 <div class="contact-entry">
