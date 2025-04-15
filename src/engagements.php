@@ -19,13 +19,32 @@ if ($user_role === 'admin' && isset($_GET['delete']) && is_numeric($_GET['delete
 // Retrieve engagements with organization name
 $date_sort = isset($_GET['date_sort']) ? $_GET['date_sort'] : 'asc';
 $status_sort = isset($_GET['status_sort']) ? $_GET['status_sort'] : 'asc';
+$org_sort = isset($_GET['org_sort']) ? $_GET['org_sort'] : 'asc';
 
 // Determine which column to sort by based on which button was clicked
 $sort_column = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'date';
-$sort_order = $sort_column === 'date' ? $date_sort : $status_sort;
+
+// Determine sort order based on column
+if ($sort_column === 'date') {
+    $sort_order = $date_sort;
+} elseif ($sort_column === 'status') {
+    $sort_order = $status_sort;
+} elseif ($sort_column === 'org') {
+    $sort_order = $org_sort;
+} else {
+    $sort_order = 'asc';
+}
 
 // Build the ORDER BY clause safely
-$order_by = $sort_column === 'date' ? 'e.event_start_date' : 'e.confirmation_status';
+if ($sort_column === 'date') {
+    $order_by = 'e.event_start_date';
+} elseif ($sort_column === 'status') {
+    $order_by = 'e.confirmation_status';
+} elseif ($sort_column === 'org') {
+    $order_by = 'o.organization_name';
+} else {
+    $order_by = 'e.event_start_date';
+}
 $order_direction = ($sort_order === 'asc' ? 'ASC' : 'DESC');
 
 // Prepare and execute the query
@@ -112,10 +131,13 @@ if (!$result) {
 <div class="container">
     <h1>Engagements</h1>
     <div class="sort-buttons">
-        <a href="?sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>" class="sort-button">
+        <a href="?sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>" class="sort-button">
+            Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
+        </a>
+        <a href="?sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>" class="sort-button">
             Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
-        <a href="?sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>" class="sort-button">
+        <a href="?sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>" class="sort-button">
             Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
     </div>
