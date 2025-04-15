@@ -16,7 +16,7 @@
 - [x] minimal buildout of 'Add Presentation' functionality
 - [x] !! CORRECT FORMATTING ERRORS INTRODUCED IN PRESENTATION BUILDOUT !! 2025-04-04 15:12:56
 - [x] add contacts during Organization add
-- [ ] view Events rebuild
+- [ ] view Engagements rebuild
 - [ ] view Organizations rebuild
 - [ ] view/add contact for selected Organization
 - [ ] view/add presentation for selected Event
