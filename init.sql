@@ -81,6 +81,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     housing_type ENUM('Unknown', 'Provided', 'Not Provided', 'Other') DEFAULT 'Unknown',
     other_housing TEXT,
     housing_amount DECIMAL(10,2) DEFAULT NULL,
+    is_deleted TINYINT(1) DEFAULT 0,
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
 

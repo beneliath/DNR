@@ -17,6 +17,9 @@
 - [x] !! CORRECT FORMATTING ERRORS INTRODUCED IN PRESENTATION BUILDOUT !! 2025-04-04 15:12:56
 - [x] add contacts during Organization add
 - [ ] view Engagements rebuild
+- [x] Engagements: add ascend/descend sort on Start Date
+- [x] Engagements: add ascend/descent sort on Status
+- [x] Engagements: add role-based edit/delete functionality; with attendant change to db schema
 - [ ] view Organizations rebuild
 - [ ] view/add contact for selected Organization
 - [ ] view/add presentation for selected Event
