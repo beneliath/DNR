@@ -188,6 +188,7 @@ label {
   margin-bottom: 10px;
   font-size: 16px;
   text-align: left;
+  color: var(--text-color) !important;
 }
 
 input[type="text"],
@@ -202,23 +203,36 @@ textarea {
   border-radius: 4px;
   font-size: 16px;
   box-sizing: border-box;
+  background-color: var(--light-bg-color) !important;
+  color: var(--light-text-color) !important;
 }
 
 /* Dark mode form inputs - exclude login container */
-.dark-mode input[type="text"]:not(.login-container input[type="text"]),
-.dark-mode input[type="password"]:not(.login-container input[type="password"]),
-.dark-mode input[type="date"],
-.dark-mode select,
-.dark-mode textarea {
+html.dark-mode input[type="text"]:not(.login-container input[type="text"]),
+html.dark-mode input[type="password"]:not(.login-container input[type="password"]),
+html.dark-mode input[type="date"],
+html.dark-mode select,
+html.dark-mode textarea {
   background-color: var(--dark-input-bg) !important;
   border-color: #333;
   color: var(--dark-text-color) !important;
 }
 
+/* Ensure all text elements use the correct color */
+.checkbox-label,
+.radio-options label,
+.field-group label,
+.form-field label,
+.currency-input span,
+h3,
+.required {
+  color: var(--text-color) !important;
+}
+
 /* Dark mode labels */
 .dark-mode label,
 .dark-mode .label-container {
-    color: var(--dark-text-color);
+  color: var(--dark-text-color) !important;
 }
 
 /* Time input container specific styles */
@@ -656,24 +670,26 @@ h3 {
 
 .currency-input span {
     font-size: 16px;
-    color: #333;
+    color: var(--text-color) !important;
 }
 
 .dark-mode .currency-input span {
-    color: #fff;
+    color: var(--dark-text-color) !important;
 }
 
 .currency-input input[type="number"] {
     width: 100px;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid #ccc;
     border-radius: 4px;
     font-size: 16px;
+    background-color: var(--light-bg-color) !important;
+    color: var(--light-text-color) !important;
 }
 
 .dark-mode .currency-input input[type="number"] {
-    background-color: #1e1e1e;
-    color: #fff;
+    background-color: var(--dark-input-bg) !important;
+    color: var(--dark-text-color) !important;
     border-color: #333;
 }
 
@@ -746,4 +762,15 @@ h3 {
 .dark-mode .presentation-fields select {
     background-color: var(--dark-input-bg);
     color: var(--dark-text-color);
+}
+
+/* Radio and checkbox specific styles */
+.radio-options input[type="radio"],
+input[type="checkbox"] {
+  accent-color: #357abd;
+}
+
+.dark-mode .radio-options input[type="radio"],
+.dark-mode input[type="checkbox"] {
+  accent-color: #357abd;
 }
