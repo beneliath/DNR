@@ -89,6 +89,12 @@ if (!$result) {
         .delete-button:hover {
             background-color: #b71c1c;
         }
+        .view-button {
+            background-color: #4CAF50;
+        }
+        .view-button:hover {
+            background-color: #388E3C;
+        }
         /* Status colors */
         .status-work-in-progress {
             color: #4CAF50; /* Green */
@@ -136,6 +142,7 @@ if (!$result) {
             ?></td>
             <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
             <td class="action-buttons">
+                <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button view-button">View</a>
                 <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
                 <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button edit-button">Edit</a>
                 <?php endif; ?>
