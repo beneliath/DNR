@@ -82,7 +82,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                                       VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
 
                         if ($conn->query($contact_sql) === TRUE) {
-                            $message = "Organization and contact information saved successfully.";
+                            $_SESSION['success_message'] = "Organization and contact information saved successfully.";
+                            header('Location: ' . $_SERVER['PHP_SELF']);
+                            exit();
                         } else {
                             $error = true;
                             $errorMessages[] = "Error saving contact information: " . $conn->error;
@@ -90,7 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     }
                 } else {
                     // If no contact name provided, just show success message for organization
-                    $message = "Organization saved successfully.";
+                    $_SESSION['success_message'] = "Organization saved successfully.";
+                    header('Location: ' . $_SERVER['PHP_SELF']);
+                    exit();
                 }
             } else {
                 $error = true;
@@ -98,6 +102,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             }
         }
     }
+}
+
+// Display success message if it exists in session
+if (isset($_SESSION['success_message'])) {
+    $message = $_SESSION['success_message'];
+    unset($_SESSION['success_message']); // Clear the message after displaying
 }
 ?>
 <!DOCTYPE html>
@@ -469,41 +479,41 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                         <div class="name-phone-row">
                             <div class="form-group">
                                 <label>Name</label>
-                                <input type="text" name="contact_name" value="<?php echo htmlspecialchars($_POST['contact_name'] ?? ''); ?>">
+                                <input type="text" name="contact_name" id="contact_name">
                             </div>
 
                             <div class="form-group">
                                 <label>Phone</label>
-                                <input type="tel" name="contact_phone" value="<?php echo htmlspecialchars($_POST['contact_phone'] ?? ''); ?>">
+                                <input type="tel" name="contact_phone" id="contact_phone">
                             </div>
                         </div>
 
                         <div class="role-container">
                             <div class="form-group">
-                                <label>Role</label>
+                                <label id="role_label">Role</label>
                                 <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
                                     <option value="">Select Role</option>
-                                    <option value="pastor" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'pastor') ? 'selected' : ''; ?>>Pastor</option>
-                                    <option value="admin" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
-                                    <option value="other" <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                                    <option value="pastor">Pastor</option>
+                                    <option value="admin">Admin</option>
+                                    <option value="other">Other</option>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="other_role_group" style="display: <?php echo (isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'block' : 'none'; ?>;">
+                            <div class="form-group" id="other_role_group" style="display: none;">
                                 <label>Describe Other Role</label>
-                                <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($_POST['contact_role_other'] ?? ''); ?>">
+                                <input type="text" name="contact_role_other" id="contact_role_other">
                             </div>
                         </div>
 
                         <div class="email-container">
                             <div class="form-group">
-                                <label>Email</label>
-                                <input type="email" name="contact_email" value="<?php echo htmlspecialchars($_POST['contact_email'] ?? ''); ?>">
+                                <label id="email_label">Email</label>
+                                <input type="email" name="contact_email" id="contact_email">
                             </div>
 
                             <div class="form-group">
-                                <label>Confirm Email</label>
-                                <input type="email" name="contact_email_confirm" value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? ''); ?>">
+                                <label id="email_confirm_label">Confirm Email</label>
+                                <input type="email" name="contact_email_confirm" id="contact_email_confirm">
                             </div>
                         </div>
                     </div>
@@ -534,6 +544,18 @@ function toggleOtherRole() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Auto-hide success message after 7 seconds
+    const successMessage = document.querySelector('.success');
+    if (successMessage) {
+        setTimeout(function() {
+            successMessage.style.transition = 'opacity 1s';
+            successMessage.style.opacity = '0';
+            setTimeout(function() {
+                successMessage.remove();
+            }, 1000);
+        }, 7000);
+    }
+
     const sameAddressRadios = document.querySelectorAll('input[name="same_address"]');
     const mailingSection = document.getElementById('mailing_address_section');
     const mailingInputs = mailingSection.querySelectorAll('input, select');
@@ -553,6 +575,41 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initial state
     toggleMailingAddress(false);
+
+    // Add event listener for contact name input
+    const contactNameInput = document.getElementById('contact_name');
+    const contactRoleSelect = document.getElementById('contact_role');
+    const contactEmailInput = document.getElementById('contact_email');
+    const contactEmailConfirmInput = document.getElementById('contact_email_confirm');
+    
+    // Get the labels for the required fields
+    const roleLabel = document.getElementById('role_label');
+    const emailLabel = document.getElementById('email_label');
+    const emailConfirmLabel = document.getElementById('email_confirm_label');
+
+    function updateContactFieldRequirements() {
+        const hasContactName = contactNameInput.value.trim() !== '';
+        
+        // Update required attribute
+        contactRoleSelect.required = hasContactName;
+        contactEmailInput.required = hasContactName;
+        contactEmailConfirmInput.required = hasContactName;
+        
+        // Update labels with asterisk
+        if (hasContactName) {
+            roleLabel.classList.add('required');
+            emailLabel.classList.add('required');
+            emailConfirmLabel.classList.add('required');
+        } else {
+            roleLabel.classList.remove('required');
+            emailLabel.classList.remove('required');
+            emailConfirmLabel.classList.remove('required');
+        }
+    }
+
+    contactNameInput.addEventListener('input', updateContactFieldRequirements);
+    // Initial check
+    updateContactFieldRequirements();
 });
 
 let contactCount = 1;
