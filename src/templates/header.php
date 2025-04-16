@@ -9,6 +9,7 @@
             <li><a href="add_organization.php">Add Organization</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="add_contact.php">Add Contact</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="engagements.php">Engagements</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="organizations.php">Organizations</a></li>|&nbsp;&nbsp;&nbsp;
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
                 <!-- Only display 'New User' link if the user is logged in as an admin -->
