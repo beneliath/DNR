@@ -41,94 +41,244 @@ $engagement = $result->fetch_assoc();
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     error_log("Processing form submission for engagement ID: " . $engagement_id);
     
-    $organization_id = intval($_POST['organization_id'] ?? 0);
-    $engagement_notes = trim($_POST['engagement_notes'] ?? '');
-    $event_start_date = $_POST['event_start_date'] ?? null;
-    $event_end_date = $_POST['event_end_date'] ?? null;
-    $event_type_raw = $_POST['event_type'] ?? '';
-    $event_type_other = trim($_POST['event_type_other'] ?? '');
-    $event_type = $event_type_raw === 'other' ? $event_type_other : $event_type_raw;
-    $book_table = isset($_POST['book_table']) ? 1 : 0;
-    $brochures = isset($_POST['brochures']) ? 1 : 0;
-    $caller_name = trim($_POST['caller_name'] ?? '');
-    $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
-    error_log("Confirmation status being set to: " . $confirmation_status);
+    // Start transaction
+    $conn->begin_transaction();
     
-    // Validate confirmation status
-    $valid_statuses = ['work_in_progress', 'under_review', 'confirmed'];
-    if (!in_array($confirmation_status, $valid_statuses)) {
-        $confirmation_status = 'work_in_progress';
-    }
-    
-    $travel_covered = $_POST['travel_covered'] ?? 'unknown';
-    $travel_amount = !empty($_POST['travel_amount']) ? floatval($_POST['travel_amount']) : null;
-    
-    // Strict validation for compensation_type
-    $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
-    $submitted_compensation_type = $_POST['compensation_type'] ?? 'Unknown';
-    $compensation_type = in_array($submitted_compensation_type, $valid_compensation_types, true) ? $submitted_compensation_type : 'Unknown';
-    error_log("Compensation type before: " . $engagement['compensation_type']);
-    error_log("Compensation type submitted: " . $submitted_compensation_type);
-    error_log("Compensation type after validation: " . $compensation_type);
-    
-    $other_compensation = trim($_POST['other_compensation'] ?? '');
-    $housing_type = $_POST['housing_type'] ?? 'Unknown';
-    $other_housing = trim($_POST['other_housing'] ?? '');
-    $housing_amount = !empty($_POST['housing_amount']) ? floatval($_POST['housing_amount']) : null;
-    
-    // Event location fields
-    $event_address_line_1 = trim($_POST['event_address_line_1'] ?? '');
-    $event_address_line_2 = trim($_POST['event_address_line_2'] ?? '');
-    $event_city = trim($_POST['event_city'] ?? '');
-    $event_state = trim($_POST['event_state'] ?? '');
-    $event_zipcode = trim($_POST['event_zipcode'] ?? '');
-    $event_country = trim($_POST['event_country'] ?? '');
-
-    error_log("Status being set to: " . $confirmation_status);
-    
-    // Validate required fields
-    if (
-        !$organization_id ||
-        !$event_start_date ||
-        !$event_end_date ||
-        ($event_type_raw === 'other' && $event_type_other === '') ||
-        ($compensation_type === 'Other' && empty($other_compensation)) ||
-        ($housing_type === 'Other' && empty($other_housing))
-    ) {
-        $error_message = "Please fill in all required fields.";
-        error_log("Validation failed: " . $error_message);
-    } else {
-        // Start transaction
-        $conn->begin_transaction();
+    try {
+        // Get organization data
+        $organization_id = intval($_POST['organization_id'] ?? 0);
         
-        try {
-            // Temporarily modify update query to focus on confirmation_status
-            $update_query = "UPDATE engagements SET confirmation_status = ? WHERE id = ?";
-            
-            error_log("Update query: " . $update_query);
-            error_log("Confirmation status value being set: " . $confirmation_status);
-            error_log("Engagement ID: " . $engagement_id);
-
-            $stmt = $conn->prepare($update_query);
-            if ($stmt) {
-                $stmt->bind_param("si", $confirmation_status, $engagement_id);
-
-                if ($stmt->execute()) {
-                    error_log("Successfully updated engagement status");
-                    $conn->commit();
-                    header("Location: engagements.php");
-                    exit();
-                } else {
-                    throw new Exception("Error updating engagement: " . $stmt->error);
-                }
-            } else {
-                throw new Exception("Database error: " . $conn->error);
-            }
-        } catch (Exception $e) {
-            error_log("Error in update: " . $e->getMessage());
-            $conn->rollback();
-            $error_message = $e->getMessage();
+        // Validate organization ID
+        if (!$organization_id) {
+            throw new Exception("Please select an organization.");
         }
+        
+        // Continue with existing engagement update code
+        $engagement_notes = trim($_POST['engagement_notes'] ?? '');
+        $event_start_date = $_POST['event_start_date'] ?? null;
+        $event_end_date = $_POST['event_end_date'] ?? null;
+        $event_type_raw = $_POST['event_type'] ?? '';
+        $event_type_other = trim($_POST['event_type_other'] ?? '');
+        $event_type = $event_type_raw === 'other' ? $event_type_other : $event_type_raw;
+        $book_table = isset($_POST['book_table']) ? 1 : 0;
+        $brochures = isset($_POST['brochures']) ? 1 : 0;
+        $caller_name = trim($_POST['caller_name'] ?? '');
+        $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
+        
+        // Validate confirmation status
+        $valid_statuses = ['work_in_progress', 'under_review', 'confirmed'];
+        if (!in_array($confirmation_status, $valid_statuses)) {
+            $confirmation_status = 'work_in_progress';
+        }
+        
+        // Ensure travel_covered has a valid ENUM value
+        $valid_travel_covered = ['unknown', 'yes', 'no'];
+        $travel_covered = isset($_POST['travel_covered']) ? $_POST['travel_covered'] : $engagement['travel_covered'];
+        if (!in_array($travel_covered, $valid_travel_covered)) {
+            $travel_covered = 'unknown';
+        }
+        error_log("Using travel_covered value: " . $travel_covered);
+        
+        $travel_amount = !empty($_POST['travel_amount']) ? floatval($_POST['travel_amount']) : null;
+        
+        // Strict validation for compensation_type
+        $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
+        $submitted_compensation_type = $_POST['compensation_type'] ?? 'Unknown';
+        $compensation_type = in_array($submitted_compensation_type, $valid_compensation_types, true) ? $submitted_compensation_type : 'Unknown';
+        
+        $other_compensation = trim($_POST['other_compensation'] ?? '');
+        $housing_type = $_POST['housing_type'] ?? 'Unknown';
+        $other_housing = trim($_POST['other_housing'] ?? '');
+        $housing_amount = !empty($_POST['housing_amount']) ? floatval($_POST['housing_amount']) : null;
+        
+        // Event location fields
+        $event_address_line_1 = trim($_POST['event_address_line_1'] ?? '');
+        $event_address_line_2 = trim($_POST['event_address_line_2'] ?? '');
+        $event_city = trim($_POST['event_city'] ?? '');
+        $event_state = trim($_POST['event_state'] ?? '');
+        $event_zipcode = trim($_POST['event_zipcode'] ?? '');
+        $event_country = trim($_POST['event_country'] ?? '');
+
+        // Validate required fields
+        if (
+            !$event_start_date ||
+            !$event_end_date ||
+            ($event_type_raw === 'other' && $event_type_other === '') ||
+            ($compensation_type === 'Other' && empty($other_compensation)) ||
+            ($housing_type === 'Other' && empty($other_housing))
+        ) {
+            throw new Exception("Please fill in all required fields.");
+        }
+
+        // Update engagement
+        $update_fields = [];
+        $update_values = [];
+        $types = '';
+        
+        // Only include fields that have changed
+        if ($organization_id != $engagement['organization_id']) {
+            $update_fields[] = "organization_id = ?";
+            $update_values[] = $organization_id;
+            $types .= "i";
+        }
+        
+        if ($engagement_notes !== $engagement['engagement_notes']) {
+            $update_fields[] = "engagement_notes = ?";
+            $update_values[] = $engagement_notes;
+            $types .= "s";
+        }
+        
+        if ($event_start_date !== $engagement['event_start_date']) {
+            $update_fields[] = "event_start_date = ?";
+            $update_values[] = $event_start_date;
+            $types .= "s";
+        }
+        
+        if ($event_end_date !== $engagement['event_end_date']) {
+            $update_fields[] = "event_end_date = ?";
+            $update_values[] = $event_end_date;
+            $types .= "s";
+        }
+        
+        if ($event_type !== $engagement['event_type']) {
+            $update_fields[] = "event_type = ?";
+            $update_values[] = $event_type;
+            $types .= "s";
+        }
+        
+        if ($book_table != $engagement['book_table']) {
+            $update_fields[] = "book_table = ?";
+            $update_values[] = $book_table;
+            $types .= "i";
+        }
+        
+        if ($brochures != $engagement['brochures']) {
+            $update_fields[] = "brochures = ?";
+            $update_values[] = $brochures;
+            $types .= "i";
+        }
+        
+        if ($caller_name !== $engagement['caller_name']) {
+            $update_fields[] = "caller_name = ?";
+            $update_values[] = $caller_name;
+            $types .= "s";
+        }
+        
+        if ($confirmation_status !== $engagement['confirmation_status']) {
+            $update_fields[] = "confirmation_status = ?";
+            $update_values[] = $confirmation_status;
+            $types .= "s";
+        }
+        
+        if ($travel_covered !== $engagement['travel_covered']) {
+            $update_fields[] = "travel_covered = ?";
+            $update_values[] = $travel_covered;
+            $types .= "s";
+        }
+        
+        if ($travel_amount != $engagement['travel_amount']) {
+            $update_fields[] = "travel_amount = ?";
+            $update_values[] = $travel_amount;
+            $types .= "d";
+        }
+        
+        if ($compensation_type !== $engagement['compensation_type']) {
+            $update_fields[] = "compensation_type = ?";
+            $update_values[] = $compensation_type;
+            $types .= "s";
+        }
+        
+        if ($other_compensation !== $engagement['other_compensation']) {
+            $update_fields[] = "other_compensation = ?";
+            $update_values[] = $other_compensation;
+            $types .= "s";
+        }
+        
+        if ($housing_type !== $engagement['housing_type']) {
+            $update_fields[] = "housing_type = ?";
+            $update_values[] = $housing_type;
+            $types .= "s";
+        }
+        
+        if ($other_housing !== $engagement['other_housing']) {
+            $update_fields[] = "other_housing = ?";
+            $update_values[] = $other_housing;
+            $types .= "s";
+        }
+        
+        if ($housing_amount != $engagement['housing_amount']) {
+            $update_fields[] = "housing_amount = ?";
+            $update_values[] = $housing_amount;
+            $types .= "d";
+        }
+        
+        if ($event_address_line_1 !== $engagement['event_address_line_1']) {
+            $update_fields[] = "event_address_line_1 = ?";
+            $update_values[] = $event_address_line_1;
+            $types .= "s";
+        }
+        
+        if ($event_address_line_2 !== $engagement['event_address_line_2']) {
+            $update_fields[] = "event_address_line_2 = ?";
+            $update_values[] = $event_address_line_2;
+            $types .= "s";
+        }
+        
+        if ($event_city !== $engagement['event_city']) {
+            $update_fields[] = "event_city = ?";
+            $update_values[] = $event_city;
+            $types .= "s";
+        }
+        
+        if ($event_state !== $engagement['event_state']) {
+            $update_fields[] = "event_state = ?";
+            $update_values[] = $event_state;
+            $types .= "s";
+        }
+        
+        if ($event_zipcode !== $engagement['event_zipcode']) {
+            $update_fields[] = "event_zipcode = ?";
+            $update_values[] = $event_zipcode;
+            $types .= "s";
+        }
+        
+        if ($event_country !== $engagement['event_country']) {
+            $update_fields[] = "event_country = ?";
+            $update_values[] = $event_country;
+            $types .= "s";
+        }
+        
+        // Add engagement_id to the values array
+        $update_values[] = $engagement_id;
+        $types .= "i";
+        
+        if (!empty($update_fields)) {
+            $update_query = "UPDATE engagements SET " . implode(", ", $update_fields) . " WHERE id = ?";
+            $stmt = $conn->prepare($update_query);
+            
+            // Bind parameters dynamically
+            $bind_params = array_merge([$types], $update_values);
+            $stmt->bind_param(...$bind_params);
+            
+            if (!$stmt->execute()) {
+                error_log("SQL Error: " . $stmt->error);
+                throw new Exception("Failed to update engagement: " . $stmt->error);
+            }
+        }
+
+        // Commit transaction
+        $conn->commit();
+        $success_message = "Engagement updated successfully.";
+        error_log("Engagement updated successfully for ID: " . $engagement_id);
+        
+        // Redirect to engagements listing
+        header("Location: engagements.php");
+        exit();
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        $error_message = $e->getMessage();
+        error_log("Error updating engagement: " . $error_message);
     }
 }
 
