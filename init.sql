@@ -52,7 +52,9 @@ CREATE TABLE IF NOT EXISTS organizations (
     physical_city VARCHAR(100),
     physical_state VARCHAR(100),
     physical_zipcode VARCHAR(20),
-    physical_country VARCHAR(100)
+    physical_country VARCHAR(100),
+    is_deleted TINYINT(1) DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Engagements table (sample fields; extend as needed)
