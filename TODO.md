@@ -38,7 +38,8 @@
 - [ ] build out for Contact(s): Admin, Pastor
 - [ ] build out for Anticipated Compensation
 - [ ] 'Caller' in Engagement/Event to be listed system user
-- [ ] convert from plaintext to hashed passwords
+- [x] convert from plaintext to hashed passwords
+- [ ] extend security considerations for authentication (MFA, magiclinks, etc.)
 - [ ] build out multiple Presentation functionality
 - [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
 - [ ] evaluate for sql-injection vulnerabilities
