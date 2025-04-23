@@ -1,7 +1,11 @@
 <?php
-session_start(); // Ensure the session is started to store session data
-include 'config.php';
-include 'functions.php';
+session_start();
+
+// Include required files
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/functions.php';
+
+use DNR\Utils\Security;
 
 // Ensure the user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -12,16 +16,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
-    $password = $_POST['password']; // Store plain-text password temporarily
+    $password = $_POST['password'];
     $role = $_POST['role'];
+
+    // Hash the password before storing
+    $hashedPassword = Security::hashPassword($password);
 
     // Check if the user already exists
     $check = $conn->query("SELECT id FROM users WHERE username='$username'");
     if ($check->num_rows > 0) {
         $error = "Username already exists.";
     } else {
-        // Store the user with plain-text password (for now)
-        $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$password', '$role')";
+        // Store the user with hashed password
+        $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashedPassword', '$role')";
         if ($conn->query($sql) === TRUE) {
             $message = "User registered successfully.";
         } else {

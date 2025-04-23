@@ -7,9 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 -- for production (default admin account)
--- Insert default admin account
+-- Insert default admin account with hashed password (p@55word)
 INSERT INTO users (username, password, role) 
-VALUES ('admin', 'p@55word', 'admin')
+VALUES ('admin', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'admin')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- ! REMOVE BLOCK BELOW THIS LINE ON FINAL BUILD ! =======
@@ -18,14 +18,14 @@ ON DUPLICATE KEY UPDATE username=username;
 -- we will want to see what things look like from the perspective
 -- of and editor and a reviewer ...
 
--- Insert default editor account
+-- Insert default editor account with hashed password (p@55word)
 INSERT INTO users (username, password, role) 
-VALUES ('editor', 'p@55word', 'editor')
+VALUES ('editor', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'editor')
 ON DUPLICATE KEY UPDATE username=username;
 
--- Insert default reviewer account
+-- Insert default reviewer account with hashed password (p@55word)
 INSERT INTO users (username, password, role) 
-VALUES ('reviewer', 'p@55word', 'reviewer')
+VALUES ('reviewer', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'reviewer')
 ON DUPLICATE KEY UPDATE username=username;
 
 -- ! REMOVE BLOCK ABOVE THIS LINE ON FINAL BUILD ! =======

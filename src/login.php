@@ -1,12 +1,17 @@
 <?php
 session_start();
-include 'config.php';
-include 'functions.php';
+
+// Include required files
+require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/functions.php';
+
+use DNR\Utils\Security;
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = $_POST['username'];
     $password = $_POST['password'];
 
+    // Debug: Check if we can find the user
     $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -14,8 +19,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($result->num_rows == 1) {
         $user = $result->fetch_assoc();
+        
+        // Debug: Output password details (comment out in production)
+        error_log("Stored hash: " . $user['password']);
+        error_log("Provided password: " . $password);
+        
+        // Debug: Test password verification
+        $verify_result = Security::verifyPassword($password, $user['password']);
+        error_log("Password verification result: " . ($verify_result ? "true" : "false"));
 
-        if ($password === $user['password']) {
+        if ($verify_result) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
