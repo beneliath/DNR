@@ -21,7 +21,7 @@
 - [x] Engagements: add ascend/descent sort on Status
 - [x] Engagements: add role-based edit/delete functionality; with attendant change to db schema
 - [x] !!! if contact name on add_organizations.php, then Role is required and Email/Email-confirm is required (w/ red asterisks re same)
-- [ ] view Organizations rebuild: WIP!
+- [ ] view Organizations rebuild: WIP
 - [ ] view/add contact for selected Organization
 - [ ] view/add presentation for selected Event
 - [x] code Mailing Address / Physical Address
@@ -30,19 +30,20 @@
 - [ ] TEST 'Add Organization'; on pass, tag restore point
 - [ ] TEST 'Add Contact'; on pass, tag restore point
 - [ ] TEST 'Add Presentation'; on pass, tag restore point
-- [ ] header navigation bar redesign (only after base functionality completed)
+- [ ] header navigation bar redesign (only after base functionality complete)
 - [ ] doublecheck password entry for new user creation
 - [ ] mod edit user to allow for change of password (with doublecheck)
 - [ ] build out profiles for users (including email sub-system for initialization and password reset)
 - [ ] add functionality to activate/deactivate users
 - [ ] build out for Contact(s): Admin, Pastor
-- [ ] build out for Anticipated Compensation
+- [ ] build out Anticipated Compensation
+- [ ] build out complete financial sub-system
 - [ ] 'Caller' in Engagement/Event to be listed system user
 - [x] convert from plaintext to hashed passwords
-- [ ] extend security considerations for authentication (MFA, magiclinks, etc.)
+- [ ] extend security considerations for authentication (MFA, magic links, etc.)
 - [ ] build out multiple Presentation functionality
-- [ ] consider using `session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
-- [ ] evaluate for sql-injection vulnerabilities
+- [ ] consider using session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
+- [ ] evaluate for SQL injection vulnerabilities
 - [ ] minify JS and CSS
 - [ ] when above is complete: build out REPORT functionality
 - [ ] when above is complete: build out FOLLOW-UP functionality
