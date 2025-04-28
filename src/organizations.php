@@ -182,7 +182,7 @@ if (!$result) {
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button view-button">View</a>
                             <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
-                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>" class="action-button edit-button">Edit</a>
+                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
                             <?php if ($user_role === 'admin'): ?>
                                 <a href="organizations.php?delete=<?php echo $org['id']; ?>" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this organization?');">Delete</a>

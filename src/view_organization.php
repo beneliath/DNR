@@ -236,7 +236,7 @@ $contact_stmt->close();
     <div class="action-buttons">
         <a href="organizations.php" class="action-button back-button">Back to Organizations</a>
         <?php if ($user_role === 'admin'): ?>
-            <a href="edit_organization.php?id=<?php echo $org_id; ?>" class="action-button edit-button">Edit Organization</a>
+            <a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="action-button edit-button">Edit Organization</a>
         <?php endif; ?>
     </div>
 </div>

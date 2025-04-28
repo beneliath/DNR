@@ -20,6 +20,12 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $org_id = intval($_GET['id']);
+$from = $_GET['from'] ?? '';
+if ($from === 'view') {
+    $cancel_url = "view_organization.php?id=$org_id";
+} else {
+    $cancel_url = "organizations.php";
+}
 
 // Fetch organization details
 $query = "SELECT * FROM organizations WHERE id = ? AND is_deleted = 0";
@@ -170,13 +176,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: flex;
             gap: 10px;
         }
-        .action-button {
-            padding: 8px 15px;
+        .action-button, .action-button[type="submit"] {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 20px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             text-decoration: none;
             color: white;
+            font-size: 16px;
+            height: 44px;
+            box-sizing: border-box;
         }
         .back-button {
             background-color: #666;
@@ -288,7 +300,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="action-buttons">
-            <a href="view_organization.php?id=<?php echo $org_id; ?>" class="action-button back-button">Cancel</a>
+            <a href="<?php echo $cancel_url; ?>" class="action-button back-button">Cancel</a>
             <input type="submit" value="Save Changes" class="action-button save-button">
         </div>
     </form>
