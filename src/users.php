@@ -44,6 +44,13 @@ if (!$users) {
             border: 1px solid #ddd;
             border-radius: 4px;
         }
+        .user-details:hover {
+            background-color: #f9f9f9;
+        }
+        .dark-mode .user-details:hover,
+        .dark-mode .user-details:hover div:not(.user-actions) {
+            background-color: #333 !important;
+        }
         .user-main {
             display: flex;
             justify-content: space-between;
