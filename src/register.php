@@ -1,11 +1,8 @@
 <?php
-session_start();
-
 // Include required files
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
-
-use DNR\Utils\Security;
+startSecureSession();
 
 // Ensure the user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -15,24 +12,40 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-    $role = $_POST['role'];
+    requireValidCsrfToken();
 
-    // Hash the password before storing
-    $hashedPassword = Security::hashPassword($password);
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $password_confirm = $_POST['password_confirm'] ?? '';
+    $role = $_POST['role'] ?? '';
+    $valid_roles = ['admin', 'editor', 'reviewer'];
 
-    // Check if the user already exists
-    $check = $conn->query("SELECT id FROM users WHERE username='$username'");
-    if ($check->num_rows > 0) {
-        $error = "Username already exists.";
+    if ($username === '' || strlen($username) > 50) {
+        $error = "Username is required and must be 50 characters or fewer.";
+    } elseif (strlen($password) < 10) {
+        $error = "Password must be at least 10 characters.";
+    } elseif (!hash_equals($password, $password_confirm)) {
+        $error = "Passwords do not match.";
+    } elseif (!in_array($role, $valid_roles, true)) {
+        $error = "Invalid role selected.";
     } else {
-        // Store the user with hashed password
-        $sql = "INSERT INTO users (username, password, role) VALUES ('$username', '$hashedPassword', '$role')";
-        if ($conn->query($sql) === TRUE) {
-            $message = "User registered successfully.";
+        $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
+        $check->bind_param("s", $username);
+        $check->execute();
+        $existing_user = $check->get_result();
+
+        if ($existing_user->num_rows > 0) {
+            $error = "Username already exists.";
         } else {
-            $error = "Error: " . $conn->error;
+            $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
+            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+            $stmt->bind_param("sss", $username, $hashedPassword, $role);
+
+            if ($stmt->execute()) {
+                $message = "User registered successfully.";
+            } else {
+                $error = "Unable to create the user.";
+            }
         }
     }
 }
@@ -52,8 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="register.php">
+        <?php echo csrfInput(); ?>
         <label for="username">Username <input type="text" name="username" id="username" required></label><br>
-        <label for="password">Password <input type="password" name="password" id="password" required></label><br>
+        <label for="password">Password <input type="password" name="password" id="password" minlength="10" required></label><br>
+        <label for="password_confirm">Confirm Password <input type="password" name="password_confirm" id="password_confirm" minlength="10" required></label><br>
         <label for="role">Role
             <select name="role" id="role" required>
                 <option value="admin">Admin</option>
@@ -67,4 +82,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
-

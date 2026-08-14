@@ -1,17 +1,15 @@
 <?php
-session_start();
-
 // Include required files
-require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
-
-use DNR\Utils\Security;
+startSecureSession();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
+    requireValidCsrfToken();
 
-    // Debug: Check if we can find the user
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
+
     $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
     $stmt->bind_param("s", $username);
     $stmt->execute();
@@ -19,19 +17,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($result->num_rows == 1) {
         $user = $result->fetch_assoc();
-        
-        // Debug: Output password details (comment out in production)
-        error_log("Stored hash: " . $user['password']);
-        error_log("Provided password: " . $password);
-        
-        // Debug: Test password verification
-        $verify_result = Security::verifyPassword($password, $user['password']);
-        error_log("Password verification result: " . ($verify_result ? "true" : "false"));
 
-        if ($verify_result) {
+        if (password_verify($password, $user['password'])) {
+            session_regenerate_id(true);
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['username'] = $user['username'];
             $_SESSION['role'] = $user['role'];
+            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
             header("Location: index.php");
             exit();
         }
@@ -59,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <h1>Login</h1>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
+      <?php echo csrfInput(); ?>
       <div class="form-group">
         <label for="username">Username</label>
         <input type="text" name="username" id="username" required>
@@ -75,4 +68,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <script src="assets/js/theme.js"></script>
 </body>
 </html>
-

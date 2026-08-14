@@ -1,7 +1,7 @@
 <?php
-session_start();
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 requireLogin();
 
 // Get user role from session
@@ -17,8 +17,8 @@ $engagement_id = intval($_GET['id']);
 
 // Fetch engagement details with organization name and contacts
 $query = "SELECT e.*, o.organization_name, o.id as org_id
-          FROM engagements e 
-          LEFT JOIN organizations o ON e.organization_id = o.id 
+          FROM engagements e
+          LEFT JOIN organizations o ON e.organization_id = o.id
           WHERE e.id = ? AND e.is_deleted = 0";
 
 $stmt = $conn->prepare($query);
@@ -48,9 +48,44 @@ $contact_stmt->bind_param("i", $engagement['org_id']);
 $contact_stmt->execute();
 $contacts_result = $contact_stmt->get_result();
 
+// Fetch presentations associated with this engagement.
+$presentation_stmt = $conn->prepare(
+    "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
+     FROM presentations
+     WHERE engagement_id = ?
+     ORDER BY presentation_date, presentation_time, id"
+);
+if ($presentation_stmt === false) {
+    die("Error preparing presentations statement: " . $conn->error);
+}
+$presentation_stmt->bind_param("i", $engagement_id);
+$presentation_stmt->execute();
+$presentations_result = $presentation_stmt->get_result();
+
+$event_address_parts = [];
+foreach (['event_address_line_1', 'event_address_line_2'] as $address_field) {
+    if (!empty($engagement[$address_field])) {
+        $event_address_parts[] = $engagement[$address_field];
+    }
+}
+$event_city_line = trim(implode(', ', array_filter([
+    $engagement['event_city'] ?? '',
+    $engagement['event_state'] ?? ''
+])));
+if (!empty($engagement['event_zipcode'])) {
+    $event_city_line = trim($event_city_line . ' ' . $engagement['event_zipcode']);
+}
+if ($event_city_line !== '') {
+    $event_address_parts[] = $event_city_line;
+}
+if (!empty($engagement['event_country'])) {
+    $event_address_parts[] = $engagement['event_country'];
+}
+
 // Close statements
 $stmt->close();
 $contact_stmt->close();
+$presentation_stmt->close();
 ?>
 <!DOCTYPE html>
 <html>
@@ -118,6 +153,15 @@ $contact_stmt->close();
             padding: 15px;
             margin-bottom: 10px;
         }
+        .presentation-item {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+        .dark-mode .presentation-item {
+            border-color: #444;
+        }
         .dark-mode .contact-item {
             background-color: var(--dark-input-bg);
             border-color: #333;
@@ -145,11 +189,11 @@ $contact_stmt->close();
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
     <h1>View Engagement</h1>
-    
+
     <div class="detail-group">
         <div class="detail-label">Organization</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['organization_name']); ?></div>
-        
+
         <?php if ($contacts_result->num_rows > 0): ?>
         <div class="detail-label">Contacts</div>
         <div class="detail-value contacts-list">
@@ -158,12 +202,12 @@ $contact_stmt->close();
                 <div><strong><?php echo htmlspecialchars($contact['contact_name']); ?></strong></div>
                 <?php if (!empty($contact['contact_role'])): ?>
                 <div class="contact-title">
-                    <?php 
+                    <?php
                     echo htmlspecialchars(
-                        $contact['contact_role'] === 'other' && !empty($contact['contact_role_other']) 
-                        ? $contact['contact_role_other'] 
+                        $contact['contact_role'] === 'other' && !empty($contact['contact_role_other'])
+                        ? $contact['contact_role_other']
                         : ucfirst($contact['contact_role'])
-                    ); 
+                    );
                     ?>
                 </div>
                 <?php endif; ?>
@@ -177,10 +221,10 @@ $contact_stmt->close();
             <?php endwhile; ?>
         </div>
         <?php endif; ?>
-        
+
         <div class="detail-label">Event Type</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['event_type']); ?></div>
-        
+
         <div class="detail-label">Event Dates</div>
         <div class="detail-value">
             <?php echo htmlspecialchars($engagement['event_start_date'] . ' to ' . $engagement['event_end_date']); ?>
@@ -190,7 +234,7 @@ $contact_stmt->close();
     <div class="detail-group">
         <div class="detail-label">Status</div>
         <div class="detail-value">
-            <?php 
+            <?php
             $status = $engagement['confirmation_status'];
             $status_class = 'status-' . str_replace('_', '-', $status);
             $display_status = str_replace('_', ' ', $status);
@@ -199,45 +243,78 @@ $contact_stmt->close();
         </div>
     </div>
 
-    <?php if (!empty($engagement['chron'])): ?>
+    <?php if (!empty($engagement['engagement_notes'])): ?>
     <div class="detail-group">
         <div class="detail-label">Chron</div>
-        <div class="detail-value"><?php echo nl2br(htmlspecialchars($engagement['chron'])); ?></div>
+        <div class="detail-value"><?php echo nl2br(htmlspecialchars($engagement['engagement_notes'])); ?></div>
     </div>
     <?php endif; ?>
 
     <div class="detail-group">
         <div class="detail-label">Event Details</div>
         <div class="detail-value">
-            <div><strong>Book Table Provided:</strong> <?php echo $engagement['book_table_provided'] ? 'Yes' : 'No'; ?></div>
-            <div><strong>Brochures Permitted:</strong> <?php echo $engagement['brochures_permitted'] ? 'Yes' : 'No'; ?></div>
-            <div><strong>All Travel Covered:</strong> <?php echo $engagement['all_travel_covered'] ? 'Yes' : 'No'; ?></div>
+            <div><strong>Book Table Provided:</strong> <?php echo !empty($engagement['book_table']) ? 'Yes' : 'No'; ?></div>
+            <div><strong>Brochures Permitted:</strong> <?php echo !empty($engagement['brochures']) ? 'Yes' : 'No'; ?></div>
+            <div><strong>All Travel Covered:</strong> <?php echo htmlspecialchars(ucfirst($engagement['travel_covered'] ?? 'unknown')); ?></div>
+            <?php if (!empty($engagement['caller_name'])): ?>
+            <div><strong>Caller:</strong> <?php echo htmlspecialchars($engagement['caller_name']); ?></div>
+            <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($presentations_result->num_rows > 0): ?>
+    <div class="detail-group">
+        <div class="detail-label">Presentations</div>
+        <div class="detail-value">
+            <?php while ($presentation = $presentations_result->fetch_assoc()): ?>
+            <div class="presentation-item">
+                <strong><?php echo htmlspecialchars($presentation['topic_title']); ?></strong>
+                <?php if (!empty($presentation['speaker_name'])): ?>
+                <div>Speaker: <?php echo htmlspecialchars($presentation['speaker_name']); ?></div>
+                <?php endif; ?>
+                <?php if (!empty($presentation['presentation_date']) || !empty($presentation['presentation_time'])): ?>
+                <div>
+                    <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . ($presentation['presentation_time'] ?? ''))); ?>
+                </div>
+                <?php endif; ?>
+                <?php if ($presentation['expected_attendance'] !== null): ?>
+                <div>Expected attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
+                <?php endif; ?>
+            </div>
+            <?php endwhile; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <?php if (!empty($engagement['compensation_type'])): ?>
     <div class="detail-group">
         <div class="detail-label">Compensation</div>
         <div class="detail-value">
             <div><strong>Type:</strong> <?php echo htmlspecialchars($engagement['compensation_type']); ?></div>
-            <?php if (!empty($engagement['travel_amount'])): ?>
-            <div><strong>Travel Amount:</strong> $<?php echo htmlspecialchars($engagement['travel_amount']); ?></div>
+            <?php if (!empty($engagement['other_compensation'])): ?>
+            <div><strong>Details:</strong> <?php echo htmlspecialchars($engagement['other_compensation']); ?></div>
             <?php endif; ?>
-            <?php if (!empty($engagement['lodging_amount'])): ?>
-            <div><strong>Lodging Amount:</strong> $<?php echo htmlspecialchars($engagement['lodging_amount']); ?></div>
+            <?php if (!empty($engagement['travel_amount'])): ?>
+            <div><strong>Travel Amount:</strong> $<?php echo number_format((float) $engagement['travel_amount'], 2); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($engagement['housing_amount'])): ?>
+            <div><strong>Lodging Amount:</strong> $<?php echo number_format((float) $engagement['housing_amount'], 2); ?></div>
             <?php endif; ?>
             <?php if (!empty($engagement['housing_type'])): ?>
-            <div><strong>Housing Type:</strong> <?php echo htmlspecialchars($engagement['housing_type']); ?></div>
+            <div><strong>Lodging Type:</strong> <?php echo htmlspecialchars($engagement['housing_type']); ?></div>
+            <?php endif; ?>
+            <?php if (!empty($engagement['other_housing'])): ?>
+            <div><strong>Lodging Details:</strong> <?php echo htmlspecialchars($engagement['other_housing']); ?></div>
             <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
 
-    <?php if (!empty($engagement['event_location'])): ?>
+    <?php if (!empty($event_address_parts)): ?>
     <div class="detail-group">
         <div class="detail-label">Location</div>
         <div class="detail-value">
-            <?php echo nl2br(htmlspecialchars($engagement['event_location'])); ?>
+            <?php echo implode('<br>', array_map('htmlspecialchars', $event_address_parts)); ?>
         </div>
     </div>
     <?php endif; ?>
@@ -251,4 +328,4 @@ $contact_stmt->close();
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>
-</html> 
+</html>

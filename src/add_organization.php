@@ -1,104 +1,178 @@
 <?php
-// We assume session_start() is already called earlier (e.g., in index.php or header.php)
-session_start(); // Start session to access session variables
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 
-// Ensure the user is logged in and is an admin
-requireLogin(); // Will redirect to login.php if not logged in
+requireLogin();
+if (!hasRole(['admin', 'editor'])) {
+    header("Location: organizations.php");
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
+    requireValidCsrfToken();
+
     $error = false;
     $errorMessages = array();
 
-    // Remove the email validation check since it's no longer required
-    if (!empty($_POST['contact_email']) && $_POST['contact_email'] !== $_POST['contact_email_confirm']) {
-        $error = true;
-        $errorMessages[] = "Email addresses do not match.";
+    $organization_name = trim($_POST['organization_name'] ?? '');
+    $notes = trim($_POST['notes'] ?? '');
+    $affiliation = trim($_POST['affiliation'] ?? '');
+    $distinctives = trim($_POST['distinctives'] ?? '');
+    $website_url = trim($_POST['website_url'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $fax = trim($_POST['fax'] ?? '');
+    $mailing_address_line_1 = trim($_POST['mailing_address_line_1'] ?? '');
+    $mailing_address_line_2 = trim($_POST['mailing_address_line_2'] ?? '');
+    $mailing_city = trim($_POST['mailing_city'] ?? '');
+    $mailing_state = trim($_POST['mailing_state'] ?? '');
+    $mailing_zipcode = trim($_POST['mailing_zipcode'] ?? '');
+    $mailing_country = trim($_POST['mailing_country'] ?? '');
+    $physical_address_line_1 = trim($_POST['physical_address_line_1'] ?? '');
+    $physical_address_line_2 = trim($_POST['physical_address_line_2'] ?? '');
+    $physical_city = trim($_POST['physical_city'] ?? '');
+    $physical_state = trim($_POST['physical_state'] ?? '');
+    $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
+    $physical_country = trim($_POST['physical_country'] ?? '');
+
+    $contact_name = trim($_POST['contact_name'] ?? '');
+    $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
+    $contact_role_other = trim($_POST['contact_role_other'] ?? '');
+    $contact_email = trim($_POST['contact_email'] ?? '');
+    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
+    $contact_phone = trim($_POST['contact_phone'] ?? '');
+
+    $contact_candidates = [[
+        'name' => $contact_name,
+        'role' => $contact_role,
+        'role_other' => $contact_role_other,
+        'email' => $contact_email,
+        'email_confirm' => $contact_email_confirm,
+        'phone' => $contact_phone
+    ]];
+    if (isset($_POST['contacts']) && is_array($_POST['contacts'])) {
+        foreach ($_POST['contacts'] as $submitted_contact) {
+            if (!is_array($submitted_contact)) {
+                continue;
+            }
+            $contact_candidates[] = [
+                'name' => trim($submitted_contact['name'] ?? ''),
+                'role' => strtolower(trim($submitted_contact['role'] ?? '')),
+                'role_other' => trim($submitted_contact['role_other'] ?? ''),
+                'email' => trim($submitted_contact['email'] ?? ''),
+                'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
+                'phone' => trim($submitted_contact['phone'] ?? '')
+            ];
+        }
     }
 
-    // Update the role validation to only check if a role is provided
-    if (!empty($_POST['contact_role']) && $_POST['contact_role'] === 'other' && empty($_POST['contact_role_other'])) {
-        $error = true;
-        $errorMessages[] = "Please specify the other role.";
+    if ($organization_name === '') {
+        $errorMessages[] = "Organization name is required.";
+    }
+    if ($website_url !== '' && !filter_var($website_url, FILTER_VALIDATE_URL)) {
+        $errorMessages[] = "Please provide a valid website URL.";
+    }
+    $contacts_to_create = [];
+    foreach ($contact_candidates as $contact_index => $candidate) {
+        $contact_number = $contact_index + 1;
+        $has_contact_data = implode('', $candidate) !== '';
+        if (!$has_contact_data) {
+            continue;
+        }
+        if ($candidate['name'] === '') {
+            $errorMessages[] = "Contact {$contact_number} requires a name.";
+            continue;
+        }
+        if (!in_array($candidate['role'], ['pastor', 'admin', 'other'], true)) {
+            $errorMessages[] = "Contact {$contact_number} requires a valid role.";
+        }
+        if ($candidate['role'] === 'other' && $candidate['role_other'] === '') {
+            $errorMessages[] = "Contact {$contact_number} requires an other-role description.";
+        }
+        if (!filter_var($candidate['email'], FILTER_VALIDATE_EMAIL)) {
+            $errorMessages[] = "Contact {$contact_number} requires a valid email address.";
+        } elseif (!hash_equals($candidate['email'], $candidate['email_confirm'])) {
+            $errorMessages[] = "Contact {$contact_number} email addresses do not match.";
+        }
+        $contacts_to_create[] = $candidate;
     }
 
+    $error = !empty($errorMessages);
     if (!$error) {
-        // Sanitize user input for organization
-        $organization_name = $conn->real_escape_string($_POST['organization_name']);
-        
-        // Check if organization name already exists
-        $check_sql = "SELECT id FROM organizations WHERE organization_name = '$organization_name'";
-        $result = $conn->query($check_sql);
-        
-        if ($result->num_rows > 0) {
+        $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ?");
+        $check_stmt->bind_param("s", $organization_name);
+        $check_stmt->execute();
+
+        if ($check_stmt->get_result()->num_rows > 0) {
             $error = true;
             $errorMessages[] = "An organization with this name already exists.";
         } else {
-            $notes = $conn->real_escape_string($_POST['notes']);
-            $affiliation = $conn->real_escape_string($_POST['affiliation']);
-            $distinctives = $conn->real_escape_string($_POST['distinctives']);
-            $website_url = $conn->real_escape_string($_POST['website_url']);
-            $phone = $conn->real_escape_string($_POST['phone']);
-            $fax = $conn->real_escape_string($_POST['fax']);
-            $mailing_address_line_1 = $conn->real_escape_string($_POST['mailing_address_line_1']);
-            $mailing_address_line_2 = $conn->real_escape_string($_POST['mailing_address_line_2']);
-            $mailing_city = $conn->real_escape_string($_POST['mailing_city']);
-            $mailing_state = $conn->real_escape_string($_POST['mailing_state']);
-            $mailing_zipcode = $conn->real_escape_string($_POST['mailing_zipcode']);
-            $mailing_country = $conn->real_escape_string($_POST['mailing_country']);
-            $physical_address_line_1 = $conn->real_escape_string($_POST['physical_address_line_1']);
-            $physical_address_line_2 = $conn->real_escape_string($_POST['physical_address_line_2']);
-            $physical_city = $conn->real_escape_string($_POST['physical_city']);
-            $physical_state = $conn->real_escape_string($_POST['physical_state']);
-            $physical_zipcode = $conn->real_escape_string($_POST['physical_zipcode']);
-            $physical_country = $conn->real_escape_string($_POST['physical_country']);
+            $conn->begin_transaction();
+            try {
+                $org_stmt = $conn->prepare(
+                    "INSERT INTO organizations (
+                        organization_name, notes, affiliation, distinctives, website_url, phone, fax,
+                        mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state,
+                        mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2,
+                        physical_city, physical_state, physical_zipcode, physical_country
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                );
+                $org_stmt->bind_param(
+                    "sssssssssssssssssss",
+                    $organization_name, $notes, $affiliation, $distinctives, $website_url, $phone, $fax,
+                    $mailing_address_line_1, $mailing_address_line_2, $mailing_city, $mailing_state,
+                    $mailing_zipcode, $mailing_country, $physical_address_line_1, $physical_address_line_2,
+                    $physical_city, $physical_state, $physical_zipcode, $physical_country
+                );
+                if (!$org_stmt->execute()) {
+                    throw new RuntimeException("Unable to save organization.");
+                }
 
-            // Insert new organization into the database
-            $sql = "INSERT INTO organizations (organization_name, notes, affiliation, distinctives, website_url, phone, fax, mailing_address_line_1, mailing_address_line_2, mailing_city, mailing_state, mailing_zipcode, mailing_country, physical_address_line_1, physical_address_line_2, physical_city, physical_state, physical_zipcode, physical_country)
-                    VALUES ('$organization_name', '$notes', '$affiliation', '$distinctives', '$website_url', '$phone', '$fax', '$mailing_address_line_1', '$mailing_address_line_2', '$mailing_city', '$mailing_state', '$mailing_zipcode', '$mailing_country', '$physical_address_line_1', '$physical_address_line_2', '$physical_city', '$physical_state', '$physical_zipcode', '$physical_country')";
-
-            if ($conn->query($sql) === TRUE) {
                 $organization_id = $conn->insert_id;
+                if (!empty($contacts_to_create)) {
+                    $contact_stmt = $conn->prepare(
+                        "INSERT INTO contacts (
+                            organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone
+                         ) VALUES (?, ?, ?, ?, ?, ?)"
+                    );
+                    $saved_contact_name = '';
+                    $saved_contact_role = '';
+                    $saved_contact_role_other = '';
+                    $saved_contact_email = '';
+                    $saved_contact_phone = '';
+                    $contact_stmt->bind_param(
+                        "isssss",
+                        $organization_id,
+                        $saved_contact_name,
+                        $saved_contact_role,
+                        $saved_contact_role_other,
+                        $saved_contact_email,
+                        $saved_contact_phone
+                    );
 
-                // Only proceed with contact information if contact name is provided
-                if (!empty($_POST['contact_name'])) {
-                    // Sanitize contact information
-                    $contact_name = $conn->real_escape_string($_POST['contact_name']);
-                    $contact_role = strtolower($conn->real_escape_string($_POST['contact_role']));
-                    $contact_role_other = $conn->real_escape_string($_POST['contact_role_other']);
-                    $contact_email = $conn->real_escape_string($_POST['contact_email']);
-                    $contact_phone = $conn->real_escape_string($_POST['contact_phone']);
-
-                    // Validate contact role is one of the allowed ENUM values
-                    if (!in_array($contact_role, ['pastor', 'admin', 'other'])) {
-                        $error = true;
-                        $errorMessages[] = "Invalid contact role selected.";
-                    }
-
-                    // Insert contact information only if no errors
-                    if (!$error) {
-                        $contact_sql = "INSERT INTO contacts (organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone)
-                                      VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
-
-                        if ($conn->query($contact_sql) === TRUE) {
-                            $_SESSION['success_message'] = "Organization and contact information saved successfully.";
-                            header('Location: ' . $_SERVER['PHP_SELF']);
-                            exit();
-                        } else {
-                            $error = true;
-                            $errorMessages[] = "Error saving contact information: " . $conn->error;
+                    foreach ($contacts_to_create as $contact_to_create) {
+                        $saved_contact_name = $contact_to_create['name'];
+                        $saved_contact_role = $contact_to_create['role'];
+                        $saved_contact_role_other = $contact_to_create['role_other'];
+                        $saved_contact_email = $contact_to_create['email'];
+                        $saved_contact_phone = $contact_to_create['phone'];
+                        if (!$contact_stmt->execute()) {
+                            throw new RuntimeException("Unable to save contact.");
                         }
                     }
-                } else {
-                    // If no contact name provided, just show success message for organization
-                    $_SESSION['success_message'] = "Organization saved successfully.";
-                    header('Location: ' . $_SERVER['PHP_SELF']);
-                    exit();
                 }
-            } else {
+
+                $conn->commit();
+                $_SESSION['success_message'] = !empty($contacts_to_create)
+                    ? "Organization and contact information saved successfully."
+                    : "Organization saved successfully.";
+                header('Location: add_organization.php');
+                exit();
+            } catch (Throwable $exception) {
+                $conn->rollback();
+                error_log($exception->getMessage());
                 $error = true;
-                $errorMessages[] = "Error saving organization: " . $conn->error;
+                $errorMessages[] = "Unable to save the organization.";
             }
         }
     }
@@ -367,9 +441,10 @@ if (isset($_SESSION['success_message'])) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", $errorMessages) . "</p>"; ?>
+    <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
     <h2>Add Organization</h2>
     <form method="post" action="add_organization.php">
+        <?php echo csrfInput(); ?>
         <div class="form-group">
             <label class="required">Organization Name</label>
             <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
@@ -698,4 +773,3 @@ function toggleOtherRole(id = '') {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
-

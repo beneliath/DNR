@@ -1,7 +1,7 @@
 <?php
-session_start(); // Start the session to access session data
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 
 // Ensure the user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -11,8 +11,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
 }
 
 // Fetch the user ID from the URL parameter
-if (isset($_GET['id'])) {
-    $user_id = $_GET['id'];
+if (isset($_GET['id']) && is_numeric($_GET['id'])) {
+    $user_id = (int) $_GET['id'];
 
     // Fetch user details from the database
     $stmt = $conn->prepare("SELECT id, username, role FROM users WHERE id = ?");
@@ -26,23 +26,34 @@ if (isset($_GET['id'])) {
         header("Location: users.php");
         exit();
     }
+} else {
+    header("Location: users.php");
+    exit();
 }
 
 // Handle the form submission for editing user
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $username = $_POST['username'];
-    $role = $_POST['role'];
+    requireValidCsrfToken();
 
-    // Update the user details in the database
-    $stmt = $conn->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
-    $stmt->bind_param("ssi", $username, $role, $user_id);
+    $username = trim($_POST['username'] ?? '');
+    $role = $_POST['role'] ?? '';
+    $valid_roles = ['admin', 'editor', 'reviewer'];
 
-    if ($stmt->execute()) {
-        // Redirect back to the user management page after successful update
-        header("Location: users.php");
-        exit();
+    if ($username === '' || strlen($username) > 50) {
+        $error = "Username is required and must be 50 characters or fewer.";
+    } elseif (!in_array($role, $valid_roles, true)) {
+        $error = "Invalid role selected.";
     } else {
-        $error = "Error updating user details.";
+        // Update the user details in the database
+        $stmt = $conn->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
+        $stmt->bind_param("ssi", $username, $role, $user_id);
+
+        if ($stmt->execute()) {
+            header("Location: users.php");
+            exit();
+        } else {
+            $error = "Unable to update user details. The username may already exist.";
+        }
     }
 }
 ?>
@@ -61,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="edit_user.php?id=<?php echo $user['id']; ?>">
+        <?php echo csrfInput(); ?>
         <label for="username">Username <input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></label><br>
         <label for="role">Role
             <select name="role" required>
@@ -75,4 +87,3 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
-

@@ -1,17 +1,25 @@
 <?php
-session_start(); // Start session to access session variables
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Handle delete action if user is admin
-if ($user_role === 'admin' && isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $org_id = intval($_GET['delete']);
-    $conn->query("UPDATE organizations SET is_deleted = 1 WHERE id = $org_id");
-    // Redirect to remove delete parameter from URL
+// Handle soft deletion through an authenticated POST request.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_organization'])) {
+    if ($user_role !== 'admin') {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    requireValidCsrfToken();
+    $org_id = filter_input(INPUT_POST, 'organization_id', FILTER_VALIDATE_INT);
+    if ($org_id) {
+        $delete_stmt = $conn->prepare("UPDATE organizations SET is_deleted = 1 WHERE id = ?");
+        $delete_stmt->bind_param("i", $org_id);
+        $delete_stmt->execute();
+    }
     header("Location: organizations.php");
     exit();
 }
@@ -131,7 +139,7 @@ if (!$result) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <h2>Organizations</h2>
-    
+
     <div class="sort-buttons">
         <button onclick="window.location.href='organizations.php?sort_by=name&name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>'">
             Name <?php echo $sort_column === 'name' ? ($name_sort === 'asc' ? '↑' : '↓') : ''; ?>
@@ -170,7 +178,7 @@ if (!$result) {
                         $contact_stmt->bind_param("i", $org['id']);
                         $contact_stmt->execute();
                         $contacts_result = $contact_stmt->get_result();
-                        
+
                         $contact_names = [];
                         while ($contact = $contacts_result->fetch_assoc()) {
                             $contact_names[] = htmlspecialchars($contact['contact_name']);
@@ -185,7 +193,11 @@ if (!$result) {
                                 <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
                             <?php if ($user_role === 'admin'): ?>
-                                <a href="organizations.php?delete=<?php echo $org['id']; ?>" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this organization?');">Delete</a>
+                                <form method="post" action="organizations.php" onsubmit="return confirm('Are you sure you want to delete this organization?');">
+                                    <?php echo csrfInput(); ?>
+                                    <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
+                                    <button type="submit" name="delete_organization" class="action-button delete-button">Delete</button>
+                                </form>
                             <?php endif; ?>
                         </div>
                     </td>
@@ -196,4 +208,4 @@ if (!$result) {
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>
-</html> 
+</html>

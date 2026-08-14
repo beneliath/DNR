@@ -1,15 +1,21 @@
 <?php
-session_start();
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 
 // Ensure the user is logged in
 requireLogin();
+if (!hasRole(['admin', 'editor'])) {
+    header("Location: organizations.php");
+    exit();
+}
 
 $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
+    requireValidCsrfToken();
+
     $organization_id = intval($_POST['organization_id'] ?? 0);
     $contact_name = trim($_POST['contact_name'] ?? '');
     $contact_role = trim($_POST['contact_role'] ?? '');
@@ -19,28 +25,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     $contact_phone = trim($_POST['contact_phone'] ?? '');
 
     // Validate required fields
+    $valid_contact_roles = ['pastor', 'admin', 'other'];
+
     if (!$organization_id || !$contact_name || !$contact_role || !$contact_email || !$contact_email_confirm) {
         $error_message = "Please fill in all required fields.";
     } elseif ($contact_email !== $contact_email_confirm) {
         $error_message = "Email addresses do not match.";
+    } elseif (!filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Please provide a valid email address.";
+    } elseif (!in_array($contact_role, $valid_contact_roles, true)) {
+        $error_message = "Invalid contact role selected.";
     } elseif ($contact_role === 'other' && empty($contact_role_other)) {
         $error_message = "Please specify the other role.";
     } else {
-        // Sanitize input
-        $contact_name = $conn->real_escape_string($contact_name);
-        $contact_role = $conn->real_escape_string($contact_role);
-        $contact_role_other = $conn->real_escape_string($contact_role_other);
-        $contact_email = $conn->real_escape_string($contact_email);
-        $contact_phone = $conn->real_escape_string($contact_phone);
+        $stmt = $conn->prepare(
+            "INSERT INTO contacts (
+                organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone
+             ) VALUES (?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param(
+            "isssss",
+            $organization_id,
+            $contact_name,
+            $contact_role,
+            $contact_role_other,
+            $contact_email,
+            $contact_phone
+        );
 
-        // Insert contact information
-        $sql = "INSERT INTO contacts (organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone)
-                VALUES ('$organization_id', '$contact_name', '$contact_role', '$contact_role_other', '$contact_email', '$contact_phone')";
-
-        if ($conn->query($sql) === TRUE) {
+        if ($stmt->execute()) {
             $success_message = "Contact added successfully!";
         } else {
-            $error_message = "Error adding contact: " . $conn->error;
+            $error_message = "Unable to add the contact.";
         }
     }
 }
@@ -162,13 +178,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 
     <h2>Add Contact</h2>
     <form method="post" action="add_contact.php">
+        <?php echo csrfInput(); ?>
         <div class="organization-container">
             <div class="form-group" style="flex: 1;">
                 <label for="organization_id" class="required">Organization</label>
                 <select name="organization_id" id="organization_id" required>
                     <option value="" disabled selected>Select an organization</option>
                     <?php
-                    $orgs = $conn->query("SELECT id, organization_name FROM organizations ORDER BY organization_name");
+                    $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
                     while ($row = $orgs->fetch_assoc()) {
                         $selected = (!empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id']) ? 'selected' : '';
                         echo "<option value='" . htmlspecialchars($row['id']) . "' $selected>" . htmlspecialchars($row['organization_name']) . "</option>";
@@ -226,7 +243,7 @@ function toggleOtherRole() {
     const roleSelect = document.getElementById('contact_role');
     const otherRoleGroup = document.getElementById('other_role_group');
     const otherRoleInput = document.getElementById('contact_role_other');
-    
+
     if (roleSelect.value === 'other') {
         otherRoleGroup.style.display = 'block';
         otherRoleInput.required = true;
@@ -240,4 +257,4 @@ function toggleOtherRole() {
 
 <?php include 'templates/footer.php'; ?>
 </body>
-</html> 
+</html>

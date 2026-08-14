@@ -1,7 +1,7 @@
 <?php
-session_start();
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 requireLogin();
 
 // Get user role from session
@@ -136,17 +136,17 @@ $contact_stmt->close();
 <div class="container">
     <div class="organization-details">
         <h2><?php echo htmlspecialchars($organization['organization_name']); ?></h2>
-        
+
         <div class="detail-row">
             <strong>Affiliation</strong>
             <?php echo !empty($organization['affiliation']) ? htmlspecialchars($organization['affiliation']) : 'Not specified'; ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Distinctives</strong>
             <?php echo !empty($organization['distinctives']) ? htmlspecialchars($organization['distinctives']) : 'Not specified'; ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Website</strong>
             <?php if (!empty($organization['website_url'])): ?>
@@ -155,17 +155,17 @@ $contact_stmt->close();
                 Not specified
             <?php endif; ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Phone</strong>
             <?php echo !empty($organization['phone']) ? htmlspecialchars($organization['phone']) : 'Not specified'; ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Fax</strong>
             <?php echo !empty($organization['fax']) ? htmlspecialchars($organization['fax']) : 'Not specified'; ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Physical Address</strong>
             <?php
@@ -176,11 +176,11 @@ $contact_stmt->close();
             if (!empty($organization['physical_state'])) $address_parts[] = htmlspecialchars($organization['physical_state']);
             if (!empty($organization['physical_zipcode'])) $address_parts[] = htmlspecialchars($organization['physical_zipcode']);
             if (!empty($organization['physical_country'])) $address_parts[] = htmlspecialchars($organization['physical_country']);
-            
+
             echo !empty($address_parts) ? implode(', ', $address_parts) : 'Not specified';
             ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Mailing Address</strong>
             <?php
@@ -191,17 +191,17 @@ $contact_stmt->close();
             if (!empty($organization['mailing_state'])) $mailing_parts[] = htmlspecialchars($organization['mailing_state']);
             if (!empty($organization['mailing_zipcode'])) $mailing_parts[] = htmlspecialchars($organization['mailing_zipcode']);
             if (!empty($organization['mailing_country'])) $mailing_parts[] = htmlspecialchars($organization['mailing_country']);
-            
+
             echo !empty($mailing_parts) ? implode(', ', $mailing_parts) : 'Not specified';
             ?>
         </div>
-        
+
         <div class="detail-row">
             <strong>Notes</strong>
             <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
         </div>
     </div>
-    
+
     <div class="contacts-section">
         <h3>Contacts</h3>
         <?php if ($contacts_result->num_rows > 0): ?>
@@ -232,7 +232,7 @@ $contact_stmt->close();
             <p>No contacts found for this organization.</p>
         <?php endif; ?>
     </div>
-    
+
     <div class="action-buttons">
         <a href="organizations.php" class="action-button back-button">Back to Organizations</a>
         <?php if ($user_role === 'admin'): ?>
@@ -242,4 +242,4 @@ $contact_stmt->close();
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>
-</html> 
+</html>

@@ -3,7 +3,9 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    role ENUM('admin', 'editor', 'reviewer') NOT NULL
+    role ENUM('admin', 'editor', 'reviewer') NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- for production (default admin account)
@@ -111,4 +113,3 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_phone VARCHAR(50),
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
-

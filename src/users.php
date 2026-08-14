@@ -1,7 +1,7 @@
 <?php
-session_start(); // Start the session to access session data
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 
 // Ensure the user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
@@ -10,21 +10,19 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-// First, check if the timestamp columns exist, if not add them
-$checkColumns = $conn->query("SHOW COLUMNS FROM users LIKE 'created_at'");
-if ($checkColumns->num_rows === 0) {
-    // Add the timestamp columns if they don't exist
-    $alterTable = "ALTER TABLE users 
-                   ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                   ADD COLUMN last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP";
-    $conn->query($alterTable);
-}
+// Older databases may not have timestamp columns until the stabilization migration is applied.
+$has_created_at = $conn->query("SHOW COLUMNS FROM users LIKE 'created_at'")->num_rows > 0;
+$has_last_updated_at = $conn->query("SHOW COLUMNS FROM users LIKE 'last_updated_at'")->num_rows > 0;
 
-// Now fetch all users from the database
-$users = $conn->query("SELECT id, username, role, 
-                      IFNULL(created_at, 'N/A') as created_at, 
-                      IFNULL(last_updated_at, 'N/A') as last_updated_at 
-                      FROM users");
+if ($has_created_at && $has_last_updated_at) {
+    $users = $conn->query(
+        "SELECT id, username, role, created_at, last_updated_at FROM users ORDER BY username"
+    );
+} else {
+    $users = $conn->query(
+        "SELECT id, username, role, NULL AS created_at, NULL AS last_updated_at FROM users ORDER BY username"
+    );
+}
 
 if (!$users) {
     die("Database error: " . $conn->error);
@@ -60,6 +58,15 @@ if (!$users) {
             display: inline-block;
             margin-right: 20px;
         }
+        .link-button {
+            border: 0;
+            padding: 0;
+            background: none;
+            color: var(--link-color);
+            font: inherit;
+            text-decoration: underline;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -78,16 +85,21 @@ if (!$users) {
                     </div>
                     <div>
                         <a href="edit_user.php?id=<?php echo $user['id']; ?>">Edit</a> |
-                        <a href="delete_user.php?id=<?php echo $user['id']; ?>" 
-                           onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
+                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                        <form method="post" action="delete_user.php" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                            <?php echo csrfInput(); ?>
+                            <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                            <button type="submit" class="link-button">Delete</button>
+                        </form>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="user-timestamps">
                     <span class="timestamp">
-                        Created: <?php echo $user['created_at'] !== 'N/A' ? date('Y-m-d H:i', strtotime($user['created_at'])) : 'N/A'; ?>
+                        Created: <?php echo !empty($user['created_at']) ? date('Y-m-d H:i', strtotime($user['created_at'])) : 'N/A'; ?>
                     </span>
                     <span class="timestamp">
-                        Last Modified: <?php echo $user['last_updated_at'] !== 'N/A' ? date('Y-m-d H:i', strtotime($user['last_updated_at'])) : 'N/A'; ?>
+                        Last Modified: <?php echo !empty($user['last_updated_at']) ? date('Y-m-d H:i', strtotime($user['last_updated_at'])) : 'N/A'; ?>
                     </span>
                 </div>
             </div>
@@ -97,4 +109,3 @@ if (!$users) {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
-

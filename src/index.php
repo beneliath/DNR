@@ -4,12 +4,12 @@
 
 include 'config.php';
 include 'functions.php';
+startSecureSession();
+requireLogin();
 
-session_start();
-session_regenerate_id(true);
-// Redirect to login page if the user is not logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: login.php");
+// Reviewers are read-only; only admins and editors may create engagements.
+if (!hasRole(['admin', 'editor'])) {
+    header("Location: engagements.php");
     exit();
 }
 
@@ -21,6 +21,8 @@ $success_message = '';
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
+    requireValidCsrfToken();
+
     $organization_id = intval($_POST['organization_id'] ?? 0);
     $engagement_notes = trim($_POST['engagement_notes'] ?? '');
     $event_start_date = $_POST['event_start_date'] ?? null;
@@ -32,6 +34,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $brochures = isset($_POST['brochures']) ? 1 : 0;
     $caller_name = trim($_POST['caller_name'] ?? '');
     $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
+    $travel_covered = $_POST['travel_covered'] ?? 'unknown';
+    $travel_amount = ($_POST['travel_amount'] ?? '') !== '' ? (float) $_POST['travel_amount'] : null;
+    $compensation_type = $_POST['compensation_type'] ?? 'Unknown';
+    $other_compensation = trim($_POST['other_compensation'] ?? '');
+    $housing_type = $_POST['housing_type'] ?? 'Unknown';
+    $other_housing = trim($_POST['other_housing'] ?? '');
+    $housing_amount = ($_POST['housing_amount'] ?? '') !== '' ? (float) $_POST['housing_amount'] : null;
+
+    $valid_statuses = ['work_in_progress', 'under_review', 'confirmed'];
+    $valid_travel_values = ['unknown', 'yes', 'no'];
+    $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
+    $valid_housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
+
+    if (!in_array($confirmation_status, $valid_statuses, true)) {
+        $confirmation_status = 'work_in_progress';
+    }
+    if (!in_array($travel_covered, $valid_travel_values, true)) {
+        $travel_covered = 'unknown';
+    }
+    if (!in_array($compensation_type, $valid_compensation_types, true)) {
+        $compensation_type = 'Unknown';
+    }
+    if (!in_array($housing_type, $valid_housing_types, true)) {
+        $housing_type = 'Unknown';
+    }
 
     // Handle presentations data
     $presentations = [];
@@ -44,7 +71,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 if ($presentation_date !== null) {
                     // Validate presentation date is within engagement date range
                     if ($presentation_date < $event_start_date || $presentation_date > $event_end_date) {
-                        throw new Exception("Presentation date for '" . htmlspecialchars($topic_title) . "' must be between the engagement start and end dates.");
+                        $error_message = "Presentation date for '{$topic_title}' must be between the engagement start and end dates.";
+                        break;
                     }
                 }
 
@@ -60,15 +88,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     }
 
     // Validate required fields
-    if (
+    if (!empty($error_message)) {
+        // A presentation validation error was already recorded above.
+    } elseif (
         !$organization_id ||
         !$event_start_date ||
         !$event_end_date ||
+        $event_end_date < $event_start_date ||
         ($event_type_raw === 'other' && $event_type_other === '') ||
-        ($_POST['compensation_type'] === 'Other' && empty($_POST['other_compensation'])) ||
-        ($_POST['housing_type'] === 'Other' && empty($_POST['other_housing']))
+        ($compensation_type === 'Other' && $other_compensation === '') ||
+        ($housing_type === 'Other' && $other_housing === '') ||
+        ($travel_amount !== null && $travel_amount < 0) ||
+        ($housing_amount !== null && $housing_amount < 0)
     ) {
-        $error_message = htmlspecialchars("Please fill in all required fields.");
+        $error_message = "Please provide valid required fields, dates, and non-negative amounts.";
     } else {
         // Start transaction
         $conn->begin_transaction();
@@ -77,12 +110,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
                 organization_id, engagement_notes, event_start_date, event_end_date,
-                event_type, book_table, brochures, caller_name, confirmation_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                event_type, book_table, brochures, caller_name, confirmation_status,
+                travel_covered, travel_amount, compensation_type, other_compensation,
+                housing_type, other_housing, housing_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "isssssiss",
+                    "issssiisssdssssd",
                     $organization_id,
                     $engagement_notes,
                     $event_start_date,
@@ -91,7 +126,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     $book_table,
                     $brochures,
                     $caller_name,
-                    $confirmation_status
+                    $confirmation_status,
+                    $travel_covered,
+                    $travel_amount,
+                    $compensation_type,
+                    $other_compensation,
+                    $housing_type,
+                    $other_housing,
+                    $housing_amount
                 );
 
                 if ($stmt->execute()) {
@@ -116,7 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                             );
                             
                             if (!$presentation_stmt->execute()) {
-                                throw new Exception("Error saving presentation: " . $presentation_stmt->error);
+                                throw new Exception("Unable to save presentation: " . $presentation_stmt->error);
                             }
                         }
                     }
@@ -124,16 +166,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     $conn->commit();
                     $success_message = "Engagement saved successfully!";
                 } else {
-                    throw new Exception("Error saving engagement: " . $stmt->error);
+                    throw new Exception("Unable to save engagement: " . $stmt->error);
                 }
 
                 $stmt->close();
             } else {
-                throw new Exception("Database error: " . $conn->error);
+                throw new Exception("Unable to prepare engagement insert: " . $conn->error);
             }
         } catch (Exception $e) {
             $conn->rollback();
-            $error_message = $e->getMessage();
+            error_log($e->getMessage());
+            $error_message = "Unable to save the engagement. Please try again.";
         }
     }
 }
@@ -161,13 +204,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <?php endif; ?>
 
     <form method="post" action="index.php" onsubmit="return validateDates();">
+        <?php echo csrfInput(); ?>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
         <option value="" disabled <?php echo empty($_POST['organization_id']) || !empty($success_message) ? 'selected' : ''; ?>>select an organization</option>
         <?php
         // Fetch and display organizations in the dropdown
-        $orgs = $conn->query("SELECT id, organization_name FROM organizations");
+        $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
         while ($row = $orgs->fetch_assoc()) {
             $selected = !empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
             echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
@@ -524,7 +568,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
     }
 
-    let presentationCount = 1;
+    let presentationCount = document.querySelectorAll('.presentation-entry').length;
 
     function removePresentation(id) {
         if (id === 1) return; // Prevent removing the first presentation
@@ -635,6 +679,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             if (validateTimeFormat(timeInput.value)) {
                 const selectedAmpm = Array.from(ampmInputs).find(input => input.checked).value;
                 hiddenInput.value = formatTime(timeInput.value, selectedAmpm);
+            } else {
+                hiddenInput.value = '';
             }
         }
 
@@ -653,9 +699,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         // Add form submit handler to ensure all time inputs are formatted
         document.querySelector('form').addEventListener('submit', function(e) {
-            for (let i = 1; i <= presentationCount; i++) {
-                updateTimeInput(i);
-            }
+            document.querySelectorAll('.presentation-entry').forEach(presentation => {
+                const presentationId = parseInt(presentation.id.split('-')[1], 10);
+                updateTimeInput(presentationId);
+            });
         });
     });
 
@@ -1259,5 +1306,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
 </body>
 </html>
-
-

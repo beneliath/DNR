@@ -24,6 +24,16 @@ To set up the project on your local machine, follow these steps:
    - browse to localhost:8080 (default port)
    - user=admin / pass=p@55word
 
+   The bundled accounts are development defaults. Change their passwords before exposing the application beyond localhost.
+
+4. **Upgrade an existing database volume**
+
+   Fresh databases are initialized by `init.sql`. For a database created before the user timestamp columns were added, run:
+
+   ```
+   docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_user_timestamps.sql
+   ```
+
 ### Configuration
 
 Database Initialization:

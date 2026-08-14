@@ -1,5 +1,9 @@
 <footer>
-    <p style="opacity: 0.2; display: inline;">&copy; <?php echo date("Y"); ?> beneliath&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</p><a href="logout.php" style="text-decoration: none; color: var(--link-color);">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</a>
+    <p style="opacity: 0.2; display: inline;">&copy; <?php echo date("Y"); ?> beneliath&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;</p>
+    <form method="post" action="logout.php" style="display: inline;">
+        <?php echo csrfInput(); ?>
+        <button type="submit" style="border: 0; padding: 0; background: none; color: var(--link-color); font: inherit; cursor: pointer;">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</button>
+    </form>
     
     <!-- ASCII Art Container -->
     <div class="ascii-art-container" style="opacity: 0.2; font-size: 1.0em;">

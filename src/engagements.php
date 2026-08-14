@@ -1,17 +1,25 @@
 <?php
-session_start(); // Start session to access session variables
 include 'config.php';
 include 'functions.php';
+startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Handle delete action if user is admin
-if ($user_role === 'admin' && isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $engagement_id = intval($_GET['delete']);
-    $conn->query("UPDATE engagements SET is_deleted = 1 WHERE id = $engagement_id");
-    // Redirect to remove delete parameter from URL
+// Handle soft deletion through an authenticated POST request.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_engagement'])) {
+    if ($user_role !== 'admin') {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    requireValidCsrfToken();
+    $engagement_id = filter_input(INPUT_POST, 'engagement_id', FILTER_VALIDATE_INT);
+    if ($engagement_id) {
+        $delete_stmt = $conn->prepare("UPDATE engagements SET is_deleted = 1 WHERE id = ?");
+        $delete_stmt->bind_param("i", $engagement_id);
+        $delete_stmt->execute();
+    }
     header("Location: engagements.php");
     exit();
 }
@@ -147,9 +155,7 @@ if (!$result) {
             <th>Event Dates</th>
             <th>Type</th>
             <th>Status</th>
-            <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
             <th>Actions</th>
-            <?php endif; ?>
         </tr>
         <?php while ($row = $result->fetch_assoc()): ?>
         <tr>
@@ -162,17 +168,19 @@ if (!$result) {
                 $display_status = str_replace('_', ' ', $status);
                 echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
             ?></td>
-            <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
             <td class="action-buttons">
                 <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button view-button">View</a>
                 <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
                 <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button edit-button">Edit</a>
                 <?php endif; ?>
                 <?php if ($user_role === 'admin'): ?>
-                <a href="?delete=<?php echo $row['id']; ?>" class="action-button delete-button" onclick="return confirm('Are you sure you want to delete this engagement?');">Delete</a>
+                <form method="post" action="engagements.php" onsubmit="return confirm('Are you sure you want to delete this engagement?');">
+                    <?php echo csrfInput(); ?>
+                    <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
+                    <button type="submit" name="delete_engagement" class="action-button delete-button">Delete</button>
+                </form>
                 <?php endif; ?>
             </td>
-            <?php endif; ?>
         </tr>
         <?php endwhile; ?>
     </table>
@@ -180,4 +188,3 @@ if (!$result) {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
-
