@@ -25,6 +25,6 @@
  
         </ul>
     </nav><br>
-    <button onclick="toggleTheme()">Toggle Theme</button>
+    <button class="theme-toggle-button" onclick="toggleTheme()">Toggle Theme</button>
     <script src="assets/js/theme.js"></script>
 </header>

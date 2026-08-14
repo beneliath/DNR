@@ -62,7 +62,7 @@ if (!$result) {
 <html>
 <head>
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .organization-table {
             width: 100%;
@@ -97,13 +97,19 @@ if (!$result) {
             gap: 5px;
         }
         .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
             padding: 5px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             text-decoration: none;
             color: white;
+            font-family: inherit;
             font-size: 0.9em;
+            line-height: 1.6;
             white-space: nowrap;
         }
         .view-button {
@@ -116,7 +122,7 @@ if (!$result) {
             background-color: #f44336;
         }
         .action-button:hover {
-            opacity: 0.9;
+            background-color: var(--button-hover-color);
         }
         .sort-buttons {
             margin-bottom: 20px;
@@ -131,7 +137,7 @@ if (!$result) {
             cursor: pointer;
         }
         .sort-buttons button:hover {
-            background-color: #FF9800;
+            background-color: var(--button-hover-color);
         }
     </style>
 </head>

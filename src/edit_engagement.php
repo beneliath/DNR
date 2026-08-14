@@ -310,7 +310,7 @@ while ($row = $presentations_result->fetch_assoc()) {
 <html>
 <head>
     <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -607,13 +607,13 @@ while ($row = $presentations_result->fetch_assoc()) {
         margin-left: 10px;
     }
     .cancel-button:hover {
-        background-color: #555;
+        background-color: var(--button-hover-color);
     }
     .save-button {
         background-color: #357abd;
     }
     .save-button:hover {
-        background-color: #2d6a9d;
+        background-color: var(--button-hover-color);
     }
     /* Include all the existing styles from index.php for consistency */
     .event-row {

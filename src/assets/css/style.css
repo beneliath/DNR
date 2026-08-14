@@ -9,6 +9,7 @@
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
   --link-color: var(--light-link-color);
+  --button-hover-color: #FF9800;
   
   /* Error colors */
   --error-color: #f44336;
@@ -146,7 +147,7 @@ input[type="submit"] {
 
 .add-org-button:hover,
 input[type="submit"]:hover {
-  background-color: #00608c;
+  background-color: var(--button-hover-color);
 }
 
 input[type="submit"] {
@@ -154,7 +155,7 @@ input[type="submit"] {
 }
 
 input[type="submit"]:hover {
-  background-color: #45a049;
+  background-color: var(--button-hover-color);
 }
 
 /* Save button styling */
@@ -171,7 +172,7 @@ input[type="submit"]:hover {
 }
 
 .save-button:hover {
-    background-color: #45a049;
+    background-color: var(--button-hover-color);
 }
 
 .form-group {
@@ -403,7 +404,7 @@ label[for="caller_name"],
 }
 
 .login-container .login-button:hover {
-  background-color: #357abd;
+  background-color: var(--button-hover-color);
 }
 
 .login-container .error {
@@ -508,7 +509,26 @@ html.dark-mode .fullscreen-center {
 .dark-mode .add-org-button:hover,
 .dark-mode .save-event-button:hover,
 .dark-mode input[type="submit"]:hover {
-  background-color: #FF9800 !important;
+  background-color: var(--button-hover-color) !important;
+}
+
+/* Consistent button hover feedback in both light and dark themes */
+button:not(:disabled):not(.theme-toggle-button):not(.logout-link-button):not(.link-button):hover,
+input[type="button"]:not(:disabled):hover,
+input[type="submit"]:not(:disabled):hover,
+input[type="reset"]:not(:disabled):hover,
+[role="button"]:hover,
+.add-org-button:hover,
+.save-event-button:hover,
+.save-button:hover,
+.action-button:hover,
+.sort-button:hover,
+.cancel-button:hover,
+.add-contact-btn:hover,
+.remove-contact-btn:hover,
+.add-presentation-btn:hover,
+.remove-presentation-btn:hover {
+  background-color: var(--button-hover-color) !important;
 }
 
 /* Ensure login container maintains its style in both modes */

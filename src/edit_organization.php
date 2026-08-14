@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -201,7 +201,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background-color: #4CAF50;
         }
         .action-button:hover {
-            opacity: 0.9;
+            background-color: var(--button-hover-color);
         }
     </style>
 </head>

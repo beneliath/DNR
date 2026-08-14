@@ -188,7 +188,7 @@ if (isset($_SESSION['success_message'])) {
 <html>
 <head>
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -415,7 +415,7 @@ if (isset($_SESSION['success_message'])) {
             font-size: inherit;
         }
         .add-contact-btn:hover {
-            background-color: #FF9800;
+            background-color: var(--button-hover-color);
         }
         .remove-contact-btn {
             background-color: #f44336;
@@ -427,7 +427,7 @@ if (isset($_SESSION['success_message'])) {
             margin-top: 10px;
         }
         .remove-contact-btn:hover {
-            background-color: #da190b;
+            background-color: var(--button-hover-color);
         }
         .contact-entry {
             margin-bottom: 15px;

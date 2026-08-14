@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 <html>
 <head>
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .success {
             background-color: #d4edda !important;
@@ -140,7 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             font-size: 14px;
         }
         .add-org-button:hover {
-            background-color: #2a5f8f;
+            background-color: var(--button-hover-color);
         }
         .role-container {
             display: flex;

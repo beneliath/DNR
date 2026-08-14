@@ -91,7 +91,7 @@ $presentation_stmt->close();
 <html>
 <head>
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .view-container {
             max-width: 800px;
@@ -133,13 +133,13 @@ $presentation_stmt->close();
             background-color: #666;
         }
         .back-button:hover {
-            background-color: #555;
+            background-color: var(--button-hover-color);
         }
         .edit-button {
             background-color: #357abd;
         }
         .edit-button:hover {
-            background-color: #2d6a9d;
+            background-color: var(--button-hover-color);
         }
         /* Contact styles */
         .contacts-list {

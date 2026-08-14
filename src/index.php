@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <html>
 <head>
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
@@ -913,7 +913,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             width: fit-content;
         }
         .add-presentation-btn:hover {
-            background-color: #FF9800;
+            background-color: var(--button-hover-color);
         }
         .add-presentation-btn:focus {
             outline: none;
@@ -928,7 +928,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             align-self: end;
         }
         .remove-presentation-btn:hover {
-            background-color: #da190b;
+            background-color: var(--button-hover-color);
         }
         .radio-options {
             display: flex;

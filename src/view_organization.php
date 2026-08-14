@@ -53,7 +53,7 @@ $contact_stmt->close();
 <html>
 <head>
     <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .organization-details {
             background-color: #fff;
@@ -127,7 +127,7 @@ $contact_stmt->close();
             background-color: #2196F3;
         }
         .action-button:hover {
-            opacity: 0.9;
+            background-color: var(--button-hover-color);
         }
     </style>
 </head>

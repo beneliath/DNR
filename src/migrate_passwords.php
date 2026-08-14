@@ -14,7 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ?>
     <!DOCTYPE html>
     <html lang="en">
-    <head><meta charset="UTF-8"><title>Migrate Passwords - DNR</title></head>
+    <head>
+        <meta charset="UTF-8">
+        <title>Migrate Passwords - DNR</title>
+        <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    </head>
     <body>
         <h1>Migrate Legacy Passwords</h1>
         <p>This hashes any remaining plaintext passwords. Existing password hashes are left unchanged.</p>

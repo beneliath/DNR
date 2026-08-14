@@ -71,7 +71,7 @@ if (!$result) {
 <html>
 <head>
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
         .sort-buttons {
             margin: 15px 0;
@@ -89,38 +89,39 @@ if (!$result) {
             display: inline-block;
         }
         .sort-button:hover {
-            background-color: #FF9800;
+            background-color: var(--button-hover-color);
         }
         .action-buttons {
             display: flex;
             gap: 5px;
         }
         .action-button {
-            padding: 4px 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 5px 10px;
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-family: inherit;
+            font-size: 0.9em;
+            line-height: 1.6;
             text-decoration: none;
             color: white;
+            white-space: nowrap;
         }
         .edit-button {
             background-color: #357abd;
         }
-        .edit-button:hover {
-            background-color: #2d6a9d;
-        }
         .delete-button {
             background-color: #d32f2f;
-        }
-        .delete-button:hover {
-            background-color: #b71c1c;
         }
         .view-button {
             background-color: #4CAF50;
         }
-        .view-button:hover {
-            background-color: #388E3C;
+        .action-button:hover {
+            background-color: var(--button-hover-color);
         }
         /* Status colors */
         .status-work-in-progress {
