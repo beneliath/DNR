@@ -3,34 +3,49 @@ CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
+    must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('admin', 'editor', 'reviewer') NOT NULL,
+    auth_version INT UNSIGNED NOT NULL DEFAULT 1,
+    two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0,
+    totp_secret_encrypted TEXT NULL,
+    totp_confirmed_at DATETIME NULL,
+    totp_last_used_step BIGINT UNSIGNED NULL,
+    login_failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    login_locked_until DATETIME NULL,
+    two_factor_failed_attempts TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    two_factor_locked_until DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    last_login_at DATETIME NULL
 );
 
--- for production (default admin account)
--- Insert default admin account with hashed password (p@55word)
-INSERT INTO users (username, password, role) 
-VALUES ('admin', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'admin')
-ON DUPLICATE KEY UPDATE username=username;
+CREATE TABLE IF NOT EXISTS user_recovery_codes (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    code_hash VARCHAR(255) NOT NULL,
+    used_at DATETIME NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_recovery_code_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    INDEX idx_recovery_codes_user_unused (user_id, used_at)
+);
 
--- ! REMOVE BLOCK BELOW THIS LINE ON FINAL BUILD ! =======
+CREATE TABLE IF NOT EXISTS security_audit_log (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    actor_user_id INT NULL,
+    target_user_id INT NULL,
+    event_type VARCHAR(50) NOT NULL,
+    ip_address VARCHAR(45) NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_security_audit_actor
+        FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_security_audit_target
+        FOREIGN KEY (target_user_id) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_security_audit_target_created (target_user_id, created_at)
+);
 
--- for development (editor and reviewer accounts)
--- we will want to see what things look like from the perspective
--- of and editor and a reviewer ...
-
--- Insert default editor account with hashed password (p@55word)
-INSERT INTO users (username, password, role) 
-VALUES ('editor', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'editor')
-ON DUPLICATE KEY UPDATE username=username;
-
--- Insert default reviewer account with hashed password (p@55word)
-INSERT INTO users (username, password, role) 
-VALUES ('reviewer', '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.', 'reviewer')
-ON DUPLICATE KEY UPDATE username=username;
-
--- ! REMOVE BLOCK ABOVE THIS LINE ON FINAL BUILD ! =======
+-- Create the first administrator after startup with:
+-- docker compose exec web php /opt/dnr/bin/create_admin.php admin
 
 -- Organizations table
 CREATE TABLE IF NOT EXISTS organizations (

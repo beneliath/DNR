@@ -2,7 +2,7 @@
 
 - [x] rename project to "deploy and report"
 - [x] include check for Event End Date >= Event Start Date
-- [x] add default username/password (admin/p@55word)
+- [x] replace known default credentials with secure CLI administrator bootstrap
 - [x] complete minimal buildout of 'Add Engagement' functionality
 - [x] fix Mailing & Physical Address issue with 'Add Organization'
 - [x] fix dark-mode theme problem where lower-scrolled section left/right columns render background as white (double check clearing browser cache re same)
@@ -33,7 +33,7 @@
 - [ ] TEST 'Add Presentation'; on pass, tag restore point
 - [ ] header navigation bar redesign (only after base functionality complete)
 - [ ] doublecheck password entry for new user creation
-- [ ] mod edit user to allow for change of password (with doublecheck)
+- [x] allow users to change their own password with confirmation and session revocation
 - [ ] build out profiles for users (including email sub-system for initialization and password reset)
 - [ ] add functionality to activate/deactivate users
 - [ ] build out for Contact(s): Admin, Pastor
@@ -41,9 +41,9 @@
 - [ ] build out complete financial sub-system
 - [ ] 'Caller' in Engagement/Event to be listed system user
 - [x] convert from plaintext to hashed passwords
-- [ ] extend security considerations for authentication (MFA, magic links, etc.)
+- [x] add TOTP MFA, recovery codes, throttling, encrypted secrets, and administrator enforcement
 - [ ] build out multiple Presentation functionality
-- [ ] consider using session_regenerate_id()` after login to prevent session fixation attacks (as has already been implemented in index.php)
+- [x] regenerate session identifiers across password and second-factor authentication transitions
 - [ ] evaluate for SQL injection vulnerabilities
 - [ ] minify JS and CSS
 - [ ] when above is complete: build out REPORT functionality

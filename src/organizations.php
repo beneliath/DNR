@@ -93,8 +93,9 @@ if (!$result) {
             background-color: #333;
         }
         .action-buttons {
-            display: flex;
+            display: inline-flex;
             gap: 5px;
+            background-color: transparent !important;
         }
         .action-button {
             display: inline-flex;

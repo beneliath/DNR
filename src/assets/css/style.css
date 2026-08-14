@@ -416,6 +416,159 @@ label[for="caller_name"],
   text-align: center;
 }
 
+.login-container .login-help {
+  color: #fff;
+  text-align: center;
+}
+
+.login-secondary-link {
+  margin: 15px 0 0;
+  text-align: center;
+}
+
+.login-secondary-link a {
+  color: #fff;
+}
+
+.recovery-container h1 {
+  margin-bottom: 25px;
+}
+
+.recovery-help {
+  margin-top: 20px;
+  font-size: 0.9em;
+}
+
+.login-cancel-form {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.login-container .login-cancel-button {
+  width: 100%;
+  padding: 15px;
+  border: none;
+  border-radius: 25px;
+  background-color: #f44336;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+/* Account security and two-factor authentication */
+.two-factor-status-enabled {
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+.two-factor-status-disabled {
+  color: var(--error-color);
+  font-weight: 600;
+}
+
+.security-container {
+  max-width: 720px;
+}
+
+.security-card {
+  margin: 20px 0;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.dark-mode .security-card {
+  border-color: #444;
+}
+
+.security-form {
+  max-width: 520px;
+}
+
+.security-button,
+.danger-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 4px;
+  color: #fff;
+  font: inherit;
+  line-height: 1.4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.security-button {
+  background-color: #2196F3;
+}
+
+.danger-button {
+  background-color: #f44336;
+}
+
+.security-button:not(.setup-2fa-enable-button):hover,
+.danger-button:not(.setup-2fa-cancel-button):hover {
+  background-color: var(--button-hover-color) !important;
+}
+
+.security-steps {
+  padding-left: 24px;
+}
+
+.qr-code-card {
+  display: inline-block;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: #fff !important;
+}
+
+.qr-code-card img {
+  display: block;
+}
+
+.manual-secret {
+  display: inline-block;
+  max-width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.confirmation-form,
+.security-cancel-form {
+  margin-top: 20px;
+}
+
+.recovery-code-card {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 460px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.recovery-code-card code {
+  font-size: 1.05em;
+  user-select: all;
+}
+
+.danger-card {
+  border-color: var(--error-border-light);
+}
+
+.dark-mode .danger-card {
+  border-color: var(--error-border-dark);
+}
+
 /* Headings */
 h2 {
   margin-bottom: 20px;
@@ -513,7 +666,7 @@ html.dark-mode .fullscreen-center {
 }
 
 /* Consistent button hover feedback in both light and dark themes */
-button:not(:disabled):not(.theme-toggle-button):not(.logout-link-button):not(.link-button):hover,
+button:not(:disabled):not(.theme-toggle-button):not(.logout-link-button):not(.link-button):not(.setup-2fa-enable-button):not(.setup-2fa-cancel-button):hover,
 input[type="button"]:not(:disabled):hover,
 input[type="submit"]:not(:disabled):hover,
 input[type="reset"]:not(:disabled):hover,
@@ -529,6 +682,15 @@ input[type="reset"]:not(:disabled):hover,
 .add-presentation-btn:hover,
 .remove-presentation-btn:hover {
   background-color: var(--button-hover-color) !important;
+}
+
+/* Account Security actions retain their meaning-specific colors on hover. */
+.two-factor-settings-page .security-button:hover {
+  background-color: #2196F3 !important;
+}
+
+.two-factor-settings-page .danger-button:hover {
+  background-color: #f44336 !important;
 }
 
 /* Ensure login container maintains its style in both modes */

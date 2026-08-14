@@ -2,13 +2,7 @@
 include 'config.php';
 include 'functions.php';
 startSecureSession();
-
-// Ensure the user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    // Redirect to login page if not logged in as admin
-    header("Location: login.php");
-    exit();
-}
+requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -18,6 +12,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 requireValidCsrfToken();
 $user_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+$delete_confirmation = $_POST['delete_confirmation'] ?? '';
+
+// Require the destructive-action phrase even if client-side validation is bypassed.
+if (!is_string($delete_confirmation) || !hash_equals('DELETE USER', $delete_confirmation)) {
+    http_response_code(400);
+    exit('User not deleted: confirmation phrase must be DELETE USER.');
+}
 
 // Prevent an administrator from deleting the account backing the active session.
 if (!$user_id || $user_id === (int) $_SESSION['user_id']) {

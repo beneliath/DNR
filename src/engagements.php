@@ -73,6 +73,34 @@ if (!$result) {
     <title>Engagements - DNR</title>
     <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
     <style>
+        .engagement-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .engagement-table th,
+        .engagement-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .dark-mode .engagement-table th,
+        .dark-mode .engagement-table td {
+            border-bottom-color: #444;
+        }
+        .engagement-table th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+        .dark-mode .engagement-table th {
+            background-color: #2d2d2d;
+        }
+        .engagement-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .dark-mode .engagement-table tr:hover {
+            background-color: #333;
+        }
         .sort-buttons {
             margin: 15px 0;
             display: flex;
@@ -92,8 +120,9 @@ if (!$result) {
             background-color: var(--button-hover-color);
         }
         .action-buttons {
-            display: flex;
+            display: inline-flex;
             gap: 5px;
+            background-color: transparent !important;
         }
         .action-button {
             display: inline-flex;
@@ -112,10 +141,10 @@ if (!$result) {
             white-space: nowrap;
         }
         .edit-button {
-            background-color: #357abd;
+            background-color: #2196F3;
         }
         .delete-button {
-            background-color: #d32f2f;
+            background-color: #f44336;
         }
         .view-button {
             background-color: #4CAF50;
@@ -150,40 +179,46 @@ if (!$result) {
             Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
     </div>
-    <table border="1" cellpadding="5">
-        <tr>
-            <th>Organization</th>
-            <th>Event Dates</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Actions</th>
-        </tr>
-        <?php while ($row = $result->fetch_assoc()): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
-            <td><?php echo htmlspecialchars($row['event_start_date'] . ' to ' . $row['event_end_date']); ?></td>
-            <td><?php echo htmlspecialchars($row['event_type']); ?></td>
-            <td><?php 
-                $status = $row['confirmation_status'];
-                $status_class = 'status-' . str_replace('_', '-', $status);
-                $display_status = str_replace('_', ' ', $status);
-                echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
-            ?></td>
-            <td class="action-buttons">
-                <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button view-button">View</a>
-                <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
-                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button edit-button">Edit</a>
-                <?php endif; ?>
-                <?php if ($user_role === 'admin'): ?>
-                <form method="post" action="engagements.php" onsubmit="return confirm('Are you sure you want to delete this engagement?');">
-                    <?php echo csrfInput(); ?>
-                    <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
-                    <button type="submit" name="delete_engagement" class="action-button delete-button">Delete</button>
-                </form>
-                <?php endif; ?>
-            </td>
-        </tr>
-        <?php endwhile; ?>
+    <table class="engagement-table">
+        <thead>
+            <tr>
+                <th>Organization</th>
+                <th>Event Dates</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            <?php while ($row = $result->fetch_assoc()): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
+                    <td><?php echo htmlspecialchars($row['event_start_date'] . ' to ' . $row['event_end_date']); ?></td>
+                    <td><?php echo htmlspecialchars($row['event_type']); ?></td>
+                    <td><?php
+                        $status = $row['confirmation_status'];
+                        $status_class = 'status-' . str_replace('_', '-', $status);
+                        $display_status = str_replace('_', ' ', $status);
+                        echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
+                    ?></td>
+                    <td>
+                        <div class="action-buttons">
+                            <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button view-button">View</a>
+                            <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+                                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button edit-button">Edit</a>
+                            <?php endif; ?>
+                            <?php if ($user_role === 'admin'): ?>
+                                <form method="post" action="engagements.php" onsubmit="return confirm('Are you sure you want to delete this engagement?');">
+                                    <?php echo csrfInput(); ?>
+                                    <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
+                                    <button type="submit" name="delete_engagement" class="action-button delete-button">Delete</button>
+                                </form>
+                            <?php endif; ?>
+                        </div>
+                    </td>
+                </tr>
+            <?php endwhile; ?>
+        </tbody>
     </table>
 </div>
 <?php include 'templates/footer.php'; ?>

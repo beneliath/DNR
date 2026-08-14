@@ -2,7 +2,14 @@
 // Include required files
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
+requireTwoFactorSchema($conn);
+
+if (isLoggedIn()) {
+    header('Location: engagements.php');
+    exit();
+}
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
@@ -10,26 +17,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $stmt = $conn->prepare("SELECT id, username, password, role FROM users WHERE username = ?");
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $user = fetchAuthenticationUserByUsername($conn, $username);
+    $dummy_password_hash = '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.';
+    $password_valid = password_verify($password, $user['password'] ?? $dummy_password_hash);
 
-    if ($result->num_rows == 1) {
-        $user = $result->fetch_assoc();
+    if ($user && empty($user['login_is_locked']) && $password_valid) {
+        resetAuthenticationFailures($conn, (int) $user['id'], 'password');
+        beginPendingAuthentication($user);
 
-        if (password_verify($password, $user['password'])) {
-            session_regenerate_id(true);
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
-            $_SESSION['role'] = $user['role'];
-            $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
-            header("Location: index.php");
+        if (!empty($user['two_factor_enabled'])) {
+            header('Location: verify_2fa.php');
             exit();
         }
+
+        if (twoFactorRequiredForRole($user['role'])) {
+            header('Location: setup_2fa.php');
+            exit();
+        }
+
+        completeAuthentication($conn, $user, false);
+        header('Location: ' . authenticationDestination($user));
+        exit();
     }
 
-    $error = "Invalid username or password";
+    if ($user && empty($user['login_is_locked'])) {
+        recordAuthenticationFailure($conn, (int) $user['id'], 'password');
+    }
+
+    $error = 'Invalid username or password, or the account is temporarily unavailable.';
 }
 ?>
 <!DOCTYPE html>
@@ -37,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <meta charset="UTF-8">
   <title>DNR - Login</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+  <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.8">
   <script>
     // Load theme before page renders
     const savedTheme = localStorage.getItem('theme');
@@ -64,6 +79,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       <button type="submit" class="login-button">Login</button>
     </form>
+    <p class="login-secondary-link"><a href="recover_password.php">Forgot your password?</a></p>
   </div>
   <script src="assets/js/theme.js"></script>
 </body>

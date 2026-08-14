@@ -3,13 +3,7 @@
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 startSecureSession();
-
-// Ensure the user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    // Redirect to login page if not logged in as admin
-    header("Location: login.php");
-    exit();
-}
+requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
@@ -22,8 +16,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     if ($username === '' || strlen($username) > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
-    } elseif (strlen($password) < 10) {
-        $error = "Password must be at least 10 characters.";
+    } elseif (strlen($password) < 12) {
+        $error = "Password must be at least 12 characters.";
     } elseif (!hash_equals($password, $password_confirm)) {
         $error = "Passwords do not match.";
     } elseif (!in_array($role, $valid_roles, true)) {
@@ -37,8 +31,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($existing_user->num_rows > 0) {
             $error = "Username already exists.";
         } else {
-            $hashedPassword = password_hash($password, PASSWORD_BCRYPT, ['cost' => 12]);
-            $stmt = $conn->prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)");
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare(
+                "INSERT INTO users (username, password, must_change_password, role) VALUES (?, ?, 1, ?)"
+            );
             $stmt->bind_param("sss", $username, $hashedPassword, $role);
 
             if ($stmt->execute()) {
@@ -67,8 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <form method="post" action="register.php">
         <?php echo csrfInput(); ?>
         <label for="username">Username <input type="text" name="username" id="username" required></label><br>
-        <label for="password">Password <input type="password" name="password" id="password" minlength="10" required></label><br>
-        <label for="password_confirm">Confirm Password <input type="password" name="password_confirm" id="password_confirm" minlength="10" required></label><br>
+        <label for="password">Password <input type="password" name="password" id="password" minlength="12" required></label><br>
+        <label for="password_confirm">Confirm Password <input type="password" name="password_confirm" id="password_confirm" minlength="12" required></label><br>
         <label for="role">Role
             <select name="role" id="role" required>
                 <option value="admin">Admin</option>

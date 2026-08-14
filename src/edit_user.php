@@ -2,13 +2,7 @@
 include 'config.php';
 include 'functions.php';
 startSecureSession();
-
-// Ensure the user is logged in and is an admin
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
-    // Redirect to login page if not logged in as admin
-    header("Location: login.php");
-    exit();
-}
+requireAdmin();
 
 // Fetch the user ID from the URL parameter
 if (isset($_GET['id']) && is_numeric($_GET['id'])) {

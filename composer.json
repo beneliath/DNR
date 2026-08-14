@@ -1,0 +1,15 @@
+{
+    "name": "beneliath/dnr",
+    "description": "DNR - deploy and report",
+    "type": "project",
+    "require": {
+        "php": "^8.4",
+        "endroid/qr-code": "^6.0",
+        "spomky-labs/otphp": "^11.4"
+    },
+    "config": {
+        "allow-plugins": false,
+        "optimize-autoloader": true,
+        "sort-packages": true
+    }
+}

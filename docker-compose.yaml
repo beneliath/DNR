@@ -9,8 +9,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    secrets:
+      - dnr_2fa_encryption_key
     environment:
       - DEFAULT_SPEAKER=Default Speaker # or whatever default speaker name you want
+      - DNR_2FA_ENCRYPTION_KEY_FILE=/run/secrets/dnr_2fa_encryption_key
 
   db:
     image: mysql:8.0
@@ -32,3 +35,7 @@ services:
 
 volumes:
   db_data:
+
+secrets:
+  dnr_2fa_encryption_key:
+    file: ${DNR_2FA_KEY_FILE:-./secrets/dnr_2fa_encryption_key}
