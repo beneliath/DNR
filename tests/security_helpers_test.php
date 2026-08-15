@@ -51,6 +51,14 @@ expectTrue(
         === 'engagements.php',
     'An administrator without a temporary password should land on Engagements.'
 );
+expectTrue(
+    twoFactorRecoveryCodesDestination(true) === 'engagements.php',
+    'Initial two-factor enrollment should continue to Engagements.'
+);
+expectTrue(
+    twoFactorRecoveryCodesDestination(false) === 'two_factor_settings.php',
+    'Later two-factor enrollment should return to Account Security.'
+);
 
 $_SESSION = [
     '_pending_auth' => [

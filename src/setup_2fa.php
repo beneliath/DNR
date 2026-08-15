@@ -157,6 +157,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
 
                     $_SESSION['_new_recovery_codes'] = $codes;
+                    $_SESSION['_new_recovery_codes_initial_login'] = $is_pending_login;
                     header('Location: two_factor_recovery_codes.php');
                     exit();
                 } catch (Throwable $exception) {

@@ -218,6 +218,10 @@ function authenticationDestination(array $user) {
     return 'engagements.php';
 }
 
+function twoFactorRecoveryCodesDestination($initial_login = false) {
+    return $initial_login ? 'engagements.php' : 'two_factor_settings.php';
+}
+
 function hasRecentTwoFactorVerification($maximum_age_seconds = 300) {
     $verified_at = $_SESSION['two_factor_verified_at'] ?? null;
     return is_int($verified_at) && (time() - $verified_at) <= $maximum_age_seconds;

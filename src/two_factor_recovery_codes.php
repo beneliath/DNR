@@ -5,7 +5,8 @@ startSecureSession();
 requireLogin();
 
 $codes = $_SESSION['_new_recovery_codes'] ?? null;
-unset($_SESSION['_new_recovery_codes']);
+$initial_login = !empty($_SESSION['_new_recovery_codes_initial_login']);
+unset($_SESSION['_new_recovery_codes'], $_SESSION['_new_recovery_codes_initial_login']);
 
 if (!is_array($codes) || !$codes) {
     header('Location: two_factor_settings.php');
@@ -14,6 +15,7 @@ if (!is_array($codes) || !$codes) {
 
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
+$destination = twoFactorRecoveryCodesDestination($initial_login);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +35,7 @@ header('Pragma: no-cache');
             <code><?php echo htmlspecialchars($code); ?></code>
         <?php endforeach; ?>
     </div>
-    <p><a href="two_factor_settings.php" class="security-button save-button">I saved these codes</a></p>
+    <p><a href="<?php echo htmlspecialchars($destination, ENT_QUOTES, 'UTF-8'); ?>" class="security-button save-button">I saved these codes</a></p>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>
