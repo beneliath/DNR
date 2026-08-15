@@ -24,6 +24,12 @@ expectTrue(hasRole(['admin', 'editor']), 'Editor should match an allowed role li
 expectTrue(!hasRole(['admin']), 'Editor should not match the admin role.');
 expectTrue(checkRole('editor'), 'Exact role checks should succeed.');
 expectTrue(!checkRole(0), 'Role checks should use strict comparison.');
+expectTrue(!canArchiveEntries('reviewer'), 'Reviewers must not archive or restore entries.');
+expectTrue(!canDeleteEntries('reviewer'), 'Reviewers must not permanently delete entries.');
+expectTrue(canArchiveEntries('editor'), 'Editors should be allowed to archive and restore entries.');
+expectTrue(!canDeleteEntries('editor'), 'Editors must not permanently delete entries.');
+expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to archive and restore entries.');
+expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
 
 $_SESSION['user_id'] = 1;
 $_SESSION['auth_complete'] = true;

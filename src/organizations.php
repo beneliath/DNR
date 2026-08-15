@@ -14,15 +14,19 @@ $show_archived = $list_status === 'archived';
 
 // Handle archive, restore, and permanent deletion through authenticated POST requests.
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if ($user_role !== 'admin') {
-        http_response_code(403);
-        exit('Forbidden.');
-    }
-
     requireValidCsrfToken();
     $org_id = filter_input(INPUT_POST, 'organization_id', FILTER_VALIDATE_INT);
     $action = $_POST['action'] ?? '';
     $action_succeeded = false;
+
+    if (in_array($action, ['archive', 'restore'], true) && !canArchiveEntries($user_role)) {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    if ($action === 'delete' && !canDeleteEntries($user_role)) {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
 
     if ($org_id && $action === 'archive') {
         $action_succeeded = archiveEntity($conn, 'organization', $org_id);
@@ -258,7 +262,7 @@ if (!$result) {
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
                                 <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
-                            <?php if ($user_role === 'admin'): ?>
+                            <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
                                     <form method="post" action="organizations.php">
                                         <?php echo csrfInput(); ?>
@@ -276,6 +280,8 @@ if (!$result) {
                                         <button type="submit" class="action-button archive-button">Archive</button>
                                     </form>
                                 <?php endif; ?>
+                            <?php endif; ?>
+                            <?php if (canDeleteEntries($user_role)): ?>
                                 <form method="post" action="organizations.php"
                                       data-delete-confirmation="Permanently delete this organization and all of its contacts and events?"
                                       <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>

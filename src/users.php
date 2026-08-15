@@ -41,10 +41,23 @@ if (!$users) {
     <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .page-heading {
-            display: flex;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             align-items: center;
-            justify-content: space-between;
-            gap: 15px;
+            column-gap: 16px;
+        }
+        .page-heading h1 {
+            justify-self: start;
+        }
+        .page-heading > .button-add:last-child {
+            justify-self: end;
+        }
+        .audit-log-link {
+            justify-self: center;
+            background-color: #001489 !important;
+        }
+        .audit-log-link:hover {
+            background-color: #001f9e !important;
         }
         .user-details {
             margin-bottom: 20px;
@@ -130,6 +143,7 @@ if (!$users) {
 <div class="container">
     <div class="page-heading">
         <h1>Users</h1>
+        <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
         <a href="register.php" class="button-add">Add User</a>
     </div>
 

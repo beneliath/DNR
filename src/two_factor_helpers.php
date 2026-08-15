@@ -390,13 +390,12 @@ function countUnusedRecoveryCodes(mysqli $conn, $user_id) {
 }
 
 function logSecurityEvent(mysqli $conn, $event_type, $target_user_id = null, $actor_user_id = null) {
-    $ip_address = $_SERVER['REMOTE_ADDR'] ?? null;
-    $stmt = $conn->prepare(
-        'INSERT INTO security_audit_log (actor_user_id, target_user_id, event_type, ip_address)
-         VALUES (?, ?, ?, ?)'
-    );
-    $stmt->bind_param('iiss', $actor_user_id, $target_user_id, $event_type, $ip_address);
-    $stmt->execute();
+    return recordAuditEvent($conn, [
+        'event_category' => 'security',
+        'event_type' => $event_type,
+        'target_user_id' => $target_user_id,
+        'actor_user_id' => $actor_user_id,
+    ]);
 }
 
 ?>

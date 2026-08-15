@@ -55,7 +55,7 @@ function requireLogin() {
     }
 
     $user_id = (int) $_SESSION['user_id'];
-    $stmt = $conn->prepare('SELECT auth_version, must_change_password FROM users WHERE id = ?');
+    $stmt = $conn->prepare('SELECT username, role, auth_version, must_change_password FROM users WHERE id = ?');
     if (!$stmt) {
         error_log('DNR authentication schema is unavailable: ' . $conn->error);
         http_response_code(503);
@@ -72,6 +72,9 @@ function requireLogin() {
         exit();
     }
 
+    $_SESSION['username'] = (string) $user['username'];
+    $_SESSION['role'] = (string) $user['role'];
+    setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $_SESSION['must_change_password'] = !empty($user['must_change_password']);
     $current_script = basename($_SERVER['SCRIPT_NAME'] ?? '');
     $password_change_pages = ['two_factor_settings.php', 'two_factor_recovery_codes.php'];
@@ -194,6 +197,7 @@ function clearPasswordRecovery() {
 
 function completeAuthentication(mysqli $conn, array $user, $two_factor_verified = false) {
     $user_id = (int) $user['id'];
+    setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $stmt = $conn->prepare(
         'UPDATE users
          SET last_login_at = UTC_TIMESTAMP(),
@@ -209,6 +213,19 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     } else {
         error_log('Unable to prepare the successful login timestamp update: ' . $conn->error);
     }
+
+    recordAuditEvent($conn, [
+        'event_category' => 'login',
+        'event_type' => 'successful_login',
+        'actor_user_id' => $user_id,
+        'actor_username' => (string) $user['username'],
+        'target_user_id' => $user_id,
+        'target_username' => (string) $user['username'],
+        'entity_type' => 'users',
+        'entity_id' => $user_id,
+        'entity_label' => (string) $user['username'],
+        'details' => $two_factor_verified ? 'Two-factor authentication verified' : 'Password authentication verified',
+    ]);
 
     session_regenerate_id(true);
     unset($_SESSION['_pending_auth'], $_SESSION['_two_factor_enrollment']);
@@ -245,9 +262,158 @@ function checkRole($role) {
     return (isset($_SESSION['role']) && $_SESSION['role'] === $role);
 }
 
+// Attach the authenticated user to database-trigger audit entries for this
+// connection. MySQL user variables are scoped to one connection and never
+// contain credentials or authentication factors.
+function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null) {
+    $actor_user_id = $user_id === null ? null : (int) $user_id;
+    $actor_username = $username === null ? null : substr((string) $username, 0, 50);
+    $ip_address = requestIpAddress();
+    $stmt = $conn->prepare(
+        'SET @dnr_actor_user_id = ?, @dnr_actor_username = ?, @dnr_request_ip = ?'
+    );
+
+    if (!$stmt) {
+        error_log('Unable to prepare the database audit context: ' . $conn->error);
+        return false;
+    }
+
+    $stmt->bind_param('iss', $actor_user_id, $actor_username, $ip_address);
+    $success = $stmt->execute();
+    if (!$success) {
+        error_log('Unable to set the database audit context: ' . $stmt->error);
+    }
+    $stmt->close();
+
+    return $success;
+}
+
+function requestIpAddress() {
+    $ip_address = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
+    return $ip_address === '' ? null : substr($ip_address, 0, 45);
+}
+
+function auditLogSchemaAvailable(mysqli $conn) {
+    $result = $conn->query(
+        "SHOW COLUMNS FROM security_audit_log LIKE 'event_category'"
+    );
+    return $result && $result->num_rows === 1;
+}
+
+function requireAuditLogSchema(mysqli $conn) {
+    if (!auditLogSchemaAvailable($conn)) {
+        error_log('DNR audit log migration has not been applied.');
+        http_response_code(503);
+        exit('DNR is being upgraded. The audit log database migration is required.');
+    }
+}
+
+function auditUsernameForId(mysqli $conn, $user_id) {
+    if ($user_id === null || (int) $user_id < 1) {
+        return null;
+    }
+
+    if ((int) ($_SESSION['user_id'] ?? 0) === (int) $user_id
+        && isset($_SESSION['username'])
+    ) {
+        return substr((string) $_SESSION['username'], 0, 50);
+    }
+
+    $user_id = (int) $user_id;
+    $stmt = $conn->prepare('SELECT username FROM users WHERE id = ?');
+    if (!$stmt) {
+        return null;
+    }
+    $stmt->bind_param('i', $user_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return null;
+    }
+    $user = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return $user ? substr((string) $user['username'], 0, 50) : null;
+}
+
+// Record semantic events (such as successful logins and security actions).
+// Row-level database changes are recorded by triggers created by the audit
+// migration. Audit failures are logged without blocking authentication on a
+// deployment where application files precede the database migration.
+function recordAuditEvent(mysqli $conn, array $event) {
+    $event_category = substr((string) ($event['event_category'] ?? 'security'), 0, 30);
+    $event_type = substr((string) ($event['event_type'] ?? ''), 0, 50);
+    if ($event_type === '') {
+        return false;
+    }
+
+    $actor_user_id = isset($event['actor_user_id']) ? (int) $event['actor_user_id'] : null;
+    $target_user_id = isset($event['target_user_id']) ? (int) $event['target_user_id'] : null;
+    $actor_username = array_key_exists('actor_username', $event)
+        ? $event['actor_username']
+        : auditUsernameForId($conn, $actor_user_id);
+    $target_username = array_key_exists('target_username', $event)
+        ? $event['target_username']
+        : auditUsernameForId($conn, $target_user_id);
+    $actor_username = $actor_username === null ? null : substr((string) $actor_username, 0, 50);
+    $target_username = $target_username === null ? null : substr((string) $target_username, 0, 50);
+    $entity_type = isset($event['entity_type'])
+        ? substr((string) $event['entity_type'], 0, 50)
+        : null;
+    $entity_id = isset($event['entity_id']) ? (int) $event['entity_id'] : null;
+    $entity_label = isset($event['entity_label'])
+        ? substr((string) $event['entity_label'], 0, 255)
+        : null;
+    $details = isset($event['details'])
+        ? substr((string) $event['details'], 0, 255)
+        : null;
+    $ip_address = requestIpAddress();
+
+    $stmt = $conn->prepare(
+        'INSERT INTO security_audit_log (
+            actor_user_id, actor_username, target_user_id, target_username,
+            event_category, event_type, entity_type, entity_id, entity_label,
+            details, ip_address
+         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    if (!$stmt) {
+        error_log('Unable to prepare an audit log event: ' . $conn->error);
+        return false;
+    }
+
+    $stmt->bind_param(
+        'isissssisss',
+        $actor_user_id,
+        $actor_username,
+        $target_user_id,
+        $target_username,
+        $event_category,
+        $event_type,
+        $entity_type,
+        $entity_id,
+        $entity_label,
+        $details,
+        $ip_address
+    );
+    $success = $stmt->execute();
+    if (!$success) {
+        error_log('Unable to record an audit log event: ' . $stmt->error);
+    }
+    $stmt->close();
+
+    return $success;
+}
+
 // Check if the logged-in user has any of the specified roles
 function hasRole($roles = []) {
     return (isset($_SESSION['role']) && in_array($_SESSION['role'], $roles, true));
+}
+
+function canArchiveEntries($role) {
+    return in_array($role, ['admin', 'editor'], true);
+}
+
+function canDeleteEntries($role) {
+    return $role === 'admin';
 }
 
 // Generate one CSRF token per session for state-changing requests.
@@ -292,6 +458,10 @@ function restoreEntity(mysqli $conn, $entity, $id) {
 }
 
 function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
+    if (!canArchiveEntries($_SESSION['role'] ?? null)) {
+        return false;
+    }
+
     $tables = [
         'contact' => 'contacts',
         'engagement' => 'engagements',
@@ -323,6 +493,10 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
 // dependent records so the operation behaves consistently on existing
 // databases whose foreign keys do not use ON DELETE CASCADE.
 function permanentlyDeleteEntity(mysqli $conn, $entity, $id) {
+    if (!canDeleteEntries($_SESSION['role'] ?? null)) {
+        return false;
+    }
+
     $id = (int) $id;
     if ($id < 1) {
         return false;

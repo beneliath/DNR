@@ -19,6 +19,7 @@ if (!$user || empty($user['two_factor_enabled'])) {
     header('Location: login.php');
     exit();
 }
+setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();

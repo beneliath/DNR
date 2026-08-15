@@ -25,6 +25,7 @@ if (!$user) {
     header('Location: login.php');
     exit();
 }
+setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
 
 if ($is_pending_login && !empty($user['two_factor_enabled'])) {
     header('Location: verify_2fa.php');

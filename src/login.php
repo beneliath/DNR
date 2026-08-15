@@ -22,6 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password_valid = password_verify($password, $user['password'] ?? $dummy_password_hash);
 
     if ($user && empty($user['login_is_locked']) && $password_valid) {
+        setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
         resetAuthenticationFailures($conn, (int) $user['id'], 'password');
         beginPendingAuthentication($user);
 
