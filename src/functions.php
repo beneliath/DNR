@@ -28,6 +28,19 @@ function isLoggedIn() {
         && ($_SESSION['auth_complete'] ?? false) === true;
 }
 
+function isApplicationRootRequest(array $server) {
+    $request_path = parse_url((string) ($server['REQUEST_URI'] ?? ''), PHP_URL_PATH);
+    if (!is_string($request_path)) {
+        return false;
+    }
+
+    $script_name = str_replace('\\', '/', (string) ($server['SCRIPT_NAME'] ?? '/index.php'));
+    $script_directory = rtrim(dirname($script_name), '/.');
+    $application_root = ($script_directory !== '' ? $script_directory : '') . '/';
+
+    return $request_path === $application_root;
+}
+
 // Ensure that the user is logged in; if not, redirect to the login page
 function requireLogin() {
     if (!isLoggedIn()) {

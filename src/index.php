@@ -7,6 +7,13 @@ include 'functions.php';
 startSecureSession();
 requireLogin();
 
+// The bare application URL is the engagement list; index.php remains the add form.
+$request_method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
+if (in_array($request_method, ['GET', 'HEAD'], true) && isApplicationRootRequest($_SERVER)) {
+    header('Location: engagements.php');
+    exit();
+}
+
 // Reviewers are read-only; only admins and editors may create engagements.
 if (!hasRole(['admin', 'editor'])) {
     header("Location: engagements.php");

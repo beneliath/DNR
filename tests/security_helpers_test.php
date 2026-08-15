@@ -32,6 +32,35 @@ $_SESSION['auth_version'] = 1;
 expectTrue(isLoggedIn(), 'A completed, versioned session should be recognized as logged in.');
 
 expectTrue(
+    isApplicationRootRequest([
+        'REQUEST_URI' => '/',
+        'SCRIPT_NAME' => '/index.php',
+    ]),
+    'The bare domain path should be recognized as the application root.'
+);
+expectTrue(
+    isApplicationRootRequest([
+        'REQUEST_URI' => '/dnr/?view=active',
+        'SCRIPT_NAME' => '/dnr/index.php',
+    ]),
+    'A bare application path should be recognized when DNR is hosted in a subdirectory.'
+);
+expectTrue(
+    !isApplicationRootRequest([
+        'REQUEST_URI' => '/index.php',
+        'SCRIPT_NAME' => '/index.php',
+    ]),
+    'An explicit index.php request must remain available for Add Engagement.'
+);
+expectTrue(
+    !isApplicationRootRequest([
+        'REQUEST_URI' => '/engagements.php',
+        'SCRIPT_NAME' => '/index.php',
+    ]),
+    'A non-root page must not be treated as the application root.'
+);
+
+expectTrue(
     authenticationDestination(['role' => 'editor', 'must_change_password' => 1])
         === 'two_factor_settings.php?password_reset_required=1',
     'A temporary password must force the account to the password-change page.'
