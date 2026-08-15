@@ -196,8 +196,10 @@ if (isset($_SESSION['success_message'])) {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -424,8 +426,6 @@ if (isset($_SESSION['success_message'])) {
             border-radius: 4px;
             cursor: pointer;
             margin-top: 15px;
-            font-family: inherit;
-            font-size: inherit;
         }
         .add-contact-btn:hover {
             background-color: var(--button-hover-color);

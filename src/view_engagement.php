@@ -93,8 +93,10 @@ $presentation_stmt->close();
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .view-container {
             max-width: 800px;
@@ -110,7 +112,7 @@ $presentation_stmt->close();
             border-bottom: none;
         }
         .detail-label {
-            font-weight: bold;
+            font-weight: var(--font-weight-bold);
             margin-bottom: 5px;
             color: var(--text-color);
         }
@@ -130,7 +132,6 @@ $presentation_stmt->close();
             cursor: pointer;
             text-decoration: none;
             color: white;
-            font-size: 14px;
         }
         .back-button {
             background-color: var(--button-neutral-color);
@@ -181,7 +182,7 @@ $presentation_stmt->close();
             margin-top: 8px;
             padding-top: 8px;
             border-top: 1px solid #eee;
-            font-size: 0.9em;
+            font-size: var(--font-size-small);
         }
         .dark-mode .contact-notes {
             border-top-color: #333;

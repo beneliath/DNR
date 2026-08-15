@@ -55,8 +55,10 @@ $contact_stmt->close();
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .organization-details {
             background-color: #fff;
@@ -97,8 +99,8 @@ $contact_stmt->close();
             margin-bottom: 10px;
         }
         .contact-name {
-            font-size: 1.1em;
-            font-weight: bold;
+            font-size: var(--font-size-large);
+            font-weight: var(--font-weight-bold);
             margin: 0;
         }
         .contact-role {

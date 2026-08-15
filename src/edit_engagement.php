@@ -316,8 +316,10 @@ while ($row = $presentations_result->fetch_assoc()) {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -649,7 +651,6 @@ while ($row = $presentations_result->fetch_assoc()) {
         position: absolute;
         top: -30px;
         color: var(--text-color);
-        font-size: 16px;
         white-space: nowrap;
     }
     .required {
@@ -665,7 +666,6 @@ while ($row = $presentations_result->fetch_assoc()) {
         border: 1px solid #666;
         border-radius: 4px;
         box-sizing: border-box;
-        font-size: 14px;
     }
     .checkbox-row {
         display: flex;

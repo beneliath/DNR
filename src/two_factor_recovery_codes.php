@@ -21,8 +21,9 @@ $destination = twoFactorRecoveryCodesDestination($initial_login);
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-Factor Recovery Codes - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

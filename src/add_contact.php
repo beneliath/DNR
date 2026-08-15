@@ -68,8 +68,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .success {
             background-color: #d4edda !important;
@@ -140,7 +142,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             color: white;
             text-decoration: none;
             border-radius: 4px;
-            font-size: 14px;
         }
         .add-org-button:hover {
             background-color: var(--button-hover-color);

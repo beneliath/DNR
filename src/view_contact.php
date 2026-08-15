@@ -47,8 +47,10 @@ unset($_SESSION['success_message']);
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .contact-details {
             background-color: #fff;

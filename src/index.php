@@ -195,8 +195,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <!-- HTML structure for the dashboard interface -->
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
@@ -919,8 +921,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-family: inherit;
-            font-size: inherit;
             display: block;
             width: fit-content;
         }
@@ -1029,7 +1029,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         position: absolute;
         top: -30px;
         color: var(--text-color);
-        font-size: 16px;
         white-space: nowrap;
     }
 
@@ -1058,7 +1057,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         border: 1px solid #ccc;
         border-radius: 4px;
         box-sizing: border-box;
-        font-size: 14px;
     }
 
     .dark-mode .event-group select,
@@ -1263,16 +1261,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: var(--button-font-size) !important;
-        line-height: var(--button-line-height) !important;
     }
 
     /* Reset and contain all event field styles in a single block */
     .section-heading {
-        font-size: 1.17em;
+        font-size: var(--font-size-large);
         margin: 1em 0;
         color: var(--text-color);
-        font-weight: normal;
+        font-weight: var(--font-weight-normal);
     }
 
     /* Add new styles for presentations outer box */
@@ -1310,8 +1306,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         border: none;
         border-radius: 4px;
         cursor: pointer;
-        font-family: inherit;
-        font-size: inherit;
         display: block;
         width: fit-content;
     }

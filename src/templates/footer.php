@@ -1,14 +1,13 @@
 <footer>
-    <p style="opacity: 0.2; display: inline;">&copy; <?php echo date("Y"); ?> beneliath</p>
-    &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-    <a href="calendar_subscription.php" style="text-decoration: none;">Calendar</a>
-    &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-    <a href="two_factor_settings.php" style="text-decoration: none;">Account Security</a>
-    &nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;
-    <form method="post" action="logout.php" id="logout-form" style="display: inline;">
-        <?php echo csrfInput(); ?>
-        <button type="submit" class="logout-link-button" style="border: 0; padding: 0; background: none; color: var(--link-color); font: inherit; cursor: pointer;">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</button>
-    </form>
+    <nav class="footer-navigation" aria-label="Account and application">
+        <p class="footer-copyright">&copy; <?php echo date("Y"); ?> beneliath</p>
+        <a href="calendar_subscription.php">Calendar</a>
+        <a href="two_factor_settings.php">Account Security</a>
+        <form method="post" action="logout.php" id="logout-form" class="footer-logout-form">
+            <?php echo csrfInput(); ?>
+            <button type="submit" class="logout-link-button">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</button>
+        </form>
+    </nav>
 
     <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
         <h2 id="logout-confirmation-title">Confirm logout</h2>
@@ -31,15 +30,15 @@
     </dialog>
     
     <!-- ASCII Art Container -->
-    <div class="ascii-art-container" style="opacity: 0.2; font-size: 1.0em;">
-    <pre style="font-size: 0.8em;">
+    <div class="ascii-art-container">
+    <pre>
      ("`-''-/").___..--''"`-.
      `6_ 6  )   `-.  (     ).`-.__.`)
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'                repo:  https://github.com/beneliath/DNR
   (il),-''  (li),'  ((!.-'                 title:  DNR - deploy & report
-                                         version:  0.0.5
-Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 11:27:23
+                                         version:  0.0.6
+Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 13:45:49
          Do you see Him?
     </pre>
     </div>

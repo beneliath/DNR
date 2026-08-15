@@ -12,8 +12,10 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Subscribe to DNR Calendar</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

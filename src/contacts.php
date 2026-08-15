@@ -145,8 +145,10 @@ function contactsPageUrl(
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Contacts - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .page-heading {
             display: flex;
@@ -168,9 +170,6 @@ function contactsPageUrl(
             flex-wrap: wrap;
             gap: 8px;
         }
-        .control-label {
-            font-weight: normal;
-        }
         .sort-buttons {
             margin: 15px 0;
             display: flex;
@@ -183,7 +182,6 @@ function contactsPageUrl(
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
             display: inline-block;
         }
         .sort-button:hover {
@@ -218,7 +216,7 @@ function contactsPageUrl(
         }
         .contact-table th {
             background-color: #f5f5f5;
-            font-weight: bold;
+            font-weight: var(--font-weight-bold);
         }
         .dark-mode .contact-table th {
             background-color: #2d2d2d;
@@ -247,9 +245,6 @@ function contactsPageUrl(
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-family: inherit;
-            font-size: 0.9em;
-            line-height: 1.6;
             text-decoration: none;
             color: white;
             white-space: nowrap;

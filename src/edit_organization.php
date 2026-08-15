@@ -122,8 +122,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -190,7 +192,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
             text-decoration: none;
             color: white;
-            font-size: 16px;
             height: 44px;
             box-sizing: border-box;
         }

@@ -3,14 +3,14 @@
 ?>
 
 <header>
-    <nav>
+    <nav class="site-navigation" aria-label="Primary">
         <ul>
-            <li><a href="engagements.php">Engagements</a></li>|&nbsp;&nbsp;&nbsp;
-            <li><a href="organizations.php">Organizations</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="engagements.php">Engagements</a></li>
+            <li><a href="organizations.php">Organizations</a></li>
             <li><a href="contacts.php">Contacts</a></li>
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
-                |&nbsp;&nbsp;&nbsp;<li><a href="users.php">Users</a></li>
+                <li><a href="users.php">Users</a></li>
             <?php endif; ?>
  
         </ul>

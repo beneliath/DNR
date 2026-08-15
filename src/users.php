@@ -35,8 +35,10 @@ if (!$users) {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .page-heading {
             display: flex;
@@ -64,7 +66,7 @@ if (!$users) {
             margin-bottom: 5px;
         }
         .user-timestamps {
-            font-size: 0.9em;
+            font-size: var(--font-size-small);
             color: #666;
             margin-left: 20px;
             padding-top: 5px;
@@ -95,9 +97,6 @@ if (!$users) {
             cursor: pointer;
             text-decoration: none;
             color: white;
-            font-family: inherit;
-            font-size: 0.9em;
-            line-height: 1.6;
             white-space: nowrap;
         }
         .user-actions .edit-button {
@@ -117,13 +116,12 @@ if (!$users) {
             padding: 0;
             background: none;
             color: var(--link-color);
-            font: inherit;
             text-decoration: underline;
             cursor: pointer;
         }
         .password-change-required {
             color: #FF9800;
-            font-weight: 600;
+            font-weight: var(--font-weight-semibold);
         }
     </style>
 </head>

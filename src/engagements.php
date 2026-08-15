@@ -99,8 +99,10 @@ if (!$result) {
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
     <style>
         .engagement-table {
             width: 100%;
@@ -127,9 +129,6 @@ if (!$result) {
             flex-wrap: wrap;
             gap: 8px;
         }
-        .control-label {
-            font-weight: normal;
-        }
         .engagement-table th,
         .engagement-table td {
             padding: 12px;
@@ -142,7 +141,7 @@ if (!$result) {
         }
         .engagement-table th {
             background-color: #f5f5f5;
-            font-weight: bold;
+            font-weight: var(--font-weight-bold);
         }
         .dark-mode .engagement-table th {
             background-color: #2d2d2d;
@@ -165,7 +164,6 @@ if (!$result) {
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 14px;
             display: inline-block;
         }
         .sort-button:hover {
@@ -191,9 +189,6 @@ if (!$result) {
             border: none;
             border-radius: 4px;
             cursor: pointer;
-            font-family: inherit;
-            font-size: 0.9em;
-            line-height: 1.6;
             text-decoration: none;
             color: white;
             white-space: nowrap;

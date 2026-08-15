@@ -9,6 +9,24 @@
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
   --link-color: var(--light-link-color);
+
+  /* Shared typography scale. Components inherit the base unless hierarchy requires otherwise. */
+  --font-family-base: Arial, Helvetica, sans-serif;
+  --font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-size-base: 1rem;
+  --font-size-small: 0.875rem;
+  --font-size-extra-small: 0.8rem;
+  --font-size-large: 1.125rem;
+  --font-size-heading: 1.5rem;
+  --font-size-display: 3rem;
+  --font-size-login-control: 1.25rem;
+  --font-weight-light: 300;
+  --font-weight-normal: 400;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --line-height-base: 1.6;
+  --line-height-compact: 1.4;
+
   /* Theme-independent button palette */
   --button-save-color: #FCA311;
   --button-view-color: #34C749;
@@ -28,8 +46,8 @@
 
   /* Manage Users is the sizing standard for every visible button. */
   --button-padding: 5px 10px;
-  --button-font-size: 0.9em;
-  --button-line-height: 1.6;
+  --button-font-size: var(--font-size-small);
+  --button-line-height: var(--line-height-base);
   --button-border-radius: 4px;
   
   /* Error colors */
@@ -47,14 +65,30 @@
   --success-border-dark: rgba(76, 175, 80, 0.3);
 }
 
-html, body {
+html {
   height: 100%;
+  font-size: 100%;
+}
+
+body {
+  min-height: 100%;
   margin: 0;
   padding: 0;
-  font-family: Arial, sans-serif;
-  line-height: 1.6;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-normal);
+  line-height: var(--line-height-base);
   background-color: var(--bg-color);
   color: var(--text-color);
+}
+
+/* Native controls do not consistently inherit typography without an explicit reset. */
+button,
+input,
+optgroup,
+select,
+textarea {
+  font: inherit;
 }
 
 /* Wrapper for vertically centered pages like login */
@@ -68,6 +102,7 @@ html, body {
 
 /* Header/Footer */
 header, footer {
+  box-sizing: border-box;
   background-color: var(--bg-color);
   color: var(--text-color);
   padding: 10px;
@@ -80,11 +115,13 @@ footer .ascii-art-container {
   width: 100%;
   text-align: center;
   margin-top: 20px;
+  opacity: 0.2;
 }
 
 footer .ascii-art-container pre {
   display: inline-block;
-  font-family: monospace;
+  font-family: var(--font-family-monospace);
+  font-size: var(--font-size-extra-small);
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-x: auto;
@@ -93,23 +130,69 @@ footer .ascii-art-container pre {
   max-width: 100%;
 }
 
-/* Navigation */
-nav ul {
+/* Shared site navigation */
+.site-navigation ul {
   list-style: none;
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
+  gap: 0;
   padding: 0;
   margin: 0;
+  font-size: var(--font-size-small);
 }
 
-nav ul li {
-  margin-right: 15px;
+.site-navigation li + li {
+  margin-left: 15px;
+  padding-left: 15px;
+  border-left: 1px solid var(--text-color);
 }
 
-nav ul li a {
+.site-navigation a {
   text-decoration: none;
   color: var(--link-color);
-  font-size: 16px;
+}
+
+.footer-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  font-size: var(--font-size-small);
+}
+
+.footer-navigation > * {
+  margin: 0;
+  font: inherit;
+}
+
+.footer-navigation > * + * {
+  margin-left: 0.75rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--text-color);
+}
+
+.footer-navigation a,
+.logout-link-button {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.footer-copyright {
+  opacity: 0.2;
+}
+
+.footer-logout-form {
+  display: inline-flex;
+}
+
+.logout-link-button {
+  appearance: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
 }
 
 /* Page container */
@@ -298,7 +381,7 @@ nav ul li a {
   border-radius: 999px;
   background-color: var(--button-archive-color) !important;
   color: var(--button-text-color) !important;
-  font-size: 0.65em;
+  font-size: var(--font-size-extra-small);
   vertical-align: middle;
 }
 
@@ -326,7 +409,6 @@ nav ul li a {
 label {
   display: block;
   margin-bottom: 10px;
-  font-size: 16px;
   text-align: left;
   color: var(--text-color) !important;
 }
@@ -341,7 +423,6 @@ textarea {
   margin-bottom: 20px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  font-size: 16px;
   box-sizing: border-box;
   background-color: var(--light-bg-color) !important;
   color: var(--light-text-color) !important;
@@ -393,7 +474,7 @@ h3,
     padding: 0 8px;
     border-radius: 4px;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: var(--font-size-small);
 }
 
 .dark-mode .event-group select,
@@ -501,9 +582,9 @@ label[for="caller_name"],
 
 .login-container h1 {
   color: #fff;
-  font-size: 48px;
+  font-size: var(--font-size-display);
   margin-bottom: 40px;
-  font-weight: 300;
+  font-weight: var(--font-weight-light);
   text-align: center;
 }
 
@@ -513,9 +594,9 @@ label[for="caller_name"],
 
 .login-container label {
   color: #fff;
-  font-size: 20px;
+  font-size: var(--font-size-login-control);
   margin-bottom: 10px;
-  font-weight: 300;
+  font-weight: var(--font-weight-light);
 }
 
 .login-container input[type="text"],
@@ -536,7 +617,7 @@ label[for="caller_name"],
   border-radius: 25px;
   background-color: var(--button-primary-color);
   color: white;
-  font-size: 20px;
+  font-size: var(--font-size-login-control);
   cursor: pointer;
   margin-top: 20px;
   transition: background-color 0.3s ease;
@@ -575,7 +656,7 @@ label[for="caller_name"],
 
 .recovery-help {
   margin-top: 20px;
-  font-size: 0.9em;
+  font-size: var(--font-size-small);
 }
 
 .login-cancel-form {
@@ -590,7 +671,7 @@ label[for="caller_name"],
   border-radius: 25px;
   background-color: var(--button-cancel-color);
   color: white;
-  font-size: 20px;
+  font-size: var(--font-size-login-control);
   cursor: pointer;
   transition: background-color 0.3s ease;
 }
@@ -598,12 +679,12 @@ label[for="caller_name"],
 /* Account security and two-factor authentication */
 .two-factor-status-enabled {
   color: var(--success-color);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .two-factor-status-disabled {
   color: var(--error-color);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .security-container {
@@ -636,7 +717,7 @@ label[for="caller_name"],
   border-radius: 4px;
   color: #fff;
   font: inherit;
-  line-height: 1.4;
+  line-height: var(--line-height-compact);
   text-decoration: none;
   cursor: pointer;
 }
@@ -696,7 +777,6 @@ label[for="caller_name"],
 }
 
 .recovery-code-card code {
-  font-size: 1.05em;
   user-select: all;
 }
 
@@ -711,7 +791,7 @@ label[for="caller_name"],
 /* Headings */
 h2 {
   margin-bottom: 20px;
-  font-size: 24px;
+  font-size: var(--font-size-heading);
 }
 
 /* Messages */
@@ -846,7 +926,7 @@ input[type="reset"]:not(:disabled):hover,
 h3 {
     margin-top: 30px;
     margin-bottom: 20px;
-    font-size: 18px;
+    font-size: var(--font-size-large);
     color: #333;
 }
 
@@ -963,7 +1043,6 @@ h3 {
 
 .field-group label {
     margin: 0;
-    font-size: 16px;
 }
 
 .field-group select,
@@ -979,7 +1058,6 @@ h3 {
 }
 
 .currency-input span {
-    font-size: 16px;
     color: var(--text-color) !important;
 }
 
@@ -992,7 +1070,6 @@ h3 {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
-    font-size: 16px;
     background-color: var(--light-bg-color) !important;
     color: var(--light-text-color) !important;
 }
@@ -1010,7 +1087,6 @@ h3 {
     padding: 8px;
     border: 1px solid #ddd;
     border-radius: 4px;
-    font-size: 16px;
 }
 
 .dark-mode .compensation-grid .form-field input[type="text"],
