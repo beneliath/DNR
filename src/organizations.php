@@ -7,30 +7,59 @@ requireLogin();
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Handle soft deletion through an authenticated POST request.
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_organization'])) {
+$list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
+    ? 'archived'
+    : 'active';
+$show_archived = $list_status === 'archived';
+
+// Handle archive, restore, and permanent deletion through authenticated POST requests.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($user_role !== 'admin') {
         http_response_code(403);
         exit('Forbidden.');
     }
+
     requireValidCsrfToken();
     $org_id = filter_input(INPUT_POST, 'organization_id', FILTER_VALIDATE_INT);
-    if ($org_id) {
-        $delete_stmt = $conn->prepare("UPDATE organizations SET is_deleted = 1 WHERE id = ?");
-        $delete_stmt->bind_param("i", $org_id);
-        $delete_stmt->execute();
+    $action = $_POST['action'] ?? '';
+    $action_succeeded = false;
+
+    if ($org_id && $action === 'archive') {
+        $action_succeeded = archiveEntity($conn, 'organization', $org_id);
+        $action_message = 'Organization archived.';
+    } elseif ($org_id && $action === 'restore') {
+        $action_succeeded = restoreEntity($conn, 'organization', $org_id);
+        $action_message = 'Organization restored.';
+    } elseif ($org_id && $action === 'delete') {
+        $action_succeeded = permanentlyDeleteEntity($conn, 'organization', $org_id);
+        $action_message = 'Organization permanently deleted.';
+    } else {
+        http_response_code(400);
+        exit('Invalid organization action.');
     }
-    header("Location: organizations.php");
+
+    if ($action_succeeded) {
+        $_SESSION['organization_action_message'] = $action_message;
+    } else {
+        $_SESSION['organization_action_error'] = 'Unable to update the organization. Please try again.';
+    }
+
+    header('Location: organizations.php?' . http_build_query(['status' => $list_status]));
     exit();
 }
+
+$action_message = $_SESSION['organization_action_message'] ?? '';
+$action_error = $_SESSION['organization_action_error'] ?? '';
+unset($_SESSION['organization_action_message'], $_SESSION['organization_action_error']);
 
 // Retrieve organizations using an allowlisted name-sort direction.
 $name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
 $order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
 
 // Prepare and execute the query
+$archive_value = $show_archived ? 1 : 0;
 $query = "SELECT * FROM organizations
-          WHERE is_deleted = 0
+          WHERE is_deleted = {$archive_value}
           ORDER BY organization_name {$order_direction}, id {$order_direction}";
 
 $result = $conn->query($query);
@@ -42,7 +71,7 @@ if (!$result) {
 <html>
 <head>
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
     <style>
         .organization-table {
             width: 100%;
@@ -82,6 +111,9 @@ if (!$result) {
             display: inline-flex;
             gap: 5px;
             background-color: transparent !important;
+        }
+        .action-buttons form {
+            margin: 0;
         }
         .action-button {
             display: inline-flex;
@@ -135,14 +167,23 @@ if (!$result) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <div class="page-heading">
-        <h1>Organizations</h1>
-        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+        <h1><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></h1>
+        <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
             <a href="add_organization.php" class="button-add">Add Organization</a>
         <?php endif; ?>
     </div>
 
+    <?php if ($action_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($action_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+
     <div class="sort-buttons">
-        <a href="?name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button">
+        <a href="?status=active&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+        <a href="?status=archived&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+        <a href="?status=<?php echo $list_status; ?>&amp;name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button">
             Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
     </div>
@@ -173,7 +214,7 @@ if (!$result) {
                         // Fetch contacts for this organization
                         $contact_query = "SELECT contact_first_name, contact_last_name
                                           FROM contacts
-                                          WHERE organization_id = ?
+                                          WHERE organization_id = ? AND is_deleted = 0
                                           ORDER BY contact_last_name, contact_first_name";
                         $contact_stmt = $conn->prepare($contact_query);
                         $contact_stmt->bind_param("i", $org['id']);
@@ -194,14 +235,35 @@ if (!$result) {
                     <td>
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button view-button">View</a>
-                            <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+                            <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
                                 <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
                             <?php if ($user_role === 'admin'): ?>
-                                <form method="post" action="organizations.php" data-delete-confirmation="Are you sure you want to delete this organization?">
+                                <?php if ($show_archived): ?>
+                                    <form method="post" action="organizations.php">
+                                        <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
+                                        <input type="hidden" name="list_status" value="archived">
+                                        <input type="hidden" name="action" value="restore">
+                                        <button type="submit" class="action-button restore-button">Restore</button>
+                                    </form>
+                                <?php else: ?>
+                                    <form method="post" action="organizations.php">
+                                        <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
+                                        <input type="hidden" name="list_status" value="active">
+                                        <input type="hidden" name="action" value="archive">
+                                        <button type="submit" class="action-button archive-button">Archive</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="post" action="organizations.php"
+                                      data-delete-confirmation="Permanently delete this organization and all of its contacts and events?"
+                                      <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
-                                    <button type="submit" name="delete_organization" class="action-button delete-button">Delete</button>
+                                    <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
+                                    <input type="hidden" name="action" value="delete">
+                                    <button type="submit" class="action-button delete-button">Delete</button>
                                 </form>
                             <?php endif; ?>
                         </div>

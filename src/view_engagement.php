@@ -19,7 +19,7 @@ $engagement_id = intval($_GET['id']);
 $query = "SELECT e.*, o.organization_name, o.id as org_id
           FROM engagements e
           LEFT JOIN organizations o ON e.organization_id = o.id
-          WHERE e.id = ? AND e.is_deleted = 0";
+          WHERE e.id = ?";
 
 $stmt = $conn->prepare($query);
 if ($stmt === false) {
@@ -36,10 +36,11 @@ if ($result->num_rows === 0) {
 }
 
 $engagement = $result->fetch_assoc();
+$is_archived = !empty($engagement['is_deleted']);
 
 // Fetch contacts for the organization
 $contact_query = "SELECT * FROM contacts
-                  WHERE organization_id = ?
+                  WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
 if ($contact_stmt === false) {
@@ -93,7 +94,7 @@ $presentation_stmt->close();
 <html>
 <head>
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
     <style>
         .view-container {
             max-width: 800px;
@@ -190,7 +191,7 @@ $presentation_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
-    <h1>View Engagement</h1>
+    <h1>View Engagement<?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
 
     <div class="detail-group">
         <div class="detail-label">Organization</div>
@@ -326,8 +327,8 @@ $presentation_stmt->close();
     <?php endif; ?>
 
     <div class="action-buttons">
-        <a href="engagements.php" class="action-button back-button">Back to List</a>
-        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+        <a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
+        <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
         <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Edit</a>
         <?php endif; ?>
     </div>

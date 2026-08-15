@@ -16,7 +16,7 @@ class Contact extends BaseModel {
 
     public function getByOrganization($organizationId) {
         return $this->findAll(
-            ['organization_id' => $organizationId],
+            ['organization_id' => $organizationId, 'is_deleted' => 0],
             'contact_last_name, contact_first_name'
         );
     }
@@ -30,7 +30,8 @@ class Contact extends BaseModel {
     }
 
     public function findByEmail($email) {
-        $sql = "SELECT * FROM {$this->table} WHERE contact_email = :email";
+        $sql = "SELECT * FROM {$this->table}
+                WHERE contact_email = :email AND is_deleted = 0";
         return $this->db->fetch($sql, ['email' => $email]);
     }
 

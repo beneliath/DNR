@@ -28,13 +28,14 @@ class Organization extends BaseModel {
 
     public function getContacts($organizationId) {
         $sql = "SELECT * FROM contacts
-                WHERE organization_id = :organization_id
+                WHERE organization_id = :organization_id AND is_deleted = 0
                 ORDER BY contact_last_name, contact_first_name";
         return $this->db->fetchAll($sql, ['organization_id' => $organizationId]);
     }
 
     public function getEngagements($organizationId) {
-        $sql = "SELECT * FROM engagements WHERE organization_id = :organization_id";
+        $sql = "SELECT * FROM engagements
+                WHERE organization_id = :organization_id AND is_deleted = 0";
         return $this->db->fetchAll($sql, ['organization_id' => $organizationId]);
     }
 
@@ -60,9 +61,10 @@ class Organization extends BaseModel {
 
     public function search($term) {
         $sql = "SELECT * FROM {$this->table} 
-                WHERE organization_name LIKE :term 
-                OR affiliation LIKE :term 
-                OR distinctives LIKE :term";
+                WHERE is_deleted = 0
+                  AND (organization_name LIKE :term
+                    OR affiliation LIKE :term
+                    OR distinctives LIKE :term)";
         
         $term = "%$term%";
         return $this->db->fetchAll($sql, ['term' => $term]);

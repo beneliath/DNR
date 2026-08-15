@@ -129,6 +129,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_role_other VARCHAR(255),
     contact_email VARCHAR(255) NOT NULL,
     contact_phone VARCHAR(50),
+    is_deleted TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
-    INDEX idx_contacts_last_first (contact_last_name, contact_first_name)
+    INDEX idx_contacts_last_first (contact_last_name, contact_first_name),
+    INDEX idx_contacts_archived (is_deleted)
 );

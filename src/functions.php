@@ -266,4 +266,154 @@ function requireValidCsrfToken() {
         exit('Invalid or expired request token. Please reload the page and try again.');
     }
 }
+
+// Keep archive operations consistent across each of the record lists. The
+// existing is_deleted columns are the reversible archive flag; permanent
+// deletion is handled separately below.
+function archiveEntity(mysqli $conn, $entity, $id) {
+    return setEntityArchived($conn, $entity, $id, true);
+}
+
+function restoreEntity(mysqli $conn, $entity, $id) {
+    return setEntityArchived($conn, $entity, $id, false);
+}
+
+function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
+    $tables = [
+        'contact' => 'contacts',
+        'engagement' => 'engagements',
+        'event' => 'engagements',
+        'organization' => 'organizations',
+    ];
+
+    if (!isset($tables[$entity]) || (int) $id < 1) {
+        return false;
+    }
+
+    $archive_value = $is_archived ? 1 : 0;
+    $stmt = $conn->prepare(
+        "UPDATE {$tables[$entity]} SET is_deleted = ? WHERE id = ?"
+    );
+    if (!$stmt) {
+        return false;
+    }
+
+    $id = (int) $id;
+    $stmt->bind_param('ii', $archive_value, $id);
+    $success = $stmt->execute();
+    $stmt->close();
+
+    return $success;
+}
+
+// Permanently remove an entity. Organization deletion explicitly removes its
+// dependent records so the operation behaves consistently on existing
+// databases whose foreign keys do not use ON DELETE CASCADE.
+function permanentlyDeleteEntity(mysqli $conn, $entity, $id) {
+    $id = (int) $id;
+    if ($id < 1) {
+        return false;
+    }
+
+    if ($entity === 'organization') {
+        return permanentlyDeleteOrganization($conn, $id);
+    }
+
+    if ($entity === 'engagement' || $entity === 'event') {
+        return permanentlyDeleteEngagement($conn, $id);
+    }
+
+    if ($entity !== 'contact') {
+        return false;
+    }
+
+    $stmt = $conn->prepare('DELETE FROM contacts WHERE id = ?');
+    if (!$stmt) {
+        return false;
+    }
+
+    $stmt->bind_param('i', $id);
+    $success = $stmt->execute() && $stmt->affected_rows === 1;
+    $stmt->close();
+
+    return $success;
+}
+
+function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
+    if (!$conn->begin_transaction()) {
+        return false;
+    }
+
+    $presentation_stmt = $conn->prepare(
+        'DELETE FROM presentations WHERE engagement_id = ?'
+    );
+    $engagement_stmt = $conn->prepare('DELETE FROM engagements WHERE id = ?');
+    if (!$presentation_stmt || !$engagement_stmt) {
+        if ($presentation_stmt) {
+            $presentation_stmt->close();
+        }
+        if ($engagement_stmt) {
+            $engagement_stmt->close();
+        }
+        $conn->rollback();
+        return false;
+    }
+
+    $presentation_stmt->bind_param('i', $engagement_id);
+    $presentations_deleted = $presentation_stmt->execute();
+    $presentation_stmt->close();
+
+    $engagement_stmt->bind_param('i', $engagement_id);
+    $engagement_deleted = $engagement_stmt->execute()
+        && $engagement_stmt->affected_rows === 1;
+    $engagement_stmt->close();
+
+    if (!$presentations_deleted || !$engagement_deleted || !$conn->commit()) {
+        $conn->rollback();
+        return false;
+    }
+
+    return true;
+}
+
+function permanentlyDeleteOrganization(mysqli $conn, $organization_id) {
+    if (!$conn->begin_transaction()) {
+        return false;
+    }
+
+    $queries = [
+        'DELETE p FROM presentations p
+         INNER JOIN engagements e ON e.id = p.engagement_id
+         WHERE e.organization_id = ?',
+        'DELETE FROM engagements WHERE organization_id = ?',
+        'DELETE FROM contacts WHERE organization_id = ?',
+        'DELETE FROM organizations WHERE id = ?',
+    ];
+
+    foreach ($queries as $index => $query) {
+        $stmt = $conn->prepare($query);
+        if (!$stmt) {
+            $conn->rollback();
+            return false;
+        }
+
+        $stmt->bind_param('i', $organization_id);
+        $success = $stmt->execute();
+        $affected_rows = $stmt->affected_rows;
+        $stmt->close();
+
+        $is_organization_delete = $index === count($queries) - 1;
+        if (!$success || ($is_organization_delete && $affected_rows !== 1)) {
+            $conn->rollback();
+            return false;
+        }
+    }
+
+    if (!$conn->commit()) {
+        $conn->rollback();
+        return false;
+    }
+
+    return true;
+}
 ?>

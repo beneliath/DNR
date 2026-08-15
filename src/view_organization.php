@@ -16,7 +16,7 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $org_id = intval($_GET['id']);
 
 // Fetch organization details
-$query = "SELECT * FROM organizations WHERE id = ? AND is_deleted = 0";
+$query = "SELECT * FROM organizations WHERE id = ?";
 
 $stmt = $conn->prepare($query);
 if ($stmt === false) {
@@ -33,10 +33,11 @@ if ($result->num_rows === 0) {
 }
 
 $organization = $result->fetch_assoc();
+$is_archived = !empty($organization['is_deleted']);
 
 // Fetch contacts for the organization
 $contact_query = "SELECT * FROM contacts
-                  WHERE organization_id = ?
+                  WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
 if ($contact_stmt === false) {
@@ -55,7 +56,7 @@ $contact_stmt->close();
 <html>
 <head>
     <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.5">
     <style>
         .organization-details {
             background-color: #fff;
@@ -137,7 +138,7 @@ $contact_stmt->close();
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <div class="organization-details">
-        <h2><?php echo htmlspecialchars($organization['organization_name']); ?></h2>
+        <h2><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h2>
 
         <div class="detail-row">
             <strong>Affiliation</strong>
@@ -240,8 +241,8 @@ $contact_stmt->close();
     </div>
 
     <div class="action-buttons">
-        <a href="organizations.php" class="action-button back-button">Back to List</a>
-        <?php if ($user_role === 'admin'): ?>
+        <a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
+        <?php if (!$is_archived && $user_role === 'admin'): ?>
             <a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="action-button edit-button">Edit Organization</a>
         <?php endif; ?>
     </div>

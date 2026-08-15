@@ -20,7 +20,7 @@ $contact_stmt = $conn->prepare(
     "SELECT c.*
      FROM contacts c
      INNER JOIN organizations o ON o.id = c.organization_id
-     WHERE c.id = ? AND o.is_deleted = 0"
+     WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0"
 );
 if (!$contact_stmt) {
     die('Unable to retrieve the contact.');

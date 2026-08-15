@@ -13,6 +13,7 @@
   --button-save-color: #FCA311;
   --button-view-color: #34C749;
   --button-edit-color: #1F57E7;
+  --button-archive-color: #7B2CBF;
   --button-delete-color: #FD0B00;
   --button-cancel-color: #F04251;
   --button-add-color: #818386;
@@ -157,6 +158,7 @@ nav ul li a {
 
 .confirmation-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 20px;
@@ -179,6 +181,7 @@ nav ul li a {
   .button-save,
   .button-view,
   .button-edit,
+  .button-archive,
   .button-delete,
   .button-cancel,
   .button-add,
@@ -194,6 +197,8 @@ nav ul li a {
   .add-presentation-btn,
   .remove-presentation-btn,
   .security-button,
+  .archive-button,
+  .restore-button,
   .danger-button
 ) {
   display: inline-flex !important;
@@ -243,6 +248,19 @@ nav ul li a {
   background-color: var(--button-edit-color) !important;
 }
 
+.archive-button,
+.button-archive {
+  background-color: var(--button-archive-color) !important;
+}
+
+.restore-button {
+  background-color: var(--button-archive-color) !important;
+}
+
+.sort-button.active {
+  background-color: var(--button-edit-color) !important;
+}
+
 .delete-button,
 .button-delete,
 .remove-contact-btn,
@@ -271,6 +289,17 @@ nav ul li a {
 
 .reset-two-factor-button {
   background-color: var(--button-reset-two-factor-color) !important;
+}
+
+.archive-status {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background-color: var(--button-archive-color) !important;
+  color: var(--button-text-color) !important;
+  font-size: 0.65em;
+  vertical-align: middle;
 }
 
 .save-button-container {
@@ -770,6 +799,7 @@ input[type="reset"]:not(:disabled):hover,
 .button-save:hover,
 .button-view:hover,
 .button-edit:hover,
+.button-archive:hover,
 .button-delete:hover,
 .button-cancel:hover,
 .button-add:hover,
@@ -785,6 +815,8 @@ input[type="reset"]:not(:disabled):hover,
 .add-presentation-btn:hover,
 .remove-presentation-btn:hover,
 .security-button:hover,
+.archive-button:hover,
+.restore-button:hover,
 .danger-button:hover {
   background-color: var(--button-hover-color) !important;
 }

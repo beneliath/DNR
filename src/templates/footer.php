@@ -22,9 +22,11 @@
     <dialog id="delete-confirmation" class="confirmation-dialog" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-message">
         <h2 id="delete-confirmation-title">Confirm deletion</h2>
         <p id="delete-confirmation-message">Are you sure you want to delete this item?</p>
+        <p>Archive it instead to keep the record available for later restoration.</p>
         <div class="confirmation-dialog-actions">
             <button type="button" id="cancel-delete" autofocus>Cancel</button>
-            <button type="button" id="confirm-delete" class="danger-button">Delete</button>
+            <button type="button" id="archive-instead" class="archive-button">Archive instead</button>
+            <button type="button" id="confirm-delete" class="danger-button">Delete permanently</button>
         </div>
     </dialog>
     
@@ -71,6 +73,7 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-14 08:12:32
     const confirmation = document.getElementById('delete-confirmation');
     const confirmationMessage = document.getElementById('delete-confirmation-message');
     const cancelButton = document.getElementById('cancel-delete');
+    const archiveButton = document.getElementById('archive-instead');
     const confirmButton = document.getElementById('confirm-delete');
     let pendingForm = null;
     let pendingSubmitter = null;
@@ -85,6 +88,7 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-14 08:12:32
             pendingForm = form;
             pendingSubmitter = event.submitter;
             confirmationMessage.textContent = form.dataset.deleteConfirmation;
+            archiveButton.textContent = form.dataset.archiveButtonLabel || 'Archive instead';
             confirmation.showModal();
         });
     });
@@ -98,6 +102,29 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-14 08:12:32
     confirmation.addEventListener('cancel', function () {
         pendingForm = null;
         pendingSubmitter = null;
+    });
+
+    archiveButton.addEventListener('click', function () {
+        if (!pendingForm) {
+            confirmation.close();
+            return;
+        }
+
+        const form = pendingForm;
+        const archiveAction = form.dataset.archiveAction;
+        const actionInput = form.querySelector('input[name="action"]');
+        pendingForm = null;
+        pendingSubmitter = null;
+        confirmation.close();
+
+        // An already archived record only needs the destructive action cancelled.
+        if (!archiveAction || !actionInput) {
+            return;
+        }
+
+        actionInput.value = archiveAction;
+        form.dataset.deleteConfirmed = 'true';
+        form.requestSubmit();
     });
 
     confirmButton.addEventListener('click', function () {
