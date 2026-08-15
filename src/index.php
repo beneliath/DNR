@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     requireValidCsrfToken();
 
     $organization_id = intval($_POST['organization_id'] ?? 0);
+    $event_title = trim($_POST['event_title'] ?? '');
     $engagement_notes = trim($_POST['engagement_notes'] ?? '');
     $event_start_date = $_POST['event_start_date'] ?? null;
     $event_end_date = $_POST['event_end_date'] ?? null;
@@ -109,16 +110,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         try {
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
-                organization_id, engagement_notes, event_start_date, event_end_date,
+                organization_id, event_title, engagement_notes, event_start_date, event_end_date,
                 event_type, book_table, brochures, caller_name, confirmation_status,
                 travel_covered, travel_amount, compensation_type, other_compensation,
                 housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "issssiisssdssssd",
+                    "isssssiisssdssssd",
                     $organization_id,
+                    $event_title,
                     $engagement_notes,
                     $event_start_date,
                     $event_end_date,
@@ -221,6 +223,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <a href="add_organization.php" class="add-org-button">Add New Organization</a>
 </div>
 
+        <label for="event_title">Event Title</label>
+        <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
+        <br><br>
 
         <label for="engagement_notes" style="vertical-align: top;">Chron</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>

@@ -5,6 +5,7 @@ include 'calendar_helpers.php';
 
 $query = "SELECT
             e.id,
+            e.event_title,
             e.event_start_date,
             e.event_end_date,
             e.event_type,

@@ -83,8 +83,11 @@ function calendarLocation(array $engagement) {
 function calendarEventLines(array $engagement) {
     $status = calendarStatusLabel($engagement['confirmation_status'] ?? '');
     $organization = trim((string) ($engagement['organization_name'] ?? 'Unknown organization'));
+    $event_title = trim((string) ($engagement['event_title'] ?? ''));
     $event_type = trim((string) ($engagement['event_type'] ?? ''));
-    $title_parts = array_filter([$organization, $event_type], static fn($part) => $part !== '');
+    $title_parts = $event_title !== ''
+        ? [$event_title, $organization]
+        : array_filter([$organization, $event_type], static fn($part) => $part !== '');
     $summary = "[{$status}] " . implode(' — ', $title_parts);
     $updated_timestamp = $engagement['calendar_updated_at'] ?? null;
     $updated_at = calendarUtcTimestamp($updated_timestamp);
@@ -118,8 +121,12 @@ function calendarEventLines(array $engagement) {
 
     $description_parts = [
         'Status: ' . $status,
+        'Organization: ' . $organization,
         'Event type: ' . ($event_type !== '' ? $event_type : 'Unspecified'),
     ];
+    if ($event_title !== '') {
+        array_splice($description_parts, 1, 0, ['Event title: ' . $event_title]);
+    }
     $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
     $lines[] = 'STATUS:' . (($engagement['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
     $lines[] = 'TRANSP:OPAQUE';

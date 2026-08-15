@@ -55,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
 
         // Continue with existing engagement update code
+        $event_title = trim($_POST['event_title'] ?? '');
         $engagement_notes = trim($_POST['engagement_notes'] ?? '');
         $event_start_date = $_POST['event_start_date'] ?? null;
         $event_end_date = $_POST['event_end_date'] ?? null;
@@ -128,6 +129,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             $update_fields[] = "organization_id = ?";
             $update_values[] = $organization_id;
             $types .= "i";
+        }
+
+        if ($event_title !== ($engagement['event_title'] ?? '')) {
+            $update_fields[] = "event_title = ?";
+            $update_values[] = $event_title;
+            $types .= "s";
         }
 
         if ($engagement_notes !== $engagement['engagement_notes']) {
@@ -351,6 +358,11 @@ while ($row = $presentations_result->fetch_assoc()) {
         </div>
 
         <div class="event-row">
+            <div class="event-group event-title-group">
+                <div class="label-container">Event Title</div>
+                <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
+            </div>
+
             <div class="event-group">
                 <div class="label-container">Event Type</div>
                 <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
@@ -628,6 +640,10 @@ while ($row = $presentations_result->fetch_assoc()) {
         flex-direction: column;
         gap: 8px;
         position: relative;
+    }
+    .event-title-group {
+        flex: 1;
+        min-width: 240px;
     }
     .label-container {
         position: absolute;

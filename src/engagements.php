@@ -246,6 +246,7 @@ if (!$result) {
     <table class="engagement-table">
         <thead>
             <tr>
+                <th>Event Title</th>
                 <th>Organization</th>
                 <th>Event Dates</th>
                 <th>Type</th>
@@ -256,6 +257,7 @@ if (!$result) {
         <tbody>
             <?php while ($row = $result->fetch_assoc()): ?>
                 <tr>
+                    <td><?php echo htmlspecialchars($row['event_title'] ?? ''); ?></td>
                     <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
                     <td><?php echo htmlspecialchars($row['event_start_date'] . ' to ' . $row['event_end_date']); ?></td>
                     <td><?php echo htmlspecialchars($row['event_type']); ?></td>

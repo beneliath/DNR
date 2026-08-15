@@ -11,6 +11,7 @@ function expectCalendar($condition, $message) {
 
 $common = [
     'id' => 42,
+    'event_title' => 'Annual Leadership Summit',
     'organization_name' => 'Example, Inc.',
     'event_type' => 'conference',
     'confirmation_status' => 'under_review',
@@ -30,8 +31,12 @@ $all_day = $common + [
 ];
 $all_day_calendar = buildCalendar([$all_day]);
 expectCalendar(
-    str_contains($all_day_calendar, "SUMMARY:[Under Review] Example\\, Inc. — conference\r\n"),
-    'The event title should include a readable status and escaped organization name.'
+    str_contains($all_day_calendar, "SUMMARY:[Under Review] Annual Leadership Summit — Example\\, Inc.\r\n"),
+    'The calendar summary should use the event title with a readable status and escaped organization name.'
+);
+expectCalendar(
+    str_contains($all_day_calendar, 'Event title: Annual Leadership Summit'),
+    'The event title should be included in the calendar description.'
 );
 expectCalendar(
     str_contains($all_day_calendar, "DTSTART;VALUE=DATE:20260814\r\nDTEND;VALUE=DATE:20260816\r\n"),
@@ -52,6 +57,12 @@ expectCalendar(
 expectCalendar(
     str_contains($all_day_calendar, "LOCATION:123 Main St\\, Chicago\\, IL 60601\\, USA\r\n"),
     'Calendar locations should be assembled and escaped.'
+);
+
+$legacy_calendar = buildCalendar([array_merge($all_day, ['event_title' => ''])]);
+expectCalendar(
+    str_contains($legacy_calendar, "SUMMARY:[Under Review] Example\\, Inc. — conference\r\n"),
+    'Engagements without a title should retain the organization and event type fallback.'
 );
 
 foreach (explode("\r\n", $all_day_calendar) as $line) {

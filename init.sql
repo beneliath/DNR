@@ -79,6 +79,7 @@ CREATE TABLE IF NOT EXISTS organizations (
 CREATE TABLE IF NOT EXISTS engagements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     organization_id INT NOT NULL,
+    event_title VARCHAR(255),
     engagement_notes TEXT,
     event_start_date DATE NOT NULL,
     event_end_date DATE,

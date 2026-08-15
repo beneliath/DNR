@@ -194,6 +194,11 @@ $presentation_stmt->close();
     <h1>View Engagement<?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
 
     <div class="detail-group">
+        <?php if (!empty($engagement['event_title'])): ?>
+        <div class="detail-label">Event Title</div>
+        <div class="detail-value"><?php echo htmlspecialchars($engagement['event_title']); ?></div>
+        <?php endif; ?>
+
         <div class="detail-label">Organization</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['organization_name']); ?></div>
 
