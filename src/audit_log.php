@@ -133,7 +133,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audit Log - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
     <style>
         .page-heading,
         .audit-filters,
@@ -170,7 +170,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             text-decoration: none;
         }
         .filter-button.active {
-            background: var(--button-edit-color);
+            background-color: var(--button-edit-color) !important;
         }
         .audit-table-wrapper {
             overflow-x: auto;

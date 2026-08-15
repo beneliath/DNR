@@ -346,7 +346,8 @@ footer .ascii-art-container pre {
   background-color: var(--button-export-color) !important;
 }
 
-.sort-button.active {
+.sort-button.active,
+.filter-button.active {
   background-color: var(--button-edit-color) !important;
 }
 

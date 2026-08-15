@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Register - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

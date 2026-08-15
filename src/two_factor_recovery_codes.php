@@ -23,7 +23,7 @@ $destination = twoFactorRecoveryCodesDestination($initial_login);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-Factor Recovery Codes - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

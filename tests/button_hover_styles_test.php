@@ -9,6 +9,7 @@ function expectHoverStyle($condition, $message) {
 
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $users_page = file_get_contents(__DIR__ . '/../src/users.php');
+$audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 
 expectHoverStyle(
     strpos($stylesheet, 'html body :is(') !== false,
@@ -17,6 +18,14 @@ expectHoverStyle(
 expectHoverStyle(
     strpos($stylesheet, '.filter-button,') !== false,
     'Audit filters and pagination controls should use the shared button styles.'
+);
+expectHoverStyle(
+    strpos($stylesheet, ".sort-button.active,\n.filter-button.active {\n  background-color: var(--button-edit-color) !important;") !== false,
+    'Currently selected filter controls should use the blue active color.'
+);
+expectHoverStyle(
+    strpos($audit_log_page, "background-color: var(--button-edit-color) !important;") !== false,
+    'The Audit Log should apply its active selector color without relying on a cached stylesheet.'
 );
 expectHoverStyle(
     strpos($stylesheet, "):hover {\n  background-color: var(--button-hover-color) !important;") !== false,
@@ -33,7 +42,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.10') !== false,
+        strpos($page_source, 'assets/css/style.css?v=0.0.11') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }
