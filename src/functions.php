@@ -300,6 +300,15 @@ function requestIpAddress($server = null) {
         foreach (explode(',', $forwarded_for) as $forwarded_address) {
             $forwarded_address = trim($forwarded_address);
             if (filter_var($forwarded_address, FILTER_VALIDATE_IP)) {
+                $cloudflare_address = trim((string) ($server['HTTP_CF_CONNECTING_IP'] ?? ''));
+                $cloudflare_ray = trim((string) ($server['HTTP_CF_RAY'] ?? ''));
+                if (isTrustedCloudflareProxyAddress($forwarded_address)
+                    && filter_var($cloudflare_address, FILTER_VALIDATE_IP)
+                    && preg_match('/^[0-9a-f]{16,32}(?:-[a-z]{3})?$/i', $cloudflare_ray)
+                ) {
+                    return substr($cloudflare_address, 0, 45);
+                }
+
                 return substr($forwarded_address, 0, 45);
             }
         }
@@ -314,8 +323,71 @@ function isTrustedProxyAddress($ip_address) {
         $configured_proxies = '192.168.65.1';
     }
 
-    $trusted_proxies = array_filter(array_map('trim', explode(',', $configured_proxies)));
-    return in_array($ip_address, $trusted_proxies, true);
+    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+}
+
+function isTrustedCloudflareProxyAddress($ip_address) {
+    $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
+        $configured_proxies = '172.18.0.14';
+    }
+
+    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+}
+
+function isAddressInTrustedNetworks($ip_address, $configured_networks) {
+    if (!filter_var($ip_address, FILTER_VALIDATE_IP)) {
+        return false;
+    }
+
+    $trusted_networks = array_filter(array_map('trim', explode(',', $configured_networks)));
+    foreach ($trusted_networks as $trusted_network) {
+        if (ipAddressMatchesNetwork($ip_address, $trusted_network)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ipAddressMatchesNetwork($ip_address, $trusted_network) {
+    if (strpos($trusted_network, '/') === false) {
+        return $ip_address === $trusted_network;
+    }
+
+    [$network_address, $prefix_length] = array_map('trim', explode('/', $trusted_network, 2));
+    if (!ctype_digit($prefix_length)) {
+        return false;
+    }
+
+    $packed_address = @inet_pton($ip_address);
+    $packed_network = @inet_pton($network_address);
+    if ($packed_address === false
+        || $packed_network === false
+        || strlen($packed_address) !== strlen($packed_network)
+    ) {
+        return false;
+    }
+
+    $prefix_length = (int) $prefix_length;
+    $maximum_prefix_length = strlen($packed_address) * 8;
+    if ($prefix_length < 0 || $prefix_length > $maximum_prefix_length) {
+        return false;
+    }
+
+    $whole_bytes = intdiv($prefix_length, 8);
+    if (substr($packed_address, 0, $whole_bytes) !== substr($packed_network, 0, $whole_bytes)) {
+        return false;
+    }
+
+    $remaining_bits = $prefix_length % 8;
+    if ($remaining_bits === 0) {
+        return true;
+    }
+
+    $mask = (0xff << (8 - $remaining_bits)) & 0xff;
+    return (ord($packed_address[$whole_bytes]) & $mask)
+        === (ord($packed_network[$whole_bytes]) & $mask);
 }
 
 function auditLogSchemaAvailable(mysqli $conn) {

@@ -92,7 +92,8 @@ Configure these values as needed:
 - `PORT`: published HTTP port; defaults to `8080`.
 - `DEFAULT_SPEAKER`: default speaker shown in engagement forms.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
-- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's `192.168.65.1` gateway.
+- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's `192.168.65.1` gateway.
+- `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.14` tunnel address. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
 - `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD`: database connection settings.
 

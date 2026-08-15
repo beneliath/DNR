@@ -33,7 +33,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.9') !== false,
+        strpos($page_source, 'assets/css/style.css?v=0.0.10') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }

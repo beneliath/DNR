@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DNR - Login</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
+  <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
   <script>
     // Load theme before page renders
     const savedTheme = localStorage.getItem('theme');

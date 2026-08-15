@@ -32,13 +32,33 @@ expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to arch
 expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
 
 $original_trusted_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
+$original_cloudflare_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
 putenv('DNR_TRUSTED_PROXY_IPS=192.168.65.1');
+putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=172.18.0.0/16');
 expectTrue(
     requestIpAddress([
         'REMOTE_ADDR' => '192.168.65.1',
         'HTTP_X_FORWARDED_FOR' => '203.0.113.42, 192.168.65.1',
     ]) === '203.0.113.42',
     'A configured reverse proxy should supply the original client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '172.18.0.14',
+        'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
+        'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
+    ]) === '203.0.113.42',
+    'A trusted Cloudflare tunnel should supply the original public client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '192.168.1.56',
+        'HTTP_CF_CONNECTING_IP' => '203.0.113.99',
+        'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
+    ]) === '192.168.1.56',
+    'Cloudflare headers must be ignored unless the forwarded peer is a trusted tunnel.'
 );
 expectTrue(
     requestIpAddress([
@@ -51,6 +71,11 @@ if ($original_trusted_proxies === false) {
     putenv('DNR_TRUSTED_PROXY_IPS');
 } else {
     putenv('DNR_TRUSTED_PROXY_IPS=' . $original_trusted_proxies);
+}
+if ($original_cloudflare_proxies === false) {
+    putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+} else {
+    putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=' . $original_cloudflare_proxies);
 }
 
 $_SESSION['user_id'] = 1;

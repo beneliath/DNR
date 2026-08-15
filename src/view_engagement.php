@@ -103,7 +103,7 @@ $presentation_stmt->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
     <style>
         .view-container {
             max-width: 800px;

@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.10">
     <style>
         .success {
             background-color: #d4edda !important;
