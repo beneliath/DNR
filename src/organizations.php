@@ -84,6 +84,23 @@ if (!$result) {
             justify-content: space-between;
             gap: 15px;
         }
+        .list-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .control-label {
+            font-weight: normal;
+        }
         .organization-table th,
         .organization-table td {
             padding: 12px;
@@ -180,12 +197,20 @@ if (!$result) {
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <div class="sort-buttons">
-        <a href="?status=active&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-        <a href="?status=archived&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
-        <a href="?status=<?php echo $list_status; ?>&amp;name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button">
-            Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
-        </a>
+    <div class="list-controls">
+        <div class="control-group" aria-label="Organization archive status">
+            <a href="?status=active&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="?status=archived&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+        </div>
+
+        <div class="control-group" aria-label="Organization sort order">
+            <span class="control-label">Sort:</span>
+            <div class="sort-buttons">
+                <a href="?status=<?php echo $list_status; ?>&amp;name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button active" aria-current="true">
+                    Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
+                </a>
+            </div>
+        </div>
     </div>
 
     <table class="organization-table">

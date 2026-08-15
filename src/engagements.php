@@ -113,6 +113,23 @@ if (!$result) {
             justify-content: space-between;
             gap: 15px;
         }
+        .list-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .control-label {
+            font-weight: normal;
+        }
         .engagement-table th,
         .engagement-table td {
             padding: 12px;
@@ -222,26 +239,34 @@ if (!$result) {
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <div class="sort-buttons">
-        <a href="?status=active&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>"
-           class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-        <a href="?status=archived&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>"
-           class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
-        <a href="?status=<?php echo $list_status; ?>&sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>"
-           class="sort-button<?php echo $sort_column === 'org' ? ' active' : ''; ?>"
-           <?php echo $sort_column === 'org' ? 'aria-current="true"' : ''; ?>>
-            Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
-        </a>
-        <a href="?status=<?php echo $list_status; ?>&sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>"
-           class="sort-button<?php echo $sort_column === 'date' ? ' active' : ''; ?>"
-           <?php echo $sort_column === 'date' ? 'aria-current="true"' : ''; ?>>
-            Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
-        </a>
-        <a href="?status=<?php echo $list_status; ?>&sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>"
-           class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
-           <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
-            Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
-        </a>
+    <div class="list-controls">
+        <div class="control-group" aria-label="Engagement archive status">
+            <a href="?status=active&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>"
+               class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="?status=archived&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>"
+               class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+        </div>
+
+        <div class="control-group" aria-label="Engagement sort order">
+            <span class="control-label">Sort:</span>
+            <div class="sort-buttons">
+                <a href="?status=<?php echo $list_status; ?>&sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>"
+                   class="sort-button<?php echo $sort_column === 'org' ? ' active' : ''; ?>"
+                   <?php echo $sort_column === 'org' ? 'aria-current="true"' : ''; ?>>
+                    Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
+                </a>
+                <a href="?status=<?php echo $list_status; ?>&sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>"
+                   class="sort-button<?php echo $sort_column === 'date' ? ' active' : ''; ?>"
+                   <?php echo $sort_column === 'date' ? 'aria-current="true"' : ''; ?>>
+                    Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
+                </a>
+                <a href="?status=<?php echo $list_status; ?>&sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>"
+                   class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
+                   <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
+                    Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
+                </a>
+            </div>
+        </div>
     </div>
     <table class="engagement-table">
         <thead>

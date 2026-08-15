@@ -169,7 +169,7 @@ function contactsPageUrl(
             gap: 8px;
         }
         .control-label {
-            font-weight: bold;
+            font-weight: normal;
         }
         .sort-buttons {
             margin: 15px 0;
@@ -296,7 +296,6 @@ function contactsPageUrl(
 
     <div class="list-controls">
         <div class="control-group" aria-label="Contact archive status">
-            <span class="control-label">Status:</span>
             <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active'), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
             <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived'), ENT_QUOTES, 'UTF-8'); ?>"
