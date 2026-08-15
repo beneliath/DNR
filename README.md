@@ -113,7 +113,7 @@ Configure these values as needed:
 
 ### Usage
 
-Authenticated users can open **Calendar** in the navigation to copy the single shared subscription URL or open it in a calendar app. The public feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Title-Event Type-Event Status` when an event title is set and `Organization-Event Type-Event Status` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+Authenticated users can open **Calendar** in the navigation to copy the single shared subscription URL or open it in a calendar app. The public feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 
 The subscription URL is public and does not require a DNR login. Anyone with it can read the calendar-safe event fields. Contacts, chronological notes, travel, lodging, and compensation are never included.
 

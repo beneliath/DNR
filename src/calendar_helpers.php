@@ -87,7 +87,7 @@ function calendarEventLines(array $engagement) {
     $event_type = trim((string) ($engagement['event_type'] ?? ''));
     $calendar_title = $event_title !== '' ? $event_title : $organization;
     $calendar_type = $event_type !== '' ? $event_type : 'Unspecified';
-    $summary = "{$calendar_title}-{$calendar_type}-{$status}";
+    $summary = "{$status}-{$calendar_title}-{$calendar_type}";
     $updated_timestamp = $engagement['calendar_updated_at'] ?? null;
     $updated_at = calendarUtcTimestamp($updated_timestamp);
 

@@ -31,8 +31,8 @@ $all_day = $common + [
 ];
 $all_day_calendar = buildCalendar([$all_day]);
 expectCalendar(
-    str_contains($all_day_calendar, "SUMMARY:Annual Leadership Summit-conference-Under Review\r\n"),
-    'The calendar summary should use the event title, event type, and readable status.'
+    str_contains($all_day_calendar, "SUMMARY:Under Review-Annual Leadership Summit-conference\r\n"),
+    'The calendar summary should use the readable status, event title, and event type.'
 );
 expectCalendar(
     str_contains($all_day_calendar, 'Event title: Annual Leadership Summit'),
@@ -61,8 +61,8 @@ expectCalendar(
 
 $legacy_calendar = buildCalendar([array_merge($all_day, ['event_title' => ''])]);
 expectCalendar(
-    str_contains($legacy_calendar, "SUMMARY:Example\\, Inc.-conference-Under Review\r\n"),
-    'Engagements without a title should use the organization, event type, and readable status.'
+    str_contains($legacy_calendar, "SUMMARY:Under Review-Example\\, Inc.-conference\r\n"),
+    'Engagements without a title should use the readable status, organization, and event type.'
 );
 
 foreach (explode("\r\n", $all_day_calendar) as $line) {

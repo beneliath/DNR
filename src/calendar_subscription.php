@@ -19,7 +19,7 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 <?php include 'templates/header.php'; ?>
 <div class="container calendar-subscription">
     <h1>Subscribe to DNR Events</h1>
-    <p>This shared calendar contains every active (non-archived) DNR engagement. Calendar entries are titled “Event Title-Event Type-Event Status,” or “Organization-Event Type-Event Status” when no event title is set. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
+    <p>This shared calendar contains every active (non-archived) DNR engagement. Calendar entries are titled “Event Status-Event Title-Event Type,” or “Event Status-Organization-Event Type” when no event title is set. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
 
     <label for="calendar-url"><strong>Calendar subscription URL</strong></label>
     <div class="calendar-url-row">
