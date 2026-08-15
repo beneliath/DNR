@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html>
 <head>
     <title>Edit User - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <option value="reviewer" <?php if ($user['role'] === 'reviewer') echo 'selected'; ?>>Reviewer</option>
             </select>
         </label><br>
-        <input type="submit" value="Save Changes">
+        <input type="submit" value="Save Changes" class="save-button">
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

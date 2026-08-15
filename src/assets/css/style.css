@@ -9,7 +9,27 @@
   --bg-color: var(--light-bg-color);
   --text-color: var(--light-text-color);
   --link-color: var(--light-link-color);
-  --button-hover-color: #FF9800;
+  /* Theme-independent button palette */
+  --button-save-color: #D9AA05;
+  --button-view-color: #34C749;
+  --button-edit-color: #1F57E7;
+  --button-delete-color: #FD0B00;
+  --button-cancel-color: #F04251;
+  --button-add-color: #818386;
+  --button-reset-password-color: #673AB7;
+  --button-reset-two-factor-color: #9C27B0;
+  --button-hover-color: #F77F00;
+  --button-neutral-color: #666666;
+  --button-primary-color: #4A90E2;
+  --button-security-color: #2196F3;
+  --button-danger-color: #F44336;
+  --button-text-color: #ffffff;
+
+  /* Manage Users is the sizing standard for every visible button. */
+  --button-padding: 5px 10px;
+  --button-font-size: 0.9em;
+  --button-line-height: 1.6;
+  --button-border-radius: 4px;
   
   /* Error colors */
   --error-color: #f44336;
@@ -100,37 +120,107 @@ nav ul li a {
 }
 
 /* Buttons */
-.add-org-button,
-input[type="submit"] {
-  display: inline-block;
-  padding: 15px 20px;
-  font-size: 16px;
-  background-color: #008cba;
-  color: #fff;
-  text-decoration: none;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  text-align: center;
-  margin-left: 10px; /* Add margin to space the button */
-}
-.save-event-button,
-input[type="submit"] {
-  display: inline-flex;
+:where(
+  button:not(.logout-link-button),
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"],
+  [role="button"],
+  .button-save,
+  .button-view,
+  .button-edit,
+  .button-delete,
+  .button-cancel,
+  .button-add,
+  .register-button,
+  .add-org-button,
+  .save-event-button,
+  .save-button,
+  .action-button,
+  .sort-button,
+  .cancel-button,
+  .add-contact-btn,
+  .remove-contact-btn,
+  .add-presentation-btn,
+  .remove-presentation-btn,
+  .security-button,
+  .danger-button
+) {
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
-  padding: 20px 40px;
-  font-size: 16px;
-  background-color: #008cba;
-  color: #fff;
-  text-decoration: none;
+  box-sizing: border-box;
+  height: auto !important;
+  padding: var(--button-padding) !important;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--button-border-radius) !important;
+  background-color: var(--button-neutral-color) !important;
+  color: var(--button-text-color) !important;
+  font-family: inherit;
+  font-size: var(--button-font-size) !important;
+  line-height: var(--button-line-height) !important;
+  text-align: center;
+  text-decoration: none;
+  white-space: nowrap;
   cursor: pointer;
-  margin: 0;
-  position: relative;
-  bottom: auto;
-  transform: none;
+}
+
+.login-button {
+  background-color: var(--button-primary-color) !important;
+}
+
+.security-button {
+  background-color: var(--button-security-color) !important;
+}
+
+.danger-button {
+  background-color: var(--button-danger-color) !important;
+}
+
+/* Meaning-specific actions take precedence over their contextual button style. */
+.save-button,
+.button-save {
+  background-color: var(--button-save-color) !important;
+}
+
+.view-button,
+.button-view {
+  background-color: var(--button-view-color) !important;
+}
+
+.edit-button,
+.button-edit {
+  background-color: var(--button-edit-color) !important;
+}
+
+.delete-button,
+.button-delete,
+.remove-contact-btn,
+.remove-presentation-btn {
+  background-color: var(--button-delete-color) !important;
+}
+
+.cancel-button,
+.button-cancel,
+.login-cancel-button,
+.setup-2fa-cancel-button {
+  background-color: var(--button-cancel-color) !important;
+}
+
+.register-button,
+.button-add,
+.add-org-button,
+.add-contact-btn,
+.add-presentation-btn {
+  background-color: var(--button-add-color) !important;
+}
+
+.reset-password-button {
+  background-color: var(--button-reset-password-color) !important;
+}
+
+.reset-two-factor-button {
+  background-color: var(--button-reset-two-factor-color) !important;
 }
 
 .save-button-container {
@@ -143,36 +233,6 @@ input[type="submit"] {
   position: relative;
   bottom: auto;
   transform: none;
-}
-
-.add-org-button:hover,
-input[type="submit"]:hover {
-  background-color: var(--button-hover-color);
-}
-
-input[type="submit"] {
-  background-color: #4CAF50;
-}
-
-input[type="submit"]:hover {
-  background-color: var(--button-hover-color);
-}
-
-/* Save button styling */
-.save-button {
-    background-color: #4CAF50;
-    padding: 20px 40px;
-    font-size: 16px;
-    color: #fff;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    margin: 0;
-    display: inline-block;
-}
-
-.save-button:hover {
-    background-color: var(--button-hover-color);
 }
 
 .form-group {
@@ -395,7 +455,7 @@ label[for="caller_name"],
   padding: 15px;
   border: none;
   border-radius: 25px;
-  background-color: #4a90e2;
+  background-color: var(--button-primary-color);
   color: white;
   font-size: 20px;
   cursor: pointer;
@@ -449,7 +509,7 @@ label[for="caller_name"],
   padding: 15px;
   border: none;
   border-radius: 25px;
-  background-color: #f44336;
+  background-color: var(--button-cancel-color);
   color: white;
   font-size: 20px;
   cursor: pointer;
@@ -503,11 +563,11 @@ label[for="caller_name"],
 }
 
 .security-button {
-  background-color: #2196F3;
+  background-color: var(--button-security-color);
 }
 
 .danger-button {
-  background-color: #f44336;
+  background-color: var(--button-danger-color);
 }
 
 .security-button:not(.setup-2fa-enable-button):hover,
@@ -651,26 +711,19 @@ html.dark-mode .fullscreen-center {
   color: var(--dark-text-color) !important;
 }
 
-/* Dark mode button styles */
-.dark-mode .add-org-button,
-.dark-mode .save-event-button,
-.dark-mode input[type="submit"] {
-  background-color: #888888 !important;
-  color: #fff !important;
-}
-
-.dark-mode .add-org-button:hover,
-.dark-mode .save-event-button:hover,
-.dark-mode input[type="submit"]:hover {
-  background-color: var(--button-hover-color) !important;
-}
-
 /* Consistent button hover feedback in both light and dark themes */
-button:not(:disabled):not(.theme-toggle-button):not(.logout-link-button):not(.link-button):not(.setup-2fa-enable-button):not(.setup-2fa-cancel-button):hover,
+button:not(:disabled):not(.logout-link-button):not(.link-button):hover,
 input[type="button"]:not(:disabled):hover,
 input[type="submit"]:not(:disabled):hover,
 input[type="reset"]:not(:disabled):hover,
 [role="button"]:hover,
+.button-save:hover,
+.button-view:hover,
+.button-edit:hover,
+.button-delete:hover,
+.button-cancel:hover,
+.button-add:hover,
+.register-button:hover,
 .add-org-button:hover,
 .save-event-button:hover,
 .save-button:hover,
@@ -680,17 +733,10 @@ input[type="reset"]:not(:disabled):hover,
 .add-contact-btn:hover,
 .remove-contact-btn:hover,
 .add-presentation-btn:hover,
-.remove-presentation-btn:hover {
+.remove-presentation-btn:hover,
+.security-button:hover,
+.danger-button:hover {
   background-color: var(--button-hover-color) !important;
-}
-
-/* Account Security actions retain their meaning-specific colors on hover. */
-.two-factor-settings-page .security-button:hover {
-  background-color: #2196F3 !important;
-}
-
-.two-factor-settings-page .danger-button:hover {
-  background-color: #f44336 !important;
 }
 
 /* Ensure login container maintains its style in both modes */

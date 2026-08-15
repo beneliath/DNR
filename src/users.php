@@ -36,7 +36,7 @@ if (!$users) {
 <html>
 <head>
     <title>Manage Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.4">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .user-details {
             margin-bottom: 20px;
@@ -95,16 +95,16 @@ if (!$users) {
             white-space: nowrap;
         }
         .user-actions .edit-button {
-            background-color: #2196F3;
+            background-color: var(--button-edit-color);
         }
         .user-actions .reset-password-button {
-            background-color: #673AB7;
+            background-color: var(--button-reset-password-color);
         }
         .user-actions .reset-two-factor-button {
-            background-color: #9C27B0;
+            background-color: var(--button-reset-two-factor-color);
         }
         .user-actions .delete-button {
-            background-color: #f44336;
+            background-color: var(--button-delete-color);
         }
         .link-button {
             border: 0;

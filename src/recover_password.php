@@ -166,7 +166,7 @@ $stage = $recovery['stage'] ?? 'start';
 <head>
     <meta charset="UTF-8">
     <title>Recover Password - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.8">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');

@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Reset User Password - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.8">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -143,7 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="text" name="admin_code" id="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
 
             <button type="submit" class="security-button">Set temporary password</button>
-            <a href="users.php" class="danger-button">Cancel</a>
+            <a href="users.php" class="danger-button cancel-button">Cancel</a>
         </form>
     </section>
 </main>

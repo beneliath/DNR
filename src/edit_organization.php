@@ -123,7 +123,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html>
 <head>
     <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -195,10 +195,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             box-sizing: border-box;
         }
         .back-button {
-            background-color: #666;
+            background-color: var(--button-neutral-color);
         }
         .save-button {
-            background-color: #4CAF50;
+            background-color: var(--button-save-color);
         }
         .action-button:hover {
             background-color: var(--button-hover-color);
@@ -305,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="action-buttons">
-            <a href="<?php echo $cancel_url; ?>" class="action-button back-button">Cancel</a>
+            <a href="<?php echo $cancel_url; ?>" class="action-button back-button cancel-button">Cancel</a>
             <input type="submit" value="Save Changes" class="action-button save-button">
         </div>
     </form>

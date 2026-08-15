@@ -71,7 +71,7 @@ if (!$result) {
 <html>
 <head>
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .engagement-table {
             width: 100%;
@@ -108,7 +108,7 @@ if (!$result) {
         }
         .sort-button {
             padding: 8px 15px;
-            background-color: #666;
+            background-color: var(--button-neutral-color);
             color: white;
             border: none;
             border-radius: 4px;
@@ -141,13 +141,13 @@ if (!$result) {
             white-space: nowrap;
         }
         .edit-button {
-            background-color: #2196F3;
+            background-color: var(--button-edit-color);
         }
         .delete-button {
-            background-color: #f44336;
+            background-color: var(--button-delete-color);
         }
         .view-button {
-            background-color: #4CAF50;
+            background-color: var(--button-view-color);
         }
         .action-button:hover {
             background-color: var(--button-hover-color);

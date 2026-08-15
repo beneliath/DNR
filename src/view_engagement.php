@@ -91,7 +91,7 @@ $presentation_stmt->close();
 <html>
 <head>
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .view-container {
             max-width: 800px;
@@ -130,13 +130,13 @@ $presentation_stmt->close();
             font-size: 14px;
         }
         .back-button {
-            background-color: #666;
+            background-color: var(--button-neutral-color);
         }
         .back-button:hover {
             background-color: var(--button-hover-color);
         }
         .edit-button {
-            background-color: #357abd;
+            background-color: var(--button-edit-color);
         }
         .edit-button:hover {
             background-color: var(--button-hover-color);

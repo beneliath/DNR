@@ -184,7 +184,7 @@ if ($enrollment) {
 <head>
     <meta charset="UTF-8">
     <title>Set Up Two-Factor Authentication - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.9">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
@@ -246,7 +246,7 @@ if ($enrollment) {
     <form method="post" action="setup_2fa.php" class="security-cancel-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="action" value="cancel">
-        <button type="submit" class="danger-button setup-2fa-cancel-button">Cancel</button>
+        <button type="submit" class="danger-button setup-2fa-cancel-button cancel-button">Cancel</button>
     </form>
 </main>
 <?php if (!$is_pending_login) include 'templates/footer.php'; ?>

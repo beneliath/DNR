@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <html>
 <head>
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
@@ -901,7 +901,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             margin: 0;
         }
         .add-presentation-btn {
-            background-color: #666;
+            background-color: var(--button-add-color);
             color: white;
             padding: 8px 15px;
             border: none;
@@ -919,7 +919,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             outline: none;
         }
         .remove-presentation-btn {
-            background-color: #f44336;
+            background-color: var(--button-delete-color);
             color: white;
             padding: 5px 10px;
             border: none;
@@ -1246,12 +1246,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
     .form-row .save-button {
         margin: 0 !important;
-        height: 45px !important;
-        padding: 0 20px !important;
+        height: auto !important;
+        padding: var(--button-padding) !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        font-size: 16px !important;
+        font-size: var(--button-font-size) !important;
+        line-height: var(--button-line-height) !important;
     }
 
     /* Reset and contain all event field styles in a single block */
@@ -1291,7 +1292,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     }
 
     .add-presentation-btn {
-        background-color: #666;
+        background-color: var(--button-add-color);
         color: white;
         padding: 8px 15px;
         border: none;

@@ -53,7 +53,7 @@ $contact_stmt->close();
 <html>
 <head>
     <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .organization-details {
             background-color: #fff;
@@ -121,10 +121,10 @@ $contact_stmt->close();
             margin-right: 10px;
         }
         .back-button {
-            background-color: #666;
+            background-color: var(--button-neutral-color);
         }
         .edit-button {
-            background-color: #2196F3;
+            background-color: var(--button-edit-color);
         }
         .action-button:hover {
             background-color: var(--button-hover-color);

@@ -188,7 +188,7 @@ if (isset($_SESSION['success_message'])) {
 <html>
 <head>
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -404,7 +404,7 @@ if (isset($_SESSION['success_message'])) {
         }
 
         .add-contact-btn {
-            background-color: #666;
+            background-color: var(--button-add-color);
             color: white;
             padding: 5px 15px;
             border: none;
@@ -418,7 +418,7 @@ if (isset($_SESSION['success_message'])) {
             background-color: var(--button-hover-color);
         }
         .remove-contact-btn {
-            background-color: #f44336;
+            background-color: var(--button-delete-color);
             color: white;
             padding: 5px 10px;
             border: none;

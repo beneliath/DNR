@@ -20,7 +20,7 @@ header('Pragma: no-cache');
 <head>
     <meta charset="UTF-8">
     <title>Two-Factor Recovery Codes - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.2.2">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -33,7 +33,7 @@ header('Pragma: no-cache');
             <code><?php echo htmlspecialchars($code); ?></code>
         <?php endforeach; ?>
     </div>
-    <p><a href="two_factor_settings.php" class="security-button">I saved these codes</a></p>
+    <p><a href="two_factor_settings.php" class="security-button save-button">I saved these codes</a></p>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>
