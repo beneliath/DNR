@@ -288,9 +288,34 @@ function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null
     return $success;
 }
 
-function requestIpAddress() {
-    $ip_address = trim((string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-    return $ip_address === '' ? null : substr($ip_address, 0, 45);
+function requestIpAddress($server = null) {
+    $server = is_array($server) ? $server : $_SERVER;
+    $remote_address = trim((string) ($server['REMOTE_ADDR'] ?? ''));
+    $remote_address = filter_var($remote_address, FILTER_VALIDATE_IP)
+        ? $remote_address
+        : null;
+
+    if ($remote_address !== null && isTrustedProxyAddress($remote_address)) {
+        $forwarded_for = (string) ($server['HTTP_X_FORWARDED_FOR'] ?? '');
+        foreach (explode(',', $forwarded_for) as $forwarded_address) {
+            $forwarded_address = trim($forwarded_address);
+            if (filter_var($forwarded_address, FILTER_VALIDATE_IP)) {
+                return substr($forwarded_address, 0, 45);
+            }
+        }
+    }
+
+    return $remote_address === null ? null : substr($remote_address, 0, 45);
+}
+
+function isTrustedProxyAddress($ip_address) {
+    $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
+    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
+        $configured_proxies = '192.168.65.1';
+    }
+
+    $trusted_proxies = array_filter(array_map('trim', explode(',', $configured_proxies)));
+    return in_array($ip_address, $trusted_proxies, true);
 }
 
 function auditLogSchemaAvailable(mysqli $conn) {

@@ -14,6 +14,8 @@ services:
     environment:
       - DEFAULT_SPEAKER=Default Speaker # or whatever default speaker name you want
       - DNR_2FA_ENCRYPTION_KEY_FILE=/run/secrets/dnr_2fa_encryption_key
+      - DNR_TRUSTED_PROXY_IPS=${DNR_TRUSTED_PROXY_IPS:-192.168.65.1}
+      - DNR_TIMEZONE=${DNR_TIMEZONE:-America/Chicago}
 
   db:
     image: mysql:8.0

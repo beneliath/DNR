@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 startSecureSession();
 
@@ -9,6 +10,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 requireValidCsrfToken();
+
+if (isLoggedIn()) {
+    $user_id = (int) $_SESSION['user_id'];
+    $username = (string) ($_SESSION['username'] ?? '');
+    setDatabaseAuditContext($conn, $user_id, $username);
+    recordAuditEvent($conn, [
+        'event_category' => 'login',
+        'event_type' => 'logout',
+        'actor_user_id' => $user_id,
+        'actor_username' => $username,
+        'target_user_id' => $user_id,
+        'target_username' => $username,
+        'entity_type' => 'users',
+        'entity_id' => $user_id,
+        'entity_label' => $username,
+        'details' => 'Session ended by user',
+    ]);
+}
 
 // Unset all session variables
 session_unset();

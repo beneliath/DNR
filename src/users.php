@@ -38,7 +38,7 @@ if (!$users) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
     <style>
         .page-heading {
             display: grid;
@@ -55,9 +55,6 @@ if (!$users) {
         .audit-log-link {
             justify-self: center;
             background-color: #001489 !important;
-        }
-        .audit-log-link:hover {
-            background-color: #001f9e !important;
         }
         .user-details {
             margin-bottom: 20px;

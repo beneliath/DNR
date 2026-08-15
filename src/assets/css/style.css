@@ -275,6 +275,7 @@ footer .ascii-art-container pre {
   .save-button,
   .action-button,
   .sort-button,
+  .filter-button,
   .cancel-button,
   .add-contact-btn,
   .remove-contact-btn,
@@ -875,34 +876,41 @@ html.dark-mode .fullscreen-center {
   color: var(--dark-text-color) !important;
 }
 
-/* Consistent button hover feedback in both light and dark themes */
-button:not(:disabled):not(.logout-link-button):not(.link-button):hover,
-input[type="button"]:not(:disabled):hover,
-input[type="submit"]:not(:disabled):hover,
-input[type="reset"]:not(:disabled):hover,
-[role="button"]:hover,
-.button-save:hover,
-.button-view:hover,
-.button-edit:hover,
-.button-archive:hover,
-.button-delete:hover,
-.button-cancel:hover,
-.button-add:hover,
-.register-button:hover,
-.add-org-button:hover,
-.save-event-button:hover,
-.save-button:hover,
-.action-button:hover,
-.sort-button:hover,
-.cancel-button:hover,
-.add-contact-btn:hover,
-.remove-contact-btn:hover,
-.add-presentation-btn:hover,
-.remove-presentation-btn:hover,
-.security-button:hover,
-.archive-button:hover,
-.restore-button:hover,
-.danger-button:hover {
+/*
+ * Consistent button hover feedback in both themes. The html/body prefix and
+ * :is() specificity intentionally outrank page-local .active and hover rules,
+ * including selectors whose normal state uses !important.
+ */
+html body :is(
+  button:not(:disabled):not(.logout-link-button):not(.link-button),
+  input[type="button"]:not(:disabled),
+  input[type="submit"]:not(:disabled),
+  input[type="reset"]:not(:disabled),
+  [role="button"],
+  .button-save,
+  .button-view,
+  .button-edit,
+  .button-archive,
+  .button-delete,
+  .button-cancel,
+  .button-add,
+  .register-button,
+  .add-org-button,
+  .save-event-button,
+  .save-button,
+  .action-button,
+  .sort-button,
+  .filter-button,
+  .cancel-button,
+  .add-contact-btn,
+  .remove-contact-btn,
+  .add-presentation-btn,
+  .remove-presentation-btn,
+  .security-button,
+  .archive-button,
+  .restore-button,
+  .danger-button
+):hover {
   background-color: var(--button-hover-color) !important;
 }
 

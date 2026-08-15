@@ -106,7 +106,7 @@ if (!$result) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
     <style>
         .engagement-table {
             width: 100%;

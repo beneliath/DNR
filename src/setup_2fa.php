@@ -187,7 +187,7 @@ if ($enrollment) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Set Up Two-Factor Authentication - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');

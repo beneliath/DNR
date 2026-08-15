@@ -50,7 +50,7 @@ unset($_SESSION['success_message']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
     <style>
         .contact-details {
             background-color: #fff;

@@ -31,6 +31,28 @@ expectTrue(!canDeleteEntries('editor'), 'Editors must not permanently delete ent
 expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to archive and restore entries.');
 expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
 
+$original_trusted_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
+putenv('DNR_TRUSTED_PROXY_IPS=192.168.65.1');
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '203.0.113.42, 192.168.65.1',
+    ]) === '203.0.113.42',
+    'A configured reverse proxy should supply the original client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '198.51.100.20',
+        'HTTP_X_FORWARDED_FOR' => '203.0.113.99',
+    ]) === '198.51.100.20',
+    'Forwarding headers from an untrusted peer must be ignored.'
+);
+if ($original_trusted_proxies === false) {
+    putenv('DNR_TRUSTED_PROXY_IPS');
+} else {
+    putenv('DNR_TRUSTED_PROXY_IPS=' . $original_trusted_proxies);
+}
+
 $_SESSION['user_id'] = 1;
 $_SESSION['auth_complete'] = true;
 expectTrue(!isLoggedIn(), 'A session without an authentication version must not be trusted.');

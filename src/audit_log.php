@@ -4,6 +4,8 @@ require_once __DIR__ . '/functions.php';
 startSecureSession();
 requireAdmin();
 requireAuditLogSchema($conn);
+header('Cache-Control: no-store, max-age=0');
+header('Pragma: no-cache');
 
 $allowed_categories = ['login', 'database_change', 'security'];
 $allowed_page_sizes = [20, 50, 100];
@@ -94,6 +96,13 @@ $security_event_labels = [
     'recovery_code_login' => 'Recovery-code login verification succeeded',
     'recovery_codes_regenerated' => 'Recovery codes regenerated',
 ];
+$audit_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
+try {
+    $audit_timezone = new DateTimeZone($audit_timezone_name);
+} catch (Throwable $exception) {
+    $audit_timezone_name = 'UTC';
+    $audit_timezone = new DateTimeZone('UTC');
+}
 
 function auditLogPageUrl($page, $category, $page_size) {
     $parameters = [
@@ -105,6 +114,18 @@ function auditLogPageUrl($page, $category, $page_size) {
     }
     return 'audit_log.php?' . http_build_query($parameters);
 }
+
+function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
+    try {
+        $utc_timestamp = new DateTimeImmutable((string) $created_at, new DateTimeZone('UTC'));
+        return [
+            'display' => $utc_timestamp->setTimezone($display_timezone)->format('Y-m-d H:i:s T'),
+            'utc' => $utc_timestamp->format('Y-m-d H:i:s') . ' UTC',
+        ];
+    } catch (Throwable $exception) {
+        return ['display' => (string) $created_at, 'utc' => ''];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -112,7 +133,7 @@ function auditLogPageUrl($page, $category, $page_size) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audit Log - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.9">
     <style>
         .page-heading,
         .audit-filters,
@@ -224,7 +245,7 @@ function auditLogPageUrl($page, $category, $page_size) {
     <div class="page-heading">
         <div>
             <h1>Audit Log</h1>
-            <p>Successful logins and database changes are timestamped in UTC.</p>
+            <p>Login, logout, and database activity. Newest entries appear first.</p>
         </div>
         <a href="users.php" class="button-add">Back to Users</a>
     </div>
@@ -255,7 +276,7 @@ function auditLogPageUrl($page, $category, $page_size) {
         <table class="audit-table">
             <thead>
                 <tr>
-                    <th>Timestamp (UTC)</th>
+                    <th>Timestamp (<?php echo htmlspecialchars($audit_timezone_name, ENT_QUOTES, 'UTF-8'); ?>)</th>
                     <th>Category</th>
                     <th>User</th>
                     <th>Event</th>
@@ -273,7 +294,9 @@ function auditLogPageUrl($page, $category, $page_size) {
                         $actor = $entry['actor_username'] ?: 'System';
                         $event_label = $entry['event_type'];
                         if ($entry_category === 'login') {
-                            $event_label = 'Successful login';
+                            $event_label = $entry['event_type'] === 'logout'
+                                ? 'Logout'
+                                : 'Successful login';
                         } elseif ($entry_category === 'database_change') {
                             $event_label = $database_action_labels[$entry['event_type']] ?? ucfirst($entry['event_type']);
                         } elseif (isset($security_event_labels[$entry['event_type']])) {
@@ -295,9 +318,15 @@ function auditLogPageUrl($page, $category, $page_size) {
                         } elseif (!empty($entry['target_username'])) {
                             $record = 'User: ' . $entry['target_username'];
                         }
+                        $timestamps = auditLogTimestamps($entry['created_at'], $audit_timezone);
                         ?>
                         <tr>
-                            <td class="audit-timestamp"><?php echo htmlspecialchars($entry['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td class="audit-timestamp">
+                                <?php echo htmlspecialchars($timestamps['display'], ENT_QUOTES, 'UTF-8'); ?>
+                                <?php if ($timestamps['utc'] !== ''): ?>
+                                    <span class="audit-detail"><?php echo htmlspecialchars($timestamps['utc'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td>
                                 <span class="audit-badge audit-badge-<?php echo htmlspecialchars($entry_category, ENT_QUOTES, 'UTF-8'); ?>">
                                     <?php echo htmlspecialchars($category_labels[$entry_category] ?? ucfirst($entry_category), ENT_QUOTES, 'UTF-8'); ?>

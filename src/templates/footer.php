@@ -37,8 +37,8 @@
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'                repo:  https://github.com/beneliath/DNR
   (il),-''  (li),'  ((!.-'                 title:  DNR - deploy & report
-                                         version:  0.0.8
-Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 15:01:11
+                                         version:  0.0.9
+Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 15:32:56
          Do you see Him?
     </pre>
     </div>
