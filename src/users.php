@@ -35,9 +35,15 @@ if (!$users) {
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Manage Users - DNR</title>
+    <title>Users - DNR</title>
     <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <style>
+        .page-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
         .user-details {
             margin-bottom: 20px;
             padding: 10px;
@@ -124,7 +130,10 @@ if (!$users) {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h1>Manage Users</h1>
+    <div class="page-heading">
+        <h1>Users</h1>
+        <a href="register.php" class="button-add">Add User</a>
+    </div>
 
     <?php if (isset($_GET['two_factor_reset'])): ?>
         <p class="success">The user's two-factor authentication was reset.</p>
@@ -132,7 +141,6 @@ if (!$users) {
         <p class="success">The user's temporary password was set. Their existing sessions were invalidated.</p>
     <?php endif; ?>
 
-    <h2>Users List</h2>
     <div class="users-list">
         <?php while ($user = $users->fetch_assoc()) { ?>
             <div class="user-details">

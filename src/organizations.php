@@ -24,34 +24,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_organization']
     exit();
 }
 
-// Retrieve organizations
-$name_sort = isset($_GET['name_sort']) ? $_GET['name_sort'] : 'asc';
-$date_sort = isset($_GET['date_sort']) ? $_GET['date_sort'] : 'desc';
-
-// Determine which column to sort by based on which button was clicked
-$sort_column = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'date';
-
-// Determine sort order based on column
-if ($sort_column === 'name') {
-    $sort_order = $name_sort;
-} elseif ($sort_column === 'date') {
-    $sort_order = $date_sort;
-} else {
-    $sort_order = 'desc';
-}
-
-// Build the ORDER BY clause safely
-if ($sort_column === 'name') {
-    $order_by = 'organization_name';
-} elseif ($sort_column === 'date') {
-    $order_by = 'created_at';
-} else {
-    $order_by = 'created_at';
-}
-$order_direction = ($sort_order === 'asc' ? 'ASC' : 'DESC');
+// Retrieve organizations using an allowlisted name-sort direction.
+$name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
+$order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
 
 // Prepare and execute the query
-$query = "SELECT * FROM organizations WHERE is_deleted = 0 ORDER BY {$order_by} {$order_direction}";
+$query = "SELECT * FROM organizations
+          WHERE is_deleted = 0
+          ORDER BY organization_name {$order_direction}, id {$order_direction}";
 
 $result = $conn->query($query);
 if (!$result) {
@@ -68,6 +48,12 @@ if (!$result) {
             width: 100%;
             border-collapse: collapse;
             margin-top: 20px;
+        }
+        .page-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
         }
         .organization-table th,
         .organization-table td {
@@ -126,18 +112,21 @@ if (!$result) {
             background-color: var(--button-hover-color);
         }
         .sort-buttons {
-            margin-bottom: 20px;
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
         }
-        .sort-buttons button {
-            margin-right: 10px;
-            padding: 5px 10px;
+        .sort-button {
+            padding: 8px 15px;
             background-color: var(--button-neutral-color);
             color: white;
             border: none;
             border-radius: 4px;
             cursor: pointer;
+            font-size: 14px;
+            display: inline-block;
         }
-        .sort-buttons button:hover {
+        .sort-button:hover {
             background-color: var(--button-hover-color);
         }
     </style>
@@ -145,15 +134,17 @@ if (!$result) {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h2>Organizations</h2>
+    <div class="page-heading">
+        <h1>Organizations</h1>
+        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+            <a href="add_organization.php" class="button-add">Add Organization</a>
+        <?php endif; ?>
+    </div>
 
     <div class="sort-buttons">
-        <button onclick="window.location.href='organizations.php?sort_by=name&name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>'">
-            Name <?php echo $sort_column === 'name' ? ($name_sort === 'asc' ? '↑' : '↓') : ''; ?>
-        </button>
-        <button onclick="window.location.href='organizations.php?sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>'">
-            Date/Time Created <?php echo $sort_column === 'date' ? ($date_sort === 'asc' ? '↑' : '↓') : ''; ?>
-        </button>
+        <a href="?name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button">
+            Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
+        </a>
     </div>
 
     <table class="organization-table">
@@ -180,7 +171,10 @@ if (!$result) {
                     <td>
                         <?php
                         // Fetch contacts for this organization
-                        $contact_query = "SELECT contact_name FROM contacts WHERE organization_id = ? ORDER BY contact_name";
+                        $contact_query = "SELECT contact_first_name, contact_last_name
+                                          FROM contacts
+                                          WHERE organization_id = ?
+                                          ORDER BY contact_last_name, contact_first_name";
                         $contact_stmt = $conn->prepare($contact_query);
                         $contact_stmt->bind_param("i", $org['id']);
                         $contact_stmt->execute();
@@ -188,7 +182,11 @@ if (!$result) {
 
                         $contact_names = [];
                         while ($contact = $contacts_result->fetch_assoc()) {
-                            $contact_names[] = htmlspecialchars($contact['contact_name']);
+                            $contact_names[] = htmlspecialchars(
+                                trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
+                                ENT_QUOTES,
+                                'UTF-8'
+                            );
                         }
                         echo implode(', ', $contact_names);
                         ?>
@@ -200,7 +198,7 @@ if (!$result) {
                                 <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
                             <?php if ($user_role === 'admin'): ?>
-                                <form method="post" action="organizations.php" onsubmit="return confirm('Are you sure you want to delete this organization?');">
+                                <form method="post" action="organizations.php" data-delete-confirmation="Are you sure you want to delete this organization?">
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                     <button type="submit" name="delete_organization" class="action-button delete-button">Delete</button>

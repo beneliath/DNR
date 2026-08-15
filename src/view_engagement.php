@@ -38,7 +38,9 @@ if ($result->num_rows === 0) {
 $engagement = $result->fetch_assoc();
 
 // Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts WHERE organization_id = ? ORDER BY contact_name";
+$contact_query = "SELECT * FROM contacts
+                  WHERE organization_id = ?
+                  ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
 if ($contact_stmt === false) {
     die("Error preparing contacts statement: " . $conn->error);
@@ -199,7 +201,11 @@ $presentation_stmt->close();
         <div class="detail-value contacts-list">
             <?php while ($contact = $contacts_result->fetch_assoc()): ?>
             <div class="contact-item">
-                <div><strong><?php echo htmlspecialchars($contact['contact_name']); ?></strong></div>
+                <div><strong><?php echo htmlspecialchars(
+                    trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
+                    ENT_QUOTES,
+                    'UTF-8'
+                ); ?></strong></div>
                 <?php if (!empty($contact['contact_role'])): ?>
                 <div class="contact-title">
                     <?php

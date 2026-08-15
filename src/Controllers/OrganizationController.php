@@ -52,7 +52,8 @@ class OrganizationController {
                 ]);
 
                 $contactData = Security::sanitizeInput([
-                    'contact_name' => $_POST['contact_name'],
+                    'contact_first_name' => $_POST['contact_first_name'],
+                    'contact_last_name' => $_POST['contact_last_name'],
                     'contact_role' => $_POST['contact_role'],
                     'contact_role_other' => $_POST['contact_role_other'],
                     'contact_email' => $_POST['contact_email'],
@@ -149,4 +150,4 @@ class OrganizationController {
         $organizations = $this->organizationModel->search($term);
         require 'templates/pages/organizations/search.php';
     }
-} 
+}

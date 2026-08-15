@@ -35,7 +35,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
     $physical_country = trim($_POST['physical_country'] ?? '');
 
-    $contact_name = trim($_POST['contact_name'] ?? '');
+    $contact_first_name = trim($_POST['contact_first_name'] ?? '');
+    $contact_last_name = trim($_POST['contact_last_name'] ?? '');
     $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
     $contact_role_other = trim($_POST['contact_role_other'] ?? '');
     $contact_email = trim($_POST['contact_email'] ?? '');
@@ -43,7 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_phone = trim($_POST['contact_phone'] ?? '');
 
     $contact_candidates = [[
-        'name' => $contact_name,
+        'first_name' => $contact_first_name,
+        'last_name' => $contact_last_name,
         'role' => $contact_role,
         'role_other' => $contact_role_other,
         'email' => $contact_email,
@@ -56,7 +58,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 continue;
             }
             $contact_candidates[] = [
-                'name' => trim($submitted_contact['name'] ?? ''),
+                'first_name' => trim($submitted_contact['first_name'] ?? ''),
+                'last_name' => trim($submitted_contact['last_name'] ?? ''),
                 'role' => strtolower(trim($submitted_contact['role'] ?? '')),
                 'role_other' => trim($submitted_contact['role_other'] ?? ''),
                 'email' => trim($submitted_contact['email'] ?? ''),
@@ -79,9 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         if (!$has_contact_data) {
             continue;
         }
-        if ($candidate['name'] === '') {
-            $errorMessages[] = "Contact {$contact_number} requires a name.";
-            continue;
+        if ($candidate['first_name'] === '') {
+            $errorMessages[] = "Contact {$contact_number} requires a first name.";
+        }
+        if ($candidate['last_name'] === '') {
+            $errorMessages[] = "Contact {$contact_number} requires a last name.";
         }
         if (!in_array($candidate['role'], ['pastor', 'admin', 'other'], true)) {
             $errorMessages[] = "Contact {$contact_number} requires a valid role.";
@@ -132,18 +137,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 if (!empty($contacts_to_create)) {
                     $contact_stmt = $conn->prepare(
                         "INSERT INTO contacts (
-                            organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone
-                         ) VALUES (?, ?, ?, ?, ?, ?)"
+                            organization_id, contact_first_name, contact_last_name, contact_role,
+                            contact_role_other, contact_email, contact_phone
+                         ) VALUES (?, ?, ?, ?, ?, ?, ?)"
                     );
-                    $saved_contact_name = '';
+                    $saved_contact_first_name = '';
+                    $saved_contact_last_name = '';
                     $saved_contact_role = '';
                     $saved_contact_role_other = '';
                     $saved_contact_email = '';
                     $saved_contact_phone = '';
                     $contact_stmt->bind_param(
-                        "isssss",
+                        "issssss",
                         $organization_id,
-                        $saved_contact_name,
+                        $saved_contact_first_name,
+                        $saved_contact_last_name,
                         $saved_contact_role,
                         $saved_contact_role_other,
                         $saved_contact_email,
@@ -151,7 +159,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     );
 
                     foreach ($contacts_to_create as $contact_to_create) {
-                        $saved_contact_name = $contact_to_create['name'];
+                        $saved_contact_first_name = $contact_to_create['first_name'];
+                        $saved_contact_last_name = $contact_to_create['last_name'];
                         $saved_contact_role = $contact_to_create['role'];
                         $saved_contact_role_other = $contact_to_create['role_other'];
                         $saved_contact_email = $contact_to_create['email'];
@@ -399,8 +408,12 @@ if (isset($_SESSION['success_message'])) {
             flex: 1;
         }
 
+        .name-phone-row .form-group:nth-child(2) {
+            flex: 1;
+        }
+
         .name-phone-row .form-group:last-child {
-            width: 200px;
+            flex: 0 0 200px;
         }
 
         .add-contact-btn {
@@ -553,8 +566,13 @@ if (isset($_SESSION['success_message'])) {
                     <div class="contact-fields">
                         <div class="name-phone-row">
                             <div class="form-group">
-                                <label>Name</label>
-                                <input type="text" name="contact_name" id="contact_name">
+                                <label id="first_name_label">First Name</label>
+                                <input type="text" name="contact_first_name" id="contact_first_name" autocomplete="given-name">
+                            </div>
+
+                            <div class="form-group">
+                                <label id="last_name_label">Last Name</label>
+                                <input type="text" name="contact_last_name" id="contact_last_name" autocomplete="family-name">
                             </div>
 
                             <div class="form-group">
@@ -651,38 +669,48 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial state
     toggleMailingAddress(false);
 
-    // Add event listener for contact name input
-    const contactNameInput = document.getElementById('contact_name');
+    // A partially entered contact still requires both name fields and contact details.
+    const contactFirstNameInput = document.getElementById('contact_first_name');
+    const contactLastNameInput = document.getElementById('contact_last_name');
     const contactRoleSelect = document.getElementById('contact_role');
     const contactEmailInput = document.getElementById('contact_email');
     const contactEmailConfirmInput = document.getElementById('contact_email_confirm');
     
     // Get the labels for the required fields
+    const firstNameLabel = document.getElementById('first_name_label');
+    const lastNameLabel = document.getElementById('last_name_label');
     const roleLabel = document.getElementById('role_label');
     const emailLabel = document.getElementById('email_label');
     const emailConfirmLabel = document.getElementById('email_confirm_label');
 
     function updateContactFieldRequirements() {
-        const hasContactName = contactNameInput.value.trim() !== '';
+        const hasContactName = contactFirstNameInput.value.trim() !== '' || contactLastNameInput.value.trim() !== '';
         
         // Update required attribute
+        contactFirstNameInput.required = hasContactName;
+        contactLastNameInput.required = hasContactName;
         contactRoleSelect.required = hasContactName;
         contactEmailInput.required = hasContactName;
         contactEmailConfirmInput.required = hasContactName;
         
         // Update labels with asterisk
         if (hasContactName) {
+            firstNameLabel.classList.add('required');
+            lastNameLabel.classList.add('required');
             roleLabel.classList.add('required');
             emailLabel.classList.add('required');
             emailConfirmLabel.classList.add('required');
         } else {
+            firstNameLabel.classList.remove('required');
+            lastNameLabel.classList.remove('required');
             roleLabel.classList.remove('required');
             emailLabel.classList.remove('required');
             emailConfirmLabel.classList.remove('required');
         }
     }
 
-    contactNameInput.addEventListener('input', updateContactFieldRequirements);
+    contactFirstNameInput.addEventListener('input', updateContactFieldRequirements);
+    contactLastNameInput.addEventListener('input', updateContactFieldRequirements);
     // Initial check
     updateContactFieldRequirements();
 });
@@ -700,8 +728,13 @@ function addContact() {
         <div class="contact-fields">
             <div class="name-phone-row">
                 <div class="form-group">
-                    <label class="required">Name</label>
-                    <input type="text" name="contacts[${contactCount-1}][name]" required>
+                    <label class="required">First Name</label>
+                    <input type="text" name="contacts[${contactCount-1}][first_name]" autocomplete="given-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="required">Last Name</label>
+                    <input type="text" name="contacts[${contactCount-1}][last_name]" autocomplete="family-name" required>
                 </div>
 
                 <div class="form-group">

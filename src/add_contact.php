@@ -6,7 +6,7 @@ startSecureSession();
 // Ensure the user is logged in
 requireLogin();
 if (!hasRole(['admin', 'editor'])) {
-    header("Location: organizations.php");
+    header("Location: contacts.php");
     exit();
 }
 
@@ -17,8 +17,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     requireValidCsrfToken();
 
     $organization_id = intval($_POST['organization_id'] ?? 0);
-    $contact_name = trim($_POST['contact_name'] ?? '');
-    $contact_role = trim($_POST['contact_role'] ?? '');
+    $contact_first_name = trim($_POST['contact_first_name'] ?? '');
+    $contact_last_name = trim($_POST['contact_last_name'] ?? '');
+    $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
     $contact_role_other = trim($_POST['contact_role_other'] ?? '');
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
@@ -27,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     // Validate required fields
     $valid_contact_roles = ['pastor', 'admin', 'other'];
 
-    if (!$organization_id || !$contact_name || !$contact_role || !$contact_email || !$contact_email_confirm) {
+    if (!$organization_id || !$contact_first_name || !$contact_last_name || !$contact_role || !$contact_email || !$contact_email_confirm) {
         $error_message = "Please fill in all required fields.";
     } elseif ($contact_email !== $contact_email_confirm) {
         $error_message = "Email addresses do not match.";
@@ -40,13 +41,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     } else {
         $stmt = $conn->prepare(
             "INSERT INTO contacts (
-                organization_id, contact_name, contact_role, contact_role_other, contact_email, contact_phone
-             ) VALUES (?, ?, ?, ?, ?, ?)"
+                organization_id, contact_first_name, contact_last_name, contact_role,
+                contact_role_other, contact_email, contact_phone
+             ) VALUES (?, ?, ?, ?, ?, ?, ?)"
         );
         $stmt->bind_param(
-            "isssss",
+            "issssss",
             $organization_id,
-            $contact_name,
+            $contact_first_name,
+            $contact_last_name,
             $contact_role,
             $contact_role_other,
             $contact_email,
@@ -158,6 +161,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             gap: 30px;
             margin-bottom: 15px;
         }
+        .name-container {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 15px;
+        }
+        .name-container .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
         .email-container .form-group {
             margin-bottom: 0;
         }
@@ -196,17 +208,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             <a href="add_organization.php" class="add-org-button">Add New Organization</a>
         </div>
 
-        <div class="form-group">
-            <label for="contact_name" class="required">Contact Name</label>
-            <input type="text" name="contact_name" id="contact_name" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_name'] ?? '') : ''; ?>">
+        <div class="name-container">
+            <div class="form-group">
+                <label for="contact_first_name" class="required">First Name</label>
+                <input type="text" name="contact_first_name" id="contact_first_name" required autocomplete="given-name" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_first_name'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>">
+            </div>
+            <div class="form-group">
+                <label for="contact_last_name" class="required">Last Name</label>
+                <input type="text" name="contact_last_name" id="contact_last_name" required autocomplete="family-name" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_last_name'] ?? '', ENT_QUOTES, 'UTF-8') : ''; ?>">
+            </div>
         </div>
 
         <div class="role-container">
             <div class="form-group" style="flex: 0 0 200px;">
                 <label for="contact_role" class="required">Role</label>
                 <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
-                    <option value="Pastor" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'Pastor') ? 'selected' : ''; ?>>Pastor</option>
-                    <option value="Admin" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'Admin') ? 'selected' : ''; ?>>Admin</option>
+                    <option value="pastor" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'pastor') ? 'selected' : ''; ?>>Pastor</option>
+                    <option value="admin" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     <option value="other" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
                 </select>
             </div>

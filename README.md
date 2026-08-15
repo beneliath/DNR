@@ -62,6 +62,7 @@ docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/2026081
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_last_login_at.sql
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_must_change_password.sql
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_shared_calendar.sql
+docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_split_contact_names.sql
 docker compose up -d --build
 ```
 

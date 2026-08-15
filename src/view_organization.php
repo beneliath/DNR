@@ -35,7 +35,9 @@ if ($result->num_rows === 0) {
 $organization = $result->fetch_assoc();
 
 // Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts WHERE organization_id = ? ORDER BY contact_name";
+$contact_query = "SELECT * FROM contacts
+                  WHERE organization_id = ?
+                  ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
 if ($contact_stmt === false) {
     die("Error preparing contacts statement: " . $conn->error);
@@ -208,7 +210,11 @@ $contact_stmt->close();
             <?php while ($contact = $contacts_result->fetch_assoc()): ?>
                 <div class="contact-card">
                     <div class="contact-header">
-                        <h4 class="contact-name"><?php echo htmlspecialchars($contact['contact_name']); ?></h4>
+                        <h4 class="contact-name"><?php echo htmlspecialchars(
+                            trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ); ?></h4>
                         <span class="contact-role">
                             <?php
                             $role = $contact['contact_role'];
@@ -234,7 +240,7 @@ $contact_stmt->close();
     </div>
 
     <div class="action-buttons">
-        <a href="organizations.php" class="action-button back-button">Back to Organizations</a>
+        <a href="organizations.php" class="action-button back-button">Back to List</a>
         <?php if ($user_role === 'admin'): ?>
             <a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="action-button edit-button">Edit Organization</a>
         <?php endif; ?>

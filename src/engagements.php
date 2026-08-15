@@ -78,6 +78,12 @@ if (!$result) {
             border-collapse: collapse;
             margin-top: 20px;
         }
+        .page-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
         .engagement-table th,
         .engagement-table td {
             padding: 12px;
@@ -118,6 +124,9 @@ if (!$result) {
         }
         .sort-button:hover {
             background-color: var(--button-hover-color);
+        }
+        .sort-button.active {
+            background-color: var(--button-edit-color) !important;
         }
         .action-buttons {
             display: inline-flex;
@@ -167,15 +176,26 @@ if (!$result) {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h1>Engagements</h1>
+    <div class="page-heading">
+        <h1>Engagements</h1>
+        <?php if ($user_role === 'admin' || $user_role === 'editor'): ?>
+            <a href="index.php" class="button-add">Add Engagement</a>
+        <?php endif; ?>
+    </div>
     <div class="sort-buttons">
-        <a href="?sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>" class="sort-button">
+        <a href="?sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>"
+           class="sort-button<?php echo $sort_column === 'org' ? ' active' : ''; ?>"
+           <?php echo $sort_column === 'org' ? 'aria-current="true"' : ''; ?>>
             Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
-        <a href="?sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>" class="sort-button">
+        <a href="?sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>"
+           class="sort-button<?php echo $sort_column === 'date' ? ' active' : ''; ?>"
+           <?php echo $sort_column === 'date' ? 'aria-current="true"' : ''; ?>>
             Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
-        <a href="?sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>" class="sort-button">
+        <a href="?sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>"
+           class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
+           <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
             Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
         </a>
     </div>
@@ -208,7 +228,7 @@ if (!$result) {
                                 <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button edit-button">Edit</a>
                             <?php endif; ?>
                             <?php if ($user_role === 'admin'): ?>
-                                <form method="post" action="engagements.php" onsubmit="return confirm('Are you sure you want to delete this engagement?');">
+                                <form method="post" action="engagements.php" data-delete-confirmation="Are you sure you want to delete this engagement?">
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                     <button type="submit" name="delete_engagement" class="action-button delete-button">Delete</button>

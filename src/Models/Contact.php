@@ -6,7 +6,8 @@ class Contact extends BaseModel {
     protected $table = 'contacts';
     protected $fillable = [
         'organization_id',
-        'contact_name',
+        'contact_first_name',
+        'contact_last_name',
         'contact_role',
         'contact_role_other',
         'contact_email',
@@ -14,7 +15,10 @@ class Contact extends BaseModel {
     ];
 
     public function getByOrganization($organizationId) {
-        return $this->findAll(['organization_id' => $organizationId]);
+        return $this->findAll(
+            ['organization_id' => $organizationId],
+            'contact_last_name, contact_first_name'
+        );
     }
 
     public function validateRole($role) {
@@ -32,7 +36,13 @@ class Contact extends BaseModel {
 
     public function create(array $data) {
         // Validate required fields
-        $requiredFields = ['contact_name', 'contact_role', 'contact_email', 'contact_phone'];
+        $requiredFields = [
+            'contact_first_name',
+            'contact_last_name',
+            'contact_role',
+            'contact_email',
+            'contact_phone'
+        ];
         foreach ($requiredFields as $field) {
             if (empty($data[$field])) {
                 throw new \InvalidArgumentException("$field is required");
@@ -77,4 +87,4 @@ class Contact extends BaseModel {
 
         return parent::update($id, $data);
     }
-} 
+}

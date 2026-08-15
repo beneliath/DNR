@@ -27,7 +27,9 @@ class Organization extends BaseModel {
     ];
 
     public function getContacts($organizationId) {
-        $sql = "SELECT * FROM contacts WHERE organization_id = :organization_id";
+        $sql = "SELECT * FROM contacts
+                WHERE organization_id = :organization_id
+                ORDER BY contact_last_name, contact_first_name";
         return $this->db->fetchAll($sql, ['organization_id' => $organizationId]);
     }
 
@@ -65,4 +67,4 @@ class Organization extends BaseModel {
         $term = "%$term%";
         return $this->db->fetchAll($sql, ['term' => $term]);
     }
-} 
+}
