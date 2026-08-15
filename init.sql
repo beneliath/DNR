@@ -71,7 +71,8 @@ CREATE TABLE IF NOT EXISTS organizations (
     physical_zipcode VARCHAR(20),
     physical_country VARCHAR(100),
     is_deleted TINYINT(1) DEFAULT 0,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
 -- Engagements table (sample fields; extend as needed)
@@ -101,6 +102,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     other_housing TEXT,
     housing_amount DECIMAL(10,2) DEFAULT NULL,
     is_deleted TINYINT(1) DEFAULT 0,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
 

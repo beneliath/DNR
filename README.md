@@ -61,6 +61,7 @@ docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/2026081
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_two_factor_authentication.sql
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_last_login_at.sql
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_must_change_password.sql
+docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_shared_calendar.sql
 docker compose up -d --build
 ```
 
@@ -109,7 +110,9 @@ Configure these values as needed:
 
 ### Usage
 
-[*Provide instructions on how to use the application, including examples and screenshots if applicable.*]
+Authenticated users can open **Calendar** in the navigation to copy the single shared subscription URL or open it in a calendar app. The public feed includes every non-deleted engagement, regardless of status. Titles include the status; entries are all-day events covering the engagement date range and include the organization, event type, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+
+The subscription URL is public and does not require a DNR login. Anyone with it can read the calendar-safe event fields. Contacts, chronological notes, travel, lodging, and compensation are never included.
 
 ### Contributing
 

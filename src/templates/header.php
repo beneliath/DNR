@@ -12,6 +12,7 @@
             <li><a href="add_contact.php">Add Contact</a></li>|&nbsp;&nbsp;&nbsp;
             <?php endif; ?>
             <li><a href="organizations.php">Organizations</a></li>|&nbsp;&nbsp;&nbsp;
+            <li><a href="calendar_subscription.php">Calendar</a></li>|&nbsp;&nbsp;&nbsp;
             <li><a href="two_factor_settings.php">Account Security</a></li>
             
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'admin') : ?>
