@@ -344,7 +344,7 @@ while ($row = $presentations_result->fetch_assoc()) {
         </div>
 
         <label for="engagement_notes" style="vertical-align: top;">Chron</label>
-        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($engagement['engagement_notes'] ?? ''); ?></textarea>
+        <textarea name="engagement_notes" id="engagement_notes" rows="18" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($engagement['engagement_notes'] ?? ''); ?></textarea>
 
         <div class="date-fields">
             <div class="date-field">

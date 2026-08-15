@@ -19,7 +19,7 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 <?php include 'templates/header.php'; ?>
 <div class="container calendar-subscription">
     <h1>Subscribe to DNR Events</h1>
-    <p>This shared calendar contains every active (non-archived) DNR engagement. Event titles include the current status, and changes appear when the subscriber's calendar app next refreshes the feed.</p>
+    <p>This shared calendar contains every active (non-archived) DNR engagement. Calendar entries are titled “Event Title-Event Type-Event Status,” or “Organization-Event Type-Event Status” when no event title is set. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
 
     <label for="calendar-url"><strong>Calendar subscription URL</strong></label>
     <div class="calendar-url-row">
@@ -29,7 +29,7 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
     <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
 
     <p><a class="security-button" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in calendar app</a></p>
-    <p class="calendar-privacy-note"><strong>Public feed:</strong> anyone with this URL can view organization names, event types, statuses, all-day date ranges, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
+    <p class="calendar-privacy-note"><strong>Public feed:</strong> anyone with this URL can view organization names, event titles, event types, statuses, all-day date ranges, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
 </div>
 <?php include 'templates/footer.php'; ?>
 <script>
