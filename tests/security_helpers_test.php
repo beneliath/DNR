@@ -39,7 +39,17 @@ expectTrue(
 expectTrue(
     authenticationDestination(['role' => 'reviewer', 'must_change_password' => 0])
         === 'engagements.php',
-    'A reviewer without a temporary password should use the normal landing page.'
+    'A reviewer without a temporary password should land on Engagements.'
+);
+expectTrue(
+    authenticationDestination(['role' => 'editor', 'must_change_password' => 0])
+        === 'engagements.php',
+    'An editor without a temporary password should land on Engagements.'
+);
+expectTrue(
+    authenticationDestination(['role' => 'admin', 'must_change_password' => 0])
+        === 'engagements.php',
+    'An administrator without a temporary password should land on Engagements.'
 );
 
 $_SESSION = [

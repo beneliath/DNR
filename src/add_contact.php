@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 <html>
 <head>
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <style>
         .success {
             background-color: #d4edda !important;

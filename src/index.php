@@ -187,7 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <html>
 <head>
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <script src="assets/js/main.js"></script>
 </head>
 <body>

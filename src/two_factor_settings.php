@@ -108,7 +108,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
 <head>
     <meta charset="UTF-8">
     <title>Account Security - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
 </head>
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>

@@ -36,7 +36,7 @@ if (!$users) {
 <html>
 <head>
     <title>Manage Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <style>
         .user-details {
             margin-bottom: 20px;

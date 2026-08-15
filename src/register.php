@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <html>
 <head>
     <title>Register - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

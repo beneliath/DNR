@@ -215,7 +215,7 @@ function authenticationDestination(array $user) {
         return 'two_factor_settings.php?password_reset_required=1';
     }
 
-    return $user['role'] === 'reviewer' ? 'engagements.php' : 'index.php';
+    return 'engagements.php';
 }
 
 function hasRecentTwoFactorVerification($maximum_age_seconds = 300) {

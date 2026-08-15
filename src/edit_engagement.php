@@ -310,7 +310,7 @@ while ($row = $presentations_result->fetch_assoc()) {
 <html>
 <head>
     <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>

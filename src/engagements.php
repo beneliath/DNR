@@ -71,7 +71,7 @@ if (!$result) {
 <html>
 <head>
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <style>
         .engagement-table {
             width: 100%;

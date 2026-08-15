@@ -91,7 +91,7 @@ $presentation_stmt->close();
 <html>
 <head>
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.1">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.2">
     <style>
         .view-container {
             max-width: 800px;
