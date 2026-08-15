@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'engagement_export_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -50,6 +51,7 @@ if ($contact_stmt === false) {
 $contact_stmt->bind_param("i", $engagement['org_id']);
 $contact_stmt->execute();
 $contacts_result = $contact_stmt->get_result();
+$contacts = $contacts_result->fetch_all(MYSQLI_ASSOC);
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
@@ -64,6 +66,7 @@ if ($presentation_stmt === false) {
 $presentation_stmt->bind_param("i", $engagement_id);
 $presentation_stmt->execute();
 $presentations_result = $presentation_stmt->get_result();
+$presentations = $presentations_result->fetch_all(MYSQLI_ASSOC);
 
 $event_address_parts = [];
 foreach (['event_address_line_1', 'event_address_line_2'] as $address_field) {
@@ -85,6 +88,10 @@ if (!empty($engagement['event_country'])) {
     $event_address_parts[] = $engagement['event_country'];
 }
 
+$engagement_export = buildEngagementExport($engagement, $contacts, $presentations);
+$engagement_plain_text = renderEngagementPlainText($engagement_export);
+$engagement_markdown = renderEngagementMarkdown($engagement_export);
+
 // Close statements
 $stmt->close();
 $contact_stmt->close();
@@ -96,7 +103,7 @@ $presentation_stmt->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.6">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.3.7">
     <style>
         .view-container {
             max-width: 800px;
@@ -123,7 +130,20 @@ $presentation_stmt->close();
         .action-buttons {
             margin-top: 20px;
             display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
             gap: 10px;
+        }
+        .primary-actions,
+        .export-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .export-actions {
+            margin-left: auto;
         }
         .action-button {
             padding: 10px 20px;
@@ -144,6 +164,17 @@ $presentation_stmt->close();
         }
         .edit-button:hover {
             background-color: var(--button-hover-color);
+        }
+        .visually-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
         }
         /* Contact styles */
         .contacts-list {
@@ -203,10 +234,10 @@ $presentation_stmt->close();
         <div class="detail-label">Organization</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['organization_name']); ?></div>
 
-        <?php if ($contacts_result->num_rows > 0): ?>
+        <?php if ($contacts): ?>
         <div class="detail-label">Contacts</div>
         <div class="detail-value contacts-list">
-            <?php while ($contact = $contacts_result->fetch_assoc()): ?>
+            <?php foreach ($contacts as $contact): ?>
             <div class="contact-item">
                 <div><strong><?php echo htmlspecialchars(
                     trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
@@ -231,7 +262,7 @@ $presentation_stmt->close();
                 <div>Phone: <?php echo htmlspecialchars($contact['contact_phone']); ?></div>
                 <?php endif; ?>
             </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
         <?php endif; ?>
 
@@ -275,11 +306,11 @@ $presentation_stmt->close();
         </div>
     </div>
 
-    <?php if ($presentations_result->num_rows > 0): ?>
+    <?php if ($presentations): ?>
     <div class="detail-group">
         <div class="detail-label">Presentations</div>
         <div class="detail-value">
-            <?php while ($presentation = $presentations_result->fetch_assoc()): ?>
+            <?php foreach ($presentations as $presentation): ?>
             <div class="presentation-item">
                 <strong><?php echo htmlspecialchars($presentation['topic_title']); ?></strong>
                 <?php if (!empty($presentation['speaker_name'])): ?>
@@ -294,7 +325,7 @@ $presentation_stmt->close();
                 <div>Expected attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
                 <?php endif; ?>
             </div>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </div>
     </div>
     <?php endif; ?>
@@ -333,12 +364,73 @@ $presentation_stmt->close();
     <?php endif; ?>
 
     <div class="action-buttons">
-        <a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
-        <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-        <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Edit</a>
-        <?php endif; ?>
+        <div class="primary-actions">
+            <a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
+            <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
+            <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Edit</a>
+            <?php endif; ?>
+        </div>
+        <div class="export-actions" aria-label="Export engagement">
+            <button type="button" class="action-button export-button" data-copy-format="text">Copy Text</button>
+            <button type="button" class="action-button export-button" data-copy-format="markdown">Copy MD</button>
+            <a href="download_engagement_pdf.php?id=<?php echo $engagement_id; ?>" class="action-button export-button">Download PDF</a>
+        </div>
+        <span id="copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
 </div>
+<script>
+(function () {
+    const engagementExports = <?php echo json_encode([
+        'text' => $engagement_plain_text,
+        'markdown' => $engagement_markdown,
+    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    const status = document.getElementById('copy-status');
+
+    function copyWithFallback(value) {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        if (!copied) {
+            throw new Error('The browser declined the copy command.');
+        }
+    }
+
+    async function copyEngagement(button) {
+        const format = button.dataset.copyFormat;
+        const value = engagementExports[format];
+        const originalLabel = button.textContent;
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(value);
+            } else {
+                copyWithFallback(value);
+            }
+            button.textContent = 'Copied!';
+            status.textContent = originalLabel + ' copied to the clipboard.';
+        } catch (error) {
+            button.textContent = 'Copy failed';
+            status.textContent = originalLabel + ' could not be copied.';
+        }
+
+        window.setTimeout(function () {
+            button.textContent = originalLabel;
+        }, 1800);
+    }
+
+    document.querySelectorAll('[data-copy-format]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            copyEngagement(button);
+        });
+    });
+}());
+</script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

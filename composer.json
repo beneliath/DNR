@@ -5,6 +5,7 @@
     "require": {
         "php": "^8.4",
         "endroid/qr-code": "^6.0",
+        "setasign/fpdf": "^1.8",
         "spomky-labs/otphp": "^11.4"
     },
     "config": {

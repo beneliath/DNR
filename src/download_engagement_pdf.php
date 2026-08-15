@@ -1,0 +1,94 @@
+<?php
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/engagement_export_helpers.php';
+
+startSecureSession();
+requireLogin();
+
+$engagement_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1],
+]);
+if (!$engagement_id) {
+    http_response_code(400);
+    exit('A valid engagement ID is required.');
+}
+
+$engagement_stmt = $conn->prepare(
+    'SELECT e.*, o.organization_name
+     FROM engagements e
+     LEFT JOIN organizations o ON e.organization_id = o.id
+     WHERE e.id = ?'
+);
+if (!$engagement_stmt) {
+    http_response_code(500);
+    exit('Unable to prepare the engagement export.');
+}
+$engagement_stmt->bind_param('i', $engagement_id);
+$engagement_stmt->execute();
+$engagement = $engagement_stmt->get_result()->fetch_assoc();
+$engagement_stmt->close();
+
+if (!$engagement) {
+    http_response_code(404);
+    exit('Engagement not found.');
+}
+
+$contact_stmt = $conn->prepare(
+    'SELECT contact_first_name, contact_last_name, contact_role, contact_role_other,
+            contact_email, contact_phone
+     FROM contacts
+     WHERE organization_id = ? AND is_deleted = 0
+     ORDER BY contact_last_name, contact_first_name'
+);
+if (!$contact_stmt) {
+    http_response_code(500);
+    exit('Unable to prepare the engagement contacts export.');
+}
+$contact_stmt->bind_param('i', $engagement['organization_id']);
+$contact_stmt->execute();
+$contacts = $contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$contact_stmt->close();
+
+$presentation_stmt = $conn->prepare(
+    'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
+     FROM presentations
+     WHERE engagement_id = ?
+     ORDER BY presentation_date, presentation_time, id'
+);
+if (!$presentation_stmt) {
+    http_response_code(500);
+    exit('Unable to prepare the engagement presentations export.');
+}
+$presentation_stmt->bind_param('i', $engagement_id);
+$presentation_stmt->execute();
+$presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$presentation_stmt->close();
+
+$autoload_paths = [
+    dirname(__DIR__) . '/vendor/autoload.php',
+    '/opt/dnr/vendor/autoload.php',
+];
+foreach ($autoload_paths as $autoload_path) {
+    if (is_file($autoload_path)) {
+        require_once $autoload_path;
+        break;
+    }
+}
+if (!class_exists('FPDF')) {
+    error_log('FPDF is unavailable. Rebuild the DNR web container after installing Composer dependencies.');
+    http_response_code(503);
+    exit('PDF downloads are temporarily unavailable.');
+}
+
+require_once __DIR__ . '/engagement_pdf.php';
+
+$pdf_contents = renderEngagementPdf(buildEngagementExport($engagement, $contacts, $presentations));
+$filename = engagementPdfFilename($engagement);
+
+header('Content-Type: application/pdf');
+header('Content-Disposition: attachment; filename="' . $filename . '"');
+header('Content-Length: ' . strlen($pdf_contents));
+header('Cache-Control: private, no-store');
+header('X-Content-Type-Options: nosniff');
+echo $pdf_contents;

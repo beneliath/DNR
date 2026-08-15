@@ -7,12 +7,16 @@ RUN composer install \
     --no-interaction \
     --no-progress \
     --prefer-dist \
+    --ignore-platform-req=ext-gd \
     --classmap-authoritative
 
 FROM php:8.4-apache
 
-# Install MySQL extension
-RUN docker-php-ext-install mysqli
+# Install the extensions used by the database and PDF export dependencies.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libpng-dev zlib1g-dev \
+    && docker-php-ext-install gd mysqli \
+    && rm -rf /var/lib/apt/lists/*
 
 # Keep dependencies outside Apache's document root so the development source
 # bind mount cannot hide or expose them.

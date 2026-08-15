@@ -37,6 +37,7 @@
   --button-add-color: #818386;
   --button-reset-password-color: #673AB7;
   --button-reset-two-factor-color: #9C27B0;
+  --button-export-color: #0F766E;
   --button-hover-color: #F77F00;
   --button-neutral-color: #666666;
   --button-primary-color: #4A90E2;
@@ -338,6 +339,10 @@ footer .ascii-art-container pre {
 
 .restore-button {
   background-color: var(--button-archive-color) !important;
+}
+
+.export-button {
+  background-color: var(--button-export-color) !important;
 }
 
 .sort-button.active {
