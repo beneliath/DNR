@@ -130,7 +130,7 @@ body.has-app-shell {
   padding-left: var(--sidebar-width);
 }
 
-html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *) {
+html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.app-sidebar) {
   background-color: transparent !important;
   color: inherit !important;
 }
@@ -216,20 +216,6 @@ p {
   color: var(--text);
 }
 
-.app-brand-mark {
-  display: grid;
-  width: 60px;
-  height: 52px;
-  padding-inline: 6px;
-  place-items: center;
-  border-radius: 10px;
-  background: var(--accent);
-  color: #fff;
-  font-size: 1.16rem !important;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-}
-
 .app-brand-copy {
   display: flex;
   min-width: 0;
@@ -239,7 +225,7 @@ p {
 
 .app-brand-copy strong {
   color: var(--text);
-  font-size: 1.16rem;
+  font-size: 2.175rem;
   line-height: 1.2;
 }
 
@@ -1707,12 +1693,6 @@ html.dark-mode body.fullscreen-center .login-container {
   margin-bottom: 28px;
 }
 
-.auth-brand .app-brand-mark {
-  width: 68px;
-  height: 60px;
-  font-size: 1.35rem !important;
-}
-
 .auth-brand-copy {
   display: flex;
   flex-direction: column;
@@ -1720,7 +1700,7 @@ html.dark-mode body.fullscreen-center .login-container {
 
 .auth-brand-copy strong {
   color: var(--text);
-  font-size: 1.35rem;
+  font-size: 2.53125rem;
   line-height: 1.2;
 }
 
@@ -1879,15 +1859,9 @@ html.dark-mode .login-secondary-link a {
     text-decoration: none;
   }
 
-  .mobile-brand .app-brand-mark {
-    width: 50px;
-    height: 44px;
-    border-radius: 8px;
-    font-size: 1rem !important;
-  }
-
   .mobile-brand-name {
     overflow: hidden;
+    font-size: 1.875rem;
     text-overflow: ellipsis;
     white-space: nowrap;
   }

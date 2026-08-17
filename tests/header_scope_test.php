@@ -34,6 +34,7 @@ expectHeaderScope(
     str_contains($header_markup, 'class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
     'The complete MOED brand should render in the mobile application bar.'
 );
+expectHeaderScope(!str_contains($header_markup, 'app-brand-mark'), 'The shared application brand should not render a separate logo mark.');
 
 foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
@@ -41,17 +42,18 @@ foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authenticat
         str_contains($authentication_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
         $authentication_page . ' should render the MOED brand.'
     );
+    expectHeaderScope(!str_contains($authentication_markup, 'app-brand-mark'), $authentication_page . ' should not render a separate logo mark.');
 }
 
 $configuration_source = file_get_contents(__DIR__ . '/../src/config/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '0.1.7');"),
-    'The application version should be 0.1.7.'
+    str_contains($configuration_source, "define('APP_VERSION', '0.1.8');"),
+    'The application version should be 0.1.8.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.7'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.8'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
@@ -59,16 +61,15 @@ expectHeaderScope(
     'The responsive mobile application bar should override the desktop hidden state.'
 );
 expectHeaderScope(
-    preg_match('/\.app-brand-mark\s*\{[^}]*font-size:\s*1\.16rem\s*!important;/s', $modern_styles) === 1
-        && preg_match('/\.auth-brand \.app-brand-mark\s*\{[^}]*font-size:\s*1\.35rem\s*!important;/s', $modern_styles) === 1
-        && preg_match('/\.mobile-brand \.app-brand-mark\s*\{[^}]*font-size:\s*1rem\s*!important;/s', $modern_styles) === 1,
-    'DNR logo text should match the adjacent MOED brand size in each layout.'
+    preg_match('/html\.dark-mode body div[^\{]*:not\(\.app-sidebar\)\s*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
+    'The dark-theme transparency reset should preserve the mobile sidebar surface.'
 );
 expectHeaderScope(
-    preg_match('/\.app-brand-mark\s*\{[^}]*width:\s*60px;[^}]*height:\s*52px;[^}]*padding-inline:\s*6px;/s', $modern_styles) === 1
-        && preg_match('/\.auth-brand \.app-brand-mark\s*\{[^}]*width:\s*68px;[^}]*height:\s*60px;/s', $modern_styles) === 1
-        && preg_match('/\.mobile-brand \.app-brand-mark\s*\{[^}]*width:\s*50px;[^}]*height:\s*44px;/s', $modern_styles) === 1,
-    'The DNR mark should provide internal space around the enlarged lettering.'
+    !str_contains($modern_styles, '.app-brand-mark')
+        && preg_match('/\.app-brand-copy strong\s*\{[^}]*font-size:\s*2\.175rem;/s', $modern_styles) === 1
+        && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
+        && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
+    'MOED and its Hebrew text should render at the enlarged sizes without a separate logo mark.'
 );
 
 echo "Header scope tests passed.\n";
