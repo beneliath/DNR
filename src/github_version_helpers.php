@@ -12,19 +12,19 @@ function githubPushTimestampIsValid($timestamp)
     return $date !== false && $date->format('Y-m-d\TH:i:s\Z') === $timestamp;
 }
 
-function githubPushMetadataFromEvents(array $events, $branch = 'main')
+function githubPushMetadataFromActivities(array $activities, $branch = 'main')
 {
     $expected_ref = 'refs/heads/' . ltrim((string) $branch, '/');
 
-    foreach ($events as $event) {
-        if (!is_array($event)
-            || ($event['type'] ?? '') !== 'PushEvent'
-            || ($event['payload']['ref'] ?? '') !== $expected_ref) {
+    foreach ($activities as $activity) {
+        if (!is_array($activity)
+            || ($activity['activity_type'] ?? '') !== 'push'
+            || ($activity['ref'] ?? '') !== $expected_ref) {
             continue;
         }
 
-        $commit = (string) ($event['payload']['head'] ?? '');
-        $pushed_at = (string) ($event['created_at'] ?? '');
+        $commit = (string) ($activity['after'] ?? '');
+        $pushed_at = (string) ($activity['timestamp'] ?? '');
         if (!preg_match('/\A[0-9a-f]{40}\z/i', $commit)) {
             continue;
         }
@@ -67,7 +67,7 @@ function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
         return $fallback;
     }
 
-    $cache_path = sys_get_temp_dir() . '/dnr-github-push-' . sha1($repository . '|' . $branch) . '.json';
+    $cache_path = sys_get_temp_dir() . '/dnr-github-push-v2-' . sha1($repository . '|' . $branch) . '.json';
     $cached = null;
     if (is_file($cache_path)) {
         $cached = json_decode((string) @file_get_contents($cache_path), true);
@@ -91,13 +91,16 @@ function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
             'ignore_errors' => true,
         ],
     ]);
-    $events_json = @file_get_contents(
-        'https://api.github.com/repos/' . $repository . '/events?per_page=30',
+    $activities_json = @file_get_contents(
+        'https://api.github.com/repos/' . $repository . '/activity?ref=' . rawurlencode($branch)
+            . '&activity_type=push&per_page=30',
         false,
         $context
     );
-    $events = $events_json === false ? null : json_decode($events_json, true);
-    $metadata = is_array($events) ? githubPushMetadataFromEvents($events, $branch) : null;
+    $activities = $activities_json === false ? null : json_decode($activities_json, true);
+    $metadata = is_array($activities)
+        ? githubPushMetadataFromActivities($activities, $branch)
+        : null;
 
     if ($metadata !== null) {
         @file_put_contents($cache_path, json_encode($metadata), LOCK_EX);

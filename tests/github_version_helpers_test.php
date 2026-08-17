@@ -11,36 +11,32 @@ function expectGithubVersion($condition, $message)
 }
 
 $release_commit = 'd2778b2824bc50c6dae75fee99badacce25eae75';
-$events = [
+$activities = [
     [
-        'type' => 'PushEvent',
-        'created_at' => '2026-08-17T08:10:00Z',
-        'payload' => [
-            'ref' => 'refs/heads/dev',
-            'head' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        ],
+        'activity_type' => 'push',
+        'timestamp' => '2026-08-17T08:10:00Z',
+        'ref' => 'refs/heads/dev',
+        'after' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
     ],
     [
-        'type' => 'PushEvent',
-        'created_at' => '2026-08-17T07:58:09Z',
-        'payload' => [
-            'ref' => 'refs/heads/main',
-            'head' => $release_commit,
-        ],
+        'activity_type' => 'push',
+        'timestamp' => '2026-08-17T07:58:09Z',
+        'ref' => 'refs/heads/main',
+        'after' => $release_commit,
     ],
 ];
 
-$metadata = githubPushMetadataFromEvents($events, 'main');
+$metadata = githubPushMetadataFromActivities($activities, 'main');
 expectGithubVersion(
     $metadata === [
         'commit' => $release_commit,
         'pushed_at' => '2026-08-17T07:58:09Z',
     ],
-    'The newest push for the configured branch should be selected.'
+    'The newest repository push activity for the configured branch should be selected.'
 );
 expectGithubVersion(
-    githubPushMetadataFromEvents($events, 'missing') === null,
-    'A missing branch should not return unrelated push metadata.'
+    githubPushMetadataFromActivities($activities, 'missing') === null,
+    'A missing branch should not return unrelated repository activity.'
 );
 expectGithubVersion(
     githubPushTimestampIsValid('2026-08-17T07:58:09Z')
@@ -60,7 +56,7 @@ expectGithubVersion(
 $test_repository = 'test-owner/test-repo';
 $test_branch = 'main';
 $test_cache_path = sys_get_temp_dir()
-    . '/dnr-github-push-'
+    . '/dnr-github-push-v2-'
     . sha1($test_repository . '|' . $test_branch)
     . '.json';
 file_put_contents($test_cache_path, json_encode($metadata));
