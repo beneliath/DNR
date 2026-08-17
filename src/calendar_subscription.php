@@ -32,7 +32,7 @@ $calendar_enabled = calendarAccessToken() !== null;
     </div>
     <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
 
-    <p><a class="security-button" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in calendar app</a></p>
+    <p><a class="security-button" id="open-calendar-app" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in Calendar App</a></p>
     <p class="calendar-privacy-note"><strong>Keep this URL private:</strong> its revocable token grants access to organization names, event titles, event types, statuses, all-day date ranges, presentation topics, speakers, presentation dates and times, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
     <?php else: ?>
     <p class="error">Calendar subscriptions are disabled until an administrator configures a secret <code>DNR_CALENDAR_TOKEN</code> of at least 32 characters.</p>
@@ -41,17 +41,44 @@ $calendar_enabled = calendarAccessToken() !== null;
 </div>
 <?php include 'templates/footer.php'; ?>
 <script>
-document.getElementById('copy-calendar-url')?.addEventListener('click', async function () {
+const copyCalendarButton = document.getElementById('copy-calendar-url');
+const openCalendarLink = document.getElementById('open-calendar-app');
+let copyFeedbackTimer;
+let openFeedbackTimer;
+
+copyCalendarButton?.addEventListener('click', async function () {
     const url = document.getElementById('calendar-url').value;
     const status = document.getElementById('copy-calendar-status');
 
     try {
         await navigator.clipboard.writeText(url);
         status.textContent = 'Calendar URL copied.';
+        copyCalendarButton.classList.add('is-copied');
+        copyCalendarButton.textContent = 'Copied!';
+
+        window.clearTimeout(copyFeedbackTimer);
+        copyFeedbackTimer = window.setTimeout(function () {
+            copyCalendarButton.classList.remove('is-copied');
+            copyCalendarButton.textContent = 'Copy URL';
+        }, 2000);
     } catch (error) {
+        window.clearTimeout(copyFeedbackTimer);
+        copyCalendarButton.classList.remove('is-copied');
+        copyCalendarButton.textContent = 'Copy URL';
         document.getElementById('calendar-url').select();
         status.textContent = 'Select and copy the highlighted URL.';
     }
+});
+
+openCalendarLink?.addEventListener('click', function () {
+    openCalendarLink.classList.add('is-opening');
+    openCalendarLink.textContent = 'Opening…';
+
+    window.clearTimeout(openFeedbackTimer);
+    openFeedbackTimer = window.setTimeout(function () {
+        openCalendarLink.classList.remove('is-opening');
+        openCalendarLink.textContent = 'Open in Calendar App';
+    }, 2000);
 });
 </script>
 </body>

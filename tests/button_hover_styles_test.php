@@ -10,6 +10,7 @@ function expectHoverStyle($condition, $message) {
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
+$calendar_subscription_page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
 
 expectHoverStyle(
     strpos($stylesheet, '--button-hover-color') === false
@@ -94,6 +95,32 @@ expectHoverStyle(
     strpos($modern_stylesheet, '.mobile-theme-button:hover') !== false
         && strpos($modern_stylesheet, '.theme-toggle-button:hover') !== false,
     'Desktop and mobile theme controls should use modern themed hover rules.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, ':is(#copy-calendar-url, #open-calendar-app):hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
+    'Calendar actions should share the modern theme-aware hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body #open-calendar-app:hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--primary) !important;') !== false
+        && strpos($modern_stylesheet, 'html.dark-mode body #open-calendar-app:hover') !== false,
+    'Open in Calendar App should strengthen its hover contrast in both themes.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, '#copy-calendar-url.is-copied') !== false
+        && strpos($calendar_subscription_page, "copyCalendarButton.textContent = 'Copied!';") !== false,
+    'Copy URL should show an in-button success confirmation.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, '#open-calendar-app.is-opening') !== false
+        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Opening…';") !== false,
+    'Open in calendar app should show an in-button activation confirmation.'
+);
+expectHoverStyle(
+    strpos($calendar_subscription_page, '>Open in Calendar App</a>') !== false
+        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Open in Calendar App';") !== false,
+    'Open in Calendar App should use title case in its initial and restored labels.'
 );
 
 foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {

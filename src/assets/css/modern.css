@@ -544,6 +544,59 @@ html.dark-mode .theme-icon-dark {
   margin-top: 0;
 }
 
+html body :is(#copy-calendar-url, #open-calendar-app) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+}
+
+html body :is(#copy-calendar-url, #open-calendar-app):hover,
+html body :is(#copy-calendar-url, #open-calendar-app):focus-visible {
+  border-color: var(--control-hover-border) !important;
+  background: var(--control-hover-bg) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
+  color: var(--control-hover-fg) !important;
+  transform: translateY(-1px);
+}
+
+html body :is(#copy-calendar-url, #open-calendar-app):active {
+  transform: translateY(0) scale(0.98);
+}
+
+html body #open-calendar-app:hover,
+html body #open-calendar-app:focus-visible {
+  border-color: var(--primary) !important;
+  background: var(--primary) !important;
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 28%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
+  color: #ffffff !important;
+}
+
+html.dark-mode body #open-calendar-app:hover,
+html.dark-mode body #open-calendar-app:focus-visible {
+  color: #071126 !important;
+}
+
+html body #copy-calendar-url.is-copied,
+html body #copy-calendar-url.is-copied:hover,
+html body #copy-calendar-url.is-copied:focus-visible {
+  border-color: var(--success) !important;
+  background: var(--success-subtle) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success) !important;
+  transform: none;
+}
+
+html body #open-calendar-app.is-opening,
+html body #open-calendar-app.is-opening:hover,
+html body #open-calendar-app.is-opening:focus-visible {
+  border-color: var(--success) !important;
+  background: var(--success-subtle) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success) !important;
+  transform: none;
+}
+
 .engagement-form > label,
 .engagement-form > .organization-container,
 .engagement-form > .date-fields,
