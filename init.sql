@@ -108,6 +108,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     id INT AUTO_INCREMENT PRIMARY KEY,
     organization_id INT NOT NULL,
     event_title VARCHAR(255),
+    event_description TEXT,
     engagement_notes TEXT,
     event_start_date DATE NOT NULL,
     event_end_date DATE NOT NULL,
@@ -332,6 +333,7 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260815_add_event_title.sql', REPEAT('0', 64)),
 ('20260815_split_contact_names.sql', REPEAT('0', 64)),
 ('20260817_add_engagement_chron_entries.sql', REPEAT('0', 64)),
+('20260817_add_event_description.sql', REPEAT('0', 64)),
 ('20260817_add_presentation_archiving.sql', REPEAT('0', 64)),
 ('20260817_add_schema_migrations.sql', REPEAT('0', 64)),
 ('20260817_beta_readiness_hardening.sql', REPEAT('0', 64));

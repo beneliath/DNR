@@ -273,6 +273,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         // Continue with existing engagement update code
         $event_title = trim($_POST['event_title'] ?? '');
+        $event_description = trim($_POST['event_description'] ?? '');
         $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
         $event_start_date = $_POST['event_start_date'] ?? null;
         $event_end_date = $_POST['event_end_date'] ?? null;
@@ -368,6 +369,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         if ($event_title !== ($engagement['event_title'] ?? '')) {
             $update_fields[] = "event_title = ?";
             $update_values[] = $event_title;
+            $types .= "s";
+        }
+
+        if ($event_description !== ($engagement['event_description'] ?? '')) {
+            $update_fields[] = "event_description = ?";
+            $update_values[] = $event_description;
             $types .= "s";
         }
 
@@ -631,7 +638,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             : "Unable to update the engagement. Please try again.";
 
         $rehydrated_fields = [
-            'organization_id', 'event_title', 'event_start_date', 'event_end_date',
+            'organization_id', 'event_title', 'event_description', 'event_start_date', 'event_end_date',
             'caller_name', 'confirmation_status', 'travel_covered', 'travel_amount',
             'compensation_type', 'other_compensation', 'housing_type', 'other_housing',
             'housing_amount', 'event_address_line_1', 'event_address_line_2',
@@ -771,6 +778,9 @@ try {
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
             </div>
         </div>
+
+        <label for="event_description">Event Description</label>
+        <textarea name="event_description" id="event_description" rows="5"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
         </section>
 
         <?php

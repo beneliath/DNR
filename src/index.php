@@ -33,6 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
     $organization_id = intval($_POST['organization_id'] ?? 0);
     $event_title = trim($_POST['event_title'] ?? '');
+    $event_description = trim($_POST['event_description'] ?? '');
     $chron_entry = trim($_POST['chron_entry'] ?? '');
     $event_start_date = $_POST['event_start_date'] ?? null;
     $event_end_date = $_POST['event_end_date'] ?? null;
@@ -109,19 +110,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             requireActiveOrganization($conn, $organization_id, true);
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
-                organization_id, event_title, event_start_date, event_end_date,
+                organization_id, event_title, event_description, event_start_date, event_end_date,
                 event_type, event_type_other, book_table, brochures, caller_name, confirmation_status,
                 event_address_line_1, event_address_line_2, event_city, event_state,
                 event_zipcode, event_country,
                 travel_covered, travel_amount, compensation_type, other_compensation,
                 housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "isssssiisssssssssdssssd",
+                    "issssssiisssssssssdssssd",
                     $organization_id,
                     $event_title,
+                    $event_description,
                     $event_start_date,
                     $event_end_date,
                     $event_type,
@@ -278,7 +280,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         <label for="event_title">Event Title</label>
         <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
-        <br><br>
+
+        <label for="event_description">Event Description</label>
+        <textarea name="event_description" id="event_description" rows="5"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
 
         </section>
 

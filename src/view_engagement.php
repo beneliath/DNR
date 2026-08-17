@@ -246,6 +246,11 @@ $presentation_stmt->close();
         <div class="detail-value"><?php echo htmlspecialchars($engagement['event_title']); ?></div>
         <?php endif; ?>
 
+        <?php if (!empty($engagement['event_description'])): ?>
+        <div class="detail-label">Event Description</div>
+        <div class="detail-value"><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></div>
+        <?php endif; ?>
+
         <div class="detail-label">Organization</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['organization_name']); ?></div>
 

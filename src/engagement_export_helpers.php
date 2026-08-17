@@ -80,6 +80,11 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
     $event_detail_fields = [];
     addEngagementExportField(
         $event_detail_fields,
+        'Event Description',
+        $engagement['event_description'] ?? ''
+    );
+    addEngagementExportField(
+        $event_detail_fields,
         'Book Table Provided',
         !empty($engagement['book_table']) ? 'Yes' : 'No',
         true
