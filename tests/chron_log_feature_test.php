@@ -12,6 +12,7 @@ $edit_engagement = file_get_contents(__DIR__ . '/../src/edit_engagement.php');
 $view_engagement = file_get_contents(__DIR__ . '/../src/view_engagement.php');
 $restore_chron_entries = file_get_contents(__DIR__ . '/../src/restore_chron_entries.php');
 $engagement_list = file_get_contents(__DIR__ . '/../src/engagements.php');
+$engagement_search_helpers = file_get_contents(__DIR__ . '/../src/engagement_search_helpers.php');
 $chron_helpers = file_get_contents(__DIR__ . '/../src/chron_log_helpers.php');
 $migration = file_get_contents(
     __DIR__ . '/../migrations/20260817_add_engagement_chron_entries.sql'
@@ -96,14 +97,26 @@ expectChronFeature(
 expectChronFeature(
     !str_contains($view_engagement, 'name="chron_q"')
         && !str_contains($edit_engagement, 'name="chron_q"')
-        && str_contains($engagement_list, 'FROM engagement_chron_entries ce')
-        && str_contains($engagement_list, 'ce.entry_text LIKE ?')
-        && str_contains($engagement_list, 'ce.created_by_username_snapshot) LIKE ?')
-        && str_contains($engagement_list, 'ce.is_archived = 0')
-        && !str_contains($engagement_list, 'o.organization_name LIKE ?')
-        && !str_contains($engagement_list, 'e.event_type LIKE ?')
-        && !str_contains($engagement_list, 'e.confirmation_status LIKE ?'),
-    'Engagement search should be limited to titles, active Chron text, and Chron creators.'
+        && str_contains($engagement_list, 'buildEngagementSearchPlan($search)')
+        && str_contains($engagement_search_helpers, 'FROM engagement_chron_entries ce')
+        && str_contains($engagement_search_helpers, 'ce.entry_text LIKE ?')
+        && str_contains($engagement_search_helpers, 'ce.created_by_username_snapshot) LIKE ?')
+        && str_contains($engagement_search_helpers, 'ce.is_archived = 0')
+        && str_contains($engagement_search_helpers, 'o.organization_name LIKE ?')
+        && str_contains($engagement_search_helpers, 'FROM contacts c')
+        && str_contains($engagement_search_helpers, 'c.organization_id = e.organization_id')
+        && str_contains($engagement_search_helpers, 'c.contact_first_name LIKE ?')
+        && str_contains($engagement_search_helpers, 'c.contact_last_name LIKE ?')
+        && str_contains($engagement_search_helpers, 'c.contact_email LIKE ?')
+        && str_contains($engagement_search_helpers, 'c.contact_phone LIKE ?')
+        && str_contains($engagement_search_helpers, 'c.is_deleted = 0')
+        && !str_contains($engagement_search_helpers, 'e.event_type LIKE ?')
+        && !str_contains($engagement_search_helpers, 'e.confirmation_status LIKE ?')
+        && str_contains(
+            $engagement_list,
+            'placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user"'
+        ),
+    'Engagement search should include titles, organizations, active contacts, published Chron text, and Chron creators.'
 );
 expectChronFeature(
     str_contains($chron_helpers, 'ORDER BY ce.created_at DESC, ce.id DESC'),

@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'engagement_search_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -88,6 +89,8 @@ if ($sort_column === 'date') {
 $order_direction = ($sort_order === 'asc' ? 'ASC' : 'DESC');
 
 $search = trim($_GET['q'] ?? '');
+$search_plan = buildEngagementSearchPlan($search);
+$has_search_terms = $search_plan['sql'] !== '';
 
 $summary = [
     'upcoming' => 0,
@@ -119,37 +122,29 @@ $query = "SELECT e.*, o.organization_name
           FROM engagements e 
           LEFT JOIN organizations o ON e.organization_id = o.id 
           WHERE e.is_deleted = {$archive_value}";
-if ($search !== '') {
-    $query .= " AND (
-        e.event_title LIKE ?
-        OR EXISTS (
-            SELECT 1
-            FROM engagement_chron_entries ce
-            LEFT JOIN users chron_creator ON chron_creator.id = ce.created_by
-            WHERE ce.engagement_id = e.id
-              AND ce.is_archived = 0
-              AND (
-                  ce.entry_text LIKE ?
-                  OR COALESCE(chron_creator.username, ce.created_by_username_snapshot) LIKE ?
-              )
-        )
-    )";
+if ($has_search_terms) {
+    $query .= ' AND (' . $search_plan['sql'] . ')';
 }
 $query .= "
           ORDER BY {$order_by} {$order_direction}";
 
 $query_stmt = null;
-if ($search !== '') {
+if ($has_search_terms) {
     $query_stmt = $conn->prepare($query);
-    $search_pattern = '%' . $search . '%';
     if (!$query_stmt) {
-        error_log('Unable to prepare the engagement and Chron search: ' . $conn->error);
+        error_log('Unable to prepare the engagement search: ' . $conn->error);
         http_response_code(503);
         exit('Engagement search is temporarily unavailable while DNR is being upgraded.');
     }
-    $query_stmt->bind_param('sss', $search_pattern, $search_pattern, $search_pattern);
+    $bind_types = str_repeat('s', count($search_plan['patterns']));
+    $bind_params = [$bind_types];
+    foreach ($search_plan['patterns'] as $pattern_index => &$search_pattern) {
+        $bind_params[] = &$search_pattern;
+    }
+    unset($search_pattern);
+    $query_stmt->bind_param(...$bind_params);
     if (!$query_stmt->execute()) {
-        error_log('Unable to run the engagement and Chron search: ' . $query_stmt->error);
+        error_log('Unable to run the engagement search: ' . $query_stmt->error);
         http_response_code(500);
         exit('Unable to search engagements. Please try again.');
     }
@@ -319,9 +314,9 @@ $format_date_range = static function ($start, $end) {
             <input type="hidden" name="date_sort" value="<?php echo htmlspecialchars($date_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="status_sort" value="<?php echo htmlspecialchars($status_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="engagement-search">Search engagement titles and Chron logs</label>
+            <label class="visually-hidden" for="engagement-search">title, organization, contact, chron log text, "and"/or user</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search titles and Chron logs">
+            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
             <?php if ($search !== ''): ?><a href="engagements.php?status=<?php echo urlencode($list_status); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Engagement archive status">
