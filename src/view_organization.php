@@ -53,12 +53,12 @@ $stmt->close();
 $contact_stmt->close();
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .organization-details {
             background-color: #fff;
@@ -139,9 +139,9 @@ $contact_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization details</span></nav>
+    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && $user_role === 'admin'): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
     <div class="organization-details">
-        <h2><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h2>
-
         <div class="detail-row">
             <strong>Affiliation</strong>
             <?php echo !empty($organization['affiliation']) ? htmlspecialchars($organization['affiliation']) : 'Not specified'; ?>
@@ -244,9 +244,6 @@ $contact_stmt->close();
 
     <div class="action-buttons">
         <a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
-        <?php if (!$is_archived && $user_role === 'admin'): ?>
-            <a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="action-button edit-button">Edit Organization</a>
-        <?php endif; ?>
     </div>
 </div>
 <?php include 'templates/footer.php'; ?>

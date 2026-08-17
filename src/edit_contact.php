@@ -140,12 +140,12 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
     : 'contacts.php';
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -203,7 +203,8 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h2>Edit Contact</h2>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit contact</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
 
     <?php if ($error_messages): ?>
         <p class="error"><?php echo implode(

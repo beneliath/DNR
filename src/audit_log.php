@@ -13,6 +13,7 @@ $category = $_GET['category'] ?? '';
 if (!in_array($category, $allowed_categories, true)) {
     $category = '';
 }
+$search = trim($_GET['q'] ?? '');
 
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true)
@@ -26,7 +27,26 @@ $requested_page = filter_input(
     ['options' => ['min_range' => 1]]
 );
 $requested_page = $requested_page ?: 1;
-$where_clause = $category === '' ? '' : ' WHERE event_category = ?';
+$where_parts = [];
+if ($category !== '') {
+    $where_parts[] = 'event_category = ?';
+}
+if ($search !== '') {
+    $where_parts[] = "(
+        actor_username LIKE ?
+        OR target_username LIKE ?
+        OR REPLACE(event_category, '_', ' ') LIKE ?
+        OR REPLACE(event_type, '_', ' ') LIKE ?
+        OR REPLACE(entity_type, '_', ' ') LIKE ?
+        OR CAST(entity_id AS CHAR) LIKE ?
+        OR entity_label LIKE ?
+        OR details LIKE ?
+        OR ip_address LIKE ?
+        OR CAST(created_at AS CHAR) LIKE ?
+    )";
+}
+$where_clause = $where_parts ? ' WHERE ' . implode(' AND ', $where_parts) : '';
+$search_pattern = '%' . $search . '%';
 
 $count_stmt = $conn->prepare(
     "SELECT COUNT(*) AS entry_count FROM security_audit_log{$where_clause}"
@@ -34,8 +54,37 @@ $count_stmt = $conn->prepare(
 if (!$count_stmt) {
     die('Unable to retrieve the audit log.');
 }
-if ($category !== '') {
+if ($category !== '' && $search !== '') {
+    $count_stmt->bind_param(
+        'sssssssssss',
+        $category,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern
+    );
+} elseif ($category !== '') {
     $count_stmt->bind_param('s', $category);
+} elseif ($search !== '') {
+    $count_stmt->bind_param(
+        'ssssssssss',
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern
+    );
 }
 $count_stmt->execute();
 $total_entries = (int) $count_stmt->get_result()->fetch_assoc()['entry_count'];
@@ -55,10 +104,43 @@ $entries_stmt = $conn->prepare(
 if (!$entries_stmt) {
     die('Unable to retrieve the audit log.');
 }
-if ($category === '') {
+if ($category !== '' && $search !== '') {
+    $entries_stmt->bind_param(
+        'sssssssssssii',
+        $category,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $page_size,
+        $offset
+    );
+} elseif ($category === '' && $search === '') {
     $entries_stmt->bind_param('ii', $page_size, $offset);
-} else {
+} elseif ($category !== '') {
     $entries_stmt->bind_param('sii', $category, $page_size, $offset);
+} else {
+    $entries_stmt->bind_param(
+        'ssssssssssii',
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $page_size,
+        $offset
+    );
 }
 $entries_stmt->execute();
 $entries = $entries_stmt->get_result();
@@ -104,13 +186,16 @@ try {
     $audit_timezone = new DateTimeZone('UTC');
 }
 
-function auditLogPageUrl($page, $category, $page_size) {
+function auditLogPageUrl($page, $category, $page_size, $search = '') {
     $parameters = [
         'page' => $page,
         'per_page' => $page_size,
     ];
     if ($category !== '') {
         $parameters['category'] = $category;
+    }
+    if ($search !== '') {
+        $parameters['q'] = $search;
     }
     return 'audit_log.php?' . http_build_query($parameters);
 }
@@ -133,7 +218,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audit Log - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .page-heading,
         .audit-filters,
@@ -245,32 +330,36 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     <div class="page-heading">
         <div>
             <h1>Audit Log</h1>
-            <p>Login, logout, and database activity. Newest entries appear first.</p>
+            <p class="page-intro">Login, logout, and database activity. Newest entries appear first.</p>
         </div>
         <a href="users.php" class="button-add">Back to Users</a>
     </div>
 
     <div class="audit-controls">
+        <form method="get" action="audit_log.php" class="list-search-form" role="search">
+            <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+            <label class="visually-hidden" for="audit-search">Search audit log</label>
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input type="search" id="audit-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search audit log">
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+        </form>
         <nav class="audit-filters" aria-label="Audit log filters">
-            <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, '', $page_size), ENT_QUOTES, 'UTF-8'); ?>"
+            <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, '', $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
                class="filter-button<?php echo $category === '' ? ' active' : ''; ?>">All</a>
             <?php foreach ($allowed_categories as $filter_category): ?>
-                <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $filter_category, $page_size), ENT_QUOTES, 'UTF-8'); ?>"
+                <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $filter_category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
                    class="filter-button<?php echo $category === $filter_category ? ' active' : ''; ?>">
                     <?php echo htmlspecialchars($category_labels[$filter_category], ENT_QUOTES, 'UTF-8'); ?>
                 </a>
             <?php endforeach; ?>
         </nav>
 
-        <div class="audit-page-size" aria-label="Audit log entries per page">
-            <span>Show:</span>
-            <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $allowed_page_size), ENT_QUOTES, 'UTF-8'); ?>"
-                   class="filter-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
-                   <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
-            <?php endforeach; ?>
-        </div>
     </div>
+
+    <?php if ($search !== ''): ?>
+        <p class="result-context"><?php echo $total_entries; ?> result<?php echo $total_entries === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+    <?php endif; ?>
 
     <div class="audit-table-wrapper">
         <table class="audit-table">
@@ -286,7 +375,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             </thead>
             <tbody>
                 <?php if ($entries->num_rows === 0): ?>
-                    <tr><td colspan="6" class="empty-state">No audit entries found.</td></tr>
+                    <tr><td colspan="6" class="empty-state">No audit entries match the current view.</td></tr>
                 <?php else: ?>
                     <?php while ($entry = $entries->fetch_assoc()): ?>
                         <?php
@@ -349,14 +438,24 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     </div>
 
     <?php if ($total_entries > 0): ?>
-        <nav class="pagination" aria-label="Audit log pages">
-            <?php if ($current_page > 1): ?>
-                <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page - 1, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Previous</a>
-            <?php endif; ?>
-            <span>Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> (<?php echo $total_entries; ?> entries)</span>
-            <?php if ($current_page < $total_pages): ?>
-                <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page + 1, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Next</a>
-            <?php endif; ?>
+        <nav class="pagination pagination-with-size" aria-label="Audit log pages">
+            <div class="page-size-selector" aria-label="Audit log entries per page">
+                <span class="page-size-label">Rows per page:</span>
+                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $allowed_page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                       class="filter-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
+                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
+                <?php endforeach; ?>
+            </div>
+            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_entries; ?> entries</span>
+            <div class="pagination-actions">
+                <?php if ($current_page > 1): ?>
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page - 1, $category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Previous</a>
+                <?php endif; ?>
+                <?php if ($current_page < $total_pages): ?>
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page + 1, $category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Next</a>
+                <?php endif; ?>
+            </div>
         </nav>
     <?php endif; ?>
 </main>

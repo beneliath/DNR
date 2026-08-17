@@ -194,12 +194,12 @@ if (isset($_SESSION['success_message'])) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -455,9 +455,11 @@ if (isset($_SESSION['success_message'])) {
 <div class="container">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
-    <h2>Add Organization</h2>
-    <form method="post" action="add_organization.php">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New organization</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>New organization</h1><p class="page-intro">Add organization details, addresses, and contacts.</p></div></div>
+    <form method="post" action="add_organization.php" class="organization-form">
         <?php echo csrfInput(); ?>
+        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="form-group">
             <label class="required">Organization Name</label>
             <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
@@ -616,7 +618,8 @@ if (isset($_SESSION['success_message'])) {
         </div>
 
         <div class="form-group" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
-            <input type="submit" name="save_org" value="SAVE ORGANIZATION" class="save-button">
+            <a href="organizations.php" class="cancel-button">Cancel</a>
+            <input type="submit" name="save_org" value="Create organization" class="save-button">
         </div>
     </form>
 </div>

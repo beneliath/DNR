@@ -120,12 +120,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -211,8 +211,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container">
     <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
 
-    <h2>Edit Organization</h2>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit organization</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form">
         <?php echo csrfInput(); ?>
         <div class="form-group">
             <label class="required">Organization Name</label>

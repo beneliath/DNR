@@ -167,14 +167,23 @@ $stage = $recovery['stage'] ?? 'start';
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Recover Password - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
+    <link rel="stylesheet" href="assets/css/modern.css?v=0.1.9">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
     </script>
 </head>
 <body class="fullscreen-center">
+    <button type="button" class="mobile-theme-button auth-theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+        <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+    </button>
     <div class="login-container recovery-container">
+        <div class="auth-brand">
+            <span class="app-brand-mark">DNR</span>
+            <span class="auth-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
+        </div>
         <h1>Recover Password</h1>
 
         <?php if (isset($error)): ?>

@@ -47,34 +47,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Register - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h1>Register New User</h1>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>New user</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>New user</h1><p class="page-intro">Create an account and assign its access level.</p></div></div>
 
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="register.php">
         <?php echo csrfInput(); ?>
-        <label for="username">Username <input type="text" name="username" id="username" required></label><br>
-        <label for="password">Password <input type="password" name="password" id="password" minlength="12" required></label><br>
-        <label for="password_confirm">Confirm Password <input type="password" name="password_confirm" id="password_confirm" minlength="12" required></label><br>
-        <label for="role">Role
-            <select name="role" id="role" required>
-                <option value="admin">Admin</option>
-                <option value="editor">Editor</option>
-                <option value="reviewer">Reviewer</option>
-            </select>
-        </label><br>
-        <input type="submit" value="Register" class="register-button">
+        <div class="form-group"><label for="username">Username</label><input type="text" name="username" id="username" autocomplete="username" required></div>
+        <div class="form-group"><label for="password">Temporary password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" required><p class="field-help">Use at least 12 characters. The user can change it from Account security.</p></div>
+        <div class="form-group"><label for="password_confirm">Confirm temporary password</label><input type="password" name="password_confirm" id="password_confirm" autocomplete="new-password" minlength="12" required></div>
+        <div class="form-group"><label for="role">Role</label><select name="role" id="role" required>
+            <option value="admin">Admin</option>
+            <option value="editor">Editor</option>
+            <option value="reviewer">Reviewer</option>
+        </select></div>
+        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Create user" class="register-button"></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

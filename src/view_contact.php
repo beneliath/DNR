@@ -45,12 +45,12 @@ $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .contact-details {
             background-color: #fff;
@@ -95,12 +95,14 @@ unset($_SESSION['success_message']);
         <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <div class="contact-details">
-        <h2><?php echo htmlspecialchars(
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Contacts</a><span aria-hidden="true">/</span><span>Contact details</span></nav>
+    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars(
             $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
             ENT_QUOTES,
             'UTF-8'
-        ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h2>
+        ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?></p></div><?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_contact.php?id=<?php echo $contact_id; ?>&amp;from=view" class="button-add">Edit contact</a><?php endif; ?></div>
+
+    <div class="contact-details">
 
         <div class="detail-row">
             <strong>Organization</strong>
@@ -132,9 +134,6 @@ unset($_SESSION['success_message']);
 
     <div class="action-buttons">
         <a href="contacts.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
-        <?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="edit_contact.php?id=<?php echo $contact_id; ?>&amp;from=view" class="action-button edit-button">Edit Contact</a>
-        <?php endif; ?>
     </div>
 </div>
 <?php include 'templates/footer.php'; ?>

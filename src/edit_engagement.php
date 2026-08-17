@@ -314,23 +314,27 @@ while ($row = $presentations_result->fetch_assoc()) {
 }
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h2>Edit Engagement</h2>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit engagement</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
 
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form">
         <?php echo csrfInput(); ?>
+        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+        <section class="form-section">
+        <h2>Event details &amp; schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
             <select name="organization_id" id="organization_id" required>
@@ -345,7 +349,7 @@ while ($row = $presentations_result->fetch_assoc()) {
             </select>
         </div>
 
-        <label for="engagement_notes" style="vertical-align: top;">Chron</label>
+        <label for="engagement_notes" style="vertical-align: top;">Chronology &amp; notes</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="18" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($engagement['engagement_notes'] ?? ''); ?></textarea>
 
         <div class="date-fields">
@@ -383,7 +387,10 @@ while ($row = $presentations_result->fetch_assoc()) {
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
             </div>
         </div>
+        </section>
 
+        <section class="form-section">
+        <h2>Logistics &amp; compensation</h2>
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
@@ -508,6 +515,7 @@ while ($row = $presentations_result->fetch_assoc()) {
                 </div>
             </div>
         </div>
+        </section>
 
         <div class="form-row">
             <div style="display: flex; gap: 20px;">
@@ -541,8 +549,8 @@ while ($row = $presentations_result->fetch_assoc()) {
             </div>
 
             <div class="form-group" style="padding-left: 0; margin-left: 0;">
-                <input type="submit" name="save_engagement" value="SAVE CHANGES" class="save-button" style="margin-left: 0;">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
+                <input type="submit" name="save_engagement" value="Save changes" class="save-button" style="margin-left: 0;">
             </div>
         </div>
     </form>

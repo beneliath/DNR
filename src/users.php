@@ -33,12 +33,12 @@ if (!$users) {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .page-heading {
             display: grid;
@@ -139,9 +139,9 @@ if (!$users) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <div class="page-heading">
-        <h1>Users</h1>
+        <div><h1>Users</h1><p class="page-intro">Manage access, roles, passwords, and two-factor authentication.</p></div>
         <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
-        <a href="register.php" class="button-add">Add User</a>
+        <a href="register.php" class="button-add">+ New user</a>
     </div>
 
     <?php if (isset($_GET['two_factor_reset'])): ?>
@@ -179,13 +179,13 @@ if (!$users) {
                                 <button type="submit" class="action-button reset-two-factor-button">Reset 2FA</button>
                             </form>
                         <?php endif; ?>
-                        <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button">Edit</a>
+                        <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit user" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                         <?php if ((int) $user['id'] !== (int) $_SESSION['user_id']): ?>
                             <form method="post" action="delete_user.php" onsubmit="return confirmUserDeletion(this);">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="delete_confirmation" value="">
-                                <button type="submit" class="action-button delete-button">Delete</button>
+                                <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete user" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                             </form>
                         <?php endif; ?>
                     </div>

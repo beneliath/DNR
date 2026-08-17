@@ -1,8 +1,8 @@
-## DNR: deploy and report
+## DNR: MOED מוֹעֵד
 
 ### Description
 
-DNR (deploy and report) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
+DNR (MOED מוֹעֵד) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
 
 ### Installation
 

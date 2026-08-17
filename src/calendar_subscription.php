@@ -10,18 +10,18 @@ $calendar_url = calendarSubscriptionUrl($_SERVER);
 $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Subscribe to DNR Calendar</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container calendar-subscription">
-    <h1>Subscribe to DNR Events</h1>
-    <p>This shared calendar contains every active (non-archived) DNR engagement. Calendar entries are titled “Event Status-Event Title-Event Type,” or “Event Status-Organization-Event Type” when no event title is set. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
+    <div class="page-heading"><div><h1>Calendar subscription</h1><p class="page-intro">Keep every active DNR engagement in your calendar app.</p></div></div>
+    <section class="security-card calendar-card"><p>This shared calendar contains every active (non-archived) DNR engagement. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
 
     <label for="calendar-url"><strong>Calendar subscription URL</strong></label>
     <div class="calendar-url-row">
@@ -32,6 +32,7 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 
     <p><a class="security-button" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in calendar app</a></p>
     <p class="calendar-privacy-note"><strong>Public feed:</strong> anyone with this URL can view organization names, event titles, event types, statuses, all-day date ranges, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
+    </section>
 </div>
 <?php include 'templates/footer.php'; ?>
 <script>

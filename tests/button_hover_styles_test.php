@@ -8,6 +8,7 @@ function expectHoverStyle($condition, $message) {
 }
 
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
+$modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $users_page = file_get_contents(__DIR__ . '/../src/users.php');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 
@@ -20,20 +21,53 @@ expectHoverStyle(
     'Audit filters and pagination controls should use the shared button styles.'
 );
 expectHoverStyle(
-    strpos($stylesheet, ".sort-button.active,\n.filter-button.active {\n  background-color: var(--button-edit-color) !important;") !== false,
-    'Currently selected filter controls should use the blue active color.'
+    strpos($modern_stylesheet, '--control-hover-bg: #dbeafe;') !== false
+        && strpos($modern_stylesheet, '--control-hover-bg: #243f73;') !== false,
+    'List controls should define distinct, visible hover surfaces for both themes.'
 );
 expectHoverStyle(
     strpos($audit_log_page, "background-color: var(--button-edit-color) !important;") !== false,
     'The Audit Log should apply its active selector color without relying on a cached stylesheet.'
 );
 expectHoverStyle(
-    strpos($stylesheet, "):hover {\n  background-color: var(--button-hover-color) !important;") !== false,
-    'Shared selectable buttons should hover with the orange button color.'
+    strpos($stylesheet, ':not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button)') !== false,
+    'Modern navigation, theme, and list controls should be excluded from the legacy orange hover rule.'
+);
+$legacy_hover_block = '';
+if (($legacy_hover_start = strpos($stylesheet, 'Consistent button hover feedback')) !== false) {
+    $legacy_hover_end = strpos($stylesheet, '/* Ensure login container', $legacy_hover_start);
+    $legacy_hover_block = substr($stylesheet, $legacy_hover_start, $legacy_hover_end - $legacy_hover_start);
+}
+expectHoverStyle(
+    $legacy_hover_block !== ''
+        && strpos($legacy_hover_block, "\n  .button-add,") === false
+        && strpos($legacy_hover_block, ':not(.button-add)') !== false,
+    'Primary New buttons should be excluded from the legacy orange hover rule.'
+);
+foreach (['.add-org-button', '.save-button', '.save-event-button'] as $modern_primary_class) {
+    expectHoverStyle(
+        strpos($legacy_hover_block, "\n  {$modern_primary_class},") === false
+            && strpos($legacy_hover_block, ":not({$modern_primary_class})") !== false,
+        $modern_primary_class . ' should be excluded from the legacy orange hover rule.'
+    );
+}
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body .button-add:hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--primary-hover) !important;') !== false,
+    'Primary New buttons should use the modern themed hover treatment.'
 );
 expectHoverStyle(
-    strpos($users_page, '.audit-log-link:hover') === false,
-    'The Audit Log button must not override the shared orange hover color.'
+    strpos($modern_stylesheet, 'html body :is(.add-org-button, .save-button, .save-event-button):hover') !== false,
+    'Organization and event creation controls should use the modern themed hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body :is(.sort-button, .filter-button):hover') !== false,
+    'Search-row and pagination controls should use the modern themed hover rule.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, '.mobile-theme-button:hover') !== false
+        && strpos($modern_stylesheet, '.theme-toggle-button:hover') !== false,
+    'Desktop and mobile theme controls should use modern themed hover rules.'
 );
 
 foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
@@ -42,7 +76,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.11') !== false,
+        strpos($page_source, 'assets/css/style.css?v=0.0.15') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }

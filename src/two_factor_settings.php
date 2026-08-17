@@ -109,12 +109,12 @@ $remaining_codes = !empty($user['two_factor_enabled'])
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Account Security - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
 </head>
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">
-    <h1>Account Security</h1>
+    <div class="page-heading"><div><h1>Account security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
 
     <?php if (isset($error)): ?>
         <p class="error"><?php echo htmlspecialchars($error); ?></p>

@@ -59,25 +59,90 @@ unset($_SESSION['organization_action_message'], $_SESSION['organization_action_e
 // Retrieve organizations using an allowlisted name-sort direction.
 $name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
 $order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
+$search = trim($_GET['q'] ?? '');
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
-$query = "SELECT * FROM organizations
-          WHERE is_deleted = {$archive_value}
-          ORDER BY organization_name {$order_direction}, id {$order_direction}";
+$query = "SELECT o.* FROM organizations o
+          WHERE o.is_deleted = {$archive_value}";
+$query_stmt = null;
+if ($search !== '') {
+    $query .= " AND (
+        o.organization_name LIKE ?
+        OR o.affiliation LIKE ?
+        OR o.email LIKE ?
+        OR o.phone LIKE ?
+        OR o.physical_city LIKE ?
+        OR o.physical_state LIKE ?
+        OR o.mailing_city LIKE ?
+        OR o.mailing_state LIKE ?
+        OR EXISTS (
+            SELECT 1 FROM contacts c
+            WHERE c.organization_id = o.id
+              AND c.is_deleted = 0
+              AND (
+                  c.contact_first_name LIKE ?
+                  OR c.contact_last_name LIKE ?
+                  OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
+                  OR c.contact_email LIKE ?
+                  OR c.contact_phone LIKE ?
+              )
+        )
+    )";
+}
+$query .= " ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}";
 
-$result = $conn->query($query);
+$result = null;
+if ($search !== '') {
+    $query_stmt = $conn->prepare($query);
+    if (!$query_stmt) {
+        die('Unable to search organizations.');
+    }
+    $search_pattern = '%' . $search . '%';
+    $query_stmt->bind_param(
+        'sssssssssssss',
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern,
+        $search_pattern
+    );
+    $query_stmt->execute();
+    $result = $query_stmt->get_result();
+} else {
+    $result = $conn->query($query);
+}
 if (!$result) {
     die("Database error: " . $conn->error);
 }
+
+function organizationsPageUrl($status, $name_sort, $search = '')
+{
+    $parameters = [
+        'status' => $status,
+        'name_sort' => $name_sort,
+    ];
+    if ($search !== '') {
+        $parameters['q'] = $search;
+    }
+    return 'organizations.php?' . http_build_query($parameters);
+}
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .organization-table {
             width: 100%;
@@ -183,9 +248,9 @@ if (!$result) {
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <div class="page-heading">
-        <h1><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></h1>
+        <div><h1><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></h1><p class="page-intro">Keep organization details, locations, and related contacts together.</p></div>
         <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="add_organization.php" class="button-add">Add Organization</a>
+            <a href="add_organization.php" class="button-add">+ New organization</a>
         <?php endif; ?>
     </div>
 
@@ -197,20 +262,32 @@ if (!$result) {
     <?php endif; ?>
 
     <div class="list-controls">
+        <form method="get" action="organizations.php" class="list-search-form" role="search">
+            <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <label class="visually-hidden" for="organization-search">Search organizations</label>
+            <span class="search-icon" aria-hidden="true">⌕</span>
+            <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+        </form>
         <div class="control-group" aria-label="Organization archive status">
-            <a href="?status=active&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="?status=archived&amp;name_sort=<?php echo $name_sort; ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Organization sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="?status=<?php echo $list_status; ?>&amp;name_sort=<?php echo $name_sort === 'asc' ? 'desc' : 'asc'; ?>" class="sort-button active" aria-current="true">
+                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
         </div>
     </div>
+
+    <?php if ($search !== ''): ?>
+        <p class="result-context"><?php echo $result->num_rows; ?> result<?php echo $result->num_rows === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+    <?php endif; ?>
 
     <table class="organization-table">
         <thead>
@@ -222,9 +299,12 @@ if (!$result) {
             </tr>
         </thead>
         <tbody>
+            <?php if ($result->num_rows === 0): ?>
+                <tr><td colspan="4" class="empty-state">No organizations match the current view.</td></tr>
+            <?php endif; ?>
             <?php while ($org = $result->fetch_assoc()): ?>
                 <tr>
-                    <td><?php echo htmlspecialchars($org['organization_name']); ?></td>
+                    <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
                     <td>
                         <?php
                         $address_parts = [];
@@ -258,9 +338,9 @@ if (!$result) {
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button view-button">View</a>
+                            <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button edit-button">Edit</a>
+                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button action-icon-button edit-button" aria-label="Edit organization" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
@@ -269,7 +349,7 @@ if (!$result) {
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="archived">
                                         <input type="hidden" name="action" value="restore">
-                                        <button type="submit" class="action-button restore-button">Restore</button>
+                                        <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore organization" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
                                     </form>
                                 <?php else: ?>
                                     <form method="post" action="organizations.php">
@@ -277,7 +357,7 @@ if (!$result) {
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="active">
                                         <input type="hidden" name="action" value="archive">
-                                        <button type="submit" class="action-button archive-button">Archive</button>
+                                        <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive organization" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                                     </form>
                                 <?php endif; ?>
                             <?php endif; ?>
@@ -289,7 +369,7 @@ if (!$result) {
                                     <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                     <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                     <input type="hidden" name="action" value="delete">
-                                    <button type="submit" class="action-button delete-button">Delete</button>
+                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete organization" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                                 </form>
                             <?php endif; ?>
                         </div>
@@ -302,3 +382,4 @@ if (!$result) {
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
+<?php if ($query_stmt) $query_stmt->close(); ?>

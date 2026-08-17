@@ -98,12 +98,12 @@ $contact_stmt->close();
 $presentation_stmt->close();
 ?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .view-container {
             max-width: 800px;
@@ -223,7 +223,11 @@ $presentation_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
-    <h1>View Engagement<?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement details</span></nav>
+    <div class="page-heading record-page-heading">
+        <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($engagement['event_type'])); ?></p></div>
+        <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
+    </div>
 
     <div class="detail-group">
         <?php if (!empty($engagement['event_title'])): ?>
@@ -366,9 +370,6 @@ $presentation_stmt->close();
     <div class="action-buttons">
         <div class="primary-actions">
             <a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>
-            <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Edit</a>
-            <?php endif; ?>
         </div>
         <div class="export-actions" aria-label="Export engagement">
             <button type="button" class="action-button export-button" data-copy-format="text">Copy Text</button>

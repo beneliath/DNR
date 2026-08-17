@@ -7,7 +7,3 @@ function toggleOtherEventType(select) {
     }
 }
 
-function toggleTheme() {
-    document.body.classList.toggle("dark-mode");
-}
-

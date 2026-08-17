@@ -193,19 +193,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
 <!DOCTYPE html>
 <!-- HTML structure for the dashboard interface -->
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
-    <h2>Add Engagement</h2>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>New engagement</span></nav>
+    <div class="page-heading form-page-heading">
+        <div>
+            <h1>New engagement</h1>
+            <p class="page-intro">Create the event, schedule, presentations, and logistics in one place.</p>
+        </div>
+    </div>
     <!-- Form for adding a new speaking engagement -->
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
@@ -214,8 +220,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <form method="post" action="index.php" onsubmit="return validateDates();">
+    <form method="post" action="index.php" onsubmit="return validateDates();" class="engagement-form">
         <?php echo csrfInput(); ?>
+        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+        <section class="form-section">
+        <h2>Event details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
@@ -236,9 +245,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
         <br><br>
 
-        <label for="engagement_notes" style="vertical-align: top;">Chron</label>
+        <label for="engagement_notes" style="vertical-align: top;">Chronology &amp; notes</label>
         <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>
-        <br><br>
+        </section>
+
+        <section class="form-section">
+        <h2>Schedule</h2>
 
         <div class="date-fields">
             <div class="date-field">
@@ -273,12 +285,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
             </div>
         </div>
+        </section>
 
 
 
         <!-- Presentation(s) Section -->
-        <div id="presentations-container">
-            <div class="section-heading">Presentation(s)</div>
+        <div id="presentations-container" class="form-section">
+            <h2>Presentations</h2>
             <div class="presentations-outer-box">
             <div class="presentations-inner-container">
             <?php
@@ -341,7 +354,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
         </div>
 
-        <br>
+        <section class="form-section">
+        <h2>Logistics &amp; compensation</h2>
 
         <div class="checkbox-row">
             <div class="checkbox-group">
@@ -435,7 +449,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
             </div>
         </div>
-<br>
+        </section>
         <div class="form-row">
             <div style="display: flex; gap: 20px;">
                 <div class="form-field">
@@ -469,7 +483,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
 
             <div class="form-group" style="padding-left: 0; margin-left: 0;">
-                <input type="submit" name="save_engagement" value="SAVE ENGAGEMENT" class="save-button" style="margin-left: 0;">
+                <a href="engagements.php" class="cancel-button">Cancel</a>
+                <input type="submit" name="save_engagement" value="Create engagement" class="save-button" style="margin-left: 0;">
             </div>
         </div>
     </form>

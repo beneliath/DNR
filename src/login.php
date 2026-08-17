@@ -53,8 +53,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DNR - Login</title>
-  <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+  <title>Sign in - DNR</title>
+  <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
+  <link rel="stylesheet" href="assets/css/modern.css?v=0.1.9">
   <script>
     // Load theme before page renders
     const savedTheme = localStorage.getItem('theme');
@@ -64,24 +65,37 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   </script>
 </head>
 <body class="fullscreen-center">
+  <button type="button" class="mobile-theme-button auth-theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+    <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
+    <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
+  </button>
   <div class="login-container">
-    <h1>Login</h1>
+    <div class="auth-brand">
+      <span class="app-brand-mark">DNR</span>
+      <span class="auth-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
+    </div>
+    <h1>Welcome back</h1>
+    <p class="auth-intro">Sign in to manage engagements and contacts.</p>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
       <?php echo csrfInput(); ?>
       <div class="form-group">
         <label for="username">Username</label>
-        <input type="text" name="username" id="username" required>
+        <input type="text" name="username" id="username" autocomplete="username" required autofocus>
       </div>
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" name="password" id="password" required>
+        <input type="password" name="password" id="password" autocomplete="current-password" required>
       </div>
 
-      <button type="submit" class="login-button">Login</button>
+      <button type="submit" class="login-button">Sign in</button>
     </form>
     <p class="login-secondary-link"><a href="recover_password.php">Forgot your password?</a></p>
+    <p class="auth-assurance">
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
+      Protected with two-factor authentication
+    </p>
   </div>
   <script src="assets/js/theme.js"></script>
 </body>

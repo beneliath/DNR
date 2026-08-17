@@ -257,7 +257,7 @@ footer .ascii-art-container pre {
 
 /* Buttons */
 :where(
-  button:not(.logout-link-button),
+  button:not(.logout-link-button):not(.sidebar-backdrop),
   input[type="button"],
   input[type="submit"],
   input[type="reset"],
@@ -883,9 +883,9 @@ html.dark-mode .fullscreen-center {
  * including selectors whose normal state uses !important.
  */
 html body :is(
-  button:not(:disabled):not(.logout-link-button):not(.link-button),
+  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button),
   input[type="button"]:not(:disabled),
-  input[type="submit"]:not(:disabled),
+  input[type="submit"]:not(:disabled):not(.save-button):not(.save-event-button),
   input[type="reset"]:not(:disabled),
   [role="button"],
   .button-save,
@@ -894,22 +894,16 @@ html body :is(
   .button-archive,
   .button-delete,
   .button-cancel,
-  .button-add,
   .register-button,
-  .add-org-button,
-  .save-event-button,
-  .save-button,
-  .action-button,
-  .sort-button,
-  .filter-button,
+  .action-button:not(.action-icon-button),
   .cancel-button,
   .add-contact-btn,
   .remove-contact-btn,
   .add-presentation-btn,
   .remove-presentation-btn,
   .security-button,
-  .archive-button,
-  .restore-button,
+  .archive-button:not(.action-icon-button),
+  .restore-button:not(.action-icon-button),
   .danger-button
 ):hover {
   background-color: var(--button-hover-color) !important;

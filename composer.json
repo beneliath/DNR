@@ -1,6 +1,6 @@
 {
     "name": "beneliath/dnr",
-    "description": "DNR - deploy and report",
+    "description": "DNR - MOED מוֹעֵד",
     "type": "project",
     "require": {
         "php": "^8.4",

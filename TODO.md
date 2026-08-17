@@ -1,6 +1,6 @@
 ### Dev Roadmap / To Do
 
-- [x] rename project to "deploy and report"
+- [x] rename project branding to "MOED מוֹעֵד"
 - [x] include check for Event End Date >= Event Start Date
 - [x] replace known default credentials with secure CLI administrator bootstrap
 - [x] complete minimal buildout of 'Add Engagement' functionality

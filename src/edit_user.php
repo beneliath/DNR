@@ -53,31 +53,30 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit User - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <h1>Edit User</h1>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit user</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit user</h1><p class="page-intro">Change the account username or access level.</p></div></div>
 
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
     <form method="post" action="edit_user.php?id=<?php echo $user['id']; ?>">
         <?php echo csrfInput(); ?>
-        <label for="username">Username <input type="text" name="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></label><br>
-        <label for="role">Role
-            <select name="role" required>
-                <option value="admin" <?php if ($user['role'] === 'admin') echo 'selected'; ?>>Admin</option>
-                <option value="editor" <?php if ($user['role'] === 'editor') echo 'selected'; ?>>Editor</option>
-                <option value="reviewer" <?php if ($user['role'] === 'reviewer') echo 'selected'; ?>>Reviewer</option>
-            </select>
-        </label><br>
-        <input type="submit" value="Save Changes" class="save-button">
+        <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
+        <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
+            <option value="admin" <?php if ($user['role'] === 'admin') echo 'selected'; ?>>Admin</option>
+            <option value="editor" <?php if ($user['role'] === 'editor') echo 'selected'; ?>>Editor</option>
+            <option value="reviewer" <?php if ($user['role'] === 'reviewer') echo 'selected'; ?>>Reviewer</option>
+        </select></div>
+        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save changes" class="save-button"></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

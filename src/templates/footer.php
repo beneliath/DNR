@@ -1,48 +1,27 @@
-<footer>
-    <nav class="footer-navigation" aria-label="Account and application">
-        <p class="footer-copyright">&copy; <?php echo date("Y"); ?> beneliath</p>
-        <a href="calendar_subscription.php">Calendar</a>
-        <a href="two_factor_settings.php">Account Security</a>
-        <form method="post" action="logout.php" id="logout-form" class="footer-logout-form">
-            <?php echo csrfInput(); ?>
-            <button type="submit" class="logout-link-button">Logout (<?php echo htmlspecialchars($_SESSION['username']); ?>)</button>
-        </form>
-    </nav>
-
-    <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
-        <h2 id="logout-confirmation-title">Confirm logout</h2>
-        <p>Are you sure you want to log out?</p>
-        <div class="confirmation-dialog-actions">
-            <button type="button" id="cancel-logout">Cancel</button>
-            <button type="button" id="confirm-logout" class="danger-button">Log out</button>
-        </div>
-    </dialog>
-
-    <dialog id="delete-confirmation" class="confirmation-dialog" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-message">
-        <h2 id="delete-confirmation-title">Confirm deletion</h2>
-        <p id="delete-confirmation-message">Are you sure you want to delete this item?</p>
-        <p>Archive it instead to keep the record available for later restoration.</p>
-        <div class="confirmation-dialog-actions">
-            <button type="button" id="cancel-delete" autofocus>Cancel</button>
-            <button type="button" id="archive-instead" class="archive-button">Archive instead</button>
-            <button type="button" id="confirm-delete" class="danger-button">Delete permanently</button>
-        </div>
-    </dialog>
-    
-    <!-- ASCII Art Container -->
-    <div class="ascii-art-container">
-    <pre>
-     ("`-''-/").___..--''"`-.
-     `6_ 6  )   `-.  (     ).`-.__.`)
-     (_Y_.)'  ._   )  `._ `. ``-..-'
-   _..`--'_..-_/  /--'_.' ,'                repo:  https://github.com/beneliath/DNR
-  (il),-''  (li),'  ((!.-'                 title:  DNR - deploy & report
-                                         version:  0.0.11
-Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 16:07:33
-         Do you see Him?
-    </pre>
-    </div>
+<footer class="app-footer">
+    <p>&copy; <?php echo date("Y"); ?> beneliath <span aria-hidden="true">·</span> DNR <?php echo htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '0.1.0', ENT_QUOTES, 'UTF-8'); ?></p>
 </footer>
+
+<dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
+    <h2 id="logout-confirmation-title">Log out?</h2>
+    <p>You’ll need to sign in again to manage DNR records.</p>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="cancel-logout" class="button-secondary">Cancel</button>
+        <button type="button" id="confirm-logout" class="danger-button">Log out</button>
+    </div>
+</dialog>
+
+<dialog id="delete-confirmation" class="confirmation-dialog" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-message">
+    <h2 id="delete-confirmation-title">Delete permanently?</h2>
+    <p id="delete-confirmation-message">Are you sure you want to delete this item?</p>
+    <p class="dialog-supporting-text">Archive it instead to keep the record available for later restoration.</p>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="cancel-delete" class="button-secondary" autofocus>Cancel</button>
+        <button type="button" id="archive-instead" class="archive-button">Archive instead</button>
+        <button type="button" id="confirm-delete" class="danger-button">Delete permanently</button>
+    </div>
+</dialog>
+
 <script>
 (function () {
     const logoutForm = document.getElementById('logout-form');
@@ -51,21 +30,19 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 16:07:33
     const confirmButton = document.getElementById('confirm-logout');
     let logoutConfirmed = false;
 
-    logoutForm.addEventListener('submit', function (event) {
-        if (!logoutConfirmed) {
-            event.preventDefault();
-            confirmation.showModal();
-        }
-    });
-
-    cancelButton.addEventListener('click', function () {
-        confirmation.close();
-    });
-
-    confirmButton.addEventListener('click', function () {
-        logoutConfirmed = true;
-        logoutForm.requestSubmit();
-    });
+    if (logoutForm && confirmation && cancelButton && confirmButton) {
+        logoutForm.addEventListener('submit', function (event) {
+            if (!logoutConfirmed) {
+                event.preventDefault();
+                confirmation.showModal();
+            }
+        });
+        cancelButton.addEventListener('click', function () { confirmation.close(); });
+        confirmButton.addEventListener('click', function () {
+            logoutConfirmed = true;
+            logoutForm.requestSubmit();
+        });
+    }
 })();
 
 (function () {
@@ -77,12 +54,11 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 16:07:33
     let pendingForm = null;
     let pendingSubmitter = null;
 
+    if (!confirmation || !confirmationMessage || !cancelButton || !archiveButton || !confirmButton) return;
+
     document.querySelectorAll('form[data-delete-confirmation]').forEach(function (form) {
         form.addEventListener('submit', function (event) {
-            if (form.dataset.deleteConfirmed === 'true') {
-                return;
-            }
-
+            if (form.dataset.deleteConfirmed === 'true') return;
             event.preventDefault();
             pendingForm = form;
             pendingSubmitter = event.submitter;
@@ -97,41 +73,31 @@ Genesis 49:9,10 ... Revelation 5:5     timestamp:  2026-08-15 16:07:33
         pendingSubmitter = null;
         confirmation.close();
     });
-
     confirmation.addEventListener('cancel', function () {
         pendingForm = null;
         pendingSubmitter = null;
     });
-
     archiveButton.addEventListener('click', function () {
         if (!pendingForm) {
             confirmation.close();
             return;
         }
-
         const form = pendingForm;
         const archiveAction = form.dataset.archiveAction;
         const actionInput = form.querySelector('input[name="action"]');
         pendingForm = null;
         pendingSubmitter = null;
         confirmation.close();
-
-        // An already archived record only needs the destructive action cancelled.
-        if (!archiveAction || !actionInput) {
-            return;
-        }
-
+        if (!archiveAction || !actionInput) return;
         actionInput.value = archiveAction;
         form.dataset.deleteConfirmed = 'true';
         form.requestSubmit();
     });
-
     confirmButton.addEventListener('click', function () {
         if (!pendingForm) {
             confirmation.close();
             return;
         }
-
         const form = pendingForm;
         const submitter = pendingSubmitter;
         pendingForm = null;

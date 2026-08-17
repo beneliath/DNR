@@ -66,12 +66,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 ?>
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.11">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
     <style>
         .success {
             background-color: #d4edda !important;
@@ -189,9 +189,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         <div class="success" style="background-color: #d4edda !important; color: #155724 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb;"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <h2>Add Contact</h2>
-    <form method="post" action="add_contact.php">
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New contact</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>New contact</h1><p class="page-intro">Connect a person with an organization and their role.</p></div></div>
+    <form method="post" action="add_contact.php" class="contact-form">
         <?php echo csrfInput(); ?>
+        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
             <div class="form-group" style="flex: 1;">
                 <label for="organization_id" class="required">Organization</label>
@@ -252,7 +254,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         </div>
 <br>
         <div class="form-group" style="padding-left: 0; margin-left: 0;">
-            <input type="submit" name="save_contact" value="SAVE CONTACT" class="save-button" style="margin-left: 0;">
+            <a href="contacts.php" class="cancel-button">Cancel</a>
+            <input type="submit" name="save_contact" value="Create contact" class="save-button" style="margin-left: 0;">
         </div>
     </form>
 </div>
