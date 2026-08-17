@@ -2,6 +2,7 @@
 include 'config.php';
 include 'functions.php';
 include 'chron_log_helpers.php';
+include 'presentation_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -37,6 +38,137 @@ if (!$result || $result->num_rows === 0) {
 }
 
 $engagement = $result->fetch_assoc();
+$DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+
+// Archive or permanently delete one saved presentation without submitting
+// unrelated edits in the engagement form.
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && isset($_POST['presentation_id'], $_POST['action'])) {
+    requireValidCsrfToken();
+    $presentation_id = filter_input(INPUT_POST, 'presentation_id', FILTER_VALIDATE_INT);
+    $presentation_action = (string) $_POST['action'];
+
+    if (!$presentation_id || !in_array($presentation_action, ['archive', 'delete'], true)) {
+        $_SESSION['presentation_action_error'] = 'Select a valid presentation action.';
+        header('Location: edit_engagement.php?id=' . $engagement_id . '#presentations-container');
+        exit();
+    }
+    if ($presentation_action === 'archive' && !canArchiveEntries($user_role)) {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    if ($presentation_action === 'delete' && !canDeleteEntries($user_role)) {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+
+    $conn->begin_transaction();
+    try {
+        $engagement_lock_stmt = $conn->prepare(
+            'SELECT confirmation_status FROM engagements WHERE id = ? FOR UPDATE'
+        );
+        if (!$engagement_lock_stmt) {
+            throw new RuntimeException('Unable to prepare the presentation action.');
+        }
+        $engagement_lock_stmt->bind_param('i', $engagement_id);
+        $engagement_lock_stmt->execute();
+        $locked_engagement = $engagement_lock_stmt->get_result()->fetch_assoc();
+        $engagement_lock_stmt->close();
+        if (!$locked_engagement) {
+            throw new InvalidArgumentException('That engagement is no longer available.');
+        }
+
+        $presentation_stmt = $conn->prepare(
+            'SELECT is_archived
+             FROM presentations
+             WHERE id = ? AND engagement_id = ?
+             FOR UPDATE'
+        );
+        if (!$presentation_stmt) {
+            throw new RuntimeException('Unable to prepare the presentation action.');
+        }
+        $presentation_stmt->bind_param('ii', $presentation_id, $engagement_id);
+        $presentation_stmt->execute();
+        $presentation = $presentation_stmt->get_result()->fetch_assoc();
+        $presentation_stmt->close();
+        if (!$presentation || !empty($presentation['is_archived'])) {
+            throw new InvalidArgumentException('That active presentation is no longer available.');
+        }
+
+        if ($locked_engagement['confirmation_status'] === 'confirmed') {
+            $active_count_stmt = $conn->prepare(
+                'SELECT COUNT(*) AS presentation_count
+                 FROM presentations
+                 WHERE engagement_id = ? AND is_archived = 0'
+            );
+            if (!$active_count_stmt) {
+                throw new RuntimeException('Unable to verify the confirmed engagement.');
+            }
+            $active_count_stmt->bind_param('i', $engagement_id);
+            $active_count_stmt->execute();
+            $active_count = (int) ($active_count_stmt->get_result()->fetch_assoc()['presentation_count'] ?? 0);
+            $active_count_stmt->close();
+            if ($active_count <= 1) {
+                throw new InvalidArgumentException(
+                    'A confirmed engagement must keep at least one active presentation.'
+                );
+            }
+        }
+
+        if ($presentation_action === 'archive') {
+            $action_stmt = $conn->prepare(
+                'UPDATE presentations
+                 SET is_archived = 1, archived_by = ?, archived_at = UTC_TIMESTAMP()
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 0'
+            );
+            $action_message = 'Presentation archived.';
+        } else {
+            $action_stmt = $conn->prepare(
+                'DELETE FROM presentations
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 0'
+            );
+            $action_message = 'Presentation permanently deleted.';
+        }
+        if (!$action_stmt) {
+            throw new RuntimeException('Unable to prepare the presentation action.');
+        }
+        if ($presentation_action === 'archive') {
+            $current_user_id = (int) $_SESSION['user_id'];
+            $action_stmt->bind_param('iii', $current_user_id, $presentation_id, $engagement_id);
+        } else {
+            $action_stmt->bind_param('ii', $presentation_id, $engagement_id);
+        }
+        if (!$action_stmt->execute() || $action_stmt->affected_rows !== 1) {
+            $action_stmt->close();
+            throw new RuntimeException('Unable to update the presentation.');
+        }
+        $action_stmt->close();
+
+        $touch_stmt = $conn->prepare(
+            'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+        );
+        if (!$touch_stmt) {
+            throw new RuntimeException('Unable to update the engagement calendar timestamp.');
+        }
+        $touch_stmt->bind_param('i', $engagement_id);
+        if (!$touch_stmt->execute()) {
+            $touch_stmt->close();
+            throw new RuntimeException('Unable to update the engagement calendar timestamp.');
+        }
+        $touch_stmt->close();
+
+        $conn->commit();
+        $_SESSION['presentation_action_message'] = $action_message;
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        $_SESSION['presentation_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the presentation. Please try again.';
+    }
+
+    header('Location: edit_engagement.php?id=' . $engagement_id . '#presentations-container');
+    exit();
+}
 
 // Chron entries are managed individually so their timestamps and permissions
 // are independent from the rest of the engagement form.
@@ -170,6 +302,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $event_state = trim($_POST['event_state'] ?? '');
         $event_zipcode = trim($_POST['event_zipcode'] ?? '');
         $event_country = trim($_POST['event_country'] ?? '');
+
+        $presentations = normalizeEngagementPresentations(
+            $_POST['presentations'] ?? null,
+            $event_start_date,
+            $event_end_date,
+            $DEFAULT_SPEAKER,
+            true
+        );
+        requirePresentationForEngagementEdit($presentations);
+        requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
 
         $submitted_chron_entries = [];
         foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
@@ -354,6 +496,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
         }
 
+        $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations);
+        if ($presentations_changed) {
+            $touch_engagement_stmt = $conn->prepare(
+                'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+            );
+            if (!$touch_engagement_stmt) {
+                throw new RuntimeException('Unable to update the engagement calendar timestamp.');
+            }
+            $touch_engagement_stmt->bind_param('i', $engagement_id);
+            if (!$touch_engagement_stmt->execute()) {
+                $touch_engagement_stmt->close();
+                throw new RuntimeException('Unable to update the engagement calendar timestamp.');
+            }
+            $touch_engagement_stmt->close();
+        }
+
         $current_user_id = (int) $_SESSION['user_id'];
         if ($submitted_chron_entries) {
             $current_chron_stmt = $conn->prepare(
@@ -455,11 +613,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     }
 }
 
-// Get default speaker name from environment variable
-$DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
-
 // Get presentations for this engagement
-$presentations_query = "SELECT * FROM presentations WHERE engagement_id = ? ORDER BY presentation_date, presentation_time";
+$presentations_query = "SELECT * FROM presentations WHERE engagement_id = ? AND is_archived = 0 ORDER BY presentation_date, presentation_time, id";
 $stmt = $conn->prepare($presentations_query);
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -471,13 +626,21 @@ while ($row = $presentations_result->fetch_assoc()) {
 
 $chron_action_message = $_SESSION['chron_action_message'] ?? '';
 $chron_action_error = $_SESSION['chron_action_error'] ?? '';
-unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+$presentation_action_message = $_SESSION['presentation_action_message'] ?? '';
+$presentation_action_error = $_SESSION['presentation_action_error'] ?? '';
+unset(
+    $_SESSION['chron_action_message'],
+    $_SESSION['chron_action_error'],
+    $_SESSION['presentation_action_message'],
+    $_SESSION['presentation_action_error']
+);
 try {
     $chron_entries = fetchChronLogEntries($conn, $engagement_id);
     $archived_chron_count = countArchivedChronLogEntries($conn, $engagement_id);
+    $archived_presentation_count = countArchivedEngagementPresentations($conn, $engagement_id);
 } catch (Throwable $exception) {
     http_response_code(503);
-    exit('The Chron log is temporarily unavailable while DNR is being upgraded.');
+    exit('The engagement details are temporarily unavailable while DNR is being upgraded.');
 }
 ?>
 <!DOCTYPE html>
@@ -491,8 +654,8 @@ try {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit engagement</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
@@ -502,12 +665,18 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
+    <?php if ($presentation_action_message !== ''): ?>
+        <div class="success"><?php echo htmlspecialchars($presentation_action_message); ?></div>
+    <?php endif; ?>
+    <?php if ($presentation_action_error !== ''): ?>
+        <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
+    <?php endif; ?>
 
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
-        <h2>Event details &amp; schedule</h2>
+        <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
             <select name="organization_id" id="organization_id" required>
@@ -559,8 +728,15 @@ try {
         </div>
         </section>
 
+        <?php
+        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
+            ? $_POST['presentations']
+            : $presentations;
+        include 'templates/presentation_form.php';
+        ?>
+
         <section class="form-section">
-        <h2>Logistics &amp; compensation</h2>
+        <h2>Logistics &amp; Compensation</h2>
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
@@ -721,10 +897,30 @@ try {
         </div>
     </form>
 
+    <?php foreach ($presentations as $presentation_management_row): ?>
+        <?php $presentation_management_id = (int) $presentation_management_row['id']; ?>
+        <?php if (canArchiveEntries($user_role)): ?>
+            <form id="archive-presentation-<?php echo $presentation_management_id; ?>" method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#presentations-container" hidden>
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="presentation_id" value="<?php echo $presentation_management_id; ?>">
+                <input type="hidden" name="action" value="archive">
+            </form>
+        <?php endif; ?>
+        <?php if (canDeleteEntries($user_role)): ?>
+            <form id="delete-presentation-<?php echo $presentation_management_id; ?>" method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#presentations-container"
+                  data-delete-confirmation="Permanently delete this presentation?"
+                  data-archive-action="archive" hidden>
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="presentation_id" value="<?php echo $presentation_management_id; ?>">
+                <input type="hidden" name="action" value="delete">
+            </form>
+        <?php endif; ?>
+    <?php endforeach; ?>
+
     <section class="form-section chron-log-section" id="chron-log">
         <div class="chron-log-heading">
             <div>
-                <h2>CHRON LOG</h2>
+                <h2>Chron Log</h2>
                 <p>Entries are shown newest first. Archived entries are removed from this page.</p>
             </div>
             <?php if ($archived_chron_count > 0): ?>
@@ -796,6 +992,7 @@ try {
 
 <?php include 'templates/footer.php'; ?>
 
+<script src="assets/js/presentation-form.min.js?v=0.1.3"></script>
 <script>
     // Validate that the event end date is on or after the event start date
     function validateDates() {
@@ -806,7 +1003,8 @@ try {
             alert("End date must be on or after the start date");
             return false;
         }
-        return true;
+        return typeof validateEngagementPresentations !== 'function'
+            || validateEngagementPresentations();
     }
 
     function validateNewChronEntry() {

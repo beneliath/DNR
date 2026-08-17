@@ -134,7 +134,99 @@ function calendarEventLines(array $engagement) {
     return $lines;
 }
 
-function buildCalendar(array $engagements, $calendar_name = 'DNR Events') {
+function calendarPresentationStart(array $presentation, $timezone_name = 'America/Chicago') {
+    try {
+        $timezone = new DateTimeZone($timezone_name);
+    } catch (Throwable $exception) {
+        $timezone = new DateTimeZone('America/Chicago');
+    }
+
+    $date = trim((string) ($presentation['presentation_date'] ?? ''));
+    $time = strtoupper(trim((string) ($presentation['presentation_time'] ?? '')));
+    if ($date === '' || $time === '') {
+        return null;
+    }
+
+    $formats = str_contains($time, 'AM') || str_contains($time, 'PM')
+        ? ['!Y-m-d g:i A', '!Y-m-d h:i A']
+        : ['!Y-m-d H:i'];
+    foreach ($formats as $format) {
+        $start = DateTimeImmutable::createFromFormat($format, $date . ' ' . $time, $timezone);
+        $date_errors = DateTimeImmutable::getLastErrors();
+        if ($start instanceof DateTimeImmutable
+            && ($date_errors === false
+                || ($date_errors['warning_count'] === 0 && $date_errors['error_count'] === 0))
+        ) {
+            return $start;
+        }
+    }
+
+    return null;
+}
+
+function calendarPresentationEventLines(
+    array $presentation,
+    $timezone_name = 'America/Chicago',
+    $duration_minutes = 60
+) {
+    $start = calendarPresentationStart($presentation, $timezone_name);
+    $topic_title = trim((string) ($presentation['topic_title'] ?? ''));
+    if (!$start || $topic_title === '') {
+        return [];
+    }
+
+    $duration_minutes = max(1, (int) $duration_minutes);
+    $end = $start->modify('+' . $duration_minutes . ' minutes');
+    $utc = new DateTimeZone('UTC');
+    $organization = trim((string) ($presentation['organization_name'] ?? 'Unknown organization'));
+    $event_title = trim((string) ($presentation['event_title'] ?? ''));
+    $engagement_label = $event_title !== '' ? $event_title : $organization;
+    $status = calendarStatusLabel($presentation['confirmation_status'] ?? '');
+    $speaker = trim((string) ($presentation['speaker_name'] ?? ''));
+    $updated_timestamp = $presentation['calendar_updated_at'] ?? null;
+    $updated_at = calendarUtcTimestamp($updated_timestamp);
+    $summary = 'Presentation: ' . $topic_title . ' — ' . $engagement_label;
+
+    $lines = [
+        'BEGIN:VEVENT',
+        'UID:presentation-' . (int) $presentation['id'] . '@dnr-calendar',
+        'RELATED-TO:engagement-' . (int) $presentation['engagement_id'] . '@dnr-calendar',
+        'DTSTAMP:' . $updated_at,
+        'LAST-MODIFIED:' . $updated_at,
+        'SEQUENCE:' . calendarSequence($updated_timestamp),
+        'SUMMARY:' . calendarEscapeText($summary),
+        'DTSTART:' . $start->setTimezone($utc)->format('Ymd\THis\Z'),
+        'DTEND:' . $end->setTimezone($utc)->format('Ymd\THis\Z'),
+    ];
+
+    $location = calendarLocation($presentation);
+    if ($location !== '') {
+        $lines[] = 'LOCATION:' . calendarEscapeText($location);
+    }
+
+    $description_parts = [
+        'Presentation: ' . $topic_title,
+        'Engagement: ' . $engagement_label,
+        'Organization: ' . $organization,
+        'Status: ' . $status,
+    ];
+    if ($speaker !== '') {
+        $description_parts[] = 'Speaker: ' . $speaker;
+    }
+    $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
+    $lines[] = 'STATUS:' . (($presentation['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
+    $lines[] = 'TRANSP:OPAQUE';
+    $lines[] = 'END:VEVENT';
+
+    return $lines;
+}
+
+function buildCalendar(
+    array $engagements,
+    $calendar_name = 'DNR Events',
+    array $presentations = [],
+    $timezone_name = 'America/Chicago'
+) {
     $lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
@@ -148,6 +240,13 @@ function buildCalendar(array $engagements, $calendar_name = 'DNR Events') {
 
     foreach ($engagements as $engagement) {
         $lines = array_merge($lines, calendarEventLines($engagement));
+    }
+
+    foreach ($presentations as $presentation) {
+        $lines = array_merge(
+            $lines,
+            calendarPresentationEventLines($presentation, $timezone_name)
+        );
     }
 
     $lines[] = 'END:VCALENDAR';

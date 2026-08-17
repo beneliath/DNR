@@ -57,8 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>New user</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New user</h1><p class="page-intro">Create an account and assign its access level.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>New User</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>New User</h1><p class="page-intro">Create an account and assign its access level.</p></div></div>
 
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>

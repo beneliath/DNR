@@ -3,6 +3,7 @@ include 'config.php';
 include 'functions.php';
 include 'chron_log_helpers.php';
 include 'engagement_export_helpers.php';
+include 'presentation_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -58,7 +59,7 @@ $contacts = $contacts_result->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt = $conn->prepare(
     "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
-     WHERE engagement_id = ?
+     WHERE engagement_id = ? AND is_archived = 0
      ORDER BY presentation_date, presentation_time, id"
 );
 if ($presentation_stmt === false) {
@@ -74,9 +75,12 @@ try {
     $archived_chron_count = (!$is_archived && canArchiveEntries($user_role))
         ? countArchivedChronLogEntries($conn, $engagement_id)
         : 0;
+    $archived_presentation_count = (!$is_archived && canArchiveEntries($user_role))
+        ? countArchivedEngagementPresentations($conn, $engagement_id)
+        : 0;
 } catch (Throwable $exception) {
     http_response_code(503);
-    exit('The Chron log is temporarily unavailable while DNR is being upgraded.');
+    exit('The engagement details are temporarily unavailable while DNR is being upgraded.');
 }
 
 $event_address_parts = [];
@@ -228,7 +232,7 @@ $presentation_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement details</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement Details</span></nav>
     <div class="page-heading record-page-heading">
         <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($engagement['event_type'])); ?></p></div>
         <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
@@ -308,9 +312,9 @@ $presentation_stmt->close();
         </div>
     </div>
 
-    <?php if ($presentations): ?>
+    <?php if ($presentations || $archived_presentation_count > 0): ?>
     <div class="detail-group">
-        <div class="detail-label">Presentations</div>
+        <div class="detail-label">Presentation(s)</div>
         <div class="detail-value">
             <?php foreach ($presentations as $presentation): ?>
             <div class="presentation-item">
@@ -328,6 +332,14 @@ $presentation_stmt->close();
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>
+            <?php if (!$presentations): ?>
+                <p>No active presentations.</p>
+            <?php endif; ?>
+            <?php if ($archived_presentation_count > 0): ?>
+                <div class="form-row">
+                    <a href="restore_presentations.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore Archived Presentations (<?php echo $archived_presentation_count; ?>)</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
     <?php endif; ?>
@@ -368,7 +380,7 @@ $presentation_stmt->close();
     <div class="detail-group chron-log-section" id="chron-log">
         <div class="chron-log-heading">
             <div>
-                <div class="detail-label">Chron log</div>
+                <div class="detail-label">Chron Log</div>
                 <p>Entries are shown newest first.</p>
             </div>
             <?php if ($archived_chron_count > 0): ?>

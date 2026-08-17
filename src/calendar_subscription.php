@@ -20,8 +20,8 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container calendar-subscription">
-    <div class="page-heading"><div><h1>Calendar subscription</h1><p class="page-intro">Keep every active DNR engagement in your calendar app.</p></div></div>
-    <section class="security-card calendar-card"><p>This shared calendar contains every active (non-archived) DNR engagement. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
+    <div class="page-heading"><div><h1>Calendar Subscription</h1><p class="page-intro">Keep every active DNR engagement in your calendar app.</p></div></div>
+    <section class="security-card calendar-card"><p>This shared calendar contains every active (non-archived) DNR engagement as an all-day block, plus timed blocks for presentations that have both a date and time. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
 
     <label for="calendar-url"><strong>Calendar subscription URL</strong></label>
     <div class="calendar-url-row">
@@ -31,7 +31,7 @@ $webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
     <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
 
     <p><a class="security-button" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in calendar app</a></p>
-    <p class="calendar-privacy-note"><strong>Public feed:</strong> anyone with this URL can view organization names, event titles, event types, statuses, all-day date ranges, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
+    <p class="calendar-privacy-note"><strong>Public feed:</strong> anyone with this URL can view organization names, event titles, event types, statuses, all-day date ranges, presentation topics, speakers, presentation dates and times, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
     </section>
 </div>
 <?php include 'templates/footer.php'; ?>

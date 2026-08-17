@@ -135,13 +135,13 @@ if ($engagement_title === '') {
 <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
-        <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>">Edit engagement</a><span aria-hidden="true">/</span>
-        <span>Restore Chron entries</span>
+        <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>">Edit Engagement</a><span aria-hidden="true">/</span>
+        <span>Restore Chron Entries</span>
     </nav>
 
     <div class="page-heading form-page-heading">
         <div>
-            <h1>Restore archived Chron entries</h1>
+            <h1>Restore Archived Chron Entries</h1>
             <p class="page-intro"><?php echo htmlspecialchars($engagement_title); ?> · Select one or more entries to return to the active Chron log.</p>
         </div>
     </div>

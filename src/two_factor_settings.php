@@ -114,7 +114,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">
-    <div class="page-heading"><div><h1>Account security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
+    <div class="page-heading"><div><h1>Account Security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
 
     <?php if (isset($error)): ?>
         <p class="error"><?php echo htmlspecialchars($error); ?></p>

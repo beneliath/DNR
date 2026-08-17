@@ -11,6 +11,7 @@ function expectRequiredLabelStyle($condition, $message)
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $new_engagement_source = file_get_contents(__DIR__ . '/../src/index.php');
 $edit_engagement_source = file_get_contents(__DIR__ . '/../src/edit_engagement.php');
+$presentation_form_source = file_get_contents(__DIR__ . '/../src/templates/presentation_form.php');
 
 expectRequiredLabelStyle(
     preg_match('/\.required-fields-note\s*\{[^}]*color:\s*var\(--danger\);/s', $modern_styles) === 1,
@@ -31,6 +32,16 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     expectRequiredLabelStyle(
         str_contains($engagement_source, '<label class="label-container" for="event_type_other">Other Event Type'),
         'The other-event label should be associated with its input.'
+    );
+}
+
+foreach (['Topic/Title', 'Date', 'Time'] as $presentation_required_label) {
+    expectRequiredLabelStyle(
+        str_contains(
+            $presentation_form_source,
+            $presentation_required_label . '<span class="required">*</span></label>'
+        ),
+        "Presentation {$presentation_required_label} should use the red required-label marker."
     );
 }
 

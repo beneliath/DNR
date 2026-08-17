@@ -186,8 +186,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         <div class="success" style="background-color: #d4edda !important; color: #155724 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb;"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New contact</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New contact</h1><p class="page-intro">Connect a person with an organization and their role.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>New Contact</h1><p class="page-intro">Connect a person with an organization and their role.</p></div></div>
     <form method="post" action="add_contact.php" class="contact-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>

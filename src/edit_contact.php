@@ -203,8 +203,8 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit contact</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit Contact</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
 
     <?php if ($error_messages): ?>
         <p class="error"><?php echo implode(

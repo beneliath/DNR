@@ -136,7 +136,7 @@ $contact_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization details</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
     <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && $user_role === 'admin'): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
     <div class="organization-details">
         <div class="detail-row">

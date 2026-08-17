@@ -1337,6 +1337,107 @@ textarea::placeholder {
   background: var(--surface-subtle) !important;
 }
 
+.presentations-outer-box {
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.presentations-inner-container {
+  display: grid;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.presentation-entry {
+  padding: 20px;
+  border: 1px solid var(--border);
+}
+
+.presentation-fields {
+  display: grid;
+  gap: 15px;
+}
+
+.presentation-fields .form-field {
+  min-width: 0;
+  margin: 0;
+}
+
+.presentation-fields .topic,
+.presentation-fields .datetime-row,
+.presentation-fields .speaker-row {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.presentation-fields .topic {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.presentation-fields .form-field,
+.presentation-fields .datetime-row .form-field,
+.presentation-fields .speaker-row .form-field {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 0 !important;
+}
+
+.presentation-fields input[type="text"],
+.presentation-fields input[type="date"],
+.presentation-fields input[type="number"] {
+  width: 100% !important;
+  margin-bottom: 0 !important;
+}
+
+.time-input-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.time-input-container > input[type="text"] {
+  width: 150px !important;
+  flex: 0 0 150px;
+}
+
+.ampm-radio {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ampm-radio label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.remove-btn-container {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.presentation-management-actions {
+  gap: 12px;
+}
+
+.currency-input input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.currency-input input[type="number"]::-webkit-inner-spin-button,
+.currency-input input[type="number"]::-webkit-outer-spin-button {
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
 .section-heading {
   margin: 30px 0 12px !important;
   color: var(--text) !important;
@@ -1941,6 +2042,16 @@ html.dark-mode .login-secondary-link a {
 }
 
 @media (max-width: 760px) {
+  .presentation-fields .datetime-row,
+  .presentation-fields .speaker-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .time-input-container {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
   h1 {
     font-size: 1.8rem;
   }

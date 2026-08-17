@@ -82,7 +82,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <div class="auth-brand">
       <span class="auth-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
     </div>
-    <h1>Welcome back</h1>
+    <h1>Welcome Back</h1>
     <p class="auth-intro">Sign in to manage engagements and contacts.</p>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">

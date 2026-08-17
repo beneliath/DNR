@@ -12,7 +12,7 @@ services:
     secrets:
       - dnr_2fa_encryption_key
     environment:
-      - DEFAULT_SPEAKER=Default Speaker # or whatever default speaker name you want
+      - DEFAULT_SPEAKER=${DEFAULT_SPEAKER:-Olivier Melnick}
       - DNR_2FA_ENCRYPTION_KEY_FILE=/run/secrets/dnr_2fa_encryption_key
       - DNR_TRUSTED_PROXY_IPS=${DNR_TRUSTED_PROXY_IPS:-192.168.65.1}
       - DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.14}

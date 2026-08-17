@@ -208,8 +208,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container">
     <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
 
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit organization</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit Organization</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form">
         <?php echo csrfInput(); ?>
         <div class="form-group">

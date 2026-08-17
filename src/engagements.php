@@ -93,14 +93,14 @@ $search_plan = buildEngagementSearchPlan($search);
 $has_search_terms = $search_plan['sql'] !== '';
 
 $summary = [
-    'upcoming' => 0,
+    'work_in_progress' => 0,
     'review' => 0,
     'confirmed' => 0,
     'archived' => 0,
 ];
 $summary_result = $conn->query(
     "SELECT
-        SUM(is_deleted = 0 AND event_end_date >= CURDATE()) AS upcoming_count,
+        SUM(is_deleted = 0 AND confirmation_status = 'work_in_progress') AS work_in_progress_count,
         SUM(is_deleted = 0 AND confirmation_status = 'under_review') AS review_count,
         SUM(is_deleted = 0 AND confirmation_status = 'confirmed') AS confirmed_count,
         SUM(is_deleted = 1) AS archived_count
@@ -109,7 +109,7 @@ $summary_result = $conn->query(
 if ($summary_result) {
     $summary_row = $summary_result->fetch_assoc();
     $summary = [
-        'upcoming' => (int) ($summary_row['upcoming_count'] ?? 0),
+        'work_in_progress' => (int) ($summary_row['work_in_progress_count'] ?? 0),
         'review' => (int) ($summary_row['review_count'] ?? 0),
         'confirmed' => (int) ($summary_row['confirmed_count'] ?? 0),
         'archived' => (int) ($summary_row['archived_count'] ?? 0),
@@ -301,7 +301,7 @@ $format_date_range = static function ($start, $end) {
     <?php endif; ?>
 
     <div class="summary-grid" aria-label="Engagement summary">
-        <div class="summary-card summary-upcoming"><span class="summary-icon" aria-hidden="true">📅</span><span><small>Upcoming</small><strong><?php echo $summary['upcoming']; ?></strong></span></div>
+        <div class="summary-card summary-work-in-progress"><span class="summary-icon" aria-hidden="true">◌</span><span><small>Work in Progress</small><strong><?php echo $summary['work_in_progress']; ?></strong></span></div>
         <div class="summary-card summary-review"><span class="summary-icon" aria-hidden="true">◷</span><span><small>Needs review</small><strong><?php echo $summary['review']; ?></strong></span></div>
         <div class="summary-card summary-confirmed"><span class="summary-icon" aria-hidden="true">✓</span><span><small>Confirmed</small><strong><?php echo $summary['confirmed']; ?></strong></span></div>
         <div class="summary-card summary-archived"><span class="summary-icon" aria-hidden="true">□</span><span><small>Archived</small><strong><?php echo $summary['archived']; ?></strong></span></div>

@@ -65,7 +65,45 @@ expectCalendar(
     'Engagements without a title should use the readable status, organization, and event type.'
 );
 
-foreach (explode("\r\n", $all_day_calendar) as $line) {
+$presentation = array_merge($common, [
+    'id' => 7,
+    'engagement_id' => 42,
+    'topic_title' => 'Opening Keynote',
+    'speaker_name' => 'Jordan Speaker',
+    'presentation_date' => '2026-08-21',
+    'presentation_time' => '09:30 AM',
+]);
+$calendar_with_presentation = buildCalendar(
+    [$all_day],
+    'DNR Events',
+    [$presentation],
+    'America/Chicago'
+);
+$unfolded_presentation_calendar = str_replace("\r\n ", '', $calendar_with_presentation);
+expectCalendar(
+    str_contains($calendar_with_presentation, "UID:presentation-7@dnr-calendar\r\n")
+        && str_contains($calendar_with_presentation, "RELATED-TO:engagement-42@dnr-calendar\r\n"),
+    'Presentation events should have stable IDs and relate back to their engagement.'
+);
+expectCalendar(
+    str_contains($calendar_with_presentation, "DTSTART:20260821T143000Z\r\n")
+        && str_contains($calendar_with_presentation, "DTEND:20260821T153000Z\r\n"),
+    'Presentation events should block one hour at their configured local date and time.'
+);
+expectCalendar(
+    str_contains($unfolded_presentation_calendar, 'SUMMARY:Presentation: Opening Keynote — Annual Leadership Summit'),
+    'Presentation events should identify the topic and engagement.'
+);
+expectCalendar(
+    str_contains($unfolded_presentation_calendar, 'Speaker: Jordan Speaker'),
+    'Presentation events should include the speaker in their description.'
+);
+expectCalendar(
+    calendarPresentationEventLines(array_merge($presentation, ['presentation_time' => ''])) === [],
+    'Presentations without both a date and time should not create timed calendar blocks.'
+);
+
+foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
 

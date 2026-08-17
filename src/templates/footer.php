@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../github_version_helpers.php';
 
-$footer_version = defined('APP_VERSION') ? APP_VERSION : '0.1.9';
+$footer_version = defined('APP_VERSION') ? APP_VERSION : '0.1.10';
 $footer_push = githubPushMetadata();
 $footer_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 $footer_short_commit = $footer_push === null ? '' : substr($footer_push['commit'], 0, 7);
@@ -14,7 +14,7 @@ $footer_push_label = $footer_push === null
 </footer>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
-    <h2 id="logout-confirmation-title">Log out?</h2>
+    <h2 id="logout-confirmation-title">Log Out?</h2>
     <p>You’ll need to sign in again to manage DNR records.</p>
     <div class="confirmation-dialog-actions">
         <button type="button" id="cancel-logout" class="button-secondary">Cancel</button>
@@ -23,7 +23,7 @@ $footer_push_label = $footer_push === null
 </dialog>
 
 <dialog id="delete-confirmation" class="confirmation-dialog" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-message">
-    <h2 id="delete-confirmation-title">Delete permanently?</h2>
+    <h2 id="delete-confirmation-title">Delete Permanently?</h2>
     <p id="delete-confirmation-message">Are you sure you want to delete this item?</p>
     <p class="dialog-supporting-text">Archive it instead to keep the record available for later restoration.</p>
     <div class="confirmation-dialog-actions">

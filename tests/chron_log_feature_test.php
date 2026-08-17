@@ -37,12 +37,12 @@ expectChronFeature(
 );
 expectChronFeature(
     strrpos($new_engagement, 'chron-log-section')
-        > strrpos($new_engagement, '<h2>Logistics &amp; compensation</h2>'),
+        > strrpos($new_engagement, '<h2>Logistics &amp; Compensation</h2>'),
     'Chron should be the final section on New Engagement.'
 );
 expectChronFeature(
     strrpos($edit_engagement, 'chron-log-section')
-        > strrpos($edit_engagement, '<h2>Logistics &amp; compensation</h2>')
+        > strrpos($edit_engagement, '<h2>Logistics &amp; Compensation</h2>')
         && strrpos($edit_engagement, 'engagement-page-actions')
             > strrpos($edit_engagement, 'chron-log-section')
         && str_contains($edit_engagement, 'name="save_engagement" value="1"')

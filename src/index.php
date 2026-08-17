@@ -4,6 +4,7 @@
 
 include 'config.php';
 include 'functions.php';
+include 'presentation_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -68,31 +69,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         $housing_type = 'Unknown';
     }
 
-    // Handle presentations data
-    $presentations = [];
-    if (isset($_POST['presentations']) && is_array($_POST['presentations'])) {
-        foreach ($_POST['presentations'] as $index => $presentation) {
-            $topic_title = trim($presentation['topic_title'] ?? '');
-            if (!empty($topic_title)) {
-                // Check if presentation has a date
-                $presentation_date = !empty($presentation['presentation_date']) ? $presentation['presentation_date'] : null;
-                if ($presentation_date !== null) {
-                    // Validate presentation date is within engagement date range
-                    if ($presentation_date < $event_start_date || $presentation_date > $event_end_date) {
-                        $error_message = "Presentation date for '{$topic_title}' must be between the engagement start and end dates.";
-                        break;
-                    }
-                }
-
-                $presentations[] = [
-                    'topic_title' => $topic_title,
-                    'presentation_date' => $presentation_date,
-                    'presentation_time' => !empty($presentation['presentation_time']) ? $presentation['presentation_time'] : null,
-                    'speaker_name' => trim($presentation['speaker_name'] ?? $DEFAULT_SPEAKER),
-                    'expected_attendance' => !empty($presentation['expected_attendance']) ? intval($presentation['expected_attendance']) : null
-                ];
-            }
-        }
+    try {
+        $presentations = normalizeEngagementPresentations(
+            $_POST['presentations'] ?? null,
+            $event_start_date,
+            $event_end_date,
+            $DEFAULT_SPEAKER
+        );
+        requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
+    } catch (InvalidArgumentException $exception) {
+        $presentations = [];
+        $error_message = $exception->getMessage();
     }
 
     // Validate required fields
@@ -154,6 +141,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                             speaker_name, expected_attendance
                         ) VALUES (?, ?, ?, ?, ?, ?)");
 
+                        if (!$presentation_stmt) {
+                            throw new Exception("Unable to prepare presentations: " . $conn->error);
+                        }
+
                         foreach ($presentations as $presentation) {
                             $presentation_stmt->bind_param(
                                 "issssi",
@@ -169,6 +160,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                                 throw new Exception("Unable to save presentation: " . $presentation_stmt->error);
                             }
                         }
+                        $presentation_stmt->close();
                     }
 
                     if ($chron_entry !== '') {
@@ -230,10 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>New engagement</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>New Engagement</span></nav>
     <div class="page-heading form-page-heading">
         <div>
-            <h1>New engagement</h1>
+            <h1>New Engagement</h1>
             <p class="page-intro">Create the event, schedule, presentations, and logistics in one place.</p>
         </div>
     </div>
@@ -249,7 +241,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
-        <h2>Event details</h2>
+        <h2>Event Details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" required>
@@ -312,73 +304,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
 
 
-        <!-- Presentation(s) Section -->
-        <div id="presentations-container" class="form-section">
-            <h2>Presentations</h2>
-            <div class="presentations-outer-box">
-            <div class="presentations-inner-container">
-            <?php
-            $presentations = !empty($error_message) && isset($_POST['presentations']) ? $_POST['presentations'] : [[]];
-            foreach ($presentations as $index => $presentation) {
-                $topic_title = htmlspecialchars($presentation['topic_title'] ?? '');
-                $presentation_date = htmlspecialchars($presentation['presentation_date'] ?? '');
-                $presentation_time = htmlspecialchars($presentation['presentation_time'] ?? '');
-                $speaker_name = htmlspecialchars($presentation['speaker_name'] ?? $DEFAULT_SPEAKER);
-                $expected_attendance = htmlspecialchars($presentation['expected_attendance'] ?? '');
-            ?>
-            <div class="presentation-entry" id="presentation-<?php echo $index + 1; ?>">
-                <div class="presentation-fields">
-                    <div class="form-field topic">
-                        <label for="presentation_topic_<?php echo $index + 1; ?>">Topic/Title</label>
-                        <input type="text" name="presentations[<?php echo $index; ?>][topic_title]" id="presentation_topic_<?php echo $index + 1; ?>" value="<?php echo $topic_title; ?>">
-                    </div>
-                    <div class="datetime-row">
-                        <div class="form-field">
-                            <label for="presentation_date_<?php echo $index + 1; ?>">Date</label>
-                            <input type="date" name="presentations[<?php echo $index; ?>][presentation_date]" id="presentation_date_<?php echo $index + 1; ?>" value="<?php echo $presentation_date; ?>">
-                        </div>
-                        <div class="form-field">
-                            <label for="presentation_time_<?php echo $index + 1; ?>">Time</label>
-                            <div class="time-input-container">
-                                <?php
-                                $time_parts = explode(' ', $presentation_time);
-                                $time_value = isset($time_parts[0]) ? $time_parts[0] : '';
-                                $ampm = isset($time_parts[1]) ? strtoupper($time_parts[1]) : 'AM';
-                                ?>
-                                <input type="text" name="presentation_time_<?php echo $index + 1; ?>" id="presentation_time_<?php echo $index + 1; ?>" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM" value="<?php echo $time_value; ?>">
-                                <div class="ampm-radio">
-                                    <label><input type="radio" name="presentation_ampm_<?php echo $index + 1; ?>" value="AM" <?php echo $ampm === 'AM' ? 'checked' : ''; ?>> AM</label>
-                                    <label><input type="radio" name="presentation_ampm_<?php echo $index + 1; ?>" value="PM" <?php echo $ampm === 'PM' ? 'checked' : ''; ?>> PM</label>
-                                </div>
-                            </div>
-                            <input type="hidden" name="presentations[<?php echo $index; ?>][presentation_time]" id="presentation_time_hidden_<?php echo $index + 1; ?>" value="<?php echo $presentation_time; ?>">
-                        </div>
-                    </div>
-                    <div class="speaker-row">
-                        <div class="form-field speaker">
-                            <label for="speaker_name_<?php echo $index + 1; ?>">Speaker Name</label>
-                            <input type="text" name="presentations[<?php echo $index; ?>][speaker_name]" id="speaker_name_<?php echo $index + 1; ?>" value="<?php echo htmlspecialchars($speaker_name ?? $DEFAULT_SPEAKER); ?>">
-                        </div>
-                        <div class="form-field attendance">
-                            <label for="expected_attendance_<?php echo $index + 1; ?>">Expected Attendance</label>
-                            <input type="number" name="presentations[<?php echo $index; ?>][expected_attendance]" id="expected_attendance_<?php echo $index + 1; ?>" min="1" value="<?php echo $expected_attendance; ?>">
-                        </div>
-                    </div>
-                    <?php if ($index > 0): ?>
-                    <div class="remove-btn-container">
-                        <button type="button" onclick="removePresentation(<?php echo $index + 1; ?>)" class="remove-presentation-btn">Remove</button>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-            <?php } ?>
-            </div>
-            <button type="button" onclick="addPresentation()" class="add-presentation-btn">Add Another Presentation</button>
-            </div>
-        </div>
+        <?php
+        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
+            ? $_POST['presentations']
+            : [[]];
+        include 'templates/presentation_form.php';
+        ?>
 
         <section class="form-section">
-        <h2>Logistics &amp; compensation</h2>
+        <h2>Logistics &amp; Compensation</h2>
 
         <div class="checkbox-row">
             <div class="checkbox-group">
@@ -475,7 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         </section>
 
         <section class="form-section chron-log-section" id="chron-log">
-            <h2>Chron log</h2>
+            <h2>Chron Log</h2>
             <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
             <label for="chron_entry">Initial Chron entry</label>
             <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
@@ -522,6 +456,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 </div>
 <?php include 'templates/footer.php'; ?>
 
+<script src="assets/js/presentation-form.min.js?v=0.1.3"></script>
 <script>
     // Validate that the event end date is on or after the event start date
     // and that all presentation dates are within range
@@ -534,52 +469,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             return false;
         }
 
-        // Check all presentation dates
-        const presentations = document.querySelectorAll('.presentation-entry');
-        for (const presentation of presentations) {
-            const presentationId = presentation.id.split('-')[1];
-            const dateInput = document.getElementById(`presentation_date_${presentationId}`);
-            const topicInput = document.getElementById(`presentation_topic_${presentationId}`);
-            
-            if (dateInput && dateInput.value) {
-                if (dateInput.value < startDate || dateInput.value > endDate) {
-                    alert(`Presentation "${topicInput.value}" date must be between the engagement start and end dates.`);
-                    dateInput.focus();
-                    return false;
-                }
-            }
-        }
-        return true;
+        return typeof validateEngagementPresentations !== 'function'
+            || validateEngagementPresentations();
     }
-
-    // Add event listeners to update presentation date constraints when engagement dates change
-    document.addEventListener('DOMContentLoaded', function() {
-        const startDateInput = document.getElementById('event_start_date');
-        const endDateInput = document.getElementById('event_end_date');
-        
-        function updatePresentationDateConstraints() {
-            const startDate = startDateInput.value;
-            const endDate = endDateInput.value;
-            
-            if (startDate && endDate) {
-                const presentations = document.querySelectorAll('.presentation-entry');
-                presentations.forEach(presentation => {
-                    const presentationId = presentation.id.split('-')[1];
-                    const dateInput = document.getElementById(`presentation_date_${presentationId}`);
-                    if (dateInput) {
-                        dateInput.min = startDate;
-                        dateInput.max = endDate;
-                    }
-                });
-            }
-        }
-
-        startDateInput.addEventListener('change', updatePresentationDateConstraints);
-        endDateInput.addEventListener('change', updatePresentationDateConstraints);
-        
-        // Initial setup of constraints
-        updatePresentationDateConstraints();
-    });
 
     // Toggle visibility of other event type field
     function toggleOtherEventType(select) {
@@ -627,417 +519,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             otherHousingInput.value = '';
         }
     }
-
-    let presentationCount = document.querySelectorAll('.presentation-entry').length;
-
-    function removePresentation(id) {
-        if (id === 1) return; // Prevent removing the first presentation
-        const presentation = document.getElementById(`presentation-${id}`);
-        if (presentation) {
-            presentation.remove();
-            // Update presentationCount to reflect the highest numbered presentation still in the form
-            const presentations = document.querySelectorAll('.presentation-entry');
-            presentationCount = presentations.length;
-        }
-    }
-
-    // Make default speaker available to JavaScript
-    const defaultSpeaker = <?php echo json_encode($DEFAULT_SPEAKER); ?>;
-
-    function addPresentation() {
-        // Find the highest numbered presentation currently in the form
-        const presentations = document.querySelectorAll('.presentation-entry');
-        const lastPresentation = presentations[presentations.length - 1];
-        const lastPresentationId = lastPresentation ? parseInt(lastPresentation.id.split('-')[1]) : 1;
-        
-        // Check if the last presentation's topic title is filled
-        const lastTopicInput = document.getElementById(`presentation_topic_${lastPresentationId}`);
-        if (!lastTopicInput || !lastTopicInput.value.trim()) {
-            alert('Please fill in the Topic/Title for the current presentation before adding another.');
-            if (lastTopicInput) {
-                lastTopicInput.focus();
-            }
-            return;
-        }
-
-        // Increment from the last presentation ID
-        const newPresentationId = lastPresentationId + 1;
-        const container = document.querySelector('.presentations-inner-container');
-        const newPresentation = document.createElement('div');
-        newPresentation.className = 'presentation-entry';
-        newPresentation.id = `presentation-${newPresentationId}`;
-        
-        newPresentation.innerHTML = `
-            <div class="presentation-fields">
-                <div class="form-field topic">
-                    <label for="presentation_topic_${newPresentationId}">Topic/Title<span>*</span></label>
-                    <input type="text" name="presentations[${newPresentationId-1}][topic_title]" id="presentation_topic_${newPresentationId}" required>
-                </div>
-                <div class="datetime-row">
-                    <div class="form-field">
-                        <label for="presentation_date_${newPresentationId}">Date</label>
-                        <input type="date" name="presentations[${newPresentationId-1}][presentation_date]" id="presentation_date_${newPresentationId}">
-                    </div>
-                    <div class="form-field">
-                        <label for="presentation_time_${newPresentationId}">Time</label>
-                        <div class="time-input-container">
-                            <input type="text" name="presentation_time_${newPresentationId}" id="presentation_time_${newPresentationId}" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM">
-                            <div class="ampm-radio">
-                                <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="AM" checked> AM</label>
-                                <label><input type="radio" name="presentation_ampm_${newPresentationId}" value="PM"> PM</label>
-                            </div>
-                        </div>
-                        <input type="hidden" name="presentations[${newPresentationId-1}][presentation_time]" id="presentation_time_hidden_${newPresentationId}">
-                    </div>
-                </div>
-                <div class="speaker-row">
-                    <div class="form-field speaker">
-                        <label for="speaker_name_${newPresentationId}">Speaker Name</label>
-                        <input type="text" name="presentations[${newPresentationId-1}][speaker_name]" id="speaker_name_${newPresentationId}" value="${defaultSpeaker}">
-                    </div>
-                    <div class="form-field attendance">
-                        <label for="expected_attendance_${newPresentationId}">Expected Attendance</label>
-                        <input type="number" name="presentations[${newPresentationId-1}][expected_attendance]" id="expected_attendance_${newPresentationId}" min="1">
-                    </div>
-                </div>
-                <div class="remove-btn-container">
-                    <button type="button" onclick="removePresentation(${newPresentationId})" class="remove-presentation-btn">Remove</button>
-                </div>
-            </div>
-        `;
-        
-        container.appendChild(newPresentation);
-        presentationCount = newPresentationId;
-    }
-
-    // Update time input validation and formatting
-    document.addEventListener('DOMContentLoaded', function() {
-        // Function to validate time format
-        function validateTimeFormat(timeStr) {
-            const timeRegex = /^([0-9]{1,2}):([0-9]{2})$/;
-            const match = timeStr.match(timeRegex);
-            if (!match) return false;
-            
-            const hours = parseInt(match[1]);
-            const minutes = parseInt(match[2]);
-            
-            return hours >= 1 && hours <= 12 && minutes >= 0 && minutes <= 59;
-        }
-
-        // Function to format time input
-        function formatTime(timeStr, ampm) {
-            const [hours, minutes] = timeStr.split(':');
-            return `${hours.padStart(2, '0')}:${minutes} ${ampm}`;
-        }
-
-        // Function to update hidden time input
-        function updateTimeInput(presentationId) {
-            const timeInput = document.getElementById(`presentation_time_${presentationId}`);
-            const ampmInputs = document.getElementsByName(`presentation_ampm_${presentationId}`);
-            const hiddenInput = document.getElementById(`presentation_time_hidden_${presentationId}`);
-            
-            if (validateTimeFormat(timeInput.value)) {
-                const selectedAmpm = Array.from(ampmInputs).find(input => input.checked).value;
-                hiddenInput.value = formatTime(timeInput.value, selectedAmpm);
-            } else {
-                hiddenInput.value = '';
-            }
-        }
-
-        // Add event listeners for time inputs
-        for (let i = 1; i <= presentationCount; i++) {
-            const timeInput = document.getElementById(`presentation_time_${i}`);
-            const ampmInputs = document.getElementsByName(`presentation_ampm_${i}`);
-
-            if (timeInput && ampmInputs.length > 0) {
-                timeInput.addEventListener('input', () => updateTimeInput(i));
-                ampmInputs.forEach(input => {
-                    input.addEventListener('change', () => updateTimeInput(i));
-                });
-            }
-        }
-
-        // Add form submit handler to ensure all time inputs are formatted
-        document.querySelector('form').addEventListener('submit', function(e) {
-            document.querySelectorAll('.presentation-entry').forEach(presentation => {
-                const presentationId = parseInt(presentation.id.split('-')[1], 10);
-                updateTimeInput(presentationId);
-            });
-        });
-    });
-
-    // Update CSS for time input container
-    const style = document.createElement('style');
-    style.textContent = `
-        .time-input-container {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-        .time-input-container input[type="text"] {
-            width: 80px;
-            padding: 5px;
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #666;
-            border-radius: 4px;
-        }
-        .time-input-container input[type="text"]::placeholder {
-            color: #888;
-        }
-        .ampm-radio {
-            display: flex;
-            gap: 15px;
-            color: #fff;
-        }
-        .ampm-radio label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: #fff;
-            cursor: pointer;
-        }
-        .ampm-radio input[type="radio"] {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #666;
-            border-radius: 50%;
-            margin: 0;
-            cursor: pointer;
-            position: relative;
-        }
-        .ampm-radio input[type="radio"]:checked {
-            border-color: #357abd;
-            background-color: transparent;
-        }
-        .ampm-radio input[type="radio"]:checked::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: #357abd;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-        .ampm-radio input[type="radio"]:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(53, 122, 189, 0.3);
-        }
-        .presentation-entry {
-            background-color: rgba(255, 255, 255, 0.05);
-            border: 1px solid #444;
-            padding: 20px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            max-width: 100%;
-            overflow: visible;
-        }
-        .presentation-fields {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 15px;
-        }
-        .presentation-fields .form-field {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .presentation-fields .form-field.topic {
-            grid-column: 1 / -1;
-            display: flex;
-            flex-direction: row !important;
-            align-items: center;
-            gap: 10px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .presentation-fields .form-field.topic label {
-            margin: 0 !important;
-            padding: 0 !important;
-            white-space: nowrap !important;
-            width: auto !important;
-            min-width: 0 !important;
-        }
-        .presentation-fields .form-field.topic input {
-            flex: 1;
-            max-width: none !important;
-            margin: 0 !important;
-            padding: 8px !important;
-        }
-        .presentation-fields .datetime-row {
-            display: grid;
-            grid-template-columns: 0.5fr 1fr;
-            gap: 15px;
-        }
-        .presentation-fields .datetime-row .form-field {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 10px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .presentation-fields .datetime-row .form-field label {
-            margin: 0 !important;
-            padding: 0 !important;
-            white-space: nowrap !important;
-        }
-        .presentation-fields .datetime-row .form-field input[type="date"] {
-            width: 180px !important;
-            margin: 0 !important;
-        }
-        .presentation-fields .speaker-row {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 30px !important;
-            margin-top: 10px !important;
-            width: 100% !important;
-        }
-        .speaker-row .form-field {
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            gap: 10px !important;
-            margin: 0 !important;
-            padding: 0 !important;
-        }
-        .speaker-row .form-field.speaker {
-            flex: 1 !important;
-            min-width: 0 !important;
-        }
-        .speaker-row .form-field.speaker input {
-            width: 300px !important;
-            min-width: 0 !important;
-        }
-        .speaker-row .form-field.attendance {
-            width: auto !important;
-            min-width: unset !important;
-            white-space: nowrap !important;
-            flex: 0 0 auto !important;
-        }
-        .speaker-row .form-field.attendance input {
-            width: 70px !important;
-            min-width: 70px !important;
-        }
-        .speaker-row .form-field label {
-            margin: 0 !important;
-            padding: 0 !important;
-            white-space: nowrap !important;
-            width: auto !important;
-            min-width: 0 !important;
-        }
-        .form-field {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin: 0;
-        }
-        .form-field label {
-            color: #fff;
-            white-space: nowrap;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            align-items: center;
-            height: 100%;
-        }
-        .form-field label > span {
-            color: #f44336;
-            margin-left: 2px;
-        }
-        .form-field input[type="text"],
-        .form-field input[type="number"],
-        .form-field input[type="date"] {
-            padding: 8px;
-            background-color: #333;
-            color: #fff;
-            border: 1px solid #666;
-            border-radius: 4px;
-            margin: 0;
-        }
-        .add-presentation-btn {
-            background-color: var(--button-add-color);
-            color: white;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: block;
-            width: fit-content;
-        }
-        .add-presentation-btn:focus {
-            outline: none;
-        }
-        .remove-presentation-btn {
-            background-color: var(--button-delete-color);
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            align-self: end;
-        }
-        .radio-options {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin: 0;
-        }
-
-        .radio-options label,
-        .radio-row > label {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            margin: 0;
-            color: var(--text-color);
-            cursor: pointer;
-        }
-
-        .radio-options input[type="radio"] {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #666;
-            border-radius: 50%;
-            margin: 0;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .dark-mode .radio-options input[type="radio"] {
-            border-color: #888;
-        }
-
-        .radio-options input[type="radio"]:checked {
-            border-color: #357abd;
-            background-color: transparent;
-        }
-
-        .radio-options input[type="radio"]:checked::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: #357abd;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .radio-options input[type="radio"]:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(53, 122, 189, 0.3);
-        }
-    `;
-    document.head.appendChild(style);
 
     // Update the JavaScript to scroll to success message if present
     document.addEventListener('DOMContentLoaded', function() {

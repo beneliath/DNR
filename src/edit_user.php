@@ -63,8 +63,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit user</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit user</h1><p class="page-intro">Change the account username or access level.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit User</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change the account username or access level.</p></div></div>
 
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
 
