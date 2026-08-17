@@ -500,6 +500,33 @@ function recordAuditEvent(mysqli $conn, array $event) {
     return $success;
 }
 
+function failedLoginAuditEvent($attempted_username, $details, $user = null) {
+    $known_user = is_array($user) && !empty($user['id']) && isset($user['username']);
+    $username = $known_user
+        ? trim((string) $user['username'])
+        : trim((string) $attempted_username);
+
+    return [
+        'event_category' => 'login',
+        'event_type' => 'failed_login',
+        'actor_user_id' => null,
+        'actor_username' => null,
+        'target_user_id' => $known_user ? (int) $user['id'] : null,
+        'target_username' => $username === '' ? null : $username,
+        'entity_type' => 'users',
+        'entity_id' => $known_user ? (int) $user['id'] : null,
+        'entity_label' => $username === '' ? '(blank username)' : $username,
+        'details' => (string) $details,
+    ];
+}
+
+function recordFailedLoginAttempt(mysqli $conn, $attempted_username, $details, $user = null) {
+    return recordAuditEvent(
+        $conn,
+        failedLoginAuditEvent($attempted_username, $details, $user)
+    );
+}
+
 // Check if the logged-in user has any of the specified roles
 function hasRole($roles = []) {
     return (isset($_SESSION['role']) && in_array($_SESSION['role'], $roles, true));

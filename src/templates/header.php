@@ -19,7 +19,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.37">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.40">
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">

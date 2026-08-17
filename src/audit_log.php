@@ -150,6 +150,11 @@ $category_labels = [
     'database_change' => 'Database',
     'security' => 'Security',
 ];
+$login_event_labels = [
+    'successful_login' => 'Successful login',
+    'failed_login' => 'Failed login',
+    'logout' => 'Logout',
+];
 $database_action_labels = [
     'database_insert' => 'Created',
     'database_update' => 'Updated',
@@ -365,7 +370,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         <table class="audit-table">
             <thead>
                 <tr>
-                    <th>Timestamp (<?php echo htmlspecialchars($audit_timezone_name, ENT_QUOTES, 'UTF-8'); ?>)</th>
+                    <th>Timestamp</th>
                     <th>Category</th>
                     <th>User</th>
                     <th>Event</th>
@@ -383,9 +388,8 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                         $actor = $entry['actor_username'] ?: 'System';
                         $event_label = $entry['event_type'];
                         if ($entry_category === 'login') {
-                            $event_label = $entry['event_type'] === 'logout'
-                                ? 'Logout'
-                                : 'Successful login';
+                            $event_label = $login_event_labels[$entry['event_type']]
+                                ?? ucwords(str_replace('_', ' ', $entry['event_type']));
                         } elseif ($entry_category === 'database_change') {
                             $event_label = $database_action_labels[$entry['event_type']] ?? ucfirst($entry['event_type']);
                         } elseif (isset($security_event_labels[$entry['event_type']])) {

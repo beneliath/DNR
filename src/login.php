@@ -45,6 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         recordAuthenticationFailure($conn, (int) $user['id'], 'password');
     }
 
+    if (!$user) {
+        $failure_details = 'Unknown username';
+    } elseif (!empty($user['login_is_locked'])) {
+        $failure_details = 'Password authentication temporarily locked';
+    } else {
+        $failure_details = 'Incorrect password';
+    }
+    recordFailedLoginAttempt($conn, $username, $failure_details, $user);
+
     $error = 'Invalid username or password, or the account is temporarily unavailable.';
 }
 ?>
@@ -55,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sign in - DNR</title>
   <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-  <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.37">
+  <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.40">
   <script>
     // Load theme before page renders
     const savedTheme = localStorage.getItem('theme');

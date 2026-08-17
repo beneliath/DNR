@@ -27,6 +27,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = fetchAuthenticationUserById($conn, (int) $pending['user_id']);
 
     if (!$user || !empty($user['two_factor_is_locked'])) {
+        recordFailedLoginAttempt(
+            $conn,
+            (string) $pending['username'],
+            $user
+                ? 'Two-factor authentication temporarily locked'
+                : 'Account unavailable during two-factor authentication',
+            $user
+        );
         $error = 'The code could not be verified. Please wait and try again.';
     } else {
         try {
@@ -55,6 +63,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             recordAuthenticationFailure($conn, (int) $user['id'], 'two_factor');
+            recordFailedLoginAttempt(
+                $conn,
+                (string) $user['username'],
+                'Incorrect authentication code',
+                $user
+            );
             $error = 'The code could not be verified. Check the code and try again.';
         } catch (Throwable $exception) {
             error_log('Two-factor verification error: ' . $exception->getMessage());
@@ -70,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-Factor Verification - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.37">
+    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.40">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');

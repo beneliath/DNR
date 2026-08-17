@@ -49,12 +49,35 @@ $configuration_source = file_get_contents(__DIR__ . '/../src/config/config.php')
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '0.1.8');"),
-    'The application version should be 0.1.8.'
+    str_contains($configuration_source, "define('APP_VERSION', '0.1.9');"),
+    'The application version should be 0.1.9.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.8'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.9'"),
     'The footer should render the configured application version.'
+);
+expectHeaderScope(
+    !str_contains($configuration_source, 'APP_VERSION_COMMIT')
+        && !str_contains($configuration_source, 'APP_VERSION_PUSHED_AT')
+        && str_contains($footer_source, 'githubPushMetadata()')
+        && str_contains($footer_source, '<time datetime=')
+        && !str_contains($footer_source, '> pushed <time datetime=')
+        && str_contains($footer_source, '/commit/<?php echo htmlspecialchars($footer_push['),
+    'The footer should show automatically refreshed GitHub push metadata without a stale tracked fallback.'
+);
+expectHeaderScope(
+    str_contains($footer_source, 'href="https://github.com/beneliath/DNR"')
+        && str_contains($footer_source, 'target="_blank"')
+        && str_contains($footer_source, 'rel="noopener noreferrer"'),
+    'The footer project name and version should safely open the GitHub project page in a new tab.'
+);
+expectHeaderScope(
+    preg_match('/href="https:\/\/github\.com\/beneliath" target="_blank" rel="noopener noreferrer">beneliath<\/a>/', $footer_source) === 1,
+    'The footer author should safely open the GitHub profile in a new tab.'
+);
+expectHeaderScope(
+    preg_match('/\.footer-link\s*\{[^}]*text-decoration:\s*none;/s', $modern_styles) === 1,
+    'Footer links should not be underlined.'
 );
 expectHeaderScope(
     preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{[^}]*display:\s*flex\s*!important;/s', $modern_styles) === 1,
@@ -70,6 +93,12 @@ expectHeaderScope(
         && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
         && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
     'MOED and its Hebrew text should render at the enlarged sizes without a separate logo mark.'
+);
+expectHeaderScope(
+    str_contains($modern_styles, 'url("../fonts/rubik-latin-700.woff2")')
+        && str_contains($modern_styles, 'url("../fonts/rubik-hebrew-700.woff2")')
+        && preg_match('/\.app-brand-copy strong,\s*\.auth-brand-copy strong,\s*\.mobile-brand-name\s*\{[^}]*font-family:\s*"Rubik"[^;}]*;[^}]*font-weight:\s*700;/s', $modern_styles) === 1,
+    'The Latin and Hebrew MOED branding should use the self-hosted Rubik font at weight 700.'
 );
 
 echo "Header scope tests passed.\n";

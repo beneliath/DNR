@@ -1,0 +1,91 @@
+<?php
+
+require_once __DIR__ . '/../src/github_version_helpers.php';
+
+function expectGithubVersion($condition, $message)
+{
+    if (!$condition) {
+        fwrite(STDERR, "GitHub version helper test failed: {$message}\n");
+        exit(1);
+    }
+}
+
+$release_commit = 'd2778b2824bc50c6dae75fee99badacce25eae75';
+$events = [
+    [
+        'type' => 'PushEvent',
+        'created_at' => '2026-08-17T08:10:00Z',
+        'payload' => [
+            'ref' => 'refs/heads/dev',
+            'head' => 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ],
+    ],
+    [
+        'type' => 'PushEvent',
+        'created_at' => '2026-08-17T07:58:09Z',
+        'payload' => [
+            'ref' => 'refs/heads/main',
+            'head' => $release_commit,
+        ],
+    ],
+];
+
+$metadata = githubPushMetadataFromEvents($events, 'main');
+expectGithubVersion(
+    $metadata === [
+        'commit' => $release_commit,
+        'pushed_at' => '2026-08-17T07:58:09Z',
+    ],
+    'The newest push for the configured branch should be selected.'
+);
+expectGithubVersion(
+    githubPushMetadataFromEvents($events, 'missing') === null,
+    'A missing branch should not return unrelated push metadata.'
+);
+expectGithubVersion(
+    githubPushTimestampIsValid('2026-08-17T07:58:09Z')
+        && !githubPushTimestampIsValid('')
+        && !githubPushTimestampIsValid('2026-99-99T07:58:09Z'),
+    'Only complete valid UTC push timestamps should be accepted.'
+);
+expectGithubVersion(
+    githubPushTimestampLabel('2026-08-17T07:58:09Z', 'America/Chicago') === '2026-08-17 02:58:09 CDT',
+    'The GitHub push timestamp should display in the configured application timezone.'
+);
+expectGithubVersion(
+    githubPushTimestampLabel('2026-08-17T07:58:09Z', 'Not/A-Timezone') === '2026-08-17 07:58:09 UTC',
+    'An invalid display timezone should safely fall back to UTC.'
+);
+
+$test_repository = 'test-owner/test-repo';
+$test_branch = 'main';
+$test_cache_path = sys_get_temp_dir()
+    . '/dnr-github-push-'
+    . sha1($test_repository . '|' . $test_branch)
+    . '.json';
+file_put_contents($test_cache_path, json_encode($metadata));
+
+define('APP_VERSION', '0.1.9');
+putenv('DNR_GITHUB_REPOSITORY=' . $test_repository);
+putenv('DNR_GITHUB_BRANCH=' . $test_branch);
+putenv('DNR_GITHUB_PUSH_CACHE_TTL=3600');
+putenv('DNR_TIMEZONE=America/Chicago');
+ob_start();
+include __DIR__ . '/../src/templates/footer.php';
+$footer_markup = ob_get_clean();
+putenv('DNR_GITHUB_REPOSITORY');
+putenv('DNR_GITHUB_BRANCH');
+putenv('DNR_GITHUB_PUSH_CACHE_TTL');
+putenv('DNR_TIMEZONE');
+unlink($test_cache_path);
+
+expectGithubVersion(
+    str_contains($footer_markup, 'DNR 0.1.9</a>')
+        && str_contains($footer_markup, '<time datetime="2026-08-17T07:58:09Z">2026-08-17 02:58:09 CDT</time>')
+        && !str_contains($footer_markup, 'pushed <time')
+        && str_contains($footer_markup, '/commit/' . $release_commit)
+        && str_contains($footer_markup, '>(d2778b2)</a>'),
+    'The footer should render the push timestamp and linked abbreviated commit hash.'
+);
+
+echo "GitHub version helper tests passed.\n";

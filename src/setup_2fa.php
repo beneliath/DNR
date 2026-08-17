@@ -131,6 +131,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if ($step === null) {
+                if ($is_pending_login) {
+                    recordFailedLoginAttempt(
+                        $conn,
+                        (string) $user['username'],
+                        'Incorrect two-factor enrollment code',
+                        $user
+                    );
+                }
                 $error = 'That code was not accepted. Check the device time and try again.';
             } else {
                 try {
@@ -188,7 +196,7 @@ if ($enrollment) {
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Set Up Two-Factor Authentication - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.37">
+    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.40">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
