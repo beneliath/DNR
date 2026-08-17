@@ -19,7 +19,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.28">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.32">
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
@@ -29,7 +29,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
         <a href="engagements.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
-            <span class="app-brand-mark" aria-hidden="true">DNR</span>
+            <span class="app-brand-mark" aria-hidden="true" style="font-size: 1rem !important;">DNR</span>
             <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
         </a>
         <button type="button" class="mobile-theme-button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
@@ -40,7 +40,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
 
     <div class="app-sidebar" id="app-sidebar">
         <a class="app-brand" href="engagements.php" aria-label="DNR — MOED מוֹעֵד">
-            <span class="app-brand-mark">DNR</span>
+            <span class="app-brand-mark" style="font-size: 1.16rem !important;">DNR</span>
             <span class="app-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
         </a>
 

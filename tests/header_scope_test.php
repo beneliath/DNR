@@ -47,16 +47,28 @@ $configuration_source = file_get_contents(__DIR__ . '/../src/config/config.php')
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '0.1.6');"),
-    'The application version should be 0.1.6.'
+    str_contains($configuration_source, "define('APP_VERSION', '0.1.7');"),
+    'The application version should be 0.1.7.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.6'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.7'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
     preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{[^}]*display:\s*flex\s*!important;/s', $modern_styles) === 1,
     'The responsive mobile application bar should override the desktop hidden state.'
+);
+expectHeaderScope(
+    preg_match('/\.app-brand-mark\s*\{[^}]*font-size:\s*1\.16rem\s*!important;/s', $modern_styles) === 1
+        && preg_match('/\.auth-brand \.app-brand-mark\s*\{[^}]*font-size:\s*1\.35rem\s*!important;/s', $modern_styles) === 1
+        && preg_match('/\.mobile-brand \.app-brand-mark\s*\{[^}]*font-size:\s*1rem\s*!important;/s', $modern_styles) === 1,
+    'DNR logo text should match the adjacent MOED brand size in each layout.'
+);
+expectHeaderScope(
+    preg_match('/\.app-brand-mark\s*\{[^}]*width:\s*60px;[^}]*height:\s*52px;[^}]*padding-inline:\s*6px;/s', $modern_styles) === 1
+        && preg_match('/\.auth-brand \.app-brand-mark\s*\{[^}]*width:\s*68px;[^}]*height:\s*60px;/s', $modern_styles) === 1
+        && preg_match('/\.mobile-brand \.app-brand-mark\s*\{[^}]*width:\s*50px;[^}]*height:\s*44px;/s', $modern_styles) === 1,
+    'The DNR mark should provide internal space around the enlarged lettering.'
 );
 
 echo "Header scope tests passed.\n";

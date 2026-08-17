@@ -168,7 +168,7 @@ $stage = $recovery['stage'] ?? 'start';
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Recover Password - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.19">
+    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.32">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
@@ -181,7 +181,7 @@ $stage = $recovery['stage'] ?? 'start';
     </button>
     <div class="login-container recovery-container">
         <div class="auth-brand">
-            <span class="app-brand-mark">DNR</span>
+            <span class="app-brand-mark" style="font-size: 1.35rem !important;">DNR</span>
             <span class="auth-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
         </div>
         <h1>Recover Password</h1>

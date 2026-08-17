@@ -218,13 +218,14 @@ p {
 
 .app-brand-mark {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 60px;
+  height: 52px;
+  padding-inline: 6px;
   place-items: center;
   border-radius: 10px;
   background: var(--accent);
   color: #fff;
-  font-size: 0.75rem;
+  font-size: 1.16rem !important;
   font-weight: 800;
   letter-spacing: 0.03em;
 }
@@ -1707,8 +1708,9 @@ html.dark-mode body.fullscreen-center .login-container {
 }
 
 .auth-brand .app-brand-mark {
-  width: 50px;
-  height: 50px;
+  width: 68px;
+  height: 60px;
+  font-size: 1.35rem !important;
 }
 
 .auth-brand-copy {
@@ -1871,17 +1873,17 @@ html.dark-mode .login-secondary-link a {
     align-items: center;
     gap: 8px;
     color: var(--text);
-    font-size: 1rem;
+    font-size: 1rem !important;
     font-weight: 800;
     letter-spacing: -0.02em;
     text-decoration: none;
   }
 
   .mobile-brand .app-brand-mark {
-    width: 34px;
-    height: 34px;
+    width: 50px;
+    height: 44px;
     border-radius: 8px;
-    font-size: 0.64rem;
+    font-size: 1rem !important;
   }
 
   .mobile-brand-name {
