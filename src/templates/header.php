@@ -19,7 +19,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.css?v=0.1.9">
+<link rel="stylesheet" href="assets/css/modern.css?v=0.1.10">
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
@@ -28,7 +28,10 @@ $user_initial = strtoupper(substr($username, 0, 1));
             <span class="visually-hidden">Open navigation</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <a href="engagements.php" class="mobile-brand" aria-label="DNR home">DNR</a>
+        <a href="engagements.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
+            <span class="app-brand-mark" aria-hidden="true">DNR</span>
+            <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
+        </a>
         <button type="button" class="mobile-theme-button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>

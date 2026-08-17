@@ -1553,7 +1553,7 @@ html.dark-mode .login-secondary-link a {
     position: fixed;
     z-index: 90;
     inset: 0 0 auto;
-    display: flex;
+    display: flex !important;
     height: 64px;
     align-items: center;
     justify-content: space-between;
@@ -1564,11 +1564,28 @@ html.dark-mode .login-secondary-link a {
   }
 
   .mobile-brand {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
     color: var(--text);
-    font-size: 1.24rem;
+    font-size: 1rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     text-decoration: none;
+  }
+
+  .mobile-brand .app-brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    font-size: 0.64rem;
+  }
+
+  .mobile-brand-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .app-sidebar {

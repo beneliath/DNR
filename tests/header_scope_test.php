@@ -30,6 +30,10 @@ expectHeaderScope(
     str_contains($header_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
     'The MOED application brand should render with isolated right-to-left Hebrew text.'
 );
+expectHeaderScope(
+    str_contains($header_markup, 'class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
+    'The complete MOED brand should render in the mobile application bar.'
+);
 
 foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
@@ -41,13 +45,18 @@ foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authenticat
 
 $configuration_source = file_get_contents(__DIR__ . '/../src/config/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '0.1.0');"),
-    'The application version should be 0.1.0.'
+    str_contains($configuration_source, "define('APP_VERSION', '0.1.1');"),
+    'The application version should be 0.1.1.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.0'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.1'"),
     'The footer should render the configured application version.'
+);
+expectHeaderScope(
+    preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{[^}]*display:\s*flex\s*!important;/s', $modern_styles) === 1,
+    'The responsive mobile application bar should override the desktop hidden state.'
 );
 
 echo "Header scope tests passed.\n";

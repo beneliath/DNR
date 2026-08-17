@@ -1,5 +1,5 @@
 <footer class="app-footer">
-    <p>&copy; <?php echo date("Y"); ?> beneliath <span aria-hidden="true">·</span> DNR <?php echo htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '0.1.0', ENT_QUOTES, 'UTF-8'); ?></p>
+    <p>&copy; <?php echo date("Y"); ?> beneliath <span aria-hidden="true">·</span> DNR <?php echo htmlspecialchars(defined('APP_VERSION') ? APP_VERSION : '0.1.1', ENT_QUOTES, 'UTF-8'); ?></p>
 </footer>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
