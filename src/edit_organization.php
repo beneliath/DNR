@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -200,9 +200,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .save-button {
             background-color: var(--button-save-color);
-        }
-        .action-button:hover {
-            background-color: var(--button-hover-color);
         }
     </style>
 </head>

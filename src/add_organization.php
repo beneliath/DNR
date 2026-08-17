@@ -199,7 +199,7 @@ if (isset($_SESSION['success_message'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -427,9 +427,6 @@ if (isset($_SESSION['success_message'])) {
             cursor: pointer;
             margin-top: 15px;
         }
-        .add-contact-btn:hover {
-            background-color: var(--button-hover-color);
-        }
         .remove-contact-btn {
             background-color: var(--button-delete-color);
             color: white;
@@ -438,9 +435,6 @@ if (isset($_SESSION['success_message'])) {
             border-radius: 4px;
             cursor: pointer;
             margin-top: 10px;
-        }
-        .remove-contact-btn:hover {
-            background-color: var(--button-hover-color);
         }
         .contact-entry {
             margin-bottom: 15px;

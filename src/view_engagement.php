@@ -103,7 +103,7 @@ $presentation_stmt->close();
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .view-container {
             max-width: 800px;
@@ -156,14 +156,8 @@ $presentation_stmt->close();
         .back-button {
             background-color: var(--button-neutral-color);
         }
-        .back-button:hover {
-            background-color: var(--button-hover-color);
-        }
         .edit-button {
             background-color: var(--button-edit-color);
-        }
-        .edit-button:hover {
-            background-color: var(--button-hover-color);
         }
         .visually-hidden {
             position: absolute;

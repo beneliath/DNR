@@ -205,7 +205,7 @@ function contactsPageUrl(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Contacts - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .page-heading {
             display: flex;
@@ -240,9 +240,6 @@ function contactsPageUrl(
             border-radius: 4px;
             cursor: pointer;
             display: inline-block;
-        }
-        .sort-button:hover {
-            background-color: var(--button-hover-color);
         }
         .sort-selection.active {
             background-color: var(--button-edit-color) !important;

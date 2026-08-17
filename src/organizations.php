@@ -142,7 +142,7 @@ function organizationsPageUrl($status, $name_sort, $search = '')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .organization-table {
             width: 100%;
@@ -222,9 +222,6 @@ function organizationsPageUrl($status, $name_sort, $search = '')
         .delete-button {
             background-color: var(--button-delete-color);
         }
-        .action-button:hover {
-            background-color: var(--button-hover-color);
-        }
         .sort-buttons {
             margin: 15px 0;
             display: flex;
@@ -238,9 +235,6 @@ function organizationsPageUrl($status, $name_sort, $search = '')
             border-radius: 4px;
             cursor: pointer;
             display: inline-block;
-        }
-        .sort-button:hover {
-            background-color: var(--button-hover-color);
         }
     </style>
 </head>

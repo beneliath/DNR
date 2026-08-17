@@ -9,12 +9,12 @@ function expectHoverStyle($condition, $message) {
 
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
-$users_page = file_get_contents(__DIR__ . '/../src/users.php');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 
 expectHoverStyle(
-    strpos($stylesheet, 'html body :is(') !== false,
-    'The shared hover selector should outrank page-local active button colors.'
+    strpos($stylesheet, '--button-hover-color') === false
+        && strpos(strtolower($stylesheet), '#f77f00') === false,
+    'The legacy orange hover token should be removed from the base stylesheet.'
 );
 expectHoverStyle(
     strpos($stylesheet, '.filter-button,') !== false,
@@ -30,45 +30,28 @@ expectHoverStyle(
     'The Audit Log should apply its active selector color without relying on a cached stylesheet.'
 );
 expectHoverStyle(
-    strpos($stylesheet, ':not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button)') !== false,
-    'Modern navigation, theme, and list controls should be excluded from the legacy orange hover rule.'
+    strpos($stylesheet, 'Consistent button hover feedback') === false,
+    'The legacy catch-all hover rule should be removed.'
 );
-$legacy_hover_block = '';
-if (($legacy_hover_start = strpos($stylesheet, 'Consistent button hover feedback')) !== false) {
-    $legacy_hover_end = strpos($stylesheet, '/* Ensure login container', $legacy_hover_start);
-    $legacy_hover_block = substr($stylesheet, $legacy_hover_start, $legacy_hover_end - $legacy_hover_start);
+
+$legacy_hover_markers = ['button-hover-color', '#f77f00', '#ff8c00', '#ffa500', 'darkorange'];
+$source_paths = [];
+$source_iterator = new RecursiveIteratorIterator(
+    new RecursiveDirectoryIterator(__DIR__ . '/../src', FilesystemIterator::SKIP_DOTS)
+);
+foreach ($source_iterator as $source_file) {
+    if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {
+        $source_paths[] = $source_file->getPathname();
+    }
 }
-expectHoverStyle(
-    $legacy_hover_block !== ''
-        && strpos($legacy_hover_block, "\n  .button-add,") === false
-        && strpos($legacy_hover_block, ':not(.button-add)') !== false,
-    'Primary New buttons should be excluded from the legacy orange hover rule.'
-);
-foreach (['.add-org-button', '.save-button', '.save-event-button'] as $modern_primary_class) {
-    expectHoverStyle(
-        strpos($legacy_hover_block, "\n  {$modern_primary_class},") === false
-            && strpos($legacy_hover_block, ":not({$modern_primary_class})") !== false,
-        $modern_primary_class . ' should be excluded from the legacy orange hover rule.'
-    );
-}
-expectHoverStyle(
-    strpos($legacy_hover_block, "\n  .register-button,") === false
-        && strpos($legacy_hover_block, ':not(.register-button)') !== false,
-    'The Create User button should be excluded from the legacy orange hover rule.'
-);
-expectHoverStyle(
-    strpos($legacy_hover_block, '.action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel):not(.reset-password-button):not(.reset-two-factor-button)') !== false,
-    'Password and two-factor reset actions should be excluded from the legacy orange action-button hover rule.'
-);
-expectHoverStyle(
-    strpos($legacy_hover_block, ':not(.reset-two-factor-button)') !== false,
-    'Reset 2FA buttons should be excluded from the legacy orange button hover rule.'
-);
-foreach (['.cancel-button', '.button-cancel'] as $modern_cancel_class) {
-    expectHoverStyle(
-        strpos($legacy_hover_block, "\n  {$modern_cancel_class},") === false,
-        $modern_cancel_class . ' should be excluded from the legacy orange hover rule.'
-    );
+foreach ($source_paths as $source_path) {
+    $source = strtolower(file_get_contents($source_path));
+    foreach ($legacy_hover_markers as $marker) {
+        expectHoverStyle(
+            strpos($source, $marker) === false,
+            basename($source_path) . ' should not contain the legacy orange hover marker ' . $marker . '.'
+        );
+    }
 }
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body .button-add:hover') !== false
@@ -88,9 +71,14 @@ expectHoverStyle(
     'Search-row and pagination controls should use the modern themed hover rule.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, 'html body :is(.cancel-button, .button-cancel):hover') !== false
+    strpos($modern_stylesheet, 'html body :is(.cancel-button, .button-cancel, .back-button):hover') !== false
         && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
-    'Cancel controls should use the modern theme-aware hover treatment.'
+    'Cancel and Back controls should use the modern theme-aware hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body .export-button:hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--accent) !important;') !== false,
+    'Copy and Download controls should use the modern theme-aware export treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body .reset-password-button:hover') !== false
@@ -110,11 +98,11 @@ expectHoverStyle(
 
 foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
     $page_source = file_get_contents($page_path);
-    if (strpos($page_source, 'assets/css/style.css?v=') === false) {
+    if (strpos($page_source, 'assets/css/style.min.css?v=') === false) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.19') !== false,
+        strpos($page_source, 'assets/css/style.min.css?v=0.0.20') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }

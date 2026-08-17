@@ -789,13 +789,33 @@ html body :is(.sort-button, .filter-button):focus-visible {
   transform: translateY(-1px);
 }
 
-html body :is(.cancel-button, .button-cancel):hover,
-html body :is(.cancel-button, .button-cancel):focus-visible {
+html body :is(.cancel-button, .button-cancel, .back-button):hover,
+html body :is(.cancel-button, .button-cancel, .back-button):focus-visible {
   border-color: var(--control-hover-border) !important;
   background: var(--control-hover-bg) !important;
   color: var(--control-hover-fg) !important;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
   transform: translateY(-1px);
+}
+
+html body .export-button {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border)) !important;
+  background: var(--accent-subtle) !important;
+  color: var(--accent) !important;
+}
+
+html body .export-button:hover,
+html body .export-button:focus-visible {
+  border-color: var(--accent) !important;
+  background: var(--accent) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+html.dark-mode body .export-button:hover,
+html.dark-mode body .export-button:focus-visible {
+  color: #071126 !important;
 }
 
 html body .reset-password-button {

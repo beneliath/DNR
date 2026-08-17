@@ -198,8 +198,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
-    <script src="assets/js/main.js"></script>
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
+    <script src="assets/js/main.min.js"></script>
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -939,9 +939,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             display: block;
             width: fit-content;
         }
-        .add-presentation-btn:hover {
-            background-color: var(--button-hover-color);
-        }
         .add-presentation-btn:focus {
             outline: none;
         }
@@ -953,9 +950,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             border-radius: 4px;
             cursor: pointer;
             align-self: end;
-        }
-        .remove-presentation-btn:hover {
-            background-color: var(--button-hover-color);
         }
         .radio-options {
             display: flex;

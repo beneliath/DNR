@@ -19,7 +19,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.css?v=0.1.18">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.19">
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
@@ -89,5 +89,5 @@ $user_initial = strtoupper(substr($username, 0, 1));
     </div>
     <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close navigation"></button>
 </header>
-<script src="assets/js/theme.js"></script>
-<script src="assets/js/app-shell.js"></script>
+<script src="assets/js/theme.min.js"></script>
+<script src="assets/js/app-shell.min.js"></script>

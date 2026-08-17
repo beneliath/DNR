@@ -38,7 +38,6 @@
   --button-reset-password-color: #673AB7;
   --button-reset-two-factor-color: #9C27B0;
   --button-export-color: #0F766E;
-  --button-hover-color: #F77F00;
   --button-neutral-color: #666666;
   --button-primary-color: #4A90E2;
   --button-security-color: #2196F3;
@@ -630,10 +629,6 @@ label[for="caller_name"],
   transition: background-color 0.3s ease;
 }
 
-.login-container .login-button:hover {
-  background-color: var(--button-hover-color);
-}
-
 .login-container .error {
   color: #fff;
   background-color: rgba(255, 0, 0, 0.2);
@@ -735,11 +730,6 @@ label[for="caller_name"],
 
 .danger-button {
   background-color: var(--button-danger-color);
-}
-
-.security-button:not(.setup-2fa-enable-button):hover,
-.danger-button:not(.setup-2fa-cancel-button):hover {
-  background-color: var(--button-hover-color) !important;
 }
 
 .security-steps {
@@ -875,35 +865,6 @@ html.dark-mode .fullscreen-center {
   background-color: var(--dark-input-bg) !important;
   border-color: #333;
   color: var(--dark-text-color) !important;
-}
-
-/*
- * Consistent button hover feedback in both themes. The html/body prefix and
- * :is() specificity intentionally outrank page-local .active and hover rules,
- * including selectors whose normal state uses !important.
- */
-html body :is(
-  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel):not(.reset-two-factor-button),
-  input[type="button"]:not(:disabled):not(.register-button):not(.cancel-button):not(.button-cancel),
-  input[type="submit"]:not(:disabled):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel),
-  input[type="reset"]:not(:disabled):not(.cancel-button):not(.button-cancel),
-  [role="button"]:not(.register-button):not(.cancel-button):not(.button-cancel),
-  .button-save,
-  .button-view,
-  .button-edit,
-  .button-archive,
-  .button-delete,
-  .action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel):not(.reset-password-button):not(.reset-two-factor-button),
-  .add-contact-btn,
-  .remove-contact-btn,
-  .add-presentation-btn,
-  .remove-presentation-btn,
-  .security-button,
-  .archive-button:not(.action-icon-button),
-  .restore-button:not(.action-icon-button),
-  .danger-button:not(.cancel-button):not(.button-cancel)
-):hover {
-  background-color: var(--button-hover-color) !important;
 }
 
 /* Ensure login container maintains its style in both modes */

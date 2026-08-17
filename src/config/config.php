@@ -9,7 +9,7 @@ define('DB_PASSWORD', 'dnrpassword');  // From docker-compose.yml
 // Application configuration
 define('APP_NAME', 'DNR System');
 define('APP_URL', 'http://localhost/dnr');  // Change in production
-define('APP_VERSION', '0.1.3');
+define('APP_VERSION', '0.1.4');
 
 // Session configuration
 define('SESSION_LIFETIME', 3600); // 1 hour

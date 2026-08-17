@@ -81,6 +81,15 @@ For a database created before the user timestamp columns were added, the timesta
 
 ### Configuration
 
+### Front-end assets
+
+The application serves committed minified CSS and JavaScript while retaining readable source files in `src/assets`. After changing a source asset, rebuild the production files with:
+
+```sh
+npm ci
+npm run build:assets
+```
+
 Database Initialization:
 
 The init.sql file contains the necessary SQL commands to set up the initial database schema and data. Ensure that this script is executed when the database service starts.

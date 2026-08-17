@@ -159,7 +159,7 @@ $format_date_range = static function ($start, $end) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <style>
         .engagement-table {
             width: 100%;
@@ -223,9 +223,6 @@ $format_date_range = static function ($start, $end) {
             cursor: pointer;
             display: inline-block;
         }
-        .sort-button:hover {
-            background-color: var(--button-hover-color);
-        }
         .sort-button.active {
             background-color: var(--button-edit-color) !important;
         }
@@ -258,9 +255,6 @@ $format_date_range = static function ($start, $end) {
         }
         .view-button {
             background-color: var(--button-view-color);
-        }
-        .action-button:hover {
-            background-color: var(--button-hover-color);
         }
         /* Status colors */
         .status-work-in-progress {
