@@ -20,11 +20,6 @@
         return container ? container.dataset.defaultSpeaker || "" : "";
     }
 
-    function requiresPresentationOnSave() {
-        var container = document.getElementById("presentations-container");
-        return Boolean(container && container.dataset.requirePresentationOnSave === "true");
-    }
-
     function validTime(time) {
         var match = time.match(/^([0-9]{1,2}):([0-9]{2})$/);
         if (!match) {
@@ -333,19 +328,6 @@
             if (!validatePresentationEntry(entry, startInput, endInput, false)) {
                 return false;
             }
-        }
-
-        if (requiresPresentationOnSave() && !hasCompletePresentation()) {
-            var firstEntry = presentationEntries()[0];
-            var firstTopic = firstEntry
-                ? document.getElementById("presentation_topic_" + presentationId(firstEntry))
-                : null;
-            if (firstTopic) {
-                firstTopic.setCustomValidity("Add at least one complete presentation before saving changes.");
-                firstTopic.reportValidity();
-                firstTopic.focus();
-            }
-            return false;
         }
 
         if (status && status.value === "confirmed" && !hasCompletePresentation()) {

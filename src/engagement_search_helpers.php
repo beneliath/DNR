@@ -1,11 +1,16 @@
 <?php
 
 function parseEngagementSearchQuery($search) {
+    $search = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) $search) ?? '';
+    $search = trim(substr($search, 0, 256));
     $or_terms = [];
     $and_terms = [];
     preg_match_all('/"[^"]*"|\S+/u', trim((string) $search), $matches);
 
     foreach ($matches[0] ?? [] as $matched_term) {
+        if (count($or_terms) + count($and_terms) >= 8) {
+            break;
+        }
         $is_quoted = strlen($matched_term) >= 2
             && $matched_term[0] === '"'
             && substr($matched_term, -1) === '"';
@@ -13,14 +18,17 @@ function parseEngagementSearchQuery($search) {
             $quoted_content = trim(substr($matched_term, 1, -1));
             $quoted_terms = preg_split('/\s+/u', $quoted_content, -1, PREG_SPLIT_NO_EMPTY);
             foreach ($quoted_terms ?: [] as $quoted_term) {
-                $and_terms[] = $quoted_term;
+                if (count($or_terms) + count($and_terms) >= 8) {
+                    break;
+                }
+                $and_terms[] = substr($quoted_term, 0, 64);
             }
             continue;
         }
 
         $unquoted_term = trim($matched_term, '"');
         if ($unquoted_term !== '') {
-            $or_terms[] = $unquoted_term;
+            $or_terms[] = substr($unquoted_term, 0, 64);
         }
     }
 
@@ -65,6 +73,8 @@ function engagementSearchTermSql() {
 
 function buildEngagementSearchPlan($search) {
     $parsed_search = parseEngagementSearchQuery($search);
+    $cleaned_search = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) $search) ?? '';
+    $normalized_search = trim(substr($cleaned_search, 0, 256));
     $groups = [];
     $patterns = [];
     $term_condition = engagementSearchTermSql();
@@ -95,6 +105,7 @@ function buildEngagementSearchPlan($search) {
     }
 
     return [
+        'search' => $normalized_search,
         'sql' => implode(' AND ', $groups),
         'patterns' => $patterns,
         'or_terms' => $parsed_search['or_terms'],

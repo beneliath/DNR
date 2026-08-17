@@ -51,17 +51,6 @@ try {
 
 requirePresentationForConfirmedEngagement('under_review', []);
 requirePresentationForConfirmedEngagement('confirmed', $presentations);
-requirePresentationForEngagementEdit($presentations);
-
-try {
-    requirePresentationForEngagementEdit([]);
-    expectPresentationFeature(false, 'edited engagements without active presentations must be rejected.');
-} catch (InvalidArgumentException $exception) {
-    expectPresentationFeature(
-        str_contains($exception->getMessage(), 'complete presentation'),
-        'the edit error should explain that a complete presentation is required.'
-    );
-}
 
 foreach ([
     [[['topic_title' => '', 'presentation_date' => '2026-08-21']], 'topic/title'],
@@ -102,7 +91,7 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     expectPresentationFeature(
         str_contains($engagement_source, "include 'templates/presentation_form.php'")
             && str_contains($engagement_source, 'requirePresentationForConfirmedEngagement')
-            && str_contains($engagement_source, 'presentation-form.min.js?v=0.1.3'),
+            && str_contains($engagement_source, 'presentation-form.min.js?v=0.1.4'),
         'new and edit engagement flows should share the form and enforce the confirmation rule.'
     );
 }
@@ -120,7 +109,8 @@ expectPresentationFeature(
 expectPresentationFeature(
     str_contains($presentation_script, 'confirmedOption.disabled = !hasCompletePresentation()')
         && str_contains($presentation_script, 'status.value === "confirmed" && !hasCompletePresentation()')
-        && str_contains($presentation_script, 'requiresPresentationOnSave() && !hasCompletePresentation()')
+        && !str_contains($presentation_template, 'data-require-presentation-on-save')
+        && !str_contains($presentation_script, 'requiresPresentationOnSave')
         && str_contains($presentation_script, 'Enter a date for this presentation.')
         && str_contains($presentation_script, 'Enter a time for this presentation.')
         && str_contains($presentation_script, 'for (var existingEntry of entries)')
@@ -130,15 +120,21 @@ expectPresentationFeature(
         && str_contains($presentation_script, 'parseInt(compactValue, 10) < 1300')
         && str_contains($presentation_script, 'timeInput.addEventListener("blur"')
         && str_contains($presentation_script, 'periodInput.checked = true;'),
-    'the browser should require all existing presentations to be complete before adding another, saving an edit, or confirming the engagement.'
+    'the browser should validate entered presentations while allowing presentation-free draft and review engagements.'
 );
 expectPresentationFeature(
     str_contains($edit_engagement_source, "in_array(\$presentation_action, ['archive', 'delete'], true)")
         && str_contains($presentation_template, 'data-delete-confirmation') === false
         && str_contains($edit_engagement_source, 'data-delete-confirmation="Permanently delete this presentation?"')
         && str_contains($restore_presentations, "SET is_archived = 0, archived_by = NULL, archived_at = NULL")
+        && str_contains($restore_presentations, 'falls outside the current engagement dates')
+        && str_contains($restore_presentations, 'name="presentation_dates[')
         && str_contains($restore_presentations, 'data-archive-button-label="Keep Archived"'),
     'saved presentations should support archive, restore, and confirmed permanent deletion.'
+);
+expectPresentationFeature(
+    str_contains(file_get_contents(__DIR__ . '/../src/presentation_helpers.php'), 'Every active presentation must be included when saving'),
+    'engagement edits should reject crafted submissions that omit an active presentation.'
 );
 expectPresentationFeature(
     str_contains($presentation_migration, 'is_archived TINYINT(1) NOT NULL DEFAULT 0')

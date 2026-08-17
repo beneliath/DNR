@@ -18,9 +18,12 @@ To set up the project on your local machine, follow these steps:
    ```
    cd DNR
    ```
-3. **Create and protect the 2FA encryption key**
+3. **Create deployment secrets**
 
    ```sh
+   cp .env.example .env
+   # Put independent `openssl rand -base64 36` values in MYSQL_ROOT_PASSWORD,
+   # MYSQL_PASSWORD, and DNR_CALENDAR_TOKEN inside .env.
    mkdir -p secrets
    openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
    chmod 600 secrets/dnr_2fa_encryption_key
@@ -34,7 +37,9 @@ To set up the project on your local machine, follow these steps:
    docker compose up -d --build
    ```
 
-   Browse to `http://localhost:8080` by default.
+   Browse to `http://localhost:8080` by default. The published port binds to
+   `127.0.0.1` unless `DNR_BIND_ADDRESS` is explicitly changed. Use a TLS
+   reverse proxy before exposing DNR beyond the local machine.
 
 5. **Create the first administrator on a fresh database**
 
@@ -52,34 +57,27 @@ To set up the project on your local machine, follow these steps:
 
 ### Upgrading an existing database
 
-Create the 2FA encryption key as shown above before running Docker Compose commands with the updated configuration. Back up the database, apply each migration that has not already been applied, then rebuild the web container:
+Create the secrets shown above before running Docker Compose commands with the updated configuration. Back up the database, run the tracked migration command, restrict the existing application account, then rebuild the web container:
 
 ```sh
 mkdir -p backups
-docker compose exec -T db mysqldump --no-tablespaces -uroot -prootpassword dnr > backups/dnr-before-2fa.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_user_timestamps.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_two_factor_authentication.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_last_login_at.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_must_change_password.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_shared_calendar.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_split_contact_names.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_add_contact_archiving.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_add_event_title.sql
-docker compose exec -T db mysql -uroot -prootpassword dnr < migrations/20260815_add_audit_log.sql
-docker compose exec -T db mysql -uroot -prootpassword dnr < migrations/20260817_add_engagement_chron_entries.sql
-docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260817_add_presentation_archiving.sql
+docker compose exec -T db sh -c 'mysqldump --no-tablespaces -uroot -p"$MYSQL_ROOT_PASSWORD" dnr' > backups/dnr-before-upgrade.sql
+docker compose exec db sh /opt/dnr/bin/migrate
+docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" dnr' < operations/restrict_app_database_user.sql
 docker compose up -d --build
 ```
 
-Each migration is one-time. Skip the timestamp migration if it was applied previously. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
+For the one-time upgrade from a legacy installation that still uses the former
+committed database passwords and has no `.env`, first build the updated web
+image and then run `sh scripts/secure_existing_deployment.sh`. The helper makes
+a timestamped database backup, generates private database and calendar
+credentials, writes the ignored `.env` with mode `600`, rotates both MySQL
+accounts, and recreates the services. It refuses to overwrite an existing
+`.env`.
+
+The migration runner obtains database-administrator access only inside the database container, records each filename and checksum in `schema_migrations`, and skips applied migrations. It automatically baselines the documented legacy schema once. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
 
 The audit-log and Chron-entry migrations use the database administrator account because they install triggers; MySQL requires elevated privileges for that operation when binary logging is enabled. The application continues to connect with the restricted `dnruser` account. The migrations record successful logins, security events, and row-level inserts, updates, and deletes for users, organizations, contacts, engagements, Chron entries, and presentations. Administrators can review this history from **Users → Audit Log**. Audit entries identify the actor, affected record, IP address, and UTC timestamp without storing passwords, authentication secrets, recovery codes, Chron contents, or before/after field values.
-
-For a database created before the user timestamp columns were added, the timestamp migration by itself is:
-
-   ```sh
-   docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260814_add_user_timestamps.sql
-   ```
 
 ### Configuration
 
@@ -101,6 +99,10 @@ Environment Variables:
 Configure these values as needed:
 
 - `PORT`: published HTTP port; defaults to `8080`.
+- `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
+- `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`: independent random database secrets. Compose refuses to start when either is absent.
+- `DNR_CALENDAR_TOKEN`: revocable random secret of at least 32 characters. The calendar feed remains disabled when it is absent.
+- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct the calendar subscription URL.
 - `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
 - `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's `192.168.65.1` gateway.
@@ -108,7 +110,8 @@ Configure these values as needed:
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
 - `DNR_GITHUB_REPOSITORY` and `DNR_GITHUB_BRANCH`: public GitHub repository and deployed branch whose repository activity keeps the footer's latest push timestamp and commit hash current; defaults to `beneliath/DNR` and `main`. If GitHub is unavailable and no cached response exists, the footer omits the push metadata rather than displaying stale commit information.
 - `DNR_GITHUB_PUSH_CACHE_TTL`: seconds to cache the latest GitHub push metadata; defaults to `120` and is constrained to 30–3600 seconds.
-- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD`: database connection settings.
+- `DNR_GITHUB_RETRY_TTL`: retry backoff after GitHub is unavailable; defaults to `300` seconds.
+- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. Compose uses the fixed `dnr` database and restricted `dnruser` account.
 
 ### Two-factor authentication
 
@@ -132,9 +135,9 @@ Configure these values as needed:
 
 ### Usage
 
-Authenticated users can open **Calendar** in the navigation to copy the single shared subscription URL or open it in a calendar app. The public feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+Authenticated users can open **Calendar** in the navigation to copy the private, tokenized subscription URL or open it in a calendar app. The feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 
-The subscription URL is public and does not require a DNR login. Anyone with it can read the calendar-safe event fields. Contacts, chronological notes, travel, lodging, and compensation are never included.
+The subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password and rotate `DNR_CALENDAR_TOKEN` if it is disclosed. Contacts, chronological notes, travel, lodging, and compensation are never included.
 
 ### Contributing
 

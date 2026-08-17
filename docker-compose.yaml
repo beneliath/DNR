@@ -3,7 +3,7 @@ services:
     build: .
     restart: unless-stopped
     ports:
-      - "${PORT:-8080}:80" # Publish on the LAN for the Traefik reverse proxy
+      - "${DNR_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
     volumes:
       - ./src:/var/www/html
     depends_on:
@@ -13,25 +13,35 @@ services:
       - dnr_2fa_encryption_key
     environment:
       - DEFAULT_SPEAKER=${DEFAULT_SPEAKER:-Olivier Melnick}
+      - DB_HOST=db
+      - MYSQL_DATABASE=dnr
+      - MYSQL_USER=dnruser
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
       - DNR_2FA_ENCRYPTION_KEY_FILE=/run/secrets/dnr_2fa_encryption_key
+      - DNR_CALENDAR_TOKEN=${DNR_CALENDAR_TOKEN:-}
+      - DNR_PUBLIC_BASE_URL=${DNR_PUBLIC_BASE_URL:-}
       - DNR_TRUSTED_PROXY_IPS=${DNR_TRUSTED_PROXY_IPS:-192.168.65.1}
       - DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.14}
       - DNR_TIMEZONE=${DNR_TIMEZONE:-America/Chicago}
       - DNR_GITHUB_REPOSITORY=${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
       - DNR_GITHUB_BRANCH=${DNR_GITHUB_BRANCH:-main}
       - DNR_GITHUB_PUSH_CACHE_TTL=${DNR_GITHUB_PUSH_CACHE_TTL:-120}
+      - DNR_GITHUB_RETRY_TTL=${DNR_GITHUB_RETRY_TTL:-300}
 
   db:
     image: mysql:8.0
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnruser
-      MYSQL_PASSWORD: dnrpassword
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
     volumes:
       - db_data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro
+      - ./migrations:/opt/dnr/migrations:ro
+      - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
       interval: 5s

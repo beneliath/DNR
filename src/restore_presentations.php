@@ -19,7 +19,8 @@ if (!$engagement_id) {
 }
 
 $engagement_stmt = $conn->prepare(
-    'SELECT e.id, e.event_title, e.confirmation_status, o.organization_name
+    'SELECT e.id, e.event_title, e.confirmation_status,
+            e.event_start_date, e.event_end_date, o.organization_name
      FROM engagements e
      LEFT JOIN organizations o ON o.id = e.organization_id
      WHERE e.id = ? AND e.is_deleted = 0'
@@ -44,6 +45,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $conn->begin_transaction();
 
     try {
+        $engagement_lock_stmt = $conn->prepare(
+            'SELECT event_start_date, event_end_date, confirmation_status
+             FROM engagements
+             WHERE id = ? AND is_deleted = 0
+             FOR UPDATE'
+        );
+        if (!$engagement_lock_stmt) {
+            throw new RuntimeException('Unable to lock the engagement.');
+        }
+        $engagement_lock_stmt->bind_param('i', $engagement_id);
+        $engagement_lock_stmt->execute();
+        $locked_engagement = $engagement_lock_stmt->get_result()->fetch_assoc();
+        $engagement_lock_stmt->close();
+        if (!$locked_engagement) {
+            throw new InvalidArgumentException('That engagement is no longer active.');
+        }
+
         if (($_POST['action'] ?? '') === 'delete') {
             if (!canDeleteEntries($user_role)) {
                 http_response_code(403);
@@ -84,6 +102,74 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $placeholders = implode(', ', array_fill(0, count($selected_ids), '?'));
+            $selected_stmt = $conn->prepare(
+                'SELECT id, topic_title, presentation_date, presentation_time
+                 FROM presentations
+                 WHERE engagement_id = ?
+                   AND is_archived = 1
+                   AND id IN (' . $placeholders . ')
+                 FOR UPDATE'
+            );
+            if (!$selected_stmt) {
+                throw new RuntimeException('Unable to validate the selected presentations.');
+            }
+            $bind_values = array_merge([$engagement_id], $selected_ids);
+            $bind_types = str_repeat('i', count($bind_values));
+            $bind_params = [$bind_types];
+            foreach ($bind_values as &$bind_value) {
+                $bind_params[] = &$bind_value;
+            }
+            unset($bind_value);
+            $selected_stmt->bind_param(...$bind_params);
+            $selected_stmt->execute();
+            $selected_presentations = $selected_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $selected_stmt->close();
+            if (count($selected_presentations) !== count($selected_ids)) {
+                throw new InvalidArgumentException('One or more selected presentations are no longer archived.');
+            }
+            $restore_schedule_stmt = $conn->prepare(
+                'UPDATE presentations
+                 SET presentation_date = ?, presentation_time = ?
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 1'
+            );
+            if (!$restore_schedule_stmt) {
+                throw new RuntimeException('Unable to prepare restored presentation dates.');
+            }
+            foreach ($selected_presentations as $selected_presentation) {
+                $presentation_id = (int) $selected_presentation['id'];
+                $submitted_date = $_POST['presentation_dates'][$presentation_id] ?? $selected_presentation['presentation_date'];
+                $submitted_time = $_POST['presentation_times'][$presentation_id] ?? $selected_presentation['presentation_time'];
+                if (!is_scalar($submitted_date) || !is_scalar($submitted_time)) {
+                    throw new InvalidArgumentException('Invalid restored presentation schedule.');
+                }
+                $presentation_date = trim((string) $submitted_date);
+                $presentation_time = normalizePresentationTime((string) $submitted_time);
+                try {
+                    requirePresentationDateWithinEngagement(
+                        $selected_presentation['topic_title'],
+                        $presentation_date,
+                        $locked_engagement['event_start_date'],
+                        $locked_engagement['event_end_date']
+                    );
+                } catch (InvalidArgumentException $exception) {
+                    throw new InvalidArgumentException(
+                        "Presentation '{$selected_presentation['topic_title']}' falls outside the current engagement dates. Edit its date before restoring it."
+                    );
+                }
+                $restore_schedule_stmt->bind_param(
+                    'ssii',
+                    $presentation_date,
+                    $presentation_time,
+                    $presentation_id,
+                    $engagement_id
+                );
+                if (!$restore_schedule_stmt->execute()) {
+                    $restore_schedule_stmt->close();
+                    throw new RuntimeException('Unable to update a restored presentation schedule.');
+                }
+            }
+            $restore_schedule_stmt->close();
+
             $restore_stmt = $conn->prepare(
                 'UPDATE presentations
                  SET is_archived = 0, archived_by = NULL, archived_at = NULL
@@ -211,7 +297,28 @@ if ($engagement_title === '') {
                             <span>Select This Presentation</span>
                         </label>
                         <strong><?php echo htmlspecialchars($presentation['topic_title']); ?></strong>
-                        <div><?php echo htmlspecialchars(trim($presentation['presentation_date'] . ' ' . $presentation['presentation_time'])); ?></div>
+                        <?php
+                        $presentation_id = (int) $presentation['id'];
+                        $restore_date_value = $_POST['presentation_dates'][$presentation_id] ?? $presentation['presentation_date'];
+                        $restore_time_value = $_POST['presentation_times'][$presentation_id] ?? $presentation['presentation_time'];
+                        ?>
+                        <div class="date-fields">
+                            <div class="date-field">
+                                <label for="restore-presentation-date-<?php echo $presentation_id; ?>">Presentation date</label>
+                                <input type="date" id="restore-presentation-date-<?php echo $presentation_id; ?>"
+                                       name="presentation_dates[<?php echo $presentation_id; ?>]"
+                                       min="<?php echo htmlspecialchars($engagement['event_start_date']); ?>"
+                                       max="<?php echo htmlspecialchars($engagement['event_end_date']); ?>"
+                                       value="<?php echo htmlspecialchars((string) $restore_date_value); ?>" required>
+                            </div>
+                            <div class="date-field">
+                                <label for="restore-presentation-time-<?php echo $presentation_id; ?>">Presentation time</label>
+                                <input type="text" id="restore-presentation-time-<?php echo $presentation_id; ?>"
+                                       name="presentation_times[<?php echo $presentation_id; ?>]"
+                                       value="<?php echo htmlspecialchars((string) $restore_time_value); ?>"
+                                       placeholder="09:30 AM" required>
+                            </div>
+                        </div>
                         <?php if ($presentation['speaker_name'] !== ''): ?>
                             <div>Speaker: <?php echo htmlspecialchars($presentation['speaker_name']); ?></div>
                         <?php endif; ?>

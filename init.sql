@@ -1,3 +1,9 @@
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    migration_name VARCHAR(255) PRIMARY KEY,
+    checksum CHAR(64) NOT NULL,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Users table (for authentication)
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -52,7 +58,18 @@ CREATE TABLE IF NOT EXISTS security_audit_log (
     INDEX idx_security_audit_created (created_at, id),
     INDEX idx_security_audit_category_created (event_category, created_at, id),
     INDEX idx_security_audit_actor_created (actor_user_id, created_at, id),
-    INDEX idx_security_audit_entity_created (entity_type, entity_id, created_at, id)
+    INDEX idx_security_audit_entity_created (entity_type, entity_id, created_at, id),
+    INDEX idx_security_audit_login_ip_created (event_category, event_type, ip_address, created_at)
+);
+
+CREATE TABLE IF NOT EXISTS authentication_rate_limits (
+    key_hash BINARY(32) PRIMARY KEY,
+    scope ENUM('ip', 'global') NOT NULL,
+    attempts INT UNSIGNED NOT NULL DEFAULT 0,
+    window_started_at DATETIME NOT NULL,
+    blocked_until DATETIME NULL,
+    updated_at DATETIME NOT NULL,
+    INDEX idx_auth_rate_limits_updated (updated_at)
 );
 
 -- Create the first administrator after startup with:
@@ -93,7 +110,7 @@ CREATE TABLE IF NOT EXISTS engagements (
     event_title VARCHAR(255),
     engagement_notes TEXT,
     event_start_date DATE NOT NULL,
-    event_end_date DATE,
+    event_end_date DATE NOT NULL,
     event_type VARCHAR(50),
     event_type_other VARCHAR(50),
     book_table TINYINT(1) DEFAULT 0,
@@ -115,7 +132,13 @@ CREATE TABLE IF NOT EXISTS engagements (
     housing_amount DECIMAL(10,2) DEFAULT NULL,
     is_deleted TINYINT(1) DEFAULT 0,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (organization_id) REFERENCES organizations(id)
+    FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CONSTRAINT chk_engagement_date_range CHECK (event_end_date >= event_start_date),
+    CONSTRAINT chk_engagement_travel_amount CHECK (travel_amount IS NULL OR travel_amount >= 0),
+    CONSTRAINT chk_engagement_housing_amount CHECK (housing_amount IS NULL OR housing_amount >= 0),
+    CONSTRAINT chk_engagement_other_type CHECK (
+        event_type <> 'other' OR TRIM(COALESCE(event_type_other, '')) <> ''
+    )
 );
 
 -- Timestamped Chron log entries for engagements. engagement_notes remains on
@@ -162,6 +185,13 @@ CREATE TABLE IF NOT EXISTS presentations (
     FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE,
     CONSTRAINT fk_presentation_archiver
         FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT chk_presentation_attendance CHECK (
+        expected_attendance IS NULL OR expected_attendance >= 1
+    ),
+    CONSTRAINT chk_presentation_time_format CHECK (
+        presentation_time IS NULL
+        OR presentation_time REGEXP '^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$'
+    ),
     INDEX idx_presentation_engagement_active_schedule (
         engagement_id, is_archived, presentation_date, presentation_time, id
     )
@@ -290,3 +320,18 @@ FOR EACH ROW INSERT INTO security_audit_log
     (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
 VALUES
     (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'presentations', OLD.id, LEFT(OLD.topic_title, 255), LEFT(@dnr_request_ip, 45));
+
+INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
+('20260814_add_last_login_at.sql', REPEAT('0', 64)),
+('20260814_add_must_change_password.sql', REPEAT('0', 64)),
+('20260814_add_shared_calendar.sql', REPEAT('0', 64)),
+('20260814_add_two_factor_authentication.sql', REPEAT('0', 64)),
+('20260814_add_user_timestamps.sql', REPEAT('0', 64)),
+('20260815_add_audit_log.sql', REPEAT('0', 64)),
+('20260815_add_contact_archiving.sql', REPEAT('0', 64)),
+('20260815_add_event_title.sql', REPEAT('0', 64)),
+('20260815_split_contact_names.sql', REPEAT('0', 64)),
+('20260817_add_engagement_chron_entries.sql', REPEAT('0', 64)),
+('20260817_add_presentation_archiving.sql', REPEAT('0', 64)),
+('20260817_add_schema_migrations.sql', REPEAT('0', 64)),
+('20260817_beta_readiness_hardening.sql', REPEAT('0', 64));

@@ -137,7 +137,7 @@ $contact_stmt->close();
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
-    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && $user_role === 'admin'): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
+    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
     <div class="organization-details">
         <div class="detail-row">
             <strong>Affiliation</strong>
@@ -151,8 +151,9 @@ $contact_stmt->close();
 
         <div class="detail-row">
             <strong>Website</strong>
-            <?php if (!empty($organization['website_url'])): ?>
-                <a href="<?php echo htmlspecialchars($organization['website_url']); ?>" target="_blank"><?php echo htmlspecialchars($organization['website_url']); ?></a>
+            <?php $safe_website_url = normalizedHttpUrl($organization['website_url'] ?? ''); ?>
+            <?php if ($safe_website_url): ?>
+                <a href="<?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?></a>
             <?php else: ?>
                 Not specified
             <?php endif; ?>

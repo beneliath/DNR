@@ -48,4 +48,17 @@ expectEngagementSearch(
     'a quoted query should require all quoted words.'
 );
 
+$bounded = buildEngagementSearchPlan(implode(' ', range(1, 30)) . str_repeat('x', 400));
+expectEngagementSearch(
+    count($bounded['or_terms']) + count($bounded['and_terms']) <= 8
+        && strlen($bounded['search']) <= 256,
+    'search input and expanded term count should be bounded.'
+);
+
+$invalid_utf8 = buildEngagementSearchPlan("valid\xFFtext");
+expectEngagementSearch(
+    $invalid_utf8['search'] === '' && $invalid_utf8['patterns'] === [],
+    'malformed UTF-8 should be discarded without warnings or unbounded query work.'
+);
+
 echo "Engagement search helper tests passed.\n";

@@ -45,6 +45,21 @@ if ($result->num_rows === 0) {
 }
 
 $organization = $result->fetch_assoc();
+$address_pairs = [
+    ['mailing_address_line_1', 'physical_address_line_1'],
+    ['mailing_address_line_2', 'physical_address_line_2'],
+    ['mailing_city', 'physical_city'],
+    ['mailing_state', 'physical_state'],
+    ['mailing_zipcode', 'physical_zipcode'],
+    ['mailing_country', 'physical_country'],
+];
+$same_address = true;
+foreach ($address_pairs as [$mailing_field, $physical_field]) {
+    if ((string) $organization[$mailing_field] !== (string) $organization[$physical_field]) {
+        $same_address = false;
+        break;
+    }
+}
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -72,13 +87,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $physical_state = trim($_POST['physical_state'] ?? '');
     $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
     $physical_country = trim($_POST['physical_country'] ?? '');
+    $same_address = ($_POST['same_address'] ?? 'no') === 'yes';
+    if ($same_address) {
+        $mailing_address_line_1 = $physical_address_line_1;
+        $mailing_address_line_2 = $physical_address_line_2;
+        $mailing_city = $physical_city;
+        $mailing_state = $physical_state;
+        $mailing_zipcode = $physical_zipcode;
+        $mailing_country = $physical_country;
+    }
 
     if ($organization_name === '') {
         $error = true;
         $errorMessages[] = "Organization name is required.";
-    } elseif ($website_url !== '' && !filter_var($website_url, FILTER_VALIDATE_URL)) {
+    } elseif (normalizedHttpUrl($website_url) === null) {
         $error = true;
         $errorMessages[] = "Please provide a valid website URL.";
+    } elseif ($physical_address_line_1 === '' || $physical_city === '' || $physical_state === ''
+        || $physical_zipcode === '' || $physical_country === ''
+    ) {
+        $error = true;
+        $errorMessages[] = 'A complete physical address is required.';
+    } elseif (!$same_address && ($mailing_address_line_1 === '' || $mailing_city === ''
+        || $mailing_state === '' || $mailing_zipcode === '' || $mailing_country === '')
+    ) {
+        $error = true;
+        $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
+    } else {
+        $website_url = normalizedHttpUrl($website_url);
     }
 
     $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ? AND id != ?");
@@ -115,6 +151,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error = true;
             $errorMessages[] = "Unable to update the organization.";
+        }
+    }
+
+    if ($error) {
+        foreach ([
+            'organization_name', 'notes', 'affiliation', 'distinctives', 'website_url',
+            'phone', 'fax', 'mailing_address_line_1', 'mailing_address_line_2',
+            'mailing_city', 'mailing_state', 'mailing_zipcode', 'mailing_country',
+            'physical_address_line_1', 'physical_address_line_2', 'physical_city',
+            'physical_state', 'physical_zipcode', 'physical_country',
+        ] as $field_name) {
+            $organization[$field_name] = ${$field_name};
         }
     }
 }
@@ -247,7 +295,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="text" name="fax" value="<?php echo htmlspecialchars($organization['fax']); ?>">
         </div>
 
-        <div class="address-section">
+        <div class="radio-group">
+            <label class="required">Mailing and Physical Address the Same</label>
+            <div>
+                <label><input type="radio" name="same_address" value="yes" <?php echo $same_address ? 'checked' : ''; ?>> Yes</label>
+                <label><input type="radio" name="same_address" value="no" <?php echo !$same_address ? 'checked' : ''; ?>> No</label>
+            </div>
+        </div>
+
+        <div class="address-section" id="physical_address_section">
             <h3 class="required">Physical Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
@@ -275,7 +331,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <div class="address-section">
+        <div class="address-section" id="mailing_address_section">
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
@@ -310,5 +366,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const mailingSection = document.getElementById('mailing_address_section');
+    const sameAddressInputs = document.querySelectorAll('input[name="same_address"]');
+    function updateMailingVisibility() {
+        const sameAddress = document.querySelector('input[name="same_address"]:checked')?.value === 'yes';
+        mailingSection.hidden = sameAddress;
+        mailingSection.querySelectorAll('input, select').forEach(function (input) {
+            input.required = !sameAddress;
+        });
+    }
+    sameAddressInputs.forEach(function (input) {
+        input.addEventListener('change', updateMailingVisibility);
+    });
+    updateMailingVisibility();
+});
+</script>
 </body>
 </html>

@@ -244,13 +244,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $conn->begin_transaction();
 
     try {
+        $engagement_lock_stmt = $conn->prepare(
+            'SELECT * FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE'
+        );
+        if (!$engagement_lock_stmt) {
+            throw new RuntimeException('Unable to lock the engagement for editing.');
+        }
+        $engagement_lock_stmt->bind_param('i', $engagement_id);
+        $engagement_lock_stmt->execute();
+        $locked_engagement = $engagement_lock_stmt->get_result()->fetch_assoc();
+        $engagement_lock_stmt->close();
+        if (!$locked_engagement) {
+            throw new InvalidArgumentException('That engagement is no longer active.');
+        }
+        $submitted_version = trim((string) ($_POST['engagement_version'] ?? ''));
+        if ($submitted_version === ''
+            || !hash_equals((string) $locked_engagement['updated_at'], $submitted_version)
+        ) {
+            throw new InvalidArgumentException(
+                'This engagement changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
+            );
+        }
+        $engagement = array_merge($engagement, $locked_engagement);
+
         // Get organization data
         $organization_id = intval($_POST['organization_id'] ?? 0);
-
-        // Validate organization ID
-        if (!$organization_id) {
-            throw new InvalidArgumentException("Please select an organization.");
-        }
+        requireActiveOrganization($conn, $organization_id, true);
 
         // Continue with existing engagement update code
         $event_title = trim($_POST['event_title'] ?? '');
@@ -259,7 +278,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $event_end_date = $_POST['event_end_date'] ?? null;
         $event_type_raw = $_POST['event_type'] ?? '';
         $event_type_other = trim($_POST['event_type_other'] ?? '');
-        $event_type = $event_type_raw === 'other' ? $event_type_other : $event_type_raw;
+        [$event_type, $event_type_other] = normalizeEventType($event_type_raw, $event_type_other);
         $book_table = isset($_POST['book_table']) ? 1 : 0;
         $brochures = isset($_POST['brochures']) ? 1 : 0;
         $caller_name = trim($_POST['caller_name'] ?? '');
@@ -279,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         }
         error_log("Using travel_covered value: " . $travel_covered);
 
-        $travel_amount = !empty($_POST['travel_amount']) ? floatval($_POST['travel_amount']) : null;
+        $travel_amount = nullableNonNegativeAmount($_POST['travel_amount'] ?? '', 'travel');
 
         // Strict validation for compensation_type
         $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
@@ -293,7 +312,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $housing_type = 'Unknown';
         }
         $other_housing = trim($_POST['other_housing'] ?? '');
-        $housing_amount = !empty($_POST['housing_amount']) ? floatval($_POST['housing_amount']) : null;
+        $housing_amount = nullableNonNegativeAmount($_POST['housing_amount'] ?? '', 'lodging');
 
         // Event location fields
         $event_address_line_1 = trim($_POST['event_address_line_1'] ?? '');
@@ -310,8 +329,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $DEFAULT_SPEAKER,
             true
         );
-        requirePresentationForEngagementEdit($presentations);
         requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
+        requireValidDateRange($event_start_date, $event_end_date);
 
         $submitted_chron_entries = [];
         foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
@@ -327,15 +346,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         // Validate required fields
         if (
-            !$event_start_date ||
-            !$event_end_date ||
-            $event_end_date < $event_start_date ||
-            ($event_type_raw === 'other' && $event_type_other === '') ||
             ($compensation_type === 'Other' && empty($other_compensation)) ||
             ($housing_type === 'Other' && empty($other_housing)) ||
-            (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') ||
-            ($travel_amount !== null && $travel_amount < 0) ||
-            ($housing_amount !== null && $housing_amount < 0)
+            (isset($_POST['save_and_add_chron']) && $new_chron_entry === '')
         ) {
             throw new InvalidArgumentException("Please provide valid required fields, dates, and non-negative amounts.");
         }
@@ -376,6 +389,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $types .= "s";
         }
 
+        if (($event_type_other ?? '') !== ($engagement['event_type_other'] ?? '')) {
+            $update_fields[] = "event_type_other = ?";
+            $update_values[] = $event_type_other;
+            $types .= "s";
+        }
+
         if ($book_table != $engagement['book_table']) {
             $update_fields[] = "book_table = ?";
             $update_values[] = $book_table;
@@ -406,7 +425,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $types .= "s";
         }
 
-        if ($travel_amount != $engagement['travel_amount']) {
+        if (!nullableAmountsEqual($travel_amount, $engagement['travel_amount'])) {
             $update_fields[] = "travel_amount = ?";
             $update_values[] = $travel_amount;
             $types .= "d";
@@ -436,7 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $types .= "s";
         }
 
-        if ($housing_amount != $engagement['housing_amount']) {
+        if (!nullableAmountsEqual($housing_amount, $engagement['housing_amount'])) {
             $update_fields[] = "housing_amount = ?";
             $update_values[] = $housing_amount;
             $types .= "d";
@@ -604,17 +623,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         header("Location: engagements.php");
         exit();
 
-    } catch (Exception $e) {
+    } catch (Throwable $e) {
         $conn->rollback();
         error_log("Error updating engagement: " . $e->getMessage());
         $error_message = $e instanceof InvalidArgumentException
             ? $e->getMessage()
             : "Unable to update the engagement. Please try again.";
+
+        $rehydrated_fields = [
+            'organization_id', 'event_title', 'event_start_date', 'event_end_date',
+            'caller_name', 'confirmation_status', 'travel_covered', 'travel_amount',
+            'compensation_type', 'other_compensation', 'housing_type', 'other_housing',
+            'housing_amount', 'event_address_line_1', 'event_address_line_2',
+            'event_city', 'event_state', 'event_zipcode', 'event_country',
+        ];
+        foreach ($rehydrated_fields as $rehydrated_field) {
+            if (array_key_exists($rehydrated_field, $_POST) && is_scalar($_POST[$rehydrated_field])) {
+                $engagement[$rehydrated_field] = trim((string) $_POST[$rehydrated_field]);
+            }
+        }
+        $engagement['event_type'] = in_array($event_type_raw ?? '', ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'], true)
+            ? $event_type_raw
+            : ($engagement['event_type'] ?? 'conference');
+        $engagement['event_type_other'] = trim((string) ($_POST['event_type_other'] ?? ''));
+        $engagement['book_table'] = isset($_POST['book_table']) ? 1 : 0;
+        $engagement['brochures'] = isset($_POST['brochures']) ? 1 : 0;
+        if (isset($_POST['engagement_version']) && is_scalar($_POST['engagement_version'])) {
+            $engagement['updated_at'] = (string) $_POST['engagement_version'];
+        }
     }
 }
 
 // Get presentations for this engagement
-$presentations_query = "SELECT * FROM presentations WHERE engagement_id = ? AND is_archived = 0 ORDER BY presentation_date, presentation_time, id";
+$presentations_query = "SELECT * FROM presentations
+                        WHERE engagement_id = ? AND is_archived = 0
+                        ORDER BY presentation_date,
+                                 STR_TO_DATE(presentation_time, '%h:%i %p'), id";
 $stmt = $conn->prepare($presentations_query);
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -674,6 +718,7 @@ try {
 
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
         <h2>Event Details &amp; Schedule</h2>
@@ -992,7 +1037,7 @@ try {
 
 <?php include 'templates/footer.php'; ?>
 
-<script src="assets/js/presentation-form.min.js?v=0.1.3"></script>
+<script src="assets/js/presentation-form.min.js?v=0.1.4"></script>
 <script>
     // Validate that the event end date is on or after the event start date
     function validateDates() {

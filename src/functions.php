@@ -1,4 +1,22 @@
 <?php
+function requestUsesHttps(?array $server = null) {
+    $server = $server ?? $_SERVER;
+    if (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off') {
+        return true;
+    }
+
+    $remote_address = filter_var(
+        trim((string) ($server['REMOTE_ADDR'] ?? '')),
+        FILTER_VALIDATE_IP
+    );
+    if (!$remote_address || !isTrustedProxyAddress($remote_address)) {
+        return false;
+    }
+
+    $forwarded_proto = strtolower(trim(explode(',', (string) ($server['HTTP_X_FORWARDED_PROTO'] ?? ''))[0]));
+    return $forwarded_proto === 'https';
+}
+
 // Start a cookie-only session with safe defaults for HTTP development and HTTPS deployment.
 function startSecureSession() {
     if (session_status() !== PHP_SESSION_NONE) {
@@ -8,9 +26,7 @@ function startSecureSession() {
     ini_set('session.use_strict_mode', '1');
     ini_set('session.use_only_cookies', '1');
 
-    $forwarded_proto = strtolower(trim(explode(',', $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')[0]));
-    $is_https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
-        || $forwarded_proto === 'https';
+    $is_https = requestUsesHttps();
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
@@ -20,6 +36,98 @@ function startSecureSession() {
     ]);
 
     session_start();
+}
+
+function validIsoDate($date) {
+    if (!is_string($date)) {
+        return false;
+    }
+    $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+    return $parsed instanceof DateTimeImmutable && $parsed->format('Y-m-d') === $date;
+}
+
+function requireValidDateRange($start_date, $end_date) {
+    if (!validIsoDate($start_date) || !validIsoDate($end_date) || $end_date < $start_date) {
+        throw new InvalidArgumentException('Enter a valid event start and end date. The end date cannot precede the start date.');
+    }
+}
+
+function nullableNonNegativeAmount($value, $label) {
+    if (!is_scalar($value) && $value !== null) {
+        throw new InvalidArgumentException("Enter a valid {$label} amount.");
+    }
+    $value = trim((string) $value);
+    if ($value === '') {
+        return null;
+    }
+    if (!preg_match('/\A(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?\z/', $value)) {
+        throw new InvalidArgumentException("Enter a non-negative {$label} amount with no more than two decimal places.");
+    }
+    return (float) $value;
+}
+
+function nullableAmountsEqual($left, $right) {
+    if ($left === null || $left === '') {
+        return $right === null || $right === '';
+    }
+    if ($right === null || $right === '') {
+        return false;
+    }
+    return (float) $left === (float) $right;
+}
+
+function normalizedHttpUrl($url) {
+    $url = trim((string) $url);
+    if ($url === '') {
+        return '';
+    }
+    if (!filter_var($url, FILTER_VALIDATE_URL)) {
+        return null;
+    }
+    $scheme = strtolower((string) parse_url($url, PHP_URL_SCHEME));
+    return in_array($scheme, ['http', 'https'], true) ? $url : null;
+}
+
+function normalizeEventType($event_type, $event_type_other) {
+    $event_type = trim((string) $event_type);
+    $event_type_other = trim((string) $event_type_other);
+    $valid_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
+    if (!in_array($event_type, $valid_types, true)) {
+        throw new InvalidArgumentException('Select a valid event type.');
+    }
+    if ($event_type === 'other') {
+        if ($event_type_other === '' || strlen($event_type_other) > 50) {
+            throw new InvalidArgumentException('Describe the other event type using 50 characters or fewer.');
+        }
+        return ['other', $event_type_other];
+    }
+    return [$event_type, null];
+}
+
+function requireActiveOrganization(mysqli $conn, $organization_id, $lock = false) {
+    $organization_id = (int) $organization_id;
+    if ($organization_id < 1) {
+        throw new InvalidArgumentException('Please select an active organization.');
+    }
+    $sql = 'SELECT id FROM organizations WHERE id = ? AND is_deleted = 0';
+    if ($lock) {
+        $sql .= ' FOR UPDATE';
+    }
+    $stmt = $conn->prepare($sql);
+    if (!$stmt) {
+        throw new RuntimeException('Unable to verify the selected organization.');
+    }
+    $stmt->bind_param('i', $organization_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to verify the selected organization.');
+    }
+    $exists = $stmt->get_result()->num_rows === 1;
+    $stmt->close();
+    if (!$exists) {
+        throw new InvalidArgumentException('Please select an active organization.');
+    }
+    return $organization_id;
 }
 
 // A password-only or pre-2FA session must never satisfy application authorization.
@@ -527,6 +635,144 @@ function recordFailedLoginAttempt(mysqli $conn, $attempted_username, $details, $
     );
 }
 
+function loginRateLimitSettings($scope) {
+    if ($scope === 'ip') {
+        return ['limit' => 8, 'window' => 300, 'block' => 900];
+    }
+    if ($scope === 'global') {
+        return ['limit' => 60, 'window' => 60, 'block' => 300];
+    }
+    throw new InvalidArgumentException('Unknown login rate-limit scope.');
+}
+
+function loginRateLimitKey($scope, $identifier) {
+    return hash('sha256', (string) $scope . "\0" . (string) $identifier);
+}
+
+function loginRateLimitIdentifiers() {
+    return [
+        'ip' => requestIpAddress() ?: 'unknown',
+        'global' => 'all-login-traffic',
+    ];
+}
+
+function requireLoginRateLimitSchema(mysqli $conn) {
+    $result = $conn->query("SHOW TABLES LIKE 'authentication_rate_limits'");
+    if (!$result || $result->num_rows !== 1) {
+        error_log('DNR login rate-limit migration has not been applied.');
+        http_response_code(503);
+        exit('DNR is being upgraded. The login security migration is required.');
+    }
+}
+
+function loginRateLimitIsBlocked(mysqli $conn) {
+    $stmt = $conn->prepare(
+        'SELECT blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
+         FROM authentication_rate_limits
+         WHERE key_hash = UNHEX(?)'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to check login availability.');
+    }
+    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
+        $key = loginRateLimitKey($scope, $identifier);
+        $stmt->bind_param('s', $key);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new RuntimeException('Unable to check login availability.');
+        }
+        $row = $stmt->get_result()->fetch_assoc();
+        if ($row && !empty($row['is_blocked'])) {
+            $stmt->close();
+            return true;
+        }
+    }
+    $stmt->close();
+    return false;
+}
+
+function recordLoginRateLimitFailure(mysqli $conn) {
+    $ip_attempts = 0;
+    $ip_just_blocked = false;
+    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
+        $settings = loginRateLimitSettings($scope);
+        $window = (int) $settings['window'];
+        $limit = (int) $settings['limit'];
+        $block = (int) $settings['block'];
+        $key = loginRateLimitKey($scope, $identifier);
+        $sql = "INSERT INTO authentication_rate_limits
+                    (key_hash, scope, attempts, window_started_at, blocked_until, updated_at)
+                VALUES (UNHEX(?), ?, 1, UTC_TIMESTAMP(), NULL, UTC_TIMESTAMP())
+                ON DUPLICATE KEY UPDATE
+                    blocked_until = CASE
+                        WHEN window_started_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$window} SECOND) THEN NULL
+                        WHEN attempts + 1 >= {$limit} THEN DATE_ADD(UTC_TIMESTAMP(), INTERVAL {$block} SECOND)
+                        ELSE blocked_until
+                    END,
+                    attempts = CASE
+                        WHEN window_started_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$window} SECOND) THEN 1
+                        ELSE attempts + 1
+                    END,
+                    window_started_at = CASE
+                        WHEN window_started_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$window} SECOND) THEN UTC_TIMESTAMP()
+                        ELSE window_started_at
+                    END,
+                    updated_at = UTC_TIMESTAMP()";
+        $stmt = $conn->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException('Unable to record login availability.');
+        }
+        $stmt->bind_param('ss', $key, $scope);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new RuntimeException('Unable to record login availability.');
+        }
+        $stmt->close();
+
+        if ($scope === 'ip') {
+            $status_stmt = $conn->prepare(
+                'SELECT attempts, blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
+                 FROM authentication_rate_limits WHERE key_hash = UNHEX(?)'
+            );
+            $status_stmt->bind_param('s', $key);
+            $status_stmt->execute();
+            $status = $status_stmt->get_result()->fetch_assoc();
+            $status_stmt->close();
+            $ip_attempts = (int) ($status['attempts'] ?? 0);
+            $ip_just_blocked = !empty($status['is_blocked']) && $ip_attempts === $limit;
+        }
+    }
+
+    return [
+        'blocked' => loginRateLimitIsBlocked($conn),
+        'should_audit' => $ip_attempts <= 3 || $ip_just_blocked,
+    ];
+}
+
+function clearLoginRateLimitForCurrentIp(mysqli $conn) {
+    $key = loginRateLimitKey('ip', requestIpAddress() ?: 'unknown');
+    $stmt = $conn->prepare('DELETE FROM authentication_rate_limits WHERE key_hash = UNHEX(?)');
+    if (!$stmt) {
+        return false;
+    }
+    $stmt->bind_param('s', $key);
+    $success = $stmt->execute();
+    $stmt->close();
+
+    // Successful logins provide a low-cost opportunity to bound stale state.
+    // Keep this best-effort so cleanup can never prevent authentication.
+    try {
+        $conn->query(
+            'DELETE FROM authentication_rate_limits
+             WHERE updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)'
+        );
+    } catch (Throwable $exception) {
+        error_log('Unable to prune stale login rate-limit records: ' . $exception->getMessage());
+    }
+
+    return $success;
+}
+
 // Check if the logged-in user has any of the specified roles
 function hasRole($roles = []) {
     return (isset($_SESSION['role']) && in_array($_SESSION['role'], $roles, true));
@@ -597,6 +843,46 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
         return false;
     }
 
+    $id = (int) $id;
+    if (($entity === 'organization') && $is_archived) {
+        $dependents_stmt = $conn->prepare(
+            'SELECT
+                (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
+              + (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
+              AS active_dependents'
+        );
+        if (!$dependents_stmt) {
+            return false;
+        }
+        $dependents_stmt->bind_param('ii', $id, $id);
+        $dependents_stmt->execute();
+        $active_dependents = (int) ($dependents_stmt->get_result()->fetch_assoc()['active_dependents'] ?? 0);
+        $dependents_stmt->close();
+        if ($active_dependents > 0) {
+            return false;
+        }
+    }
+
+    if (!$is_archived && in_array($entity, ['contact', 'engagement', 'event'], true)) {
+        $child_table = $entity === 'contact' ? 'contacts' : 'engagements';
+        $organization_stmt = $conn->prepare(
+            "SELECT o.is_deleted
+             FROM {$child_table} child
+             INNER JOIN organizations o ON o.id = child.organization_id
+             WHERE child.id = ?"
+        );
+        if (!$organization_stmt) {
+            return false;
+        }
+        $organization_stmt->bind_param('i', $id);
+        $organization_stmt->execute();
+        $organization = $organization_stmt->get_result()->fetch_assoc();
+        $organization_stmt->close();
+        if (!$organization || !empty($organization['is_deleted'])) {
+            return false;
+        }
+    }
+
     $archive_value = $is_archived ? 1 : 0;
     $stmt = $conn->prepare(
         "UPDATE {$tables[$entity]} SET is_deleted = ? WHERE id = ?"
@@ -605,7 +891,6 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
         return false;
     }
 
-    $id = (int) $id;
     $stmt->bind_param('ii', $archive_value, $id);
     $success = $stmt->execute();
     $stmt->close();

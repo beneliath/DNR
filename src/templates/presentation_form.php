@@ -7,8 +7,7 @@ if (!$presentation_form_rows) {
 }
 ?>
 <section id="presentations-container" class="form-section"
-         data-default-speaker="<?php echo htmlspecialchars($DEFAULT_SPEAKER, ENT_QUOTES, 'UTF-8'); ?>"
-         data-require-presentation-on-save="<?php echo !empty($engagement_id) ? 'true' : 'false'; ?>">
+         data-default-speaker="<?php echo htmlspecialchars($DEFAULT_SPEAKER, ENT_QUOTES, 'UTF-8'); ?>">
     <div class="chron-log-heading">
         <h2>Presentation(s)</h2>
         <?php if (!empty($archived_presentation_count) && !empty($engagement_id)): ?>

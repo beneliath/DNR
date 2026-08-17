@@ -5,6 +5,7 @@ require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireTwoFactorSchema($conn);
+requireLoginRateLimitSchema($conn);
 
 if (isLoggedIn()) {
     header('Location: engagements.php');
@@ -17,44 +18,58 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    $user = fetchAuthenticationUserByUsername($conn, $username);
-    $dummy_password_hash = '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.';
-    $password_valid = password_verify($password, $user['password'] ?? $dummy_password_hash);
-
-    if ($user && empty($user['login_is_locked']) && $password_valid) {
-        setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
-        resetAuthenticationFailures($conn, (int) $user['id'], 'password');
-        beginPendingAuthentication($user);
-
-        if (!empty($user['two_factor_enabled'])) {
-            header('Location: verify_2fa.php');
-            exit();
-        }
-
-        if (twoFactorRequiredForRole($user['role'])) {
-            header('Location: setup_2fa.php');
-            exit();
-        }
-
-        completeAuthentication($conn, $user, false);
-        header('Location: ' . authenticationDestination($user));
-        exit();
-    }
-
-    if ($user && empty($user['login_is_locked'])) {
-        recordAuthenticationFailure($conn, (int) $user['id'], 'password');
-    }
-
-    if (!$user) {
-        $failure_details = 'Unknown username';
-    } elseif (!empty($user['login_is_locked'])) {
-        $failure_details = 'Password authentication temporarily locked';
+    if (loginRateLimitIsBlocked($conn)) {
+        http_response_code(429);
+        header('Retry-After: 300');
+        $error = 'Invalid username or password, or the account is temporarily unavailable.';
     } else {
-        $failure_details = 'Incorrect password';
-    }
-    recordFailedLoginAttempt($conn, $username, $failure_details, $user);
+        $user = fetchAuthenticationUserByUsername($conn, $username);
+        $dummy_password_hash = '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.';
+        $password_valid = password_verify($password, $user['password'] ?? $dummy_password_hash);
 
-    $error = 'Invalid username or password, or the account is temporarily unavailable.';
+        if ($user && empty($user['login_is_locked']) && $password_valid) {
+            setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
+            resetAuthenticationFailures($conn, (int) $user['id'], 'password');
+            clearLoginRateLimitForCurrentIp($conn);
+            beginPendingAuthentication($user);
+
+            if (!empty($user['two_factor_enabled'])) {
+                header('Location: verify_2fa.php');
+                exit();
+            }
+
+            if (twoFactorRequiredForRole($user['role'])) {
+                header('Location: setup_2fa.php');
+                exit();
+            }
+
+            completeAuthentication($conn, $user, false);
+            header('Location: ' . authenticationDestination($user));
+            exit();
+        }
+
+        if ($user && empty($user['login_is_locked'])) {
+            recordAuthenticationFailure($conn, (int) $user['id'], 'password');
+        }
+
+        if (!$user) {
+            $failure_details = 'Unknown username';
+        } elseif (!empty($user['login_is_locked'])) {
+            $failure_details = 'Password authentication temporarily locked';
+        } else {
+            $failure_details = 'Incorrect password';
+        }
+        $rate_limit = recordLoginRateLimitFailure($conn);
+        if ($rate_limit['should_audit']) {
+            recordFailedLoginAttempt($conn, $username, $failure_details, $user);
+        }
+        if ($rate_limit['blocked']) {
+            http_response_code(429);
+            header('Retry-After: 300');
+        }
+
+        $error = 'Invalid username or password, or the account is temporarily unavailable.';
+    }
 }
 ?>
 <!DOCTYPE html>

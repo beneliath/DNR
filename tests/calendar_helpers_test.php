@@ -91,8 +91,13 @@ expectCalendar(
     'Presentation events should block one hour at their configured local date and time.'
 );
 expectCalendar(
-    str_contains($unfolded_presentation_calendar, 'SUMMARY:Presentation: Opening Keynote — Annual Leadership Summit'),
-    'Presentation events should identify the topic and engagement.'
+    str_contains($calendar_with_presentation, "UID:presentation-7@dnr-calendar\r\n")
+        && str_contains($calendar_with_presentation, "SEQUENCE:208872001\r\n"),
+    'Presentation events should advance their sequence for the calendar-title format revision.'
+);
+expectCalendar(
+    str_contains($unfolded_presentation_calendar, 'SUMMARY:Presentation-Opening Keynote-Jordan Speaker'),
+    'Presentation event names should use Presentation-[Title]-[Speaker Name].'
 );
 expectCalendar(
     str_contains($unfolded_presentation_calendar, 'Speaker: Jordan Speaker'),
@@ -102,16 +107,35 @@ expectCalendar(
     calendarPresentationEventLines(array_merge($presentation, ['presentation_time' => ''])) === [],
     'Presentations without both a date and time should not create timed calendar blocks.'
 );
+expectCalendar(
+    str_contains(
+        implode("\r\n", calendarPresentationEventLines(array_merge($presentation, ['speaker_name' => '']))),
+        'SUMMARY:Presentation-Opening Keynote-Unknown Speaker'
+    ),
+    'Presentation event names should retain the requested format when the speaker is blank.'
+);
 
 foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
 
+putenv('DNR_CALENDAR_TOKEN=' . str_repeat('a', 32));
+putenv('DNR_PUBLIC_BASE_URL=https://calendar.example.org/dnr');
 $url = calendarSubscriptionUrl([
     'HTTP_X_FORWARDED_PROTO' => 'https',
     'HTTP_HOST' => 'dnr.example.org',
     'SCRIPT_NAME' => '/calendar_subscription.php',
 ]);
-expectCalendar($url === 'https://dnr.example.org/calendar.php', 'The subscription URL should respect the public proxy scheme and host.');
+expectCalendar(
+    $url === 'https://calendar.example.org/dnr/calendar.php?token=' . str_repeat('a', 32),
+    'The subscription URL should use the configured public base and revocable token.'
+);
+expectCalendar(
+    calendarRequestIsAuthorized([], str_repeat('a', 32))
+        && !calendarRequestIsAuthorized([], str_repeat('b', 32)),
+    'Calendar access should require the configured token.'
+);
+putenv('DNR_CALENDAR_TOKEN');
+putenv('DNR_PUBLIC_BASE_URL');
 
 echo "Calendar helper tests passed.\n";

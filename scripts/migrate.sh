@@ -1,0 +1,62 @@
+#!/bin/sh
+set -eu
+
+migration_directory=${DNR_MIGRATION_DIRECTORY:-/opt/dnr/migrations}
+database_name=${MYSQL_DATABASE:-dnr}
+
+case "$database_name" in
+    ''|*[!A-Za-z0-9_]*) echo "MYSQL_DATABASE contains unsupported characters" >&2; exit 1 ;;
+esac
+
+export MYSQL_PWD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+
+mysql --protocol=socket -uroot "$database_name" -e "
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    migration_name VARCHAR(255) PRIMARY KEY,
+    checksum CHAR(64) NOT NULL,
+    applied_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+)"
+
+applied_count=$(mysql --protocol=socket -uroot -Nse "SELECT COUNT(*) FROM schema_migrations" "$database_name")
+legacy_schema=$(mysql --protocol=socket -uroot -Nse "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'engagement_chron_entries'" "$database_name")
+
+if [ "$applied_count" = "0" ] && [ "$legacy_schema" = "1" ]; then
+    for legacy_migration in \
+        20260814_add_last_login_at.sql \
+        20260814_add_must_change_password.sql \
+        20260814_add_shared_calendar.sql \
+        20260814_add_two_factor_authentication.sql \
+        20260814_add_user_timestamps.sql \
+        20260815_add_audit_log.sql \
+        20260815_add_contact_archiving.sql \
+        20260815_add_event_title.sql \
+        20260815_split_contact_names.sql \
+        20260817_add_engagement_chron_entries.sql \
+        20260817_add_presentation_archiving.sql
+    do
+        mysql --protocol=socket -uroot "$database_name" -e "
+            INSERT IGNORE INTO schema_migrations (migration_name, checksum)
+            VALUES ('$legacy_migration', REPEAT('0', 64))"
+    done
+fi
+
+for migration_path in "$migration_directory"/*.sql
+do
+    [ -f "$migration_path" ] || continue
+    migration_name=$(basename "$migration_path")
+    already_applied=$(mysql --protocol=socket -uroot -Nse "
+        SELECT COUNT(*) FROM schema_migrations WHERE migration_name = '$migration_name'" "$database_name")
+    if [ "$already_applied" = "1" ]; then
+        continue
+    fi
+
+    echo "Applying $migration_name"
+    mysql --protocol=socket -uroot "$database_name" < "$migration_path"
+    migration_checksum=$(sha256sum "$migration_path" | awk '{print $1}')
+    mysql --protocol=socket -uroot "$database_name" -e "
+        INSERT INTO schema_migrations (migration_name, checksum)
+        VALUES ('$migration_name', '$migration_checksum')
+        ON DUPLICATE KEY UPDATE checksum = VALUES(checksum), applied_at = CURRENT_TIMESTAMP"
+done
+
+echo "Database migrations are current."

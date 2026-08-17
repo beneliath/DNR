@@ -39,27 +39,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     } elseif ($contact_role === 'other' && empty($contact_role_other)) {
         $error_message = "Please specify the other role.";
     } else {
-        $stmt = $conn->prepare(
-            "INSERT INTO contacts (
-                organization_id, contact_first_name, contact_last_name, contact_role,
-                contact_role_other, contact_email, contact_phone
-             ) VALUES (?, ?, ?, ?, ?, ?, ?)"
-        );
-        $stmt->bind_param(
-            "issssss",
-            $organization_id,
-            $contact_first_name,
-            $contact_last_name,
-            $contact_role,
-            $contact_role_other,
-            $contact_email,
-            $contact_phone
-        );
-
-        if ($stmt->execute()) {
-            $success_message = "Contact added successfully!";
-        } else {
-            $error_message = "Unable to add the contact.";
+        $conn->begin_transaction();
+        try {
+            requireActiveOrganization($conn, $organization_id, true);
+            $stmt = $conn->prepare(
+                "INSERT INTO contacts (
+                    organization_id, contact_first_name, contact_last_name, contact_role,
+                    contact_role_other, contact_email, contact_phone
+                 ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+            );
+            if (!$stmt) {
+                throw new RuntimeException('Unable to prepare the contact.');
+            }
+            $stmt->bind_param(
+                "issssss",
+                $organization_id,
+                $contact_first_name,
+                $contact_last_name,
+                $contact_role,
+                $contact_role_other,
+                $contact_email,
+                $contact_phone
+            );
+            if (!$stmt->execute()) {
+                throw new RuntimeException('Unable to add the contact.');
+            }
+            $contact_id = $conn->insert_id;
+            $stmt->close();
+            $conn->commit();
+            $_SESSION['success_message'] = 'Contact added successfully.';
+            header('Location: view_contact.php?id=' . $contact_id);
+            exit();
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            $error_message = $exception instanceof InvalidArgumentException
+                ? $exception->getMessage()
+                : 'Unable to add the contact.';
         }
     }
 }

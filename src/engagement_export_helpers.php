@@ -23,7 +23,11 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
 
     $overview_fields = [];
     addEngagementExportField($overview_fields, 'Organization', $organization_name, true);
-    addEngagementExportField($overview_fields, 'Event Type', $engagement['event_type'] ?? '', true);
+    $event_type_label = ($engagement['event_type'] ?? '') === 'other'
+        && trim((string) ($engagement['event_type_other'] ?? '')) !== ''
+        ? $engagement['event_type_other']
+        : ($engagement['event_type'] ?? '');
+    addEngagementExportField($overview_fields, 'Event Type', $event_type_label, true);
 
     $event_start_date = trim((string) ($engagement['event_start_date'] ?? ''));
     $event_end_date = trim((string) ($engagement['event_end_date'] ?? ''));
@@ -142,7 +146,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
             'Details',
             $engagement['other_compensation'] ?? ''
         );
-        if (!empty($engagement['travel_amount'])) {
+        if (array_key_exists('travel_amount', $engagement) && $engagement['travel_amount'] !== null) {
             addEngagementExportField(
                 $compensation_fields,
                 'Travel Amount',
@@ -150,7 +154,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
                 true
             );
         }
-        if (!empty($engagement['housing_amount'])) {
+        if (array_key_exists('housing_amount', $engagement) && $engagement['housing_amount'] !== null) {
             addEngagementExportField(
                 $compensation_fields,
                 'Lodging Amount',

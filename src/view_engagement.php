@@ -60,7 +60,8 @@ $presentation_stmt = $conn->prepare(
     "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date, presentation_time, id"
+     ORDER BY presentation_date,
+              STR_TO_DATE(presentation_time, '%h:%i %p'), id"
 );
 if ($presentation_stmt === false) {
     die("Error preparing presentations statement: " . $conn->error);
@@ -234,7 +235,8 @@ $presentation_stmt->close();
 <div class="view-container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement Details</span></nav>
     <div class="page-heading record-page-heading">
-        <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($engagement['event_type'])); ?></p></div>
+        <?php $event_type_label = $engagement['event_type'] === 'other' && !empty($engagement['event_type_other']) ? $engagement['event_type_other'] : $engagement['event_type']; ?>
+        <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
         <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
     </div>
 
@@ -280,7 +282,7 @@ $presentation_stmt->close();
         <?php endif; ?>
 
         <div class="detail-label">Event Type</div>
-        <div class="detail-value"><?php echo htmlspecialchars($engagement['event_type']); ?></div>
+        <div class="detail-value"><?php echo htmlspecialchars($event_type_label); ?></div>
 
         <div class="detail-label">Event Dates</div>
         <div class="detail-value">
@@ -352,10 +354,10 @@ $presentation_stmt->close();
             <?php if (!empty($engagement['other_compensation'])): ?>
             <div><strong>Details:</strong> <?php echo htmlspecialchars($engagement['other_compensation']); ?></div>
             <?php endif; ?>
-            <?php if (!empty($engagement['travel_amount'])): ?>
+            <?php if ($engagement['travel_amount'] !== null): ?>
             <div><strong>Travel Amount:</strong> $<?php echo number_format((float) $engagement['travel_amount'], 2); ?></div>
             <?php endif; ?>
-            <?php if (!empty($engagement['housing_amount'])): ?>
+            <?php if ($engagement['housing_amount'] !== null): ?>
             <div><strong>Lodging Amount:</strong> $<?php echo number_format((float) $engagement['housing_amount'], 2); ?></div>
             <?php endif; ?>
             <?php if (!empty($engagement['housing_type'])): ?>

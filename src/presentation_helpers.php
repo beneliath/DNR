@@ -17,6 +17,21 @@ function presentationDateIsValid($date)
         && $parsed_date->format('Y-m-d') === $date;
 }
 
+function requirePresentationDateWithinEngagement($topic_title, $presentation_date, $event_start_date, $event_end_date)
+{
+    if (!presentationDateIsValid((string) $presentation_date)) {
+        throw new InvalidArgumentException("Use a valid date for presentation '{$topic_title}'.");
+    }
+    if (presentationDateIsValid((string) $event_start_date)
+        && presentationDateIsValid((string) $event_end_date)
+        && ($presentation_date < $event_start_date || $presentation_date > $event_end_date)
+    ) {
+        throw new InvalidArgumentException(
+            "Presentation date for '{$topic_title}' must be between the engagement start and end dates."
+        );
+    }
+}
+
 function normalizePresentationTime($time)
 {
     $time = trim((string) $time);
@@ -107,17 +122,12 @@ function normalizeEngagementPresentations(
         if ($presentation_date === '') {
             throw new InvalidArgumentException("Enter a date for presentation '{$topic_title}'.");
         }
-        if (!presentationDateIsValid($presentation_date)) {
-            throw new InvalidArgumentException("Use a valid date for presentation '{$topic_title}'.");
-        }
-        if (presentationDateIsValid((string) $event_start_date)
-            && presentationDateIsValid((string) $event_end_date)
-            && ($presentation_date < $event_start_date || $presentation_date > $event_end_date)
-        ) {
-            throw new InvalidArgumentException(
-                "Presentation date for '{$topic_title}' must be between the engagement start and end dates."
-            );
-        }
+        requirePresentationDateWithinEngagement(
+            $topic_title,
+            $presentation_date,
+            $event_start_date,
+            $event_end_date
+        );
 
         if ($presentation_time === '') {
             throw new InvalidArgumentException("Enter a time for presentation '{$topic_title}'.");
@@ -170,15 +180,6 @@ function requirePresentationForConfirmedEngagement($confirmation_status, array $
     }
 }
 
-function requirePresentationForEngagementEdit(array $presentations)
-{
-    if (count($presentations) === 0) {
-        throw new InvalidArgumentException(
-            'Add at least one complete presentation before saving changes.'
-        );
-    }
-}
-
 function countArchivedEngagementPresentations(mysqli $conn, $engagement_id)
 {
     $stmt = $conn->prepare(
@@ -209,7 +210,8 @@ function fetchArchivedEngagementPresentations(mysqli $conn, $engagement_id)
          FROM presentations p
          LEFT JOIN users archiver ON archiver.id = p.archived_by
          WHERE p.engagement_id = ? AND p.is_archived = 1
-         ORDER BY p.presentation_date, p.presentation_time, p.id'
+         ORDER BY p.presentation_date,
+                  STR_TO_DATE(p.presentation_time, \'%h:%i %p\'), p.id'
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to load archived presentations.');
@@ -275,6 +277,17 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             throw new InvalidArgumentException('Invalid presentation submission.');
         }
         $submitted_ids[$presentation_id] = true;
+    }
+
+    $missing_ids = array_diff(array_keys($current_presentations), array_keys($submitted_ids));
+    if ($missing_ids) {
+        $missing_titles = array_map(function ($presentation_id) use ($current_presentations) {
+            return "'" . (string) $current_presentations[$presentation_id]['topic_title'] . "'";
+        }, $missing_ids);
+        throw new InvalidArgumentException(
+            'Every active presentation must be included when saving. Reload the page and update or archive: '
+            . implode(', ', $missing_titles) . '.'
+        );
     }
 
     $update_stmt = null;

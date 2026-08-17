@@ -73,50 +73,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (!$error_messages) {
-        $organization_stmt = $conn->prepare(
-            'SELECT id FROM organizations WHERE id = ? AND is_deleted = 0'
-        );
-        $organization_stmt->bind_param('i', $organization_id);
-        $organization_stmt->execute();
-        if ($organization_stmt->get_result()->num_rows === 0) {
-            $error_messages[] = 'Please select an active organization.';
-        }
-        $organization_stmt->close();
-    }
-
-    if (!$error_messages) {
-        $update_stmt = $conn->prepare(
-            "UPDATE contacts SET
-                organization_id = ?,
-                contact_first_name = ?,
-                contact_last_name = ?,
-                contact_role = ?,
-                contact_role_other = ?,
-                contact_email = ?,
-                contact_phone = ?
-             WHERE id = ?"
-        );
-        $update_stmt->bind_param(
-            'issssssi',
-            $organization_id,
-            $contact_first_name,
-            $contact_last_name,
-            $contact_role,
-            $contact_role_other,
-            $contact_email,
-            $contact_phone,
-            $contact_id
-        );
-
-        if ($update_stmt->execute()) {
+        $conn->begin_transaction();
+        try {
+            requireActiveOrganization($conn, $organization_id, true);
+            $update_stmt = $conn->prepare(
+                "UPDATE contacts SET
+                    organization_id = ?,
+                    contact_first_name = ?,
+                    contact_last_name = ?,
+                    contact_role = ?,
+                    contact_role_other = ?,
+                    contact_email = ?,
+                    contact_phone = ?
+                 WHERE id = ? AND is_deleted = 0"
+            );
+            if (!$update_stmt) {
+                throw new RuntimeException('Unable to prepare the contact update.');
+            }
+            $update_stmt->bind_param(
+                'issssssi',
+                $organization_id,
+                $contact_first_name,
+                $contact_last_name,
+                $contact_role,
+                $contact_role_other,
+                $contact_email,
+                $contact_phone,
+                $contact_id
+            );
+            if (!$update_stmt->execute() || $update_stmt->affected_rows > 1) {
+                throw new RuntimeException('Unable to update the contact.');
+            }
             $update_stmt->close();
+            $conn->commit();
             $_SESSION['success_message'] = 'Contact updated successfully.';
             header("Location: view_contact.php?id={$contact_id}");
             exit();
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            $error_messages[] = $exception instanceof InvalidArgumentException
+                ? $exception->getMessage()
+                : 'Unable to update the contact.';
         }
-
-        $update_stmt->close();
-        $error_messages[] = 'Unable to update the contact.';
     }
 
     $contact['organization_id'] = $organization_id;

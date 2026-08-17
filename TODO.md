@@ -24,7 +24,7 @@
 - [x] view Organizations rebuild
 - [ ] view Organizations supplement: add columns for last and lifetime giving
 - [ ] view/add contact for selected Organization
-- [ ] view/add presentation for selected Event
+- [x] view/add presentation for selected Event
 - [x] code Mailing Address / Physical Address
 - [x] code: Is Mailing the same as Physical?
 - [ ] TEST 'Add Engagement'; on pass, tag restore point
@@ -42,10 +42,10 @@
 - [ ] 'Caller' in Engagement/Event to be listed system user
 - [x] convert from plaintext to hashed passwords
 - [x] add TOTP MFA, recovery codes, throttling, encrypted secrets, and administrator enforcement
-- [ ] build out multiple Presentation functionality
+- [x] build out multiple Presentation functionality
 - [x] regenerate session identifiers across password and second-factor authentication transitions
-- [ ] evaluate for SQL injection vulnerabilities
-- [ ] minify JS and CSS
+- [x] evaluate for SQL injection vulnerabilities
+- [x] minify JS and CSS
 - [ ] when above is complete: build out REPORT functionality
 - [ ] when above is complete: build out FOLLOW-UP functionality
 - [ ] when above is complete: build out printed document support

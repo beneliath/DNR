@@ -91,7 +91,7 @@ $requested_page = filter_input(
 $requested_page = $requested_page ?: 1;
 
 $archive_value = $show_archived ? 1 : 0;
-$active_organization_filter = $show_archived ? '' : ' AND o.is_deleted = 0';
+$active_organization_filter = '';
 $search_filter = $search === ''
     ? ''
     : " AND (
@@ -417,7 +417,7 @@ function contactsPageUrl(
                             <td>
                                 <div class="action-buttons">
                                     <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>" class="action-button action-icon-button view-button" aria-label="View contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
-                                    <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
+                                    <?php if (!$show_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>
                                         <a href="edit_contact.php?id=<?php echo (int) $contact['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit contact" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                                     <?php endif; ?>
                                     <?php if (canArchiveEntries($user_role)): ?>

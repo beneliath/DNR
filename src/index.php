@@ -38,18 +38,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $event_end_date = $_POST['event_end_date'] ?? null;
     $event_type_raw = $_POST['event_type'] ?? '';
     $event_type_other = trim($_POST['event_type_other'] ?? '');
-    $event_type = $event_type_raw === 'other' ? $event_type_other : $event_type_raw;
+    $event_type = '';
     $book_table = isset($_POST['book_table']) ? 1 : 0;
     $brochures = isset($_POST['brochures']) ? 1 : 0;
     $caller_name = trim($_POST['caller_name'] ?? '');
     $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
     $travel_covered = $_POST['travel_covered'] ?? 'unknown';
-    $travel_amount = ($_POST['travel_amount'] ?? '') !== '' ? (float) $_POST['travel_amount'] : null;
+    $travel_amount = null;
     $compensation_type = $_POST['compensation_type'] ?? 'Unknown';
     $other_compensation = trim($_POST['other_compensation'] ?? '');
     $housing_type = $_POST['housing_type'] ?? 'Unknown';
     $other_housing = trim($_POST['other_housing'] ?? '');
-    $housing_amount = ($_POST['housing_amount'] ?? '') !== '' ? (float) $_POST['housing_amount'] : null;
+    $housing_amount = null;
+    $event_address_line_1 = trim($_POST['event_address_line_1'] ?? '');
+    $event_address_line_2 = trim($_POST['event_address_line_2'] ?? '');
+    $event_city = trim($_POST['event_city'] ?? '');
+    $event_state = trim($_POST['event_state'] ?? '');
+    $event_zipcode = trim($_POST['event_zipcode'] ?? '');
+    $event_country = trim($_POST['event_country'] ?? '');
 
     $valid_statuses = ['work_in_progress', 'under_review', 'confirmed'];
     $valid_travel_values = ['unknown', 'yes', 'no'];
@@ -70,6 +76,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     }
 
     try {
+        requireValidDateRange($event_start_date, $event_end_date);
+        [$event_type, $event_type_other] = normalizeEventType($event_type_raw, $event_type_other);
+        $travel_amount = nullableNonNegativeAmount($_POST['travel_amount'] ?? '', 'travel');
+        $housing_amount = nullableNonNegativeAmount($_POST['housing_amount'] ?? '', 'lodging');
         $presentations = normalizeEngagementPresentations(
             $_POST['presentations'] ?? null,
             $event_start_date,
@@ -77,51 +87,55 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             $DEFAULT_SPEAKER
         );
         requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
+        if ($organization_id < 1) {
+            throw new InvalidArgumentException('Please select an active organization.');
+        }
+        if ($compensation_type === 'Other' && $other_compensation === '') {
+            throw new InvalidArgumentException('Describe the other compensation.');
+        }
+        if ($housing_type === 'Other' && $other_housing === '') {
+            throw new InvalidArgumentException('Describe the other lodging arrangement.');
+        }
     } catch (InvalidArgumentException $exception) {
         $presentations = [];
         $error_message = $exception->getMessage();
     }
 
-    // Validate required fields
-    if (!empty($error_message)) {
-        // A presentation validation error was already recorded above.
-    } elseif (
-        !$organization_id ||
-        !$event_start_date ||
-        !$event_end_date ||
-        $event_end_date < $event_start_date ||
-        ($event_type_raw === 'other' && $event_type_other === '') ||
-        ($compensation_type === 'Other' && $other_compensation === '') ||
-        ($housing_type === 'Other' && $other_housing === '') ||
-        ($travel_amount !== null && $travel_amount < 0) ||
-        ($housing_amount !== null && $housing_amount < 0)
-    ) {
-        $error_message = "Please provide valid required fields, dates, and non-negative amounts.";
-    } else {
+    if (empty($error_message)) {
         // Start transaction
         $conn->begin_transaction();
         
         try {
+            requireActiveOrganization($conn, $organization_id, true);
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
                 organization_id, event_title, event_start_date, event_end_date,
-                event_type, book_table, brochures, caller_name, confirmation_status,
+                event_type, event_type_other, book_table, brochures, caller_name, confirmation_status,
+                event_address_line_1, event_address_line_2, event_city, event_state,
+                event_zipcode, event_country,
                 travel_covered, travel_amount, compensation_type, other_compensation,
                 housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "issssiisssdssssd",
+                    "isssssiisssssssssdssssd",
                     $organization_id,
                     $event_title,
                     $event_start_date,
                     $event_end_date,
                     $event_type,
+                    $event_type_other,
                     $book_table,
                     $brochures,
                     $caller_name,
                     $confirmation_status,
+                    $event_address_line_1,
+                    $event_address_line_2,
+                    $event_city,
+                    $event_state,
+                    $event_zipcode,
+                    $event_country,
                     $travel_covered,
                     $travel_amount,
                     $compensation_type,
@@ -190,7 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     }
                     
                     $conn->commit();
-                    $success_message = "Engagement saved successfully!";
+                    $_SESSION['engagement_action_message'] = 'Engagement saved successfully.';
+                    header('Location: engagements.php');
+                    exit();
                 } else {
                     throw new Exception("Unable to save engagement: " . $stmt->error);
                 }
@@ -199,10 +215,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             } else {
                 throw new Exception("Unable to prepare engagement insert: " . $conn->error);
             }
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             $conn->rollback();
             error_log($e->getMessage());
-            $error_message = "Unable to save the engagement. Please try again.";
+            $error_message = $e instanceof InvalidArgumentException
+                ? $e->getMessage()
+                : "Unable to save the engagement. Please try again.";
         }
     }
 }
@@ -406,6 +424,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
             </div>
         </div>
+
+        <div class="address-section">
+            <h3>Event Location</h3>
+            <div class="address-fields">
+                <div class="form-field">
+                    <label for="event_address_line_1">Address Line 1</label>
+                    <input type="text" name="event_address_line_1" id="event_address_line_1" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_1'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="form-field">
+                    <label for="event_address_line_2">Address Line 2</label>
+                    <input type="text" name="event_address_line_2" id="event_address_line_2" maxlength="255" value="<?php echo htmlspecialchars($_POST['event_address_line_2'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="address-row">
+                    <div class="form-field">
+                        <label for="event_city">City</label>
+                        <input type="text" name="event_city" id="event_city" maxlength="100" value="<?php echo htmlspecialchars($_POST['event_city'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <div class="form-field">
+                        <label for="event_state">State</label>
+                        <input type="text" name="event_state" id="event_state" maxlength="100" value="<?php echo htmlspecialchars($_POST['event_state'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                    <div class="form-field">
+                        <label for="event_zipcode">Zipcode</label>
+                        <input type="text" name="event_zipcode" id="event_zipcode" maxlength="20" value="<?php echo htmlspecialchars($_POST['event_zipcode'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                    </div>
+                </div>
+                <div class="form-field">
+                    <label for="event_country">Country</label>
+                    <input type="text" name="event_country" id="event_country" maxlength="100" value="<?php echo htmlspecialchars($_POST['event_country'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+            </div>
+        </div>
         </section>
 
         <section class="form-section chron-log-section" id="chron-log">
@@ -456,7 +506,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 </div>
 <?php include 'templates/footer.php'; ?>
 
-<script src="assets/js/presentation-form.min.js?v=0.1.3"></script>
+<script src="assets/js/presentation-form.min.js?v=0.1.4"></script>
 <script>
     // Validate that the event end date is on or after the event start date
     // and that all presentation dates are within range

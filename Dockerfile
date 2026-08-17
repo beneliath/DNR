@@ -2,11 +2,12 @@ FROM composer:2 AS dependencies
 
 WORKDIR /app
 COPY composer.json composer.lock ./
-RUN composer install \
+RUN --mount=type=cache,target=/tmp/composer-cache \
+    COMPOSER_CACHE_DIR=/tmp/composer-cache composer install \
     --no-dev \
     --no-interaction \
     --no-progress \
-    --prefer-dist \
+    --prefer-source \
     --ignore-platform-req=ext-gd \
     --classmap-authoritative
 
@@ -16,7 +17,13 @@ FROM php:8.4-apache
 RUN apt-get update \
     && apt-get install -y --no-install-recommends libpng-dev zlib1g-dev \
     && docker-php-ext-install gd mysqli \
+    && a2enmod headers \
     && rm -rf /var/lib/apt/lists/*
+
+COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf
+COPY docker/php-production.ini /usr/local/etc/php/conf.d/dnr-production.ini
+RUN a2enconf zz-dnr-security \
+    && apachectl configtest
 
 # Keep dependencies outside Apache's document root so the development source
 # bind mount cannot hide or expose them.

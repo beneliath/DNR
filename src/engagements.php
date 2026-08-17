@@ -57,13 +57,16 @@ $action_message = $_SESSION['engagement_action_message'] ?? '';
 $action_error = $_SESSION['engagement_action_error'] ?? '';
 unset($_SESSION['engagement_action_message'], $_SESSION['engagement_action_error']);
 
-// Retrieve engagements with organization name
-$date_sort = isset($_GET['date_sort']) ? $_GET['date_sort'] : 'asc';
-$status_sort = isset($_GET['status_sort']) ? $_GET['status_sort'] : 'asc';
-$org_sort = isset($_GET['org_sort']) ? $_GET['org_sort'] : 'asc';
+// Retrieve engagements with organization name. Every value is allowlisted
+// before it is used in SQL or reflected into a link.
+$date_sort = ($_GET['date_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
+$status_sort = ($_GET['status_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
+$org_sort = ($_GET['org_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
 
 // Determine which column to sort by based on which button was clicked
-$sort_column = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'date';
+$sort_column = in_array($_GET['sort_by'] ?? '', ['date', 'status', 'org'], true)
+    ? $_GET['sort_by']
+    : 'date';
 
 // Determine sort order based on column
 if ($sort_column === 'date') {
@@ -90,7 +93,25 @@ $order_direction = ($sort_order === 'asc' ? 'ASC' : 'DESC');
 
 $search = trim($_GET['q'] ?? '');
 $search_plan = buildEngagementSearchPlan($search);
+$search = $search_plan['search'];
 $has_search_terms = $search_plan['sql'] !== '';
+$list_url = static function (array $overrides = []) use (
+    $list_status,
+    $sort_column,
+    $date_sort,
+    $status_sort,
+    $org_sort,
+    $search
+) {
+    return '?' . http_build_query(array_merge([
+        'status' => $list_status,
+        'sort_by' => $sort_column,
+        'date_sort' => $date_sort,
+        'status_sort' => $status_sort,
+        'org_sort' => $org_sort,
+        'q' => $search,
+    ], $overrides));
+};
 
 $summary = [
     'work_in_progress' => 0,
@@ -320,26 +341,26 @@ $format_date_range = static function ($start, $end) {
             <?php if ($search !== ''): ?><a href="engagements.php?status=<?php echo urlencode($list_status); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Engagement archive status">
-            <a href="?status=active&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>&amp;q=<?php echo urlencode($search); ?>"
+            <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="?status=archived&amp;sort_by=<?php echo $sort_column; ?>&amp;date_sort=<?php echo $date_sort; ?>&amp;status_sort=<?php echo $status_sort; ?>&amp;org_sort=<?php echo $org_sort; ?>&amp;q=<?php echo urlencode($search); ?>"
+            <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Engagement sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="?status=<?php echo $list_status; ?>&sort_by=org&org_sort=<?php echo $org_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&status_sort=<?php echo $status_sort; ?>&q=<?php echo urlencode($search); ?>"
+                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'org', 'org_sort' => $org_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button<?php echo $sort_column === 'org' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'org' ? 'aria-current="true"' : ''; ?>>
                     Organization <?php echo $org_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
-                <a href="?status=<?php echo $list_status; ?>&sort_by=date&date_sort=<?php echo $date_sort === 'asc' ? 'desc' : 'asc'; ?>&status_sort=<?php echo $status_sort; ?>&org_sort=<?php echo $org_sort; ?>&q=<?php echo urlencode($search); ?>"
+                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'date', 'date_sort' => $date_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button<?php echo $sort_column === 'date' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'date' ? 'aria-current="true"' : ''; ?>>
                     Date <?php echo $date_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
-                <a href="?status=<?php echo $list_status; ?>&sort_by=status&status_sort=<?php echo $status_sort === 'asc' ? 'desc' : 'asc'; ?>&date_sort=<?php echo $date_sort; ?>&org_sort=<?php echo $org_sort; ?>&q=<?php echo urlencode($search); ?>"
+                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'status', 'status_sort' => $status_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
                     Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
@@ -370,7 +391,7 @@ $format_date_range = static function ($start, $end) {
                     <td><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
                     <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
                     <td class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
-                    <td><?php echo htmlspecialchars(ucwords($row['event_type'])); ?></td>
+                    <td><?php echo htmlspecialchars(ucwords($row['event_type'] === 'other' && !empty($row['event_type_other']) ? $row['event_type_other'] : $row['event_type'])); ?></td>
                     <td class="engagement-status"><?php
                         $status = $row['confirmation_status'];
                         $status_class = 'status-' . str_replace('_', '-', $status);

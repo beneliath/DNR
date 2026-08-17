@@ -3,12 +3,21 @@
 include 'config.php';
 include 'calendar_helpers.php';
 
+if (!calendarRequestIsAuthorized($_SERVER, $_GET['token'] ?? null)) {
+    http_response_code(404);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    header('X-Content-Type-Options: nosniff');
+    exit('Calendar feed not found.');
+}
+
 $query = "SELECT
             e.id,
             e.event_title,
             e.event_start_date,
             e.event_end_date,
             e.event_type,
+            e.event_type_other,
             e.confirmation_status,
             e.event_address_line_1,
             e.event_address_line_2,
@@ -25,7 +34,7 @@ $query = "SELECT
 
 $result = $conn->query($query);
 if (!$result) {
-    error_log('Unable to build the public calendar: ' . $conn->error);
+    error_log('Unable to build the private calendar: ' . $conn->error);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     exit('The DNR calendar is temporarily unavailable.');
@@ -44,6 +53,8 @@ $presentation_query = "SELECT
             p.presentation_time,
             p.speaker_name,
             e.event_title,
+            e.event_type,
+            e.event_type_other,
             e.confirmation_status,
             e.event_address_line_1,
             e.event_address_line_2,
@@ -61,11 +72,12 @@ $presentation_query = "SELECT
             AND p.presentation_date IS NOT NULL
             AND p.presentation_time IS NOT NULL
             AND p.presentation_time <> ''
-          ORDER BY p.presentation_date, p.presentation_time, p.id";
+          ORDER BY p.presentation_date,
+                   STR_TO_DATE(p.presentation_time, '%h:%i %p'), p.id";
 
 $presentation_result = $conn->query($presentation_query);
 if (!$presentation_result) {
-    error_log('Unable to add presentations to the public calendar: ' . $conn->error);
+    error_log('Unable to add presentations to the private calendar: ' . $conn->error);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     exit('The DNR calendar is temporarily unavailable.');
@@ -82,7 +94,7 @@ $etag = '"' . hash('sha256', $calendar) . '"';
 
 header('Content-Type: text/calendar; charset=utf-8');
 header('Content-Disposition: inline; filename="dnr-events.ics"');
-header('Cache-Control: public, max-age=300, must-revalidate');
+header('Cache-Control: private, max-age=300, must-revalidate');
 header('ETag: ' . $etag);
 header('X-Content-Type-Options: nosniff');
 

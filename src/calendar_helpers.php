@@ -66,6 +66,12 @@ function calendarSequence($timestamp) {
     return max(0, (int) $timestamp - 1577836800);
 }
 
+function calendarPresentationSequence($timestamp) {
+    // Revision 1 changed timed presentation names. Keep the same stable UID,
+    // but advance SEQUENCE so calendar clients refresh existing items.
+    return min(2147483647, calendarSequence($timestamp) + 1);
+}
+
 function calendarLocation(array $engagement) {
     $parts = array_filter([
         trim((string) ($engagement['event_address_line_1'] ?? '')),
@@ -85,6 +91,9 @@ function calendarEventLines(array $engagement) {
     $organization = trim((string) ($engagement['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($engagement['event_title'] ?? ''));
     $event_type = trim((string) ($engagement['event_type'] ?? ''));
+    if ($event_type === 'other' && trim((string) ($engagement['event_type_other'] ?? '')) !== '') {
+        $event_type = trim((string) $engagement['event_type_other']);
+    }
     $calendar_title = $event_title !== '' ? $event_title : $organization;
     $calendar_type = $event_type !== '' ? $event_type : 'Unspecified';
     $summary = "{$status}-{$calendar_title}-{$calendar_type}";
@@ -183,9 +192,10 @@ function calendarPresentationEventLines(
     $engagement_label = $event_title !== '' ? $event_title : $organization;
     $status = calendarStatusLabel($presentation['confirmation_status'] ?? '');
     $speaker = trim((string) ($presentation['speaker_name'] ?? ''));
+    $speaker_label = $speaker !== '' ? $speaker : 'Unknown Speaker';
     $updated_timestamp = $presentation['calendar_updated_at'] ?? null;
     $updated_at = calendarUtcTimestamp($updated_timestamp);
-    $summary = 'Presentation: ' . $topic_title . ' — ' . $engagement_label;
+    $summary = 'Presentation-' . $topic_title . '-' . $speaker_label;
 
     $lines = [
         'BEGIN:VEVENT',
@@ -193,7 +203,7 @@ function calendarPresentationEventLines(
         'RELATED-TO:engagement-' . (int) $presentation['engagement_id'] . '@dnr-calendar',
         'DTSTAMP:' . $updated_at,
         'LAST-MODIFIED:' . $updated_at,
-        'SEQUENCE:' . calendarSequence($updated_timestamp),
+        'SEQUENCE:' . calendarPresentationSequence($updated_timestamp),
         'SUMMARY:' . calendarEscapeText($summary),
         'DTSTART:' . $start->setTimezone($utc)->format('Ymd\THis\Z'),
         'DTEND:' . $end->setTimezone($utc)->format('Ymd\THis\Z'),
@@ -253,7 +263,30 @@ function buildCalendar(
     return implode("\r\n", array_map('calendarFoldLine', $lines)) . "\r\n";
 }
 
+function calendarAccessToken() {
+    $token = trim((string) (getenv('DNR_CALENDAR_TOKEN') ?: ''));
+    return strlen($token) >= 32 && strlen($token) <= 255 ? $token : null;
+}
+
+function calendarRequestIsAuthorized(array $server, $submitted_token = null) {
+    $configured_token = calendarAccessToken();
+    if ($configured_token === null || !is_string($submitted_token)) {
+        return false;
+    }
+    return hash_equals($configured_token, $submitted_token);
+}
+
 function calendarSubscriptionUrl(array $server) {
+    $configured_base_url = trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
+    if ($configured_base_url !== ''
+        && filter_var($configured_base_url, FILTER_VALIDATE_URL)
+        && in_array(strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME)), ['http', 'https'], true)
+    ) {
+        $calendar_url = rtrim($configured_base_url, '/') . '/calendar.php';
+        $token = calendarAccessToken();
+        return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
+    }
+
     $forwarded_proto = strtolower(trim(explode(',', $server['HTTP_X_FORWARDED_PROTO'] ?? '')[0]));
     $scheme = $forwarded_proto === 'https'
         || (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off')
@@ -268,5 +301,7 @@ function calendarSubscriptionUrl(array $server) {
     $script_name = str_replace('\\', '/', (string) ($server['SCRIPT_NAME'] ?? '/calendar_subscription.php'));
     $base_path = rtrim(dirname($script_name), '/.');
 
-    return "{$scheme}://{$host}" . ($base_path !== '' ? $base_path : '') . '/calendar.php';
+    $calendar_url = "{$scheme}://{$host}" . ($base_path !== '' ? $base_path : '') . '/calendar.php';
+    $token = calendarAccessToken();
+    return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
 }

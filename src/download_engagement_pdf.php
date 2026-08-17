@@ -55,7 +55,8 @@ $presentation_stmt = $conn->prepare(
     'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date, presentation_time, id'
+     ORDER BY presentation_date,
+              STR_TO_DATE(presentation_time, \'%h:%i %p\'), id'
 );
 if (!$presentation_stmt) {
     http_response_code(500);

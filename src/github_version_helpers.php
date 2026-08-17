@@ -52,6 +52,21 @@ function githubPushMetadataIsValid($metadata)
     return githubPushTimestampIsValid($metadata['pushed_at'] ?? '');
 }
 
+function githubRepositoryParts()
+{
+    $repository = getenv('DNR_GITHUB_REPOSITORY') ?: 'beneliath/DNR';
+    if (!preg_match('/\A([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)\z/', $repository, $matches)) {
+        return ['beneliath', 'DNR'];
+    }
+    return [$matches[1], $matches[2]];
+}
+
+function githubRepositoryUrl()
+{
+    [$owner, $repository] = githubRepositoryParts();
+    return 'https://github.com/' . rawurlencode($owner) . '/' . rawurlencode($repository);
+}
+
 function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
 {
     $fallback = [
@@ -68,6 +83,7 @@ function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
     }
 
     $cache_path = sys_get_temp_dir() . '/dnr-github-push-v2-' . sha1($repository . '|' . $branch) . '.json';
+    $failure_path = $cache_path . '.failure';
     $cached = null;
     if (is_file($cache_path)) {
         $cached = json_decode((string) @file_get_contents($cache_path), true);
@@ -81,6 +97,13 @@ function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
     $cache_modified_at = is_file($cache_path) ? @filemtime($cache_path) : false;
     if ($cached !== null && $cache_modified_at !== false && time() - $cache_modified_at < $cache_ttl) {
         return $cached;
+    }
+
+    $retry_ttl = (int) (getenv('DNR_GITHUB_RETRY_TTL') ?: 300);
+    $retry_ttl = max(60, min(3600, $retry_ttl));
+    $failure_modified_at = is_file($failure_path) ? @filemtime($failure_path) : false;
+    if ($failure_modified_at !== false && time() - $failure_modified_at < $retry_ttl) {
+        return $cached ?? $fallback;
     }
 
     $context = stream_context_create([
@@ -104,8 +127,11 @@ function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
 
     if ($metadata !== null) {
         @file_put_contents($cache_path, json_encode($metadata), LOCK_EX);
+        @unlink($failure_path);
         return $metadata;
     }
+
+    @touch($failure_path);
 
     return $cached ?? $fallback;
 }

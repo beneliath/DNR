@@ -67,6 +67,20 @@ expectTrue(
     ]) === '198.51.100.20',
     'Forwarding headers from an untrusted peer must be ignored.'
 );
+expectTrue(
+    requestUsesHttps([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+    ]),
+    'HTTPS forwarded by a configured reverse proxy should secure the session cookie.'
+);
+expectTrue(
+    !requestUsesHttps([
+        'REMOTE_ADDR' => '198.51.100.20',
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+    ]),
+    'An untrusted client must not be able to spoof the HTTPS state.'
+);
 if ($original_trusted_proxies === false) {
     putenv('DNR_TRUSTED_PROXY_IPS');
 } else {
@@ -141,6 +155,36 @@ expectTrue(
     twoFactorRecoveryCodesDestination(false) === 'two_factor_settings.php',
     'Later two-factor enrollment should return to Account Security.'
 );
+
+expectTrue(validIsoDate('2026-08-17'), 'A real ISO date should validate.');
+expectTrue(!validIsoDate('2026-02-30'), 'An impossible ISO date should be rejected.');
+requireValidDateRange('2026-08-17', '2026-08-17');
+try {
+    requireValidDateRange('2026-08-18', '2026-08-17');
+    expectTrue(false, 'An inverted event date range should throw.');
+} catch (InvalidArgumentException $exception) {
+    expectTrue(true, 'An inverted event date range was rejected.');
+}
+expectTrue(nullableNonNegativeAmount('0', 'travel') === 0.0, 'A zero amount must be preserved.');
+expectTrue(nullableNonNegativeAmount('', 'travel') === null, 'A blank amount should remain unset.');
+expectTrue(!nullableAmountsEqual(null, 0.0), 'Changing a blank amount to zero must be detected.');
+expectTrue(nullableAmountsEqual('0.00', 0.0), 'Equivalent stored and submitted zero amounts should compare equally.');
+try {
+    nullableNonNegativeAmount('-1', 'travel');
+    expectTrue(false, 'A negative amount should throw.');
+} catch (InvalidArgumentException $exception) {
+    expectTrue(true, 'A negative amount was rejected.');
+}
+expectTrue(normalizedHttpUrl('https://example.org/path') === 'https://example.org/path', 'HTTPS URLs should validate.');
+expectTrue(normalizedHttpUrl('javascript:alert(1)') === null, 'Script URLs must be rejected.');
+expectTrue(normalizeEventType('other', 'Retreat') === ['other', 'Retreat'], 'Custom event types should use the canonical other fields.');
+try {
+    normalizeEventType('Retreat', '');
+    expectTrue(false, 'An arbitrary event type should throw.');
+} catch (InvalidArgumentException $exception) {
+    expectTrue(true, 'An arbitrary event type was rejected.');
+}
+expectTrue(loginRateLimitSettings('ip')['limit'] === 8, 'The per-IP login limit should remain bounded.');
 
 $_SESSION = [
     '_pending_auth' => [

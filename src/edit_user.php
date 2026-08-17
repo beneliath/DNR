@@ -38,15 +38,60 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (!in_array($role, $valid_roles, true)) {
         $error = "Invalid role selected.";
     } else {
-        // Update the user details in the database
-        $stmt = $conn->prepare("UPDATE users SET username = ?, role = ? WHERE id = ?");
-        $stmt->bind_param("ssi", $username, $role, $user_id);
+        $conn->begin_transaction();
+        try {
+            $lock_stmt = $conn->prepare(
+                'SELECT id, username, role FROM users WHERE id = ? FOR UPDATE'
+            );
+            if (!$lock_stmt) {
+                throw new RuntimeException('Unable to prepare the user update.');
+            }
+            $lock_stmt->bind_param('i', $user_id);
+            $lock_stmt->execute();
+            $locked_user = $lock_stmt->get_result()->fetch_assoc();
+            $lock_stmt->close();
+            if (!$locked_user) {
+                throw new InvalidArgumentException('That user is no longer available.');
+            }
 
-        if ($stmt->execute()) {
+            if ($locked_user['role'] === 'admin' && $role !== 'admin') {
+                $admins_stmt = $conn->prepare(
+                    "SELECT id FROM users WHERE role = 'admin' FOR UPDATE"
+                );
+                if (!$admins_stmt) {
+                    throw new RuntimeException('Unable to verify the administrator roster.');
+                }
+                $admins_stmt->execute();
+                $admin_count = $admins_stmt->get_result()->num_rows;
+                $admins_stmt->close();
+                if ($admin_count <= 1) {
+                    throw new InvalidArgumentException('DNR must retain at least one administrator.');
+                }
+            }
+
+            $stmt = $conn->prepare(
+                'UPDATE users
+                 SET username = ?, role = ?, auth_version = auth_version + 1
+                 WHERE id = ?'
+            );
+            if (!$stmt) {
+                throw new RuntimeException('Unable to prepare the user update.');
+            }
+            $stmt->bind_param('ssi', $username, $role, $user_id);
+            if (!$stmt->execute() || $stmt->affected_rows !== 1) {
+                throw new RuntimeException('Unable to update the user.');
+            }
+            $stmt->close();
+            $conn->commit();
             header("Location: users.php");
             exit();
-        } else {
-            $error = "Unable to update user details. The username may already exist.";
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            $error = $exception instanceof InvalidArgumentException
+                ? $exception->getMessage()
+                : 'Unable to update user details. The username may already exist.';
+            $user['username'] = $username;
+            $user['role'] = $role;
         }
     }
 }
@@ -66,7 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit User</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change the account username or access level.</p></div></div>
 
-    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    <?php if (isset($error)) echo "<p class='error'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</p>"; ?>
 
     <form method="post" action="edit_user.php?id=<?php echo $user['id']; ?>">
         <?php echo csrfInput(); ?>

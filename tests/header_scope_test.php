@@ -45,15 +45,15 @@ foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authenticat
     expectHeaderScope(!str_contains($authentication_markup, 'app-brand-mark'), $authentication_page . ' should not render a separate logo mark.');
 }
 
-$configuration_source = file_get_contents(__DIR__ . '/../src/config/config.php');
+$configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '0.1.10');"),
-    'The application version should be 0.1.10.'
+    str_contains($configuration_source, "define('APP_VERSION', '1.1.1');"),
+    'The application version should be 1.1.1.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '0.1.10'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.1.1'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
@@ -62,17 +62,17 @@ expectHeaderScope(
         && str_contains($footer_source, 'githubPushMetadata()')
         && str_contains($footer_source, '<time datetime=')
         && !str_contains($footer_source, '> pushed <time datetime=')
-        && str_contains($footer_source, '/commit/<?php echo htmlspecialchars($footer_push['),
+        && str_contains($footer_source, "'/commit/' . \$footer_push['commit']"),
     'The footer should show automatically refreshed GitHub push metadata without a stale tracked fallback.'
 );
 expectHeaderScope(
-    str_contains($footer_source, 'href="https://github.com/beneliath/DNR"')
+    str_contains($footer_source, 'githubRepositoryUrl()')
         && str_contains($footer_source, 'target="_blank"')
         && str_contains($footer_source, 'rel="noopener noreferrer"'),
     'The footer project name and version should safely open the GitHub project page in a new tab.'
 );
 expectHeaderScope(
-    preg_match('/href="https:\/\/github\.com\/beneliath" target="_blank" rel="noopener noreferrer">beneliath<\/a>/', $footer_source) === 1,
+    str_contains($footer_source, "'https://github.com/' . rawurlencode(\$footer_repository_owner)"),
     'The footer author should safely open the GitHub profile in a new tab.'
 );
 expectHeaderScope(

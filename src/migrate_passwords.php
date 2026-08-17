@@ -38,8 +38,10 @@ if ($users) {
     $errors = 0;
 
     while ($user = $users->fetch_assoc()) {
-        // Skip if password is already hashed (BCRYPT hashes start with $2y$)
-        if (strpos($user['password'], '$2y$') === 0) {
+        // Preserve every hash format understood by PHP, including bcrypt
+        // variants and Argon hashes. Only legacy plaintext reaches rehashing.
+        $password_info = password_get_info((string) $user['password']);
+        if (($password_info['algo'] ?? 0) !== 0) {
             continue;
         }
 
@@ -47,7 +49,11 @@ if ($users) {
         $hashedPassword = password_hash($user['password'], PASSWORD_BCRYPT, ['cost' => 12]);
 
         // Update the user's password
-        $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+        $stmt = $conn->prepare(
+            "UPDATE users
+             SET password = ?, auth_version = auth_version + 1, must_change_password = 1
+             WHERE id = ?"
+        );
         $stmt->bind_param("si", $hashedPassword, $user['id']);
 
         if ($stmt->execute()) {

@@ -34,6 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $physical_state = trim($_POST['physical_state'] ?? '');
     $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
     $physical_country = trim($_POST['physical_country'] ?? '');
+    $same_address = ($_POST['same_address'] ?? 'yes') === 'yes';
+    if ($same_address) {
+        $mailing_address_line_1 = $physical_address_line_1;
+        $mailing_address_line_2 = $physical_address_line_2;
+        $mailing_city = $physical_city;
+        $mailing_state = $physical_state;
+        $mailing_zipcode = $physical_zipcode;
+        $mailing_country = $physical_country;
+    }
 
     $contact_first_name = trim($_POST['contact_first_name'] ?? '');
     $contact_last_name = trim($_POST['contact_last_name'] ?? '');
@@ -72,8 +81,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     if ($organization_name === '') {
         $errorMessages[] = "Organization name is required.";
     }
-    if ($website_url !== '' && !filter_var($website_url, FILTER_VALIDATE_URL)) {
+    $normalized_website_url = normalizedHttpUrl($website_url);
+    if ($normalized_website_url === null) {
         $errorMessages[] = "Please provide a valid website URL.";
+    } else {
+        $website_url = $normalized_website_url;
+    }
+    if ($physical_address_line_1 === '' || $physical_city === '' || $physical_state === ''
+        || $physical_zipcode === '' || $physical_country === ''
+    ) {
+        $errorMessages[] = 'A complete physical address is required.';
+    }
+    if (!$same_address && ($mailing_address_line_1 === '' || $mailing_city === ''
+        || $mailing_state === '' || $mailing_zipcode === '' || $mailing_country === '')
+    ) {
+        $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
     }
     $contacts_to_create = [];
     foreach ($contact_candidates as $contact_index => $candidate) {
@@ -563,17 +585,17 @@ if (isset($_SESSION['success_message'])) {
                         <div class="name-phone-row">
                             <div class="form-group">
                                 <label id="first_name_label">First Name</label>
-                                <input type="text" name="contact_first_name" id="contact_first_name" autocomplete="given-name">
+                                <input type="text" name="contact_first_name" id="contact_first_name" autocomplete="given-name" value="<?php echo htmlspecialchars($_POST['contact_first_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
                             <div class="form-group">
                                 <label id="last_name_label">Last Name</label>
-                                <input type="text" name="contact_last_name" id="contact_last_name" autocomplete="family-name">
+                                <input type="text" name="contact_last_name" id="contact_last_name" autocomplete="family-name" value="<?php echo htmlspecialchars($_POST['contact_last_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
                             <div class="form-group">
                                 <label>Phone</label>
-                                <input type="tel" name="contact_phone" id="contact_phone">
+                                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($_POST['contact_phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
 
@@ -582,27 +604,27 @@ if (isset($_SESSION['success_message'])) {
                                 <label id="role_label">Role</label>
                                 <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
                                     <option value="">Select Role</option>
-                                    <option value="pastor">Pastor</option>
-                                    <option value="admin">Admin</option>
-                                    <option value="other">Other</option>
+                                    <option value="pastor" <?php echo ($_POST['contact_role'] ?? '') === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
+                                    <option value="admin" <?php echo ($_POST['contact_role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                    <option value="other" <?php echo ($_POST['contact_role'] ?? '') === 'other' ? 'selected' : ''; ?>>Other</option>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="other_role_group" style="display: none;">
+                            <div class="form-group" id="other_role_group" style="display: <?php echo ($_POST['contact_role'] ?? '') === 'other' ? 'block' : 'none'; ?>;">
                                 <label>Describe Other Role</label>
-                                <input type="text" name="contact_role_other" id="contact_role_other">
+                                <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($_POST['contact_role_other'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
 
                         <div class="email-container">
                             <div class="form-group">
                                 <label id="email_label">Email</label>
-                                <input type="email" name="contact_email" id="contact_email">
+                                <input type="email" name="contact_email" id="contact_email" value="<?php echo htmlspecialchars($_POST['contact_email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
                             <div class="form-group">
                                 <label id="email_confirm_label">Confirm Email</label>
-                                <input type="email" name="contact_email_confirm" id="contact_email_confirm">
+                                <input type="email" name="contact_email_confirm" id="contact_email_confirm" value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
                     </div>
@@ -663,8 +685,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Initial state
-    toggleMailingAddress(false);
+    // Initial state, including a failed submission that selected separate addresses.
+    const selectedSameAddress = document.querySelector('input[name="same_address"]:checked');
+    toggleMailingAddress(selectedSameAddress && selectedSameAddress.value === 'no');
 
     // A partially entered contact still requires both name fields and contact details.
     const contactFirstNameInput = document.getElementById('contact_first_name');
@@ -798,6 +821,30 @@ function toggleOtherRole(id = '') {
         otherRoleInput.value = '';
     }
 }
+
+<?php if (!empty($error) && is_array($_POST['contacts'] ?? null)): ?>
+const submittedAdditionalContacts = <?php echo json_encode(
+    array_values($_POST['contacts']),
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
+); ?>;
+submittedAdditionalContacts.forEach(function (contact) {
+    addContact();
+    const formIndex = contactCount - 1;
+    Object.entries({
+        first_name: contact.first_name || '',
+        last_name: contact.last_name || '',
+        phone: contact.phone || '',
+        role: contact.role || '',
+        role_other: contact.role_other || '',
+        email: contact.email || '',
+        email_confirm: contact.email_confirm || ''
+    }).forEach(function ([field, value]) {
+        const input = document.querySelector('[name="contacts[' + formIndex + '][' + field + ']"]');
+        if (input) input.value = value;
+    });
+    toggleOtherRole(contactCount);
+});
+<?php endif; ?>
 </script>
 
 <?php include 'templates/footer.php'; ?>

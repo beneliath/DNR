@@ -61,7 +61,7 @@ $test_cache_path = sys_get_temp_dir()
     . '.json';
 file_put_contents($test_cache_path, json_encode($metadata));
 
-define('APP_VERSION', '0.1.10');
+define('APP_VERSION', '1.1.1');
 putenv('DNR_GITHUB_REPOSITORY=' . $test_repository);
 putenv('DNR_GITHUB_BRANCH=' . $test_branch);
 putenv('DNR_GITHUB_PUSH_CACHE_TTL=3600');
@@ -76,7 +76,8 @@ putenv('DNR_TIMEZONE');
 unlink($test_cache_path);
 
 expectGithubVersion(
-    str_contains($footer_markup, 'DNR 0.1.10</a>')
+    str_contains($footer_markup, 'test-repo 1.1.1</a>')
+        && str_contains($footer_markup, '>test-owner</a>')
         && str_contains($footer_markup, '<time datetime="2026-08-17T07:58:09Z">2026-08-17 02:58:09 CDT</time>')
         && !str_contains($footer_markup, 'pushed <time')
         && str_contains($footer_markup, '/commit/' . $release_commit)
