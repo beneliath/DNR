@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
 
 startSecureSession();
@@ -65,6 +66,14 @@ $presentation_stmt->execute();
 $presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt->close();
 
+try {
+    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+} catch (Throwable $exception) {
+    error_log($exception->getMessage());
+    http_response_code(500);
+    exit('Unable to prepare the engagement Chron export.');
+}
+
 $autoload_paths = [
     dirname(__DIR__) . '/vendor/autoload.php',
     '/opt/dnr/vendor/autoload.php',
@@ -83,7 +92,9 @@ if (!class_exists('FPDF')) {
 
 require_once __DIR__ . '/engagement_pdf.php';
 
-$pdf_contents = renderEngagementPdf(buildEngagementExport($engagement, $contacts, $presentations));
+$pdf_contents = renderEngagementPdf(
+    buildEngagementExport($engagement, $contacts, $presentations, $chron_entries)
+);
 $filename = engagementPdfFilename($engagement);
 
 header('Content-Type: application/pdf');

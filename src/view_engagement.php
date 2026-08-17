@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'chron_log_helpers.php';
 include 'engagement_export_helpers.php';
 startSecureSession();
 requireLogin();
@@ -68,6 +69,16 @@ $presentation_stmt->execute();
 $presentations_result = $presentation_stmt->get_result();
 $presentations = $presentations_result->fetch_all(MYSQLI_ASSOC);
 
+try {
+    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $archived_chron_count = (!$is_archived && canArchiveEntries($user_role))
+        ? countArchivedChronLogEntries($conn, $engagement_id)
+        : 0;
+} catch (Throwable $exception) {
+    http_response_code(503);
+    exit('The Chron log is temporarily unavailable while DNR is being upgraded.');
+}
+
 $event_address_parts = [];
 foreach (['event_address_line_1', 'event_address_line_2'] as $address_field) {
     if (!empty($engagement[$address_field])) {
@@ -88,7 +99,7 @@ if (!empty($engagement['event_country'])) {
     $event_address_parts[] = $engagement['event_country'];
 }
 
-$engagement_export = buildEngagementExport($engagement, $contacts, $presentations);
+$engagement_export = buildEngagementExport($engagement, $contacts, $presentations, $chron_entries);
 $engagement_plain_text = renderEngagementPlainText($engagement_export);
 $engagement_markdown = renderEngagementMarkdown($engagement_export);
 
@@ -285,13 +296,6 @@ $presentation_stmt->close();
         </div>
     </div>
 
-    <?php if (!empty($engagement['engagement_notes'])): ?>
-    <div class="detail-group">
-        <div class="detail-label">Chron</div>
-        <div class="detail-value"><?php echo nl2br(htmlspecialchars($engagement['engagement_notes'])); ?></div>
-    </div>
-    <?php endif; ?>
-
     <div class="detail-group">
         <div class="detail-label">Event Details</div>
         <div class="detail-value">
@@ -360,6 +364,45 @@ $presentation_stmt->close();
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="detail-group chron-log-section" id="chron-log">
+        <div class="chron-log-heading">
+            <div>
+                <div class="detail-label">Chron log</div>
+                <p>Entries are shown newest first.</p>
+            </div>
+            <?php if ($archived_chron_count > 0): ?>
+                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>
+            <?php endif; ?>
+        </div>
+
+        <div class="chron-entry-list">
+            <?php foreach ($chron_entries as $chron_entry): ?>
+                <?php
+                $created_timestamp = chronLogTimestampDetails($chron_entry['created_at']);
+                $updated_timestamp = chronLogTimestampDetails($chron_entry['updated_at']);
+                $entry_author = $chron_entry['created_by_username']
+                    ?: (!empty($chron_entry['legacy_engagement_note']) ? 'Migrated legacy note' : 'System');
+                $was_edited = (string) $chron_entry['updated_at'] !== (string) $chron_entry['created_at'];
+                ?>
+                <article class="chron-entry-card">
+                    <div class="chron-entry-meta">
+                        <div>
+                            <time datetime="<?php echo htmlspecialchars($created_timestamp['iso']); ?>"><?php echo htmlspecialchars($created_timestamp['display']); ?></time>
+                            <span>by <?php echo htmlspecialchars($entry_author); ?></span>
+                        </div>
+                        <?php if ($was_edited): ?>
+                            <small>Last updated <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso']); ?>"><?php echo htmlspecialchars($updated_timestamp['display']); ?></time><?php if (!empty($chron_entry['updated_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['updated_by_username']); ?><?php endif; ?></small>
+                        <?php endif; ?>
+                    </div>
+                    <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'])); ?></div>
+                </article>
+            <?php endforeach; ?>
+            <?php if (!$chron_entries): ?>
+                <p class="chron-empty-state">No Chron entries have been added yet.</p>
+            <?php endif; ?>
+        </div>
+    </div>
 
     <div class="action-buttons">
         <div class="primary-actions">

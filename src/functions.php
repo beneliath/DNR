@@ -628,11 +628,17 @@ function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
         return false;
     }
 
+    $chron_stmt = $conn->prepare(
+        'DELETE FROM engagement_chron_entries WHERE engagement_id = ?'
+    );
     $presentation_stmt = $conn->prepare(
         'DELETE FROM presentations WHERE engagement_id = ?'
     );
     $engagement_stmt = $conn->prepare('DELETE FROM engagements WHERE id = ?');
-    if (!$presentation_stmt || !$engagement_stmt) {
+    if (!$chron_stmt || !$presentation_stmt || !$engagement_stmt) {
+        if ($chron_stmt) {
+            $chron_stmt->close();
+        }
         if ($presentation_stmt) {
             $presentation_stmt->close();
         }
@@ -643,6 +649,10 @@ function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
         return false;
     }
 
+    $chron_stmt->bind_param('i', $engagement_id);
+    $chron_entries_deleted = $chron_stmt->execute();
+    $chron_stmt->close();
+
     $presentation_stmt->bind_param('i', $engagement_id);
     $presentations_deleted = $presentation_stmt->execute();
     $presentation_stmt->close();
@@ -652,7 +662,7 @@ function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
         && $engagement_stmt->affected_rows === 1;
     $engagement_stmt->close();
 
-    if (!$presentations_deleted || !$engagement_deleted || !$conn->commit()) {
+    if (!$chron_entries_deleted || !$presentations_deleted || !$engagement_deleted || !$conn->commit()) {
         $conn->rollback();
         return false;
     }
@@ -666,6 +676,9 @@ function permanentlyDeleteOrganization(mysqli $conn, $organization_id) {
     }
 
     $queries = [
+        'DELETE ce FROM engagement_chron_entries ce
+         INNER JOIN engagements e ON e.id = ce.engagement_id
+         WHERE e.organization_id = ?',
         'DELETE p FROM presentations p
          INNER JOIN engagements e ON e.id = p.engagement_id
          WHERE e.organization_id = ?',

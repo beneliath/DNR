@@ -66,12 +66,13 @@ docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/2026081
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_add_contact_archiving.sql
 docker compose exec -T db mysql -udnruser -pdnrpassword dnr < migrations/20260815_add_event_title.sql
 docker compose exec -T db mysql -uroot -prootpassword dnr < migrations/20260815_add_audit_log.sql
+docker compose exec -T db mysql -uroot -prootpassword dnr < migrations/20260817_add_engagement_chron_entries.sql
 docker compose up -d --build
 ```
 
 Each migration is one-time. Skip the timestamp migration if it was applied previously. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
 
-The audit-log migration uses the database administrator account because it installs triggers; MySQL requires elevated privileges for that operation when binary logging is enabled. The application continues to connect with the restricted `dnruser` account. The migration records successful logins, security events, and row-level inserts, updates, and deletes for users, organizations, contacts, engagements, and presentations. Administrators can review this history from **Users → Audit Log**. Audit entries identify the actor, affected record, IP address, and UTC timestamp without storing passwords, authentication secrets, recovery codes, or before/after field values.
+The audit-log and Chron-entry migrations use the database administrator account because they install triggers; MySQL requires elevated privileges for that operation when binary logging is enabled. The application continues to connect with the restricted `dnruser` account. The migrations record successful logins, security events, and row-level inserts, updates, and deletes for users, organizations, contacts, engagements, Chron entries, and presentations. Administrators can review this history from **Users → Audit Log**. Audit entries identify the actor, affected record, IP address, and UTC timestamp without storing passwords, authentication secrets, recovery codes, Chron contents, or before/after field values.
 
 For a database created before the user timestamp columns were added, the timestamp migration by itself is:
 

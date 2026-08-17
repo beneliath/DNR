@@ -3,6 +3,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/engagement_export_helpers.php';
 require_once __DIR__ . '/../src/engagement_pdf.php';
 
+putenv('DNR_TIMEZONE=America/Chicago');
+
 function expectExport($condition, $message) {
     if (!$condition) {
         fwrite(STDERR, "FAIL: {$message}\n");
@@ -19,7 +21,6 @@ $engagement = [
     'event_end_date' => '2026-08-22',
     'confirmation_status' => 'under_review',
     'is_deleted' => 1,
-    'engagement_notes' => "First line\nSecond [line]",
     'book_table' => 1,
     'brochures' => 0,
     'travel_covered' => 'yes',
@@ -52,8 +53,34 @@ $presentations = [[
     'speaker_name' => 'Jordan Speaker',
     'expected_attendance' => 250,
 ]];
+$chron_entries = [
+    [
+        'id' => 8,
+        'entry_text' => "Newest line\nSecond [line]",
+        'created_at' => '2026-08-15 16:00:00',
+        'updated_at' => '2026-08-15 16:00:00',
+        'created_by_username' => 'Jordan Admin',
+        'is_archived' => 0,
+    ],
+    [
+        'id' => 7,
+        'entry_text' => 'Earlier entry',
+        'created_at' => '2026-08-14 14:30:00',
+        'updated_at' => '2026-08-14 14:30:00',
+        'created_by_username' => 'Alex Editor',
+        'is_archived' => 0,
+    ],
+    [
+        'id' => 6,
+        'entry_text' => 'Archived entry must stay private',
+        'created_at' => '2026-08-13 14:30:00',
+        'updated_at' => '2026-08-13 14:30:00',
+        'created_by_username' => 'Jordan Admin',
+        'is_archived' => 1,
+    ],
+];
 
-$export = buildEngagementExport($engagement, $contacts, $presentations);
+$export = buildEngagementExport($engagement, $contacts, $presentations, $chron_entries);
 $plain_text = renderEngagementPlainText($export);
 $markdown = renderEngagementMarkdown($export);
 
@@ -61,12 +88,20 @@ expectExport(str_contains($plain_text, "Organization: Example & Partners"), 'Pla
 expectExport(!str_contains($plain_text, 'Event Title:'), 'Overview does not repeat the event title.');
 expectExport(str_contains($plain_text, "Jamie Smith\nRole: Events Director"), 'Plain text includes contact details.');
 expectExport(str_contains($plain_text, "Opening Keynote\nSpeaker: Jordan Speaker"), 'Plain text includes presentations.');
-expectExport(str_contains($plain_text, "Notes: First line\n  Second [line]"), 'Plain text preserves multiline notes.');
+expectExport(
+    str_contains($plain_text, "August 15, 2026 at 11:00 AM CDT - Jordan Admin\nEntry: Newest line\n  Second [line]"),
+    'Plain text includes the Chron timestamp, creator, and multiline entry.'
+);
+expectExport(
+    strpos($plain_text, 'Newest line') < strpos($plain_text, 'Earlier entry'),
+    'Chron entries export in reverse chronological order.'
+);
+expectExport(!str_contains($plain_text, 'Archived entry must stay private'), 'Archived Chron entries are excluded.');
 expectExport(str_contains($plain_text, 'Travel Amount: $125.50'), 'Plain text includes formatted currency.');
 expectExport(str_contains($plain_text, "Address: 123 Main Street\n  Suite 4\n  Madison, WI 53703\n  USA"), 'Plain text includes the complete location.');
 
 expectExport(str_starts_with($markdown, "# Summer \\*Summit\\*\n"), 'Markdown escapes formatting characters in the title.');
-expectExport(str_contains($markdown, "- **Notes:** First line  \n  Second \\[line\\]"), 'Markdown preserves and indents multiline notes.');
+expectExport(str_contains($markdown, "- **Entry:** Newest line  \n  Second \\[line\\]"), 'Markdown preserves and indents multiline Chron entries.');
 expectExport(str_contains($markdown, '## Presentations'), 'Markdown includes section headings.');
 expectExport(
     str_contains($markdown, "- **Address:** 123 Main Street  \n  Suite 4  \n  Madison, WI 53703  \n  USA"),
@@ -84,6 +119,11 @@ expectExport(
     'PDF export places Location between Overview and Event Details.'
 );
 expectExport(!in_array('Chron', $pdf_section_headings, true), 'Chron is separated from the main PDF section order.');
+expectExport(
+    array_key_last($export['sections']) !== null
+        && $export['sections'][array_key_last($export['sections'])]['heading'] === 'Chron',
+    'Chron is the final export section.'
+);
 expectExport(str_starts_with($pdf_contents, '%PDF-'), 'PDF export has a valid PDF header.');
 expectExport(str_ends_with(rtrim($pdf_contents), '%%EOF'), 'PDF export has a valid PDF trailer.');
 expectExport(strlen($pdf_contents) > 1500, 'PDF export contains rendered engagement content.');

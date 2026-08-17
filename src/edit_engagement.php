@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -37,8 +38,73 @@ if (!$result || $result->num_rows === 0) {
 
 $engagement = $result->fetch_assoc();
 
+// Chron entries are managed individually so their timestamps and permissions
+// are independent from the rest of the engagement form.
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
+    requireValidCsrfToken();
+    $chron_action = (string) $_POST['chron_action'];
+    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
+    $current_user_id = (int) $_SESSION['user_id'];
+    $chron_stmt = null;
+
+    try {
+        if (!$chron_entry_id) {
+            throw new InvalidArgumentException('Select a valid Chron entry.');
+        } elseif ($chron_action === 'archive') {
+            $chron_stmt = $conn->prepare(
+                'UPDATE engagement_chron_entries
+                 SET is_archived = 1, archived_by = ?, archived_at = UTC_TIMESTAMP(),
+                     updated_by = ?, updated_at = UTC_TIMESTAMP()
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 0'
+            );
+            if ($chron_stmt) {
+                $chron_stmt->bind_param(
+                    'iiii',
+                    $current_user_id,
+                    $current_user_id,
+                    $chron_entry_id,
+                    $engagement_id
+                );
+            }
+            $chron_message = 'Chron entry archived.';
+        } elseif ($chron_action === 'delete') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            $chron_stmt = $conn->prepare(
+                'DELETE FROM engagement_chron_entries
+                 WHERE id = ? AND engagement_id = ?'
+            );
+            if ($chron_stmt) {
+                $chron_stmt->bind_param('ii', $chron_entry_id, $engagement_id);
+            }
+            $chron_message = 'Chron entry permanently deleted.';
+        } else {
+            throw new InvalidArgumentException('Invalid Chron action.');
+        }
+
+        if (!$chron_stmt || !$chron_stmt->execute() || $chron_stmt->affected_rows !== 1) {
+            throw new RuntimeException('Unable to update the Chron entry.');
+        }
+        $chron_stmt->close();
+        $_SESSION['chron_action_message'] = $chron_message;
+    } catch (Throwable $exception) {
+        if ($chron_stmt instanceof mysqli_stmt) {
+            $chron_stmt->close();
+        }
+        $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the Chron log. Please try again.';
+    }
+
+    header('Location: edit_engagement.php?' . http_build_query(['id' => $engagement_id]) . '#chron-log');
+    exit();
+}
+
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_engagement']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
     error_log("Processing form submission for engagement ID: " . $engagement_id);
 
@@ -56,7 +122,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         // Continue with existing engagement update code
         $event_title = trim($_POST['event_title'] ?? '');
-        $engagement_notes = trim($_POST['engagement_notes'] ?? '');
+        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
         $event_start_date = $_POST['event_start_date'] ?? null;
         $event_end_date = $_POST['event_end_date'] ?? null;
         $event_type_raw = $_POST['event_type'] ?? '';
@@ -105,6 +171,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         $event_zipcode = trim($_POST['event_zipcode'] ?? '');
         $event_country = trim($_POST['event_country'] ?? '');
 
+        $submitted_chron_entries = [];
+        foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
+            if (!ctype_digit((string) $submitted_entry_id) || !is_scalar($submitted_entry_text)) {
+                throw new InvalidArgumentException('Invalid Chron entry submission.');
+            }
+            $submitted_entry_text = trim((string) $submitted_entry_text);
+            if ($submitted_entry_text === '') {
+                throw new InvalidArgumentException('Chron entries cannot be empty.');
+            }
+            $submitted_chron_entries[(int) $submitted_entry_id] = $submitted_entry_text;
+        }
+
         // Validate required fields
         if (
             !$event_start_date ||
@@ -113,6 +191,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             ($event_type_raw === 'other' && $event_type_other === '') ||
             ($compensation_type === 'Other' && empty($other_compensation)) ||
             ($housing_type === 'Other' && empty($other_housing)) ||
+            (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') ||
             ($travel_amount !== null && $travel_amount < 0) ||
             ($housing_amount !== null && $housing_amount < 0)
         ) {
@@ -134,12 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         if ($event_title !== ($engagement['event_title'] ?? '')) {
             $update_fields[] = "event_title = ?";
             $update_values[] = $event_title;
-            $types .= "s";
-        }
-
-        if ($engagement_notes !== $engagement['engagement_notes']) {
-            $update_fields[] = "engagement_notes = ?";
-            $update_values[] = $engagement_notes;
             $types .= "s";
         }
 
@@ -281,6 +354,89 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             }
         }
 
+        $current_user_id = (int) $_SESSION['user_id'];
+        if ($submitted_chron_entries) {
+            $current_chron_stmt = $conn->prepare(
+                'SELECT id, entry_text
+                 FROM engagement_chron_entries
+                 WHERE engagement_id = ? AND is_archived = 0
+                 FOR UPDATE'
+            );
+            if (!$current_chron_stmt) {
+                throw new RuntimeException('Unable to prepare the Chron entry update.');
+            }
+            $current_chron_stmt->bind_param('i', $engagement_id);
+            if (!$current_chron_stmt->execute()) {
+                $current_chron_stmt->close();
+                throw new RuntimeException('Unable to load the Chron entries for updating.');
+            }
+            $current_chron_entries = [];
+            $current_chron_result = $current_chron_stmt->get_result();
+            while ($current_chron_entry = $current_chron_result->fetch_assoc()) {
+                $current_chron_entries[(int) $current_chron_entry['id']]
+                    = (string) $current_chron_entry['entry_text'];
+            }
+            $current_chron_stmt->close();
+
+            $chron_update_stmt = $conn->prepare(
+                'UPDATE engagement_chron_entries
+                 SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP()
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 0'
+            );
+            if (!$chron_update_stmt) {
+                throw new RuntimeException('Unable to prepare the Chron entry changes.');
+            }
+            $updated_chron_text = '';
+            $updated_chron_id = 0;
+            $chron_update_stmt->bind_param(
+                'siii',
+                $updated_chron_text,
+                $current_user_id,
+                $updated_chron_id,
+                $engagement_id
+            );
+            foreach ($submitted_chron_entries as $submitted_entry_id => $submitted_entry_text) {
+                if (!array_key_exists($submitted_entry_id, $current_chron_entries)
+                    || $submitted_entry_text === $current_chron_entries[$submitted_entry_id]) {
+                    continue;
+                }
+                $updated_chron_id = $submitted_entry_id;
+                $updated_chron_text = $submitted_entry_text;
+                if (!$chron_update_stmt->execute() || $chron_update_stmt->affected_rows !== 1) {
+                    $chron_update_stmt->close();
+                    throw new RuntimeException('Unable to save the Chron entry changes.');
+                }
+            }
+            $chron_update_stmt->close();
+        }
+
+        if ($new_chron_entry !== '') {
+            $chron_stmt = $conn->prepare(
+                'INSERT INTO engagement_chron_entries
+                    (engagement_id, entry_text, created_by,
+                     created_by_username_snapshot, updated_by)
+                 VALUES (?, ?, ?, ?, ?)'
+            );
+            if (!$chron_stmt) {
+                throw new RuntimeException('Unable to prepare the new Chron entry.');
+            }
+            $current_username = (string) $_SESSION['username'];
+            $chron_stmt->bind_param(
+                'isisi',
+                $engagement_id,
+                $new_chron_entry,
+                $current_user_id,
+                $current_username,
+                $current_user_id
+            );
+            if (!$chron_stmt->execute()) {
+                $chron_error = $chron_stmt->error;
+                $chron_stmt->close();
+                throw new RuntimeException('Unable to save the new Chron entry: ' . $chron_error);
+            }
+            $chron_stmt->close();
+        }
+
         // Commit transaction
         $conn->commit();
         $success_message = "Engagement updated successfully.";
@@ -312,6 +468,17 @@ $presentations = [];
 while ($row = $presentations_result->fetch_assoc()) {
     $presentations[] = $row;
 }
+
+$chron_action_message = $_SESSION['chron_action_message'] ?? '';
+$chron_action_error = $_SESSION['chron_action_error'] ?? '';
+unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+try {
+    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $archived_chron_count = countArchivedChronLogEntries($conn, $engagement_id);
+} catch (Throwable $exception) {
+    http_response_code(503);
+    exit('The Chron log is temporarily unavailable while DNR is being upgraded.');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -329,8 +496,14 @@ while ($row = $presentations_result->fetch_assoc()) {
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
+    <?php if ($chron_action_message !== ''): ?>
+        <div class="success"><?php echo htmlspecialchars($chron_action_message); ?></div>
+    <?php endif; ?>
+    <?php if ($chron_action_error !== ''): ?>
+        <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
+    <?php endif; ?>
 
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
@@ -348,9 +521,6 @@ while ($row = $presentations_result->fetch_assoc()) {
                 ?>
             </select>
         </div>
-
-        <label for="engagement_notes" style="vertical-align: top;">Chronology &amp; notes</label>
-        <textarea name="engagement_notes" id="engagement_notes" rows="18" style="width: calc(100% - 0px);"><?php echo htmlspecialchars($engagement['engagement_notes'] ?? ''); ?></textarea>
 
         <div class="date-fields">
             <div class="date-field">
@@ -548,12 +718,80 @@ while ($row = $presentations_result->fetch_assoc()) {
                 </div>
             </div>
 
-            <div class="form-group" style="padding-left: 0; margin-left: 0;">
-                <a href="engagements.php" class="cancel-button">Cancel</a>
-                <input type="submit" name="save_engagement" value="Save changes" class="save-button" style="margin-left: 0;">
-            </div>
         </div>
     </form>
+
+    <section class="form-section chron-log-section" id="chron-log">
+        <div class="chron-log-heading">
+            <div>
+                <h2>CHRON LOG</h2>
+                <p>Entries are shown newest first. Archived entries are removed from this page.</p>
+            </div>
+            <?php if ($archived_chron_count > 0): ?>
+                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>
+            <?php endif; ?>
+        </div>
+
+        <div class="chron-add-form">
+            <label for="new-chron-entry">New Chron entry</label>
+            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders." oninput="this.setCustomValidity('');"><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
+            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" onclick="return validateNewChronEntry();">Add entry</button>
+        </div>
+
+        <div class="chron-entry-list">
+            <?php
+            $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
+                ? $_POST['chron_entries']
+                : [];
+            ?>
+            <?php foreach ($chron_entries as $chron_entry): ?>
+                <?php
+                $created_timestamp = chronLogTimestampDetails($chron_entry['created_at']);
+                $updated_timestamp = chronLogTimestampDetails($chron_entry['updated_at']);
+                $entry_author = $chron_entry['created_by_username']
+                    ?: (!empty($chron_entry['legacy_engagement_note']) ? 'Migrated legacy note' : 'System');
+                $was_edited = (string) $chron_entry['updated_at'] !== (string) $chron_entry['created_at'];
+                $submitted_chron_value = $submitted_chron_values[(string) $chron_entry['id']] ?? null;
+                $chron_entry_value = is_scalar($submitted_chron_value)
+                    ? (string) $submitted_chron_value
+                    : (string) $chron_entry['entry_text'];
+                ?>
+                <article class="chron-entry-card">
+                    <div class="chron-entry-meta">
+                        <div>
+                            <time datetime="<?php echo htmlspecialchars($created_timestamp['iso']); ?>"><?php echo htmlspecialchars($created_timestamp['display']); ?></time>
+                            <span>by <?php echo htmlspecialchars($entry_author); ?></span>
+                        </div>
+                        <?php if ($was_edited): ?>
+                            <small>Last updated <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso']); ?>"><?php echo htmlspecialchars($updated_timestamp['display']); ?></time><?php if (!empty($chron_entry['updated_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['updated_by_username']); ?><?php endif; ?></small>
+                        <?php endif; ?>
+                    </div>
+                    <div class="chron-entry-editor">
+                        <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
+                        <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="5" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
+                        <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
+                            <?php echo csrfInput(); ?>
+                            <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
+                            <div class="chron-entry-actions">
+                                <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
+                                <?php if ($user_role === 'admin'): ?>
+                                    <button type="submit" name="chron_action" value="delete" class="delete-button" onclick="return confirm('Permanently delete this Chron entry? This cannot be undone.');">Delete</button>
+                                <?php endif; ?>
+                            </div>
+                        </form>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <?php if (!$chron_entries): ?>
+                <p class="chron-empty-state">No Chron entries have been added yet.</p>
+            <?php endif; ?>
+        </div>
+    </section>
+
+    <div class="engagement-page-actions" aria-label="Engagement form actions">
+        <a href="engagements.php" class="cancel-button">Cancel</a>
+        <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>
+    </div>
 </div>
 
 <?php include 'templates/footer.php'; ?>
@@ -568,6 +806,18 @@ while ($row = $presentations_result->fetch_assoc()) {
             alert("End date must be on or after the start date");
             return false;
         }
+        return true;
+    }
+
+    function validateNewChronEntry() {
+        const entry = document.getElementById("new-chron-entry");
+        if (!entry.value.trim()) {
+            entry.setCustomValidity("Enter a Chron entry before adding it.");
+            entry.reportValidity();
+            entry.focus();
+            return false;
+        }
+        entry.setCustomValidity("");
         return true;
     }
 

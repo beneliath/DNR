@@ -135,7 +135,7 @@ function addEngagementPdfSection(DnrEngagementPdf $pdf, array $section) {
         foreach ($entry['fields'] ?? [] as $field) {
             $label = trim((string) ($field['label'] ?? ''));
             $value = (string) ($field['value'] ?? '');
-            if (($section['heading'] ?? '') === 'Chron' && $label === 'Notes') {
+            if (($section['heading'] ?? '') === 'Chron' && in_array($label, ['Entry', 'Notes'], true)) {
                 $pdf->SetFont('Helvetica', '', 9.5);
                 $pdf->SetTextColor(54, 60, 68);
                 $pdf->MultiCell(0, 5, engagementPdfText($value));

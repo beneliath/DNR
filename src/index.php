@@ -32,7 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
     $organization_id = intval($_POST['organization_id'] ?? 0);
     $event_title = trim($_POST['event_title'] ?? '');
-    $engagement_notes = trim($_POST['engagement_notes'] ?? '');
+    $chron_entry = trim($_POST['chron_entry'] ?? '');
     $event_start_date = $_POST['event_start_date'] ?? null;
     $event_end_date = $_POST['event_end_date'] ?? null;
     $event_type_raw = $_POST['event_type'] ?? '';
@@ -117,18 +117,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         try {
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
-                organization_id, event_title, engagement_notes, event_start_date, event_end_date,
+                organization_id, event_title, event_start_date, event_end_date,
                 event_type, book_table, brochures, caller_name, confirmation_status,
                 travel_covered, travel_amount, compensation_type, other_compensation,
                 housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "isssssiisssdssssd",
+                    "issssiisssdssssd",
                     $organization_id,
                     $event_title,
-                    $engagement_notes,
                     $event_start_date,
                     $event_end_date,
                     $event_type,
@@ -170,6 +169,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                                 throw new Exception("Unable to save presentation: " . $presentation_stmt->error);
                             }
                         }
+                    }
+
+                    if ($chron_entry !== '') {
+                        $chron_stmt = $conn->prepare(
+                            "INSERT INTO engagement_chron_entries
+                                (engagement_id, entry_text, created_by,
+                                 created_by_username_snapshot, updated_by)
+                             VALUES (?, ?, ?, ?, ?)"
+                        );
+                        if (!$chron_stmt) {
+                            throw new Exception("Unable to prepare the initial Chron entry.");
+                        }
+                        $current_user_id = (int) $_SESSION['user_id'];
+                        $current_username = (string) $_SESSION['username'];
+                        $chron_stmt->bind_param(
+                            "isisi",
+                            $engagement_id,
+                            $chron_entry,
+                            $current_user_id,
+                            $current_username,
+                            $current_user_id
+                        );
+                        if (!$chron_stmt->execute()) {
+                            throw new Exception("Unable to save the initial Chron entry: " . $chron_stmt->error);
+                        }
+                        $chron_stmt->close();
                     }
                     
                     $conn->commit();
@@ -245,8 +270,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
         <br><br>
 
-        <label for="engagement_notes" style="vertical-align: top;">Chronology &amp; notes</label>
-        <textarea name="engagement_notes" id="engagement_notes" rows="6" style="width: calc(100% - 0px);"><?php echo !empty($error_message) ? htmlspecialchars($_POST['engagement_notes'] ?? '') : ''; ?></textarea>
         </section>
 
         <section class="form-section">
@@ -450,6 +473,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
         </div>
         </section>
+
+        <section class="form-section chron-log-section" id="chron-log">
+            <h2>Chron log</h2>
+            <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
+            <label for="chron_entry">Initial Chron entry</label>
+            <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
+        </section>
+
         <div class="form-row">
             <div style="display: flex; gap: 20px;">
                 <div class="form-field">

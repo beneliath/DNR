@@ -122,9 +122,17 @@ $query = "SELECT e.*, o.organization_name
 if ($search !== '') {
     $query .= " AND (
         e.event_title LIKE ?
-        OR o.organization_name LIKE ?
-        OR e.event_type LIKE ?
-        OR e.confirmation_status LIKE ?
+        OR EXISTS (
+            SELECT 1
+            FROM engagement_chron_entries ce
+            LEFT JOIN users chron_creator ON chron_creator.id = ce.created_by
+            WHERE ce.engagement_id = e.id
+              AND ce.is_archived = 0
+              AND (
+                  ce.entry_text LIKE ?
+                  OR COALESCE(chron_creator.username, ce.created_by_username_snapshot) LIKE ?
+              )
+        )
     )";
 }
 $query .= "
@@ -134,8 +142,17 @@ $query_stmt = null;
 if ($search !== '') {
     $query_stmt = $conn->prepare($query);
     $search_pattern = '%' . $search . '%';
-    $query_stmt->bind_param('ssss', $search_pattern, $search_pattern, $search_pattern, $search_pattern);
-    $query_stmt->execute();
+    if (!$query_stmt) {
+        error_log('Unable to prepare the engagement and Chron search: ' . $conn->error);
+        http_response_code(503);
+        exit('Engagement search is temporarily unavailable while DNR is being upgraded.');
+    }
+    $query_stmt->bind_param('sss', $search_pattern, $search_pattern, $search_pattern);
+    if (!$query_stmt->execute()) {
+        error_log('Unable to run the engagement and Chron search: ' . $query_stmt->error);
+        http_response_code(500);
+        exit('Unable to search engagements. Please try again.');
+    }
     $result = $query_stmt->get_result();
 } else {
     $result = $conn->query($query);
@@ -302,9 +319,9 @@ $format_date_range = static function ($start, $end) {
             <input type="hidden" name="date_sort" value="<?php echo htmlspecialchars($date_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="status_sort" value="<?php echo htmlspecialchars($status_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="engagement-search">Search engagements</label>
+            <label class="visually-hidden" for="engagement-search">Search engagement titles and Chron logs</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search engagements">
+            <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search titles and Chron logs">
             <?php if ($search !== ''): ?><a href="engagements.php?status=<?php echo urlencode($list_status); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Engagement archive status">
@@ -392,7 +409,7 @@ $format_date_range = static function ($start, $end) {
                             <?php endif; ?>
                             <?php if (canDeleteEntries($user_role)): ?>
                                 <form method="post" action="engagements.php"
-                                      data-delete-confirmation="Permanently delete this event and its presentations?"
+                                      data-delete-confirmation="Permanently delete this event, its presentations, and its Chron entries?"
                                       <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">

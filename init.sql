@@ -118,6 +118,34 @@ CREATE TABLE IF NOT EXISTS engagements (
     FOREIGN KEY (organization_id) REFERENCES organizations(id)
 );
 
+-- Timestamped Chron log entries for engagements. engagement_notes remains on
+-- engagements only for upgrade compatibility with pre-entry installations.
+CREATE TABLE IF NOT EXISTS engagement_chron_entries (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    engagement_id INT NOT NULL,
+    entry_text MEDIUMTEXT NOT NULL,
+    is_archived TINYINT(1) NOT NULL DEFAULT 0,
+    legacy_engagement_note TINYINT(1) NOT NULL DEFAULT 0,
+    created_by INT NULL,
+    created_by_username_snapshot VARCHAR(50) NULL,
+    updated_by INT NULL,
+    archived_by INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    archived_at TIMESTAMP NULL DEFAULT NULL,
+    CONSTRAINT fk_chron_entry_engagement
+        FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE,
+    CONSTRAINT fk_chron_entry_creator
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_chron_entry_updater
+        FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
+    CONSTRAINT fk_chron_entry_archiver
+        FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
+    INDEX idx_chron_entry_engagement_active_created (
+        engagement_id, is_archived, created_at, id
+    )
+);
+
 -- Presentations table
 CREATE TABLE IF NOT EXISTS presentations (
     id INT AUTO_INCREMENT PRIMARY KEY,
@@ -218,6 +246,24 @@ FOR EACH ROW INSERT INTO security_audit_log
     (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
 VALUES
     (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'engagements', OLD.id, LEFT(NULLIF(OLD.event_title, ''), 255), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_engagement_chron_entries_after_insert AFTER INSERT ON engagement_chron_entries
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_insert', 'engagement_chron_entries', NEW.id, CONCAT('Engagement ', NEW.engagement_id, ' Chron entry'), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_engagement_chron_entries_after_update AFTER UPDATE ON engagement_chron_entries
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_update', 'engagement_chron_entries', NEW.id, CONCAT('Engagement ', NEW.engagement_id, ' Chron entry'), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_engagement_chron_entries_after_delete AFTER DELETE ON engagement_chron_entries
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'engagement_chron_entries', OLD.id, CONCAT('Engagement ', OLD.engagement_id, ' Chron entry'), LEFT(@dnr_request_ip, 45));
 
 CREATE TRIGGER audit_presentations_after_insert AFTER INSERT ON presentations
 FOR EACH ROW INSERT INTO security_audit_log

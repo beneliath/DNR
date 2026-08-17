@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/chron_log_helpers.php';
+
 function addEngagementExportField(array &$fields, $label, $value, $include_empty = false) {
     $value = is_string($value) ? trim($value) : (string) $value;
     if (!$include_empty && $value === '') {
@@ -12,7 +14,7 @@ function addEngagementExportField(array &$fields, $label, $value, $include_empty
     ];
 }
 
-function buildEngagementExport(array $engagement, array $contacts, array $presentations) {
+function buildEngagementExport(array $engagement, array $contacts, array $presentations, array $chron_entries = []) {
     $event_title = trim((string) ($engagement['event_title'] ?? ''));
     $organization_name = trim((string) ($engagement['organization_name'] ?? ''));
     $document_title = $event_title !== ''
@@ -68,17 +70,6 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         $sections[] = [
             'heading' => 'Contacts',
             'entries' => $contact_entries,
-        ];
-    }
-
-    $engagement_notes = trim((string) ($engagement['engagement_notes'] ?? ''));
-    if ($engagement_notes !== '') {
-        $sections[] = [
-            'heading' => 'Chron',
-            'entries' => [['fields' => [[
-                'label' => 'Notes',
-                'value' => $engagement_notes,
-            ]]]],
         ];
     }
 
@@ -214,6 +205,30 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
                 'label' => 'Address',
                 'value' => implode("\n", $address_parts),
             ]]]],
+        ];
+    }
+
+    $chron_export_entries = [];
+    foreach (sortChronLogEntriesReverseChronological($chron_entries) as $chron_entry) {
+        if (!empty($chron_entry['is_archived'])) {
+            continue;
+        }
+        $entry_text = trim((string) ($chron_entry['entry_text'] ?? ''));
+        if ($entry_text === '') {
+            continue;
+        }
+        $chron_export_entries[] = [
+            'title' => chronLogEntryExportTitle($chron_entry),
+            'fields' => [[
+                'label' => 'Entry',
+                'value' => $entry_text,
+            ]],
+        ];
+    }
+    if ($chron_export_entries) {
+        $sections[] = [
+            'heading' => 'Chron',
+            'entries' => $chron_export_entries,
         ];
     }
 

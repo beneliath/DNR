@@ -2,7 +2,7 @@
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
-    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php'],
+    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'restore_chron_entries.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
@@ -19,7 +19,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.19">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.28">
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
