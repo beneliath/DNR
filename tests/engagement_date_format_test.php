@@ -24,6 +24,11 @@ expectEngagementDateFormat(
     'Engagement date cells should have a dedicated non-wrapping class.'
 );
 expectEngagementDateFormat(
+    str_contains($source, '<th>Event Date(s)</th>')
+        && !str_contains($source, '<th>Event Dates</th>'),
+    'The Engagements table heading should accommodate single-day and multi-day events.'
+);
+expectEngagementDateFormat(
     preg_match('/\.engagement-dates\s*\{[^}]*white-space:\s*nowrap;/s', $modern_styles) === 1,
     'Engagement date cells should stay on one line.'
 );

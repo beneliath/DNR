@@ -199,7 +199,7 @@ if (isset($_SESSION['success_message'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -617,7 +617,7 @@ if (isset($_SESSION['success_message'])) {
             <button type="button" onclick="addContact()" class="add-contact-btn">Add Another Contact</button>
         </div>
 
-        <div class="form-group" style="display: flex; justify-content: flex-end; padding: 0; margin: 0;">
+        <div class="form-group create-form-actions" style="justify-content: flex-end; padding: 0; margin: 0;">
             <a href="organizations.php" class="cancel-button">Cancel</a>
             <input type="submit" name="save_org" value="Create organization" class="save-button">
         </div>

@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Register - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -73,7 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <option value="editor">Editor</option>
             <option value="reviewer">Reviewer</option>
         </select></div>
-        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Create user" class="register-button"></div>
+        <div class="action-buttons create-form-actions">
+            <a href="users.php" class="cancel-button">Cancel</a>
+            <input type="submit" value="Create user" class="register-button">
+        </div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

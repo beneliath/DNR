@@ -159,7 +159,7 @@ $format_date_range = static function ($start, $end) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <style>
         .engagement-table {
             width: 100%;
@@ -349,7 +349,7 @@ $format_date_range = static function ($start, $end) {
             <tr>
                 <th>Event Title</th>
                 <th>Organization</th>
-                <th>Event Dates</th>
+                <th>Event Date(s)</th>
                 <th>Type</th>
                 <th>Status</th>
                 <th>Actions</th>

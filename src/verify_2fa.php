@@ -69,8 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Two-Factor Verification - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
-    <link rel="stylesheet" href="assets/css/modern.css?v=0.1.14">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
+    <link rel="stylesheet" href="assets/css/modern.css?v=0.1.18">
     <script>
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');

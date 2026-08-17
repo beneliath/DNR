@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <style>
         .success {
             background-color: #d4edda !important;
@@ -253,7 +253,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_phone'] ?? '') : ''; ?>">
         </div>
 <br>
-        <div class="form-group" style="padding-left: 0; margin-left: 0;">
+        <div class="form-group create-form-actions" style="padding-left: 0; margin-left: 0;">
             <a href="contacts.php" class="cancel-button">Cancel</a>
             <input type="submit" name="save_contact" value="Create contact" class="save-button" style="margin-left: 0;">
         </div>

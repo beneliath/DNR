@@ -28,6 +28,8 @@
   --action-edit-bg: #ccfbf1;
   --action-archive: #6941c6;
   --action-archive-bg: #ede9fe;
+  --action-reset-2fa: #0e7490;
+  --action-reset-2fa-bg: #cffafe;
   --action-restore: #067647;
   --action-restore-bg: #dcfce7;
   --action-delete: #b42318;
@@ -82,6 +84,8 @@ html.dark-mode {
   --action-edit-bg: #134e4a;
   --action-archive: #bdb4fe;
   --action-archive-bg: #463b78;
+  --action-reset-2fa: #67e8f9;
+  --action-reset-2fa-bg: #164e63;
   --action-restore: #6ce9a6;
   --action-restore-bg: #14532d;
   --action-delete: #fda29b;
@@ -794,6 +798,46 @@ html body :is(.cancel-button, .button-cancel):focus-visible {
   transform: translateY(-1px);
 }
 
+html body .reset-password-button {
+  border-color: color-mix(in srgb, var(--action-archive) 42%, var(--border)) !important;
+  background: var(--action-archive-bg) !important;
+  color: var(--action-archive) !important;
+}
+
+html body .reset-password-button:hover,
+html body .reset-password-button:focus-visible {
+  border-color: var(--action-archive) !important;
+  background: var(--action-archive) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-archive) 22%, transparent) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+html.dark-mode body .reset-password-button:hover,
+html.dark-mode body .reset-password-button:focus-visible {
+  color: #071126 !important;
+}
+
+html body .reset-two-factor-button {
+  border-color: color-mix(in srgb, var(--action-reset-2fa) 42%, var(--border)) !important;
+  background: var(--action-reset-2fa-bg) !important;
+  color: var(--action-reset-2fa) !important;
+}
+
+html body .reset-two-factor-button:hover,
+html body .reset-two-factor-button:focus-visible {
+  border-color: var(--action-reset-2fa) !important;
+  background: var(--action-reset-2fa) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--action-reset-2fa) 22%, transparent) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+html.dark-mode body .reset-two-factor-button:hover,
+html.dark-mode body .reset-two-factor-button:focus-visible {
+  color: #071126 !important;
+}
+
 html body :is(.sort-button.active, .filter-button.active, .sort-selection.active, .page-size-button.active) {
   border-color: var(--primary) !important;
   background: var(--primary-subtle) !important;
@@ -1208,6 +1252,12 @@ input[type="radio"] {
 .action-buttons form,
 .user-actions form {
   margin: 0;
+}
+
+.create-form-actions {
+  display: flex !important;
+  align-items: center;
+  gap: 10px !important;
 }
 
 .engagement-table .action-buttons,

@@ -56,6 +56,14 @@ expectHoverStyle(
         && strpos($legacy_hover_block, ':not(.register-button)') !== false,
     'The Create User button should be excluded from the legacy orange hover rule.'
 );
+expectHoverStyle(
+    strpos($legacy_hover_block, '.action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel):not(.reset-password-button):not(.reset-two-factor-button)') !== false,
+    'Password and two-factor reset actions should be excluded from the legacy orange action-button hover rule.'
+);
+expectHoverStyle(
+    strpos($legacy_hover_block, ':not(.reset-two-factor-button)') !== false,
+    'Reset 2FA buttons should be excluded from the legacy orange button hover rule.'
+);
 foreach (['.cancel-button', '.button-cancel'] as $modern_cancel_class) {
     expectHoverStyle(
         strpos($legacy_hover_block, "\n  {$modern_cancel_class},") === false,
@@ -85,6 +93,16 @@ expectHoverStyle(
     'Cancel controls should use the modern theme-aware hover treatment.'
 );
 expectHoverStyle(
+    strpos($modern_stylesheet, 'html body .reset-password-button:hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--action-archive) !important;') !== false,
+    'Reset Password should use the modern theme-aware purple hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body .reset-two-factor-button:hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--action-reset-2fa) !important;') !== false,
+    'Reset 2FA should use the modern theme-aware teal hover treatment.'
+);
+expectHoverStyle(
     strpos($modern_stylesheet, '.mobile-theme-button:hover') !== false
         && strpos($modern_stylesheet, '.theme-toggle-button:hover') !== false,
     'Desktop and mobile theme controls should use modern themed hover rules.'
@@ -96,7 +114,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.17') !== false,
+        strpos($page_source, 'assets/css/style.css?v=0.0.19') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }

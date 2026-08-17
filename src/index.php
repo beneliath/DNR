@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
@@ -482,7 +482,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 </div>
             </div>
 
-            <div class="form-group" style="padding-left: 0; margin-left: 0;">
+            <div class="form-group create-form-actions" style="padding-left: 0; margin-left: 0;">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <input type="submit" name="save_engagement" value="Create engagement" class="save-button" style="margin-left: 0;">
             </div>

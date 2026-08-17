@@ -218,7 +218,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Audit Log - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <style>
         .page-heading,
         .audit-filters,

@@ -142,7 +142,7 @@ function organizationsPageUrl($status, $name_sort, $search = '')
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.19">
     <style>
         .organization-table {
             width: 100%;

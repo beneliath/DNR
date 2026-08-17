@@ -883,7 +883,7 @@ html.dark-mode .fullscreen-center {
  * including selectors whose normal state uses !important.
  */
 html body :is(
-  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel),
+  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel):not(.reset-two-factor-button),
   input[type="button"]:not(:disabled):not(.register-button):not(.cancel-button):not(.button-cancel),
   input[type="submit"]:not(:disabled):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel),
   input[type="reset"]:not(:disabled):not(.cancel-button):not(.button-cancel),
@@ -893,7 +893,7 @@ html body :is(
   .button-edit,
   .button-archive,
   .button-delete,
-  .action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel),
+  .action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel):not(.reset-password-button):not(.reset-two-factor-button),
   .add-contact-btn,
   .remove-contact-btn,
   .add-presentation-btn,
