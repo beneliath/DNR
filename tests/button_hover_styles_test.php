@@ -52,17 +52,37 @@ foreach (['.add-org-button', '.save-button', '.save-event-button'] as $modern_pr
     );
 }
 expectHoverStyle(
+    strpos($legacy_hover_block, "\n  .register-button,") === false
+        && strpos($legacy_hover_block, ':not(.register-button)') !== false,
+    'The Create User button should be excluded from the legacy orange hover rule.'
+);
+foreach (['.cancel-button', '.button-cancel'] as $modern_cancel_class) {
+    expectHoverStyle(
+        strpos($legacy_hover_block, "\n  {$modern_cancel_class},") === false,
+        $modern_cancel_class . ' should be excluded from the legacy orange hover rule.'
+    );
+}
+expectHoverStyle(
     strpos($modern_stylesheet, 'html body .button-add:hover') !== false
         && strpos($modern_stylesheet, 'background: var(--primary-hover) !important;') !== false,
     'Primary New buttons should use the modern themed hover treatment.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, 'html body :is(.add-org-button, .save-button, .save-event-button):hover') !== false,
-    'Organization and event creation controls should use the modern themed hover treatment.'
+    strpos($modern_stylesheet, 'html body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover') !== false,
+    'Organization, event, and user creation controls should use the same modern themed hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 24%, transparent) !important;') !== false,
+    'The shared creation-button hover treatment should include its elevated shadow.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body :is(.sort-button, .filter-button):hover') !== false,
     'Search-row and pagination controls should use the modern themed hover rule.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, 'html body :is(.cancel-button, .button-cancel):hover') !== false
+        && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
+    'Cancel controls should use the modern theme-aware hover treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '.mobile-theme-button:hover') !== false
@@ -76,7 +96,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         continue;
     }
     expectHoverStyle(
-        strpos($page_source, 'assets/css/style.css?v=0.0.15') !== false,
+        strpos($page_source, 'assets/css/style.css?v=0.0.17') !== false,
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }

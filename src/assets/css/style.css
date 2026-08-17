@@ -883,20 +883,17 @@ html.dark-mode .fullscreen-center {
  * including selectors whose normal state uses !important.
  */
 html body :is(
-  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button),
-  input[type="button"]:not(:disabled),
-  input[type="submit"]:not(:disabled):not(.save-button):not(.save-event-button),
-  input[type="reset"]:not(:disabled),
-  [role="button"],
+  button:not(:disabled):not(.logout-link-button):not(.link-button):not(.sidebar-backdrop):not(.action-icon-button):not(.nav-link):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-logout-button):not(.sort-button):not(.filter-button):not(.button-add):not(.add-org-button):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel),
+  input[type="button"]:not(:disabled):not(.register-button):not(.cancel-button):not(.button-cancel),
+  input[type="submit"]:not(:disabled):not(.save-button):not(.save-event-button):not(.register-button):not(.cancel-button):not(.button-cancel),
+  input[type="reset"]:not(:disabled):not(.cancel-button):not(.button-cancel),
+  [role="button"]:not(.register-button):not(.cancel-button):not(.button-cancel),
   .button-save,
   .button-view,
   .button-edit,
   .button-archive,
   .button-delete,
-  .button-cancel,
-  .register-button,
-  .action-button:not(.action-icon-button),
-  .cancel-button,
+  .action-button:not(.action-icon-button):not(.cancel-button):not(.button-cancel),
   .add-contact-btn,
   .remove-contact-btn,
   .add-presentation-btn,
@@ -904,7 +901,7 @@ html body :is(
   .security-button,
   .archive-button:not(.action-icon-button),
   .restore-button:not(.action-icon-button),
-  .danger-button
+  .danger-button:not(.cancel-button):not(.button-cancel)
 ):hover {
   background-color: var(--button-hover-color) !important;
 }

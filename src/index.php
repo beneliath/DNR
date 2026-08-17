@@ -198,7 +198,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>DNR dashboard</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
     <script src="assets/js/main.js"></script>
 </head>
 <body>
@@ -281,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             </div>
 
             <div class="event-group" id="other_event_type_div" style="display: <?php echo isset($_POST['event_type']) && $_POST['event_type'] === 'other' ? 'block' : 'none'; ?>">
-                <div class="label-container">Other Event Type<span class="required">*</span></div>
+                <label class="label-container" for="event_type_other">Other Event Type<span class="required">*</span></label>
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($_POST['event_type_other'] ?? ''); ?>">
             </div>
         </div>

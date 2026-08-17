@@ -489,13 +489,14 @@ html.dark-mode .theme-icon-dark {
 
 .required-fields-note {
   margin: 0 0 22px;
-  color: var(--text-muted);
+  color: var(--danger);
   font-size: 0.8rem;
+  font-weight: 650;
   text-align: right;
 }
 
 .required-fields-note span {
-  color: var(--danger);
+  color: inherit;
   font-weight: 800;
 }
 
@@ -709,7 +710,7 @@ html body :is(
 ) {
   min-height: 40px !important;
   padding: 8px 14px !important;
-  border: 1px solid transparent !important;
+  border: 1px solid transparent;
   border-radius: var(--radius-sm) !important;
   font-size: 0.875rem !important;
   font-weight: 650;
@@ -749,8 +750,8 @@ html.dark-mode body .button-add:focus-visible {
   color: #071126 !important;
 }
 
-html body :is(.add-org-button, .save-button, .save-event-button):hover,
-html body :is(.add-org-button, .save-button, .save-event-button):focus-visible {
+html body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover,
+html body :is(.add-org-button, .save-button, .save-event-button, .register-button):focus-visible {
   border-color: color-mix(in srgb, var(--primary-hover) 72%, transparent) !important;
   background: var(--primary-hover) !important;
   box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 24%, transparent) !important;
@@ -758,8 +759,8 @@ html body :is(.add-org-button, .save-button, .save-event-button):focus-visible {
   transform: translateY(-1px);
 }
 
-html.dark-mode body :is(.add-org-button, .save-button, .save-event-button):hover,
-html.dark-mode body :is(.add-org-button, .save-button, .save-event-button):focus-visible {
+html.dark-mode body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover,
+html.dark-mode body :is(.add-org-button, .save-button, .save-event-button, .register-button):focus-visible {
   color: #071126 !important;
 }
 
@@ -777,6 +778,15 @@ html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .
 
 html body :is(.sort-button, .filter-button):hover,
 html body :is(.sort-button, .filter-button):focus-visible {
+  border-color: var(--control-hover-border) !important;
+  background: var(--control-hover-bg) !important;
+  color: var(--control-hover-fg) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+html body :is(.cancel-button, .button-cancel):hover,
+html body :is(.cancel-button, .button-cancel):focus-visible {
   border-color: var(--control-hover-border) !important;
   background: var(--control-hover-bg) !important;
   color: var(--control-hover-fg) !important;
@@ -1051,6 +1061,16 @@ textarea::placeholder {
   min-height: 32px;
   color: var(--text) !important;
   font-weight: 500;
+}
+
+label.required,
+.radio-group label.required,
+label:has(> .required) {
+  color: var(--danger) !important;
+}
+
+label:has(> .required) > .required {
+  color: inherit !important;
 }
 
 input[type="checkbox"],

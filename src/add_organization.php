@@ -199,7 +199,7 @@ if (isset($_SESSION['success_message'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
     <style>
         .form-group {
             margin-bottom: 15px;

@@ -319,7 +319,7 @@ while ($row = $presentations_result->fetch_assoc()) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.css?v=0.0.15">
+    <link rel="stylesheet" href="assets/css/style.css?v=0.0.17">
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -383,7 +383,7 @@ while ($row = $presentations_result->fetch_assoc()) {
             </div>
 
             <div class="event-group" id="other_event_type_div" style="display: <?php echo $engagement['event_type'] === 'other' ? 'block' : 'none'; ?>">
-                <div class="label-container">Other Event Type<span class="required">*</span></div>
+                <label class="label-container" for="event_type_other">Other Event Type<span class="required">*</span></label>
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
             </div>
         </div>
