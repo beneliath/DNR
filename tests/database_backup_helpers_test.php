@@ -9,7 +9,12 @@ function expectDatabaseBackup($condition, $message) {
     }
 }
 
-function writeTestDatabaseBackup($path, array $schema, array $rows) {
+function writeTestDatabaseBackup(
+    $path,
+    array $schema,
+    array $rows,
+    $version = DNR_DATABASE_BACKUP_VERSION
+) {
     $counts = array_fill_keys(array_column($schema, 'name'), 0);
     foreach ($rows as $row) {
         $counts[$row['table']]++;
@@ -23,7 +28,7 @@ function writeTestDatabaseBackup($path, array $schema, array $rows) {
     $header = [
         'type' => 'header',
         'format' => DNR_DATABASE_BACKUP_FORMAT,
-        'version' => DNR_DATABASE_BACKUP_VERSION,
+        'version' => $version,
         'created_at' => '2026-08-18T12:00:00Z',
         'application_version' => 'test',
         'schema_fingerprint' => databaseBackupSchemaFingerprint($tables),
@@ -81,6 +86,49 @@ expectDatabaseBackup($decoded === ['7', 'admin', "\x00\xFF\x10"], 'binary values
 expectDatabaseBackup(
     databaseBackupDecodedValues([null], 1) === [null],
     'SQL NULL should remain distinct from an empty string.'
+);
+
+$timestamp_schema = [[
+    'name' => 'timestamped_rows',
+    'engine' => 'InnoDB',
+    'columns' => [
+        ['name' => 'id', 'type' => 'int', 'nullable' => false, 'default' => null, 'extra' => 'auto_increment', 'collation' => null],
+        ['name' => 'created_at', 'type' => 'timestamp', 'nullable' => false, 'default' => 'CURRENT_TIMESTAMP', 'extra' => 'DEFAULT_GENERATED', 'collation' => null],
+        ['name' => 'updated_at', 'type' => 'timestamp', 'nullable' => false, 'default' => 'CURRENT_TIMESTAMP', 'extra' => 'DEFAULT_GENERATED on update CURRENT_TIMESTAMP', 'collation' => null],
+        ['name' => 'computed_value', 'type' => 'int', 'nullable' => true, 'default' => null, 'extra' => 'STORED GENERATED', 'collation' => null],
+    ],
+]];
+expectDatabaseBackup(
+    databaseBackupExportColumnNames($timestamp_schema[0]) === ['id', 'created_at', 'updated_at'],
+    'current backups should include default-generated timestamps but omit computed columns.'
+);
+expectDatabaseBackup(
+    databaseBackupExportColumnNames(
+        $timestamp_schema[0],
+        DNR_DATABASE_BACKUP_LEGACY_VERSION
+    ) === ['id'],
+    'legacy backups should retain their original generated-column interpretation.'
+);
+
+$legacy_backup_path = tempnam(sys_get_temp_dir(), 'dnr-legacy-backup-test-');
+writeTestDatabaseBackup(
+    $legacy_backup_path,
+    $timestamp_schema,
+    [['table' => 'timestamped_rows', 'values' => [base64_encode('9')]]],
+    DNR_DATABASE_BACKUP_LEGACY_VERSION
+);
+$legacy_columns = null;
+$legacy_inspection = inspectDatabaseBackup(
+    $legacy_backup_path,
+    $timestamp_schema,
+    1048576,
+    static function ($table, $columns) use (&$legacy_columns) {
+        $legacy_columns = $columns;
+    }
+);
+expectDatabaseBackup(
+    $legacy_inspection['row_count'] === 1 && $legacy_columns === ['id'],
+    'version 1 backups should remain readable with their original exported columns.'
 );
 
 $backup_path = tempnam(sys_get_temp_dir(), 'dnr-backup-test-');
@@ -170,6 +218,7 @@ try {
 }
 
 unlink($backup_path);
+unlink($legacy_backup_path);
 unlink($tampered_path);
 unlink($encrypted['path']);
 unlink($decrypted['path']);

@@ -41,6 +41,41 @@ $organization_stmt->execute();
 $organization_id = (int) $conn->insert_id;
 $organization_stmt->close();
 
+$engagement_title = 'Backup timestamp test ' . $suffix;
+$engagement_stmt = $conn->prepare(
+    "INSERT INTO engagements
+        (organization_id, event_title, event_start_date, event_end_date,
+         event_type, confirmation_status)
+     VALUES (?, ?, '2026-09-10', '2026-09-11', 'conference', 'under_review')"
+);
+$engagement_stmt->bind_param('is', $organization_id, $engagement_title);
+$engagement_stmt->execute();
+$engagement_id = (int) $conn->insert_id;
+$engagement_stmt->close();
+
+$chron_created_at = '2025-03-04 12:34:56';
+$chron_updated_at = '2025-03-05 13:45:01';
+$chron_text = 'Timestamp preservation ' . $suffix;
+$chron_stmt = $conn->prepare(
+    'INSERT INTO engagement_chron_entries
+        (engagement_id, entry_text, created_by, created_by_username_snapshot,
+         updated_by, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)'
+);
+$chron_stmt->bind_param(
+    'isisiss',
+    $engagement_id,
+    $chron_text,
+    $user_id,
+    $username,
+    $user_id,
+    $chron_created_at,
+    $chron_updated_at
+);
+$chron_stmt->execute();
+$chron_entry_id = (int) $conn->insert_id;
+$chron_stmt->close();
+
 $backup = createDatabaseBackup($conn, 'integration-test', 16777216);
 $backup_password = 'integration backup password';
 $encrypted_backup = encryptDatabaseBackup($backup['path'], $backup_password, 16777216);
@@ -51,6 +86,11 @@ expectDatabaseBackupIntegration($inspection['row_count'] > 0, 'the test database
 
 $conn->query("UPDATE organizations SET organization_name = 'Changed after backup' WHERE id = {$organization_id}");
 $conn->query("INSERT INTO organizations (organization_name) VALUES ('Extra after backup {$suffix}')");
+$conn->query(
+    "UPDATE engagement_chron_entries
+     SET entry_text = 'Changed after backup', updated_at = UTC_TIMESTAMP()
+     WHERE id = {$chron_entry_id}"
+);
 
 $restored = restoreDatabaseBackup(
     $conn,
@@ -71,6 +111,17 @@ expectDatabaseBackupIntegration(
     $restored_organization['organization_name'] === $organization_name
         && $restored_organization['notes'] === $organization_notes,
     'restore should replace changed data with the original row values.'
+);
+$restored_chron_entry = $conn->query(
+    "SELECT entry_text, created_at, updated_at
+     FROM engagement_chron_entries
+     WHERE id = {$chron_entry_id}"
+)->fetch_assoc();
+expectDatabaseBackupIntegration(
+    $restored_chron_entry['entry_text'] === $chron_text
+        && $restored_chron_entry['created_at'] === $chron_created_at
+        && $restored_chron_entry['updated_at'] === $chron_updated_at,
+    'restore should preserve Chron creation and update timestamps exactly.'
 );
 $extra_count = (int) $conn->query(
     "SELECT COUNT(*) AS row_count FROM organizations

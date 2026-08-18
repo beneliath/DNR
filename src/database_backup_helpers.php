@@ -1,7 +1,8 @@
 <?php
 
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
-const DNR_DATABASE_BACKUP_VERSION = 1;
+const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
+const DNR_DATABASE_BACKUP_VERSION = 2;
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
 
@@ -397,11 +398,28 @@ function databaseBackupSchemaFingerprint(array $tables) {
     return hash('sha256', databaseBackupJson($schema));
 }
 
-function databaseBackupExportColumnNames(array $table) {
+function databaseBackupExportColumnNames(
+    array $table,
+    $backup_version = DNR_DATABASE_BACKUP_VERSION
+) {
+    $backup_version = (int) $backup_version;
+    if ($backup_version < DNR_DATABASE_BACKUP_LEGACY_VERSION
+        || $backup_version > DNR_DATABASE_BACKUP_VERSION
+    ) {
+        throw new RuntimeException('The backup uses an unsupported database format version.');
+    }
+
     $columns = [];
     foreach ($table['columns'] as $column) {
         $extra = strtolower((string) ($column['extra'] ?? ''));
-        if (str_contains($extra, 'generated')) {
+        // Version 1 treated MySQL's DEFAULT_GENERATED timestamps as computed
+        // columns, so their values were omitted and reset during restore. Keep
+        // those legacy column rules when reading old archives, but version 2
+        // excludes only actual virtual or stored generated columns.
+        $is_generated = $backup_version === DNR_DATABASE_BACKUP_LEGACY_VERSION
+            ? str_contains($extra, 'generated')
+            : preg_match('/\b(?:virtual|stored)\s+generated\b/', $extra) === 1;
+        if ($is_generated) {
             continue;
         }
         $columns[] = (string) $column['name'];
@@ -603,9 +621,12 @@ function databaseBackupReadLine($handle, &$bytes_read, $maximum_bytes) {
 }
 
 function databaseBackupHeaderTables(array $header) {
+    $backup_version = $header['version'] ?? null;
     if (($header['type'] ?? null) !== 'header'
         || ($header['format'] ?? null) !== DNR_DATABASE_BACKUP_FORMAT
-        || ($header['version'] ?? null) !== DNR_DATABASE_BACKUP_VERSION
+        || !is_int($backup_version)
+        || $backup_version < DNR_DATABASE_BACKUP_LEGACY_VERSION
+        || $backup_version > DNR_DATABASE_BACKUP_VERSION
         || !isset($header['schema_fingerprint'], $header['tables'])
         || !is_string($header['schema_fingerprint'])
         || !is_array($header['tables'])
@@ -626,7 +647,7 @@ function databaseBackupHeaderTables(array $header) {
             throw new RuntimeException('The backup table definition is invalid.');
         }
         databaseBackupIdentifier($table['name']);
-        databaseBackupExportColumnNames($table);
+        databaseBackupExportColumnNames($table, $backup_version);
     }
 
     return $header['tables'];
@@ -663,6 +684,7 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
         }
 
         $backup_tables = databaseBackupHeaderTables($header);
+        $backup_version = $header['version'];
         $current_fingerprint = databaseBackupSchemaFingerprint($current_schema);
         $backup_fingerprint = databaseBackupSchemaFingerprint($backup_tables);
         if (!hash_equals($current_fingerprint, $header['schema_fingerprint'])
@@ -723,7 +745,7 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
             }
             $last_table_index = $table_index;
             $table = $backup_tables[$table_index];
-            $column_names = databaseBackupExportColumnNames($table);
+            $column_names = databaseBackupExportColumnNames($table, $backup_version);
             $values = databaseBackupDecodedValues($record['values'], count($column_names));
 
             $actual_counts[$record['table']]++;
