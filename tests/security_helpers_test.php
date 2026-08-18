@@ -59,8 +59,18 @@ expectTrue(
 
 $original_trusted_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
 $original_cloudflare_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+putenv('DNR_TRUSTED_PROXY_IPS');
+expectTrue(
+    isTrustedProxyAddress('192.168.65.1'),
+    'Docker Desktop published-port requests should use the known working trusted-proxy default.'
+);
+putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+expectTrue(
+    isTrustedCloudflareProxyAddress('172.18.0.16'),
+    'Cloudflare tunnel container address changes should remain inside the trusted proxy network.'
+);
 putenv('DNR_TRUSTED_PROXY_IPS=192.168.65.1');
-putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=172.18.0.0/16');
+putenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=172.18.0.0/24');
 expectTrue(
     requestIpAddress([
         'REMOTE_ADDR' => '192.168.65.1',
@@ -76,6 +86,15 @@ expectTrue(
         'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
     ]) === '203.0.113.42',
     'A trusted Cloudflare tunnel should supply the original public client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '172.18.0.16',
+        'HTTP_CF_CONNECTING_IP' => '2001:db8:1234::42',
+        'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
+    ]) === '2001:db8:1234::42',
+    'A reassigned Cloudflare tunnel hop should preserve an IPv6 client address.'
 );
 expectTrue(
     requestIpAddress([

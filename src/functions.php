@@ -656,7 +656,7 @@ function requestIpAddress($server = null) {
 function isTrustedProxyAddress($ip_address) {
     $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
     if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = 'docker-gateway';
+        $configured_proxies = '192.168.65.1';
     }
 
     return isAddressInTrustedNetworks($ip_address, $configured_proxies);
@@ -665,7 +665,7 @@ function isTrustedProxyAddress($ip_address) {
 function isTrustedCloudflareProxyAddress($ip_address) {
     $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
     if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '172.18.0.14';
+        $configured_proxies = '172.18.0.0/24';
     }
 
     return isAddressInTrustedNetworks($ip_address, $configured_proxies);
