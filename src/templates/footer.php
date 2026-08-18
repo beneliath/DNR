@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../github_version_helpers.php';
 
-$footer_version = defined('APP_VERSION') ? APP_VERSION : '1.3.5';
+$footer_version = defined('APP_VERSION') ? APP_VERSION : '1.3.6';
 $footer_push = githubPushMetadata();
 $footer_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 $footer_short_commit = $footer_push === null ? '' : substr($footer_push['commit'], 0, 7);

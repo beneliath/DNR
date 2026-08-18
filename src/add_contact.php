@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'contact_photo_helpers.php';
 startSecureSession();
 
 // Ensure the user is logged in
@@ -26,6 +27,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     $contact_phone = trim($_POST['contact_phone'] ?? '');
     $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
     $phone_error = '';
+    $photo_error = '';
+    $contact_photo = null;
     try {
         $contact_phone = normalizePhoneNumber(
             $contact_phone_country_code,
@@ -34,6 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         );
     } catch (InvalidArgumentException $exception) {
         $phone_error = $exception->getMessage();
+    }
+    try {
+        $contact_photo = contactPhotoFromUpload($_FILES['contact_photo'] ?? []);
+    } catch (InvalidArgumentException $exception) {
+        $photo_error = $exception->getMessage();
+    } catch (Throwable $exception) {
+        error_log('Unable to read contact photo upload: ' . $exception->getMessage());
+        $photo_error = 'The contact photo could not be uploaded. Try again.';
     }
 
     // Validate required fields
@@ -51,29 +62,58 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         $error_message = "Please specify the other role.";
     } elseif ($phone_error !== '') {
         $error_message = $phone_error;
+    } elseif ($photo_error !== '') {
+        $error_message = $photo_error;
     } else {
         $conn->begin_transaction();
         try {
             requireActiveOrganization($conn, $organization_id, true);
-            $stmt = $conn->prepare(
-                "INSERT INTO contacts (
-                    organization_id, contact_first_name, contact_last_name, contact_role,
-                    contact_role_other, contact_email, contact_phone
-                 ) VALUES (?, ?, ?, ?, ?, ?, ?)"
-            );
+            if ($contact_photo !== null) {
+                $stmt = $conn->prepare(
+                    "INSERT INTO contacts (
+                        organization_id, contact_first_name, contact_last_name, contact_role,
+                        contact_role_other, contact_email, contact_phone,
+                        contact_photo, contact_photo_mime, contact_photo_updated_at
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
+                );
+            } else {
+                $stmt = $conn->prepare(
+                    "INSERT INTO contacts (
+                        organization_id, contact_first_name, contact_last_name, contact_role,
+                        contact_role_other, contact_email, contact_phone
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                );
+            }
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the contact.');
             }
-            $stmt->bind_param(
-                "issssss",
-                $organization_id,
-                $contact_first_name,
-                $contact_last_name,
-                $contact_role,
-                $contact_role_other,
-                $contact_email,
-                $contact_phone
-            );
+            if ($contact_photo !== null) {
+                $contact_photo_data = $contact_photo['data'];
+                $contact_photo_mime = $contact_photo['mime_type'];
+                $stmt->bind_param(
+                    'issssssss',
+                    $organization_id,
+                    $contact_first_name,
+                    $contact_last_name,
+                    $contact_role,
+                    $contact_role_other,
+                    $contact_email,
+                    $contact_phone,
+                    $contact_photo_data,
+                    $contact_photo_mime
+                );
+            } else {
+                $stmt->bind_param(
+                    'issssss',
+                    $organization_id,
+                    $contact_first_name,
+                    $contact_last_name,
+                    $contact_role,
+                    $contact_role_other,
+                    $contact_email,
+                    $contact_phone
+                );
+            }
             if (!$stmt->execute()) {
                 throw new RuntimeException('Unable to add the contact.');
             }
@@ -97,6 +137,10 @@ $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ??
     $_POST['contact_phone'] ?? '',
     $contact_phone_country_code_value
 );
+$contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contactInitialsSvg([
+    'contact_first_name' => $_POST['contact_first_name'] ?? '',
+    'contact_last_name' => $_POST['contact_last_name'] ?? '',
+]));
 ?>
 
 <!DOCTYPE html>
@@ -106,6 +150,7 @@ $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ??
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Add Contact - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
+    <script src="assets/js/contact-photo.min.js?v=1.0.0" defer></script>
     <style>
         .success {
             background-color: #d4edda !important;
@@ -222,7 +267,7 @@ $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ??
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
     <div class="page-heading form-page-heading"><div><h1>New Contact</h1><p class="page-intro">Connect a person with an organization and their role.</p></div></div>
-    <form method="post" action="add_contact.php" class="contact-form">
+    <form method="post" action="add_contact.php" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
@@ -284,6 +329,19 @@ $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ??
             <div class="phone-input-group" data-phone-input-group>
                 <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
                 <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            </div>
+        </div>
+
+        <div class="form-group contact-photo-field">
+            <div class="contact-photo-preview">
+                <img src="<?php echo htmlspecialchars($contact_photo_placeholder, ENT_QUOTES, 'UTF-8'); ?>" alt="Contact photo preview" data-contact-photo-preview>
+            </div>
+            <div>
+                <label for="contact_photo">Contact Photo</label>
+                <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo CONTACT_PHOTO_MAX_BYTES; ?>">
+                <input type="file" id="contact_photo" name="contact_photo" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo CONTACT_PHOTO_MAX_BYTES; ?>" data-contact-photo-input>
+                <p class="field-help">Optional. JPEG, PNG, or WebP; maximum 5 MB.</p>
+                <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
             </div>
         </div>
 <br>

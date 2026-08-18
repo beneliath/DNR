@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'contact_photo_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -144,6 +145,8 @@ $contact_query = "SELECT
                     c.organization_id,
                     c.contact_first_name,
                     c.contact_last_name,
+                    c.contact_photo_mime,
+                    c.contact_photo_updated_at,
                     o.organization_name,
                     o.is_deleted AS organization_is_archived
                   FROM contacts c
@@ -401,11 +404,20 @@ function contactsPageUrl(
                 <?php else: ?>
                     <?php while ($contact = $contacts_result->fetch_assoc()): ?>
                         <tr>
-                            <td><a class="record-link" href="view_contact.php?id=<?php echo (int) $contact['id']; ?>"><?php echo htmlspecialchars(
-                                $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
-                                ENT_QUOTES,
-                                'UTF-8'
-                            ); ?></a></td>
+                            <td>
+                                <span class="contact-name-cell">
+                                    <?php if (!empty($contact['contact_photo_mime'])): ?>
+                                        <img class="contact-list-avatar" src="contact_photo.php?id=<?php echo (int) $contact['id']; ?>&amp;v=<?php echo strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0; ?>" alt="">
+                                    <?php else: ?>
+                                        <span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(contactInitials($contact), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php endif; ?>
+                                    <a class="record-link" href="view_contact.php?id=<?php echo (int) $contact['id']; ?>"><?php echo htmlspecialchars(
+                                        $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
+                                        ENT_QUOTES,
+                                        'UTF-8'
+                                    ); ?></a>
+                                </span>
+                            </td>
                             <td>
                                 <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
                                     <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>

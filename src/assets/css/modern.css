@@ -721,6 +721,143 @@ html body .container > .profile-form {
   vertical-align: middle;
 }
 
+/* Contact photos */
+.contact-name-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.contact-list-avatar {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  background: var(--surface-subtle);
+}
+
+img.contact-list-avatar {
+  display: block;
+  object-fit: cover;
+}
+
+span.contact-list-avatar {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: var(--surface-subtle);
+  color: var(--text);
+  font-size: 0.84rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-align: center;
+}
+
+.contact-photo-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 20px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+
+.contact-photo-field > div:last-child {
+  min-width: 0;
+}
+
+.contact-photo-field > div:only-child {
+  grid-column: 1 / -1;
+}
+
+.contact-photo-field input[type="file"] {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.contact-photo-field .field-help {
+  margin: 8px 0 0;
+}
+
+.contact-photo-preview-status {
+  margin: 8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  font-weight: 620;
+}
+
+.contact-photo-preview,
+.contact-photo-preview img {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+}
+
+.contact-photo-preview {
+  overflow: hidden;
+  border: 3px solid var(--surface);
+  background: var(--surface-subtle);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-sm);
+}
+
+.contact-photo-preview img,
+.contact-details-photo img {
+  display: block;
+  object-fit: cover;
+}
+
+.contact-photo-remove {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: var(--text-muted) !important;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.contact-photo-remove input {
+  width: auto !important;
+  margin: 0;
+}
+
+.contact-details-layout {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(22px, 5vw, 42px);
+}
+
+.contact-details-photo,
+.contact-details-photo img {
+  width: clamp(112px, 16vw, 152px);
+  height: clamp(112px, 16vw, 152px);
+  border-radius: 50%;
+}
+
+.contact-details-photo {
+  overflow: hidden;
+  border: 4px solid var(--surface);
+  background: var(--surface-subtle);
+  box-shadow: 0 0 0 1px var(--border-strong), var(--shadow-sm);
+}
+
+@media (max-width: 560px) {
+  .contact-photo-field,
+  .contact-details-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .contact-details-photo {
+    justify-self: center;
+  }
+}
+
 .calendar-card {
   margin-top: 8px;
 }

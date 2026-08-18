@@ -44,6 +44,7 @@ $display_role = $contact['contact_role'] === 'other'
 
 $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
+$contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -103,39 +104,43 @@ unset($_SESSION['success_message']);
             'UTF-8'
         ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?></p></div><?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_contact.php?id=<?php echo $contact_id; ?>&amp;from=view" class="button-add">Edit contact</a><?php endif; ?></div>
 
-    <div class="contact-details">
-
-        <div class="detail-row">
-            <strong>Organization</strong>
-            <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
-                <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
-            </a>
-            <?php if (!empty($contact['organization_is_archived'])): ?>
-                <span class="archive-status">Archived</span>
-            <?php endif; ?>
+    <div class="contact-details contact-details-layout">
+        <div class="contact-details-photo">
+            <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;v=<?php echo $contact_photo_version; ?>" alt="Contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>">
         </div>
+        <div>
+            <div class="detail-row">
+                <strong>Organization</strong>
+                <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
+                    <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+                <?php if (!empty($contact['organization_is_archived'])): ?>
+                    <span class="archive-status">Archived</span>
+                <?php endif; ?>
+            </div>
 
-        <div class="detail-row">
-            <strong>Role</strong>
-            <?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?>
-        </div>
+            <div class="detail-row">
+                <strong>Role</strong>
+                <?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?>
+            </div>
 
-        <div class="detail-row">
-            <strong>Email</strong>
-            <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
-                <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
-            </a>
-        </div>
+            <div class="detail-row">
+                <strong>Email</strong>
+                <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
+                </a>
+            </div>
 
-        <div class="detail-row">
-            <strong>Phone</strong>
-            <?php echo htmlspecialchars(
-                !empty($contact['contact_phone'])
-                    ? formatPhoneNumberForDisplay($contact['contact_phone'])
-                    : 'Not specified',
-                ENT_QUOTES,
-                'UTF-8'
-            ); ?>
+            <div class="detail-row">
+                <strong>Phone</strong>
+                <?php echo htmlspecialchars(
+                    !empty($contact['contact_phone'])
+                        ? formatPhoneNumberForDisplay($contact['contact_phone'])
+                        : 'Not specified',
+                    ENT_QUOTES,
+                    'UTF-8'
+                ); ?>
+            </div>
         </div>
     </div>
 

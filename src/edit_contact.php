@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'contact_photo_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -51,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
     $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
+    $remove_contact_photo = isset($_POST['remove_contact_photo']);
+    $contact_photo = null;
 
     if (!$organization_id) {
         $error_messages[] = 'Organization is required.';
@@ -81,36 +84,97 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (InvalidArgumentException $exception) {
         $error_messages[] = $exception->getMessage();
     }
+    try {
+        $contact_photo = contactPhotoFromUpload($_FILES['contact_photo'] ?? []);
+        if ($contact_photo !== null && $remove_contact_photo) {
+            throw new InvalidArgumentException('Choose either a new contact photo or remove the current photo.');
+        }
+    } catch (InvalidArgumentException $exception) {
+        $error_messages[] = $exception->getMessage();
+    } catch (Throwable $exception) {
+        error_log('Unable to read contact photo upload: ' . $exception->getMessage());
+        $error_messages[] = 'The contact photo could not be uploaded. Try again.';
+    }
 
     if (!$error_messages) {
         $conn->begin_transaction();
         try {
             requireActiveOrganization($conn, $organization_id, true);
-            $update_stmt = $conn->prepare(
-                "UPDATE contacts SET
-                    organization_id = ?,
-                    contact_first_name = ?,
-                    contact_last_name = ?,
-                    contact_role = ?,
-                    contact_role_other = ?,
-                    contact_email = ?,
-                    contact_phone = ?
-                 WHERE id = ? AND is_deleted = 0"
-            );
+            if ($contact_photo !== null) {
+                $update_stmt = $conn->prepare(
+                    "UPDATE contacts SET
+                        organization_id = ?,
+                        contact_first_name = ?,
+                        contact_last_name = ?,
+                        contact_role = ?,
+                        contact_role_other = ?,
+                        contact_email = ?,
+                        contact_phone = ?,
+                        contact_photo = ?,
+                        contact_photo_mime = ?,
+                        contact_photo_updated_at = UTC_TIMESTAMP()
+                     WHERE id = ? AND is_deleted = 0"
+                );
+            } elseif ($remove_contact_photo) {
+                $update_stmt = $conn->prepare(
+                    "UPDATE contacts SET
+                        organization_id = ?,
+                        contact_first_name = ?,
+                        contact_last_name = ?,
+                        contact_role = ?,
+                        contact_role_other = ?,
+                        contact_email = ?,
+                        contact_phone = ?,
+                        contact_photo = NULL,
+                        contact_photo_mime = NULL,
+                        contact_photo_updated_at = UTC_TIMESTAMP()
+                     WHERE id = ? AND is_deleted = 0"
+                );
+            } else {
+                $update_stmt = $conn->prepare(
+                    "UPDATE contacts SET
+                        organization_id = ?,
+                        contact_first_name = ?,
+                        contact_last_name = ?,
+                        contact_role = ?,
+                        contact_role_other = ?,
+                        contact_email = ?,
+                        contact_phone = ?
+                     WHERE id = ? AND is_deleted = 0"
+                );
+            }
             if (!$update_stmt) {
                 throw new RuntimeException('Unable to prepare the contact update.');
             }
-            $update_stmt->bind_param(
-                'issssssi',
-                $organization_id,
-                $contact_first_name,
-                $contact_last_name,
-                $contact_role,
-                $contact_role_other,
-                $contact_email,
-                $contact_phone,
-                $contact_id
-            );
+            if ($contact_photo !== null) {
+                $contact_photo_data = $contact_photo['data'];
+                $contact_photo_mime = $contact_photo['mime_type'];
+                $update_stmt->bind_param(
+                    'issssssssi',
+                    $organization_id,
+                    $contact_first_name,
+                    $contact_last_name,
+                    $contact_role,
+                    $contact_role_other,
+                    $contact_email,
+                    $contact_phone,
+                    $contact_photo_data,
+                    $contact_photo_mime,
+                    $contact_id
+                );
+            } else {
+                $update_stmt->bind_param(
+                    'issssssi',
+                    $organization_id,
+                    $contact_first_name,
+                    $contact_last_name,
+                    $contact_role,
+                    $contact_role_other,
+                    $contact_email,
+                    $contact_phone,
+                    $contact_id
+                );
+            }
             if (!$update_stmt->execute() || $update_stmt->affected_rows > 1) {
                 throw new RuntimeException('Unable to update the contact.');
             }
@@ -158,6 +222,7 @@ if (!$organizations_result) {
 $cancel_url = ($_GET['from'] ?? '') === 'view'
     ? "view_contact.php?id={$contact_id}"
     : 'contacts.php';
+$contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -166,6 +231,7 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Edit Contact - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
+    <script src="assets/js/contact-photo.min.js?v=1.0.0" defer></script>
     <style>
         .form-group {
             margin-bottom: 15px;
@@ -233,7 +299,7 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
         ); ?></p>
     <?php endif; ?>
 
-    <form method="post" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>">
+    <form method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>">
         <?php echo csrfInput(); ?>
 
         <div class="form-group">
@@ -289,6 +355,22 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
             <div class="phone-input-group" data-phone-input-group>
                 <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
                 <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            </div>
+        </div>
+
+        <div class="form-group contact-photo-field">
+            <div class="contact-photo-preview">
+                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;v=<?php echo $contact_photo_version; ?>" alt="Current contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>" data-contact-photo-preview>
+            </div>
+            <div>
+                <label for="contact_photo">Contact Photo</label>
+                <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo CONTACT_PHOTO_MAX_BYTES; ?>">
+                <input type="file" id="contact_photo" name="contact_photo" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo CONTACT_PHOTO_MAX_BYTES; ?>" data-contact-photo-input>
+                <p class="field-help">JPEG, PNG, or WebP; maximum 5 MB.</p>
+                <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
+                <?php if (!empty($contact['contact_photo_mime'])): ?>
+                    <label class="contact-photo-remove"><input type="checkbox" name="remove_contact_photo" value="1" <?php echo isset($_POST['remove_contact_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove current photo</label>
+                <?php endif; ?>
             </div>
         </div>
 

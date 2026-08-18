@@ -232,6 +232,9 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_role_other VARCHAR(255),
     contact_email VARCHAR(255) NOT NULL,
     contact_phone VARCHAR(50),
+    contact_photo MEDIUMBLOB NULL,
+    contact_photo_mime VARCHAR(32) NULL,
+    contact_photo_updated_at DATETIME NULL,
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
     INDEX idx_contacts_last_first (contact_last_name, contact_first_name),
@@ -446,5 +449,6 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260817_add_schema_migrations.sql', REPEAT('0', 64)),
 ('20260817_beta_readiness_hardening.sql', REPEAT('0', 64)),
 ('20260818_add_follow_up_tasks.sql', REPEAT('0', 64)),
+('20260818_add_contact_photos.sql', REPEAT('0', 64)),
 ('20260818_add_user_profiles.sql', REPEAT('0', 64)),
 ('20260818_standardize_phone_numbers.sql', REPEAT('0', 64));

@@ -54,6 +54,12 @@ expectFollowUpTaskFeature(
     'queue controls should omit Waiting and Unassigned buttons because their summary cards provide the same views.'
 );
 expectFollowUpTaskFeature(
+    str_contains($queue, '<time class="task-due task-due-')
+        && str_contains($queue, 'datetime="<?php echo htmlspecialchars($task[\'due_date\']')
+        && str_contains($queue, '><?php echo htmlspecialchars($task[\'due_date\']'),
+    'dated queue badges should show only the date because the column heading already supplies the Due label.'
+);
+expectFollowUpTaskFeature(
     str_contains($queue, 'requireValidCsrfToken()')
         && str_contains($queue, 'canManageFollowUpTasks')
         && str_contains($queue, 'canDeleteEntries')

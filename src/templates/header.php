@@ -6,7 +6,7 @@ $nav_groups = [
     'tasks' => ['tasks.php', 'add_task.php', 'edit_task.php'],
     'map' => ['map.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
-    'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php'],
+    'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
     'database' => ['database_maintenance.php'],
     'profile' => ['profile.php'],
@@ -24,7 +24,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.53">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.55">
 <?php if ($shell_current_page === 'map.php') : ?>
 <link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>
