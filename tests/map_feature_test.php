@@ -45,7 +45,7 @@ expectMapFeature(
         && str_contains($map_script, 'touchZoom: true')
         && str_contains($map_script, 'zoomControl: false')
         && str_contains($map_script, "L.control({position: 'topleft'})")
-        && str_contains($map_script, "L.DomUtil.create('button', 'map-zoom-button'")
+        && str_contains($map_script, "L.DomUtil.create('button', 'map-zoom-button button-secondary'")
         && str_contains($map_script, 'fitMapToPins')
         && str_contains($map_script, 'L.marker'),
     'the graphical map should provide colored pins, zoom, pan, touch zoom, and fit-to-pins.'
@@ -61,6 +61,7 @@ expectMapFeature(
         && str_contains($map_styles, '.map-zoom-button')
         && str_contains($map_styles, 'gap: 8px;')
         && str_contains($map_styles, 'background: var(--surface) !important;')
+        && str_contains($map_styles, 'background-color: var(--surface) !important;')
         && str_contains($map_styles, 'border-color: var(--control-hover-border) !important;'),
     'zoom controls should be spaced apart and use the project button surface and hover treatment.'
 );
@@ -73,6 +74,13 @@ expectMapFeature(
         && str_contains($map_styles, 'saturate(0.62)')
         && str_contains($map_styles, 'opacity: 0.82;'),
     'the basemap should use a lighter, lower-saturation treatment that matches the application theme.'
+);
+expectMapFeature(
+    preg_match('/@media \(max-width: 620px\).*?\.map-filters\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 620px\).*?\.map-date-window\s*\{[^}]*display:\s*block;[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 620px\).*?\.map-date-window > \.map-filter-field\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 620px\).*?\.map-filter-field input\[type="date"\]\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;[^}]*appearance:\s*none;[^}]*-webkit-appearance:\s*none;/s', $map_styles) === 1,
+    'phone filters should stay compact and date controls should remain inside the viewport.'
 );
 expectMapFeature(
     str_contains($geocoder, 'requireValidCsrfToken')

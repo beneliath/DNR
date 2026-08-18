@@ -22,7 +22,7 @@ $user_initial = strtoupper(substr($username, 0, 1));
 
 <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.46">
 <?php if ($shell_current_page === 'map.php') : ?>
-<link rel="stylesheet" href="assets/css/map.min.css?v=1.0.2">
+<link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>
 <script>document.body.classList.add('has-app-shell');</script>
 

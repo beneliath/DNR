@@ -34,8 +34,8 @@ import * as L from 'leaflet';
     const zoomControl = L.control({position: 'topleft'});
     zoomControl.onAdd = function () {
         const container = L.DomUtil.create('div', 'map-zoom-controls leaflet-control');
-        const zoomInButton = L.DomUtil.create('button', 'map-zoom-button', container);
-        const zoomOutButton = L.DomUtil.create('button', 'map-zoom-button', container);
+        const zoomInButton = L.DomUtil.create('button', 'map-zoom-button button-secondary', container);
+        const zoomOutButton = L.DomUtil.create('button', 'map-zoom-button button-secondary', container);
         zoomInButton.type = 'button';
         zoomOutButton.type = 'button';
         zoomInButton.textContent = '+';

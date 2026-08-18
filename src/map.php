@@ -238,7 +238,7 @@ $map_payload = [
     $map_payload,
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
-<script src="assets/js/map.min.js?v=1.0.1" defer></script>
+<script src="assets/js/map.min.js?v=1.0.2" defer></script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>
