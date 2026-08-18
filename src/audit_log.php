@@ -182,6 +182,10 @@ $security_event_labels = [
     'two_factor_login' => 'Two-factor login verification succeeded',
     'recovery_code_login' => 'Recovery-code login verification succeeded',
     'recovery_codes_regenerated' => 'Recovery codes regenerated',
+    'database_backup_created' => 'Database backup created',
+    'database_backup_auth_failed' => 'Database backup verification failed',
+    'database_restored' => 'Database restored',
+    'database_restore_auth_failed' => 'Database restore verification failed',
 ];
 $audit_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 try {

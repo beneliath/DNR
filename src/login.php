@@ -99,6 +99,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     </div>
     <h1>Welcome Back</h1>
     <p class="auth-intro">Sign in to manage engagements and contacts.</p>
+    <?php if (isset($_GET['database_restored'])): ?>
+      <p class="success">The database was restored successfully. All sessions were signed out.</p>
+    <?php endif; ?>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">
       <?php echo csrfInput(); ?>

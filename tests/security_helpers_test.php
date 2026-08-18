@@ -11,6 +11,23 @@ function expectTrue($condition, $message) {
 
 $_SESSION = [];
 
+$docker_route_fixture = "Iface\tDestination\tGateway\tFlags\tRefCnt\tUse\tMetric\tMask\n"
+    . "eth0\t00000000\t010012AC\t0003\t0\t0\t0\t00000000\n"
+    . "eth0\t000012AC\t00000000\t0001\t0\t0\t0\t0000FFFF\n";
+expectTrue(
+    dockerGatewayAddress($docker_route_fixture) === '172.18.0.1',
+    'The Docker gateway token should resolve the default IPv4 route from /proc/net/route.'
+);
+expectTrue(
+    isAddressInTrustedNetworks('172.18.0.1', 'docker-gateway', '172.18.0.1'),
+    'The resolved Docker gateway should be accepted as the immediate reverse-proxy hop.'
+);
+expectTrue(
+    !isAddressInTrustedNetworks('172.18.0.2', 'docker-gateway', '172.18.0.1')
+        && dockerGatewayAddress("Iface\tDestination\tGateway\tFlags\neth0\t00000000\tINVALID\t0003\n") === null,
+    'Other container-network addresses and malformed routes must not become trusted proxies.'
+);
+
 $token = generateCsrfToken();
 expectTrue(strlen($token) === 64, 'CSRF token should contain 32 random bytes as hex.');
 expectTrue(ctype_xdigit($token), 'CSRF token should be hexadecimal.');

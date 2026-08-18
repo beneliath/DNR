@@ -105,9 +105,10 @@ Configure these values as needed:
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct the calendar subscription URL.
 - `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
-- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's `192.168.65.1` gateway.
+- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust. The default `docker-gateway` resolves the container's current default gateway dynamically, avoiding stale bridge addresses after Docker network recreation. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.14` tunnel address. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
+- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted data size of a database backup created or accepted by the admin interface; defaults to `67108864` bytes (64 MB). Encrypted framing adds a small amount of overhead, so keep PHP's `upload_max_filesize` and `post_max_size` above this value when overriding it.
 - `DNR_GITHUB_REPOSITORY` and `DNR_GITHUB_BRANCH`: public GitHub repository and deployed branch whose repository activity keeps the footer's latest push timestamp and commit hash current; defaults to `beneliath/DNR` and `main`. If GitHub is unavailable and no cached response exists, the footer omits the push metadata rather than displaying stale commit information.
 - `DNR_GITHUB_PUSH_CACHE_TTL`: seconds to cache the latest GitHub push metadata; defaults to `120` and is constrained to 30–3600 seconds.
 - `DNR_GITHUB_RETRY_TTL`: retry backoff after GitHub is unavailable; defaults to `300` seconds.
@@ -136,6 +137,23 @@ Configure these values as needed:
 - Accounts without 2FA, or users who have lost every recovery method, require another administrator to set a temporary password from **Manage Users**, or a server administrator to run `docker compose exec web php /opt/dnr/bin/set_password.php USERNAME`.
 
 ### Usage
+
+Administrators can open **Database** in the primary navigation to download or restore a DNR
+database backup. Both operations require the administrator's password and a fresh authenticator
+or recovery code. Every export also requires a new backup password; that password is required to
+restore the file and is never stored by DNR. The complete `.dnrbackup` archive is encrypted with a
+key derived by Argon2id and authenticated with XChaCha20-Poly1305 secretstream. Backups contain
+every application table, including user authentication and audit data. Treat encrypted files as
+secrets, use a strong unique backup password, and keep the password separately in a password
+manager. A forgotten backup password cannot be recovered.
+
+A restore is accepted only when the backup schema exactly matches the deployed database schema.
+Install the matching DNR version and run its migrations before restoring. The data replacement is
+transactional and automatically rolls back on failure; a successful restore invalidates all
+existing sessions and requires everyone to sign in again. Database backups do not contain the
+separate `DNR_2FA_ENCRYPTION_KEY`, so keep a secure copy of that key with the backup set. For full
+disaster recovery, initialize and migrate an empty DNR deployment, restore the `.dnrbackup` from
+the admin interface, and restore the same two-factor encryption key.
 
 Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
 general or linked to one engagement, organization, or contact. Each task supports an owner,

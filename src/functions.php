@@ -636,7 +636,7 @@ function requestIpAddress($server = null) {
 function isTrustedProxyAddress($ip_address) {
     $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
     if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '192.168.65.1';
+        $configured_proxies = 'docker-gateway';
     }
 
     return isAddressInTrustedNetworks($ip_address, $configured_proxies);
@@ -651,13 +651,54 @@ function isTrustedCloudflareProxyAddress($ip_address) {
     return isAddressInTrustedNetworks($ip_address, $configured_proxies);
 }
 
-function isAddressInTrustedNetworks($ip_address, $configured_networks) {
+function dockerGatewayAddress($route_contents = null) {
+    if ($route_contents === null) {
+        $route_contents = @file_get_contents('/proc/net/route');
+    }
+    if (!is_string($route_contents) || trim($route_contents) === '') {
+        return null;
+    }
+
+    foreach (preg_split('/\R/', trim($route_contents)) as $route_line) {
+        $fields = preg_split('/\s+/', trim($route_line));
+        if (count($fields) < 4
+            || $fields[1] !== '00000000'
+            || preg_match('/\A[0-9A-Fa-f]{8}\z/', $fields[2]) !== 1
+            || preg_match('/\A[0-9A-Fa-f]{4}\z/', $fields[3]) !== 1
+            || (((int) hexdec($fields[3])) & 0x2) === 0
+        ) {
+            continue;
+        }
+
+        $packed_gateway = @hex2bin($fields[2]);
+        if ($packed_gateway === false || strlen($packed_gateway) !== 4) {
+            continue;
+        }
+        $gateway_address = @inet_ntop(strrev($packed_gateway));
+        if (is_string($gateway_address)
+            && filter_var($gateway_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
+        ) {
+            return $gateway_address;
+        }
+    }
+
+    return null;
+}
+
+function isAddressInTrustedNetworks($ip_address, $configured_networks, $docker_gateway = null) {
     if (!filter_var($ip_address, FILTER_VALIDATE_IP)) {
         return false;
     }
 
     $trusted_networks = array_filter(array_map('trim', explode(',', $configured_networks)));
     foreach ($trusted_networks as $trusted_network) {
+        if ($trusted_network === 'docker-gateway') {
+            $resolved_gateway = $docker_gateway ?? dockerGatewayAddress();
+            if ($resolved_gateway !== null && $ip_address === $resolved_gateway) {
+                return true;
+            }
+            continue;
+        }
         if (ipAddressMatchesNetwork($ip_address, $trusted_network)) {
             return true;
         }
