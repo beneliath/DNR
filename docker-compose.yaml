@@ -27,6 +27,8 @@ services:
       - DNR_GITHUB_BRANCH=${DNR_GITHUB_BRANCH:-main}
       - DNR_GITHUB_PUSH_CACHE_TTL=${DNR_GITHUB_PUSH_CACHE_TTL:-120}
       - DNR_GITHUB_RETRY_TTL=${DNR_GITHUB_RETRY_TTL:-300}
+      - DNR_GEOCODER_BASE_URL=${DNR_GEOCODER_BASE_URL:-https://nominatim.openstreetmap.org/search}
+      - DNR_GEOCODER_USER_AGENT=${DNR_GEOCODER_USER_AGENT:-}
 
   db:
     image: mysql:8.0

@@ -111,6 +111,8 @@ Configure these values as needed:
 - `DNR_GITHUB_REPOSITORY` and `DNR_GITHUB_BRANCH`: public GitHub repository and deployed branch whose repository activity keeps the footer's latest push timestamp and commit hash current; defaults to `beneliath/DNR` and `main`. If GitHub is unavailable and no cached response exists, the footer omits the push metadata rather than displaying stale commit information.
 - `DNR_GITHUB_PUSH_CACHE_TTL`: seconds to cache the latest GitHub push metadata; defaults to `120` and is constrained to 30–3600 seconds.
 - `DNR_GITHUB_RETRY_TTL`: retry backoff after GitHub is unavailable; defaults to `300` seconds.
+- `DNR_GEOCODER_BASE_URL`: configurable address-lookup endpoint used by the Map page; defaults to OpenStreetMap's public Nominatim search endpoint.
+- `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
 - `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. Compose uses the fixed `dnr` database and restricted `dnruser` account.
 
 ### Two-factor authentication
@@ -134,6 +136,10 @@ Configure these values as needed:
 - Accounts without 2FA, or users who have lost every recovery method, require another administrator to set a temporary password from **Manage Users**, or a server administrator to run `docker compose exec web php /opt/dnr/bin/set_password.php USERNAME`.
 
 ### Usage
+
+Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
+
+The first Map visit resolves uncached event addresses through the configured geocoder. Lookups are serialized to at most one request per second and cached by normalized address in the database, so events at the same address share one result. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure a geocoding provider appropriate for that workload instead of relying on the public default.
 
 Authenticated users can open **Calendar** in the navigation to copy the private, tokenized subscription URL or open it in a calendar app. The feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 

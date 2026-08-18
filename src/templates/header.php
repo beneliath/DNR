@@ -3,6 +3,7 @@
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
     'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'restore_chron_entries.php'],
+    'map' => ['map.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
@@ -20,6 +21,9 @@ $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
 <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.46">
+<?php if ($shell_current_page === 'map.php') : ?>
+<link rel="stylesheet" href="assets/css/map.min.css?v=1.0.2">
+<?php endif; ?>
 <script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
@@ -46,6 +50,9 @@ $user_initial = strtoupper(substr($username, 0, 1));
             <ul>
                 <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
+                </a></li>
+                <li><a href="map.php" class="nav-link<?php echo $active_nav === 'map' ? ' active' : ''; ?>"<?php echo $active_nav === 'map' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/><circle cx="15" cy="11" r="2"/></svg><span>Map</span>
                 </a></li>
                 <li><a href="organizations.php" class="nav-link<?php echo $active_nav === 'organizations' ? ' active' : ''; ?>"<?php echo $active_nav === 'organizations' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 21V6l8-3v18M12 9h8v12M8 8v.01M8 12v.01M8 16v.01M16 13v.01M16 17v.01M2 21h20"/></svg><span>Organizations</span>

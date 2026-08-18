@@ -155,7 +155,7 @@ body.has-app-shell {
   padding-left: var(--sidebar-width);
 }
 
-html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.app-sidebar) {
+html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.app-sidebar) {
   background-color: transparent !important;
   color: inherit !important;
 }

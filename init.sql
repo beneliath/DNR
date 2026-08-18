@@ -142,6 +142,23 @@ CREATE TABLE IF NOT EXISTS engagements (
     )
 );
 
+-- Cached address lookups for the interactive engagement map. Keeping this
+-- separate avoids changing an engagement's concurrency timestamp when a map
+-- location is resolved, and lets events at the same address share a result.
+CREATE TABLE IF NOT EXISTS engagement_map_geocodes (
+    address_hash CHAR(64) PRIMARY KEY,
+    address_query VARCHAR(1000) NOT NULL,
+    latitude DECIMAL(10,7) NULL,
+    longitude DECIMAL(10,7) NULL,
+    lookup_status ENUM('found', 'not_found') NOT NULL,
+    geocoded_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT chk_engagement_map_coordinates CHECK (
+        (lookup_status = 'found' AND latitude IS NOT NULL AND longitude IS NOT NULL)
+        OR (lookup_status = 'not_found' AND latitude IS NULL AND longitude IS NULL)
+    )
+);
+
 -- Timestamped Chron log entries for engagements. engagement_notes remains on
 -- engagements only for upgrade compatibility with pre-entry installations.
 CREATE TABLE IF NOT EXISTS engagement_chron_entries (

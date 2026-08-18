@@ -16,6 +16,10 @@ $asset_pairs = [
     'assets/js/app-shell.js' => 'assets/js/app-shell.min.js',
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
 ];
+$bundled_assets = [
+    'assets/css/map.min.css',
+    'assets/js/map.min.js',
+];
 
 foreach ($asset_pairs as $source_asset => $minified_asset) {
     $source_path = __DIR__ . '/../src/' . $source_asset;
@@ -27,7 +31,13 @@ foreach ($asset_pairs as $source_asset => $minified_asset) {
     );
 }
 
-$runtime_references = array_fill_keys(array_values($asset_pairs), false);
+foreach ($bundled_assets as $bundled_asset) {
+    $bundled_path = __DIR__ . '/../src/' . $bundled_asset;
+    expectMinifiedAsset(is_file($bundled_path), $bundled_asset . ' should exist.');
+    expectMinifiedAsset(filesize($bundled_path) > 0, $bundled_asset . ' should not be empty.');
+}
+
+$runtime_references = array_fill_keys(array_merge(array_values($asset_pairs), $bundled_assets), false);
 $source_directory = new RecursiveDirectoryIterator(
     __DIR__ . '/../src',
     FilesystemIterator::SKIP_DOTS
@@ -48,6 +58,11 @@ foreach ($source_files as $source_file) {
         );
         if (str_contains($page_source, $minified_asset)) {
             $runtime_references[$minified_asset] = true;
+        }
+    }
+    foreach ($bundled_assets as $bundled_asset) {
+        if (str_contains($page_source, $bundled_asset)) {
+            $runtime_references[$bundled_asset] = true;
         }
     }
 }
