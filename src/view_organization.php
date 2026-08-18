@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -239,6 +240,14 @@ $contact_stmt->close();
             <p>No contacts found for this organization.</p>
         <?php endif; ?>
     </div>
+
+    <?php
+    $context_task_subject_type = 'organization';
+    $context_task_subject_id = $org_id;
+    $context_task_subject_active = !$is_archived;
+    $context_task_return_to = 'view_organization.php?id=' . $org_id . '#follow-up-work';
+    include 'templates/follow_up_task_section.php';
+    ?>
 
     <div class="action-buttons">
         <a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>

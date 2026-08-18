@@ -47,5 +47,5 @@
 - [x] evaluate for SQL injection vulnerabilities
 - [x] minify JS and CSS
 - [ ] when above is complete: build out REPORT functionality
-- [ ] when above is complete: build out FOLLOW-UP functionality
+- [x] build initial FOLLOW-UP functionality with assigned tasks, due-date work queues, contextual record tasks, and optional engagement checklists
 - [ ] when above is complete: build out printed document support

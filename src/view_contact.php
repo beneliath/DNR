@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -131,6 +132,14 @@ unset($_SESSION['success_message']);
             <?php echo htmlspecialchars($contact['contact_phone'] ?: 'Not specified', ENT_QUOTES, 'UTF-8'); ?>
         </div>
     </div>
+
+    <?php
+    $context_task_subject_type = 'contact';
+    $context_task_subject_id = $contact_id;
+    $context_task_subject_active = !$is_archived && empty($contact['organization_is_archived']);
+    $context_task_return_to = 'view_contact.php?id=' . $contact_id . '#follow-up-work';
+    include 'templates/follow_up_task_section.php';
+    ?>
 
     <div class="action-buttons">
         <a href="contacts.php<?php echo $is_archived ? '?status=archived' : ''; ?>" class="action-button back-button">Back to List</a>

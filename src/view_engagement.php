@@ -4,6 +4,7 @@ include 'functions.php';
 include 'chron_log_helpers.php';
 include 'engagement_export_helpers.php';
 include 'presentation_helpers.php';
+include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -434,6 +435,14 @@ $presentation_stmt->close();
         </div>
         <span id="copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
     </div>
+
+    <?php
+    $context_task_subject_type = 'engagement';
+    $context_task_subject_id = $engagement_id;
+    $context_task_subject_active = !$is_archived;
+    $context_task_return_to = 'view_engagement.php?id=' . $engagement_id . '#follow-up-work';
+    include 'templates/follow_up_task_section.php';
+    ?>
 </div>
 <script>
 (function () {

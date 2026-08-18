@@ -137,6 +137,19 @@ Configure these values as needed:
 
 ### Usage
 
+Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
+general or linked to one engagement, organization, or contact. Each task supports an owner,
+due date, priority, notes, and the states **Open**, **In progress**, **Waiting**, **Completed**,
+and **Canceled**. The queue provides personal, overdue, due-today, next-seven-days, waiting,
+unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and
+editors can create, edit, assign, and complete them; permanent deletion remains limited to
+administrators.
+
+Engagement, organization, and contact detail pages show their open follow-up work. Active
+engagements also offer an optional, idempotent standard checklist covering location, travel,
+presentations, materials, host reconfirmation, post-event thanks, outcome capture, and financial
+closeout. Re-running the checklist only adds missing standard items.
+
 Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
 
 The first Map visit resolves uncached event addresses through the configured geocoder. Lookups are serialized to at most one request per second and cached by normalized address in the database, so events at the same address share one result. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure a geocoding provider appropriate for that workload instead of relying on the public default.
