@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'profile_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
@@ -20,7 +21,9 @@ $must_change_password_column = $has_must_change_password
     : '0 AS must_change_password';
 
 $users = $conn->query(
-    "SELECT id, username, role, two_factor_enabled,
+    "SELECT id, username, first_name, last_name, phone, email,
+            profile_picture_mime, profile_picture_updated_at,
+            role, two_factor_enabled,
             {$created_at_column}, {$last_updated_at_column}, {$last_login_at_column},
             {$must_change_password_column}
      FROM users
@@ -132,6 +135,67 @@ if (!$users) {
             color: #FF9800;
             font-weight: var(--font-weight-semibold);
         }
+        .user-profile-summary {
+            display: flex;
+            min-width: 0;
+            align-items: center;
+            gap: 14px;
+        }
+        .user-list-avatar {
+            display: block;
+            width: 52px;
+            height: 52px;
+            flex: 0 0 auto;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            background: var(--accent);
+            object-fit: cover;
+        }
+        .user-identity-copy {
+            min-width: 0;
+        }
+        .user-account-heading {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .user-display-name {
+            font-size: 1rem;
+        }
+        .user-username {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+        .user-contact-details {
+            display: flex;
+            min-width: 0;
+            flex-wrap: wrap;
+            gap: 5px 18px;
+            margin-top: 7px;
+            color: var(--text-muted);
+            font-size: 0.84rem;
+        }
+        .user-contact-details span {
+            overflow-wrap: anywhere;
+        }
+        .user-contact-details .is-empty {
+            color: var(--text-subtle);
+            font-style: italic;
+        }
+        @media (min-width: 761px) {
+            .user-timestamps {
+                margin-left: 66px;
+            }
+        }
+        @media (max-width: 760px) {
+            .user-main {
+                gap: 16px;
+            }
+            .user-actions {
+                align-self: flex-end;
+            }
+        }
     </style>
 </head>
 <body>
@@ -151,20 +215,38 @@ if (!$users) {
 
     <div class="users-list">
         <?php while ($user = $users->fetch_assoc()) { ?>
+            <?php
+            $display_name = profileDisplayName($user);
+            $has_personal_name = trim((string) ($user['first_name'] ?? '')) !== ''
+                || trim((string) ($user['last_name'] ?? '')) !== '';
+            $display_phone = formatPhoneNumberForDisplay($user['phone'] ?? '');
+            $display_email = trim((string) ($user['email'] ?? ''));
+            $picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
+            ?>
             <div class="user-details">
                 <div class="user-main">
-                    <div>
-                        <strong><?php echo htmlspecialchars($user['username']); ?></strong>
-                        (<?php echo htmlspecialchars($user['role']); ?>)
-                        &mdash;
-                        <?php if (!empty($user['two_factor_enabled'])): ?>
-                            <span class="two-factor-status-enabled">2FA enabled</span>
-                        <?php else: ?>
-                            <span class="two-factor-status-disabled">2FA not enabled</span>
-                        <?php endif; ?>
-                        <?php if (!empty($user['must_change_password'])): ?>
-                            &mdash; <span class="password-change-required">password change required</span>
-                        <?php endif; ?>
+                    <div class="user-profile-summary">
+                        <img class="user-list-avatar" src="profile_picture.php?id=<?php echo (int) $user['id']; ?>&amp;v=<?php echo $picture_version; ?>" alt="">
+                        <div class="user-identity-copy">
+                            <div class="user-account-heading">
+                                <strong class="user-display-name"><?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?></strong>
+                                <?php if ($has_personal_name): ?><span class="user-username">@<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
+                                <span>(<?php echo htmlspecialchars($user['role'], ENT_QUOTES, 'UTF-8'); ?>)</span>
+                                &mdash;
+                                <?php if (!empty($user['two_factor_enabled'])): ?>
+                                    <span class="two-factor-status-enabled">2FA enabled</span>
+                                <?php else: ?>
+                                    <span class="two-factor-status-disabled">2FA not enabled</span>
+                                <?php endif; ?>
+                                <?php if (!empty($user['must_change_password'])): ?>
+                                    &mdash; <span class="password-change-required">password change required</span>
+                                <?php endif; ?>
+                            </div>
+                            <div class="user-contact-details">
+                                <span class="<?php echo $display_email === '' ? 'is-empty' : ''; ?>">Email: <?php echo $display_email !== '' ? htmlspecialchars($display_email, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?></span>
+                                <span class="<?php echo $display_phone === '' ? 'is-empty' : ''; ?>">Phone: <?php echo $display_phone !== '' ? htmlspecialchars($display_phone, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?></span>
+                            </div>
+                        </div>
                     </div>
                     <div class="user-actions">
                         <?php if ((int) $user['id'] !== (int) $_SESSION['user_id']): ?>

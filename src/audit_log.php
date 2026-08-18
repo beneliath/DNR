@@ -7,6 +7,75 @@ requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireValidCsrfToken();
+    $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    $confirmation = is_string($_POST['purge_confirmation'] ?? null)
+        ? trim($_POST['purge_confirmation'])
+        : '';
+
+    if ($action !== 'purge') {
+        http_response_code(400);
+        exit('Invalid audit log action.');
+    }
+
+    if ($confirmation !== 'PURGE') {
+        $_SESSION['audit_log_action_error'] = 'Type PURGE exactly to permanently delete the audit log.';
+        header('Location: audit_log.php');
+        exit();
+    }
+
+    $actor_id = (int) ($_SESSION['user_id'] ?? 0);
+    $transaction_started = false;
+    try {
+        if (!$conn->begin_transaction()) {
+            throw new RuntimeException('Unable to start the audit log purge transaction.');
+        }
+        $transaction_started = true;
+        if (!$conn->query('DELETE FROM security_audit_log')) {
+            throw new RuntimeException('Unable to delete the audit log.');
+        }
+        $purged_entry_count = (int) $conn->affected_rows;
+        $audit_recorded = recordAuditEvent($conn, [
+            'event_category' => 'security',
+            'event_type' => 'audit_log_purged',
+            'actor_user_id' => $actor_id,
+            'target_user_id' => $actor_id,
+            'entity_type' => 'audit_log',
+            'details' => sprintf(
+                'Administrator permanently deleted %d prior audit entr%s',
+                $purged_entry_count,
+                $purged_entry_count === 1 ? 'y' : 'ies'
+            ),
+        ]);
+        if (!$audit_recorded) {
+            throw new RuntimeException('Unable to record the audit log purge event.');
+        }
+        if (!$conn->commit()) {
+            throw new RuntimeException('Unable to commit the audit log purge.');
+        }
+        $transaction_started = false;
+        $_SESSION['audit_log_action_message'] = sprintf(
+            'Audit log purged. %d prior entr%s permanently deleted.',
+            $purged_entry_count,
+            $purged_entry_count === 1 ? 'y was' : 'ies were'
+        );
+    } catch (Throwable $exception) {
+        if ($transaction_started) {
+            $conn->rollback();
+        }
+        error_log('Audit log purge failed: ' . $exception->getMessage());
+        $_SESSION['audit_log_action_error'] = 'The audit log could not be purged. No entries were deleted.';
+    }
+
+    header('Location: audit_log.php');
+    exit();
+}
+
+$action_message = $_SESSION['audit_log_action_message'] ?? '';
+$action_error = $_SESSION['audit_log_action_error'] ?? '';
+unset($_SESSION['audit_log_action_message'], $_SESSION['audit_log_action_error']);
+
 $allowed_categories = ['login', 'database_change', 'security'];
 $allowed_page_sizes = [20, 50, 100];
 $category = $_GET['category'] ?? '';
@@ -166,6 +235,7 @@ $entity_labels = [
     'contacts' => 'contact',
     'engagements' => 'engagement',
     'presentations' => 'presentation',
+    'audit_log' => 'audit log',
 ];
 $security_event_labels = [
     'password_recovery_started' => 'Password recovery started',
@@ -186,6 +256,7 @@ $security_event_labels = [
     'database_backup_auth_failed' => 'Database backup verification failed',
     'database_restored' => 'Database restored',
     'database_restore_auth_failed' => 'Database restore verification failed',
+    'audit_log_purged' => 'Audit log purged',
 ];
 $audit_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 try {
@@ -248,6 +319,12 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         }
         .page-heading {
             justify-content: space-between;
+        }
+        .page-heading-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         .audit-filters {
             margin: 0;
@@ -321,6 +398,9 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         .empty-state {
             text-align: center !important;
         }
+        .purge-confirmation-input {
+            margin-bottom: 0 !important;
+        }
         @media (max-width: 700px) {
             .page-heading,
             .audit-controls {
@@ -341,8 +421,22 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <h1>Audit Log</h1>
             <p class="page-intro">Login, logout, and database activity. Newest entries appear first.</p>
         </div>
-        <a href="users.php" class="button-add">Back to Users</a>
+        <div class="page-heading-actions">
+            <a href="users.php" class="button-add">Back to Users</a>
+            <form method="post" action="audit_log.php" id="purge-audit-log-form">
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="action" value="purge">
+                <button type="button" class="danger-button" id="open-purge-audit-log">Purge Log</button>
+            </form>
+        </div>
     </div>
+
+    <?php if ($action_message !== ''): ?>
+        <div class="success" role="status"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></div>
+    <?php endif; ?>
+    <?php if ($action_error !== ''): ?>
+        <div class="error" role="alert"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></div>
+    <?php endif; ?>
 
     <div class="audit-controls">
         <form method="get" action="audit_log.php" class="list-search-form" role="search">
@@ -466,7 +560,47 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             </div>
         </nav>
     <?php endif; ?>
+
+    <dialog id="purge-audit-log-confirmation" class="confirmation-dialog" aria-labelledby="purge-audit-log-title" aria-describedby="purge-audit-log-message">
+        <h2 id="purge-audit-log-title">Purge Audit Log?</h2>
+        <p id="purge-audit-log-message">This permanently deletes every current audit entry. A new entry identifying the administrator and the number of deleted entries will be retained.</p>
+        <label for="purge-confirmation-input">Type <strong>PURGE</strong> to continue.</label>
+        <input type="text" id="purge-confirmation-input" class="purge-confirmation-input" name="purge_confirmation" form="purge-audit-log-form" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <div class="confirmation-dialog-actions">
+            <button type="button" class="button-secondary" id="cancel-purge-audit-log" autofocus>Cancel</button>
+            <button type="submit" class="danger-button" id="confirm-purge-audit-log" form="purge-audit-log-form" disabled>Purge permanently</button>
+        </div>
+    </dialog>
 </main>
+<script>
+(function () {
+    const confirmation = document.getElementById('purge-audit-log-confirmation');
+    const openButton = document.getElementById('open-purge-audit-log');
+    const cancelButton = document.getElementById('cancel-purge-audit-log');
+    const confirmButton = document.getElementById('confirm-purge-audit-log');
+    const confirmationInput = document.getElementById('purge-confirmation-input');
+
+    if (!confirmation || !openButton || !cancelButton || !confirmButton || !confirmationInput) return;
+
+    function resetConfirmation() {
+        confirmationInput.value = '';
+        confirmButton.disabled = true;
+    }
+
+    openButton.addEventListener('click', function () {
+        resetConfirmation();
+        confirmation.showModal();
+        confirmationInput.focus();
+    });
+    cancelButton.addEventListener('click', function () {
+        confirmation.close();
+    });
+    confirmation.addEventListener('cancel', resetConfirmation);
+    confirmationInput.addEventListener('input', function () {
+        confirmButton.disabled = confirmationInput.value !== 'PURGE';
+    });
+})();
+</script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

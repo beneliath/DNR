@@ -86,10 +86,22 @@ expectUserProfile(
 $picture_endpoint = $read('src/profile_picture.php');
 expectUserProfile(
     str_contains($picture_endpoint, 'requireLogin()')
+        && str_contains($picture_endpoint, "!checkRole('admin')")
         && str_contains($picture_endpoint, "header('Cache-Control: private")
         && str_contains($picture_endpoint, "'image/jpeg', 'image/png', 'image/webp'")
         && str_contains($picture_endpoint, "header('X-Content-Type-Options: nosniff')"),
     'profile pictures should be served only to authenticated users with private, type-safe responses.'
+);
+
+$users_page = $read('src/users.php');
+expectUserProfile(
+    str_contains($users_page, 'profile_picture_mime, profile_picture_updated_at')
+        && str_contains($users_page, 'class="user-list-avatar"')
+        && str_contains($users_page, 'profile_picture.php?id=')
+        && str_contains($users_page, 'formatPhoneNumberForDisplay(')
+        && str_contains($users_page, 'Email: ')
+        && str_contains($users_page, 'Phone: '),
+    'the administrator user list should show each profile picture or initials, email, and telephone number.'
 );
 expectUserProfile(
     str_contains($read('src/functions.php'), "'profile_picture.php',"),

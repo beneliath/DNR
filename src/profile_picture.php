@@ -5,7 +5,19 @@ require_once __DIR__ . '/profile_helpers.php';
 startSecureSession();
 requireLogin();
 
-$user_id = (int) $_SESSION['user_id'];
+$current_user_id = (int) $_SESSION['user_id'];
+$user_id = $current_user_id;
+if (isset($_GET['id'])) {
+    if (!ctype_digit((string) $_GET['id'])) {
+        http_response_code(400);
+        exit;
+    }
+    $user_id = (int) $_GET['id'];
+}
+if ($user_id < 1 || ($user_id !== $current_user_id && !checkRole('admin'))) {
+    http_response_code(403);
+    exit;
+}
 $stmt = $conn->prepare(
     'SELECT username, first_name, last_name, profile_picture, profile_picture_mime,
             profile_picture_updated_at
@@ -55,6 +67,7 @@ $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img"
     . '<text x="64" y="68" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" text-anchor="middle" dominant-baseline="middle">'
     . $initials
     . '</text></svg>';
+header('Cache-Control: private, no-cache');
 header('Content-Type: image/svg+xml; charset=UTF-8');
 header('Content-Length: ' . strlen($svg));
 echo $svg;
