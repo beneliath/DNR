@@ -1,0 +1,13 @@
+---
+description: Interpret commit + push as committing all changes and pushing to every repository remote
+alwaysApply: true
+---
+
+# Commit and Push Convention
+
+When the user says "commit + push" or otherwise asks to commit and push:
+
+- Stage and commit all current workspace changes, including untracked files.
+- Push the resulting commit on the current branch to every configured Git remote.
+- Verify that the corresponding branch on every remote resolves to the committed SHA.
+- Do not report the operation as complete if any remote was skipped or failed; identify the failure clearly.
