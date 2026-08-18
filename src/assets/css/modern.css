@@ -535,6 +535,17 @@ html.dark-mode .theme-icon-dark {
   font-size: 0.8rem;
 }
 
+.phone-input-group {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.phone-input-group > input[data-phone-number] {
+  min-width: 0;
+  width: 100%;
+}
+
 .record-page-heading {
   align-items: center !important;
 }
@@ -2751,5 +2762,182 @@ html.dark-mode .login-secondary-link a {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+}
+
+/* Compact telephone input and country-code picker. */
+.phone-input-group {
+  display: flex !important;
+  width: fit-content !important;
+  max-width: 100%;
+  min-height: 44px;
+  gap: 10px;
+  align-items: stretch;
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.phone-country-picker {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+}
+
+html body .phone-country-trigger {
+  display: inline-flex !important;
+  width: auto !important;
+  min-width: 7rem;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-size: 0.95rem !important;
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+  transform: none !important;
+}
+
+html body .phone-country-trigger:hover,
+html body .phone-country-trigger[aria-expanded="true"] {
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+html body .phone-country-trigger:focus-visible {
+  border-color: var(--primary) !important;
+  outline: 0 !important;
+  background: var(--surface) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.phone-country-flag,
+.phone-country-option-flag {
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.phone-country-chevron {
+  width: 0;
+  height: 0;
+  border-top: 5px solid currentColor;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  opacity: 0.62;
+  transition: transform 150ms ease;
+}
+
+.phone-country-trigger[aria-expanded="true"] .phone-country-chevron {
+  transform: rotate(180deg);
+}
+
+html body .phone-input-group > input[data-phone-number],
+html.dark-mode body .phone-input-group > input[data-phone-number] {
+  width: 15rem !important;
+  max-width: 15rem;
+  min-width: 0;
+  min-height: 44px !important;
+  flex: 0 1 15rem !important;
+  margin: 0 !important;
+  padding: 10px 13px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  outline: 0 !important;
+  background: var(--surface) !important;
+  box-shadow: none !important;
+}
+
+html body .phone-input-group > input[data-phone-number]:focus-visible {
+  border-color: var(--primary) !important;
+  outline: 0 !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.phone-country-menu[hidden] {
+  display: none !important;
+}
+
+html body .phone-country-menu {
+  position: absolute;
+  z-index: 150;
+  top: calc(100% + 6px);
+  left: 0;
+  width: min(24rem, calc(100vw - 48px));
+  max-height: 20rem;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-md);
+}
+
+html body .phone-country-option {
+  display: grid !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-size: 0.9rem !important;
+  font-weight: 520;
+  text-align: left;
+  transform: none !important;
+}
+
+html body .phone-country-option:hover,
+html body .phone-country-option:focus-visible,
+html body .phone-country-option[aria-selected="true"] {
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+.phone-country-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-country-option-code {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
+}
+
+@media (max-width: 480px) {
+  .phone-input-group {
+    width: 100% !important;
+  }
+
+  html body .phone-country-trigger {
+    min-width: 6.5rem;
+    padding-inline: 10px !important;
+  }
+
+  html body .phone-input-group > input[data-phone-number],
+  html.dark-mode body .phone-input-group > input[data-phone-number] {
+    width: auto !important;
+    max-width: none;
+    flex: 1 1 auto !important;
+  }
+
+  html body .phone-country-menu {
+    width: min(21rem, calc(100vw - 48px));
   }
 }

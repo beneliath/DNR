@@ -129,7 +129,13 @@ unset($_SESSION['success_message']);
 
         <div class="detail-row">
             <strong>Phone</strong>
-            <?php echo htmlspecialchars($contact['contact_phone'] ?: 'Not specified', ENT_QUOTES, 'UTF-8'); ?>
+            <?php echo htmlspecialchars(
+                !empty($contact['contact_phone'])
+                    ? formatPhoneNumberForDisplay($contact['contact_phone'])
+                    : 'Not specified',
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?>
         </div>
     </div>
 

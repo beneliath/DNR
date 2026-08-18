@@ -280,7 +280,7 @@ $presentation_stmt->close();
                 <div>Email: <a href="mailto:<?php echo htmlspecialchars($contact['contact_email']); ?>"><?php echo htmlspecialchars($contact['contact_email']); ?></a></div>
                 <?php endif; ?>
                 <?php if (!empty($contact['contact_phone'])): ?>
-                <div>Phone: <?php echo htmlspecialchars($contact['contact_phone']); ?></div>
+                <div>Phone: <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?></div>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>

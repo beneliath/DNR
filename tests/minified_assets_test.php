@@ -14,6 +14,7 @@ $asset_pairs = [
     'assets/js/main.js' => 'assets/js/main.min.js',
     'assets/js/theme.js' => 'assets/js/theme.min.js',
     'assets/js/app-shell.js' => 'assets/js/app-shell.min.js',
+    'assets/js/phone-input.js' => 'assets/js/phone-input.min.js',
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
 ];
 $bundled_assets = [

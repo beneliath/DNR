@@ -49,11 +49,11 @@ $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '1.3.1');"),
-    'The application version should be 1.3.1.'
+    str_contains($configuration_source, "define('APP_VERSION', '1.3.2');"),
+    'The application version should be 1.3.2.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.3.1'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.3.2'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(

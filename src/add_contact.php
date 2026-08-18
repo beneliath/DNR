@@ -24,6 +24,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
+    $phone_error = '';
+    try {
+        $contact_phone = normalizePhoneNumber(
+            $contact_phone_country_code,
+            $contact_phone,
+            'Phone number'
+        );
+    } catch (InvalidArgumentException $exception) {
+        $phone_error = $exception->getMessage();
+    }
 
     // Validate required fields
     $valid_contact_roles = ['pastor', 'admin', 'other'];
@@ -38,6 +49,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         $error_message = "Invalid contact role selected.";
     } elseif ($contact_role === 'other' && empty($contact_role_other)) {
         $error_message = "Please specify the other role.";
+    } elseif ($phone_error !== '') {
+        $error_message = $phone_error;
     } else {
         $conn->begin_transaction();
         try {
@@ -78,6 +91,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         }
     }
 }
+
+$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+[, $contact_phone_local_value] = phoneNumberInputParts(
+    $_POST['contact_phone'] ?? '',
+    $contact_phone_country_code_value
+);
 ?>
 
 <!DOCTYPE html>
@@ -262,7 +281,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
 
         <div class="form-group">
             <label for="contact_phone">Phone Number</label>
-            <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_phone'] ?? '') : ''; ?>">
+            <div class="phone-input-group" data-phone-input-group>
+                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
+                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            </div>
         </div>
 <br>
         <div class="form-group create-form-actions" style="padding-left: 0; margin-left: 0;">

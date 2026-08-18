@@ -186,6 +186,39 @@ try {
 }
 expectTrue(normalizedHttpUrl('https://example.org/path') === 'https://example.org/path', 'HTTPS URLs should validate.');
 expectTrue(normalizedHttpUrl('javascript:alert(1)') === null, 'Script URLs must be rejected.');
+expectTrue(
+    normalizePhoneNumber('+1', '3125550199') === '+1 (312) 555-0199',
+    'U.S. telephone numbers should use the canonical country and local format.'
+);
+expectTrue(
+    normalizePhoneNumber('+1', '+1 (312) 555-0199') === '+1 (312) 555-0199',
+    'A pasted U.S. country code should not be duplicated.'
+);
+expectTrue(
+    normalizePhoneNumber('+44', '20 7946 0958') === '+44 (207) 946-0958',
+    'A selected non-U.S. country code should be preserved with the requested local grouping.'
+);
+expectTrue(normalizePhoneNumber('+1', '') === '', 'An optional blank telephone number should remain blank.');
+expectTrue(
+    phoneNumberInputParts('312.555.0199') === ['+1', '(312) 555-0199'],
+    'Legacy U.S. values should populate the country and local controls separately.'
+);
+expectTrue(
+    formatPhoneNumberForDisplay('1-312-555-0199') === '+1 (312) 555-0199',
+    'Legacy telephone numbers should be normalized when displayed.'
+);
+expectTrue(
+    str_contains(phoneCountryPicker('phone_country_code'), 'data-country-code="+1"')
+        && str_contains(phoneCountryPicker('phone_country_code'), '🇺🇸')
+        && str_contains(phoneCountryPicker('phone_country_code'), 'United States / Canada'),
+    'New telephone controls should default to the U.S. +1 country selection.'
+);
+try {
+    normalizePhoneNumber('+1', '555-0199');
+    expectTrue(false, 'An incomplete telephone number should throw.');
+} catch (InvalidArgumentException $exception) {
+    expectTrue(true, 'An incomplete telephone number was rejected.');
+}
 expectTrue(normalizeEventType('other', 'Retreat') === ['other', 'Retreat'], 'Custom event types should use the canonical other fields.');
 try {
     normalizeEventType('Retreat', '');

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/functions.php';
 
 function addEngagementExportField(array &$fields, $label, $value, $include_empty = false) {
     $value = is_string($value) ? trim($value) : (string) $value;
@@ -64,7 +65,11 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         $fields = [];
         addEngagementExportField($fields, 'Role', $role);
         addEngagementExportField($fields, 'Email', $contact['contact_email'] ?? '');
-        addEngagementExportField($fields, 'Phone', $contact['contact_phone'] ?? '');
+        addEngagementExportField(
+            $fields,
+            'Phone',
+            formatPhoneNumberForDisplay($contact['contact_phone'] ?? '')
+        );
         $contact_entries[] = [
             'title' => $name !== '' ? $name : 'Contact',
             'fields' => $fields,

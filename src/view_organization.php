@@ -162,12 +162,12 @@ $contact_stmt->close();
 
         <div class="detail-row">
             <strong>Phone</strong>
-            <?php echo !empty($organization['phone']) ? htmlspecialchars($organization['phone']) : 'Not specified'; ?>
+            <?php echo !empty($organization['phone']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['phone']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
         </div>
 
         <div class="detail-row">
             <strong>Fax</strong>
-            <?php echo !empty($organization['fax']) ? htmlspecialchars($organization['fax']) : 'Not specified'; ?>
+            <?php echo !empty($organization['fax']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['fax']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
         </div>
 
         <div class="detail-row">
@@ -231,7 +231,7 @@ $contact_stmt->close();
                     <div class="contact-info">
                         <div><strong>Email:</strong> <?php echo htmlspecialchars($contact['contact_email']); ?></div>
                         <?php if (!empty($contact['contact_phone'])): ?>
-                            <div><strong>Phone:</strong> <?php echo htmlspecialchars($contact['contact_phone']); ?></div>
+                            <div><strong>Phone:</strong> <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?></div>
                         <?php endif; ?>
                     </div>
                 </div>

@@ -21,7 +21,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $distinctives = trim($_POST['distinctives'] ?? '');
     $website_url = trim($_POST['website_url'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
+    $phone_country_code = trim($_POST['phone_country_code'] ?? '+1');
     $fax = trim($_POST['fax'] ?? '');
+    $fax_country_code = trim($_POST['fax_country_code'] ?? '+1');
     $mailing_address_line_1 = trim($_POST['mailing_address_line_1'] ?? '');
     $mailing_address_line_2 = trim($_POST['mailing_address_line_2'] ?? '');
     $mailing_city = trim($_POST['mailing_city'] ?? '');
@@ -51,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
 
     $contact_candidates = [[
         'first_name' => $contact_first_name,
@@ -59,7 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         'role_other' => $contact_role_other,
         'email' => $contact_email,
         'email_confirm' => $contact_email_confirm,
-        'phone' => $contact_phone
+        'phone' => $contact_phone,
+        'phone_country_code' => $contact_phone_country_code
     ]];
     if (isset($_POST['contacts']) && is_array($_POST['contacts'])) {
         foreach ($_POST['contacts'] as $submitted_contact) {
@@ -73,7 +77,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 'role_other' => trim($submitted_contact['role_other'] ?? ''),
                 'email' => trim($submitted_contact['email'] ?? ''),
                 'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
-                'phone' => trim($submitted_contact['phone'] ?? '')
+                'phone' => trim($submitted_contact['phone'] ?? ''),
+                'phone_country_code' => trim($submitted_contact['phone_country_code'] ?? '+1')
             ];
         }
     }
@@ -97,10 +102,28 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     ) {
         $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
     }
+    try {
+        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Organization phone');
+    } catch (InvalidArgumentException $exception) {
+        $errorMessages[] = $exception->getMessage();
+    }
+    try {
+        $fax = normalizePhoneNumber($fax_country_code, $fax, 'Organization fax');
+    } catch (InvalidArgumentException $exception) {
+        $errorMessages[] = $exception->getMessage();
+    }
     $contacts_to_create = [];
     foreach ($contact_candidates as $contact_index => $candidate) {
         $contact_number = $contact_index + 1;
-        $has_contact_data = implode('', $candidate) !== '';
+        $has_contact_data = implode('', [
+            $candidate['first_name'],
+            $candidate['last_name'],
+            $candidate['role'],
+            $candidate['role_other'],
+            $candidate['email'],
+            $candidate['email_confirm'],
+            $candidate['phone'],
+        ]) !== '';
         if (!$has_contact_data) {
             continue;
         }
@@ -120,6 +143,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             $errorMessages[] = "Contact {$contact_number} requires a valid email address.";
         } elseif (!hash_equals($candidate['email'], $candidate['email_confirm'])) {
             $errorMessages[] = "Contact {$contact_number} email addresses do not match.";
+        }
+        try {
+            $candidate['phone'] = normalizePhoneNumber(
+                $candidate['phone_country_code'],
+                $candidate['phone'],
+                "Contact {$contact_number} phone"
+            );
+        } catch (InvalidArgumentException $exception) {
+            $errorMessages[] = $exception->getMessage();
         }
         $contacts_to_create[] = $candidate;
     }
@@ -208,6 +240,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         }
     }
 }
+
+$phone_country_code_value = trim($_POST['phone_country_code'] ?? '+1');
+[, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
+$fax_country_code_value = trim($_POST['fax_country_code'] ?? '+1');
+[, $fax_local_value] = phoneNumberInputParts($_POST['fax'] ?? '', $fax_country_code_value);
+$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+[, $contact_phone_local_value] = phoneNumberInputParts(
+    $_POST['contact_phone'] ?? '',
+    $contact_phone_country_code_value
+);
 
 // Display success message if it exists in session
 if (isset($_SESSION['success_message'])) {
@@ -437,7 +479,7 @@ if (isset($_SESSION['success_message'])) {
         }
 
         .name-phone-row .form-group:last-child {
-            flex: 0 0 200px;
+            flex: 0 0 320px;
         }
 
         .add-contact-btn {
@@ -504,12 +546,18 @@ if (isset($_SESSION['success_message'])) {
         <div class="contact-grid">
             <div class="form-group">
                 <label>Phone</label>
-                <input type="text" name="phone" value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
+                    <input type="tel" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                </div>
             </div>
             
             <div class="form-group">
                 <label>Fax</label>
-                <input type="text" name="fax" value="<?php echo htmlspecialchars($_POST['fax'] ?? ''); ?>">
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
+                    <input type="tel" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+                </div>
             </div>
         </div>
 
@@ -595,7 +643,10 @@ if (isset($_SESSION['success_message'])) {
 
                             <div class="form-group">
                                 <label>Phone</label>
-                                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($_POST['contact_phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                                <div class="phone-input-group" data-phone-input-group>
+                                    <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value, 'Contact phone country code'); ?>
+                                    <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                                </div>
                             </div>
                         </div>
 
@@ -759,7 +810,10 @@ function addContact() {
 
                 <div class="form-group">
                     <label class="required">Phone</label>
-                    <input type="tel" name="contacts[${contactCount-1}][phone]" required>
+                    <div class="phone-input-group" data-phone-input-group>
+                        <?php echo phoneCountryPicker('contacts[${contactCount-1}][phone_country_code]', '+1', 'Contact phone country code'); ?>
+                        <input type="tel" name="contacts[${contactCount-1}][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
+                    </div>
                 </div>
             </div>
 
@@ -834,6 +888,7 @@ submittedAdditionalContacts.forEach(function (contact) {
         first_name: contact.first_name || '',
         last_name: contact.last_name || '',
         phone: contact.phone || '',
+        phone_country_code: contact.phone_country_code || '+1',
         role: contact.role || '',
         role_other: contact.role_other || '',
         email: contact.email || '',

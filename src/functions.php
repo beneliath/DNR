@@ -88,6 +88,214 @@ function normalizedHttpUrl($url) {
     return in_array($scheme, ['http', 'https'], true) ? $url : null;
 }
 
+function normalizePhoneCountryCode($country_code) {
+    if (!is_scalar($country_code) && $country_code !== null) {
+        throw new InvalidArgumentException('Select a valid telephone country code.');
+    }
+
+    $country_code = preg_replace('/[\s()-]+/', '', trim((string) $country_code));
+    if (!preg_match('/\A\+[1-9][0-9]{0,2}\z/', $country_code)) {
+        throw new InvalidArgumentException('Select a valid telephone country code.');
+    }
+
+    return $country_code;
+}
+
+function normalizePhoneNumber($country_code, $national_number, $label = 'Phone number') {
+    if (!is_scalar($national_number) && $national_number !== null) {
+        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
+    }
+
+    $national_number = trim((string) $national_number);
+    if ($national_number === '') {
+        return '';
+    }
+
+    $country_code = normalizePhoneCountryCode($country_code);
+    $country_digits = substr($country_code, 1);
+    $number_digits = preg_replace('/[^0-9]/', '', $national_number);
+
+    if (strlen($number_digits) === 10 + strlen($country_digits)
+        && str_starts_with($number_digits, $country_digits)
+    ) {
+        $number_digits = substr($number_digits, strlen($country_digits));
+    }
+
+    if (strlen($number_digits) !== 10) {
+        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
+    }
+
+    return sprintf(
+        '%s (%s) %s-%s',
+        $country_code,
+        substr($number_digits, 0, 3),
+        substr($number_digits, 3, 3),
+        substr($number_digits, 6, 4)
+    );
+}
+
+function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
+    $stored_phone = trim((string) $stored_phone);
+    try {
+        $country_code = normalizePhoneCountryCode($default_country_code);
+    } catch (InvalidArgumentException $exception) {
+        $country_code = '+1';
+    }
+
+    if ($stored_phone === '') {
+        return [$country_code, ''];
+    }
+
+    $national_number = $stored_phone;
+    if (str_starts_with($stored_phone, '+')) {
+        if (preg_match('/\A(\+[1-9][0-9]{0,2})(?=[\s().-])/', $stored_phone, $matches)) {
+            $country_code = $matches[1];
+            $national_number = ltrim(substr($stored_phone, strlen($matches[1])));
+        } else {
+            $phone_digits = preg_replace('/[^0-9]/', '', $stored_phone);
+            $country_digit_count = strlen($phone_digits) - 10;
+            if ($country_digit_count >= 1 && $country_digit_count <= 3) {
+                $country_code = '+' . substr($phone_digits, 0, $country_digit_count);
+                $national_number = substr($phone_digits, $country_digit_count);
+            }
+        }
+    }
+
+    try {
+        $normalized = normalizePhoneNumber($country_code, $national_number);
+        return [$country_code, substr($normalized, strlen($country_code) + 1)];
+    } catch (InvalidArgumentException $exception) {
+        return [$country_code, $national_number];
+    }
+}
+
+function formatPhoneNumberForDisplay($stored_phone, $default_country_code = '+1') {
+    $stored_phone = trim((string) $stored_phone);
+    if ($stored_phone === '') {
+        return '';
+    }
+
+    [$country_code, $national_number] = phoneNumberInputParts($stored_phone, $default_country_code);
+    try {
+        return normalizePhoneNumber($country_code, $national_number);
+    } catch (InvalidArgumentException $exception) {
+        return $stored_phone;
+    }
+}
+
+function phoneCountryCallingCodeChoices() {
+    return [
+        ['code' => '+54', 'flag' => '🇦🇷', 'country' => 'Argentina'],
+        ['code' => '+61', 'flag' => '🇦🇺', 'country' => 'Australia'],
+        ['code' => '+43', 'flag' => '🇦🇹', 'country' => 'Austria'],
+        ['code' => '+32', 'flag' => '🇧🇪', 'country' => 'Belgium'],
+        ['code' => '+55', 'flag' => '🇧🇷', 'country' => 'Brazil'],
+        ['code' => '+359', 'flag' => '🇧🇬', 'country' => 'Bulgaria'],
+        ['code' => '+56', 'flag' => '🇨🇱', 'country' => 'Chile'],
+        ['code' => '+86', 'flag' => '🇨🇳', 'country' => 'China'],
+        ['code' => '+57', 'flag' => '🇨🇴', 'country' => 'Colombia'],
+        ['code' => '+385', 'flag' => '🇭🇷', 'country' => 'Croatia'],
+        ['code' => '+357', 'flag' => '🇨🇾', 'country' => 'Cyprus'],
+        ['code' => '+420', 'flag' => '🇨🇿', 'country' => 'Czechia'],
+        ['code' => '+45', 'flag' => '🇩🇰', 'country' => 'Denmark'],
+        ['code' => '+20', 'flag' => '🇪🇬', 'country' => 'Egypt'],
+        ['code' => '+358', 'flag' => '🇫🇮', 'country' => 'Finland'],
+        ['code' => '+33', 'flag' => '🇫🇷', 'country' => 'France'],
+        ['code' => '+49', 'flag' => '🇩🇪', 'country' => 'Germany'],
+        ['code' => '+30', 'flag' => '🇬🇷', 'country' => 'Greece'],
+        ['code' => '+36', 'flag' => '🇭🇺', 'country' => 'Hungary'],
+        ['code' => '+354', 'flag' => '🇮🇸', 'country' => 'Iceland'],
+        ['code' => '+91', 'flag' => '🇮🇳', 'country' => 'India'],
+        ['code' => '+62', 'flag' => '🇮🇩', 'country' => 'Indonesia'],
+        ['code' => '+98', 'flag' => '🇮🇷', 'country' => 'Iran'],
+        ['code' => '+353', 'flag' => '🇮🇪', 'country' => 'Ireland'],
+        ['code' => '+972', 'flag' => '🇮🇱', 'country' => 'Israel'],
+        ['code' => '+39', 'flag' => '🇮🇹', 'country' => 'Italy'],
+        ['code' => '+81', 'flag' => '🇯🇵', 'country' => 'Japan'],
+        ['code' => '+962', 'flag' => '🇯🇴', 'country' => 'Jordan'],
+        ['code' => '+254', 'flag' => '🇰🇪', 'country' => 'Kenya'],
+        ['code' => '+60', 'flag' => '🇲🇾', 'country' => 'Malaysia'],
+        ['code' => '+52', 'flag' => '🇲🇽', 'country' => 'Mexico'],
+        ['code' => '+31', 'flag' => '🇳🇱', 'country' => 'Netherlands'],
+        ['code' => '+64', 'flag' => '🇳🇿', 'country' => 'New Zealand'],
+        ['code' => '+234', 'flag' => '🇳🇬', 'country' => 'Nigeria'],
+        ['code' => '+47', 'flag' => '🇳🇴', 'country' => 'Norway'],
+        ['code' => '+92', 'flag' => '🇵🇰', 'country' => 'Pakistan'],
+        ['code' => '+51', 'flag' => '🇵🇪', 'country' => 'Peru'],
+        ['code' => '+63', 'flag' => '🇵🇭', 'country' => 'Philippines'],
+        ['code' => '+48', 'flag' => '🇵🇱', 'country' => 'Poland'],
+        ['code' => '+351', 'flag' => '🇵🇹', 'country' => 'Portugal'],
+        ['code' => '+974', 'flag' => '🇶🇦', 'country' => 'Qatar'],
+        ['code' => '+40', 'flag' => '🇷🇴', 'country' => 'Romania'],
+        ['code' => '+7', 'flag' => '🇷🇺', 'country' => 'Russia / Kazakhstan'],
+        ['code' => '+966', 'flag' => '🇸🇦', 'country' => 'Saudi Arabia'],
+        ['code' => '+65', 'flag' => '🇸🇬', 'country' => 'Singapore'],
+        ['code' => '+27', 'flag' => '🇿🇦', 'country' => 'South Africa'],
+        ['code' => '+82', 'flag' => '🇰🇷', 'country' => 'South Korea'],
+        ['code' => '+34', 'flag' => '🇪🇸', 'country' => 'Spain'],
+        ['code' => '+46', 'flag' => '🇸🇪', 'country' => 'Sweden'],
+        ['code' => '+41', 'flag' => '🇨🇭', 'country' => 'Switzerland'],
+        ['code' => '+886', 'flag' => '🇹🇼', 'country' => 'Taiwan'],
+        ['code' => '+66', 'flag' => '🇹🇭', 'country' => 'Thailand'],
+        ['code' => '+90', 'flag' => '🇹🇷', 'country' => 'Turkey'],
+        ['code' => '+380', 'flag' => '🇺🇦', 'country' => 'Ukraine'],
+        ['code' => '+971', 'flag' => '🇦🇪', 'country' => 'United Arab Emirates'],
+        ['code' => '+44', 'flag' => '🇬🇧', 'country' => 'United Kingdom'],
+        ['code' => '+1', 'flag' => '🇺🇸', 'country' => 'United States / Canada'],
+        ['code' => '+84', 'flag' => '🇻🇳', 'country' => 'Vietnam'],
+    ];
+}
+
+function phoneCountryPicker($field_name, $selected_code = '+1', $aria_label = 'Phone country code') {
+    try {
+        $selected_code = normalizePhoneCountryCode($selected_code);
+    } catch (InvalidArgumentException $exception) {
+        $selected_code = '+1';
+    }
+
+    $choices = phoneCountryCallingCodeChoices();
+    $selected_choice = null;
+    foreach ($choices as $choice) {
+        if ($choice['code'] === $selected_code) {
+            $selected_choice = $choice;
+            break;
+        }
+    }
+    if ($selected_choice === null) {
+        $selected_choice = ['code' => $selected_code, 'flag' => '🌐', 'country' => 'International'];
+        array_unshift($choices, $selected_choice);
+    }
+
+    $escape = static fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    $html = '<div class="phone-country-picker" data-phone-country-picker>';
+    $html .= '<button type="button" class="phone-country-trigger" aria-haspopup="listbox" aria-expanded="false" aria-label="'
+        . $escape($aria_label . ': ' . $selected_choice['country'] . ' ' . $selected_code)
+        . '" data-phone-country-label="' . $escape($aria_label) . '" data-phone-country-toggle>';
+    $html .= '<span class="phone-country-flag" aria-hidden="true" data-phone-country-flag>'
+        . $escape($selected_choice['flag']) . '</span>';
+    $html .= '<span class="phone-country-dial-code" data-phone-country-dial-code>'
+        . $escape($selected_code) . '</span>';
+    $html .= '<span class="phone-country-chevron" aria-hidden="true"></span></button>';
+    $html .= '<input type="hidden" name="' . $escape($field_name) . '" value="'
+        . $escape($selected_code) . '" data-phone-country-code>';
+    $html .= '<div class="phone-country-menu" role="listbox" hidden data-phone-country-menu>';
+    foreach ($choices as $choice) {
+        $is_selected = $choice['code'] === $selected_code;
+        $html .= '<button type="button" class="phone-country-option" role="option" aria-selected="'
+            . ($is_selected ? 'true' : 'false') . '" data-phone-country-option data-country-code="'
+            . $escape($choice['code']) . '" data-country-flag="' . $escape($choice['flag'])
+            . '" data-country-name="' . $escape($choice['country']) . '">';
+        $html .= '<span class="phone-country-option-flag" aria-hidden="true">'
+            . $escape($choice['flag']) . '</span>';
+        $html .= '<span class="phone-country-option-name">' . $escape($choice['country']) . '</span>';
+        $html .= '<span class="phone-country-option-code">' . $escape($choice['code']) . '</span>';
+        $html .= '</button>';
+    }
+    $html .= '</div></div>';
+
+    return $html;
+}
+
 function normalizeEventType($event_type, $event_type_other) {
     $event_type = trim((string) $event_type);
     $event_type_other = trim((string) $event_type_other);

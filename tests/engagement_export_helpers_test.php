@@ -45,7 +45,7 @@ $contacts = [[
     'contact_role' => 'other',
     'contact_role_other' => 'Events Director',
     'contact_email' => 'jamie@example.test',
-    'contact_phone' => '555-0100',
+    'contact_phone' => '312-555-0100',
 ]];
 $presentations = [[
     'topic_title' => 'Opening Keynote',
@@ -92,6 +92,7 @@ expectExport(
     'Plain text includes the multi-line event description.'
 );
 expectExport(str_contains($plain_text, "Jamie Smith\nRole: Events Director"), 'Plain text includes contact details.');
+expectExport(str_contains($plain_text, 'Phone: +1 (312) 555-0100'), 'Exports use the canonical telephone format.');
 expectExport(str_contains($plain_text, "Opening Keynote\nSpeaker: Jordan Speaker"), 'Plain text includes presentations.');
 expectExport(
     str_contains($plain_text, "August 15, 2026 at 11:00 AM CDT - Jordan Admin\nEntry: Newest line\n  Second [line]"),

@@ -50,6 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
 
     if (!$organization_id) {
         $error_messages[] = 'Organization is required.';
@@ -70,6 +71,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error_messages[] = 'Please provide a valid email address.';
     } elseif (!hash_equals($contact_email, $contact_email_confirm)) {
         $error_messages[] = 'Email addresses do not match.';
+    }
+    try {
+        $contact_phone = normalizePhoneNumber(
+            $contact_phone_country_code,
+            $contact_phone,
+            'Phone number'
+        );
+    } catch (InvalidArgumentException $exception) {
+        $error_messages[] = $exception->getMessage();
     }
 
     if (!$error_messages) {
@@ -124,6 +134,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact['contact_role_other'] = $contact_role_other;
     $contact['contact_email'] = $contact_email;
     $contact['contact_phone'] = $contact_phone;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+    [, $contact_phone_local_value] = phoneNumberInputParts(
+        $_POST['contact_phone'] ?? '',
+        $contact_phone_country_code_value
+    );
+} else {
+    [$contact_phone_country_code_value, $contact_phone_local_value] = phoneNumberInputParts(
+        $contact['contact_phone'] ?? ''
+    );
 }
 
 $organizations_result = $conn->query(
@@ -264,7 +286,10 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
 
         <div class="form-group">
             <label for="contact_phone">Phone Number</label>
-            <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact['contact_phone'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="phone-input-group" data-phone-input-group>
+                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
+                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            </div>
         </div>
 
         <div class="action-buttons">

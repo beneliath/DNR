@@ -74,7 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $distinctives = trim($_POST['distinctives'] ?? '');
     $website_url = trim($_POST['website_url'] ?? '');
     $phone = trim($_POST['phone'] ?? '');
+    $phone_country_code = trim($_POST['phone_country_code'] ?? '+1');
     $fax = trim($_POST['fax'] ?? '');
+    $fax_country_code = trim($_POST['fax_country_code'] ?? '+1');
     $mailing_address_line_1 = trim($_POST['mailing_address_line_1'] ?? '');
     $mailing_address_line_2 = trim($_POST['mailing_address_line_2'] ?? '');
     $mailing_city = trim($_POST['mailing_city'] ?? '');
@@ -115,6 +117,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
     } else {
         $website_url = normalizedHttpUrl($website_url);
+    }
+    try {
+        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Organization phone');
+    } catch (InvalidArgumentException $exception) {
+        $error = true;
+        $errorMessages[] = $exception->getMessage();
+    }
+    try {
+        $fax = normalizePhoneNumber($fax_country_code, $fax, 'Organization fax');
+    } catch (InvalidArgumentException $exception) {
+        $error = true;
+        $errorMessages[] = $exception->getMessage();
     }
 
     $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ? AND id != ?");
@@ -165,6 +179,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $organization[$field_name] = ${$field_name};
         }
     }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $phone_country_code_value = trim($_POST['phone_country_code'] ?? '+1');
+    [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
+    $fax_country_code_value = trim($_POST['fax_country_code'] ?? '+1');
+    [, $fax_local_value] = phoneNumberInputParts($_POST['fax'] ?? '', $fax_country_code_value);
+} else {
+    [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts($organization['phone'] ?? '');
+    [$fax_country_code_value, $fax_local_value] = phoneNumberInputParts($organization['fax'] ?? '');
 }
 ?>
 <!DOCTYPE html>
@@ -287,12 +311,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         <div class="form-group">
             <label>Phone</label>
-            <input type="text" name="phone" value="<?php echo htmlspecialchars($organization['phone']); ?>">
+            <div class="phone-input-group" data-phone-input-group>
+                <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
+                <input type="tel" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            </div>
         </div>
 
         <div class="form-group">
             <label>Fax</label>
-            <input type="text" name="fax" value="<?php echo htmlspecialchars($organization['fax']); ?>">
+            <div class="phone-input-group" data-phone-input-group>
+                <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
+                <input type="tel" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+            </div>
         </div>
 
         <div class="radio-group">

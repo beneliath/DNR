@@ -438,4 +438,5 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260817_add_presentation_archiving.sql', REPEAT('0', 64)),
 ('20260817_add_schema_migrations.sql', REPEAT('0', 64)),
 ('20260817_beta_readiness_hardening.sql', REPEAT('0', 64)),
-('20260818_add_follow_up_tasks.sql', REPEAT('0', 64));
+('20260818_add_follow_up_tasks.sql', REPEAT('0', 64)),
+('20260818_standardize_phone_numbers.sql', REPEAT('0', 64));

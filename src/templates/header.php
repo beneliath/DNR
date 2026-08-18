@@ -21,7 +21,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $user_initial = strtoupper(substr($username, 0, 1));
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.50">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.52">
 <?php if ($shell_current_page === 'map.php') : ?>
 <link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>
@@ -100,3 +100,4 @@ $user_initial = strtoupper(substr($username, 0, 1));
 </header>
 <script src="assets/js/theme.min.js"></script>
 <script src="assets/js/app-shell.min.js"></script>
+<script src="assets/js/phone-input.min.js?v=0.2.0" defer></script>
