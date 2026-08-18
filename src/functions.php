@@ -827,6 +827,65 @@ function restoreEntity(mysqli $conn, $entity, $id) {
     return setEntityArchived($conn, $entity, $id, false);
 }
 
+function organizationActiveDependencyCounts(mysqli $conn, $organization_id) {
+    $organization_id = (int) $organization_id;
+    if ($organization_id < 1) {
+        return null;
+    }
+
+    $stmt = $conn->prepare(
+        'SELECT
+            (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
+              AS active_contacts,
+            (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
+              AS active_engagements'
+    );
+    if (!$stmt) {
+        return null;
+    }
+
+    $stmt->bind_param('ii', $organization_id, $organization_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        return null;
+    }
+
+    $dependencies = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$dependencies) {
+        return null;
+    }
+
+    return [
+        'contacts' => (int) ($dependencies['active_contacts'] ?? 0),
+        'engagements' => (int) ($dependencies['active_engagements'] ?? 0),
+    ];
+}
+
+function organizationArchiveDependencyMessage(array $dependencies) {
+    $parts = [];
+    $contacts = max(0, (int) ($dependencies['contacts'] ?? 0));
+    $engagements = max(0, (int) ($dependencies['engagements'] ?? 0));
+
+    if ($contacts > 0) {
+        $parts[] = $contacts . ' active contact' . ($contacts === 1 ? '' : 's');
+    }
+    if ($engagements > 0) {
+        $parts[] = $engagements . ' active engagement' . ($engagements === 1 ? '' : 's');
+    }
+
+    if (!$parts) {
+        return '';
+    }
+
+    $dependency_summary = count($parts) === 2
+        ? $parts[0] . ' and ' . $parts[1]
+        : $parts[0];
+
+    return 'This organization cannot be archived while it has ' . $dependency_summary
+        . '. Archive those related records first, or move them to another organization.';
+}
+
 function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
     if (!canArchiveEntries($_SESSION['role'] ?? null)) {
         return false;
@@ -845,20 +904,11 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
 
     $id = (int) $id;
     if (($entity === 'organization') && $is_archived) {
-        $dependents_stmt = $conn->prepare(
-            'SELECT
-                (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
-              + (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
-              AS active_dependents'
-        );
-        if (!$dependents_stmt) {
-            return false;
-        }
-        $dependents_stmt->bind_param('ii', $id, $id);
-        $dependents_stmt->execute();
-        $active_dependents = (int) ($dependents_stmt->get_result()->fetch_assoc()['active_dependents'] ?? 0);
-        $dependents_stmt->close();
-        if ($active_dependents > 0) {
+        $dependencies = organizationActiveDependencyCounts($conn, $id);
+        if ($dependencies === null
+            || $dependencies['contacts'] > 0
+            || $dependencies['engagements'] > 0
+        ) {
             return false;
         }
     }

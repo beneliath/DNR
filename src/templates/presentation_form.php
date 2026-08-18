@@ -14,6 +14,12 @@ if (!$presentation_form_rows) {
             <a href="restore_presentations.php?engagement_id=<?php echo (int) $engagement_id; ?>" class="restore-button">Restore Archived Presentations (<?php echo (int) $archived_presentation_count; ?>)</a>
         <?php endif; ?>
     </div>
+    <?php if (!empty($presentation_action_message)): ?>
+        <div class="success"><?php echo htmlspecialchars($presentation_action_message); ?></div>
+    <?php endif; ?>
+    <?php if (!empty($presentation_action_error)): ?>
+        <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
+    <?php endif; ?>
     <p class="field-help">Topic/title, date, and time are required for each presentation. Add at least one presentation before setting the engagement status to confirmed.</p>
     <div class="presentations-outer-box">
         <div class="presentations-inner-container">

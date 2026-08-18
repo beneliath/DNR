@@ -180,6 +180,12 @@ function requirePresentationForConfirmedEngagement($confirmation_status, array $
     }
 }
 
+function presentationRemovalRequiresReview($confirmation_status, $active_presentation_count)
+{
+    return (string) $confirmation_status === 'confirmed'
+        && (int) $active_presentation_count <= 1;
+}
+
 function countArchivedEngagementPresentations(mysqli $conn, $engagement_id)
 {
     $stmt = $conn->prepare(

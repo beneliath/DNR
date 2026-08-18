@@ -11,6 +11,7 @@ $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 $calendar_subscription_page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
+$footer_template = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 
 expectHoverStyle(
     strpos($stylesheet, '--button-hover-color') === false
@@ -55,17 +56,21 @@ foreach ($source_paths as $source_path) {
     }
 }
 expectHoverStyle(
-    strpos($modern_stylesheet, 'html body .button-add:hover') !== false
-        && strpos($modern_stylesheet, 'background: var(--primary-hover) !important;') !== false,
-    'Primary New buttons should use the modern themed hover treatment.'
+    strpos($modern_stylesheet, '/* Safe actions share one quiet surface treatment across pages and dialogs. */') !== false
+        && strpos($modern_stylesheet, 'border: 1px solid var(--border-strong) !important;') !== false
+        && strpos($modern_stylesheet, 'background: var(--surface) !important;') !== false
+        && strpos($modern_stylesheet, 'color: var(--text) !important;') !== false,
+    'Safe actions should use the shared outlined surface treatment.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, 'html body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover') !== false,
-    'Organization, event, and user creation controls should use the same modern themed hover treatment.'
+    strpos($modern_stylesheet, '.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button') !== false,
+    'Creation, authentication, and security controls should use the same safe-action treatment.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, 'box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 24%, transparent) !important;') !== false,
-    'The shared creation-button hover treatment should include its elevated shadow.'
+    strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false
+        && strpos($modern_stylesheet, 'border-color: var(--control-hover-border) !important;') !== false
+        && strpos($modern_stylesheet, 'color: var(--control-hover-fg) !important;') !== false,
+    'Safe-action hover and keyboard-focus states should use the pale blue control treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body :is(.sort-button, .filter-button):hover') !== false,
@@ -75,6 +80,12 @@ expectHoverStyle(
     strpos($modern_stylesheet, 'html body :is(.cancel-button, .button-cancel, .back-button):hover') !== false
         && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
     'Cancel and Back controls should use the modern theme-aware hover treatment.'
+);
+expectHoverStyle(
+    strpos($modern_stylesheet, '.button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover') !== false
+        && strpos($footer_template, 'class="button-secondary"') !== false
+        && strpos($footer_template, 'class="archive-button"') !== false,
+    'Dialog and archive/restore workflow controls should use the same pale blue interaction treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body .export-button:hover') !== false
@@ -102,10 +113,8 @@ expectHoverStyle(
     'Calendar actions should share the modern theme-aware hover treatment.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, 'html body #open-calendar-app:hover') !== false
-        && strpos($modern_stylesheet, 'background: var(--primary) !important;') !== false
-        && strpos($modern_stylesheet, 'html.dark-mode body #open-calendar-app:hover') !== false,
-    'Open in Calendar App should strengthen its hover contrast in both themes.'
+    strpos($modern_stylesheet, 'html body #open-calendar-app:hover') === false,
+    'Open in Calendar App should not override the shared pale blue hover with a solid fill.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#copy-calendar-url.is-copied') !== false
@@ -133,5 +142,38 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
         basename($page_path) . ' should use the current stylesheet cache key.'
     );
 }
+
+expectHoverStyle(
+    strpos($audit_log_page, 'class="button-add">Back to Users</a>') !== false
+        && strpos(file_get_contents(__DIR__ . '/../src/users.php'), 'background-color: #001489 !important;') === false,
+    'Audit Log navigation controls should inherit the shared surface button style.'
+);
+
+foreach (['templates/header.php', 'login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php', 'migrate_passwords.php'] as $page) {
+    expectHoverStyle(
+        strpos(file_get_contents(__DIR__ . '/../src/' . $page), 'assets/css/modern.min.css?v=0.1.46') !== false,
+        $page . ' should use the current modern stylesheet cache key.'
+    );
+}
+
+$interactive_markup_pattern = '/<(?:button\b|input\b[^>]*type=["\'](?:button|submit|reset)["\']|a\b[^>]*class=["\'][^"\']*(?:button|btn))/i';
+foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
+    $page_source = file_get_contents($page_path);
+    if (stripos($page_source, '<!DOCTYPE html>') === false
+        || preg_match($interactive_markup_pattern, $page_source) !== 1) {
+        continue;
+    }
+
+    expectHoverStyle(
+        strpos($page_source, "templates/header.php") !== false
+            || strpos($page_source, 'assets/css/modern.min.css?v=0.1.46') !== false,
+        basename($page_path) . ' has interactive controls but does not load the modern button system.'
+    );
+}
+
+expectHoverStyle(
+    strpos(file_get_contents(__DIR__ . '/../src/migrate_passwords.php'), 'class="security-button">Run migration</button>') !== false,
+    'The standalone password migration page should classify its action with the shared safe-action style.'
+);
 
 echo "Button hover style tests passed.\n";

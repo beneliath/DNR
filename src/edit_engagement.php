@@ -95,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException('That active presentation is no longer available.');
         }
 
+        $presentation_removal_requires_review = false;
         if ($locked_engagement['confirmation_status'] === 'confirmed') {
             $active_count_stmt = $conn->prepare(
                 'SELECT COUNT(*) AS presentation_count
@@ -108,11 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $active_count_stmt->execute();
             $active_count = (int) ($active_count_stmt->get_result()->fetch_assoc()['presentation_count'] ?? 0);
             $active_count_stmt->close();
-            if ($active_count <= 1) {
-                throw new InvalidArgumentException(
-                    'A confirmed engagement must keep at least one active presentation.'
-                );
-            }
+            $presentation_removal_requires_review = presentationRemovalRequiresReview(
+                $locked_engagement['confirmation_status'],
+                $active_count
+            );
         }
 
         if ($presentation_action === 'archive') {
@@ -144,9 +144,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         }
         $action_stmt->close();
 
-        $touch_stmt = $conn->prepare(
-            'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?'
-        );
+        $touch_sql = $presentation_removal_requires_review
+            ? "UPDATE engagements
+               SET confirmation_status = 'under_review', updated_at = CURRENT_TIMESTAMP
+               WHERE id = ?"
+            : 'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+        $touch_stmt = $conn->prepare($touch_sql);
         if (!$touch_stmt) {
             throw new RuntimeException('Unable to update the engagement calendar timestamp.');
         }
@@ -156,6 +159,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new RuntimeException('Unable to update the engagement calendar timestamp.');
         }
         $touch_stmt->close();
+
+        if ($presentation_removal_requires_review) {
+            $action_message .= ' Engagement status changed to under review because it no longer has an active presentation.';
+        }
 
         $conn->commit();
         $_SESSION['presentation_action_message'] = $action_message;
@@ -716,13 +723,6 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <?php if ($presentation_action_message !== ''): ?>
-        <div class="success"><?php echo htmlspecialchars($presentation_action_message); ?></div>
-    <?php endif; ?>
-    <?php if ($presentation_action_error !== ''): ?>
-        <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
-    <?php endif; ?>
-
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">

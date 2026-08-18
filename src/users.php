@@ -54,7 +54,6 @@ if (!$users) {
         }
         .audit-log-link {
             justify-self: center;
-            background-color: #001489 !important;
         }
         .user-details {
             margin-bottom: 20px;

@@ -14,13 +14,14 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Migrate Passwords - DNR</title>
         <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
+        <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.46">
     </head>
     <body>
         <h1>Migrate Legacy Passwords</h1>
         <p>This hashes any remaining plaintext passwords. Existing password hashes are left unchanged.</p>
         <form method="post" action="migrate_passwords.php">
             <?php echo csrfInput(); ?>
-            <button type="submit">Run migration</button>
+            <button type="submit" class="security-button">Run migration</button>
         </form>
     </body>
     </html>

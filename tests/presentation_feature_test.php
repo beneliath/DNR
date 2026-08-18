@@ -51,6 +51,15 @@ try {
 
 requirePresentationForConfirmedEngagement('under_review', []);
 requirePresentationForConfirmedEngagement('confirmed', $presentations);
+expectPresentationFeature(
+    presentationRemovalRequiresReview('confirmed', 1),
+    'removing the last presentation from a confirmed engagement should require review.'
+);
+expectPresentationFeature(
+    !presentationRemovalRequiresReview('confirmed', 2)
+        && !presentationRemovalRequiresReview('under_review', 1),
+    'presentation removal should preserve status when the confirmed invariant remains satisfied.'
+);
 
 foreach ([
     [[['topic_title' => '', 'presentation_date' => '2026-08-21']], 'topic/title'],
@@ -124,6 +133,10 @@ expectPresentationFeature(
 );
 expectPresentationFeature(
     str_contains($edit_engagement_source, "in_array(\$presentation_action, ['archive', 'delete'], true)")
+        && str_contains($edit_engagement_source, "SET confirmation_status = 'under_review', updated_at = CURRENT_TIMESTAMP")
+        && str_contains($edit_engagement_source, 'Engagement status changed to under review')
+        && str_contains($presentation_template, 'presentation_action_message')
+        && str_contains($presentation_template, 'presentation_action_error')
         && str_contains($presentation_template, 'data-delete-confirmation') === false
         && str_contains($edit_engagement_source, 'data-delete-confirmation="Permanently delete this presentation?"')
         && str_contains($restore_presentations, "SET is_archived = 0, archived_by = NULL, archived_at = NULL")

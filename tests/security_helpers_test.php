@@ -30,6 +30,15 @@ expectTrue(canArchiveEntries('editor'), 'Editors should be allowed to archive an
 expectTrue(!canDeleteEntries('editor'), 'Editors must not permanently delete entries.');
 expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to archive and restore entries.');
 expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
+expectTrue(
+    organizationArchiveDependencyMessage(['contacts' => 2, 'engagements' => 1])
+        === 'This organization cannot be archived while it has 2 active contacts and 1 active engagement. Archive those related records first, or move them to another organization.',
+    'Organization archive blockers should identify each active dependency with correct pluralization.'
+);
+expectTrue(
+    organizationArchiveDependencyMessage(['contacts' => 0, 'engagements' => 0]) === '',
+    'Organizations without active dependencies should not receive an archive blocker message.'
+);
 
 $original_trusted_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
 $original_cloudflare_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');

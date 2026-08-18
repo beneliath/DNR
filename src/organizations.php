@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $org_id = filter_input(INPUT_POST, 'organization_id', FILTER_VALIDATE_INT);
     $action = $_POST['action'] ?? '';
     $action_succeeded = false;
+    $action_error = '';
 
     if (in_array($action, ['archive', 'restore'], true) && !canArchiveEntries($user_role)) {
         http_response_code(403);
@@ -29,7 +30,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($org_id && $action === 'archive') {
-        $action_succeeded = archiveEntity($conn, 'organization', $org_id);
+        $dependencies = organizationActiveDependencyCounts($conn, $org_id);
+        $dependency_message = $dependencies === null
+            ? ''
+            : organizationArchiveDependencyMessage($dependencies);
+        if ($dependency_message !== '') {
+            $action_error = $dependency_message;
+        } else {
+            $action_succeeded = archiveEntity($conn, 'organization', $org_id);
+        }
         $action_message = 'Organization archived.';
     } elseif ($org_id && $action === 'restore') {
         $action_succeeded = restoreEntity($conn, 'organization', $org_id);
@@ -45,7 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action_succeeded) {
         $_SESSION['organization_action_message'] = $action_message;
     } else {
-        $_SESSION['organization_action_error'] = 'Unable to update the organization. Please try again.';
+        $_SESSION['organization_action_error'] = $action_error !== ''
+            ? $action_error
+            : 'Unable to update the organization. Please try again.';
     }
 
     header('Location: organizations.php?' . http_build_query(['status' => $list_status]));

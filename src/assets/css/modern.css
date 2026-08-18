@@ -563,20 +563,6 @@ html body :is(#copy-calendar-url, #open-calendar-app):active {
   transform: translateY(0) scale(0.98);
 }
 
-html body #open-calendar-app:hover,
-html body #open-calendar-app:focus-visible {
-  border-color: var(--primary) !important;
-  background: var(--primary) !important;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 28%, transparent),
-    0 0 0 3px color-mix(in srgb, var(--primary) 22%, transparent);
-  color: #ffffff !important;
-}
-
-html.dark-mode body #open-calendar-app:hover,
-html.dark-mode body #open-calendar-app:focus-visible {
-  color: #071126 !important;
-}
-
 html body #copy-calendar-url.is-copied,
 html body #copy-calendar-url.is-copied:hover,
 html body #copy-calendar-url.is-copied:focus-visible {
@@ -1004,50 +990,20 @@ html body :is(
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
+/* Safe actions share one quiet surface treatment across pages and dialogs. */
 html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button) {
-  background: var(--primary) !important;
-  color: #fff !important;
+  border: 1px solid var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
 }
 
-html.dark-mode body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button) {
-  color: #071126 !important;
-}
-
-html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):hover {
-  background: var(--primary-hover) !important;
-  color: #fff !important;
-}
-
-html.dark-mode body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):hover {
-  color: #071126 !important;
-}
-
-html body .button-add:hover,
-html body .button-add:focus-visible {
-  border-color: color-mix(in srgb, var(--primary-hover) 72%, transparent) !important;
-  background: var(--primary-hover) !important;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 24%, transparent) !important;
-  color: #ffffff !important;
+html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):hover,
+html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):focus-visible {
+  border-color: var(--control-hover-border) !important;
+  background: var(--control-hover-bg) !important;
+  color: var(--control-hover-fg) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
   transform: translateY(-1px);
-}
-
-html.dark-mode body .button-add:hover,
-html.dark-mode body .button-add:focus-visible {
-  color: #071126 !important;
-}
-
-html body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover,
-html body :is(.add-org-button, .save-button, .save-event-button, .register-button):focus-visible {
-  border-color: color-mix(in srgb, var(--primary-hover) 72%, transparent) !important;
-  background: var(--primary-hover) !important;
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 24%, transparent) !important;
-  color: #ffffff !important;
-  transform: translateY(-1px);
-}
-
-html.dark-mode body :is(.add-org-button, .save-button, .save-event-button, .register-button):hover,
-html.dark-mode body :is(.add-org-button, .save-button, .save-event-button, .register-button):focus-visible {
-  color: #071126 !important;
 }
 
 html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button) {
@@ -1056,10 +1012,11 @@ html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .
   color: var(--text) !important;
 }
 
-html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover {
-  border-color: var(--primary) !important;
-  background: var(--primary-subtle) !important;
-  color: var(--primary) !important;
+html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):hover,
+html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button):focus-visible {
+  border-color: var(--control-hover-border) !important;
+  background: var(--control-hover-bg) !important;
+  color: var(--control-hover-fg) !important;
 }
 
 html body :is(.sort-button, .filter-button):hover,
