@@ -51,6 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_notes = trim($_POST['contact_notes'] ?? '');
     $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
     $remove_contact_photo = isset($_POST['remove_contact_photo']);
     $contact_photo = null;
@@ -110,6 +111,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_role_other = ?,
                         contact_email = ?,
                         contact_phone = ?,
+                        contact_notes = ?,
                         contact_photo = ?,
                         contact_photo_mime = ?,
                         contact_photo_updated_at = UTC_TIMESTAMP()
@@ -125,6 +127,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_role_other = ?,
                         contact_email = ?,
                         contact_phone = ?,
+                        contact_notes = ?,
                         contact_photo = NULL,
                         contact_photo_mime = NULL,
                         contact_photo_updated_at = UTC_TIMESTAMP()
@@ -139,7 +142,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_role = ?,
                         contact_role_other = ?,
                         contact_email = ?,
-                        contact_phone = ?
+                        contact_phone = ?,
+                        contact_notes = ?
                      WHERE id = ? AND is_deleted = 0"
                 );
             }
@@ -150,7 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $contact_photo_data = $contact_photo['data'];
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $update_stmt->bind_param(
-                    'issssssssi',
+                    'isssssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -158,13 +162,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_notes,
                     $contact_photo_data,
                     $contact_photo_mime,
                     $contact_id
                 );
             } else {
                 $update_stmt->bind_param(
-                    'issssssi',
+                    'isssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -172,6 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_notes,
                     $contact_id
                 );
             }
@@ -198,6 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact['contact_role_other'] = $contact_role_other;
     $contact['contact_email'] = $contact_email;
     $contact['contact_phone'] = $contact_phone;
+    $contact['contact_notes'] = $contact_notes;
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -241,7 +248,8 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             margin-bottom: 5px;
         }
         .form-group input,
-        .form-group select {
+        .form-group select,
+        .form-group textarea {
             width: 100%;
             padding: 8px;
             border: 1px solid #ddd;
@@ -251,7 +259,8 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             box-sizing: border-box;
         }
         .dark-mode .form-group input,
-        .dark-mode .form-group select {
+        .dark-mode .form-group select,
+        .dark-mode .form-group textarea {
             background-color: #1e1e1e;
             color: #fff;
             border-color: #444;
@@ -356,6 +365,11 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
                 <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
                 <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
             </div>
+        </div>
+
+        <div class="form-group">
+            <label for="contact_notes">Notes</label>
+            <textarea name="contact_notes" id="contact_notes" rows="5" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($contact['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
         <div class="form-group contact-photo-field">

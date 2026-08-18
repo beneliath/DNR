@@ -101,6 +101,7 @@ $search_filter = $search === ''
         OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
         OR c.contact_email LIKE ?
         OR c.contact_phone LIKE ?
+        OR c.contact_notes LIKE ?
         OR o.organization_name LIKE ?
     )";
 $count_query = "SELECT COUNT(*) AS contact_count
@@ -115,7 +116,8 @@ if ($search !== '') {
     }
     $search_pattern = '%' . $search . '%';
     $count_stmt->bind_param(
-        'ssssss',
+        'sssssss',
+        $search_pattern,
         $search_pattern,
         $search_pattern,
         $search_pattern,
@@ -145,6 +147,8 @@ $contact_query = "SELECT
                     c.organization_id,
                     c.contact_first_name,
                     c.contact_last_name,
+                    c.contact_phone,
+                    c.contact_email,
                     c.contact_photo_mime,
                     c.contact_photo_updated_at,
                     o.organization_name,
@@ -161,7 +165,8 @@ if (!$contact_stmt) {
 
 if ($search !== '') {
     $contact_stmt->bind_param(
-        'ssssssii',
+        'sssssssii',
+        $search_pattern,
         $search_pattern,
         $search_pattern,
         $search_pattern,
@@ -393,13 +398,15 @@ function contactsPageUrl(
                 <tr>
                     <th>Contact</th>
                     <th>Organization</th>
+                    <th>Phone number</th>
+                    <th>Email address</th>
                     <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <?php if ($contacts_result->num_rows === 0): ?>
                     <tr>
-                        <td colspan="3" class="empty-state">No contacts match the current view.</td>
+                        <td colspan="5" class="empty-state">No contacts match the current view.</td>
                     </tr>
                 <?php else: ?>
                     <?php while ($contact = $contacts_result->fetch_assoc()): ?>
@@ -424,6 +431,20 @@ function contactsPageUrl(
                                 </a>
                                 <?php if (!empty($contact['organization_is_archived'])): ?>
                                     <span class="archive-status">Archived</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($contact['contact_phone'])): ?>
+                                    <a href="tel:<?php echo htmlspecialchars($contact['contact_phone'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <?php if (!empty($contact['contact_email'])): ?>
+                                    <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
                                 <?php endif; ?>
                             </td>
                             <td>

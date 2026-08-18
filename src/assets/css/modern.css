@@ -2245,6 +2245,10 @@ input[type="radio"] {
   background: var(--surface-hover) !important;
 }
 
+.contact-table a {
+  text-decoration: none !important;
+}
+
 .action-buttons,
 .user-actions,
 .primary-actions,
@@ -2949,7 +2953,9 @@ html.dark-mode .login-secondary-link a {
   .organization-table td:nth-child(4)::before { content: "Actions"; }
   .contact-table td:nth-child(1)::before { content: "Contact"; }
   .contact-table td:nth-child(2)::before { content: "Organization"; }
-  .contact-table td:nth-child(3)::before { content: "Actions"; }
+  .contact-table td:nth-child(3)::before { content: "Phone number"; }
+  .contact-table td:nth-child(4)::before { content: "Email address"; }
+  .contact-table td:nth-child(5)::before { content: "Actions"; }
   .audit-table td:nth-child(1)::before { content: "Timestamp"; }
   .audit-table td:nth-child(2)::before { content: "Category"; }
   .audit-table td:nth-child(3)::before { content: "User"; }

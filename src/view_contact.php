@@ -44,6 +44,7 @@ $display_role = $contact['contact_role'] === 'other'
 
 $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
+$contact_notes = trim((string) ($contact['contact_notes'] ?? ''));
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 ?>
 <!DOCTYPE html>
@@ -140,6 +141,13 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
                     ENT_QUOTES,
                     'UTF-8'
                 ); ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Notes</strong>
+                <?php echo $contact_notes !== ''
+                    ? nl2br(htmlspecialchars($contact_notes, ENT_QUOTES, 'UTF-8'))
+                    : 'No notes'; ?>
             </div>
         </div>
     </div>

@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Migrate Passwords - DNR</title>
         <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-        <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.55">
+        <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.57">
     </head>
     <body>
         <h1>Migrate Legacy Passwords</h1>

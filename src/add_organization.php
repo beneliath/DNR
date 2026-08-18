@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_notes = trim($_POST['contact_notes'] ?? '');
     $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
 
     $contact_candidates = [[
@@ -63,6 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         'email' => $contact_email,
         'email_confirm' => $contact_email_confirm,
         'phone' => $contact_phone,
+        'notes' => $contact_notes,
         'phone_country_code' => $contact_phone_country_code
     ]];
     if (isset($_POST['contacts']) && is_array($_POST['contacts'])) {
@@ -78,6 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 'email' => trim($submitted_contact['email'] ?? ''),
                 'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
                 'phone' => trim($submitted_contact['phone'] ?? ''),
+                'notes' => trim($submitted_contact['notes'] ?? ''),
                 'phone_country_code' => trim($submitted_contact['phone_country_code'] ?? '+1')
             ];
         }
@@ -123,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             $candidate['email'],
             $candidate['email_confirm'],
             $candidate['phone'],
+            $candidate['notes'],
         ]) !== '';
         if (!$has_contact_data) {
             continue;
@@ -192,8 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     $contact_stmt = $conn->prepare(
                         "INSERT INTO contacts (
                             organization_id, contact_first_name, contact_last_name, contact_role,
-                            contact_role_other, contact_email, contact_phone
-                         ) VALUES (?, ?, ?, ?, ?, ?, ?)"
+                            contact_role_other, contact_email, contact_phone, contact_notes
+                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
                     );
                     $saved_contact_first_name = '';
                     $saved_contact_last_name = '';
@@ -201,15 +205,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     $saved_contact_role_other = '';
                     $saved_contact_email = '';
                     $saved_contact_phone = '';
+                    $saved_contact_notes = '';
                     $contact_stmt->bind_param(
-                        "issssss",
+                        "isssssss",
                         $organization_id,
                         $saved_contact_first_name,
                         $saved_contact_last_name,
                         $saved_contact_role,
                         $saved_contact_role_other,
                         $saved_contact_email,
-                        $saved_contact_phone
+                        $saved_contact_phone,
+                        $saved_contact_notes
                     );
 
                     foreach ($contacts_to_create as $contact_to_create) {
@@ -219,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                         $saved_contact_role_other = $contact_to_create['role_other'];
                         $saved_contact_email = $contact_to_create['email'];
                         $saved_contact_phone = $contact_to_create['phone'];
+                        $saved_contact_notes = $contact_to_create['notes'];
                         if (!$contact_stmt->execute()) {
                             throw new RuntimeException("Unable to save contact.");
                         }
@@ -678,6 +685,11 @@ if (isset($_SESSION['success_message'])) {
                                 <input type="email" name="contact_email_confirm" id="contact_email_confirm" value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
+
+                        <div class="form-group">
+                            <label for="contact_notes">Notes</label>
+                            <textarea name="contact_notes" id="contact_notes" rows="4" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($_POST['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -845,6 +857,11 @@ function addContact() {
                     <input type="email" name="contacts[${contactCount-1}][email_confirm]" required>
                 </div>
             </div>
+
+            <div class="form-group">
+                <label>Notes</label>
+                <textarea name="contacts[${contactCount-1}][notes]" rows="4" placeholder="Add incidental notes about this person."></textarea>
+            </div>
         </div>
         <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
     `;
@@ -892,7 +909,8 @@ submittedAdditionalContacts.forEach(function (contact) {
         role: contact.role || '',
         role_other: contact.role_other || '',
         email: contact.email || '',
-        email_confirm: contact.email_confirm || ''
+        email_confirm: contact.email_confirm || '',
+        notes: contact.notes || ''
     }).forEach(function ([field, value]) {
         const input = document.querySelector('[name="contacts[' + formIndex + '][' + field + ']"]');
         if (input) input.value = value;
