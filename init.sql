@@ -8,6 +8,13 @@ CREATE TABLE IF NOT EXISTS schema_migrations (
 CREATE TABLE IF NOT EXISTS users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(50) NOT NULL UNIQUE,
+    first_name VARCHAR(100) NULL,
+    last_name VARCHAR(100) NULL,
+    phone VARCHAR(50) NULL,
+    email VARCHAR(254) NULL,
+    profile_picture MEDIUMBLOB NULL,
+    profile_picture_mime VARCHAR(32) NULL,
+    profile_picture_updated_at DATETIME NULL,
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('admin', 'editor', 'reviewer') NOT NULL,
@@ -439,4 +446,5 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260817_add_schema_migrations.sql', REPEAT('0', 64)),
 ('20260817_beta_readiness_hardening.sql', REPEAT('0', 64)),
 ('20260818_add_follow_up_tasks.sql', REPEAT('0', 64)),
+('20260818_add_user_profiles.sql', REPEAT('0', 64)),
 ('20260818_standardize_phone_numbers.sql', REPEAT('0', 64));

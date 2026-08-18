@@ -9,6 +9,7 @@ $nav_groups = [
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
     'database' => ['database_maintenance.php'],
+    'profile' => ['profile.php'],
 ];
 $active_nav = '';
 foreach ($nav_groups as $group => $pages) {
@@ -18,11 +19,12 @@ foreach ($nav_groups as $group => $pages) {
     }
 }
 $username = (string) ($_SESSION['username'] ?? 'Account');
+$user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
-$user_initial = strtoupper(substr($username, 0, 1));
+$profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.52">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.53">
 <?php if ($shell_current_page === 'map.php') : ?>
 <link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>
@@ -90,8 +92,10 @@ $user_initial = strtoupper(substr($username, 0, 1));
         </nav>
 
         <div class="sidebar-account">
-            <span class="account-avatar" aria-hidden="true"><?php echo htmlspecialchars($user_initial); ?></span>
-            <span class="account-copy"><strong><?php echo htmlspecialchars($username); ?></strong><small><?php echo htmlspecialchars(ucfirst($user_role)); ?></small></span>
+            <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
+                <img class="account-avatar" src="profile_picture.php?v=<?php echo $profile_picture_version; ?>" alt="">
+                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars(ucfirst($user_role)); ?></small></span>
+            </a>
             <form method="post" action="logout.php" id="logout-form" class="sidebar-logout-form">
                 <?php echo csrfInput(); ?>
                 <button type="submit" class="sidebar-logout-button" aria-label="Log out <?php echo htmlspecialchars($username); ?>" title="Log out">

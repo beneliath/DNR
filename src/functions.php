@@ -371,7 +371,12 @@ function requireLogin() {
     }
 
     $user_id = (int) $_SESSION['user_id'];
-    $stmt = $conn->prepare('SELECT username, role, auth_version, must_change_password FROM users WHERE id = ?');
+    $stmt = $conn->prepare(
+        'SELECT username, role, auth_version, must_change_password,
+                first_name, last_name, profile_picture_updated_at
+         FROM users
+         WHERE id = ?'
+    );
     if (!$stmt) {
         error_log('DNR authentication schema is unavailable: ' . $conn->error);
         http_response_code(503);
@@ -390,10 +395,25 @@ function requireLogin() {
 
     $_SESSION['username'] = (string) $user['username'];
     $_SESSION['role'] = (string) $user['role'];
+    $profile_display_name = trim(
+        trim((string) ($user['first_name'] ?? ''))
+        . ' '
+        . trim((string) ($user['last_name'] ?? ''))
+    );
+    $_SESSION['profile_display_name'] = $profile_display_name !== ''
+        ? $profile_display_name
+        : (string) $user['username'];
+    $_SESSION['profile_picture_version'] = ($user['profile_picture_updated_at'] ?? null) !== null
+        ? (int) strtotime((string) $user['profile_picture_updated_at'])
+        : 0;
     setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $_SESSION['must_change_password'] = !empty($user['must_change_password']);
     $current_script = basename($_SERVER['SCRIPT_NAME'] ?? '');
-    $password_change_pages = ['two_factor_settings.php', 'two_factor_recovery_codes.php'];
+    $password_change_pages = [
+        'two_factor_settings.php',
+        'two_factor_recovery_codes.php',
+        'profile_picture.php',
+    ];
     if ($_SESSION['must_change_password'] && !in_array($current_script, $password_change_pages, true)) {
         header('Location: two_factor_settings.php?password_reset_required=1');
         exit();
