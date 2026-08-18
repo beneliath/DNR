@@ -1263,7 +1263,7 @@ html body .chron-restore-page-actions a:focus-visible {
 
 .task-view-heading {
   display: flex;
-  align-items: baseline;
+  align-items: flex-end;
   justify-content: space-between;
   gap: 12px;
   margin: 24px 0 12px;
@@ -1273,9 +1273,43 @@ html body .chron-restore-page-actions a:focus-visible {
   margin: 0;
 }
 
-.task-view-heading span {
+.task-view-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+
+.task-view-heading .task-count {
   color: var(--text-muted);
   font-size: 0.86rem;
+  white-space: nowrap;
+}
+
+.task-priority-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.task-priority-legend-title {
+  margin-right: 2px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.task-priority-legend-item {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 680;
+  line-height: 1.25;
+  white-space: nowrap;
 }
 
 .task-table {
@@ -1333,8 +1367,7 @@ html body .chron-restore-page-actions a:focus-visible {
 }
 
 .task-due,
-.task-status,
-.task-priority {
+.task-status {
   display: inline-flex;
   width: fit-content;
   align-items: center;
@@ -1362,6 +1395,16 @@ html body .chron-restore-page-actions a:focus-visible {
 .task-priority-high {
   background: var(--warning-subtle);
   color: var(--warning);
+}
+
+.task-priority-normal {
+  background: var(--primary-subtle);
+  color: var(--primary);
+}
+
+.task-priority-low {
+  background: var(--success-subtle);
+  color: var(--success);
 }
 
 .task-status-in_progress {
@@ -2742,6 +2785,7 @@ html.dark-mode .login-secondary-link a {
   }
 
   .page-heading,
+  .task-view-heading,
   .user-main,
   .action-buttons,
   .primary-actions,
@@ -2750,8 +2794,14 @@ html.dark-mode .login-secondary-link a {
   }
 
   .page-heading,
+  .task-view-heading,
   .user-main {
     flex-direction: column;
+  }
+
+  .task-view-meta {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .page-heading > :is(a, button) {

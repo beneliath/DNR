@@ -151,7 +151,7 @@ expectHoverStyle(
 
 foreach (['templates/header.php', 'login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php', 'migrate_passwords.php'] as $page) {
     expectHoverStyle(
-        strpos(file_get_contents(__DIR__ . '/../src/' . $page), 'assets/css/modern.min.css?v=0.1.57') !== false,
+        strpos(file_get_contents(__DIR__ . '/../src/' . $page), 'assets/css/modern.min.css?v=0.1.58') !== false,
         $page . ' should use the current modern stylesheet cache key.'
     );
 }
@@ -166,7 +166,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
 
     expectHoverStyle(
         strpos($page_source, "templates/header.php") !== false
-            || strpos($page_source, 'assets/css/modern.min.css?v=0.1.57') !== false,
+            || strpos($page_source, 'assets/css/modern.min.css?v=0.1.58') !== false,
         basename($page_path) . ' has interactive controls but does not load the modern button system.'
     );
 }

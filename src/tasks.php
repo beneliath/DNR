@@ -332,7 +332,15 @@ $priority_labels = followUpTaskPriorities();
     <?php endif; ?>
     <div class="task-view-heading">
         <h2><?php echo htmlspecialchars($view_labels[$view], ENT_QUOTES, 'UTF-8'); ?></h2>
-        <span><?php echo $total_tasks; ?> task<?php echo $total_tasks === 1 ? '' : 's'; ?></span>
+        <div class="task-view-meta">
+            <div class="task-priority-legend" aria-label="Priority color legend">
+                <span class="task-priority-legend-title">Priority:</span>
+                <?php foreach (['urgent', 'high', 'normal', 'low'] as $priority_value): ?>
+                    <span class="task-priority-legend-item task-priority-<?php echo $priority_value; ?>"><?php echo htmlspecialchars($priority_labels[$priority_value], ENT_QUOTES, 'UTF-8'); ?></span>
+                <?php endforeach; ?>
+            </div>
+            <span class="task-count"><?php echo $total_tasks; ?> task<?php echo $total_tasks === 1 ? '' : 's'; ?></span>
+        </div>
     </div>
 
     <table class="task-table">
@@ -343,13 +351,14 @@ $priority_labels = followUpTaskPriorities();
             <?php
             $due = followUpTaskDueState($task['due_date']);
             $subject = followUpTaskSubjectFromRow($task);
+            $task_priority_label = $priority_labels[$task['priority']] . ' Priority';
             $task_edit_url = 'edit_task.php?' . http_build_query([
                 'id' => (int) $task['id'],
                 'return_to' => $task_return_to,
             ]);
             ?>
             <tr class="task-row task-row-<?php echo htmlspecialchars($due['key'], ENT_QUOTES, 'UTF-8'); ?>">
-                <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-due-<?php echo htmlspecialchars($due['key'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-due-none"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?><small class="task-priority task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($priority_labels[$task['priority']], ENT_QUOTES, 'UTF-8'); ?> priority</small></td>
+                <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="Due <?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="No due date; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></td>
                 <td>
                     <?php if ($can_manage_tasks): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>

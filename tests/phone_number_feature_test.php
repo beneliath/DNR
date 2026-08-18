@@ -51,7 +51,7 @@ expectPhoneFeature(
 $header = $read('src/templates/header.php');
 expectPhoneFeature(
     str_contains($header, 'assets/js/phone-input.min.js?v=0.2.0')
-        && str_contains($header, 'assets/css/modern.min.css?v=0.1.57'),
+        && str_contains($header, 'assets/css/modern.min.css?v=0.1.58'),
     'the application shell should load the country picker behavior and current production styles.'
 );
 

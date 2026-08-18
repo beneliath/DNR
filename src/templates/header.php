@@ -24,7 +24,7 @@ $user_role = (string) ($_SESSION['role'] ?? 'user');
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 ?>
 
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.57">
+<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.58">
 <?php if ($shell_current_page === 'map.php') : ?>
 <link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>

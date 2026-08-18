@@ -38,6 +38,7 @@ $edit_task = $read('src/edit_task.php');
 $form = $read('src/templates/follow_up_task_form.php');
 $section = $read('src/templates/follow_up_task_section.php');
 $header = $read('src/templates/header.php');
+$styles = $read('src/assets/css/modern.css');
 
 expectFollowUpTaskFeature(
     str_contains($queue, "'my' => 'My work'") === false
@@ -54,10 +55,21 @@ expectFollowUpTaskFeature(
     'queue controls should omit Waiting and Unassigned buttons because their summary cards provide the same views.'
 );
 expectFollowUpTaskFeature(
-    str_contains($queue, '<time class="task-due task-due-')
+    str_contains($queue, '<time class="task-due task-priority-')
         && str_contains($queue, 'datetime="<?php echo htmlspecialchars($task[\'due_date\']')
-        && str_contains($queue, '><?php echo htmlspecialchars($task[\'due_date\']'),
-    'dated queue badges should show only the date because the column heading already supplies the Due label.'
+        && str_contains($queue, 'aria-label="Due <?php echo htmlspecialchars($task[\'due_date\']')
+        && str_contains($queue, '><?php echo htmlspecialchars($task[\'due_date\']')
+        && !str_contains($queue, '<small class="task-priority'),
+    'dated queue badges should show only the date while exposing their color-coded priority to assistive technology.'
+);
+expectFollowUpTaskFeature(
+    str_contains($queue, 'class="task-priority-legend"')
+        && str_contains($queue, "['urgent', 'high', 'normal', 'low']")
+        && str_contains($queue, "htmlspecialchars(\$priority_labels[\$priority_value], ENT_QUOTES, 'UTF-8')")
+        && !str_contains($queue, "\$priority_labels[\$priority_value] . ' Priority'")
+        && str_contains($queue, 'task-priority-legend-item task-priority-')
+        && preg_match('/\.task-priority-legend-item\s*\{[^}]*padding:\s*3px 7px;[^}]*border-radius:\s*999px;/s', $styles) === 1,
+    'the queue should explain every priority color with short, title-cased legend badges.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, 'requireValidCsrfToken()')
