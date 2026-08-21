@@ -6,7 +6,7 @@ x-app-environment: &app-environment
   MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
-  DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.2}
+  DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
   DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
   DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
@@ -78,7 +78,7 @@ services:
     networks:
       ingress: {}
       backend:
-        ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.2}
+        ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}
     healthcheck:
       test: ["CMD", "php", "-r", "exit((@fsockopen('127.0.0.1', 80) && @fsockopen('web', 80)) ? 0 : 1);"]
       interval: 15s

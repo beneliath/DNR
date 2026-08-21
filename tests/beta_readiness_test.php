@@ -92,7 +92,7 @@ expectBetaReadiness(
         && !str_contains($web_service, "\n    ports:")
         && str_contains($ingress_service, "\n    ports:")
         && !str_contains($ingress_service, "\n    secrets:")
-        && str_contains($compose, 'ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.2}')
+        && str_contains($compose, 'ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}')
         && str_contains($compose, 'subnet: ${DNR_BACKEND_SUBNET:-172.30.255.0/24}')
         && str_contains($ingress, 'ProxyRequests Off')
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
