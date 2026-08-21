@@ -86,9 +86,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $current_user_id,
                 $current_user_id
             );
-            $_SESSION['task_action_message'] = $inserted > 0
-                ? $inserted . ' checklist task' . ($inserted === 1 ? '' : 's') . ' added and assigned to you.'
-                : 'The standard checklist is already present for this engagement.';
+            if ($inserted > 0) {
+                $_SESSION['task_action_message'] = $inserted . ' checklist task'
+                    . ($inserted === 1 ? '' : 's') . ' added and assigned to you.';
+            } else {
+                $active_standard_task_count = count(
+                    fetchStandardEventTaskTemplates($conn, 'active')
+                );
+                $_SESSION['task_action_message'] = $active_standard_task_count > 0
+                    ? 'The active standard checklist is already present for this engagement.'
+                    : 'There are no active standard event tasks to add.';
+            }
         } elseif ($action === 'delete') {
             if (!canDeleteEntries($user_role)) {
                 http_response_code(403);
@@ -312,9 +320,12 @@ $priority_labels = followUpTaskPriorities();
             <h1>Work Queue</h1>
             <p class="page-intro">Make the next action, owner, and due date visible.</p>
         </div>
-        <?php if ($can_manage_tasks): ?>
-            <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New task</a>
-        <?php endif; ?>
+        <div class="page-heading-actions">
+            <a href="standard_tasks.php" class="button-secondary">Standard event tasks</a>
+            <?php if ($can_manage_tasks): ?>
+                <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New task</a>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>

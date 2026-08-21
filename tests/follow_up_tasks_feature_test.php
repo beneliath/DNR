@@ -100,7 +100,10 @@ expectFollowUpTaskFeature(
     'standard engagement checklist generation should be optional and idempotent.'
 );
 expectFollowUpTaskFeature(
-    str_contains($header, "'tasks' => ['tasks.php', 'add_task.php', 'edit_task.php']")
+    str_contains($header, "'standard_tasks.php'")
+        && str_contains($header, "'add_standard_task.php'")
+        && str_contains($header, "'view_standard_task.php'")
+        && str_contains($header, "'edit_standard_task.php'")
         && str_contains($header, '<span>Work Queue</span>'),
     'the shared application shell should expose the work queue and mark all task pages active.'
 );

@@ -54,13 +54,62 @@ $engagement_stmt->execute();
 $engagement_id = $conn->insert_id;
 $engagement_stmt->close();
 
-$inserted = generateEngagementFollowUpChecklist(
+$custom_template_title = 'Custom automatic task ' . $suffix;
+$custom_template_details = 'Copied from the configurable standard-task list.';
+$custom_template_id = createStandardEventTask(
     $conn,
-    $engagement_id,
-    $user_id,
+    [
+        'title' => $custom_template_title,
+        'details' => $custom_template_details,
+        'priority' => 'normal',
+        'due_anchor' => 'event_start',
+        'due_offset_days' => '-5',
+        'sort_order' => '100',
+    ],
     $user_id
 );
-expectFollowUpTaskIntegration($inserted === 9, 'the first checklist generation should add all nine tasks.');
+$template_key_stmt = $conn->prepare(
+    'SELECT template_key FROM standard_event_tasks WHERE id = ?'
+);
+$template_key_stmt->bind_param('i', $custom_template_id);
+$template_key_stmt->execute();
+$custom_template_key = (string) $template_key_stmt->get_result()->fetch_assoc()['template_key'];
+$template_key_stmt->close();
+
+$conn->begin_transaction();
+try {
+    $inserted = generateEngagementFollowUpChecklist(
+        $conn,
+        $engagement_id,
+        $user_id,
+        $user_id,
+        false
+    );
+    $conn->commit();
+} catch (Throwable $exception) {
+    $conn->rollback();
+    throw $exception;
+}
+expectFollowUpTaskIntegration(
+    $inserted === 10,
+    'automatic generation should add the nine seeded tasks and a newly configured standard task.'
+);
+$custom_task_stmt = $conn->prepare(
+    'SELECT title, details, due_date, assigned_to
+     FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$custom_task_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$custom_task_stmt->execute();
+$custom_task = $custom_task_stmt->get_result()->fetch_assoc();
+$custom_task_stmt->close();
+expectFollowUpTaskIntegration(
+    $custom_task
+        && $custom_task['title'] === $custom_template_title
+        && $custom_task['details'] === $custom_template_details
+        && $custom_task['due_date'] === '2026-09-05'
+        && (int) $custom_task['assigned_to'] === $user_id,
+    'new standard definitions should be copied, dated, and assigned during event creation.'
+);
 expectFollowUpTaskIntegration(
     generateEngagementFollowUpChecklist($conn, $engagement_id, $user_id, $user_id) === 0,
     'repeated checklist generation should not duplicate standard tasks.'
@@ -125,6 +174,11 @@ $delete_org_stmt = $conn->prepare('DELETE FROM organizations WHERE id = ?');
 $delete_org_stmt->bind_param('i', $organization_id);
 $delete_org_stmt->execute();
 $delete_org_stmt->close();
+
+$delete_template_stmt = $conn->prepare('DELETE FROM standard_event_tasks WHERE id = ?');
+$delete_template_stmt->bind_param('i', $custom_template_id);
+$delete_template_stmt->execute();
+$delete_template_stmt->close();
 
 $delete_user_stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
 $delete_user_stmt->bind_param('i', $user_id);

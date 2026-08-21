@@ -6,8 +6,10 @@ include 'config.php';
 include 'functions.php';
 include 'presentation_helpers.php';
 include 'map_helpers.php';
+include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
+requireFollowUpTaskSchema($conn);
 
 // The bare application URL is the engagement list; index.php remains the add form.
 $request_method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
@@ -150,6 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
                 if ($stmt->execute()) {
                     $engagement_id = $conn->insert_id;
+                    $current_user_id = (int) $_SESSION['user_id'];
                     
                     // Insert presentations
                     if (!empty($presentations)) {
@@ -190,7 +193,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         if (!$chron_stmt) {
                             throw new Exception("Unable to prepare the initial Chron entry.");
                         }
-                        $current_user_id = (int) $_SESSION['user_id'];
                         $current_username = (string) $_SESSION['username'];
                         $chron_stmt->bind_param(
                             "isisi",
@@ -205,6 +207,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         }
                         $chron_stmt->close();
                     }
+
+                    $standard_task_count = generateEngagementFollowUpChecklist(
+                        $conn,
+                        $engagement_id,
+                        $current_user_id,
+                        $current_user_id,
+                        false
+                    );
                     
                     $conn->commit();
                     queueEngagementMapAddress($conn, engagementMapAddress([
@@ -215,7 +225,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         'event_zipcode' => $event_zipcode,
                         'event_country' => $event_country,
                     ]));
-                    $_SESSION['engagement_action_message'] = 'Engagement saved successfully.';
+                    $_SESSION['engagement_action_message'] = 'Engagement saved successfully.'
+                        . ($standard_task_count > 0
+                            ? ' ' . $standard_task_count . ' standard task'
+                                . ($standard_task_count === 1 ? ' was' : 's were')
+                                . ' added and assigned to you.'
+                            : '');
                     header('Location: engagements.php');
                     exit();
                 } else {

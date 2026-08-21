@@ -15,4 +15,5 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagement_chron_entries TO 'dnruser
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.presentations TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.contacts TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.follow_up_tasks TO 'dnruser'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.standard_event_tasks TO 'dnruser'@'%';
 FLUSH PRIVILEGES;

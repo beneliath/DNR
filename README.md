@@ -359,7 +359,13 @@ administrators.
 Engagement, organization, and contact detail pages show their open follow-up work. Active
 engagements also offer an optional, idempotent standard checklist covering location, travel,
 presentations, materials, host reconfirmation, post-event thanks, outcome capture, and financial
-closeout. Re-running the checklist only adds missing standard items.
+closeout. Every active standard item is automatically added and assigned to the creator when a new
+engagement is saved; re-running **Add missing checklist tasks** on an older engagement only adds
+missing active items. Open **Standard event tasks** from the Work Queue to add, view, or edit the
+reusable task content, priority, event-relative due rule, and order. Archived definitions are
+excluded from future checklists and may be restored;
+administrators can permanently delete archived definitions after fresh authentication. Editing,
+archiving, or deleting a definition does not rewrite tasks already generated for events.
 
 Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
 

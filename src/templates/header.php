@@ -3,7 +3,15 @@
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
     'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'restore_chron_entries.php'],
-    'tasks' => ['tasks.php', 'add_task.php', 'edit_task.php'],
+    'tasks' => [
+        'tasks.php',
+        'add_task.php',
+        'edit_task.php',
+        'standard_tasks.php',
+        'add_standard_task.php',
+        'view_standard_task.php',
+        'edit_standard_task.php',
+    ],
     'map' => ['map.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],

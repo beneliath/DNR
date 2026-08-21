@@ -1497,6 +1497,67 @@ html body .chron-restore-page-actions a:focus-visible {
   gap: 7px;
 }
 
+.page-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.page-heading-actions > a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.standard-task-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 28px;
+  padding: clamp(20px, 4vw, 28px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.standard-task-detail {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 7px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.standard-task-detail strong {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+}
+
+.standard-task-detail-wide {
+  grid-column: 1 / -1;
+}
+
+.standard-task-detail code {
+  width: fit-content;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.standard-task-page-actions > form {
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
 .task-table .task-actions {
   display: inline-flex !important;
   width: max-content;
@@ -3089,6 +3150,12 @@ html.dark-mode .login-secondary-link a {
   .task-table td:nth-child(4)::before { content: "Owner"; }
   .task-table td:nth-child(5)::before { content: "Status"; }
   .task-table td:nth-child(6)::before { content: "Actions"; }
+  .standard-task-table td:nth-child(1)::before { content: "Order"; }
+  .standard-task-table td:nth-child(2)::before { content: "Standard task"; }
+  .standard-task-table td:nth-child(3)::before { content: "Due rule"; }
+  .standard-task-table td:nth-child(4)::before { content: "Priority"; }
+  .standard-task-table td:nth-child(5)::before { content: "Generated"; }
+  .standard-task-table td:nth-child(6)::before { content: "Actions"; }
 
   .engagement-table td:last-child,
   .organization-table td:last-child,
@@ -3104,6 +3171,32 @@ html.dark-mode .login-secondary-link a {
 
   .task-form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .page-heading-actions,
+  .standard-task-page-actions,
+  .standard-task-details {
+    width: 100%;
+  }
+
+  .page-heading-actions,
+  .standard-task-page-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .page-heading-actions > *,
+  .standard-task-page-actions > *,
+  .standard-task-page-actions > form > button {
+    width: 100% !important;
+  }
+
+  .standard-task-details {
+    grid-template-columns: 1fr;
+  }
+
+  .standard-task-detail-wide {
+    grid-column: auto;
   }
 
   .context-task-heading,

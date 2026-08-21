@@ -52,6 +52,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_chron_e
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.presentations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${MYSQL_USER}'@'%';
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${maintenance_user}'@'%';
