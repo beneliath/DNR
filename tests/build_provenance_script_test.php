@@ -36,7 +36,7 @@ expectBuildProvenanceScript(
 );
 expectBuildProvenanceScript(
     substr_count($readme, 'compose_with_provenance.sh') >= 6
-        && str_contains($secure_existing, 'compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder')
+        && str_contains($secure_existing, 'compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder ingress')
         && str_contains($readme, 'DNR_COMPOSE_MODE=development'),
     'documented and automated deployment builds should use the provenance wrapper.'
 );

@@ -72,12 +72,31 @@ expectBetaReadiness(
 
 $compose = $read('docker-compose.yaml');
 $apache = $read('docker/apache-security.conf');
+$ingress = $read('docker/apache-ingress.conf');
+$dockerfile = $read('Dockerfile');
+$web_service = substr(
+    $compose,
+    strpos($compose, "  web:\n"),
+    strpos($compose, "  ingress:\n") - strpos($compose, "  web:\n")
+);
+$ingress_service = substr(
+    $compose,
+    strpos($compose, "  ingress:\n"),
+    strpos($compose, "  geocoder:\n") - strpos($compose, "  ingress:\n")
+);
 expectBetaReadiness(
     str_contains($compose, 'DNR_BIND_ADDRESS:-127.0.0.1')
         && str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password')
         && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password')
-        && str_contains($compose, 'networks: [ingress, backend]')
-        && str_contains($compose, 'com.docker.network.bridge.enable_ip_masquerade: "false"')
+        && str_contains($web_service, 'networks: [backend]')
+        && !str_contains($web_service, "\n    ports:")
+        && str_contains($ingress_service, "\n    ports:")
+        && !str_contains($ingress_service, "\n    secrets:")
+        && str_contains($compose, 'ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.2}')
+        && str_contains($compose, 'subnet: ${DNR_BACKEND_SUBNET:-172.30.255.0/24}')
+        && str_contains($ingress, 'ProxyRequests Off')
+        && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
+        && str_contains($dockerfile, 'a2enmod headers proxy proxy_http')
         && str_contains($compose, 'read_only: true')
         && !str_contains($compose, 'rootpassword')
         && !str_contains($compose, 'dnrpassword')

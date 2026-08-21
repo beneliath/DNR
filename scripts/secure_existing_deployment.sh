@@ -122,6 +122,8 @@ if [ -e "$environment_path" ]; then
             allowed["DNR_PUBLIC_BASE_URL"] = 1
             allowed["DNR_TRUSTED_PROXY_IPS"] = 1
             allowed["DNR_TRUSTED_CLOUDFLARE_PROXY_IPS"] = 1
+            allowed["DNR_BACKEND_SUBNET"] = 1
+            allowed["DNR_INGRESS_PROXY_IP"] = 1
             allowed["DNR_TIMEZONE"] = 1
             allowed["DNR_DATABASE_BACKUP_MAX_BYTES"] = 1
             allowed["DNR_GITHUB_REPOSITORY"] = 1
@@ -175,7 +177,7 @@ cd "$project_directory"
 compose up -d --force-recreate --wait --wait-timeout "${DNR_COMPOSE_WAIT_TIMEOUT:-120}" db
 compose exec db sh /opt/dnr/bin/migrate
 compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
-"$project_directory/scripts/compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder
+"$project_directory/scripts/compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder ingress
 
 echo "Database credentials were moved to separate secret files and the maintenance account was isolated."
 echo "The pre-rotation safety backup is $backup_path"

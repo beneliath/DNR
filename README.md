@@ -126,6 +126,7 @@ Configure these values as needed:
 - `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
 - `DNR_SESSION_IDLE_SECONDS`, `DNR_SESSION_ABSOLUTE_SECONDS`, and `DNR_SESSION_ROTATION_SECONDS`: authenticated-session idle lifetime, absolute lifetime, and identifier-rotation interval. Defaults are 30 minutes, 12 hours, and 15 minutes.
 - `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers.
+- `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.2`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
 - `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `67108864` bytes (64 MB). Restore plaintext exists only in the maintenance container's memory-backed `/tmp`.
@@ -150,7 +151,7 @@ accurately identify uncommitted source files.
 ./scripts/compose_with_provenance.sh production
 
 # Forward a specific Compose command or service selection
-./scripts/compose_with_provenance.sh development up -d --build web
+./scripts/compose_with_provenance.sh development up -d --build web ingress
 
 # Display the metadata without running Docker
 ./scripts/compose_with_provenance.sh --print-metadata
@@ -216,7 +217,7 @@ variables.
    ```sh
    install -d -m 700 secrets backups
    install -m 600 /dev/null secrets/backup_password
-   ./scripts/compose_with_provenance.sh production build maintenance web geocoder
+   ./scripts/compose_with_provenance.sh production build maintenance web geocoder ingress
    ```
 
    Do not generate a new 2FA key: without the original key, authenticator secrets in the restored
@@ -263,11 +264,11 @@ variables.
 5. Stop every service that can mutate application data. Leave `db` running:
 
    ```sh
-   docker compose stop web geocoder
+   docker compose stop ingress web geocoder
    docker compose ps
    ```
 
-   Verify that `web` and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
+   Verify that `ingress`, `web`, and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
 
 6. Run the one-shot restore with the literal confirmation word `RESTORE`:
 
@@ -287,7 +288,7 @@ variables.
    error:
 
    ```sh
-   docker compose up -d web geocoder
+   docker compose up -d web geocoder ingress
    install -m 600 /dev/null secrets/backup_password
    rm -f backups/restore.dnrbackup
    ```
@@ -298,7 +299,7 @@ variables.
    ```sh
    docker compose exec db sh /opt/dnr/bin/migrate
    docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
-   docker compose up -d web geocoder
+   docker compose up -d web geocoder ingress
    ```
 
 9. Wait for the health check, inspect service status, and run the schema health check directly:
@@ -308,8 +309,8 @@ variables.
    docker compose exec web php /opt/dnr/bin/check_schema.php
    ```
 
-   Do not declare the restore complete until `web`, `geocoder`, and `db` are running, `web` and `db`
-   are healthy, and the schema command exits successfully.
+   Do not declare the restore complete until `ingress`, `web`, `geocoder`, and `db` are running;
+   `ingress`, `web`, and `db` are healthy; and the schema command exits successfully.
 
 10. Sign in with an administrator account that exists in the restored backup. Verify at least one
     known engagement, organization, contact, and user; open **Users → Audit Log** and verify the
@@ -326,16 +327,17 @@ variables.
     rm -f backups/restore.dnrbackup
     ```
 
-If step 6 succeeded but later verification reveals incorrect data, stop `web` and `geocoder`, import
+If step 6 succeeded but later verification reveals incorrect data, stop `ingress`, `web`, and
+`geocoder`, import
 the safety dump, rerun migrations and privilege configuration, and restart the services:
 
 ```sh
-docker compose stop web geocoder
+docker compose stop ingress web geocoder
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr' < backups/pre-restore-safety.sql
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr -e "UPDATE users SET auth_version = auth_version + 1"'
 docker compose exec db sh /opt/dnr/bin/migrate
 docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
-docker compose up -d web geocoder
+docker compose up -d web geocoder ingress
 docker compose exec web php /opt/dnr/bin/check_schema.php
 ```
 

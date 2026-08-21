@@ -19,7 +19,7 @@ RUN apt-get update \
         libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" gd mysqli opcache \
-    && a2enmod headers \
+    && a2enmod headers proxy proxy_http \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && rm -rf /var/lib/apt/lists/*

@@ -6,7 +6,7 @@ x-app-environment: &app-environment
   MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
-  DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1}
+  DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.2}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
   DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
   DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
@@ -28,8 +28,6 @@ services:
         DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
     restart: unless-stopped
     read_only: true
-    ports:
-      - "${DNR_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=64m
       - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
@@ -46,9 +44,43 @@ services:
       - dnr_2fa_encryption_key
       - dnr_mysql_app_password
     environment: *app-environment
-    networks: [ingress, backend]
+    networks: [backend]
     healthcheck:
       test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  ingress:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    restart: unless-stopped
+    read_only: true
+    ports:
+      - "${DNR_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /var/lock/apache2:rw,noexec,nosuid,size=1m
+      - /var/run/apache2:rw,noexec,nosuid,size=1m
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      web:
+        condition: service_healthy
+    volumes:
+      - ./docker/apache-ingress.conf:/etc/apache2/conf-enabled/zz-dnr-ingress.conf:ro
+    networks:
+      ingress: {}
+      backend:
+        ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.2}
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit((@fsockopen('127.0.0.1', 80) && @fsockopen('web', 80)) ? 0 : 1);"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -153,14 +185,15 @@ volumes:
 
 networks:
   # Docker Engine does not activate published ports for containers connected
-  # only to an internal network. This bridge accepts localhost-forwarded
-  # traffic without masquerading outbound web-container traffic.
+  # only to an internal network. A fixed reverse proxy accepts localhost
+  # traffic here while the application remains isolated on the backend.
   ingress:
     driver: bridge
-    driver_opts:
-      com.docker.network.bridge.enable_ip_masquerade: "false"
   backend:
     internal: true
+    ipam:
+      config:
+        - subnet: ${DNR_BACKEND_SUBNET:-172.30.255.0/24}
   egress:
 
 secrets:
