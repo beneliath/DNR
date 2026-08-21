@@ -29,6 +29,7 @@ if ($filters['date_to'] !== '') {
     $parameter_types .= 's';
 }
 
+$map_event_limit = max(50, min(2000, (int) (getenv('DNR_MAP_MAX_EVENTS') ?: 500)));
 $engagement_sql = "SELECT
         e.id,
         e.event_title,
@@ -44,8 +45,9 @@ $engagement_sql = "SELECT
         o.organization_name
     FROM engagements e
     LEFT JOIN organizations o ON o.id = e.organization_id
-    WHERE " . implode(' AND ', $clauses) . '
-    ORDER BY e.event_start_date ASC, e.id ASC';
+    WHERE " . implode(' AND ', $clauses) . "
+    ORDER BY e.event_start_date ASC, e.id ASC
+    LIMIT " . ($map_event_limit + 1);
 
 $engagement_stmt = $conn->prepare($engagement_sql);
 if (!$engagement_stmt) {
@@ -71,6 +73,9 @@ $engagement_rows = [];
 $address_hashes = [];
 $events_without_addresses = 0;
 while ($row = $engagement_result->fetch_assoc()) {
+    if (count($engagement_rows) + $events_without_addresses >= $map_event_limit) {
+        break;
+    }
     $address = engagementMapAddress($row);
     if ($address === '') {
         $events_without_addresses++;
@@ -121,6 +126,7 @@ $map_events = [];
 $cached_pin_count = 0;
 $pending_geocode_count = 0;
 $not_found_count = 0;
+$queue_failures = 0;
 foreach ($engagement_rows as $row) {
     $hash = $row['_map_address_hash'];
     $geocode = $geocodes[$hash] ?? null;
@@ -134,6 +140,9 @@ foreach ($engagement_rows as $row) {
         $cached_pin_count++;
     } elseif ($needs_geocoding) {
         $pending_geocode_count++;
+        if (!queueEngagementMapAddress($conn, $row['_map_address'])) {
+            $queue_failures++;
+        }
     } else {
         $not_found_count++;
     }
@@ -151,18 +160,16 @@ foreach ($engagement_rows as $row) {
         'viewUrl' => 'view_engagement.php?id=' . (int) $row['id'],
         'latitude' => $has_coordinates ? (float) $geocode['latitude'] : null,
         'longitude' => $has_coordinates ? (float) $geocode['longitude'] : null,
-        'needsGeocoding' => $needs_geocoding,
     ];
 }
 
 $map_payload = [
     'events' => $map_events,
-    'csrfToken' => generateCsrfToken(),
-    'geocodeUrl' => 'map_geocode.php',
     'cachedPinCount' => $cached_pin_count,
     'pendingGeocodeCount' => $pending_geocode_count,
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
+    'queueFailureCount' => $queue_failures,
 ];
 ?>
 <!DOCTYPE html>
@@ -179,7 +186,7 @@ $map_payload = [
     <div class="page-heading">
         <div>
             <h1>Map</h1>
-            <p class="page-intro">Explore active engagement locations by status and event date.</p>
+            <p class="page-intro">Explore active engagement locations by status and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
         </div>
     </div>
 
@@ -230,15 +237,15 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan."></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <p class="map-attribution-note">Map and location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. New address lookups are rate-limited and cached.</p>
+        <p class="map-attribution-note">Map and location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. New addresses are resolved by a rate-limited background worker and cached.</p>
     </section>
 </main>
 
-<script type="application/json" id="engagement-map-data"><?php echo json_encode(
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-map-data"><?php echo json_encode(
     $map_payload,
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
-<script src="assets/js/map.min.js?v=1.0.2" defer></script>
+<script src="assets/js/map.min.js?v=1.1.0" defer></script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

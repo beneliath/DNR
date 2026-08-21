@@ -47,17 +47,12 @@ function canManageFollowUpTasks($role)
 
 function followUpTaskSchemaAvailable(mysqli $conn)
 {
-    $result = $conn->query("SHOW TABLES LIKE 'follow_up_tasks'");
-    return $result && $result->num_rows === 1;
+    return true;
 }
 
 function requireFollowUpTaskSchema(mysqli $conn)
 {
-    if (!followUpTaskSchemaAvailable($conn)) {
-        error_log('DNR follow-up task migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The follow-up task database migration is required.');
-    }
+    // Deployment health checks verify schema readiness.
 }
 
 function parseFollowUpTaskSubject($value)
@@ -233,6 +228,94 @@ function followUpTaskSubjectOptions(mysqli $conn)
     }
 
     return $options;
+}
+
+function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
+{
+    $search = trim(substr((string) $search, 0, 100));
+    $limit = max(1, min(50, (int) $limit));
+    $options = [[
+        'value' => 'general',
+        'label' => 'General DNR work',
+        'type' => 'general',
+    ]];
+    if (strlen($search) < 2) {
+        return $options;
+    }
+
+    $fulltext = fulltextSearchQuery($search);
+    if ($fulltext === '') {
+        return $options;
+    }
+    $per_type_limit = max(3, (int) ceil($limit / 3));
+
+    $engagement_stmt = $conn->prepare(
+        "SELECT e.id,
+                CONCAT(COALESCE(NULLIF(TRIM(e.event_title), ''), o.organization_name),
+                       ' · ', DATE_FORMAT(e.event_start_date, '%Y-%m-%d')) AS label
+         FROM engagements e
+         INNER JOIN organizations o ON o.id = e.organization_id
+         WHERE e.is_deleted = 0 AND o.is_deleted = 0
+           AND (
+             MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
+                 AGAINST (? IN BOOLEAN MODE)
+             OR MATCH(
+                o.organization_name, o.notes, o.affiliation, o.distinctives,
+                o.email, o.phone, o.physical_city, o.physical_state,
+                o.mailing_city, o.mailing_state
+             ) AGAINST (? IN BOOLEAN MODE)
+           )
+         ORDER BY e.event_start_date DESC, e.id DESC LIMIT ?"
+    );
+    $engagement_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
+    $engagement_stmt->execute();
+    foreach ($engagement_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $options[] = ['value' => 'engagement:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'engagement'];
+    }
+    $engagement_stmt->close();
+
+    $organization_stmt = $conn->prepare(
+        "SELECT id, organization_name AS label FROM organizations
+         WHERE is_deleted = 0 AND MATCH(
+            organization_name, notes, affiliation, distinctives, email, phone,
+            physical_city, physical_state, mailing_city, mailing_state
+         ) AGAINST (? IN BOOLEAN MODE)
+         ORDER BY organization_name, id LIMIT ?"
+    );
+    $organization_stmt->bind_param('si', $fulltext, $per_type_limit);
+    $organization_stmt->execute();
+    foreach ($organization_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $options[] = ['value' => 'organization:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'organization'];
+    }
+    $organization_stmt->close();
+
+    $contact_stmt = $conn->prepare(
+        "SELECT c.id,
+                CONCAT(c.contact_last_name, ', ', c.contact_first_name, ' · ', o.organization_name) AS label
+         FROM contacts c
+         INNER JOIN organizations o ON o.id = c.organization_id
+         WHERE c.is_deleted = 0 AND o.is_deleted = 0
+           AND (
+             MATCH(
+                c.contact_first_name, c.contact_last_name, c.contact_email,
+                c.contact_phone, c.contact_role_other, c.contact_notes
+             ) AGAINST (? IN BOOLEAN MODE)
+             OR MATCH(
+                o.organization_name, o.notes, o.affiliation, o.distinctives,
+                o.email, o.phone, o.physical_city, o.physical_state,
+                o.mailing_city, o.mailing_state
+             ) AGAINST (? IN BOOLEAN MODE)
+           )
+         ORDER BY c.contact_last_name, c.contact_first_name, c.id LIMIT ?"
+    );
+    $contact_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
+    $contact_stmt->execute();
+    foreach ($contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+        $options[] = ['value' => 'contact:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'contact'];
+    }
+    $contact_stmt->close();
+
+    return array_slice($options, 0, $limit + 1);
 }
 
 function followUpTaskUsers(mysqli $conn)

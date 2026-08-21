@@ -32,16 +32,11 @@ final class DnrSystemClock implements \Psr\Clock\ClockInterface {
 }
 
 function twoFactorSchemaAvailable(mysqli $conn) {
-    $result = $conn->query("SHOW COLUMNS FROM users LIKE 'two_factor_enabled'");
-    return $result && $result->num_rows === 1;
+    return true;
 }
 
 function requireTwoFactorSchema(mysqli $conn) {
-    if (!twoFactorSchemaAvailable($conn)) {
-        error_log('DNR two-factor authentication migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The two-factor authentication database migration is required.');
-    }
+    // Schema readiness is verified by deployment health checks.
 }
 
 function twoFactorRequiredForRole($role) {
@@ -276,17 +271,30 @@ function normalizeRecoveryCode($code) {
     return strtoupper(preg_replace('/[^A-Z0-9]/i', '', (string) $code));
 }
 
+function recoveryCodeLookupHash($code) {
+    $normalized = normalizeRecoveryCode($code);
+    if (strlen($normalized) !== 12) {
+        return null;
+    }
+    return hash_hmac(
+        'sha256',
+        "dnr-recovery-code-v1\0" . $normalized,
+        twoFactorEncryptionKey(),
+        true
+    );
+}
+
 function replaceRecoveryCodes(mysqli $conn, $user_id, array $codes) {
     $delete = $conn->prepare('DELETE FROM user_recovery_codes WHERE user_id = ?');
     $delete->bind_param('i', $user_id);
     $delete->execute();
 
     $insert = $conn->prepare(
-        'INSERT INTO user_recovery_codes (user_id, code_hash) VALUES (?, ?)'
+        'INSERT INTO user_recovery_codes (user_id, code_lookup_hash) VALUES (?, ?)'
     );
 
     foreach ($codes as $code) {
-        $hash = password_hash(normalizeRecoveryCode($code), PASSWORD_DEFAULT);
+        $hash = recoveryCodeLookupHash($code);
         $insert->bind_param('is', $user_id, $hash);
         $insert->execute();
     }
@@ -350,34 +358,34 @@ function disableTwoFactorForUser(mysqli $conn, $user_id) {
 }
 
 function consumeRecoveryCode(mysqli $conn, $user_id, $code) {
-    $normalized = normalizeRecoveryCode($code);
-
-    if (strlen($normalized) !== 12) {
+    $lookup_hash = recoveryCodeLookupHash($code);
+    if ($lookup_hash === null) {
         return false;
     }
 
     $stmt = $conn->prepare(
-        'SELECT id, code_hash FROM user_recovery_codes WHERE user_id = ? AND used_at IS NULL'
+        'SELECT id FROM user_recovery_codes
+         WHERE user_id = ? AND code_lookup_hash = ? AND used_at IS NULL
+         LIMIT 1'
     );
-    $stmt->bind_param('i', $user_id);
+    $stmt->bind_param('is', $user_id, $lookup_hash);
     $stmt->execute();
-    $result = $stmt->get_result();
-
-    while ($row = $result->fetch_assoc()) {
-        if (!password_verify($normalized, $row['code_hash'])) {
-            continue;
-        }
-
-        $code_id = (int) $row['id'];
-        $consume = $conn->prepare(
-            'UPDATE user_recovery_codes SET used_at = UTC_TIMESTAMP() WHERE id = ? AND used_at IS NULL'
-        );
-        $consume->bind_param('i', $code_id);
-        $consume->execute();
-        return $consume->affected_rows === 1;
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) {
+        return false;
     }
 
-    return false;
+    $code_id = (int) $row['id'];
+    $consume = $conn->prepare(
+        'UPDATE user_recovery_codes SET used_at = UTC_TIMESTAMP()
+         WHERE id = ? AND used_at IS NULL'
+    );
+    $consume->bind_param('i', $code_id);
+    $consume->execute();
+    $accepted = $consume->affected_rows === 1;
+    $consume->close();
+    return $accepted;
 }
 
 function countUnusedRecoveryCodes(mysqli $conn, $user_id) {
@@ -387,6 +395,77 @@ function countUnusedRecoveryCodes(mysqli $conn, $user_id) {
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
     return (int) $stmt->get_result()->fetch_assoc()['code_count'];
+}
+
+function hasRecentAdminElevation($maximum_age_seconds = 300) {
+    $elevated_at = $_SESSION['_admin_elevated_at'] ?? null;
+    return is_int($elevated_at) && (time() - $elevated_at) <= $maximum_age_seconds;
+}
+
+function attemptAdminElevation(mysqli $conn, $password, $code) {
+    $user_id = (int) ($_SESSION['user_id'] ?? 0);
+    $user = $user_id > 0 ? fetchAuthenticationUserById($conn, $user_id) : null;
+    if (!$user || $user['role'] !== 'admin') {
+        return false;
+    }
+
+    if (!empty($user['login_is_locked'])
+        || !password_verify((string) $password, (string) $user['password'])) {
+        if (empty($user['login_is_locked'])) {
+            recordAuthenticationFailure($conn, $user_id, 'password');
+        }
+        logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
+        return false;
+    }
+    if (empty($user['two_factor_enabled']) || !empty($user['two_factor_is_locked'])) {
+        logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
+        return false;
+    }
+
+    resetAuthenticationFailures($conn, $user_id, 'password');
+    $submitted_code = trim((string) $code);
+    $is_totp = preg_match('/^[0-9]{6}$/', $submitted_code) === 1;
+    $verified = $is_totp
+        ? verifyAndConsumeTotp($conn, $user, $submitted_code)
+        : consumeRecoveryCode($conn, $user_id, $submitted_code);
+    if (!$verified) {
+        recordAuthenticationFailure($conn, $user_id, 'two_factor');
+        logSecurityEvent($conn, 'admin_elevation_failed', $user_id, $user_id);
+        return false;
+    }
+
+    resetAuthenticationFailures($conn, $user_id, 'two_factor');
+    session_regenerate_id(true);
+    $_SESSION['_admin_elevated_at'] = time();
+    $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
+    logSecurityEvent($conn, 'admin_elevation_succeeded', $user_id, $user_id);
+    return true;
+}
+
+function safeAdminElevationReturnUrl($return_url) {
+    $return_url = is_scalar($return_url) ? trim((string) $return_url) : '';
+    if ($return_url === ''
+        || strlen($return_url) > 512
+        || str_contains($return_url, '..')
+        || str_contains($return_url, '//')
+        || str_contains($return_url, '\\')
+        || preg_match('/[\x00-\x1F\x7F]/', $return_url)
+        || !preg_match('/\A[A-Za-z0-9_\/-]+\.php(?:\?[^#]*)?(?:#.*)?\z/', $return_url)
+    ) {
+        return 'users.php';
+    }
+    return $return_url;
+}
+
+function requireRecentAdminElevation($return_url = 'users.php') {
+    if (hasRecentAdminElevation()) {
+        return;
+    }
+    $_SESSION['_admin_elevation_error'] = 'Confirm your password and a fresh authentication code before using sensitive administrator actions.';
+    header('Location: admin_elevation.php?' . http_build_query([
+        'return' => safeAdminElevationReturnUrl($return_url),
+    ]));
+    exit();
 }
 
 function logSecurityEvent(mysqli $conn, $event_type, $target_user_id = null, $actor_user_id = null) {

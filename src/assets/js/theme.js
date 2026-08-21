@@ -21,8 +21,16 @@
     document.documentElement.classList.toggle('dark-mode', savedTheme === 'dark' || (!savedTheme && prefersDark));
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', updateThemeControls);
+        document.addEventListener('DOMContentLoaded', function () {
+            updateThemeControls();
+            document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+                button.addEventListener('click', window.toggleTheme);
+            });
+        });
     } else {
         updateThemeControls();
+        document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
+            button.addEventListener('click', window.toggleTheme);
+        });
     }
 })();

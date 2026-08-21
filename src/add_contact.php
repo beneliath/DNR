@@ -74,8 +74,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     "INSERT INTO contacts (
                         organization_id, contact_first_name, contact_last_name, contact_role,
                         contact_role_other, contact_email, contact_phone, contact_notes,
-                        contact_photo, contact_photo_mime, contact_photo_updated_at
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
+                        contact_photo, contact_photo_mime, contact_photo_sha256,
+                        contact_photo_updated_at
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
                 );
             } else {
                 $stmt = $conn->prepare(
@@ -91,8 +92,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
                 $contact_photo_mime = $contact_photo['mime_type'];
+                $contact_photo_sha256 = $contact_photo['sha256'];
                 $stmt->bind_param(
-                    'isssssssss',
+                    'issssssssss',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -102,7 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     $contact_phone,
                     $contact_notes,
                     $contact_photo_data,
-                    $contact_photo_mime
+                    $contact_photo_mime,
+                    $contact_photo_sha256
                 );
             } else {
                 $stmt->bind_param(
@@ -306,7 +309,7 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
         <div class="role-container">
             <div class="form-group" style="flex: 0 0 200px;">
                 <label for="contact_role" class="required">Role</label>
-                <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
+                <select name="contact_role" id="contact_role" required>
                     <option value="pastor" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'pastor') ? 'selected' : ''; ?>>Pastor</option>
                     <option value="admin" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
                     <option value="other" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
@@ -362,7 +365,7 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
     </form>
 </div>
 
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 function toggleOtherRole() {
     const roleSelect = document.getElementById('contact_role');
     const otherRoleGroup = document.getElementById('other_role_group');
@@ -377,6 +380,8 @@ function toggleOtherRole() {
         otherRoleInput.value = '';
     }
 }
+document.getElementById('contact_role').addEventListener('change', toggleOtherRole);
+toggleOtherRole();
 </script>
 
 <?php include 'templates/footer.php'; ?>

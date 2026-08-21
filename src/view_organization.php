@@ -37,7 +37,9 @@ $organization = $result->fetch_assoc();
 $is_archived = !empty($organization['is_deleted']);
 
 // Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts
+    $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
+                             contact_role, contact_role_other, contact_email, contact_phone
+                      FROM contacts
                   WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);

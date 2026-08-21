@@ -263,27 +263,105 @@ function buildCalendar(
     return implode("\r\n", array_map('calendarFoldLine', $lines)) . "\r\n";
 }
 
-function calendarAccessToken() {
-    $token = trim((string) (getenv('DNR_CALENDAR_TOKEN') ?: ''));
-    return strlen($token) >= 32 && strlen($token) <= 255 ? $token : null;
-}
-
-function calendarRequestIsAuthorized(array $server, $submitted_token = null) {
-    $configured_token = calendarAccessToken();
-    if ($configured_token === null || !is_string($submitted_token)) {
-        return false;
+function calendarTokenHash($token) {
+    if (!is_string($token) || strlen($token) < 32 || strlen($token) > 255) {
+        return null;
     }
-    return hash_equals($configured_token, $submitted_token);
+    return hash('sha256', $token, true);
 }
 
-function calendarSubscriptionUrl(array $server) {
+function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar subscription') {
+    $user_id = (int) $user_id;
+    $label = trim(substr((string) $label, 0, 100));
+    if ($user_id < 1 || $label === '') {
+        throw new InvalidArgumentException('A subscription owner and label are required.');
+    }
+
+    $count_stmt = $conn->prepare(
+        'SELECT COUNT(*) AS active_count FROM calendar_subscriptions
+         WHERE user_id = ? AND revoked_at IS NULL'
+    );
+    $count_stmt->bind_param('i', $user_id);
+    $count_stmt->execute();
+    $active_count = (int) $count_stmt->get_result()->fetch_assoc()['active_count'];
+    $count_stmt->close();
+    if ($active_count >= 5) {
+        throw new RuntimeException('Revoke an existing subscription before creating another.');
+    }
+
+    $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+    $token_hash = calendarTokenHash($token);
+    $stmt = $conn->prepare(
+        'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
+         VALUES (?, ?, ?)'
+    );
+    $stmt->bind_param('iss', $user_id, $label, $token_hash);
+    $stmt->execute();
+    $subscription_id = (int) $conn->insert_id;
+    $stmt->close();
+    return ['id' => $subscription_id, 'token' => $token, 'label' => $label];
+}
+
+function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
+    $token_hash = calendarTokenHash($submitted_token);
+    if ($token_hash === null) {
+        return null;
+    }
+    $stmt = $conn->prepare(
+        'SELECT id, user_id, label, created_at, last_used_at
+         FROM calendar_subscriptions
+         WHERE token_hash = ? AND revoked_at IS NULL
+         LIMIT 1'
+    );
+    $stmt->bind_param('s', $token_hash);
+    $stmt->execute();
+    $subscription = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$subscription) {
+        return null;
+    }
+
+    $subscription_id = (int) $subscription['id'];
+    $touch = $conn->prepare(
+        'UPDATE calendar_subscriptions SET last_used_at = UTC_TIMESTAMP()
+         WHERE id = ? AND (last_used_at IS NULL OR last_used_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 HOUR))'
+    );
+    $touch->bind_param('i', $subscription_id);
+    $touch->execute();
+    $touch->close();
+    return $subscription;
+}
+
+function calendarSubscriptionsForUser(mysqli $conn, $user_id) {
+    $stmt = $conn->prepare(
+        'SELECT id, label, created_at, last_used_at, revoked_at
+         FROM calendar_subscriptions WHERE user_id = ?
+         ORDER BY created_at DESC, id DESC'
+    );
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function revokeCalendarSubscription(mysqli $conn, $user_id, $subscription_id) {
+    $stmt = $conn->prepare(
+        'UPDATE calendar_subscriptions SET revoked_at = UTC_TIMESTAMP()
+         WHERE id = ? AND user_id = ? AND revoked_at IS NULL'
+    );
+    $stmt->bind_param('ii', $subscription_id, $user_id);
+    $stmt->execute();
+    $revoked = $stmt->affected_rows === 1;
+    $stmt->close();
+    return $revoked;
+}
+
+function calendarSubscriptionUrl(array $server, $token = null) {
     $configured_base_url = trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
     if ($configured_base_url !== ''
         && filter_var($configured_base_url, FILTER_VALIDATE_URL)
         && in_array(strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME)), ['http', 'https'], true)
     ) {
         $calendar_url = rtrim($configured_base_url, '/') . '/calendar.php';
-        $token = calendarAccessToken();
         return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
     }
 
@@ -302,6 +380,5 @@ function calendarSubscriptionUrl(array $server) {
     $base_path = rtrim(dirname($script_name), '/.');
 
     $calendar_url = "{$scheme}://{$host}" . ($base_path !== '' ? $base_path : '') . '/calendar.php';
-    $token = calendarAccessToken();
     return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
 }

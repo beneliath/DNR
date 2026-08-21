@@ -19,7 +19,8 @@ if ($user_id < 1 || ($user_id !== $current_user_id && !checkRole('admin'))) {
     exit;
 }
 $stmt = $conn->prepare(
-    'SELECT username, first_name, last_name, profile_picture, profile_picture_mime,
+    'SELECT username, first_name, last_name, profile_picture_mime,
+            HEX(profile_picture_sha256) AS profile_picture_sha256,
             profile_picture_updated_at
      FROM users
      WHERE id = ?'
@@ -42,19 +43,30 @@ if (!$user) {
 
 $allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp'];
 $mime_type = (string) ($user['profile_picture_mime'] ?? '');
-$picture = $user['profile_picture'] ?? null;
+$picture_hash = strtolower((string) ($user['profile_picture_sha256'] ?? ''));
 
 header('Cache-Control: private, max-age=300');
 header('X-Content-Type-Options: nosniff');
 
-if (is_string($picture) && $picture !== '' && in_array($mime_type, $allowed_mime_types, true)) {
-    $etag = '"profile-' . $user_id . '-' . hash('sha256', $picture) . '"';
+if (preg_match('/^[0-9a-f]{64}$/', $picture_hash) === 1
+    && in_array($mime_type, $allowed_mime_types, true)
+) {
+    $etag = '"profile-' . $user_id . '-' . $picture_hash . '"';
     header('ETag: ' . $etag);
     if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
         http_response_code(304);
         exit;
     }
 
+    $picture_stmt = $conn->prepare('SELECT profile_picture FROM users WHERE id = ?');
+    $picture_stmt->bind_param('i', $user_id);
+    $picture_stmt->execute();
+    $picture = $picture_stmt->get_result()->fetch_assoc()['profile_picture'] ?? null;
+    $picture_stmt->close();
+    if (!is_string($picture) || $picture === '') {
+        http_response_code(404);
+        exit;
+    }
     header('Content-Type: ' . $mime_type);
     header('Content-Length: ' . strlen($picture));
     echo $picture;

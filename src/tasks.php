@@ -2,6 +2,7 @@
 include 'config.php';
 include 'functions.php';
 include 'follow_up_task_helpers.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 requireFollowUpTaskSchema($conn);
@@ -24,6 +25,10 @@ $view = array_key_exists($requested_view, followUpTaskQueueViews())
 $search = trim((string) ($_GET['q'] ?? ''));
 if (strlen($search) > 100) {
     $search = substr($search, 0, 100);
+}
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
 }
 $current_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT) ?: 1;
 $current_page = max(1, $current_page);
@@ -89,6 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(403);
                 exit('Forbidden.');
             }
+            requireRecentAdminElevation($return_to);
             $task_id = filter_input(INPUT_POST, 'task_id', FILTER_VALIDATE_INT);
             if (!$task_id) {
                 throw new InvalidArgumentException('Select a valid task.');
@@ -180,21 +186,37 @@ if ($has_subject_filter) {
     $bind_types .= 'i';
     $bind_values[] = (int) $subject_filter_id;
 }
-if ($search !== '') {
+if ($fulltext_query !== '') {
     $where[] = "(
-        t.title LIKE ?
-        OR COALESCE(t.details, '') LIKE ?
-        OR COALESCE(t.waiting_on, '') LIKE ?
-        OR COALESCE(assignee.username, '') LIKE ?
-        OR COALESCE(NULLIF(TRIM(e.event_title), ''), eo.organization_name, '') LIKE ?
-        OR COALESCE(o.organization_name, '') LIKE ?
-        OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
+        MATCH(t.title, t.details, t.waiting_on) AGAINST (? IN BOOLEAN MODE)
+        OR assignee.username LIKE ?
+        OR MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
+            AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            eo.organization_name, eo.notes, eo.affiliation, eo.distinctives,
+            eo.email, eo.phone, eo.physical_city, eo.physical_state,
+            eo.mailing_city, eo.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            c.contact_first_name, c.contact_last_name, c.contact_email,
+            c.contact_phone, c.contact_role_other, c.contact_notes
+        ) AGAINST (? IN BOOLEAN MODE)
     )";
-    $search_pattern = '%' . $search . '%';
-    for ($index = 0; $index < 7; $index++) {
-        $bind_types .= 's';
-        $bind_values[] = $search_pattern;
-    }
+    $bind_types .= 'ssssss';
+    array_push(
+        $bind_values,
+        $fulltext_query,
+        $search . '%',
+        $fulltext_query,
+        $fulltext_query,
+        $fulltext_query,
+        $fulltext_query
+    );
 }
 
 $where_sql = implode(' AND ', array_map(
@@ -381,7 +403,7 @@ $priority_labels = followUpTaskPriorities();
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="completed"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete"><?php echo actionIconSvg('complete'); ?></button></form>
                         <?php endif; ?>
                         <?php if (canDeleteEntries($user_role)): ?>
-                            <form method="post" action="tasks.php" onsubmit="return confirm('Permanently delete this task?');"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
+                            <form method="post" action="tasks.php" data-confirm="Permanently delete this task?"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
                         <?php endif; ?>
                     </div>
                     <?php else: ?><span class="task-read-only-label">Read only</span><?php endif; ?>

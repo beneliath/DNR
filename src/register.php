@@ -2,11 +2,13 @@
 // Include required files
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
+    requireRecentAdminElevation('register.php');
 
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';

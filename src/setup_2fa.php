@@ -197,7 +197,7 @@ if ($enrollment) {
     <title>Set Up Two-Factor Authentication - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.58">
-    <script>
+    <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
     </script>
@@ -262,6 +262,6 @@ if ($enrollment) {
     </form>
 </main>
 <?php if (!$is_pending_login) include 'templates/footer.php'; ?>
-<script src="assets/js/theme.min.js"></script>
+<script src="assets/js/theme.min.js?v=1.1.0"></script>
 </body>
 </html>

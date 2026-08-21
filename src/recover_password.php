@@ -27,16 +27,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'start') {
         $username_input = is_string($_POST['username'] ?? null) ? $_POST['username'] : '';
         $username = trim($username_input);
-        $user = $username !== '' ? fetchAuthenticationUserByUsername($conn, $username) : null;
-        $eligible_user = $user && !empty($user['two_factor_enabled']) ? $user : null;
+        if (authenticationSourceIsBlocked($conn, 'recovery')) {
+            http_response_code(429);
+            header('Retry-After: 1800');
+            $error = 'Recovery is temporarily unavailable. Wait and try again.';
+        } else {
+            $user = $username !== '' ? fetchAuthenticationUserByUsername($conn, $username) : null;
+            $eligible_user = $user && !empty($user['two_factor_enabled']) ? $user : null;
+            $rate_limit_states = recordAuthenticationRateLimitFailure($conn, 'recovery', $username);
+            $rate_limited = !empty($rate_limit_states['recovery_ip']['blocked'])
+                || !empty($rate_limit_states['recovery_account']['blocked']);
 
-        beginPasswordRecovery($eligible_user);
-        if ($eligible_user) {
-            logSecurityEvent($conn, 'password_recovery_started', (int) $user['id']);
+            beginPasswordRecovery($rate_limited ? null : $eligible_user, $username);
+            if ($eligible_user && !$rate_limited) {
+                logSecurityEvent($conn, 'password_recovery_started', (int) $user['id']);
+            }
+
+            header('Location: recover_password.php');
+            exit();
         }
-
-        header('Location: recover_password.php');
-        exit();
     }
 
     if ($action === 'verify') {
@@ -55,6 +64,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $used_recovery_code = false;
 
             try {
+                if (authenticationSourceIsBlocked($conn, 'recovery')) {
+                    http_response_code(429);
+                    header('Retry-After: 1800');
+                    throw new RuntimeException('Recovery source is rate limited.');
+                }
                 if ($user
                     && (int) $user['auth_version'] === (int) $recovery['auth_version']
                     && !empty($user['two_factor_enabled'])
@@ -68,6 +82,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($verified) {
+                    clearAuthenticationRateLimits(
+                        $conn,
+                        'recovery',
+                        (string) ($recovery['account_identifier'] ?? ($user['username'] ?? ''))
+                    );
                     resetAuthenticationFailures($conn, (int) $user['id'], 'two_factor');
                     logSecurityEvent(
                         $conn,
@@ -83,8 +102,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
 
                 if ($user && empty($user['two_factor_is_locked'])) {
-                    recordAuthenticationFailure($conn, (int) $user['id'], 'two_factor');
                     logSecurityEvent($conn, 'password_recovery_factor_failed', (int) $user['id']);
+                }
+
+                $rate_limit_states = recordAuthenticationRateLimitFailure(
+                    $conn,
+                    'recovery',
+                    (string) ($recovery['account_identifier'] ?? ($user['username'] ?? ''))
+                );
+                if (!empty($rate_limit_states['recovery_ip']['blocked'])
+                    || !empty($rate_limit_states['recovery_account']['blocked'])
+                ) {
+                    http_response_code(429);
+                    header('Retry-After: 900');
                 }
 
                 $_SESSION['_password_recovery']['attempts'] =
@@ -96,7 +126,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'The authentication or recovery code was not accepted.';
                 }
             } catch (Throwable $exception) {
-                error_log('Password recovery verification error: ' . $exception->getMessage());
+                if ($exception->getMessage() !== 'Recovery source is rate limited.') {
+                    error_log('Password recovery verification error: ' . $exception->getMessage());
+                }
                 $error = 'Password recovery is temporarily unavailable.';
             }
         }
@@ -169,13 +201,13 @@ $stage = $recovery['stage'] ?? 'start';
     <title>Recover Password - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
     <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.58">
-    <script>
+    <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
         const savedTheme = localStorage.getItem('theme');
         if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
     </script>
 </head>
 <body class="fullscreen-center">
-    <button type="button" class="mobile-theme-button auth-theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+    <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
         <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
         <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
     </button>
@@ -246,6 +278,6 @@ $stage = $recovery['stage'] ?? 'start';
             </form>
         <?php endif; ?>
     </div>
-    <script src="assets/js/theme.min.js"></script>
+    <script src="assets/js/theme.min.js?v=1.1.0"></script>
 </body>
 </html>

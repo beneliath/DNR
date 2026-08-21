@@ -2,9 +2,9 @@
 $task_form_values = is_array($task_form_values ?? null) ? $task_form_values : [];
 $task_form_action = (string) ($task_form_action ?? 'add_task.php');
 $task_form_submit_label = (string) ($task_form_submit_label ?? 'Save task');
-$task_subject_options = is_array($task_subject_options ?? null) ? $task_subject_options : [];
 $task_users = is_array($task_users ?? null) ? $task_users : [];
 $task_selected_subject = (string) ($task_selected_subject ?? 'general');
+$task_selected_record = is_array($task_selected_record ?? null) ? $task_selected_record : null;
 $task_return_to = (string) ($task_return_to ?? 'tasks.php');
 $task_inactive_subject = is_array($task_inactive_subject ?? null) ? $task_inactive_subject : null;
 $task_statuses = followUpTaskStatuses();
@@ -12,12 +12,6 @@ $task_priorities = followUpTaskPriorities();
 $task_selected_status = (string) ($task_form_values['status'] ?? 'open');
 $task_selected_priority = (string) ($task_form_values['priority'] ?? 'normal');
 $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
-$task_option_groups = [
-    'general' => 'General',
-    'engagement' => 'Engagements',
-    'organization' => 'Organizations',
-    'contact' => 'Contacts',
-];
 ?>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
     <?php echo csrfInput(); ?>
@@ -39,23 +33,14 @@ $task_option_groups = [
         </div>
         <div class="form-group">
             <label for="task-subject" class="required">Related record</label>
+            <input type="search" id="task-subject-search" autocomplete="off" placeholder="Search engagements, organizations, or contacts" data-subject-search-url="task_subject_search.php">
             <select id="task-subject" name="subject" required>
-                <?php if ($task_inactive_subject): ?>
-                    <optgroup label="Current archived record">
-                        <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_inactive_subject['label'], ENT_QUOTES, 'UTF-8'); ?> · Archived</option>
-                    </optgroup>
+                <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>>General DNR work</option>
+                <?php if ($task_selected_record && $task_selected_subject !== 'general'): ?>
+                    <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
                 <?php endif; ?>
-                <?php foreach ($task_option_groups as $group_key => $group_label): ?>
-                    <?php if (!empty($task_subject_options[$group_key])): ?>
-                        <optgroup label="<?php echo htmlspecialchars($group_label, ENT_QUOTES, 'UTF-8'); ?>">
-                            <?php foreach ($task_subject_options[$group_key] as $option): ?>
-                                <option value="<?php echo htmlspecialchars($option['value'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$task_inactive_subject && $task_selected_subject === $option['value'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($option['label'], ENT_QUOTES, 'UTF-8'); ?></option>
-                            <?php endforeach; ?>
-                        </optgroup>
-                    <?php endif; ?>
-                <?php endforeach; ?>
             </select>
-            <small class="field-help">Use General DNR work when the task does not belong to one record.</small>
+            <small id="task-subject-status" class="field-help" aria-live="polite">Type at least three characters to load a bounded result set. Use General DNR work when no record applies.</small>
         </div>
     </section>
 
@@ -103,19 +88,4 @@ $task_option_groups = [
         <button type="submit" name="save_task" value="1" class="save-button"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>
-<script>
-(function () {
-    const status = document.getElementById('task-status');
-    const waitingGroup = document.getElementById('task-waiting-on-group');
-    const waitingInput = document.getElementById('task-waiting-on');
-    if (!status || !waitingGroup || !waitingInput) return;
-    function updateWaitingField() {
-        const waiting = status.value === 'waiting';
-        waitingGroup.hidden = !waiting;
-        waitingInput.required = waiting;
-        if (!waiting) waitingInput.value = '';
-    }
-    status.addEventListener('change', updateWaitingField);
-    updateWaitingField();
-}());
-</script>
+<script src="assets/js/task-form.min.js?v=1.0.0" defer></script>

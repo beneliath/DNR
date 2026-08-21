@@ -362,7 +362,7 @@ if ($engagement_title === '') {
 </div>
 
 <?php include 'templates/footer.php'; ?>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 (function () {
     const selectAll = document.getElementById('select-all-presentations');
     const presentationCheckboxes = Array.from(document.querySelectorAll('input[name="presentation_ids[]"]'));

@@ -1,6 +1,7 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -28,6 +29,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 // Handle the form submission for editing user
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
+    requireRecentAdminElevation('edit_user.php?id=' . $user_id);
 
     $username = trim($_POST['username'] ?? '');
     $role = $_POST['role'] ?? '';

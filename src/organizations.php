@@ -1,11 +1,13 @@
 <?php
 include 'config.php';
 include 'functions.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
+$allowed_page_sizes = [20, 50, 100];
 
 $list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
     ? 'archived'
@@ -27,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete' && !canDeleteEntries($user_role)) {
         http_response_code(403);
         exit('Forbidden.');
+    }
+    if ($action === 'delete') {
+        requireRecentAdminElevation('organizations.php?' . http_build_query(['status' => $list_status]));
     }
 
     if ($org_id && $action === 'archive') {
@@ -70,76 +75,73 @@ unset($_SESSION['organization_action_message'], $_SESSION['organization_action_e
 // Retrieve organizations using an allowlisted name-sort direction.
 $name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
 $order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
-$search = trim($_GET['q'] ?? '');
+$search = trim(substr((string) ($_GET['q'] ?? ''), 0, 256));
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
+}
+$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
+$page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
+$requested_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
-$query = "SELECT o.* FROM organizations o
-          WHERE o.is_deleted = {$archive_value}";
-$query_stmt = null;
-if ($search !== '') {
-    $query .= " AND (
-        o.organization_name LIKE ?
-        OR o.affiliation LIKE ?
-        OR o.email LIKE ?
-        OR o.phone LIKE ?
-        OR o.physical_city LIKE ?
-        OR o.physical_state LIKE ?
-        OR o.mailing_city LIKE ?
-        OR o.mailing_state LIKE ?
+$search_filter = $fulltext_query === '' ? '' : " AND (
+        MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
         OR EXISTS (
-            SELECT 1 FROM contacts c
-            WHERE c.organization_id = o.id
-              AND c.is_deleted = 0
-              AND (
-                  c.contact_first_name LIKE ?
-                  OR c.contact_last_name LIKE ?
-                  OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
-                  OR c.contact_email LIKE ?
-                  OR c.contact_phone LIKE ?
-              )
+            SELECT 1 FROM contacts searched_contact
+            WHERE searched_contact.organization_id = o.id
+              AND searched_contact.is_deleted = 0
+              AND MATCH(
+                  searched_contact.contact_first_name, searched_contact.contact_last_name,
+                  searched_contact.contact_email, searched_contact.contact_phone,
+                  searched_contact.contact_role_other, searched_contact.contact_notes
+              ) AGAINST (? IN BOOLEAN MODE)
         )
     )";
-}
-$query .= " ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}";
+$count_query = "SELECT COUNT(*) AS organization_count FROM organizations o
+                WHERE o.is_deleted = {$archive_value}{$search_filter}";
+$count_stmt = $conn->prepare($count_query);
+if ($fulltext_query !== '') $count_stmt->bind_param('ss', $fulltext_query, $fulltext_query);
+$count_stmt->execute();
+$total_organizations = (int) $count_stmt->get_result()->fetch_assoc()['organization_count'];
+$count_stmt->close();
+$total_pages = max(1, (int) ceil($total_organizations / $page_size));
+$current_page = min($requested_page, $total_pages);
+$offset = ($current_page - 1) * $page_size;
 
-$result = null;
-if ($search !== '') {
-    $query_stmt = $conn->prepare($query);
-    if (!$query_stmt) {
-        die('Unable to search organizations.');
-    }
-    $search_pattern = '%' . $search . '%';
-    $query_stmt->bind_param(
-        'sssssssssssss',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern
-    );
-    $query_stmt->execute();
-    $result = $query_stmt->get_result();
+$query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
+                 GROUP_CONCAT(
+                    CONCAT_WS(' ', c.contact_first_name, c.contact_last_name)
+                    ORDER BY c.contact_last_name, c.contact_first_name SEPARATOR ', '
+                 ) AS contact_names
+          FROM organizations o
+          LEFT JOIN contacts c ON c.organization_id = o.id AND c.is_deleted = 0
+          WHERE o.is_deleted = {$archive_value}{$search_filter}
+          GROUP BY o.id, o.organization_name, o.physical_city, o.physical_state
+          ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
+          LIMIT ? OFFSET ?";
+$query_stmt = $conn->prepare($query);
+if (!$query_stmt) die('Unable to retrieve organizations.');
+if ($fulltext_query !== '') {
+    $query_stmt->bind_param('ssii', $fulltext_query, $fulltext_query, $page_size, $offset);
 } else {
-    $result = $conn->query($query);
+    $query_stmt->bind_param('ii', $page_size, $offset);
 }
-if (!$result) {
-    die("Database error: " . $conn->error);
-}
+$query_stmt->execute();
+$result = $query_stmt->get_result();
 
-function organizationsPageUrl($status, $name_sort, $search = '')
+function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $page_size = 20)
 {
     $parameters = [
         'status' => $status,
         'name_sort' => $name_sort,
+        'page' => $page,
+        'per_page' => $page_size,
     ];
     if ($search !== '') {
         $parameters['q'] = $search;
@@ -273,17 +275,17 @@ function organizationsPageUrl($status, $name_sort, $search = '')
             <label class="visually-hidden" for="organization-search">Search organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, '', 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Organization archive status">
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Organization sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
+                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
@@ -291,7 +293,7 @@ function organizationsPageUrl($status, $name_sort, $search = '')
     </div>
 
     <?php if ($search !== ''): ?>
-        <p class="result-context"><?php echo $result->num_rows; ?> result<?php echo $result->num_rows === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context"><?php echo $total_organizations; ?> result<?php echo $total_organizations === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
     <table class="organization-table">
@@ -319,27 +321,7 @@ function organizationsPageUrl($status, $name_sort, $search = '')
                         ?>
                     </td>
                     <td>
-                        <?php
-                        // Fetch contacts for this organization
-                        $contact_query = "SELECT contact_first_name, contact_last_name
-                                          FROM contacts
-                                          WHERE organization_id = ? AND is_deleted = 0
-                                          ORDER BY contact_last_name, contact_first_name";
-                        $contact_stmt = $conn->prepare($contact_query);
-                        $contact_stmt->bind_param("i", $org['id']);
-                        $contact_stmt->execute();
-                        $contacts_result = $contact_stmt->get_result();
-
-                        $contact_names = [];
-                        while ($contact = $contacts_result->fetch_assoc()) {
-                            $contact_names[] = htmlspecialchars(
-                                trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-                        }
-                        echo implode(', ', $contact_names);
-                        ?>
+                        <?php echo htmlspecialchars($org['contact_names'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                     </td>
                     <td>
                         <div class="action-buttons">
@@ -383,6 +365,15 @@ function organizationsPageUrl($status, $name_sort, $search = '')
             <?php endwhile; ?>
         </tbody>
     </table>
+    <?php if ($total_pages > 1): ?>
+        <nav class="pagination" aria-label="Organization pages">
+            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_organizations; ?> organizations</span>
+            <div class="pagination-actions">
+                <?php if ($current_page > 1): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $current_page - 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
+                <?php if ($current_page < $total_pages): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $current_page + 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+            </div>
+        </nav>
+    <?php endif; ?>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

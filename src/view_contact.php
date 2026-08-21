@@ -14,7 +14,9 @@ if (!$contact_id) {
 
 $contact_stmt = $conn->prepare(
     "SELECT
-        c.*,
+        c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+        c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+        c.contact_notes, c.contact_photo_updated_at, c.is_deleted,
         o.organization_name,
         o.is_deleted AS organization_is_archived
      FROM contacts c

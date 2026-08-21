@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 requireValidCsrfToken();
+requireRecentAdminElevation('users.php');
 $target_user_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 $confirmation = $_POST['reset_confirmation'] ?? '';
 

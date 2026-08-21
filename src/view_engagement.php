@@ -43,7 +43,9 @@ $engagement = $result->fetch_assoc();
 $is_archived = !empty($engagement['is_deleted']);
 
 // Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts
+    $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
+                             contact_role, contact_role_other, contact_email, contact_phone
+                      FROM contacts
                   WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
@@ -444,7 +446,7 @@ $presentation_stmt->close();
     include 'templates/follow_up_task_section.php';
     ?>
 </div>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 (function () {
     const engagementExports = <?php echo json_encode([
         'text' => $engagement_plain_text,

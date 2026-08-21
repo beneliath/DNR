@@ -1,5 +1,6 @@
 (function () {
     const body = document.body;
+    body.classList.add('has-app-shell');
     const toggle = document.querySelector('[data-nav-toggle]');
     const backdrop = document.querySelector('[data-nav-backdrop]');
 
@@ -21,5 +22,14 @@
     });
     window.addEventListener('resize', function () {
         if (window.innerWidth > 860) setNavigationOpen(false);
+    });
+})();
+
+(function () {
+    document.addEventListener('submit', function (event) {
+        const form = event.target.closest('form[data-confirm]');
+        if (form && !window.confirm(String(form.dataset.confirm || 'Continue?'))) {
+            event.preventDefault();
+        }
     });
 })();

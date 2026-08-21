@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(254) NULL,
     profile_picture MEDIUMBLOB NULL,
     profile_picture_mime VARCHAR(32) NULL,
+    profile_picture_sha256 BINARY(32) NULL,
     profile_picture_updated_at DATETIME NULL,
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
@@ -35,11 +36,12 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS user_recovery_codes (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
-    code_hash VARCHAR(255) NOT NULL,
+    code_lookup_hash BINARY(32) NOT NULL,
     used_at DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT fk_recovery_code_user
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE INDEX uq_recovery_code_user_lookup (user_id, code_lookup_hash),
     INDEX idx_recovery_codes_user_unused (user_id, used_at)
 );
 
@@ -66,17 +68,35 @@ CREATE TABLE IF NOT EXISTS security_audit_log (
     INDEX idx_security_audit_category_created (event_category, created_at, id),
     INDEX idx_security_audit_actor_created (actor_user_id, created_at, id),
     INDEX idx_security_audit_entity_created (entity_type, entity_id, created_at, id),
-    INDEX idx_security_audit_login_ip_created (event_category, event_type, ip_address, created_at)
+    INDEX idx_security_audit_login_ip_created (event_category, event_type, ip_address, created_at),
+    FULLTEXT INDEX ft_security_audit_search (
+        actor_username, target_username, event_category, event_type,
+        entity_type, entity_label, details, ip_address
+    )
 );
 
 CREATE TABLE IF NOT EXISTS authentication_rate_limits (
     key_hash BINARY(32) PRIMARY KEY,
-    scope ENUM('ip', 'global') NOT NULL,
+    scope ENUM('login_ip', 'login_account', 'recovery_ip', 'recovery_account') NOT NULL,
     attempts INT UNSIGNED NOT NULL DEFAULT 0,
     window_started_at DATETIME NOT NULL,
     blocked_until DATETIME NULL,
     updated_at DATETIME NOT NULL,
     INDEX idx_auth_rate_limits_updated (updated_at)
+);
+
+CREATE TABLE IF NOT EXISTS calendar_subscriptions (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    label VARCHAR(100) NOT NULL DEFAULT 'Calendar subscription',
+    token_hash BINARY(32) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_used_at DATETIME NULL,
+    revoked_at DATETIME NULL,
+    CONSTRAINT fk_calendar_subscription_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    UNIQUE INDEX uq_calendar_subscription_token (token_hash),
+    INDEX idx_calendar_subscription_user_active (user_id, revoked_at, created_at)
 );
 
 -- Create the first administrator after startup with:
@@ -107,7 +127,12 @@ CREATE TABLE IF NOT EXISTS organizations (
     physical_country VARCHAR(100),
     is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_organizations_active_name (is_deleted, organization_name, id),
+    FULLTEXT INDEX ft_organizations_search (
+        organization_name, notes, affiliation, distinctives, email, phone,
+        physical_city, physical_state, mailing_city, mailing_state
+    )
 );
 
 -- Engagements table (sample fields; extend as needed)
@@ -146,6 +171,13 @@ CREATE TABLE IF NOT EXISTS engagements (
     CONSTRAINT chk_engagement_housing_amount CHECK (housing_amount IS NULL OR housing_amount >= 0),
     CONSTRAINT chk_engagement_other_type CHECK (
         event_type <> 'other' OR TRIM(COALESCE(event_type_other, '')) <> ''
+    ),
+    INDEX idx_engagements_active_date (is_deleted, event_start_date, id),
+    INDEX idx_engagements_active_status_date (
+        is_deleted, confirmation_status, event_start_date, id
+    ),
+    FULLTEXT INDEX ft_engagements_search (
+        event_title, event_description, engagement_notes, caller_name
     )
 );
 
@@ -164,6 +196,18 @@ CREATE TABLE IF NOT EXISTS engagement_map_geocodes (
         (lookup_status = 'found' AND latitude IS NOT NULL AND longitude IS NOT NULL)
         OR (lookup_status = 'not_found' AND latitude IS NULL AND longitude IS NULL)
     )
+);
+
+CREATE TABLE IF NOT EXISTS engagement_map_geocode_queue (
+    address_hash CHAR(64) PRIMARY KEY,
+    address_query VARCHAR(1000) NOT NULL,
+    status ENUM('pending', 'processing', 'retry') NOT NULL DEFAULT 'pending',
+    attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_error VARCHAR(255) NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_geocode_queue_ready (status, next_attempt_at, attempts)
 );
 
 -- Timestamped Chron log entries for engagements. engagement_notes remains on
@@ -191,7 +235,8 @@ CREATE TABLE IF NOT EXISTS engagement_chron_entries (
         FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_chron_entry_engagement_active_created (
         engagement_id, is_archived, created_at, id
-    )
+    ),
+    FULLTEXT INDEX ft_chron_entries_search (entry_text, created_by_username_snapshot)
 );
 
 -- Presentations table
@@ -206,6 +251,7 @@ CREATE TABLE IF NOT EXISTS presentations (
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
     archived_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     archived_at TIMESTAMP NULL DEFAULT NULL,
     FOREIGN KEY (engagement_id) REFERENCES engagements(id) ON DELETE CASCADE,
     CONSTRAINT fk_presentation_archiver
@@ -235,11 +281,22 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_notes TEXT NULL,
     contact_photo MEDIUMBLOB NULL,
     contact_photo_mime VARCHAR(32) NULL,
+    contact_photo_sha256 BINARY(32) NULL,
     contact_photo_updated_at DATETIME NULL,
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
     INDEX idx_contacts_last_first (contact_last_name, contact_first_name),
-    INDEX idx_contacts_archived (is_deleted)
+    INDEX idx_contacts_archived (is_deleted),
+    INDEX idx_contacts_active_name (
+        is_deleted, contact_last_name, contact_first_name, id
+    ),
+    INDEX idx_contacts_organization_active_name (
+        organization_id, is_deleted, contact_last_name, contact_first_name, id
+    ),
+    FULLTEXT INDEX ft_contacts_search (
+        contact_first_name, contact_last_name, contact_email, contact_phone,
+        contact_role_other, contact_notes
+    )
 );
 
 -- Assignable follow-up work linked to an engagement, organization, contact,
@@ -305,7 +362,8 @@ CREATE TABLE IF NOT EXISTS follow_up_tasks (
     INDEX idx_follow_up_task_engagement (engagement_id, status, due_date),
     INDEX idx_follow_up_task_organization (organization_id, status, due_date),
     INDEX idx_follow_up_task_contact (contact_id, status, due_date),
-    INDEX idx_follow_up_task_updated (updated_at, id)
+    INDEX idx_follow_up_task_updated (updated_at, id),
+    FULLTEXT INDEX ft_follow_up_tasks_search (title, details, waiting_on)
 );
 
 CREATE TRIGGER audit_users_after_insert AFTER INSERT ON users
@@ -453,4 +511,5 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260818_add_contact_notes.sql', REPEAT('0', 64)),
 ('20260818_add_contact_photos.sql', REPEAT('0', 64)),
 ('20260818_add_user_profiles.sql', REPEAT('0', 64)),
-('20260818_standardize_phone_numbers.sql', REPEAT('0', 64));
+('20260818_standardize_phone_numbers.sql', REPEAT('0', 64)),
+('20260821_security_performance_hardening.sql', REPEAT('0', 64));

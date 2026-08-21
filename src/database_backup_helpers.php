@@ -72,6 +72,9 @@ function encryptDatabaseBackup($plaintext_path, $password, $maximum_plaintext_by
     if (!is_string($password) || strlen($password) < 12) {
         throw new InvalidArgumentException('The backup encryption password must contain at least 12 characters.');
     }
+    if (preg_match('/[\x00-\x1F\x7F]/', $password) === 1) {
+        throw new InvalidArgumentException('The backup encryption password cannot contain control characters.');
+    }
 
     $plaintext_size = @filesize($plaintext_path);
     if ($plaintext_size === false || $plaintext_size < 1 || $plaintext_size > $maximum_plaintext_bytes) {

@@ -110,7 +110,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     }
 }
 
-$task_subject_options = followUpTaskSubjectOptions($conn);
 $task_users = followUpTaskUsers($conn);
 $render_subject_value = $task_selected_subject;
 try {
@@ -125,6 +124,7 @@ $current_subject_record = followUpTaskSubjectRecord(
     $current_subject_parts['subject_type'],
     $current_subject_parts['subject_id']
 );
+$task_selected_record = $current_subject_record;
 $task_inactive_subject = $current_subject_record && !$current_subject_record['active']
     ? $current_subject_record
     : null;

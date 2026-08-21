@@ -1,85 +1,152 @@
 <?php
 
-include 'config.php';
-include 'functions.php';
-include 'calendar_helpers.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/calendar_helpers.php';
 startSecureSession();
 requireLogin();
+header('Cache-Control: no-store, max-age=0');
+header('Pragma: no-cache');
 
-$calendar_url = calendarSubscriptionUrl($_SERVER);
-$webcal_url = preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
-$calendar_enabled = calendarAccessToken() !== null;
+$user_id = (int) $_SESSION['user_id'];
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireValidCsrfToken();
+    $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    try {
+        if ($action === 'create') {
+            $label = is_string($_POST['label'] ?? null) ? $_POST['label'] : 'Calendar subscription';
+            $subscription = createCalendarSubscription($conn, $user_id, $label);
+            $_SESSION['_new_calendar_subscription'] = $subscription;
+            recordAuditEvent($conn, [
+                'event_category' => 'security',
+                'event_type' => 'calendar_subscription_created',
+                'actor_user_id' => $user_id,
+                'target_user_id' => $user_id,
+                'entity_type' => 'calendar_subscription',
+                'entity_id' => $subscription['id'],
+                'entity_label' => $subscription['label'],
+            ]);
+        } elseif ($action === 'revoke') {
+            $subscription_id = filter_input(INPUT_POST, 'subscription_id', FILTER_VALIDATE_INT);
+            if (!$subscription_id || !revokeCalendarSubscription($conn, $user_id, $subscription_id)) {
+                throw new RuntimeException('The calendar subscription was already revoked or could not be found.');
+            }
+            $_SESSION['_calendar_subscription_message'] = 'Calendar subscription revoked.';
+            recordAuditEvent($conn, [
+                'event_category' => 'security',
+                'event_type' => 'calendar_subscription_revoked',
+                'actor_user_id' => $user_id,
+                'target_user_id' => $user_id,
+                'entity_type' => 'calendar_subscription',
+                'entity_id' => $subscription_id,
+            ]);
+        } else {
+            throw new InvalidArgumentException('Invalid calendar subscription action.');
+        }
+    } catch (Throwable $exception) {
+        $_SESSION['_calendar_subscription_error'] = $exception->getMessage();
+    }
+    header('Location: calendar_subscription.php');
+    exit();
+}
+
+$new_subscription = $_SESSION['_new_calendar_subscription'] ?? null;
+$message = $_SESSION['_calendar_subscription_message'] ?? '';
+$error = $_SESSION['_calendar_subscription_error'] ?? '';
+unset(
+    $_SESSION['_new_calendar_subscription'],
+    $_SESSION['_calendar_subscription_message'],
+    $_SESSION['_calendar_subscription_error']
+);
+$subscriptions = calendarSubscriptionsForUser($conn, $user_id);
+$calendar_url = is_array($new_subscription)
+    ? calendarSubscriptionUrl($_SERVER, $new_subscription['token'])
+    : null;
+$webcal_url = $calendar_url === null
+    ? null
+    : preg_replace('/^https?:\/\//i', 'webcal://', $calendar_url);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Subscribe to DNR Calendar</title>
+    <title>Calendar Subscriptions - DNR</title>
     <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
+    <script src="assets/js/calendar-subscription.min.js?v=1.0.0" defer></script>
 </head>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container calendar-subscription">
-    <div class="page-heading"><div><h1>Calendar Subscription</h1><p class="page-intro">Keep every active DNR engagement in your calendar app.</p></div></div>
-    <section class="security-card calendar-card"><p>This shared calendar contains every active (non-archived) DNR engagement as an all-day block, plus timed blocks for presentations that have both a date and time. Changes appear when the subscriber's calendar app next refreshes the feed.</p>
+<main class="container calendar-subscription">
+    <div class="page-heading"><div><h1>Calendar Subscriptions</h1><p class="page-intro">Create independently revocable private calendar links.</p></div></div>
 
-    <?php if ($calendar_enabled): ?>
-    <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
-    <div class="calendar-url-row">
-        <input type="url" id="calendar-url" readonly value="<?php echo htmlspecialchars($calendar_url, ENT_QUOTES, 'UTF-8'); ?>">
-        <button type="button" id="copy-calendar-url">Copy URL</button>
-    </div>
-    <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
+    <?php if ($message !== ''): ?><p class="success"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($error !== ''): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <p><a class="security-button" id="open-calendar-app" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in Calendar App</a></p>
-    <p class="calendar-privacy-note"><strong>Keep this URL private:</strong> its revocable token grants access to organization names, event titles, event types, statuses, all-day date ranges, presentation topics, speakers, presentation dates and times, and event locations. DNR does not include contacts, notes, travel, lodging, or compensation.</p>
-    <?php else: ?>
-    <p class="error">Calendar subscriptions are disabled until an administrator configures a secret <code>DNR_CALENDAR_TOKEN</code> of at least 32 characters.</p>
+    <?php if ($calendar_url !== null): ?>
+        <section class="security-card calendar-card" aria-labelledby="new-calendar-title">
+            <h2 id="new-calendar-title">Save This New Link</h2>
+            <p>This token is shown only once. Add it to your calendar now or copy it to an approved password manager.</p>
+            <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
+            <div class="calendar-url-row">
+                <input type="url" id="calendar-url" readonly value="<?php echo htmlspecialchars($calendar_url, ENT_QUOTES, 'UTF-8'); ?>">
+                <button type="button" id="copy-calendar-url">Copy URL</button>
+            </div>
+            <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
+            <p><a class="security-button" id="open-calendar-app" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in Calendar App</a></p>
+        </section>
     <?php endif; ?>
+
+    <section class="security-card calendar-card" aria-labelledby="create-calendar-title">
+        <h2 id="create-calendar-title">Create Subscription</h2>
+        <p>Use a separate link for each device or calendar service so a single subscriber can be revoked without disrupting the others.</p>
+        <form method="post" action="calendar_subscription.php" class="security-form">
+            <?php echo csrfInput(); ?>
+            <input type="hidden" name="action" value="create">
+            <div class="form-group">
+                <label for="subscription-label">Device or Service</label>
+                <input type="text" id="subscription-label" name="label" maxlength="100" placeholder="Personal phone" required>
+            </div>
+            <button type="submit" class="security-button">Create Private Link</button>
+        </form>
     </section>
-</div>
+
+    <section class="security-card calendar-card" aria-labelledby="existing-calendar-title">
+        <h2 id="existing-calendar-title">Existing Subscriptions</h2>
+        <?php if ($subscriptions === []): ?>
+            <p>No subscriptions have been created.</p>
+        <?php else: ?>
+            <div class="responsive-table-wrapper">
+                <table>
+                    <thead><tr><th>Label</th><th>Created</th><th>Last Used</th><th>Status</th><th>Action</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($subscriptions as $subscription): ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($subscription['label'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars($subscription['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars($subscription['last_used_at'] ?: 'Never', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo $subscription['revoked_at'] === null ? 'Active' : 'Revoked'; ?></td>
+                            <td>
+                                <?php if ($subscription['revoked_at'] === null): ?>
+                                    <form method="post" action="calendar_subscription.php" data-confirm="Revoke this calendar subscription? Existing calendar clients will stop refreshing.">
+                                        <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="action" value="revoke">
+                                        <input type="hidden" name="subscription_id" value="<?php echo (int) $subscription['id']; ?>">
+                                        <button type="submit" class="danger-button">Revoke</button>
+                                    </form>
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to event and presentation schedule data, but not contacts, notes, travel, lodging, or compensation.</p>
+    </section>
+</main>
 <?php include 'templates/footer.php'; ?>
-<script>
-const copyCalendarButton = document.getElementById('copy-calendar-url');
-const openCalendarLink = document.getElementById('open-calendar-app');
-let copyFeedbackTimer;
-let openFeedbackTimer;
-
-copyCalendarButton?.addEventListener('click', async function () {
-    const url = document.getElementById('calendar-url').value;
-    const status = document.getElementById('copy-calendar-status');
-
-    try {
-        await navigator.clipboard.writeText(url);
-        status.textContent = 'Calendar URL copied.';
-        copyCalendarButton.classList.add('is-copied');
-        copyCalendarButton.textContent = 'Copied!';
-
-        window.clearTimeout(copyFeedbackTimer);
-        copyFeedbackTimer = window.setTimeout(function () {
-            copyCalendarButton.classList.remove('is-copied');
-            copyCalendarButton.textContent = 'Copy URL';
-        }, 2000);
-    } catch (error) {
-        window.clearTimeout(copyFeedbackTimer);
-        copyCalendarButton.classList.remove('is-copied');
-        copyCalendarButton.textContent = 'Copy URL';
-        document.getElementById('calendar-url').select();
-        status.textContent = 'Select and copy the highlighted URL.';
-    }
-});
-
-openCalendarLink?.addEventListener('click', function () {
-    openCalendarLink.classList.add('is-opening');
-    openCalendarLink.textContent = 'Opening…';
-
-    window.clearTimeout(openFeedbackTimer);
-    openFeedbackTimer = window.setTimeout(function () {
-        openCalendarLink.classList.remove('is-opening');
-        openCalendarLink.textContent = 'Open in Calendar App';
-    }, 2000);
-});
-</script>
 </body>
 </html>

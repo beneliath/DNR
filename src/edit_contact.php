@@ -18,7 +18,10 @@ if (!$contact_id) {
 }
 
 $contact_stmt = $conn->prepare(
-    "SELECT c.*
+    "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+            c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+            c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
+            c.contact_photo_updated_at, c.is_deleted
      FROM contacts c
      INNER JOIN organizations o ON o.id = c.organization_id
      WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0"
@@ -114,6 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_notes = ?,
                         contact_photo = ?,
                         contact_photo_mime = ?,
+                        contact_photo_sha256 = ?,
                         contact_photo_updated_at = UTC_TIMESTAMP()
                      WHERE id = ? AND is_deleted = 0"
                 );
@@ -130,6 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_notes = ?,
                         contact_photo = NULL,
                         contact_photo_mime = NULL,
+                        contact_photo_sha256 = NULL,
                         contact_photo_updated_at = UTC_TIMESTAMP()
                      WHERE id = ? AND is_deleted = 0"
                 );
@@ -153,8 +158,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
                 $contact_photo_mime = $contact_photo['mime_type'];
+                $contact_photo_sha256 = $contact_photo['sha256'];
                 $update_stmt->bind_param(
-                    'isssssssssi',
+                    'issssssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -165,6 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_notes,
                     $contact_photo_data,
                     $contact_photo_mime,
+                    $contact_photo_sha256,
                     $contact_id
                 );
             } else {
@@ -336,7 +343,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
         <div class="form-row">
             <div class="form-group">
                 <label for="contact_role" class="required">Role</label>
-                <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
+                <select name="contact_role" id="contact_role" required>
                     <option value="pastor" <?php echo $contact['contact_role'] === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
                     <option value="admin" <?php echo $contact['contact_role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
                     <option value="other" <?php echo $contact['contact_role'] === 'other' ? 'selected' : ''; ?>>Other</option>
@@ -395,7 +402,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
     </form>
 </div>
 
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 function toggleOtherRole() {
     const roleSelect = document.getElementById('contact_role');
     const otherRoleGroup = document.getElementById('other_role_group');
@@ -409,6 +416,7 @@ function toggleOtherRole() {
     }
 }
 
+document.getElementById('contact_role').addEventListener('change', toggleOtherRole);
 toggleOtherRole();
 </script>
 

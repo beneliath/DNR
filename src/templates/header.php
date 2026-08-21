@@ -7,7 +7,7 @@ $nav_groups = [
     'map' => ['map.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
-    'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
+    'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
     'profile' => ['profile.php'],
 ];
@@ -28,7 +28,6 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 <?php if ($shell_current_page === 'map.php') : ?>
 <link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
 <?php endif; ?>
-<script>document.body.classList.add('has-app-shell');</script>
 
 <header class="app-shell-header">
     <div class="mobile-app-bar">
@@ -39,7 +38,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
         <a href="engagements.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
             <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
         </a>
-        <button type="button" class="mobile-theme-button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+        <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to dark theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
         </button>
@@ -85,7 +84,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
             <a href="two_factor_settings.php" class="nav-link<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' active' : ''; ?>"<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' aria-current="page"' : ''; ?>>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Account security</span>
             </a>
-            <button type="button" class="nav-link theme-toggle-button" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+            <button type="button" class="nav-link theme-toggle-button" data-theme-toggle aria-label="Switch to dark theme">
                 <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
                 <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg><span class="theme-label">Dark theme</span>
             </button>
@@ -106,6 +105,6 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
     </div>
     <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close navigation"></button>
 </header>
-<script src="assets/js/theme.min.js"></script>
-<script src="assets/js/app-shell.min.js"></script>
+<script src="assets/js/theme.min.js?v=1.1.0"></script>
+<script src="assets/js/app-shell.min.js?v=1.1.0"></script>
 <script src="assets/js/phone-input.min.js?v=0.2.0" defer></script>

@@ -396,7 +396,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 document.addEventListener('DOMContentLoaded', function () {
     const mailingSection = document.getElementById('mailing_address_section');
     const sameAddressInputs = document.querySelectorAll('input[name="same_address"]');

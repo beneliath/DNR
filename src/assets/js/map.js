@@ -63,17 +63,10 @@ import * as L from 'leaflet';
     const markers = L.featureGroup().addTo(map);
     const coordinateCounts = new Map();
     let pinCount = 0;
-    let pendingCount = Number(payload.pendingGeocodeCount) || 0;
-    let notFoundCount = Number(payload.notFoundCount) || 0;
+    const pendingCount = Number(payload.pendingGeocodeCount) || 0;
+    const notFoundCount = Number(payload.notFoundCount) || 0;
     const withoutAddressCount = Number(payload.withoutAddressCount) || 0;
-    let failedCount = 0;
-    let userExploredMap = false;
-
-    ['mousedown', 'touchstart', 'wheel'].forEach(function (eventName) {
-        mapElement.addEventListener(eventName, function () {
-            userExploredMap = true;
-        }, {passive: true});
-    });
+    const queueFailureCount = Number(payload.queueFailureCount) || 0;
 
     function plural(count, singular, pluralForm) {
         return count + ' ' + (count === 1 ? singular : (pluralForm || singular + 's'));
@@ -81,10 +74,10 @@ import * as L from 'leaflet';
 
     function updateFeedback() {
         const parts = [plural(pinCount, 'visible pin')];
-        if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' resolving');
+        if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' queued');
         if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address') + ' not found');
         if (withoutAddressCount > 0) parts.push(plural(withoutAddressCount, 'event') + ' without an address');
-        if (failedCount > 0) parts.push(plural(failedCount, 'lookup') + ' unavailable');
+        if (queueFailureCount > 0) parts.push(plural(queueFailureCount, 'lookup') + ' unavailable');
         feedbackElement.textContent = parts.join(' · ');
         fitButton.disabled = pinCount === 0;
     }
@@ -193,47 +186,4 @@ import * as L from 'leaflet';
     });
     updateFeedback();
     if (pinCount > 0) fitMapToPins();
-
-    async function resolveEvent(event) {
-        const body = new URLSearchParams({
-            engagement_id: String(event.id),
-            csrf_token: String(payload.csrfToken || '')
-        });
-        const response = await fetch(String(payload.geocodeUrl || 'map_geocode.php'), {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
-                'Accept': 'application/json'
-            },
-            body: body.toString()
-        });
-        const result = await response.json().catch(function () { return {}; });
-        if (!response.ok || result.status === 'error') {
-            throw new Error(result.message || 'Location lookup failed.');
-        }
-        return result;
-    }
-
-    async function resolvePendingLocations() {
-        const pendingEvents = events.filter(function (event) { return event.needsGeocoding; });
-        for (const event of pendingEvents) {
-            try {
-                const result = await resolveEvent(event);
-                if (result.status === 'found') {
-                    addPin(event, Number(result.latitude), Number(result.longitude));
-                    if (!userExploredMap) fitMapToPins();
-                } else {
-                    notFoundCount++;
-                }
-            } catch (error) {
-                failedCount++;
-            } finally {
-                pendingCount = Math.max(0, pendingCount - 1);
-                updateFeedback();
-            }
-        }
-    }
-
-    resolvePendingLocations();
 })();

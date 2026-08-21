@@ -660,7 +660,7 @@ if (isset($_SESSION['success_message'])) {
                         <div class="role-container">
                             <div class="form-group">
                                 <label id="role_label">Role</label>
-                                <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
+                                <select name="contact_role" id="contact_role" class="narrow-select" data-contact-role-id="">
                                     <option value="">Select Role</option>
                                     <option value="pastor" <?php echo ($_POST['contact_role'] ?? '') === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
                                     <option value="admin" <?php echo ($_POST['contact_role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
@@ -693,7 +693,7 @@ if (isset($_SESSION['success_message'])) {
                     </div>
                 </div>
             </div>
-            <button type="button" onclick="addContact()" class="add-contact-btn">Add Another Contact</button>
+            <button type="button" data-add-contact class="add-contact-btn">Add Another Contact</button>
         </div>
 
         <div class="form-group create-form-actions" style="justify-content: flex-end; padding: 0; margin: 0;">
@@ -703,7 +703,7 @@ if (isset($_SESSION['success_message'])) {
     </form>
 </div>
 
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 function toggleOtherRole() {
     const roleSelect = document.getElementById('contact_role');
     const otherRoleGroup = document.getElementById('other_role_group');
@@ -832,7 +832,7 @@ function addContact() {
             <div class="role-container">
                 <div class="form-group">
                     <label class="required">Role</label>
-                    <select name="contacts[${contactCount-1}][role]" class="narrow-select" required onchange="toggleOtherRole(${contactCount})">
+                    <select name="contacts[${contactCount-1}][role]" class="narrow-select" required data-contact-role-id="${contactCount}">
                         <option value="">Select Role</option>
                         <option value="pastor">Pastor</option>
                         <option value="admin">Admin</option>
@@ -863,7 +863,7 @@ function addContact() {
                 <textarea name="contacts[${contactCount-1}][notes]" rows="4" placeholder="Add incidental notes about this person."></textarea>
             </div>
         </div>
-        <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
+        <button type="button" data-remove-contact="${contactCount}" class="remove-contact-btn">Remove</button>
     `;
     
     container.appendChild(newContact);
@@ -892,6 +892,20 @@ function toggleOtherRole(id = '') {
         otherRoleInput.value = '';
     }
 }
+
+document.addEventListener('click', function (event) {
+    if (event.target.closest('[data-add-contact]')) {
+        addContact();
+        return;
+    }
+    const removeButton = event.target.closest('[data-remove-contact]');
+    if (removeButton) removeContact(parseInt(removeButton.dataset.removeContact, 10));
+});
+document.addEventListener('change', function (event) {
+    if (event.target.matches('[data-contact-role-id]')) {
+        toggleOtherRole(event.target.dataset.contactRoleId);
+    }
+});
 
 <?php if (!empty($error) && is_array($_POST['contacts'] ?? null)): ?>
 const submittedAdditionalContacts = <?php echo json_encode(

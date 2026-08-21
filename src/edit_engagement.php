@@ -3,6 +3,8 @@ include 'config.php';
 include 'functions.php';
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
+include 'map_helpers.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -60,6 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     if ($presentation_action === 'delete' && !canDeleteEntries($user_role)) {
         http_response_code(403);
         exit('Forbidden.');
+    }
+    if ($presentation_action === 'delete') {
+        requireRecentAdminElevation('edit_engagement.php?id=' . $engagement_id . '#presentations-container');
     }
 
     $conn->begin_transaction();
@@ -211,6 +216,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
                 http_response_code(403);
                 exit('Forbidden.');
             }
+            requireRecentAdminElevation('edit_engagement.php?id=' . $engagement_id . '#chron-log');
             $chron_stmt = $conn->prepare(
                 'DELETE FROM engagement_chron_entries
                  WHERE id = ? AND engagement_id = ?'
@@ -630,6 +636,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         // Commit transaction
         $conn->commit();
+        queueEngagementMapAddress($conn, engagementMapAddress([
+            'event_address_line_1' => $event_address_line_1,
+            'event_address_line_2' => $event_address_line_2,
+            'event_city' => $event_city,
+            'event_state' => $event_state,
+            'event_zipcode' => $event_zipcode,
+            'event_country' => $event_country,
+        ]));
         $success_message = "Engagement updated successfully.";
         error_log("Engagement updated successfully for ID: " . $engagement_id);
 
@@ -723,7 +737,7 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
@@ -762,7 +776,7 @@ try {
 
             <div class="event-group">
                 <div class="label-container">Event Type</div>
-                <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
+                <select name="event_type" id="event_type">
                     <?php
                     $event_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
                     foreach ($event_types as $type) {
@@ -821,7 +835,7 @@ try {
                 <div class="form-field">
                     <div class="field-group">
                         <label for="compensation_type">Type of Compensation</label>
-                        <select name="compensation_type" id="compensation_type" class="narrow-select" onchange="toggleOtherCompensation()">
+                        <select name="compensation_type" id="compensation_type" class="narrow-select">
                             <?php
                             $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
                             $selected_comp = $engagement['compensation_type'] ?? 'Unknown';
@@ -864,7 +878,7 @@ try {
             <div class="form-field">
                 <div class="field-group">
                     <label for="housing_type">Lodging Type</label>
-                    <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
+                    <select name="housing_type" id="housing_type" class="narrow-select">
                         <?php
                         $housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
                         $selected_housing = $engagement['housing_type'] ?? 'Unknown';
@@ -985,8 +999,8 @@ try {
 
         <div class="chron-add-form">
             <label for="new-chron-entry">New Chron entry</label>
-            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders." oninput="this.setCustomValidity('');"><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
-            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" onclick="return validateNewChronEntry();">Add entry</button>
+            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
+            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add entry</button>
         </div>
 
         <div class="chron-entry-list">
@@ -1026,7 +1040,7 @@ try {
                             <div class="chron-entry-actions">
                                 <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
                                 <?php if ($user_role === 'admin'): ?>
-                                    <button type="submit" name="chron_action" value="delete" class="delete-button" onclick="return confirm('Permanently delete this Chron entry? This cannot be undone.');">Delete</button>
+                                    <button type="submit" name="chron_action" value="delete" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
                                 <?php endif; ?>
                             </div>
                         </form>
@@ -1048,7 +1062,7 @@ try {
 <?php include 'templates/footer.php'; ?>
 
 <script src="assets/js/presentation-form.min.js?v=0.1.4"></script>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
     // Validate that the event end date is on or after the event start date
     function validateDates() {
         const startDate = document.getElementById("event_start_date").value;
@@ -1118,6 +1132,26 @@ try {
             otherHousingInput.value = '';
         }
     }
+
+    const engagementForm = document.getElementById('engagement-edit-form');
+    const eventType = document.getElementById('event_type');
+    const chronEntry = document.getElementById('new-chron-entry');
+    eventType.addEventListener('change', function () { toggleOtherEventType(eventType); });
+    document.getElementById('compensation_type').addEventListener('change', toggleOtherCompensation);
+    document.getElementById('housing_type').addEventListener('change', toggleOtherHousing);
+    chronEntry.addEventListener('input', function () { chronEntry.setCustomValidity(''); });
+    engagementForm.addEventListener('submit', function (event) {
+        if (event.submitter && event.submitter.matches('[data-add-chron-entry]') && !validateNewChronEntry()) {
+            event.preventDefault();
+            return;
+        }
+        if (!validateDates()) event.preventDefault();
+    });
+    document.querySelectorAll('[data-confirm]').forEach(function (button) {
+        button.addEventListener('click', function (event) {
+            if (!window.confirm(button.dataset.confirm)) event.preventDefault();
+        });
+    });
 </script>
 
 <style>

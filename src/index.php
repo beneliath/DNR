@@ -5,6 +5,7 @@
 include 'config.php';
 include 'functions.php';
 include 'presentation_helpers.php';
+include 'map_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -206,6 +207,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     }
                     
                     $conn->commit();
+                    queueEngagementMapAddress($conn, engagementMapAddress([
+                        'event_address_line_1' => $event_address_line_1,
+                        'event_address_line_2' => $event_address_line_2,
+                        'event_city' => $event_city,
+                        'event_state' => $event_state,
+                        'event_zipcode' => $event_zipcode,
+                        'event_country' => $event_country,
+                    ]));
                     $_SESSION['engagement_action_message'] = 'Engagement saved successfully.';
                     header('Location: engagements.php');
                     exit();
@@ -257,7 +266,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <form method="post" action="index.php" onsubmit="return validateDates();" class="engagement-form">
+    <form method="post" action="index.php" class="engagement-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
@@ -305,7 +314,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <div class="event-row">
             <div class="event-group">
                 <div class="label-container">Event Type</div>
-                <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
+                <select name="event_type" id="event_type">
                     <?php
                     $event_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
                     $selected_type = $_POST['event_type'] ?? '';
@@ -365,7 +374,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 <div class="form-field">
                     <div class="field-group">
                         <label for="compensation_type">Type of Compensation</label>
-                        <select name="compensation_type" id="compensation_type" class="narrow-select" onchange="toggleOtherCompensation()">
+                        <select name="compensation_type" id="compensation_type" class="narrow-select">
                             <?php
                             $comp_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
                             $selected_comp = $_POST['compensation_type'] ?? 'Unknown';
@@ -408,7 +417,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             <div class="form-field">
                 <div class="field-group">
                     <label for="housing_type">Lodging Type</label>
-                    <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
+                    <select name="housing_type" id="housing_type" class="narrow-select">
                         <?php
                         $housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
                         $selected_housing = $_POST['housing_type'] ?? 'Unknown';
@@ -511,7 +520,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php include 'templates/footer.php'; ?>
 
 <script src="assets/js/presentation-form.min.js?v=0.1.4"></script>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
     // Validate that the event end date is on or after the event start date
     // and that all presentation dates are within range
     function validateDates() {
@@ -576,6 +585,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
     // Update the JavaScript to scroll to success message if present
     document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.engagement-form');
+        const eventType = document.getElementById('event_type');
+        document.getElementById('compensation_type').addEventListener('change', toggleOtherCompensation);
+        document.getElementById('housing_type').addEventListener('change', toggleOtherHousing);
+        eventType.addEventListener('change', function () { toggleOtherEventType(eventType); });
+        form.addEventListener('submit', function (event) {
+            if (!validateDates()) event.preventDefault();
+        });
         const successMessage = document.querySelector('.success');
         if (successMessage) {
             successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });

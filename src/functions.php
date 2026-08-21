@@ -17,6 +17,31 @@ function requestUsesHttps(?array $server = null) {
     return $forwarded_proto === 'https';
 }
 
+function applicationRequiresHttps() {
+    return filter_var(getenv('DNR_REQUIRE_HTTPS') ?: '0', FILTER_VALIDATE_BOOL);
+}
+
+function contentSecurityPolicyNonce() {
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(18));
+    }
+    return $nonce;
+}
+
+function sendApplicationSecurityHeaders() {
+    if (headers_sent()) {
+        return;
+    }
+
+    $nonce = contentSecurityPolicyNonce();
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
+
 // Start a cookie-only session with safe defaults for HTTP development and HTTPS deployment.
 function startSecureSession() {
     if (session_status() !== PHP_SESSION_NONE) {
@@ -27,15 +52,40 @@ function startSecureSession() {
     ini_set('session.use_only_cookies', '1');
 
     $is_https = requestUsesHttps();
+    if (applicationRequiresHttps() && !$is_https) {
+        http_response_code(400);
+        exit('HTTPS is required for this deployment.');
+    }
+    sendApplicationSecurityHeaders();
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
-        'secure' => $is_https,
+        'secure' => $is_https || applicationRequiresHttps(),
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
 
     session_start();
+
+    $now = time();
+    $idle_timeout = max(300, (int) (getenv('DNR_SESSION_IDLE_SECONDS') ?: 1800));
+    $absolute_timeout = max($idle_timeout, (int) (getenv('DNR_SESSION_ABSOLUTE_SECONDS') ?: 43200));
+    $rotation_interval = max(300, (int) (getenv('DNR_SESSION_ROTATION_SECONDS') ?: 900));
+    $started_at = (int) ($_SESSION['_session_started_at'] ?? $now);
+    $last_seen_at = (int) ($_SESSION['_session_last_seen_at'] ?? $now);
+
+    if (($now - $last_seen_at) > $idle_timeout || ($now - $started_at) > $absolute_timeout) {
+        session_unset();
+        session_regenerate_id(true);
+        $started_at = $now;
+    } elseif (($now - (int) ($_SESSION['_session_rotated_at'] ?? $started_at)) >= $rotation_interval) {
+        session_regenerate_id(true);
+        $_SESSION['_session_rotated_at'] = $now;
+    }
+
+    $_SESSION['_session_started_at'] = $started_at;
+    $_SESSION['_session_last_seen_at'] = $now;
+    $_SESSION['_session_rotated_at'] = (int) ($_SESSION['_session_rotated_at'] ?? $now);
 }
 
 function validIsoDate($date) {
@@ -64,6 +114,22 @@ function nullableNonNegativeAmount($value, $label) {
         throw new InvalidArgumentException("Enter a non-negative {$label} amount with no more than two decimal places.");
     }
     return (float) $value;
+}
+
+function fulltextSearchQuery($search, $maximum_terms = 8) {
+    $search = trim(substr((string) $search, 0, 256));
+    if ($search === '' || preg_match('//u', $search) !== 1) {
+        return '';
+    }
+    $terms = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $boolean_terms = [];
+    foreach (array_slice($terms, 0, max(1, (int) $maximum_terms)) as $term) {
+        $term = preg_replace('/[+\-><()~*"@]+/u', '', $term) ?? '';
+        if (strlen($term) >= 3) {
+            $boolean_terms[] = '+' . substr($term, 0, 64) . '*';
+        }
+    }
+    return implode(' ', array_values(array_unique($boolean_terms)));
 }
 
 function nullableAmountsEqual($left, $right) {
@@ -470,7 +536,7 @@ function getPendingAuthentication() {
 
 // Password recovery is allowed only after proving possession of an enrolled
 // authenticator or one unused recovery code. Keep that proof short-lived.
-function beginPasswordRecovery($eligible_user = null) {
+function beginPasswordRecovery($eligible_user = null, $attempted_username = '') {
     session_regenerate_id(true);
     unset(
         $_SESSION['user_id'],
@@ -486,6 +552,7 @@ function beginPasswordRecovery($eligible_user = null) {
     $_SESSION['_password_recovery'] = [
         'user_id' => is_array($eligible_user) ? (int) $eligible_user['id'] : 0,
         'auth_version' => is_array($eligible_user) ? (int) $eligible_user['auth_version'] : 0,
+        'account_identifier' => authenticationRateLimitAccountIdentifier($attempted_username),
         'stage' => 'verify',
         'issued_at' => time(),
         'verified_at' => null,
@@ -768,18 +835,13 @@ function ipAddressMatchesNetwork($ip_address, $trusted_network) {
 }
 
 function auditLogSchemaAvailable(mysqli $conn) {
-    $result = $conn->query(
-        "SHOW COLUMNS FROM security_audit_log LIKE 'event_category'"
-    );
-    return $result && $result->num_rows === 1;
+    return true;
 }
 
 function requireAuditLogSchema(mysqli $conn) {
-    if (!auditLogSchemaAvailable($conn)) {
-        error_log('DNR audit log migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The audit log database migration is required.');
-    }
+    // Schema readiness is checked by the container health check. Runtime
+    // requests avoid information_schema queries and surface query failures in
+    // the route that needs the unavailable table.
 }
 
 function auditUsernameForId(mysqli $conn, $user_id) {
@@ -904,71 +966,83 @@ function recordFailedLoginAttempt(mysqli $conn, $attempted_username, $details, $
     );
 }
 
-function loginRateLimitSettings($scope) {
-    if ($scope === 'ip') {
-        return ['limit' => 8, 'window' => 300, 'block' => 900];
+function authenticationRateLimitSettings($scope) {
+    $settings = [
+        'login_ip' => ['limit' => 8, 'window' => 300, 'block' => 900],
+        // Correct credentials bypass account throttles. The account scope only
+        // suppresses further failures, so an attacker cannot lock out a user.
+        'login_account' => ['limit' => 30, 'window' => 900, 'block' => 300],
+        'recovery_ip' => ['limit' => 8, 'window' => 600, 'block' => 1800],
+        'recovery_account' => ['limit' => 15, 'window' => 900, 'block' => 900],
+    ];
+    if (!isset($settings[$scope])) {
+        throw new InvalidArgumentException('Unknown authentication rate-limit scope.');
     }
-    if ($scope === 'global') {
-        return ['limit' => 60, 'window' => 60, 'block' => 300];
-    }
-    throw new InvalidArgumentException('Unknown login rate-limit scope.');
+    return $settings[$scope];
 }
 
-function loginRateLimitKey($scope, $identifier) {
+function loginRateLimitSettings($scope) {
+    $legacy_scopes = ['ip' => 'login_ip', 'account' => 'login_account'];
+    return authenticationRateLimitSettings($legacy_scopes[$scope] ?? $scope);
+}
+
+function authenticationRateLimitKey($scope, $identifier) {
     return hash('sha256', (string) $scope . "\0" . (string) $identifier);
 }
 
-function loginRateLimitIdentifiers() {
-    return [
-        'ip' => requestIpAddress() ?: 'unknown',
-        'global' => 'all-login-traffic',
-    ];
+function authenticationRateLimitAccountIdentifier($username) {
+    return strtolower(substr(trim((string) $username), 0, 255));
 }
 
 function requireLoginRateLimitSchema(mysqli $conn) {
-    $result = $conn->query("SHOW TABLES LIKE 'authentication_rate_limits'");
-    if (!$result || $result->num_rows !== 1) {
-        error_log('DNR login rate-limit migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The login security migration is required.');
-    }
+    // Schema readiness is checked outside the request path.
 }
 
-function loginRateLimitIsBlocked(mysqli $conn) {
+function authenticationRateLimitIsBlocked(mysqli $conn, $scope, $identifier) {
     $stmt = $conn->prepare(
         'SELECT blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
          FROM authentication_rate_limits
          WHERE key_hash = UNHEX(?)'
     );
     if (!$stmt) {
-        throw new RuntimeException('Unable to check login availability.');
+        throw new RuntimeException('Unable to check authentication availability.');
     }
-    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
-        $key = loginRateLimitKey($scope, $identifier);
-        $stmt->bind_param('s', $key);
-        if (!$stmt->execute()) {
-            $stmt->close();
-            throw new RuntimeException('Unable to check login availability.');
-        }
-        $row = $stmt->get_result()->fetch_assoc();
-        if ($row && !empty($row['is_blocked'])) {
-            $stmt->close();
-            return true;
-        }
+    $key = authenticationRateLimitKey($scope, $identifier);
+    $stmt->bind_param('s', $key);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to check authentication availability.');
     }
+    $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    return false;
+    return $row && !empty($row['is_blocked']);
 }
 
-function recordLoginRateLimitFailure(mysqli $conn) {
-    $ip_attempts = 0;
-    $ip_just_blocked = false;
-    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
-        $settings = loginRateLimitSettings($scope);
+function authenticationSourceIsBlocked(mysqli $conn, $purpose) {
+    $scope = $purpose . '_ip';
+    return authenticationRateLimitIsBlocked(
+        $conn,
+        $scope,
+        requestIpAddress() ?: 'unknown'
+    );
+}
+
+function recordAuthenticationRateLimitFailure(mysqli $conn, $purpose, $username) {
+    $identifiers = [
+        $purpose . '_ip' => requestIpAddress() ?: 'unknown',
+    ];
+    $account_identifier = authenticationRateLimitAccountIdentifier($username);
+    if ($account_identifier !== '') {
+        $identifiers[$purpose . '_account'] = $account_identifier;
+    }
+
+    $states = [];
+    foreach ($identifiers as $scope => $identifier) {
+        $settings = authenticationRateLimitSettings($scope);
         $window = (int) $settings['window'];
         $limit = (int) $settings['limit'];
         $block = (int) $settings['block'];
-        $key = loginRateLimitKey($scope, $identifier);
+        $key = authenticationRateLimitKey($scope, $identifier);
         $sql = "INSERT INTO authentication_rate_limits
                     (key_hash, scope, attempts, window_started_at, blocked_until, updated_at)
                 VALUES (UNHEX(?), ?, 1, UTC_TIMESTAMP(), NULL, UTC_TIMESTAMP())
@@ -989,43 +1063,49 @@ function recordLoginRateLimitFailure(mysqli $conn) {
                     updated_at = UTC_TIMESTAMP()";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            throw new RuntimeException('Unable to record login availability.');
+            throw new RuntimeException('Unable to record authentication availability.');
         }
         $stmt->bind_param('ss', $key, $scope);
         if (!$stmt->execute()) {
             $stmt->close();
-            throw new RuntimeException('Unable to record login availability.');
+            throw new RuntimeException('Unable to record authentication availability.');
         }
         $stmt->close();
 
-        if ($scope === 'ip') {
-            $status_stmt = $conn->prepare(
-                'SELECT attempts, blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
-                 FROM authentication_rate_limits WHERE key_hash = UNHEX(?)'
-            );
-            $status_stmt->bind_param('s', $key);
-            $status_stmt->execute();
-            $status = $status_stmt->get_result()->fetch_assoc();
-            $status_stmt->close();
-            $ip_attempts = (int) ($status['attempts'] ?? 0);
-            $ip_just_blocked = !empty($status['is_blocked']) && $ip_attempts === $limit;
-        }
+        $status_stmt = $conn->prepare(
+            'SELECT attempts, blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
+             FROM authentication_rate_limits WHERE key_hash = UNHEX(?)'
+        );
+        $status_stmt->bind_param('s', $key);
+        $status_stmt->execute();
+        $status = $status_stmt->get_result()->fetch_assoc();
+        $status_stmt->close();
+        $states[$scope] = [
+            'attempts' => (int) ($status['attempts'] ?? 0),
+            'blocked' => !empty($status['is_blocked']),
+            'just_blocked' => !empty($status['is_blocked'])
+                && (int) ($status['attempts'] ?? 0) === $limit,
+        ];
     }
 
-    return [
-        'blocked' => loginRateLimitIsBlocked($conn),
-        'should_audit' => $ip_attempts <= 3 || $ip_just_blocked,
-    ];
+    return $states;
 }
 
-function clearLoginRateLimitForCurrentIp(mysqli $conn) {
-    $key = loginRateLimitKey('ip', requestIpAddress() ?: 'unknown');
+function clearAuthenticationRateLimits(mysqli $conn, $purpose, $username) {
+    $keys = [authenticationRateLimitKey($purpose . '_ip', requestIpAddress() ?: 'unknown')];
+    $account_identifier = authenticationRateLimitAccountIdentifier($username);
+    if ($account_identifier !== '') {
+        $keys[] = authenticationRateLimitKey($purpose . '_account', $account_identifier);
+    }
     $stmt = $conn->prepare('DELETE FROM authentication_rate_limits WHERE key_hash = UNHEX(?)');
     if (!$stmt) {
         return false;
     }
-    $stmt->bind_param('s', $key);
-    $success = $stmt->execute();
+    $success = true;
+    foreach ($keys as $key) {
+        $stmt->bind_param('s', $key);
+        $success = $stmt->execute() && $success;
+    }
     $stmt->close();
 
     // Successful logins provide a low-cost opportunity to bound stale state.
@@ -1040,6 +1120,24 @@ function clearLoginRateLimitForCurrentIp(mysqli $conn) {
     }
 
     return $success;
+}
+
+function loginRateLimitIsBlocked(mysqli $conn) {
+    return authenticationSourceIsBlocked($conn, 'login');
+}
+
+function recordLoginRateLimitFailure(mysqli $conn, $username = '') {
+    $states = recordAuthenticationRateLimitFailure($conn, 'login', $username);
+    $ip_state = $states['login_ip'] ?? ['attempts' => 0, 'blocked' => false, 'just_blocked' => false];
+    $account_blocked = !empty($states['login_account']['blocked']);
+    return [
+        'blocked' => !empty($ip_state['blocked']) || $account_blocked,
+        'should_audit' => $ip_state['attempts'] <= 3 || !empty($ip_state['just_blocked']),
+    ];
+}
+
+function clearLoginRateLimitForCurrentIp(mysqli $conn, $username = '') {
+    return clearAuthenticationRateLimits($conn, 'login', $username);
 }
 
 // Check if the logged-in user has any of the specified roles

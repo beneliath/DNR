@@ -10,7 +10,7 @@ $user_id = (int) $_SESSION['user_id'];
 function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
         'SELECT id, username, role, first_name, last_name, phone, email,
-                profile_picture_mime, profile_picture_updated_at
+                profile_picture_mime, profile_picture_sha256, profile_picture_updated_at
          FROM users
          WHERE id = ?'
     );
@@ -67,6 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      profile_picture = ?, profile_picture_mime = ?,
+                     profile_picture_sha256 = ?,
                      profile_picture_updated_at = UTC_TIMESTAMP()
                  WHERE id = ?'
             );
@@ -75,14 +76,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $picture_data = $picture['data'];
             $picture_mime = $picture['mime_type'];
+            $picture_sha256 = $picture['sha256'];
             $stmt->bind_param(
-                'ssssssi',
+                'sssssssi',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
                 $picture_data,
                 $picture_mime,
+                $picture_sha256,
                 $user_id
             );
         } elseif ($remove_profile_picture) {
@@ -90,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      profile_picture = NULL, profile_picture_mime = NULL,
+                     profile_picture_sha256 = NULL,
                      profile_picture_updated_at = UTC_TIMESTAMP()
                  WHERE id = ?'
             );

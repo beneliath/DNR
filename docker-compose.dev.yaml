@@ -1,0 +1,10 @@
+services:
+  web:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
+    environment:
+      DNR_REQUIRE_HTTPS: "0"
+  geocoder:
+    volumes:
+      - ./src:/var/www/html:ro

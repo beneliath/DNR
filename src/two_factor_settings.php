@@ -181,7 +181,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <section class="security-card danger-card">
                 <h2>Disable Two-Factor Authentication</h2>
                 <p>This makes the account less secure.</p>
-                <form method="post" action="two_factor_settings.php" class="security-form" onsubmit="return confirm('Disable two-factor authentication for this account?');">
+                <form method="post" action="two_factor_settings.php" class="security-form" data-confirm="Disable two-factor authentication for this account?">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="disable">
                     <label for="disable_password">Current password</label>

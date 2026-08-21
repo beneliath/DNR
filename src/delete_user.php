@@ -11,6 +11,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 requireValidCsrfToken();
+require_once __DIR__ . '/two_factor_helpers.php';
+requireRecentAdminElevation('users.php');
 $user_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 $delete_confirmation = $_POST['delete_confirmation'] ?? '';
 

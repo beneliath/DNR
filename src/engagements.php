@@ -2,11 +2,13 @@
 include 'config.php';
 include 'functions.php';
 include 'engagement_search_helpers.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
+$allowed_page_sizes = [20, 50, 100];
 
 $list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
     ? 'archived'
@@ -27,6 +29,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete' && !canDeleteEntries($user_role)) {
         http_response_code(403);
         exit('Forbidden.');
+    }
+    if ($action === 'delete') {
+        requireRecentAdminElevation('engagements.php?' . http_build_query(['status' => $list_status]));
     }
 
     if ($engagement_id && $action === 'archive') {
@@ -95,13 +100,20 @@ $search = trim($_GET['q'] ?? '');
 $search_plan = buildEngagementSearchPlan($search);
 $search = $search_plan['search'];
 $has_search_terms = $search_plan['sql'] !== '';
+if (!$has_search_terms) {
+    $search = '';
+}
+$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
+$page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
+$requested_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
 $list_url = static function (array $overrides = []) use (
     $list_status,
     $sort_column,
     $date_sort,
     $status_sort,
     $org_sort,
-    $search
+    $search,
+    $page_size
 ) {
     return '?' . http_build_query(array_merge([
         'status' => $list_status,
@@ -110,6 +122,7 @@ $list_url = static function (array $overrides = []) use (
         'status_sort' => $status_sort,
         'org_sort' => $org_sort,
         'q' => $search,
+        'per_page' => $page_size,
     ], $overrides));
 };
 
@@ -139,43 +152,62 @@ if ($summary_result) {
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
-$query = "SELECT e.*, o.organization_name
-          FROM engagements e 
-          LEFT JOIN organizations o ON e.organization_id = o.id 
-          WHERE e.is_deleted = {$archive_value}";
+$where = "e.is_deleted = {$archive_value}";
 if ($has_search_terms) {
-    $query .= ' AND (' . $search_plan['sql'] . ')';
+    $where .= ' AND (' . $search_plan['sql'] . ')';
 }
-$query .= "
-          ORDER BY {$order_by} {$order_direction}";
 
-$query_stmt = null;
+$count_query = "SELECT COUNT(*) AS engagement_count
+                FROM engagements e
+                LEFT JOIN organizations o ON e.organization_id = o.id
+                WHERE {$where}";
+$count_stmt = $conn->prepare($count_query);
+if (!$count_stmt) {
+    die('Unable to count engagements.');
+}
 if ($has_search_terms) {
-    $query_stmt = $conn->prepare($query);
-    if (!$query_stmt) {
-        error_log('Unable to prepare the engagement search: ' . $conn->error);
-        http_response_code(503);
-        exit('Engagement search is temporarily unavailable while DNR is being upgraded.');
-    }
-    $bind_types = str_repeat('s', count($search_plan['patterns']));
-    $bind_params = [$bind_types];
-    foreach ($search_plan['patterns'] as $pattern_index => &$search_pattern) {
-        $bind_params[] = &$search_pattern;
-    }
-    unset($search_pattern);
-    $query_stmt->bind_param(...$bind_params);
-    if (!$query_stmt->execute()) {
-        error_log('Unable to run the engagement search: ' . $query_stmt->error);
-        http_response_code(500);
-        exit('Unable to search engagements. Please try again.');
-    }
-    $result = $query_stmt->get_result();
-} else {
-    $result = $conn->query($query);
+    $count_types = str_repeat('s', count($search_plan['patterns']));
+    $count_values = $search_plan['patterns'];
+    $count_bind = [$count_types];
+    foreach ($count_values as &$count_value) $count_bind[] = &$count_value;
+    unset($count_value);
+    $count_stmt->bind_param(...$count_bind);
 }
-if (!$result) {
-    die("Database error: " . $conn->error);
+$count_stmt->execute();
+$total_engagements = (int) $count_stmt->get_result()->fetch_assoc()['engagement_count'];
+$count_stmt->close();
+$total_pages = max(1, (int) ceil($total_engagements / $page_size));
+$current_page = min($requested_page, $total_pages);
+$offset = ($current_page - 1) * $page_size;
+
+$query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
+                 e.event_type, e.event_type_other, e.confirmation_status,
+                 o.organization_name
+          FROM engagements e
+          LEFT JOIN organizations o ON e.organization_id = o.id
+          WHERE {$where}";
+$query .= "
+          ORDER BY {$order_by} {$order_direction}, e.id {$order_direction}
+          LIMIT ? OFFSET ?";
+
+$query_stmt = $conn->prepare($query);
+if (!$query_stmt) {
+    error_log('Unable to prepare the engagement list: ' . $conn->error);
+    http_response_code(503);
+    exit('Engagements are temporarily unavailable.');
 }
+$query_values = array_merge($search_plan['patterns'], [$page_size, $offset]);
+$bind_types = str_repeat('s', count($search_plan['patterns'])) . 'ii';
+$bind_params = [$bind_types];
+foreach ($query_values as &$query_value) $bind_params[] = &$query_value;
+unset($query_value);
+$query_stmt->bind_param(...$bind_params);
+if (!$query_stmt->execute()) {
+    error_log('Unable to run the engagement list: ' . $query_stmt->error);
+    http_response_code(500);
+    exit('Unable to retrieve engagements.');
+}
+$result = $query_stmt->get_result();
 
 $format_date_range = static function ($start, $end) {
     $start_timestamp = strtotime((string) $start);
@@ -369,7 +401,7 @@ $format_date_range = static function ($start, $end) {
         </div>
     </div>
     <?php if ($search !== ''): ?>
-        <p class="result-context">Showing results for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context"><?php echo $total_engagements; ?> result<?php echo $total_engagements === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
     <table class="engagement-table">
         <thead>
@@ -440,6 +472,15 @@ $format_date_range = static function ($start, $end) {
             <?php endwhile; ?>
         </tbody>
     </table>
+    <?php if ($total_pages > 1): ?>
+        <nav class="pagination pagination-with-size" aria-label="Engagement pages">
+            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_engagements; ?> engagements</span>
+            <div class="pagination-actions">
+                <?php if ($current_page > 1): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['page' => $current_page - 1]), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
+                <?php if ($current_page < $total_pages): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['page' => $current_page + 1]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+            </div>
+        </nav>
+    <?php endif; ?>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

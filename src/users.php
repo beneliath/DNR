@@ -7,25 +7,33 @@ startSecureSession();
 requireAdmin();
 requireTwoFactorSchema($conn);
 
-// Older databases may not have timestamp columns until the stabilization migration is applied.
-$has_created_at = $conn->query("SHOW COLUMNS FROM users LIKE 'created_at'")->num_rows > 0;
-$has_last_updated_at = $conn->query("SHOW COLUMNS FROM users LIKE 'last_updated_at'")->num_rows > 0;
-$has_last_login_at = $conn->query("SHOW COLUMNS FROM users LIKE 'last_login_at'")->num_rows > 0;
-$has_must_change_password = $conn->query("SHOW COLUMNS FROM users LIKE 'must_change_password'")->num_rows > 0;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireValidCsrfToken();
+    if (($_POST['action'] ?? '') !== 'elevate') {
+        http_response_code(400);
+        exit('Invalid administrator action.');
+    }
+    $password = is_string($_POST['admin_password'] ?? null) ? $_POST['admin_password'] : '';
+    $code = is_string($_POST['admin_code'] ?? null) ? $_POST['admin_code'] : '';
+    if (attemptAdminElevation($conn, $password, $code)) {
+        $_SESSION['_admin_elevation_message'] = 'Sensitive administrator actions are unlocked for five minutes.';
+    } else {
+        $_SESSION['_admin_elevation_error'] = 'The administrator password or fresh authentication code was not accepted.';
+    }
+    header('Location: users.php');
+    exit();
+}
 
-$created_at_column = $has_created_at ? 'created_at' : 'NULL AS created_at';
-$last_updated_at_column = $has_last_updated_at ? 'last_updated_at' : 'NULL AS last_updated_at';
-$last_login_at_column = $has_last_login_at ? 'last_login_at' : 'NULL AS last_login_at';
-$must_change_password_column = $has_must_change_password
-    ? 'must_change_password'
-    : '0 AS must_change_password';
+$elevation_message = $_SESSION['_admin_elevation_message'] ?? '';
+$elevation_error = $_SESSION['_admin_elevation_error'] ?? '';
+unset($_SESSION['_admin_elevation_message'], $_SESSION['_admin_elevation_error']);
+$admin_actions_unlocked = hasRecentAdminElevation();
 
 $users = $conn->query(
     "SELECT id, username, first_name, last_name, phone, email,
             profile_picture_mime, profile_picture_updated_at,
             role, two_factor_enabled,
-            {$created_at_column}, {$last_updated_at_column}, {$last_login_at_column},
-            {$must_change_password_column}
+            created_at, last_updated_at, last_login_at, must_change_password
      FROM users
      ORDER BY username"
 );
@@ -57,6 +65,12 @@ if (!$users) {
         }
         .audit-log-link {
             justify-self: center;
+        }
+        .sensitive-action-locked {
+            justify-self: end;
+            opacity: 0.55;
+            cursor: not-allowed;
+            pointer-events: none;
         }
         .user-details {
             margin-bottom: 20px;
@@ -204,7 +218,11 @@ if (!$users) {
     <div class="page-heading">
         <div><h1>Users</h1><p class="page-intro">Manage access, roles, passwords, and two-factor authentication.</p></div>
         <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
-        <a href="register.php" class="button-add">+ New user</a>
+        <?php if ($admin_actions_unlocked): ?>
+            <a href="register.php" class="button-add">+ New user</a>
+        <?php else: ?>
+            <span class="button-add sensitive-action-locked" aria-disabled="true" title="Unlock sensitive administrator actions first">+ New user (locked)</span>
+        <?php endif; ?>
     </div>
 
     <?php if (isset($_GET['two_factor_reset'])): ?>
@@ -212,6 +230,35 @@ if (!$users) {
     <?php elseif (isset($_GET['password_reset'])): ?>
         <p class="success">The user's temporary password was set. Their existing sessions were invalidated.</p>
     <?php endif; ?>
+
+    <?php if ($elevation_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($elevation_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($elevation_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($elevation_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+
+    <section class="security-card admin-elevation-card" aria-labelledby="admin-elevation-title">
+        <h2 id="admin-elevation-title">Sensitive Administrator Actions</h2>
+        <?php if ($admin_actions_unlocked): ?>
+            <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
+        <?php else: ?>
+            <p>Confirm your password and a new authenticator or recovery code before creating users, editing accounts or roles, resetting 2FA, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
+            <form method="post" action="users.php" class="security-form">
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="action" value="elevate">
+                <div class="form-group">
+                    <label for="admin_password">Administrator Password</label>
+                    <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="admin_code">Fresh Authentication Code</label>
+                    <input type="text" id="admin_code" name="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+                </div>
+                <button type="submit" class="security-button">Unlock for Five Minutes</button>
+            </form>
+        <?php endif; ?>
+    </section>
 
     <div class="users-list">
         <?php while ($user = $users->fetch_assoc()) { ?>
@@ -249,20 +296,22 @@ if (!$users) {
                         </div>
                     </div>
                     <div class="user-actions">
-                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
                             <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button">Reset Password</a>
                         <?php endif; ?>
-                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id'] && !empty($user['two_factor_enabled'])): ?>
-                            <form method="post" action="reset_user_2fa.php" onsubmit="return confirmTwoFactorReset(this);">
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && !empty($user['two_factor_enabled'])): ?>
+                            <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="reset_confirmation" value="">
                                 <button type="submit" class="action-button reset-two-factor-button">Reset 2FA</button>
                             </form>
                         <?php endif; ?>
-                        <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit user" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
-                        <?php if ((int) $user['id'] !== (int) $_SESSION['user_id']): ?>
-                            <form method="post" action="delete_user.php" onsubmit="return confirmUserDeletion(this);">
+                        <?php if ($admin_actions_unlocked): ?>
+                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit user" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                        <?php endif; ?>
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                            <form method="post" action="delete_user.php" data-sensitive-action="delete-user">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="delete_confirmation" value="">
@@ -286,7 +335,7 @@ if (!$users) {
         <?php } ?>
     </div>
 </div>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 function confirmUserDeletion(form) {
     const requiredPhrase = 'DELETE USER';
     const confirmation = window.prompt(
@@ -320,6 +369,14 @@ function confirmTwoFactorReset(form) {
     form.elements.reset_confirmation.value = confirmation;
     return true;
 }
+document.querySelectorAll('form[data-sensitive-action]').forEach(function (form) {
+    form.addEventListener('submit', function (event) {
+        const confirmed = form.dataset.sensitiveAction === 'delete-user'
+            ? confirmUserDeletion(form)
+            : confirmTwoFactorReset(form);
+        if (!confirmed) event.preventDefault();
+    });
+});
 </script>
 <?php include 'templates/footer.php'; ?>
 </body>

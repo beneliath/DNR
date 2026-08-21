@@ -8,7 +8,15 @@ case "$database_name" in
     ''|*[!A-Za-z0-9_]*) echo "MYSQL_DATABASE contains unsupported characters" >&2; exit 1 ;;
 esac
 
-export MYSQL_PWD=${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
+root_password=${MYSQL_ROOT_PASSWORD:-}
+if [ -n "${MYSQL_ROOT_PASSWORD_FILE:-}" ]; then
+    root_password=$(cat "${MYSQL_ROOT_PASSWORD_FILE}")
+fi
+if [ -z "$root_password" ]; then
+    echo "MYSQL_ROOT_PASSWORD or MYSQL_ROOT_PASSWORD_FILE is required" >&2
+    exit 1
+fi
+export MYSQL_PWD=$root_password
 
 mysql --protocol=socket -uroot "$database_name" -e "
 CREATE TABLE IF NOT EXISTS schema_migrations (

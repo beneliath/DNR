@@ -2,6 +2,7 @@
 include 'config.php';
 include 'functions.php';
 include 'contact_photo_helpers.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -27,6 +28,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete' && !canDeleteEntries($user_role)) {
         http_response_code(403);
         exit('Forbidden.');
+    }
+    if ($action === 'delete') {
+        requireRecentAdminElevation('contacts.php?' . http_build_query(['status' => $list_status]));
     }
 
     if ($contact_id && $action === 'archive') {
@@ -69,6 +73,11 @@ $sort_column = in_array($_GET['sort_by'] ?? '', ['last_name', 'organization'], t
     ? $_GET['sort_by']
     : 'last_name';
 $search = trim($_GET['q'] ?? '');
+$search = trim(substr($search, 0, 256));
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
+}
 
 if ($sort_column === 'organization') {
     $order_direction = $organization_sort === 'desc' ? 'DESC' : 'ASC';
@@ -93,38 +102,30 @@ $requested_page = $requested_page ?: 1;
 
 $archive_value = $show_archived ? 1 : 0;
 $active_organization_filter = '';
-$search_filter = $search === ''
+$search_filter = $fulltext_query === ''
     ? ''
     : " AND (
-        c.contact_first_name LIKE ?
-        OR c.contact_last_name LIKE ?
-        OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
-        OR c.contact_email LIKE ?
-        OR c.contact_phone LIKE ?
-        OR c.contact_notes LIKE ?
-        OR o.organization_name LIKE ?
+        MATCH(
+            c.contact_first_name, c.contact_last_name, c.contact_email,
+            c.contact_phone, c.contact_role_other, c.contact_notes
+        ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
     )";
 $count_query = "SELECT COUNT(*) AS contact_count
                 FROM contacts c
                 INNER JOIN organizations o ON c.organization_id = o.id
                 WHERE c.is_deleted = {$archive_value}{$active_organization_filter}{$search_filter}";
 $count_stmt = null;
-if ($search !== '') {
+if ($fulltext_query !== '') {
     $count_stmt = $conn->prepare($count_query);
     if (!$count_stmt) {
         die('Unable to search contacts.');
     }
-    $search_pattern = '%' . $search . '%';
-    $count_stmt->bind_param(
-        'sssssss',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern
-    );
+    $count_stmt->bind_param('ss', $fulltext_query, $fulltext_query);
     $count_stmt->execute();
     $count_result = $count_stmt->get_result();
 } else {
@@ -163,16 +164,11 @@ if (!$contact_stmt) {
     die('Unable to retrieve contacts.');
 }
 
-if ($search !== '') {
+if ($fulltext_query !== '') {
     $contact_stmt->bind_param(
-        'sssssssii',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
+        'ssii',
+        $fulltext_query,
+        $fulltext_query,
         $page_size,
         $offset
     );

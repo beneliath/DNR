@@ -95,7 +95,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     }
 }
 
-$task_subject_options = followUpTaskSubjectOptions($conn);
+$task_selected_record = null;
+try {
+    $selected_subject_parts = parseFollowUpTaskSubject($task_selected_subject);
+    $task_selected_record = followUpTaskSubjectRecord(
+        $conn,
+        $selected_subject_parts['subject_type'],
+        $selected_subject_parts['subject_id']
+    );
+} catch (InvalidArgumentException $exception) {
+    $task_selected_subject = 'general';
+}
 $task_users = followUpTaskUsers($conn);
 $task_form_action = 'add_task.php';
 $task_form_submit_label = 'Add task';

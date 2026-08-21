@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($user && empty($user['login_is_locked']) && $password_valid) {
             setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
             resetAuthenticationFailures($conn, (int) $user['id'], 'password');
-            clearLoginRateLimitForCurrentIp($conn);
+            clearLoginRateLimitForCurrentIp($conn, $username);
             beginPendingAuthentication($user);
 
             if (!empty($user['two_factor_enabled'])) {
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         } else {
             $failure_details = 'Incorrect password';
         }
-        $rate_limit = recordLoginRateLimitFailure($conn);
+        $rate_limit = recordLoginRateLimitFailure($conn, $username);
         if ($rate_limit['should_audit']) {
             recordFailedLoginAttempt($conn, $username, $failure_details, $user);
         }
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   <title>Sign in - DNR</title>
   <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
   <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.58">
-  <script>
+  <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
     // Load theme before page renders
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   </script>
 </head>
 <body class="fullscreen-center">
-  <button type="button" class="mobile-theme-button auth-theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+  <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
     <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
     <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
   </button>
@@ -123,6 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       Protected with two-factor authentication
     </p>
   </div>
-  <script src="assets/js/theme.min.js"></script>
+  <script src="assets/js/theme.min.js?v=1.1.0"></script>
 </body>
 </html>

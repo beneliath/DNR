@@ -7,74 +7,11 @@ requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    requireValidCsrfToken();
-    $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
-    $confirmation = is_string($_POST['purge_confirmation'] ?? null)
-        ? trim($_POST['purge_confirmation'])
-        : '';
-
-    if ($action !== 'purge') {
-        http_response_code(400);
-        exit('Invalid audit log action.');
-    }
-
-    if ($confirmation !== 'PURGE') {
-        $_SESSION['audit_log_action_error'] = 'Type PURGE exactly to permanently delete the audit log.';
-        header('Location: audit_log.php');
-        exit();
-    }
-
-    $actor_id = (int) ($_SESSION['user_id'] ?? 0);
-    $transaction_started = false;
-    try {
-        if (!$conn->begin_transaction()) {
-            throw new RuntimeException('Unable to start the audit log purge transaction.');
-        }
-        $transaction_started = true;
-        if (!$conn->query('DELETE FROM security_audit_log')) {
-            throw new RuntimeException('Unable to delete the audit log.');
-        }
-        $purged_entry_count = (int) $conn->affected_rows;
-        $audit_recorded = recordAuditEvent($conn, [
-            'event_category' => 'security',
-            'event_type' => 'audit_log_purged',
-            'actor_user_id' => $actor_id,
-            'target_user_id' => $actor_id,
-            'entity_type' => 'audit_log',
-            'details' => sprintf(
-                'Administrator permanently deleted %d prior audit entr%s',
-                $purged_entry_count,
-                $purged_entry_count === 1 ? 'y' : 'ies'
-            ),
-        ]);
-        if (!$audit_recorded) {
-            throw new RuntimeException('Unable to record the audit log purge event.');
-        }
-        if (!$conn->commit()) {
-            throw new RuntimeException('Unable to commit the audit log purge.');
-        }
-        $transaction_started = false;
-        $_SESSION['audit_log_action_message'] = sprintf(
-            'Audit log purged. %d prior entr%s permanently deleted.',
-            $purged_entry_count,
-            $purged_entry_count === 1 ? 'y was' : 'ies were'
-        );
-    } catch (Throwable $exception) {
-        if ($transaction_started) {
-            $conn->rollback();
-        }
-        error_log('Audit log purge failed: ' . $exception->getMessage());
-        $_SESSION['audit_log_action_error'] = 'The audit log could not be purged. No entries were deleted.';
-    }
-
-    header('Location: audit_log.php');
-    exit();
+if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    http_response_code(405);
+    header('Allow: GET');
+    exit('Method not allowed.');
 }
-
-$action_message = $_SESSION['audit_log_action_message'] ?? '';
-$action_error = $_SESSION['audit_log_action_error'] ?? '';
-unset($_SESSION['audit_log_action_message'], $_SESSION['audit_log_action_error']);
 
 $allowed_categories = ['login', 'database_change', 'security'];
 $allowed_page_sizes = [20, 50, 100];
@@ -82,7 +19,14 @@ $category = $_GET['category'] ?? '';
 if (!in_array($category, $allowed_categories, true)) {
     $category = '';
 }
-$search = trim($_GET['q'] ?? '');
+$search = trim(substr((string) ($_GET['q'] ?? ''), 0, 256));
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
+}
+$from_date = validIsoDate($_GET['from'] ?? '') ? $_GET['from'] : '';
+$to_date = validIsoDate($_GET['to'] ?? '') ? $_GET['to'] : '';
+$ip_filter = filter_var($_GET['ip'] ?? '', FILTER_VALIDATE_IP) ?: '';
 
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true)
@@ -97,25 +41,37 @@ $requested_page = filter_input(
 );
 $requested_page = $requested_page ?: 1;
 $where_parts = [];
+$filter_types = '';
+$filter_values = [];
 if ($category !== '') {
     $where_parts[] = 'event_category = ?';
+    $filter_types .= 's';
+    $filter_values[] = $category;
 }
-if ($search !== '') {
-    $where_parts[] = "(
-        actor_username LIKE ?
-        OR target_username LIKE ?
-        OR REPLACE(event_category, '_', ' ') LIKE ?
-        OR REPLACE(event_type, '_', ' ') LIKE ?
-        OR REPLACE(entity_type, '_', ' ') LIKE ?
-        OR CAST(entity_id AS CHAR) LIKE ?
-        OR entity_label LIKE ?
-        OR details LIKE ?
-        OR ip_address LIKE ?
-        OR CAST(created_at AS CHAR) LIKE ?
-    )";
+if ($fulltext_query !== '') {
+    $where_parts[] = 'MATCH(
+        actor_username, target_username, event_category, event_type,
+        entity_type, entity_label, details, ip_address
+    ) AGAINST (? IN BOOLEAN MODE)';
+    $filter_types .= 's';
+    $filter_values[] = $fulltext_query;
+}
+if ($from_date !== '') {
+    $where_parts[] = 'created_at >= ?';
+    $filter_types .= 's';
+    $filter_values[] = $from_date . ' 00:00:00';
+}
+if ($to_date !== '') {
+    $where_parts[] = 'created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+    $filter_types .= 's';
+    $filter_values[] = $to_date . ' 00:00:00';
+}
+if ($ip_filter !== '') {
+    $where_parts[] = 'ip_address = ?';
+    $filter_types .= 's';
+    $filter_values[] = $ip_filter;
 }
 $where_clause = $where_parts ? ' WHERE ' . implode(' AND ', $where_parts) : '';
-$search_pattern = '%' . $search . '%';
 
 $count_stmt = $conn->prepare(
     "SELECT COUNT(*) AS entry_count FROM security_audit_log{$where_clause}"
@@ -123,37 +79,11 @@ $count_stmt = $conn->prepare(
 if (!$count_stmt) {
     die('Unable to retrieve the audit log.');
 }
-if ($category !== '' && $search !== '') {
-    $count_stmt->bind_param(
-        'sssssssssss',
-        $category,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern
-    );
-} elseif ($category !== '') {
-    $count_stmt->bind_param('s', $category);
-} elseif ($search !== '') {
-    $count_stmt->bind_param(
-        'ssssssssss',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern
-    );
+if ($filter_types !== '') {
+    $count_bind = [$filter_types];
+    foreach ($filter_values as &$filter_value) $count_bind[] = &$filter_value;
+    unset($filter_value);
+    $count_stmt->bind_param(...$count_bind);
 }
 $count_stmt->execute();
 $total_entries = (int) $count_stmt->get_result()->fetch_assoc()['entry_count'];
@@ -173,44 +103,12 @@ $entries_stmt = $conn->prepare(
 if (!$entries_stmt) {
     die('Unable to retrieve the audit log.');
 }
-if ($category !== '' && $search !== '') {
-    $entries_stmt->bind_param(
-        'sssssssssssii',
-        $category,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $page_size,
-        $offset
-    );
-} elseif ($category === '' && $search === '') {
-    $entries_stmt->bind_param('ii', $page_size, $offset);
-} elseif ($category !== '') {
-    $entries_stmt->bind_param('sii', $category, $page_size, $offset);
-} else {
-    $entries_stmt->bind_param(
-        'ssssssssssii',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $page_size,
-        $offset
-    );
-}
+$entry_types = $filter_types . 'ii';
+$entry_values = array_merge($filter_values, [$page_size, $offset]);
+$entry_bind = [$entry_types];
+foreach ($entry_values as &$entry_value) $entry_bind[] = &$entry_value;
+unset($entry_value);
+$entries_stmt->bind_param(...$entry_bind);
 $entries_stmt->execute();
 $entries = $entries_stmt->get_result();
 
@@ -266,7 +164,7 @@ try {
     $audit_timezone = new DateTimeZone('UTC');
 }
 
-function auditLogPageUrl($page, $category, $page_size, $search = '') {
+function auditLogPageUrl($page, $category, $page_size, $search = '', $from = '', $to = '', $ip = '') {
     $parameters = [
         'page' => $page,
         'per_page' => $page_size,
@@ -277,6 +175,9 @@ function auditLogPageUrl($page, $category, $page_size, $search = '') {
     if ($search !== '') {
         $parameters['q'] = $search;
     }
+    if ($from !== '') $parameters['from'] = $from;
+    if ($to !== '') $parameters['to'] = $to;
+    if ($ip !== '') $parameters['ip'] = $ip;
     return 'audit_log.php?' . http_build_query($parameters);
 }
 
@@ -309,12 +210,12 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             gap: 10px;
             flex-wrap: wrap;
         }
-        .audit-controls {
+        .audit-controls.audit-controls {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
+            align-items: stretch !important;
+            flex-direction: column;
+            justify-content: flex-start;
             gap: 15px;
-            flex-wrap: wrap;
             margin: 15px 0 20px;
         }
         .page-heading {
@@ -327,7 +228,52 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             flex-wrap: wrap;
         }
         .audit-filters {
+            align-self: flex-end;
+            justify-content: flex-end;
             margin: 0;
+        }
+        .audit-controls > .audit-filter-form {
+            display: flex;
+            flex: 0 0 auto !important;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            min-height: 0;
+            width: 100%;
+        }
+        .audit-search-field {
+            position: relative;
+            min-width: 220px;
+            flex: 1 1 280px;
+        }
+        .audit-filter-form .audit-search-field input[type="search"],
+        .audit-filter-form > input[type="date"],
+        .audit-filter-form > input[type="text"],
+        .audit-filter-form > .filter-button {
+            box-sizing: border-box;
+            height: 44px !important;
+            min-height: 44px;
+            margin: 0 !important;
+            font: inherit;
+        }
+        .audit-filter-form .audit-search-field input[type="search"] {
+            width: 100%;
+        }
+        .audit-filter-form > input[type="date"] {
+            width: 172px;
+            padding: 8px 12px;
+        }
+        .audit-filter-form > input[type="text"] {
+            width: 172px;
+            padding: 8px 12px;
+        }
+        .audit-search-field .search-icon {
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .audit-search-field .clear-search {
+            top: 50%;
+            transform: translateY(-50%);
         }
         .audit-page-size {
             margin-left: auto;
@@ -398,9 +344,6 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         .empty-state {
             text-align: center !important;
         }
-        .purge-confirmation-input {
-            margin-bottom: 0 !important;
-        }
         @media (max-width: 700px) {
             .page-heading,
             .audit-controls {
@@ -423,35 +366,33 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         </div>
         <div class="page-heading-actions">
             <a href="users.php" class="button-add">Back to Users</a>
-            <form method="post" action="audit_log.php" id="purge-audit-log-form">
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="action" value="purge">
-                <button type="button" class="danger-button" id="open-purge-audit-log">Purge Log</button>
-            </form>
         </div>
     </div>
-
-    <?php if ($action_message !== ''): ?>
-        <div class="success" role="status"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></div>
-    <?php endif; ?>
-    <?php if ($action_error !== ''): ?>
-        <div class="error" role="alert"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></div>
-    <?php endif; ?>
+    <p class="page-intro">Audit records are append-only to the web application. Retention or emergency purge operations require the database-container maintenance command.</p>
 
     <div class="audit-controls">
-        <form method="get" action="audit_log.php" class="list-search-form" role="search">
+        <form method="get" action="audit_log.php" class="list-search-form audit-filter-form" role="search">
             <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <label class="visually-hidden" for="audit-search">Search audit log</label>
-            <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="audit-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search audit log">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <span class="audit-search-field">
+                <label class="visually-hidden" for="audit-search">Search audit log</label>
+                <span class="search-icon" aria-hidden="true">⌕</span>
+                <input type="search" id="audit-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search audit log">
+                <?php if ($search !== '' || $from_date !== '' || $to_date !== '' || $ip_filter !== ''): ?><a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            </span>
+            <label class="visually-hidden" for="audit-from">From date</label>
+            <input type="date" id="audit-from" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>">
+            <label class="visually-hidden" for="audit-to">To date</label>
+            <input type="date" id="audit-to" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>">
+            <label class="visually-hidden" for="audit-ip">Exact IP address</label>
+            <input type="text" id="audit-ip" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Exact IP">
+            <button type="submit" class="filter-button">Apply</button>
         </form>
         <nav class="audit-filters" aria-label="Audit log filters">
-            <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, '', $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
+            <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, '', $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"
                class="filter-button<?php echo $category === '' ? ' active' : ''; ?>">All</a>
             <?php foreach ($allowed_categories as $filter_category): ?>
-                <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $filter_category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $filter_category, $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"
                    class="filter-button<?php echo $category === $filter_category ? ' active' : ''; ?>">
                     <?php echo htmlspecialchars($category_labels[$filter_category], ENT_QUOTES, 'UTF-8'); ?>
                 </a>
@@ -544,7 +485,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <div class="page-size-selector" aria-label="Audit log entries per page">
                 <span class="page-size-label">Rows per page:</span>
                 <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $allowed_page_size, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl(1, $category, $allowed_page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"
                        class="filter-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
                        <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
                 <?php endforeach; ?>
@@ -552,55 +493,16 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_entries; ?> entries</span>
             <div class="pagination-actions">
                 <?php if ($current_page > 1): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page - 1, $category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Previous</a>
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page - 1, $category, $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Previous</a>
                 <?php endif; ?>
                 <?php if ($current_page < $total_pages): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page + 1, $category, $page_size, $search), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Next</a>
+                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($current_page + 1, $category, $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Next</a>
                 <?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>
 
-    <dialog id="purge-audit-log-confirmation" class="confirmation-dialog" aria-labelledby="purge-audit-log-title" aria-describedby="purge-audit-log-message">
-        <h2 id="purge-audit-log-title">Purge Audit Log?</h2>
-        <p id="purge-audit-log-message">This permanently deletes every current audit entry. A new entry identifying the administrator and the number of deleted entries will be retained.</p>
-        <label for="purge-confirmation-input">Type <strong>PURGE</strong> to continue.</label>
-        <input type="text" id="purge-confirmation-input" class="purge-confirmation-input" name="purge_confirmation" form="purge-audit-log-form" autocomplete="off" autocapitalize="characters" spellcheck="false">
-        <div class="confirmation-dialog-actions">
-            <button type="button" class="button-secondary" id="cancel-purge-audit-log" autofocus>Cancel</button>
-            <button type="submit" class="danger-button" id="confirm-purge-audit-log" form="purge-audit-log-form" disabled>Purge permanently</button>
-        </div>
-    </dialog>
 </main>
-<script>
-(function () {
-    const confirmation = document.getElementById('purge-audit-log-confirmation');
-    const openButton = document.getElementById('open-purge-audit-log');
-    const cancelButton = document.getElementById('cancel-purge-audit-log');
-    const confirmButton = document.getElementById('confirm-purge-audit-log');
-    const confirmationInput = document.getElementById('purge-confirmation-input');
-
-    if (!confirmation || !openButton || !cancelButton || !confirmButton || !confirmationInput) return;
-
-    function resetConfirmation() {
-        confirmationInput.value = '';
-        confirmButton.disabled = true;
-    }
-
-    openButton.addEventListener('click', function () {
-        resetConfirmation();
-        confirmation.showModal();
-        confirmationInput.focus();
-    });
-    cancelButton.addEventListener('click', function () {
-        confirmation.close();
-    });
-    confirmation.addEventListener('cancel', resetConfirmation);
-    confirmationInput.addEventListener('input', function () {
-        confirmButton.disabled = confirmationInput.value !== 'PURGE';
-    });
-})();
-</script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

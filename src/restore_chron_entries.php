@@ -204,7 +204,7 @@ if ($engagement_title === '') {
 </div>
 
 <?php include 'templates/footer.php'; ?>
-<script>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
 (function () {
     const selectAll = document.getElementById('select-all-chron-entries');
     const entryCheckboxes = Array.from(document.querySelectorAll('input[name="chron_entry_ids[]"]'));

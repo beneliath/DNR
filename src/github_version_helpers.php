@@ -69,71 +69,14 @@ function githubRepositoryUrl()
 
 function githubPushMetadata($fallback_commit = null, $fallback_pushed_at = null)
 {
-    $fallback = [
-        'commit' => strtolower((string) $fallback_commit),
-        'pushed_at' => (string) $fallback_pushed_at,
+    $metadata = [
+        'commit' => strtolower((string) (getenv('DNR_BUILD_COMMIT') ?: $fallback_commit)),
+        'pushed_at' => (string) (getenv('DNR_BUILD_TIMESTAMP') ?: $fallback_pushed_at),
     ];
-    $fallback = githubPushMetadataIsValid($fallback) ? $fallback : null;
 
-    $repository = getenv('DNR_GITHUB_REPOSITORY') ?: 'beneliath/DNR';
-    $branch = getenv('DNR_GITHUB_BRANCH') ?: 'main';
-    if (!preg_match('/\A[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\z/', $repository)
-        || !preg_match('/\A[A-Za-z0-9._\/-]+\z/', $branch)) {
-        return $fallback;
-    }
-
-    $cache_path = sys_get_temp_dir() . '/dnr-github-push-v2-' . sha1($repository . '|' . $branch) . '.json';
-    $failure_path = $cache_path . '.failure';
-    $cached = null;
-    if (is_file($cache_path)) {
-        $cached = json_decode((string) @file_get_contents($cache_path), true);
-        if (!githubPushMetadataIsValid($cached)) {
-            $cached = null;
-        }
-    }
-
-    $cache_ttl = (int) (getenv('DNR_GITHUB_PUSH_CACHE_TTL') ?: 120);
-    $cache_ttl = max(30, min(3600, $cache_ttl));
-    $cache_modified_at = is_file($cache_path) ? @filemtime($cache_path) : false;
-    if ($cached !== null && $cache_modified_at !== false && time() - $cache_modified_at < $cache_ttl) {
-        return $cached;
-    }
-
-    $retry_ttl = (int) (getenv('DNR_GITHUB_RETRY_TTL') ?: 300);
-    $retry_ttl = max(60, min(3600, $retry_ttl));
-    $failure_modified_at = is_file($failure_path) ? @filemtime($failure_path) : false;
-    if ($failure_modified_at !== false && time() - $failure_modified_at < $retry_ttl) {
-        return $cached ?? $fallback;
-    }
-
-    $context = stream_context_create([
-        'http' => [
-            'method' => 'GET',
-            'header' => "Accept: application/vnd.github+json\r\nUser-Agent: DNR-Version-Footer\r\n",
-            'timeout' => 2,
-            'ignore_errors' => true,
-        ],
-    ]);
-    $activities_json = @file_get_contents(
-        'https://api.github.com/repos/' . $repository . '/activity?ref=' . rawurlencode($branch)
-            . '&activity_type=push&per_page=30',
-        false,
-        $context
-    );
-    $activities = $activities_json === false ? null : json_decode($activities_json, true);
-    $metadata = is_array($activities)
-        ? githubPushMetadataFromActivities($activities, $branch)
-        : null;
-
-    if ($metadata !== null) {
-        @file_put_contents($cache_path, json_encode($metadata), LOCK_EX);
-        @unlink($failure_path);
-        return $metadata;
-    }
-
-    @touch($failure_path);
-
-    return $cached ?? $fallback;
+    // Build provenance is injected by the release pipeline. Rendering a page
+    // must never wait on, or disclose traffic to, a third-party API.
+    return githubPushMetadataIsValid($metadata) ? $metadata : null;
 }
 
 function githubPushTimestampLabel($timestamp, $timezone_name)
