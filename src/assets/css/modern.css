@@ -866,6 +866,60 @@ span.contact-list-avatar {
   margin-top: 0;
 }
 
+.calendar-subscription-table-wrapper {
+  overflow-x: auto;
+}
+
+.calendar-subscription-table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.calendar-subscription-table :is(th, td) {
+  padding: 12px clamp(14px, 2vw, 28px);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.calendar-subscription-table :is(th, td):first-child {
+  padding-left: 0;
+}
+
+.calendar-subscription-table :is(th, td):last-child {
+  padding-right: 0;
+}
+
+.calendar-subscription-label-column {
+  width: 30%;
+}
+
+.calendar-subscription-created-column {
+  width: 25%;
+}
+
+.calendar-subscription-last-used-column {
+  width: 16%;
+}
+
+.calendar-subscription-status-column {
+  width: 14%;
+}
+
+.calendar-subscription-action-column {
+  width: 15%;
+}
+
+.calendar-subscription-table :is(th, td):not(:first-child) {
+  white-space: nowrap;
+}
+
+.calendar-subscription-table form {
+  margin: 0;
+}
+
 html body :is(#copy-calendar-url, #open-calendar-app) {
   border-color: var(--border-strong) !important;
   background: var(--surface) !important;

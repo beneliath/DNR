@@ -116,8 +116,15 @@ $webcal_url = $calendar_url === null
         <?php if ($subscriptions === []): ?>
             <p>No subscriptions have been created.</p>
         <?php else: ?>
-            <div class="responsive-table-wrapper">
-                <table>
+            <div class="responsive-table-wrapper calendar-subscription-table-wrapper">
+                <table class="calendar-subscription-table">
+                    <colgroup>
+                        <col class="calendar-subscription-label-column">
+                        <col class="calendar-subscription-created-column">
+                        <col class="calendar-subscription-last-used-column">
+                        <col class="calendar-subscription-status-column">
+                        <col class="calendar-subscription-action-column">
+                    </colgroup>
                     <thead><tr><th>Label</th><th>Created</th><th>Last Used</th><th>Status</th><th>Action</th></tr></thead>
                     <tbody>
                     <?php foreach ($subscriptions as $subscription): ?>
