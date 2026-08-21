@@ -168,7 +168,7 @@ services:
       - dnr_mysql_maintenance_password
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
       - ./scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro
       - ./migrations:/opt/dnr/migrations:ro
       - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro

@@ -64,5 +64,13 @@ expectDatabaseBackupFeature(
         && str_contains($readme, '/backups/restore.dnrbackup RESTORE'),
     'restore should use an isolated maintenance credential and document the complete safety-dump workflow.'
 );
+expectDatabaseBackupFeature(
+    str_contains($compose, './init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro')
+        && str_contains(
+            $compose,
+            './scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro'
+        ),
+    'a fresh database volume should load the schema before configuring table privileges.'
+);
 
 echo "Database backup feature tests passed.\n";
