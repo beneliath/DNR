@@ -866,6 +866,23 @@ span.contact-list-avatar {
   margin-top: 0;
 }
 
+.calendar-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  flex-wrap: wrap;
+}
+
+.calendar-card-heading h2,
+.calendar-purge-form {
+  margin: 0;
+}
+
+.calendar-purge-form {
+  margin-left: auto;
+}
+
 .calendar-subscription-table-wrapper {
   overflow-x: auto;
 }

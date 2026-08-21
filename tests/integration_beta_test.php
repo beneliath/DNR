@@ -11,6 +11,7 @@ $source_directory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source_directory . '/config.php';
 require_once $source_directory . '/functions.php';
 require_once $source_directory . '/presentation_helpers.php';
+require_once $source_directory . '/calendar_helpers.php';
 
 function expectBetaIntegration($condition, $message)
 {
@@ -24,9 +25,21 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $suffix = bin2hex(random_bytes(4));
 $organization_id = 0;
 $engagement_id = 0;
+$subscription_user_id = 0;
 
-register_shutdown_function(static function () use ($conn, &$organization_id, &$engagement_id) {
+register_shutdown_function(static function () use (
+    $conn,
+    &$organization_id,
+    &$engagement_id,
+    &$subscription_user_id
+) {
     try {
+        if ($subscription_user_id > 0) {
+            $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
+            $stmt->bind_param('i', $subscription_user_id);
+            $stmt->execute();
+            $stmt->close();
+        }
         if ($engagement_id > 0) {
             $stmt = $conn->prepare('DELETE FROM engagements WHERE id = ?');
             $stmt->bind_param('i', $engagement_id);
@@ -161,6 +174,42 @@ for ($attempt = 0; $attempt < 8; $attempt++) {
 expectBetaIntegration(
     !empty($rate_state['blocked']) && loginRateLimitIsBlocked($conn),
     'repeated login failures must activate the per-IP rate limit.'
+);
+
+$subscription_username = 'calendar-purge-' . $suffix;
+$subscription_password = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+$subscription_user_stmt = $conn->prepare(
+    "INSERT INTO users (username, password, role) VALUES (?, ?, 'editor')"
+);
+$subscription_user_stmt->bind_param('ss', $subscription_username, $subscription_password);
+$subscription_user_stmt->execute();
+$subscription_user_id = (int) $conn->insert_id;
+$subscription_user_stmt->close();
+
+$active_subscription = createCalendarSubscription($conn, $subscription_user_id, 'Active calendar');
+$revoked_subscription_one = createCalendarSubscription($conn, $subscription_user_id, 'Revoked calendar one');
+$revoked_subscription_two = createCalendarSubscription($conn, $subscription_user_id, 'Revoked calendar two');
+expectBetaIntegration(
+    revokeCalendarSubscription($conn, $subscription_user_id, $revoked_subscription_one['id'])
+        && revokeCalendarSubscription($conn, $subscription_user_id, $revoked_subscription_two['id']),
+    'the purge integration fixture should contain two revoked subscriptions.'
+);
+expectBetaIntegration(
+    purgeRevokedCalendarSubscriptions($conn, $subscription_user_id) === 2,
+    'purging should remove every revoked subscription owned by the user.'
+);
+$remaining_subscription_stmt = $conn->prepare(
+    'SELECT id, revoked_at FROM calendar_subscriptions WHERE user_id = ? ORDER BY id'
+);
+$remaining_subscription_stmt->bind_param('i', $subscription_user_id);
+$remaining_subscription_stmt->execute();
+$remaining_subscriptions = $remaining_subscription_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$remaining_subscription_stmt->close();
+expectBetaIntegration(
+    count($remaining_subscriptions) === 1
+        && (int) $remaining_subscriptions[0]['id'] === (int) $active_subscription['id']
+        && $remaining_subscriptions[0]['revoked_at'] === null,
+    'purging revoked subscriptions must preserve the active token.'
 );
 
 echo "Beta integration tests passed.\n";

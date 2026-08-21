@@ -40,6 +40,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'entity_type' => 'calendar_subscription',
                 'entity_id' => $subscription_id,
             ]);
+        } elseif ($action === 'purge_revoked') {
+            $conn->begin_transaction();
+            try {
+                $purged_count = purgeRevokedCalendarSubscriptions($conn, $user_id);
+                if ($purged_count > 0 && !recordAuditEvent($conn, [
+                    'event_category' => 'security',
+                    'event_type' => 'calendar_subscriptions_purged',
+                    'actor_user_id' => $user_id,
+                    'target_user_id' => $user_id,
+                    'entity_type' => 'calendar_subscription',
+                    'entity_label' => 'Revoked calendar subscriptions',
+                    'details' => 'Purged revoked subscriptions: ' . $purged_count,
+                ])) {
+                    throw new RuntimeException('Unable to audit revoked subscription cleanup.');
+                }
+                $conn->commit();
+            } catch (Throwable $purge_exception) {
+                $conn->rollback();
+                throw $purge_exception;
+            }
+            $_SESSION['_calendar_subscription_message'] = $purged_count === 0
+                ? 'No revoked calendar subscriptions were found.'
+                : sprintf(
+                    'Purged %d revoked calendar subscription%s.',
+                    $purged_count,
+                    $purged_count === 1 ? '' : 's'
+                );
         } else {
             throw new InvalidArgumentException('Invalid calendar subscription action.');
         }
@@ -59,6 +86,10 @@ unset(
     $_SESSION['_calendar_subscription_error']
 );
 $subscriptions = calendarSubscriptionsForUser($conn, $user_id);
+$revoked_subscription_count = count(array_filter(
+    $subscriptions,
+    static fn(array $subscription): bool => $subscription['revoked_at'] !== null
+));
 $calendar_url = is_array($new_subscription)
     ? calendarSubscriptionUrl($_SERVER, $new_subscription['token'])
     : null;
@@ -112,7 +143,18 @@ $webcal_url = $calendar_url === null
     </section>
 
     <section class="security-card calendar-card" aria-labelledby="existing-calendar-title">
-        <h2 id="existing-calendar-title">Existing Subscriptions</h2>
+        <div class="calendar-card-heading">
+            <h2 id="existing-calendar-title">Existing Subscriptions</h2>
+            <?php if ($revoked_subscription_count > 0): ?>
+                <form method="post" action="calendar_subscription.php" class="calendar-purge-form" data-confirm="Permanently delete all revoked calendar token records? Active subscriptions will not be affected. This cannot be undone.">
+                    <?php echo csrfInput(); ?>
+                    <input type="hidden" name="action" value="purge_revoked">
+                    <button type="submit" class="danger-button">
+                        Purge <?php echo $revoked_subscription_count; ?> Revoked Token<?php echo $revoked_subscription_count === 1 ? '' : 's'; ?>
+                    </button>
+                </form>
+            <?php endif; ?>
+        </div>
         <?php if ($subscriptions === []): ?>
             <p>No subscriptions have been created.</p>
         <?php else: ?>

@@ -355,6 +355,26 @@ function revokeCalendarSubscription(mysqli $conn, $user_id, $subscription_id) {
     return $revoked;
 }
 
+function purgeRevokedCalendarSubscriptions(mysqli $conn, $user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id < 1) {
+        throw new InvalidArgumentException('A subscription owner is required.');
+    }
+
+    $stmt = $conn->prepare(
+        'DELETE FROM calendar_subscriptions
+         WHERE user_id = ? AND revoked_at IS NOT NULL'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare revoked subscription cleanup.');
+    }
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $purged_count = max(0, (int) $stmt->affected_rows);
+    $stmt->close();
+    return $purged_count;
+}
+
 function calendarSubscriptionUrl(array $server, $token = null) {
     $configured_base_url = trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
     if ($configured_base_url !== ''

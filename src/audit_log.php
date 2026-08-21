@@ -134,6 +134,7 @@ $entity_labels = [
     'engagements' => 'engagement',
     'presentations' => 'presentation',
     'audit_log' => 'audit log',
+    'calendar_subscription' => 'calendar subscription',
 ];
 $security_event_labels = [
     'password_recovery_started' => 'Password recovery started',
@@ -155,6 +156,9 @@ $security_event_labels = [
     'database_restored' => 'Database restored',
     'database_restore_auth_failed' => 'Database restore verification failed',
     'audit_log_purged' => 'Audit log purged',
+    'calendar_subscription_created' => 'Calendar subscription created',
+    'calendar_subscription_revoked' => 'Calendar subscription revoked',
+    'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged',
 ];
 $audit_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 try {
