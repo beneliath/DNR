@@ -76,6 +76,8 @@ expectBetaReadiness(
     str_contains($compose, 'DNR_BIND_ADDRESS:-127.0.0.1')
         && str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password')
         && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password')
+        && str_contains($compose, 'networks: [ingress, backend]')
+        && str_contains($compose, 'com.docker.network.bridge.enable_ip_masquerade: "false"')
         && str_contains($compose, 'read_only: true')
         && !str_contains($compose, 'rootpassword')
         && !str_contains($compose, 'dnrpassword')

@@ -46,7 +46,7 @@ services:
       - dnr_2fa_encryption_key
       - dnr_mysql_app_password
     environment: *app-environment
-    networks: [backend]
+    networks: [ingress, backend]
     healthcheck:
       test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
       interval: 15s
@@ -152,6 +152,13 @@ volumes:
   db_data:
 
 networks:
+  # Docker Engine does not activate published ports for containers connected
+  # only to an internal network. This bridge accepts localhost-forwarded
+  # traffic without masquerading outbound web-container traffic.
+  ingress:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_ip_masquerade: "false"
   backend:
     internal: true
   egress:
