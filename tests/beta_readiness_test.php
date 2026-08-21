@@ -96,7 +96,12 @@ expectBetaReadiness(
         && str_contains($runner, 'schema_migrations')
         && str_contains($rotation, 'openssl rand -hex 32')
         && str_contains($rotation, "ALTER USER 'dnruser'@'%'")
-        && str_contains($rotation, 'refusing to overwrite deployment configuration'),
+        && str_contains($rotation, '.env is not a recognized legacy configuration')
+        && str_contains($rotation, 'MYSQL_ROOT_PASSWORD')
+        && str_contains($rotation, 'MYSQL_PASSWORD')
+        && str_contains($rotation, 'The file is parsed as data and is never sourced or evaluated')
+        && str_contains($rotation, 'DNR_COMPOSE_MODE')
+        && str_contains($rotation, 'docker-compose.dev.yaml'),
     'tracked migrations must install authentication bounds and data-integrity constraints.'
 );
 

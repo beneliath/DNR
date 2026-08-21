@@ -73,13 +73,25 @@ docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_priv
 ./scripts/compose_with_provenance.sh production
 ```
 
-For the one-time upgrade from a legacy installation that still uses the former
-committed database passwords and has no `.env`, first build the updated web
-image and then run `sh scripts/secure_existing_deployment.sh`. The helper makes
-a timestamped database backup, generates private database and calendar
+For the one-time upgrade from a legacy installation that still exposes database
+passwords through container environment variables, run:
+
+```sh
+# Production deployment (default)
+sh scripts/secure_existing_deployment.sh
+
+# Local development deployment
+DNR_COMPOSE_MODE=development sh scripts/secure_existing_deployment.sh
+```
+
+The helper makes a timestamped database backup, generates private database
 credentials, writes the ignored `.env` with mode `600`, rotates both MySQL
-accounts, and recreates the services. It refuses to overwrite an existing
-`.env`.
+accounts, applies tracked migrations and grants, and rebuilds the services with
+immutable footer provenance. An existing `.env` is accepted only when it has
+the two recognized legacy MySQL password variables. The file is never sourced:
+only an explicit allowlist of non-secret application settings is copied to the
+replacement. Deprecated password and calendar-token values are discarded. The
+helper refuses an already-secured, unrecognized, or partially migrated setup.
 
 The migration runner obtains database-administrator access only inside the database container, records each filename and checksum in `schema_migrations`, and skips applied migrations. It automatically baselines the documented legacy schema once. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
 
