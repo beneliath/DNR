@@ -11,6 +11,7 @@ $script_path = __DIR__ . '/../scripts/compose_with_provenance.sh';
 $script = file_get_contents($script_path);
 $readme = file_get_contents(__DIR__ . '/../README.md');
 $secure_existing = file_get_contents(__DIR__ . '/../scripts/secure_existing_deployment.sh');
+$dockerfile = file_get_contents(__DIR__ . '/../Dockerfile');
 
 expectBuildProvenanceScript(
     is_executable($script_path)
@@ -38,6 +39,10 @@ expectBuildProvenanceScript(
         && str_contains($secure_existing, 'compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder')
         && str_contains($readme, 'DNR_COMPOSE_MODE=development'),
     'documented and automated deployment builds should use the provenance wrapper.'
+);
+expectBuildProvenanceScript(
+    strpos($dockerfile, 'ARG DNR_BUILD_COMMIT') > strpos($dockerfile, 'COPY src/ /var/www/html/'),
+    'provenance-only changes should not invalidate expensive image build layers.'
 );
 
 echo "Build provenance script tests passed.\n";

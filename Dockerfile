@@ -13,11 +13,6 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
 
 FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb
 
-ARG DNR_BUILD_COMMIT=""
-ARG DNR_BUILD_TIMESTAMP=""
-ENV DNR_BUILD_COMMIT=${DNR_BUILD_COMMIT} \
-    DNR_BUILD_TIMESTAMP=${DNR_BUILD_TIMESTAMP}
-
 # Install the extensions used by the database and PDF export dependencies.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
@@ -45,3 +40,10 @@ COPY scripts/restore_database.php /opt/dnr/bin/restore_database.php
 
 # Copy the PHP source code into Apache’s document root
 COPY src/ /var/www/html/
+
+# Add immutable source metadata last so changing only the commit does not
+# invalidate the expensive dependency and PHP-extension build layers.
+ARG DNR_BUILD_COMMIT=""
+ARG DNR_BUILD_TIMESTAMP=""
+ENV DNR_BUILD_COMMIT=${DNR_BUILD_COMMIT} \
+    DNR_BUILD_TIMESTAMP=${DNR_BUILD_TIMESTAMP}

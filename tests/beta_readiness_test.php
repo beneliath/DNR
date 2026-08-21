@@ -101,7 +101,8 @@ expectBetaReadiness(
         && str_contains($rotation, 'MYSQL_PASSWORD')
         && str_contains($rotation, 'The file is parsed as data and is never sourced or evaluated')
         && str_contains($rotation, 'DNR_COMPOSE_MODE')
-        && str_contains($rotation, 'docker-compose.dev.yaml'),
+        && str_contains($rotation, 'docker-compose.dev.yaml')
+        && str_contains($rotation, '--wait --wait-timeout'),
     'tracked migrations must install authentication bounds and data-integrity constraints.'
 );
 

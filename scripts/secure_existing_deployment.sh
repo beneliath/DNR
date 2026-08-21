@@ -172,7 +172,7 @@ chmod 600 "$environment_temp"
 mv "$environment_temp" "$environment_path"
 
 cd "$project_directory"
-compose up -d --force-recreate db
+compose up -d --force-recreate --wait --wait-timeout "${DNR_COMPOSE_WAIT_TIMEOUT:-120}" db
 compose exec db sh /opt/dnr/bin/migrate
 compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
 "$project_directory/scripts/compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder
