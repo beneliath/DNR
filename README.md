@@ -22,14 +22,17 @@ To set up the project on your local machine, follow these steps:
 
    ```sh
    cp .env.example .env
-   # Put independent `openssl rand -base64 36` values in MYSQL_ROOT_PASSWORD,
-   # MYSQL_PASSWORD, and DNR_CALENDAR_TOKEN inside .env.
-   mkdir -p secrets
+   install -d -m 700 secrets backups
+   umask 077
+   openssl rand -hex 32 > secrets/mysql_root_password
+   openssl rand -hex 32 > secrets/mysql_app_password
+   openssl rand -hex 32 > secrets/mysql_maintenance_password
    openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
-   chmod 600 secrets/dnr_2fa_encryption_key
+   : > secrets/backup_password
+   chmod 600 secrets/*
    ```
 
-   Back up this key separately from the database and do not rotate it casually. Enrolled authenticator secrets cannot be recovered without it.
+   Store a protected offline copy of `dnr_2fa_encryption_key` separately from database backups and do not rotate it casually. Enrolled authenticator secrets cannot be recovered without it. The empty `backup_password` file is populated only for a one-shot restore and is removed afterward.
 
 4. **Build and run the application using Docker Compose**
 
@@ -37,9 +40,11 @@ To set up the project on your local machine, follow these steps:
    docker compose up -d --build
    ```
 
-   Browse to `http://localhost:8080` by default. The published port binds to
-   `127.0.0.1` unless `DNR_BIND_ADDRESS` is explicitly changed. Use a TLS
-   reverse proxy before exposing DNR beyond the local machine.
+   Production mode requires HTTPS from a trusted reverse proxy and uses only
+   source code baked into the immutable image. For local HTTP development, run
+   `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build`
+   and browse to `http://localhost:8080`. The published port binds to
+   `127.0.0.1` unless `DNR_BIND_ADDRESS` is explicitly changed.
 
 5. **Create the first administrator on a fresh database**
 
@@ -61,9 +66,10 @@ Create the secrets shown above before running Docker Compose commands with the u
 
 ```sh
 mkdir -p backups
-docker compose exec -T db sh -c 'mysqldump --no-tablespaces -uroot -p"$MYSQL_ROOT_PASSWORD" dnr' > backups/dnr-before-upgrade.sql
+docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysqldump --single-transaction --routines --triggers --no-tablespaces -uroot dnr' > backups/dnr-before-upgrade.sql
+chmod 600 backups/dnr-before-upgrade.sql
 docker compose exec db sh /opt/dnr/bin/migrate
-docker compose exec -T db sh -c 'mysql -uroot -p"$MYSQL_ROOT_PASSWORD" dnr' < operations/restrict_app_database_user.sql
+docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
 docker compose up -d --build
 ```
 
@@ -100,20 +106,21 @@ Configure these values as needed:
 
 - `PORT`: published HTTP port; defaults to `8080`.
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
-- `MYSQL_ROOT_PASSWORD` and `MYSQL_PASSWORD`: independent random database secrets. Compose refuses to start when either is absent.
-- `DNR_CALENDAR_TOKEN`: revocable random secret of at least 32 characters. The calendar feed remains disabled when it is absent.
+- `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, and `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`: host paths to independent secret files. The web process receives only the restricted application credential; destructive restore access exists only in the opt-in maintenance profile.
+- `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct the calendar subscription URL.
 - `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
+- `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
+- `DNR_SESSION_IDLE_SECONDS`, `DNR_SESSION_ABSOLUTE_SECONDS`, and `DNR_SESSION_ROTATION_SECONDS`: authenticated-session idle lifetime, absolute lifetime, and identifier-rotation interval. Defaults are 30 minutes, 12 hours, and 15 minutes.
 - `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` client address DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
-- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted data size of a database backup created or accepted by the admin interface; defaults to `67108864` bytes (64 MB). Encrypted framing adds a small amount of overhead, so keep PHP's `upload_max_filesize` and `post_max_size` above this value when overriding it.
-- `DNR_GITHUB_REPOSITORY` and `DNR_GITHUB_BRANCH`: public GitHub repository and deployed branch whose repository activity keeps the footer's latest push timestamp and commit hash current; defaults to `beneliath/DNR` and `main`. If GitHub is unavailable and no cached response exists, the footer omits the push metadata rather than displaying stale commit information.
-- `DNR_GITHUB_PUSH_CACHE_TTL`: seconds to cache the latest GitHub push metadata; defaults to `120` and is constrained to 30–3600 seconds.
-- `DNR_GITHUB_RETRY_TTL`: retry backoff after GitHub is unavailable; defaults to `300` seconds.
-- `DNR_GEOCODER_BASE_URL`: configurable address-lookup endpoint used by the Map page; defaults to OpenStreetMap's public Nominatim search endpoint.
+- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `67108864` bytes (64 MB). Restore plaintext exists only in the maintenance container's memory-backed `/tmp`.
+- `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and optional immutable build provenance displayed in the footer. Page rendering never calls GitHub or another third-party API.
+- `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
+- `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: default bounded map window and hard result cap; defaults are 90 days back, 730 days forward, and 500 engagements.
 - `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. Compose uses the fixed `dnr` database and restricted `dnruser` account.
 
 ### Two-factor authentication
@@ -121,10 +128,10 @@ Configure these values as needed:
 - TOTP authenticator codes use a 30-second time step and tolerate one neighboring time step for clock drift.
 - A successful code cannot be reused.
 - Five failed password or second-factor attempts temporarily lock that factor for 15 minutes.
-- Recovery codes are single-use and stored only as password hashes.
+- Recovery codes are single-use. DNR stores only a keyed HMAC lookup value, never the code itself.
 - Administrators are required to use 2FA and cannot disable it themselves.
 - An administrator can reset another user's 2FA from **Manage Users**. Resetting or replacing a factor invalidates that user's other sessions.
-- An administrator can set a temporary password for another user from **Manage Users**. The action requires the administrator's password plus a fresh authenticator or recovery code, invalidates the target user's sessions, and forces the target to choose a private password after login.
+- An administrator can set a temporary password for another user from **Manage Users**. The control appears only during a five-minute sensitive-action window opened with the administrator's password plus a fresh authenticator or recovery code. The route rechecks that elevation, invalidates the target user's sessions, and forces the target to choose a private password after login.
 - Users can change their own password from **Account Security**; doing so invalidates their other sessions.
 
 ### Password recovery
@@ -138,10 +145,10 @@ Configure these values as needed:
 
 ### Usage
 
-Administrators can open **Database** in the primary navigation to download or restore a DNR
-database backup. Both operations require the administrator's password and a fresh authenticator
-or recovery code. Every export also requires a new backup password; that password is required to
-restore the file and is never stored by DNR. The complete `.dnrbackup` archive is encrypted with a
+Administrators can open **Database** in the primary navigation to download a DNR database backup.
+Export requires the administrator's password, a fresh authenticator or recovery code, and a new
+backup password. That password is required to restore the file and is never stored by DNR. The
+complete `.dnrbackup` archive is encrypted with a
 key derived by Argon2id and authenticated with XChaCha20-Poly1305 secretstream. Backups contain
 every application table, including user authentication and audit data. Treat encrypted files as
 secrets, use a strong unique backup password, and keep the password separately in a password
@@ -150,10 +157,157 @@ manager. A forgotten backup password cannot be recovered.
 A restore is accepted only when the backup schema exactly matches the deployed database schema.
 Install the matching DNR version and run its migrations before restoring. The data replacement is
 transactional and automatically rolls back on failure; a successful restore invalidates all
-existing sessions and requires everyone to sign in again. Database backups do not contain the
+existing sessions and requires everyone to sign in again. Restore is not exposed by HTTP: it runs
+in a one-shot, non-egress maintenance container using a database credential that the web and
+geocoder containers never receive. Database backups do not contain the
 separate `DNR_2FA_ENCRYPTION_KEY`, so keep a secure copy of that key with the backup set. For full
 disaster recovery, initialize and migrate an empty DNR deployment, restore the `.dnrbackup` from
-the admin interface, and restore the same two-factor encryption key.
+the maintenance profile, and restore the same two-factor encryption key.
+
+### Exact database restore runbook
+
+The following procedure is complete for the Docker Compose deployment. Run every step from the
+repository root. The example deliberately renames the selected archive to
+`backups/restore.dnrbackup`, so the commands can be copied without shell globs or unresolved path
+variables.
+
+1. Check out the exact DNR release that created the backup. Restore the matching
+   `secrets/dnr_2fa_encryption_key`; create or restore the independent root, application, and
+   maintenance database secret files; create an empty mode-`600` `secrets/backup_password`; and
+   confirm `.env` points to those five files. Then build every image used by the procedure:
+
+   ```sh
+   install -d -m 700 secrets backups
+   install -m 600 /dev/null secrets/backup_password
+   docker compose build maintenance web geocoder
+   ```
+
+   Do not generate a new 2FA key: without the original key, authenticator secrets in the restored
+   database cannot be decrypted. If the database service and its volume already exist, start only
+   the database and apply this release's migrations:
+
+   ```sh
+   docker compose up -d db
+   docker compose exec db sh /opt/dnr/bin/migrate
+   ```
+
+   For disaster recovery with no database volume, the same `up -d db` command initializes the
+   empty `dnr` database from `init.sql` and installs the restricted application and maintenance
+   accounts. Wait until `docker compose ps db` reports `Up (healthy)`, then run the migration
+   command above. The restore refuses a schema mismatch before deleting or inserting data.
+
+2. Copy the selected encrypted backup into the ignored `backups/` directory under the fixed name
+   and protect it. Replace `/absolute/path/to/selected.dnrbackup` with the actual source path:
+
+   ```sh
+   install -m 600 /absolute/path/to/selected.dnrbackup backups/restore.dnrbackup
+   ```
+
+3. Put the exact backup encryption password in `secrets/backup_password` with no added newline.
+   `read -s` keeps it off the screen and `printf` preserves the value exactly:
+
+   ```sh
+   umask 077
+   IFS= read -r -s DNR_RESTORE_PASSWORD
+   printf '%s' "$DNR_RESTORE_PASSWORD" > secrets/backup_password
+   unset DNR_RESTORE_PASSWORD
+   chmod 600 secrets/backup_password
+   ```
+
+4. Before stopping the application, make an independent plaintext SQL safety dump of the current
+   database. This file is the rollback point and contains secrets, so retain mode `600` and store it
+   only on the deployment host:
+
+   ```sh
+   docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysqldump --single-transaction --routines --triggers --no-tablespaces -uroot dnr' > backups/pre-restore-safety.sql
+   chmod 600 backups/pre-restore-safety.sql
+   ```
+
+5. Stop every service that can mutate application data. Leave `db` running:
+
+   ```sh
+   docker compose stop web geocoder
+   docker compose ps
+   ```
+
+   Verify that `web` and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
+
+6. Run the one-shot restore with the literal confirmation word `RESTORE`:
+
+   ```sh
+   docker compose --profile maintenance run --rm --no-deps maintenance /backups/restore.dnrbackup RESTORE
+   ```
+
+   Success prints the restored row and table counts. The command authenticates and decrypts the
+   complete archive, checks its size, format, schema fingerprint, declared row counts, content hash,
+   and trailing data, replaces all tables in one transaction, verifies every restored table count,
+   records `database_restored`, and invalidates sessions. A wrong password, damaged archive,
+   schema mismatch, insertion error, or count mismatch rolls the transaction back.
+
+7. If step 6 failed, do not run the remaining success steps. Because the restore transaction was
+   rolled back, restart the stopped services. If you will not immediately correct the problem and
+   retry, empty the password secret and remove the working copy before investigating the printed
+   error:
+
+   ```sh
+   docker compose up -d web geocoder
+   install -m 600 /dev/null secrets/backup_password
+   rm -f backups/restore.dnrbackup
+   ```
+
+8. After a successful restore, apply any still-pending migrations, reassert table-specific runtime
+   grants and the isolated maintenance grant, then restart the application services:
+
+   ```sh
+   docker compose exec db sh /opt/dnr/bin/migrate
+   docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
+   docker compose up -d web geocoder
+   ```
+
+9. Wait for the health check, inspect service status, and run the schema health check directly:
+
+   ```sh
+   docker compose ps
+   docker compose exec web php /opt/dnr/bin/check_schema.php
+   ```
+
+   Do not declare the restore complete until `web`, `geocoder`, and `db` are running, `web` and `db`
+   are healthy, and the schema command exits successfully.
+
+10. Sign in with an administrator account that exists in the restored backup. Verify at least one
+    known engagement, organization, contact, and user; open **Users → Audit Log** and verify the
+    `database_restored` event. Also verify 2FA decryption by completing a fresh authenticator check.
+    All pre-restore browser sessions should require sign-in again.
+
+11. Empty the temporary restore password and remove the extra working copy only after verification. Keep
+    the original encrypted backup and password in their approved long-term locations. Retain the SQL
+    safety dump until the restored deployment has passed operational verification, then securely
+    dispose of it according to the deployment's retention policy:
+
+    ```sh
+    install -m 600 /dev/null secrets/backup_password
+    rm -f backups/restore.dnrbackup
+    ```
+
+If step 6 succeeded but later verification reveals incorrect data, stop `web` and `geocoder`, import
+the safety dump, rerun migrations and privilege configuration, and restart the services:
+
+```sh
+docker compose stop web geocoder
+docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr' < backups/pre-restore-safety.sql
+docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr -e "UPDATE users SET auth_version = auth_version + 1"'
+docker compose exec db sh /opt/dnr/bin/migrate
+docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
+docker compose up -d web geocoder
+docker compose exec web php /opt/dnr/bin/check_schema.php
+```
+
+The explicit `auth_version` update after the safety-dump import prevents browser sessions that
+existed before either restore from becoming valid again. Repeat steps 9 through 11 after the
+rollback, using the safety-dump data for the representative-record checks. Once the approved
+retention period ends, remove the plaintext rollback dump with
+`rm -f backups/pre-restore-safety.sql`; filesystem-level secure erasure must follow the host's
+encrypted-storage and media-disposal policy.
 
 Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
 general or linked to one engagement, organization, or contact. Each task supports an owner,
@@ -170,13 +324,35 @@ closeout. Re-running the checklist only adds missing standard items.
 
 Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
 
-The first Map visit resolves uncached event addresses through the configured geocoder. Lookups are serialized to at most one request per second and cached by normalized address in the database, so events at the same address share one result. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure a geocoding provider appropriate for that workload instead of relying on the public default.
+The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure an allowlisted provider appropriate for that workload instead of relying on the public default.
 
-Authenticated users can open **Calendar** in the navigation to copy the private, tokenized subscription URL or open it in a calendar app. The feed includes every active (non-archived) engagement, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke private subscription URLs per device. The feed includes active (non-archived) engagements in the configured bounded calendar window, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 
-The subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password and rotate `DNR_CALENDAR_TOKEN` if it is disclosed. Contacts, chronological notes, travel, lodging, and compensation are never included.
+Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest, redacts all query strings from Apache access logs, and never includes contacts, chronological notes, travel, lodging, or compensation in the feed.
 
 ### Contributing
+
+Database integration tests must run only against a disposable database created for that test run.
+They refuse to start unless `DNR_INTEGRATION_TARGET=disposable` is set. The database-backup
+integration additionally requires `DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore` because it
+deletes and restores every application table. Never set either acknowledgement against a
+development or production database; dispose of the isolated container and volume afterward.
+
+Keep work from different development computers on separate remote branches. Codex-assisted
+MacBook work uses `codex/macbook/<topic>` and home-computer work uses
+`codex/home/<topic>`. Use the same Git author identity on both computers, and add these trailers
+to every workstation-specific commit so its origin remains searchable after it is pushed:
+
+```text
+Development-Host: MacBook
+Codex-Client: Desktop
+```
+
+Push each branch with an upstream (`git push -u origin <branch>`) and merge it through a pull
+request. When continuing on a different computer, fetch the remote branch and create a new branch
+with that computer's prefix instead of committing directly to the first computer's branch.
+Application versions describe released behavior, not the computer that produced a commit; do not
+bump the version for each workstation commit.
 
 Contributions to the DNR project are welcome. To contribute:
 
