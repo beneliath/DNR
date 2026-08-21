@@ -49,11 +49,11 @@ $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '1.3.10');"),
-    'The application version should be 1.3.10.'
+    str_contains($configuration_source, "define('APP_VERSION', '1.4.0');"),
+    'The application version should be 1.4.0.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.3.10'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.4.0'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
@@ -63,7 +63,7 @@ expectHeaderScope(
         && str_contains($footer_source, '<time datetime=')
         && !str_contains($footer_source, '> pushed <time datetime=')
         && str_contains($footer_source, "'/commit/' . \$footer_push['commit']"),
-    'The footer should show automatically refreshed GitHub push metadata without a stale tracked fallback.'
+    'The footer should show build-injected provenance without a tracked fallback.'
 );
 expectHeaderScope(
     str_contains($footer_source, 'githubRepositoryUrl()')

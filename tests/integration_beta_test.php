@@ -1,7 +1,9 @@
 <?php
 
-if (getenv('DNR_INTEGRATION_TEST') !== '1') {
-    echo "Beta integration tests skipped (set DNR_INTEGRATION_TEST=1).\n";
+if (getenv('DNR_INTEGRATION_TEST') !== '1'
+    || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
+) {
+    echo "Beta integration tests skipped (requires an explicitly disposable database).\n";
     exit(0);
 }
 
@@ -20,6 +22,29 @@ function expectBetaIntegration($condition, $message)
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $suffix = bin2hex(random_bytes(4));
+$organization_id = 0;
+$engagement_id = 0;
+
+register_shutdown_function(static function () use ($conn, &$organization_id, &$engagement_id) {
+    try {
+        if ($engagement_id > 0) {
+            $stmt = $conn->prepare('DELETE FROM engagements WHERE id = ?');
+            $stmt->bind_param('i', $engagement_id);
+            $stmt->execute();
+            $stmt->close();
+        }
+        if ($organization_id > 0) {
+            $stmt = $conn->prepare('DELETE FROM organizations WHERE id = ?');
+            $stmt->bind_param('i', $organization_id);
+            $stmt->execute();
+            $stmt->close();
+        }
+        $_SERVER['REMOTE_ADDR'] = '203.0.113.77';
+        clearAuthenticationRateLimits($conn, 'login', '');
+    } catch (Throwable $exception) {
+        fwrite(STDERR, "Beta integration cleanup failed: {$exception->getMessage()}\n");
+    }
+});
 
 $organization_name = 'Beta Test Organization ' . $suffix;
 $organization_stmt = $conn->prepare(

@@ -49,10 +49,11 @@ $invalid_filters = normalizeEngagementMapFilters([
 ]);
 expectMapHelper(
     $invalid_filters['status'] === ''
-        && $invalid_filters['date_from'] === ''
-        && $invalid_filters['date_to'] === ''
+        && validIsoDate($invalid_filters['date_from'])
+        && validIsoDate($invalid_filters['date_to'])
+        && $invalid_filters['date_to'] > $invalid_filters['date_from']
         && count($invalid_filters['errors']) === 1,
-    'invalid status values should fall back to all and reversed date windows should be rejected.'
+    'invalid status values should fall back to all and reversed windows should be rejected in favor of bounded defaults.'
 );
 
 expectMapHelper(

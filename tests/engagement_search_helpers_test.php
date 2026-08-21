@@ -21,7 +21,7 @@ expectEngagementSearch(
 $plan = buildEngagementSearchPlan('conference Chicago "Daniel email"');
 $patterns_per_term = substr_count(engagementSearchTermSql(), '?');
 expectEngagementSearch(
-    $patterns_per_term === 11,
+    $patterns_per_term === 4,
     'each term should search every supported engagement field group.'
 );
 expectEngagementSearch(
@@ -33,10 +33,10 @@ expectEngagementSearch(
     'the search plan should bind every placeholder.'
 );
 expectEngagementSearch(
-    array_unique(array_slice($plan['patterns'], 0, $patterns_per_term)) === ['%conference%']
-        && array_unique(array_slice($plan['patterns'], $patterns_per_term, $patterns_per_term)) === ['%Chicago%']
-        && array_unique(array_slice($plan['patterns'], 2 * $patterns_per_term, $patterns_per_term)) === ['%Daniel%']
-        && array_unique(array_slice($plan['patterns'], 3 * $patterns_per_term, $patterns_per_term)) === ['%email%'],
+    array_unique(array_slice($plan['patterns'], 0, $patterns_per_term)) === ['conference*']
+        && array_unique(array_slice($plan['patterns'], $patterns_per_term, $patterns_per_term)) === ['Chicago*']
+        && array_unique(array_slice($plan['patterns'], 2 * $patterns_per_term, $patterns_per_term)) === ['Daniel*']
+        && array_unique(array_slice($plan['patterns'], 3 * $patterns_per_term, $patterns_per_term)) === ['email*'],
     'bound patterns should preserve OR terms first and required AND terms second.'
 );
 

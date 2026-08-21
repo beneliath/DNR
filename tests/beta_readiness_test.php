@@ -63,9 +63,10 @@ expectBetaReadiness(
 $calendar = $read('src/calendar.php');
 $calendar_helpers = $read('src/calendar_helpers.php');
 expectBetaReadiness(
-    str_contains($calendar, 'calendarRequestIsAuthorized')
+    str_contains($calendar, 'calendarSubscriptionForToken')
         && str_contains($calendar, 'Cache-Control: private')
-        && str_contains($calendar_helpers, 'DNR_CALENDAR_TOKEN'),
+        && str_contains($calendar_helpers, "hash('sha256', \$token, true)")
+        && str_contains($calendar_helpers, 'revoked_at IS NULL'),
     'the calendar feed must require a private token and avoid public caching.'
 );
 
@@ -73,12 +74,14 @@ $compose = $read('docker-compose.yaml');
 $apache = $read('docker/apache-security.conf');
 expectBetaReadiness(
     str_contains($compose, 'DNR_BIND_ADDRESS:-127.0.0.1')
-        && str_contains($compose, 'MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env')
-        && str_contains($compose, 'MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env')
+        && str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password')
+        && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password')
+        && str_contains($compose, 'read_only: true')
         && !str_contains($compose, 'rootpassword')
         && !str_contains($compose, 'dnrpassword')
         && str_contains($apache, '\\.(?:sql|env|ini|log|bak|dist)')
-        && str_contains($apache, 'Content-Security-Policy')
+        && str_contains($read('src/functions.php'), 'Content-Security-Policy')
+        && str_contains($read('src/functions.php'), "script-src-attr 'none'")
         && str_contains($apache, 'Strict-Transport-Security'),
     'deployment defaults must be local-only, secret-driven, and deny sensitive files with security headers.'
 );
@@ -93,7 +96,7 @@ expectBetaReadiness(
         && str_contains($runner, 'schema_migrations')
         && str_contains($rotation, 'openssl rand -hex 32')
         && str_contains($rotation, "ALTER USER 'dnruser'@'%'")
-        && str_contains($rotation, 'refusing to overwrite deployment credentials'),
+        && str_contains($rotation, 'refusing to overwrite deployment configuration'),
     'tracked migrations must install authentication bounds and data-integrity constraints.'
 );
 

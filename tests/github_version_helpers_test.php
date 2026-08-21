@@ -54,26 +54,18 @@ expectGithubVersion(
 );
 
 $test_repository = 'test-owner/test-repo';
-$test_branch = 'main';
-$test_cache_path = sys_get_temp_dir()
-    . '/dnr-github-push-v2-'
-    . sha1($test_repository . '|' . $test_branch)
-    . '.json';
-file_put_contents($test_cache_path, json_encode($metadata));
-
 define('APP_VERSION', '1.1.2');
 putenv('DNR_GITHUB_REPOSITORY=' . $test_repository);
-putenv('DNR_GITHUB_BRANCH=' . $test_branch);
-putenv('DNR_GITHUB_PUSH_CACHE_TTL=3600');
+putenv('DNR_BUILD_COMMIT=' . $release_commit);
+putenv('DNR_BUILD_TIMESTAMP=2026-08-17T07:58:09Z');
 putenv('DNR_TIMEZONE=America/Chicago');
 ob_start();
 include __DIR__ . '/../src/templates/footer.php';
 $footer_markup = ob_get_clean();
 putenv('DNR_GITHUB_REPOSITORY');
-putenv('DNR_GITHUB_BRANCH');
-putenv('DNR_GITHUB_PUSH_CACHE_TTL');
+putenv('DNR_BUILD_COMMIT');
+putenv('DNR_BUILD_TIMESTAMP');
 putenv('DNR_TIMEZONE');
-unlink($test_cache_path);
 
 expectGithubVersion(
     str_contains($footer_markup, 'test-repo 1.1.2</a>')
@@ -83,6 +75,12 @@ expectGithubVersion(
         && str_contains($footer_markup, '/commit/' . $release_commit)
         && str_contains($footer_markup, '>(d2778b2)</a>'),
     'The footer should render the push timestamp and linked abbreviated commit hash.'
+);
+
+expectGithubVersion(
+    !str_contains(file_get_contents(__DIR__ . '/../src/github_version_helpers.php'), 'api.github.com')
+        && !str_contains(file_get_contents(__DIR__ . '/../src/github_version_helpers.php'), 'file_get_contents('),
+    'Rendering the footer must not perform a request-time GitHub API or cache-file lookup.'
 );
 
 echo "GitHub version helper tests passed.\n";

@@ -11,7 +11,10 @@ $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 $calendar_subscription_page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
+$calendar_subscription_script = file_get_contents(__DIR__ . '/../src/assets/js/calendar-subscription.js');
 $footer_template = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$theme_script = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
+$header_template = file_get_contents(__DIR__ . '/../src/templates/header.php');
 
 expectHoverStyle(
     strpos($stylesheet, '--button-hover-color') === false
@@ -108,6 +111,24 @@ expectHoverStyle(
     'Desktop and mobile theme controls should use modern themed hover rules.'
 );
 expectHoverStyle(
+    strpos($theme_script, "button.addEventListener('click', window.toggleTheme)") !== false,
+    'Theme controls should register CSP-compatible click listeners.'
+);
+expectHoverStyle(
+    strpos($header_template, 'assets/js/theme.min.js?v=1.1.0') !== false
+        && strpos($header_template, 'assets/js/app-shell.min.js?v=1.1.0') !== false,
+    'Changed shell scripts should use cache keys so old inline-handler code cannot be reused.'
+);
+foreach (['login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php'] as $theme_page) {
+    expectHoverStyle(
+        strpos(
+            file_get_contents(__DIR__ . '/../src/' . $theme_page),
+            'assets/js/theme.min.js?v=1.1.0'
+        ) !== false,
+        $theme_page . ' should load the listener-enabled theme script with its current cache key.'
+    );
+}
+expectHoverStyle(
     strpos($modern_stylesheet, ':is(#copy-calendar-url, #open-calendar-app):hover') !== false
         && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
     'Calendar actions should share the modern theme-aware hover treatment.'
@@ -118,17 +139,17 @@ expectHoverStyle(
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#copy-calendar-url.is-copied') !== false
-        && strpos($calendar_subscription_page, "copyCalendarButton.textContent = 'Copied!';") !== false,
+        && strpos($calendar_subscription_script, "copyButton.textContent = 'Copied!';") !== false,
     'Copy URL should show an in-button success confirmation.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#open-calendar-app.is-opening') !== false
-        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Opening…';") !== false,
+        && strpos($calendar_subscription_script, "openLink.textContent = 'Opening…';") !== false,
     'Open in calendar app should show an in-button activation confirmation.'
 );
 expectHoverStyle(
     strpos($calendar_subscription_page, '>Open in Calendar App</a>') !== false
-        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Open in Calendar App';") !== false,
+        && strpos($calendar_subscription_script, "openLink.textContent = 'Open in Calendar App';") !== false,
     'Open in Calendar App should use title case in its initial and restored labels.'
 );
 

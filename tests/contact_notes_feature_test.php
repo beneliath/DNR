@@ -43,7 +43,8 @@ expectContactNotesFeature(
 
 $contacts = $read('src/contacts.php');
 expectContactNotesFeature(
-    str_contains($contacts, 'OR c.contact_notes LIKE ?'),
+    str_contains($contacts, 'c.contact_phone, c.contact_role_other, c.contact_notes')
+        && str_contains($contacts, 'AGAINST (? IN BOOLEAN MODE)'),
     'contact search should include notes.'
 );
 

@@ -22,8 +22,12 @@ $map_page = $read('src/map.php');
 $map_script = $read('src/assets/js/map.js');
 $map_styles = $read('src/assets/css/map.css');
 $geocoder = $read('src/map_geocode.php');
+$geocoder_worker = $read('scripts/process_geocode_queue.php');
+$map_helpers = $read('src/map_helpers.php');
 $migration = $read('migrations/20260817_add_engagement_map.sql');
+$hardening_migration = $read('migrations/20260821_security_performance_hardening.sql');
 $apache = $read('docker/apache-security.conf');
+$security_headers = $read('src/functions.php');
 
 expectMapFeature(
     str_contains($header, "'map' => ['map.php']")
@@ -84,14 +88,18 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($geocoder, 'requireValidCsrfToken')
-        && str_contains($geocoder, "flock(\$rate_lock, LOCK_EX)")
-        && str_contains($geocoder, '1.1 - (microtime(true)')
-        && str_contains($geocoder, 'DNR_GEOCODER_BASE_URL')
-        && str_contains($migration, 'engagement_map_geocodes'),
-    'address lookups should be authenticated, rate-limited, configurable, and cached.'
+        && str_contains($geocoder, 'queueEngagementMapAddress')
+        && !str_contains($geocoder, 'file_get_contents($geocoder_url')
+        && str_contains($geocoder_worker, 'usleep(1100000)')
+        && str_contains($geocoder_worker, 'FOR UPDATE SKIP LOCKED')
+        && str_contains($map_helpers, 'validatedGeocoderBaseUrl')
+        && str_contains($map_helpers, 'DNR_GEOCODER_ALLOWED_HOSTS')
+        && str_contains($migration, 'engagement_map_geocodes')
+        && str_contains($hardening_migration, 'engagement_map_geocode_queue'),
+    'web requests should enqueue lookups while the allowlisted background worker rate-limits and caches outbound geocoding.'
 );
 expectMapFeature(
-    str_contains($apache, "https://tile.openstreetmap.org")
+    str_contains($security_headers, "https://tile.openstreetmap.org")
         && str_contains($apache, 'Referrer-Policy "strict-origin-when-cross-origin"'),
     'the security policy should allow the tile host and send only the site origin as its required Referer.'
 );

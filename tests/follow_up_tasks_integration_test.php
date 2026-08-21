@@ -1,7 +1,9 @@
 <?php
 
-if (getenv('DNR_INTEGRATION_TEST') !== '1') {
-    echo "Follow-up task integration tests skipped (set DNR_INTEGRATION_TEST=1).\n";
+if (getenv('DNR_INTEGRATION_TEST') !== '1'
+    || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
+) {
+    echo "Follow-up task integration tests skipped (requires an explicitly disposable database).\n";
     exit(0);
 }
 

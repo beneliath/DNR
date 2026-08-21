@@ -119,23 +119,24 @@ foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
 
-putenv('DNR_CALENDAR_TOKEN=' . str_repeat('a', 32));
 putenv('DNR_PUBLIC_BASE_URL=https://calendar.example.org/dnr');
+$calendar_token = str_repeat('a', 32);
 $url = calendarSubscriptionUrl([
     'HTTP_X_FORWARDED_PROTO' => 'https',
     'HTTP_HOST' => 'dnr.example.org',
     'SCRIPT_NAME' => '/calendar_subscription.php',
-]);
+], $calendar_token);
 expectCalendar(
-    $url === 'https://calendar.example.org/dnr/calendar.php?token=' . str_repeat('a', 32),
+    $url === 'https://calendar.example.org/dnr/calendar.php?token=' . $calendar_token,
     'The subscription URL should use the configured public base and revocable token.'
 );
 expectCalendar(
-    calendarRequestIsAuthorized([], str_repeat('a', 32))
-        && !calendarRequestIsAuthorized([], str_repeat('b', 32)),
-    'Calendar access should require the configured token.'
+    is_string(calendarTokenHash($calendar_token))
+        && strlen(calendarTokenHash($calendar_token)) === 32
+        && calendarTokenHash('short') === null
+        && !hash_equals(calendarTokenHash($calendar_token), calendarTokenHash(str_repeat('b', 32))),
+    'Calendar bearer tokens should use fixed-size digests and reject undersized values.'
 );
-putenv('DNR_CALENDAR_TOKEN');
 putenv('DNR_PUBLIC_BASE_URL');
 
 echo "Calendar helper tests passed.\n";
