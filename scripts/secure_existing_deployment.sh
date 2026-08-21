@@ -18,6 +18,7 @@ fi
 
 command -v docker >/dev/null 2>&1 || { echo "docker is required" >&2; exit 1; }
 command -v openssl >/dev/null 2>&1 || { echo "openssl is required" >&2; exit 1; }
+"$project_directory/scripts/compose_with_provenance.sh" --print-metadata >/dev/null
 docker inspect "$database_container" >/dev/null 2>&1 || {
     echo "Database container $database_container is not available." >&2
     exit 1
@@ -78,7 +79,7 @@ cd "$project_directory"
 docker compose up -d --force-recreate db
 docker compose exec db sh /opt/dnr/bin/migrate
 docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
-docker compose up -d --build web geocoder
+"$project_directory/scripts/compose_with_provenance.sh" production up -d --build web geocoder
 
 echo "Database credentials were moved to separate secret files and the maintenance account was isolated."
 echo "The pre-rotation safety backup is $backup_path"

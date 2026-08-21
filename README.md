@@ -37,12 +37,12 @@ To set up the project on your local machine, follow these steps:
 4. **Build and run the application using Docker Compose**
 
    ```sh
-   docker compose up -d --build
+   ./scripts/compose_with_provenance.sh production
    ```
 
    Production mode requires HTTPS from a trusted reverse proxy and uses only
    source code baked into the immutable image. For local HTTP development, run
-   `docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build`
+   `./scripts/compose_with_provenance.sh development`
    and browse to `http://localhost:8080`. The published port binds to
    `127.0.0.1` unless `DNR_BIND_ADDRESS` is explicitly changed.
 
@@ -70,7 +70,7 @@ docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" 
 chmod 600 backups/dnr-before-upgrade.sql
 docker compose exec db sh /opt/dnr/bin/migrate
 docker compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
-docker compose up -d --build
+./scripts/compose_with_provenance.sh production
 ```
 
 For the one-time upgrade from a legacy installation that still uses the former
@@ -117,11 +117,36 @@ Configure these values as needed:
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_TIMEZONE`: timezone used to display audit timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
 - `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `67108864` bytes (64 MB). Restore plaintext exists only in the maintenance container's memory-backed `/tmp`.
-- `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and optional immutable build provenance displayed in the footer. Page rendering never calls GitHub or another third-party API.
+- `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
 - `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: default bounded map window and hard result cap; defaults are 90 days back, 730 days forward, and 500 engagements.
 - `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. Compose uses the fixed `dnr` database and restricted `dnruser` account.
+
+### Build provenance
+
+Use `scripts/compose_with_provenance.sh` instead of invoking a Compose build directly. It derives
+the checked-out commit and UTC commit timestamp, validates both values, exports them as Docker build
+arguments, and then runs Compose. It refuses a dirty worktree because a footer commit would not
+accurately identify uncommitted source files.
+
+```sh
+# Local HTTP development
+./scripts/compose_with_provenance.sh development
+
+# Production behind the configured HTTPS proxy
+./scripts/compose_with_provenance.sh production
+
+# Forward a specific Compose command or service selection
+./scripts/compose_with_provenance.sh development up -d --build web
+
+# Display the metadata without running Docker
+./scripts/compose_with_provenance.sh --print-metadata
+```
+
+For CI source archives without `.git`, export a complete 40-character `DNR_BUILD_COMMIT` and a UTC
+`DNR_BUILD_TIMESTAMP` in `YYYY-MM-DDTHH:MM:SSZ` format before invoking the wrapper. Both values must
+be supplied together.
 
 ### Two-factor authentication
 
@@ -179,7 +204,7 @@ variables.
    ```sh
    install -d -m 700 secrets backups
    install -m 600 /dev/null secrets/backup_password
-   docker compose build maintenance web geocoder
+   ./scripts/compose_with_provenance.sh production build maintenance web geocoder
    ```
 
    Do not generate a new 2FA key: without the original key, authenticator secrets in the restored
