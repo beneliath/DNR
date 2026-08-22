@@ -1,7 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 const UPLOADED_IMAGE_THUMBNAIL_DIMENSION = 256;
 const UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES = 60000;
+
+function encodeUploadedGdImage(GdImage $image, string $mime_type, int $quality): bool
+{
+    if ($mime_type === 'image/jpeg') {
+        return imagejpeg($image, null, $quality);
+    }
+    if ($mime_type === 'image/png') {
+        return imagepng($image, null, max(0, min(9, $quality)));
+    }
+    if ($mime_type === 'image/webp' && function_exists('imagewebp')) {
+        return imagewebp($image, null, $quality);
+    }
+    return false;
+}
 
 function uploadedImageDataUrl($mime_type, $data) {
     if (!is_string($data) || $data === '') {
@@ -83,12 +99,7 @@ function normalizedUploadedImage(
     );
 
     ob_start();
-    $encoded = match ($mime_type) {
-        'image/jpeg' => imagejpeg($target, null, 85),
-        'image/png' => imagepng($target, null, 6),
-        'image/webp' => function_exists('imagewebp') && imagewebp($target, null, 85),
-        default => false,
-    };
+    $encoded = encodeUploadedGdImage($target, $mime_type, $mime_type === 'image/png' ? 6 : 85);
     $normalized = ob_get_clean();
     if (!$encoded || !is_string($normalized) || $normalized === '') {
         throw new RuntimeException('The image could not be safely re-encoded.');
@@ -132,12 +143,11 @@ function normalizedUploadedImage(
     );
     $thumbnail_mime = function_exists('imagewebp') ? 'image/webp' : $mime_type;
     ob_start();
-    $thumbnail_encoded = match ($thumbnail_mime) {
-        'image/webp' => imagewebp($thumbnail, null, 82),
-        'image/jpeg' => imagejpeg($thumbnail, null, 82),
-        'image/png' => imagepng($thumbnail, null, 6),
-        default => false,
-    };
+    $thumbnail_encoded = encodeUploadedGdImage(
+        $thumbnail,
+        $thumbnail_mime,
+        $thumbnail_mime === 'image/png' ? 6 : 82
+    );
     $thumbnail_data = ob_get_clean();
     if (!$thumbnail_encoded || !is_string($thumbnail_data) || $thumbnail_data === '') {
         throw new RuntimeException('The image thumbnail could not be encoded.');
@@ -176,12 +186,11 @@ function normalizedUploadedImage(
             $thumbnail_height
         );
         ob_start();
-        $fallback_encoded = match ($thumbnail_mime) {
-            'image/webp' => imagewebp($fallback, null, 70),
-            'image/jpeg' => imagejpeg($fallback, null, 70),
-            'image/png' => imagepng($fallback, null, 7),
-            default => false,
-        };
+        $fallback_encoded = encodeUploadedGdImage(
+            $fallback,
+            $thumbnail_mime,
+            $thumbnail_mime === 'image/png' ? 7 : 70
+        );
         $thumbnail_data = ob_get_clean();
         if (!$fallback_encoded
             || !is_string($thumbnail_data)

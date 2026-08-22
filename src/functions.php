@@ -1,4 +1,6 @@
 <?php
+
+declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
 
@@ -233,7 +235,7 @@ function normalizePhoneNumber($country_code, $national_number, $label = 'Phone n
     $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
     $expected_country_code = (int) substr($country_code, 1);
     $region = $phone_util->getRegionCodeForCountryCode($expected_country_code);
-    if (!is_string($region) || $region === '' || $region === '001') {
+    if ($region === '' || $region === '001') {
         throw new InvalidArgumentException("Select a supported country for {$label}.");
     }
 

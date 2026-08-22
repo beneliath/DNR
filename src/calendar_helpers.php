@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function calendarStatusLabel($status) {
     $status = trim((string) $status);
     if ($status === '') {

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/image_upload_helpers.php';
 
 const PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024;

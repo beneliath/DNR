@@ -47,6 +47,16 @@
         };
     }
 
+    if (typeof module === "object" && module.exports) {
+        module.exports = {
+            compact24HourTime: compact24HourTime,
+            validTime: validTime
+        };
+    }
+    if (typeof document === "undefined") {
+        return;
+    }
+
     function applyCompact24HourTime(id) {
         var timeInput = document.getElementById("presentation_time_" + id);
         if (!timeInput) {

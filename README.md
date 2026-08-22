@@ -129,11 +129,16 @@ Run the complete local quality gate before opening a pull request:
 ```sh
 composer install
 npm ci
+composer validate --strict --no-check-publish
+composer audit --no-interaction
+npm audit --audit-level=high
 composer check
 npm test
 ```
 
-`composer check` runs PHP syntax checks, PHPStan level 6 on the typed domain/runtime layer, and all unit/feature tests. `npm test` rebuilds every committed production asset and checks the shared JavaScript controller. GitHub Actions repeats these checks and also starts a disposable Docker/MySQL environment, applies every tracked migration, exercises real HTTP boundaries, and runs every database integration suite.
+`composer check` runs PHP syntax checks, PHPStan level 6 on the typed domain/runtime layer, PHPStan level 4 on the legacy helper layer, and all unit/feature tests. `npm test` rebuilds every committed production asset and runs JavaScript syntax and behavior tests. GitHub Actions repeats these checks, audits locked dependencies, and also starts a disposable Docker/MySQL environment, applies every tracked migration, exercises unauthenticated and role-based authenticated HTTP boundaries, and runs every database integration suite. Dependabot proposes weekly Composer, npm, Docker, and GitHub Actions updates.
+
+`VERSION` is the single source of release-version metadata. Update it once when preparing a release; runtime responses, asset cache keys, the footer, backups, and container images read that value automatically.
 
 ### Health and operations
 

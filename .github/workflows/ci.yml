@@ -23,6 +23,9 @@ jobs:
           cache: npm
       - run: composer install --no-interaction --no-progress --prefer-dist
       - run: npm ci
+      - run: composer validate --strict --no-check-publish
+      - run: composer audit --no-interaction
+      - run: npm audit --audit-level=high
       - run: composer check
       - run: npm test
       - run: git diff --exit-code -- src/assets
@@ -50,7 +53,9 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml build web ingress maintenance
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d web ingress --wait
       - name: Exercise HTTP boundaries
-        run: sh tests/http_smoke_test.sh
+        run: |
+          sh tests/http_smoke_test.sh
+          sh tests/http_authenticated_test.sh
       - name: Run database integration suites
         run: |
           compose='docker compose -f docker-compose.yaml -f docker-compose.dev.yaml'

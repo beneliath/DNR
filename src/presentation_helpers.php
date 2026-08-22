@@ -1,9 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 function presentationScalarValue(array $presentation, $key)
 {
     $value = $presentation[$key] ?? '';
-    if (!is_scalar($value) && $value !== null) {
+    if (!is_scalar($value)) {
         throw new InvalidArgumentException('Invalid presentation submission.');
     }
 

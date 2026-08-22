@@ -87,14 +87,16 @@ expectHeaderScope(
 
 $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$version = trim((string) file_get_contents(__DIR__ . '/../VERSION'));
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $theme_source = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '1.4.6');"),
-    'The application version should be 1.4.6.'
+    preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\z/', $version) === 1
+        && str_contains($configuration_source, "define('APP_VERSION', applicationVersion());"),
+    'The application version should be valid and come from the single release metadata file.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.4.6'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : 'dev'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(

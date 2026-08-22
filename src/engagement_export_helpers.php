@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/presentation_helpers.php';

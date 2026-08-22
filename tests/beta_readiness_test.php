@@ -28,14 +28,16 @@ expectBetaReadiness(
 
 $new_engagement = $read('src/index.php');
 $edit_engagement = $read('src/edit_engagement.php');
+$engagement_update_plan = $read('src/app/Service/EngagementUpdatePlan.php');
 $presentation_helpers = $read('src/presentation_helpers.php');
 expectBetaReadiness(
     str_contains($new_engagement, 'event_address_line_1')
         && str_contains($new_engagement, "header('Location: engagements.php')")
         && str_contains($new_engagement, 'requireActiveOrganization')
         && str_contains($edit_engagement, 'engagement_version')
-        && str_contains($edit_engagement, 'nullableAmountsEqual($travel_amount')
-        && str_contains($edit_engagement, 'nullableAmountsEqual($housing_amount')
+        && str_contains($edit_engagement, 'EngagementUpdatePlan::build')
+        && str_contains($engagement_update_plan, "'travel_amount'")
+        && str_contains($engagement_update_plan, "'housing_amount'")
         && str_contains($presentation_helpers, 'Every active presentation must be included')
         && str_contains($presentation_helpers, 'requirePresentationDateWithinEngagement'),
     'engagement writes must use PRG, active organizations, concurrency checks, and exact presentation synchronization.'
@@ -73,7 +75,7 @@ expectBetaReadiness(
 $compose = $read('docker-compose.yaml');
 $apache = $read('docker/apache-security.conf');
 $ingress = $read('docker/apache-ingress.conf');
-$dockerfile = $read('Dockerfile');
+$ingress_dockerfile = $read('docker/ingress.Dockerfile');
 $web_service = substr(
     $compose,
     strpos($compose, "  web:\n"),
@@ -92,11 +94,13 @@ expectBetaReadiness(
         && !str_contains($web_service, "\n    ports:")
         && str_contains($ingress_service, "\n    ports:")
         && !str_contains($ingress_service, "\n    secrets:")
+        && str_contains($ingress_service, 'dockerfile: docker/ingress.Dockerfile')
         && str_contains($compose, 'ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}')
         && str_contains($compose, 'subnet: ${DNR_BACKEND_SUBNET:-172.30.255.0/24}')
         && str_contains($ingress, 'ProxyRequests Off')
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
-        && str_contains($dockerfile, 'a2enmod headers proxy proxy_http')
+        && str_contains($ingress_dockerfile, 'a2enmod headers proxy proxy_http')
+        && !str_contains($ingress_dockerfile, 'COPY src/')
         && str_contains($compose, 'read_only: true')
         && !str_contains($compose, 'rootpassword')
         && !str_contains($compose, 'dnrpassword')

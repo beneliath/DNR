@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
 const DNR_DATABASE_BACKUP_VERSION = 2;

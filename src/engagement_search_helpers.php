@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function parseEngagementSearchQuery($search) {
     $search = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) $search) ?? '';
     $search = trim(substr($search, 0, 256));
@@ -7,7 +9,7 @@ function parseEngagementSearchQuery($search) {
     $and_terms = [];
     preg_match_all('/"[^"]*"|\S+/u', trim((string) $search), $matches);
 
-    foreach ($matches[0] ?? [] as $matched_term) {
+    foreach ($matches[0] as $matched_term) {
         if (count($or_terms) + count($and_terms) >= 8) {
             break;
         }

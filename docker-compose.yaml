@@ -55,9 +55,7 @@ services:
   ingress:
     build:
       context: .
-      args:
-        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
-        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+      dockerfile: docker/ingress.Dockerfile
     restart: unless-stopped
     read_only: true
     ports:
@@ -73,8 +71,6 @@ services:
     depends_on:
       web:
         condition: service_healthy
-    volumes:
-      - ./docker/apache-ingress.conf:/etc/apache2/conf-enabled/zz-dnr-ingress.conf:ro
     networks:
       ingress: {}
       backend:

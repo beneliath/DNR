@@ -293,6 +293,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $caller = \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
         $caller_user_id = $caller['id'];
         $caller_name = $caller['username'];
+        $engagement_input['caller_user_id'] = $caller_user_id;
+        $engagement_input['caller_name'] = $caller_name;
         $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
 
         $presentations = normalizeEngagementPresentations(
@@ -325,162 +327,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException("Please provide valid required fields, dates, and non-negative amounts.");
         }
 
-        // Update engagement
-        $update_fields = [];
-        $update_values = [];
-        $types = '';
+        $update_plan = \Dnr\Service\EngagementUpdatePlan::build($engagement, $engagement_input);
+        $update_fields = $update_plan['assignments'];
+        $update_values = $update_plan['values'];
+        $types = $update_plan['types'];
 
-        // Only include fields that have changed
-        if ($organization_id != $engagement['organization_id']) {
-            $update_fields[] = "organization_id = ?";
-            $update_values[] = $organization_id;
-            $types .= "i";
-        }
-
-        if ($event_title !== ($engagement['event_title'] ?? '')) {
-            $update_fields[] = "event_title = ?";
-            $update_values[] = $event_title;
-            $types .= "s";
-        }
-
-        if ($event_description !== ($engagement['event_description'] ?? '')) {
-            $update_fields[] = "event_description = ?";
-            $update_values[] = $event_description;
-            $types .= "s";
-        }
-
-        if ($event_start_date !== $engagement['event_start_date']) {
-            $update_fields[] = "event_start_date = ?";
-            $update_values[] = $event_start_date;
-            $types .= "s";
-        }
-
-        if ($event_end_date !== $engagement['event_end_date']) {
-            $update_fields[] = "event_end_date = ?";
-            $update_values[] = $event_end_date;
-            $types .= "s";
-        }
-
-        if ($event_type !== $engagement['event_type']) {
-            $update_fields[] = "event_type = ?";
-            $update_values[] = $event_type;
-            $types .= "s";
-        }
-
-        if (($event_type_other ?? '') !== ($engagement['event_type_other'] ?? '')) {
-            $update_fields[] = "event_type_other = ?";
-            $update_values[] = $event_type_other;
-            $types .= "s";
-        }
-
-        if ($book_table != $engagement['book_table']) {
-            $update_fields[] = "book_table = ?";
-            $update_values[] = $book_table;
-            $types .= "i";
-        }
-
-        if ($brochures != $engagement['brochures']) {
-            $update_fields[] = "brochures = ?";
-            $update_values[] = $brochures;
-            $types .= "i";
-        }
-
-        if ($caller_name !== (string) ($engagement['caller_name'] ?? '')
-            || $caller_user_id !== (($engagement['caller_user_id'] ?? null) === null
-                ? null
-                : (int) $engagement['caller_user_id'])
-        ) {
-            $update_fields[] = "caller_name = ?, caller_user_id = ?";
-            $update_values[] = $caller_name;
-            $update_values[] = $caller_user_id;
-            $types .= "si";
-        }
-
-        if ($confirmation_status !== $engagement['confirmation_status']) {
-            $update_fields[] = "confirmation_status = ?";
-            $update_values[] = $confirmation_status;
-            $types .= "s";
-        }
-
-        if ($travel_covered !== $engagement['travel_covered']) {
-            $update_fields[] = "travel_covered = ?";
-            $update_values[] = $travel_covered;
-            $types .= "s";
-        }
-
-        if (!nullableAmountsEqual($travel_amount, $engagement['travel_amount'])) {
-            $update_fields[] = "travel_amount = ?";
-            $update_values[] = $travel_amount;
-            $types .= "d";
-        }
-
-        if ($compensation_type !== $engagement['compensation_type']) {
-            $update_fields[] = "compensation_type = ?";
-            $update_values[] = $compensation_type;
-            $types .= "s";
-        }
-
-        if ($other_compensation !== $engagement['other_compensation']) {
-            $update_fields[] = "other_compensation = ?";
-            $update_values[] = $other_compensation;
-            $types .= "s";
-        }
-
-        if ($housing_type !== $engagement['housing_type']) {
-            $update_fields[] = "housing_type = ?";
-            $update_values[] = $housing_type;
-            $types .= "s";
-        }
-
-        if ($other_housing !== $engagement['other_housing']) {
-            $update_fields[] = "other_housing = ?";
-            $update_values[] = $other_housing;
-            $types .= "s";
-        }
-
-        if (!nullableAmountsEqual($housing_amount, $engagement['housing_amount'])) {
-            $update_fields[] = "housing_amount = ?";
-            $update_values[] = $housing_amount;
-            $types .= "d";
-        }
-
-        if ($event_address_line_1 !== $engagement['event_address_line_1']) {
-            $update_fields[] = "event_address_line_1 = ?";
-            $update_values[] = $event_address_line_1;
-            $types .= "s";
-        }
-
-        if ($event_address_line_2 !== $engagement['event_address_line_2']) {
-            $update_fields[] = "event_address_line_2 = ?";
-            $update_values[] = $event_address_line_2;
-            $types .= "s";
-        }
-
-        if ($event_city !== $engagement['event_city']) {
-            $update_fields[] = "event_city = ?";
-            $update_values[] = $event_city;
-            $types .= "s";
-        }
-
-        if ($event_state !== $engagement['event_state']) {
-            $update_fields[] = "event_state = ?";
-            $update_values[] = $event_state;
-            $types .= "s";
-        }
-
-        if ($event_zipcode !== $engagement['event_zipcode']) {
-            $update_fields[] = "event_zipcode = ?";
-            $update_values[] = $event_zipcode;
-            $types .= "s";
-        }
-
-        if ($event_country !== $engagement['event_country']) {
-            $update_fields[] = "event_country = ?";
-            $update_values[] = $event_country;
-            $types .= "s";
-        }
-
-        // Add engagement_id to the values array
         $update_values[] = $engagement_id;
         $types .= "i";
 
@@ -498,8 +349,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
         }
 
-        $engagement_dates_changed = $event_start_date !== $engagement['event_start_date']
-            || $event_end_date !== $engagement['event_end_date'];
+        $engagement_dates_changed = $update_plan['date_range_changed'];
         if ($engagement_dates_changed) {
             rescheduleGeneratedEngagementTasks(
                 $conn,

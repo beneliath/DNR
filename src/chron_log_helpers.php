@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function chronLogDisplayTimezone() {
     static $timezone = null;
     if ($timezone instanceof DateTimeZone) {

@@ -15,6 +15,25 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
+/** @param list<string>|null $candidate_paths */
+function applicationVersion(?array $candidate_paths = null): string
+{
+    $candidate_paths ??= [
+        dirname(__DIR__) . '/VERSION',
+        '/opt/dnr/VERSION',
+    ];
+    foreach ($candidate_paths as $candidate_path) {
+        if (!is_file($candidate_path)) {
+            continue;
+        }
+        $version = trim((string) file_get_contents($candidate_path));
+        if (preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\z/', $version) === 1) {
+            return $version;
+        }
+    }
+    return 'dev';
+}
+
 function applicationRequestId(): string
 {
     static $request_id = null;

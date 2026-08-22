@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/application_runtime.php';
 
 function configurationSecret($name, $default = '') {
@@ -16,7 +18,7 @@ function configurationSecret($name, $default = '') {
     return $value === false ? $default : trim((string) $value);
 }
 
-define('APP_VERSION', '1.4.6');
+define('APP_VERSION', applicationVersion());
 
 // Use environment variables and secret files without committed credentials.
 $DB_HOST = getenv('DB_HOST') ? getenv('DB_HOST') : 'db';
