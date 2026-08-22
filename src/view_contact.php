@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -47,6 +48,29 @@ $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
 $contact_notes = trim((string) ($contact['contact_notes'] ?? ''));
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'contact',
+        $contact_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'contact', $contact_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The contact Chron log is temporarily unavailable.', [
+        'contact_id' => $contact_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -118,6 +142,14 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             </div>
         </div>
     </div>
+
+    <?php
+    $chron_entity_label = 'contact';
+    $chron_view_url = 'view_contact.php?id=' . $contact_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
+    $chron_can_restore = !$is_archived && empty($contact['organization_is_archived']);
+    include 'templates/entity_chron_log_view_section.php';
+    ?>
 
     <?php
     $context_task_subject_type = 'contact';

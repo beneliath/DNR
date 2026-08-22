@@ -111,7 +111,7 @@ expectFollowUpTaskFeature(
 foreach (['view_engagement.php', 'view_organization.php', 'view_contact.php'] as $record_page) {
     $source = $read('src/' . $record_page);
     expectFollowUpTaskFeature(
-        str_contains($source, "include 'follow_up_task_helpers.php'")
+        str_contains($source, 'follow_up_task_helpers.php')
             && str_contains($source, "include 'templates/follow_up_task_section.php'"),
         "{$record_page} should show contextual follow-up work."
     );

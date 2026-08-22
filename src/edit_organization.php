@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -42,6 +43,45 @@ if ($result->num_rows === 0) {
 }
 
 $organization = $result->fetch_assoc();
+$stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
+    requireValidCsrfToken();
+    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
+    $chron_action = is_scalar($_POST['chron_action']) ? (string) $_POST['chron_action'] : '';
+    try {
+        if (!$chron_entry_id) {
+            throw new InvalidArgumentException('Select a valid Chron entry.');
+        }
+        if ($chron_action === 'archive') {
+            archiveEntityChronLogEntry(
+                $conn,
+                'organization',
+                $org_id,
+                $chron_entry_id,
+                (int) $_SESSION['user_id']
+            );
+            $_SESSION['chron_action_message'] = 'Chron entry archived.';
+        } elseif ($chron_action === 'delete') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            requireRecentAdminElevation('edit_organization.php?id=' . $org_id . '#chron-log');
+            deleteEntityChronLogEntry($conn, 'organization', $org_id, $chron_entry_id);
+            $_SESSION['chron_action_message'] = 'Chron entry permanently deleted.';
+        } else {
+            throw new InvalidArgumentException('Invalid Chron action.');
+        }
+    } catch (Throwable $exception) {
+        $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the Chron log. Please try again.';
+    }
+    header('Location: edit_organization.php?id=' . $org_id . '#chron-log');
+    exit();
+}
+
 $address_pairs = [
     ['mailing_address_line_1', 'physical_address_line_1'],
     ['mailing_address_line_2', 'physical_address_line_2'],
@@ -59,7 +99,8 @@ foreach ($address_pairs as [$mailing_field, $physical_field]) {
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_organization']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
     $normalized = \Dnr\Domain\OrganizationInput::normalize($_POST);
     $organization_input = $normalized['data'];
@@ -68,6 +109,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ${$field_name} = $field_value;
     }
     $same_address = (bool) $organization_input['same_address'];
+    $submitted_chron_entries = [];
+    $new_chron_entry = '';
+    try {
+        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
+            $_POST['chron_entries'] ?? null
+        );
+        if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
+            throw new InvalidArgumentException('Enter a valid Chron entry.');
+        }
+        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
+        if (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') {
+            throw new InvalidArgumentException('Enter a Chron entry before adding it.');
+        }
+        if ($new_chron_entry !== '') {
+            $new_chron_entry = normalizeChronLogEntryText($new_chron_entry);
+        }
+    } catch (InvalidArgumentException $exception) {
+        $errorMessages[] = $exception->getMessage();
+    }
     $submitted_version = is_scalar($_POST['organization_version'] ?? null)
         ? trim((string) $_POST['organization_version'])
         : '';
@@ -109,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 physical_state = ?, physical_zipcode = ?, physical_country = ?
              WHERE id = ? AND is_deleted = 0"
         );
+        if (!$update_stmt) throw new RuntimeException('Unable to prepare the organization update.');
         $update_stmt->bind_param(
             "sssssssssssssssssssi",
             $organization_name, $notes, $affiliation, $distinctives, $website_url, $phone, $fax,
@@ -119,6 +180,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($update_stmt->execute() && $update_stmt->affected_rows <= 1) {
             $update_stmt->close();
+            $current_user_id = (int) $_SESSION['user_id'];
+            updateEntityChronLogEntries(
+                $conn,
+                'organization',
+                $org_id,
+                $submitted_chron_entries,
+                $current_user_id
+            );
+            if ($new_chron_entry !== '') {
+                insertEntityChronLogEntry(
+                    $conn,
+                    'organization',
+                    $org_id,
+                    $new_chron_entry,
+                    $current_user_id,
+                    (string) ($_SESSION['username'] ?? '')
+                );
+            }
             $conn->commit();
             $_SESSION['success_message'] = "Organization updated successfully.";
             header("Location: view_organization.php?id=$org_id");
@@ -162,6 +241,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts($organization['phone'] ?? '');
     [$fax_country_code_value, $fax_local_value] = phoneNumberInputParts($organization['fax'] ?? '');
 }
+
+$chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
+$chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
+unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'organization',
+        $org_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'organization', $org_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The organization Chron log is temporarily unavailable.', [
+        'organization_id' => $org_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -182,10 +289,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errorMessages
         )); ?></p>
     <?php endif; ?>
+    <?php if ($chron_action_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($chron_action_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit Organization</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form">
+    <form id="organization-edit-form" method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form" data-chron-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="organization_version" value="<?php echo htmlspecialchars((string) $organization['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
@@ -293,11 +406,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <div class="action-buttons">
-            <a href="<?php echo $cancel_url; ?>" class="action-button back-button cancel-button">Cancel</a>
-            <input type="submit" value="Save Changes" class="action-button save-button">
-        </div>
     </form>
+
+    <?php
+    $chron_entity_label = 'organization';
+    $chron_edit_form_id = 'organization-edit-form';
+    $chron_edit_url = 'edit_organization.php?id=' . $org_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
+    include 'templates/entity_chron_log_edit_section.php';
+    ?>
+
+    <div class="action-buttons">
+        <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button back-button cancel-button">Cancel</a>
+        <button type="submit" name="save_organization" value="1" class="action-button save-button" form="organization-edit-form">Save Changes</button>
+    </div>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

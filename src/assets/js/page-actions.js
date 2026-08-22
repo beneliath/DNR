@@ -132,7 +132,7 @@
     }
 
     function initializeEngagementForm() {
-        const form = document.querySelector('.engagement-form, #engagement-edit-form');
+        const form = document.querySelector('.engagement-form, #engagement-edit-form, [data-chron-form]');
         if (!form) return;
         const eventType = document.getElementById('event_type');
         const compensation = document.getElementById('compensation_type');

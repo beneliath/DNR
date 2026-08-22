@@ -12,6 +12,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagements TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagement_map_geocodes TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagement_map_geocode_queue TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagement_chron_entries TO 'dnruser'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.contact_chron_entries TO 'dnruser'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.organization_chron_entries TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.presentations TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.contacts TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.follow_up_tasks TO 'dnruser'@'%';

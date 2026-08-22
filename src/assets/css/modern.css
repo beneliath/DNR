@@ -1047,7 +1047,8 @@ html body .container > .engagement-form {
   scroll-margin-top: 24px;
 }
 
-html body .container > .engagement-form + .chron-log-section {
+html body .container > .engagement-form + .chron-log-section,
+html body .container > [data-chron-form] + .chron-log-section {
   margin-top: 32px;
 }
 

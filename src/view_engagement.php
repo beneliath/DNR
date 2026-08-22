@@ -1,9 +1,9 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
-include 'chron_log_helpers.php';
-include 'engagement_export_helpers.php';
-include 'presentation_helpers.php';
-include 'follow_up_task_helpers.php';
+require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/presentation_helpers.php';
+require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 

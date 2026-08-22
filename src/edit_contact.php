@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 include 'contact_photo_helpers.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -40,9 +41,48 @@ if ($contact_result->num_rows === 0) {
 
 $contact = $contact_result->fetch_assoc();
 $contact_stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
+    requireValidCsrfToken();
+    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
+    $chron_action = is_scalar($_POST['chron_action']) ? (string) $_POST['chron_action'] : '';
+    try {
+        if (!$chron_entry_id) {
+            throw new InvalidArgumentException('Select a valid Chron entry.');
+        }
+        if ($chron_action === 'archive') {
+            archiveEntityChronLogEntry(
+                $conn,
+                'contact',
+                $contact_id,
+                $chron_entry_id,
+                (int) $_SESSION['user_id']
+            );
+            $_SESSION['chron_action_message'] = 'Chron entry archived.';
+        } elseif ($chron_action === 'delete') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            requireRecentAdminElevation('edit_contact.php?id=' . $contact_id . '#chron-log');
+            deleteEntityChronLogEntry($conn, 'contact', $contact_id, $chron_entry_id);
+            $_SESSION['chron_action_message'] = 'Chron entry permanently deleted.';
+        } else {
+            throw new InvalidArgumentException('Invalid Chron action.');
+        }
+    } catch (Throwable $exception) {
+        $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the Chron log. Please try again.';
+    }
+    header('Location: edit_contact.php?id=' . $contact_id . '#chron-log');
+    exit();
+}
+
 $error_messages = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_contact']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
 
     $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
@@ -50,6 +90,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ${$field_name} = $field_value;
     }
     $error_messages = $normalized_contact['errors'];
+    $submitted_chron_entries = [];
+    $new_chron_entry = '';
+    try {
+        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
+            $_POST['chron_entries'] ?? null
+        );
+        if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
+            throw new InvalidArgumentException('Enter a valid Chron entry.');
+        }
+        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
+        if (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') {
+            throw new InvalidArgumentException('Enter a Chron entry before adding it.');
+        }
+        if ($new_chron_entry !== '') {
+            $new_chron_entry = normalizeChronLogEntryText($new_chron_entry);
+        }
+    } catch (InvalidArgumentException $exception) {
+        $error_messages[] = $exception->getMessage();
+    }
     $remove_contact_photo = isset($_POST['remove_contact_photo']);
     $contact_photo = null;
     try {
@@ -187,6 +246,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to update the contact.');
             }
             $update_stmt->close();
+            $current_user_id = (int) $_SESSION['user_id'];
+            updateEntityChronLogEntries(
+                $conn,
+                'contact',
+                $contact_id,
+                $submitted_chron_entries,
+                $current_user_id
+            );
+            if ($new_chron_entry !== '') {
+                insertEntityChronLogEntry(
+                    $conn,
+                    'contact',
+                    $contact_id,
+                    $new_chron_entry,
+                    $current_user_id,
+                    (string) ($_SESSION['username'] ?? '')
+                );
+            }
             $conn->commit();
             $_SESSION['success_message'] = 'Contact updated successfully.';
             header("Location: view_contact.php?id={$contact_id}");
@@ -241,6 +318,33 @@ $cancel_url = ($_GET['from'] ?? '') === 'view'
     ? "view_contact.php?id={$contact_id}"
     : 'contacts.php';
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+$chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
+$chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
+unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'contact',
+        $contact_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'contact', $contact_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The contact Chron log is temporarily unavailable.', [
+        'contact_id' => $contact_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -271,8 +375,14 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             array_map(fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), $error_messages)
         ); ?></p>
     <?php endif; ?>
+    <?php if ($chron_action_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($chron_action_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>">
+    <form id="contact-edit-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -353,11 +463,20 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             </div>
         </div>
 
-        <div class="action-buttons">
-            <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button cancel-button">Cancel</a>
-            <button type="submit" class="action-button save-button">Save Changes</button>
-        </div>
     </form>
+
+    <?php
+    $chron_entity_label = 'contact';
+    $chron_edit_form_id = 'contact-edit-form';
+    $chron_edit_url = 'edit_contact.php?id=' . $contact_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
+    include 'templates/entity_chron_log_edit_section.php';
+    ?>
+
+    <div class="action-buttons">
+        <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button cancel-button">Cancel</a>
+        <button type="submit" name="save_contact" value="1" class="action-button save-button" form="contact-edit-form">Save Changes</button>
+    </div>
 </div>
 
 <?php include 'templates/footer.php'; ?>

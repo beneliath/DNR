@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -32,6 +33,30 @@ if ($result->num_rows === 0) {
 
 $organization = $result->fetch_assoc();
 $is_archived = !empty($organization['is_deleted']);
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'organization',
+        $org_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'organization', $org_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The organization Chron log is temporarily unavailable.', [
+        'organization_id' => $org_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 
 // Fetch contacts for the organization
     $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
@@ -131,6 +156,14 @@ $contact_stmt->close();
             <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
         </div>
     </div>
+
+    <?php
+    $chron_entity_label = 'organization';
+    $chron_view_url = 'view_organization.php?id=' . $org_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
+    $chron_can_restore = !$is_archived;
+    include 'templates/entity_chron_log_view_section.php';
+    ?>
 
     <div class="contacts-section">
         <h3>Contacts</h3>
