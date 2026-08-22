@@ -90,7 +90,11 @@ do {
             $retry->bind_param('iss', $delay_minutes, $error, $job['address_hash']);
             $retry->execute();
             $retry->close();
-            error_log('Background geocoding failed: ' . $error);
+            applicationLog('error', 'Background geocoding failed', [
+                'error' => $error,
+                'address_hash' => $job['address_hash'],
+                'attempts' => $attempts,
+            ]);
         }
 
         $processed++;

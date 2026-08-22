@@ -8,6 +8,7 @@ function expectAuditLogPurgeFeature($condition, $message) {
 }
 
 $page = file_get_contents(__DIR__ . '/../src/audit_log.php');
+$styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audit_log.css');
 $purge = file_get_contents(__DIR__ . '/../scripts/purge_audit_log.sh');
 $grants = file_get_contents(__DIR__ . '/../operations/restrict_app_database_user.sql');
 
@@ -21,10 +22,10 @@ expectAuditLogPurgeFeature(
 expectAuditLogPurgeFeature(
     str_contains($page, 'class="list-search-form audit-filter-form"')
         && str_contains($page, 'class="audit-search-field"')
-        && str_contains($page, 'align-self: flex-end;')
-        && str_contains($page, 'flex: 0 0 auto !important;')
-        && str_contains($page, 'height: 44px !important;')
-        && str_contains($page, 'margin: 0 !important;'),
+        && str_contains($styles, 'align-self: flex-end;')
+        && str_contains($styles, 'flex: 0 0 auto !important;')
+        && str_contains($styles, 'height: 44px !important;')
+        && str_contains($styles, 'margin: 0 !important;'),
     'audit controls must size to their content, align vertically, and anchor category selectors at the bottom right.'
 );
 expectAuditLogPurgeFeature(

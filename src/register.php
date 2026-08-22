@@ -1,7 +1,6 @@
 <?php
 // Include required files
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
@@ -14,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $password = $_POST['password'] ?? '';
     $password_confirm = $_POST['password_confirm'] ?? '';
     $role = $_POST['role'] ?? '';
-    $valid_roles = ['admin', 'editor', 'reviewer'];
+    $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
 
     if ($username === '' || strlen($username) > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
@@ -50,12 +49,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Register - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Register - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -71,9 +71,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <div class="form-group"><label for="password">Temporary password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" required><p class="field-help">Use at least 12 characters. The user can change it from Account security.</p></div>
         <div class="form-group"><label for="password_confirm">Confirm temporary password</label><input type="password" name="password_confirm" id="password_confirm" autocomplete="new-password" minlength="12" required></div>
         <div class="form-group"><label for="role">Role</label><select name="role" id="role" required>
-            <option value="admin">Admin</option>
-            <option value="editor">Editor</option>
-            <option value="reviewer">Reviewer</option>
+            <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
+                <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($_POST['role'] ?? '') === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
         </select></div>
         <div class="action-buttons create-form-actions">
             <a href="users.php" class="cancel-button">Cancel</a>

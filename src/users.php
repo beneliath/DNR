@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'profile_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
@@ -38,180 +37,19 @@ $users = $conn->query(
      ORDER BY username"
 );
 
-if (!$users) {
-    die("Database error: " . $conn->error);
-}
+if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', ['error' => $conn->error]);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Users - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .page-heading {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
-            align-items: center;
-            column-gap: 16px;
-        }
-        .page-heading h1 {
-            justify-self: start;
-        }
-        .page-heading > .button-add:last-child {
-            justify-self: end;
-        }
-        .audit-log-link {
-            justify-self: center;
-        }
-        .sensitive-action-locked {
-            justify-self: end;
-            opacity: 0.55;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
-        .user-details {
-            margin-bottom: 20px;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .user-details:hover {
-            background-color: #f9f9f9;
-        }
-        .dark-mode .user-details:hover,
-        .dark-mode .user-details:hover div:not(.user-actions) {
-            background-color: #333 !important;
-        }
-        .user-main {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 5px;
-        }
-        .user-timestamps {
-            font-size: var(--font-size-small);
-            color: #666;
-            margin-left: 20px;
-            padding-top: 5px;
-            border-top: 1px solid #eee;
-        }
-        .timestamp {
-            display: inline-block;
-            margin-right: 20px;
-        }
-        .user-actions {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            background-color: transparent !important;
-        }
-        .user-actions form {
-            display: inline-flex;
-            margin: 0;
-        }
-        .user-actions .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            white-space: nowrap;
-        }
-        .user-actions .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .user-actions .reset-password-button {
-            background-color: var(--button-reset-password-color);
-        }
-        .user-actions .reset-two-factor-button {
-            background-color: var(--button-reset-two-factor-color);
-        }
-        .user-actions .delete-button {
-            background-color: var(--button-delete-color);
-        }
-        .link-button {
-            border: 0;
-            padding: 0;
-            background: none;
-            color: var(--link-color);
-            text-decoration: underline;
-            cursor: pointer;
-        }
-        .password-change-required {
-            color: #FF9800;
-            font-weight: var(--font-weight-semibold);
-        }
-        .user-profile-summary {
-            display: flex;
-            min-width: 0;
-            align-items: center;
-            gap: 14px;
-        }
-        .user-list-avatar {
-            display: block;
-            width: 52px;
-            height: 52px;
-            flex: 0 0 auto;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            background: var(--accent);
-            object-fit: cover;
-        }
-        .user-identity-copy {
-            min-width: 0;
-        }
-        .user-account-heading {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-        .user-display-name {
-            font-size: 1rem;
-        }
-        .user-username {
-            color: var(--text-muted);
-            font-size: 0.82rem;
-        }
-        .user-contact-details {
-            display: flex;
-            min-width: 0;
-            flex-wrap: wrap;
-            gap: 5px 18px;
-            margin-top: 7px;
-            color: var(--text-muted);
-            font-size: 0.84rem;
-        }
-        .user-contact-details span {
-            overflow-wrap: anywhere;
-        }
-        .user-contact-details .is-empty {
-            color: var(--text-subtle);
-            font-style: italic;
-        }
-        @media (min-width: 761px) {
-            .user-timestamps {
-                margin-left: 66px;
-            }
-        }
-        @media (max-width: 760px) {
-            .user-main {
-                gap: 16px;
-            }
-            .user-actions {
-                align-self: flex-end;
-            }
-        }
-    </style>
-</head>
+<?php renderPageHead('Users - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/users.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -335,49 +173,6 @@ if (!$users) {
         <?php } ?>
     </div>
 </div>
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-function confirmUserDeletion(form) {
-    const requiredPhrase = 'DELETE USER';
-    const confirmation = window.prompt(
-        'Are you sure you want to delete this user? This cannot be undone.\n\nType DELETE USER to continue:'
-    );
-
-    if (confirmation !== requiredPhrase) {
-        if (confirmation !== null) {
-            window.alert('User not deleted. The confirmation phrase did not match DELETE USER.');
-        }
-        return false;
-    }
-
-    form.elements.delete_confirmation.value = confirmation;
-    return true;
-}
-
-function confirmTwoFactorReset(form) {
-    const requiredPhrase = 'RESET 2FA';
-    const confirmation = window.prompt(
-        'Reset two-factor authentication for this user? Their current authenticator and recovery codes will stop working.\n\nType RESET 2FA to continue:'
-    );
-
-    if (confirmation !== requiredPhrase) {
-        if (confirmation !== null) {
-            window.alert('Two-factor authentication was not reset. The confirmation phrase did not match RESET 2FA.');
-        }
-        return false;
-    }
-
-    form.elements.reset_confirmation.value = confirmation;
-    return true;
-}
-document.querySelectorAll('form[data-sensitive-action]').forEach(function (form) {
-    form.addEventListener('submit', function (event) {
-        const confirmed = form.dataset.sensitiveAction === 'delete-user'
-            ? confirmUserDeletion(form)
-            : confirmTwoFactorReset(form);
-        if (!confirmed) event.preventDefault();
-    });
-});
-</script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

@@ -443,3 +443,6 @@
     min-height: 430px;
   }
 }
+.map-clear-button {
+    text-decoration: none;
+}

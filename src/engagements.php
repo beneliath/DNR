@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'engagement_search_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
@@ -163,7 +162,7 @@ $count_query = "SELECT COUNT(*) AS engagement_count
                 WHERE {$where}";
 $count_stmt = $conn->prepare($count_query);
 if (!$count_stmt) {
-    die('Unable to count engagements.');
+    abortApplication(503, 'Engagements are temporarily unavailable.', ['error' => $conn->error]);
 }
 if ($has_search_terms) {
     $count_types = str_repeat('s', count($search_plan['patterns']));
@@ -192,7 +191,7 @@ $query .= "
 
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) {
-    error_log('Unable to prepare the engagement list: ' . $conn->error);
+    applicationLog('error', 'Unable to prepare the engagement list', ['error' => $conn->error]);
     http_response_code(503);
     exit('Engagements are temporarily unavailable.');
 }
@@ -203,7 +202,7 @@ foreach ($query_values as &$query_value) $bind_params[] = &$query_value;
 unset($query_value);
 $query_stmt->bind_param(...$bind_params);
 if (!$query_stmt->execute()) {
-    error_log('Unable to run the engagement list: ' . $query_stmt->error);
+    applicationLog('error', 'Unable to run the engagement list', ['error' => $query_stmt->error]);
     http_response_code(500);
     exit('Unable to retrieve engagements.');
 }
@@ -220,119 +219,14 @@ $format_date_range = static function ($start, $end) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Engagements - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .engagement-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .page-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-        .list-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 15px 0 20px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .engagement-table th,
-        .engagement-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .dark-mode .engagement-table th,
-        .dark-mode .engagement-table td {
-            border-bottom-color: #444;
-        }
-        .engagement-table th {
-            background-color: #f5f5f5;
-            font-weight: var(--font-weight-bold);
-        }
-        .dark-mode .engagement-table th {
-            background-color: #2d2d2d;
-        }
-        .engagement-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        .dark-mode .engagement-table tr:hover {
-            background-color: #333;
-        }
-        .sort-buttons {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-        .sort-button {
-            padding: 8px 15px;
-            background-color: var(--button-neutral-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .sort-button.active {
-            background-color: var(--button-edit-color) !important;
-        }
-        .action-buttons {
-            display: inline-flex;
-            gap: 5px;
-            background-color: transparent !important;
-        }
-        .action-buttons form {
-            margin: 0;
-        }
-        .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            white-space: nowrap;
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .delete-button {
-            background-color: var(--button-delete-color);
-        }
-        .view-button {
-            background-color: var(--button-view-color);
-        }
-        /* Status colors */
-        .status-work-in-progress {
-            color: #4CAF50; /* Green */
-        }
-        .status-under-review {
-            color: #2196F3; /* Blue */
-        }
-        .status-confirmed {
-            color: #FF9800; /* Orange */
-        }
-    </style>
-</head>
+<?php renderPageHead('Engagements - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/engagements.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

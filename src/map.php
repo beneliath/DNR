@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'map_helpers.php';
 startSecureSession();
 requireLogin();
@@ -51,7 +50,7 @@ $engagement_sql = "SELECT
 
 $engagement_stmt = $conn->prepare($engagement_sql);
 if (!$engagement_stmt) {
-    error_log('Unable to prepare the engagement map: ' . $conn->error);
+    applicationLog('error', 'Unable to prepare the engagement map', ['error' => $conn->error]);
     http_response_code(503);
     exit('The engagement map is temporarily unavailable.');
 }
@@ -64,7 +63,7 @@ if ($parameters !== []) {
     $engagement_stmt->bind_param(...$bind_arguments);
 }
 if (!$engagement_stmt->execute()) {
-    error_log('Unable to load map engagements: ' . $engagement_stmt->error);
+    applicationLog('error', 'Unable to load map engagements', ['error' => $engagement_stmt->error]);
     http_response_code(500);
     exit('Unable to load engagement locations.');
 }
@@ -99,7 +98,7 @@ if ($address_hashes !== []) {
          WHERE address_hash IN ({$placeholders})"
     );
     if (!$geocode_stmt) {
-        error_log('The engagement map migration is required: ' . $conn->error);
+        applicationLog('error', 'The engagement map migration is required', ['error' => $conn->error]);
         http_response_code(503);
         exit('The engagement map database migration is required before this page can be used.');
     }
@@ -111,7 +110,7 @@ if ($address_hashes !== []) {
     unset($hash_value);
     $geocode_stmt->bind_param(...$hash_bind_arguments);
     if (!$geocode_stmt->execute()) {
-        error_log('Unable to load cached map locations: ' . $geocode_stmt->error);
+        applicationLog('error', 'Unable to load cached map locations', ['error' => $geocode_stmt->error]);
         http_response_code(500);
         exit('Unable to load cached engagement locations.');
     }
@@ -174,12 +173,14 @@ $map_payload = [
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Engagement Map - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Engagement Map - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/map.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container map-page">
@@ -218,7 +219,7 @@ $map_payload = [
         </fieldset>
         <div class="map-filter-actions">
             <button type="submit" class="button-add">Apply filters</button>
-            <a href="map.php" class="button-secondary map-clear-button" style="text-decoration: none;">Clear</a>
+            <a href="map.php" class="button-secondary map-clear-button">Clear</a>
         </div>
     </form>
 
@@ -245,7 +246,7 @@ $map_payload = [
     $map_payload,
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
-<script src="assets/js/map.min.js?v=1.1.0" defer></script>
+<?php renderScript('assets/js/map.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

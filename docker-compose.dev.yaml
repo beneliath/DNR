@@ -2,9 +2,13 @@ services:
   web:
     volumes:
       - ./src:/var/www/html:ro
+      - ./tests:/opt/dnr/tests:ro
       - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
     environment:
       DNR_REQUIRE_HTTPS: "0"
   geocoder:
     volumes:
       - ./src:/var/www/html:ro
+  maintenance:
+    volumes:
+      - ./tests:/opt/dnr/tests:ro

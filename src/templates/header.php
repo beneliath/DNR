@@ -17,6 +17,7 @@ $nav_groups = [
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
+    'operations' => ['operations.php'],
     'profile' => ['profile.php'],
 ];
 $active_nav = '';
@@ -31,11 +32,6 @@ $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 ?>
-
-<link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.60">
-<?php if ($shell_current_page === 'map.php') : ?>
-<link rel="stylesheet" href="assets/css/map.min.css?v=1.0.8">
-<?php endif; ?>
 
 <header class="app-shell-header">
     <div class="mobile-app-bar">
@@ -81,6 +77,9 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
                     <li><a href="database_maintenance.php" class="nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
                     </a></li>
+                    <li><a href="operations.php" class="nav-link<?php echo $active_nav === 'operations' ? ' active' : ''; ?>"<?php echo $active_nav === 'operations' ? ' aria-current="page"' : ''; ?>>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span>Operations</span>
+                    </a></li>
                 <?php endif; ?>
             </ul>
         </nav>
@@ -113,6 +112,6 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
     </div>
     <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close navigation"></button>
 </header>
-<script src="assets/js/theme.min.js?v=1.1.0"></script>
-<script src="assets/js/app-shell.min.js?v=1.1.0"></script>
-<script src="assets/js/phone-input.min.js?v=0.2.0" defer></script>
+<?php renderScript('assets/js/theme.min.js', false); ?>
+<?php renderScript('assets/js/app-shell.min.js', false); ?>
+<?php renderScript('assets/js/phone-input.min.js'); ?>

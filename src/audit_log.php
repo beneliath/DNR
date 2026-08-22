@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 requireAdmin();
 requireAuditLogSchema($conn);
@@ -77,7 +76,7 @@ $count_stmt = $conn->prepare(
     "SELECT COUNT(*) AS entry_count FROM security_audit_log{$where_clause}"
 );
 if (!$count_stmt) {
-    die('Unable to retrieve the audit log.');
+    abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
 }
 if ($filter_types !== '') {
     $count_bind = [$filter_types];
@@ -101,7 +100,7 @@ $entries_stmt = $conn->prepare(
      LIMIT ? OFFSET ?"
 );
 if (!$entries_stmt) {
-    die('Unable to retrieve the audit log.');
+    abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
 }
 $entry_types = $filter_types . 'ii';
 $entry_values = array_merge($filter_values, [$page_size, $offset]);
@@ -199,167 +198,14 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Audit Log - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .page-heading,
-        .audit-filters,
-        .audit-page-size,
-        .pagination {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .audit-controls.audit-controls {
-            display: flex;
-            align-items: stretch !important;
-            flex-direction: column;
-            justify-content: flex-start;
-            gap: 15px;
-            margin: 15px 0 20px;
-        }
-        .page-heading {
-            justify-content: space-between;
-        }
-        .page-heading-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        .audit-filters {
-            align-self: flex-end;
-            justify-content: flex-end;
-            margin: 0;
-        }
-        .audit-controls > .audit-filter-form {
-            display: flex;
-            flex: 0 0 auto !important;
-            align-items: center;
-            gap: 8px;
-            flex-wrap: wrap;
-            min-height: 0;
-            width: 100%;
-        }
-        .audit-search-field {
-            position: relative;
-            min-width: 220px;
-            flex: 1 1 280px;
-        }
-        .audit-filter-form .audit-search-field input[type="search"],
-        .audit-filter-form > input[type="date"],
-        .audit-filter-form > input[type="text"],
-        .audit-filter-form > .filter-button {
-            box-sizing: border-box;
-            height: 44px !important;
-            min-height: 44px;
-            margin: 0 !important;
-            font: inherit;
-        }
-        .audit-filter-form .audit-search-field input[type="search"] {
-            width: 100%;
-        }
-        .audit-filter-form > input[type="date"] {
-            width: 172px;
-            padding: 8px 12px;
-        }
-        .audit-filter-form > input[type="text"] {
-            width: 172px;
-            padding: 8px 12px;
-        }
-        .audit-search-field .search-icon {
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .audit-search-field .clear-search {
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        .audit-page-size {
-            margin-left: auto;
-        }
-        .filter-button {
-            display: inline-block;
-            padding: 8px 14px;
-            border-radius: 4px;
-            background: var(--button-neutral-color);
-            color: #fff;
-            text-decoration: none;
-        }
-        .filter-button.active {
-            background-color: var(--button-edit-color) !important;
-        }
-        .audit-table-wrapper {
-            overflow-x: auto;
-        }
-        .audit-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 75%;
-        }
-        .audit-table th,
-        .audit-table td {
-            padding: 10px;
-            text-align: left;
-            vertical-align: top;
-            border-bottom: 1px solid #ddd;
-        }
-        .dark-mode .audit-table th,
-        .dark-mode .audit-table td {
-            border-bottom-color: #444;
-        }
-        .audit-table th {
-            background: #f5f5f5;
-        }
-        .audit-timestamp {
-            white-space: nowrap;
-        }
-        .dark-mode .audit-table th {
-            background: #2d2d2d;
-        }
-        .audit-badge {
-            display: inline-block;
-            padding: 3px 7px;
-            border-radius: 999px;
-            background: var(--button-neutral-color);
-            color: #fff;
-            font-size: inherit;
-        }
-        .audit-badge-login { background: #2e7d32; }
-        .audit-badge-database_change { background: #1565c0; }
-        .audit-badge-security { background: #6a1b9a; }
-        .audit-detail {
-            display: block;
-            margin-top: 4px;
-            color: #666;
-            font-size: inherit;
-        }
-        .dark-mode .audit-detail {
-            color: #bbb;
-        }
-        .pagination {
-            justify-content: center;
-            margin-top: 20px;
-        }
-        .empty-state {
-            text-align: center !important;
-        }
-        @media (max-width: 700px) {
-            .page-heading,
-            .audit-controls {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-            .audit-page-size {
-                margin-left: 0;
-            }
-        }
-    </style>
-</head>
+<?php renderPageHead('Audit Log - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/audit_log.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container">

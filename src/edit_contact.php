@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'contact_photo_helpers.php';
 startSecureSession();
 requireLogin();
@@ -21,13 +20,13 @@ $contact_stmt = $conn->prepare(
     "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
             c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
             c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
-            c.contact_photo_updated_at, c.is_deleted
+            c.contact_photo_updated_at, c.created_at, c.updated_at, c.is_deleted
      FROM contacts c
      INNER JOIN organizations o ON o.id = c.organization_id
      WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0"
 );
 if (!$contact_stmt) {
-    die('Unable to retrieve the contact.');
+    abortApplication(503, 'The contact is temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $contact_stmt->bind_param('i', $contact_id);
@@ -46,48 +45,13 @@ $error_messages = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
 
-    $organization_id = intval($_POST['organization_id'] ?? 0);
-    $contact_first_name = trim($_POST['contact_first_name'] ?? '');
-    $contact_last_name = trim($_POST['contact_last_name'] ?? '');
-    $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
-    $contact_role_other = trim($_POST['contact_role_other'] ?? '');
-    $contact_email = trim($_POST['contact_email'] ?? '');
-    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
-    $contact_phone = trim($_POST['contact_phone'] ?? '');
-    $contact_notes = trim($_POST['contact_notes'] ?? '');
-    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
+    $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
+    foreach ($normalized_contact['data'] as $field_name => $field_value) {
+        ${$field_name} = $field_value;
+    }
+    $error_messages = $normalized_contact['errors'];
     $remove_contact_photo = isset($_POST['remove_contact_photo']);
     $contact_photo = null;
-
-    if (!$organization_id) {
-        $error_messages[] = 'Organization is required.';
-    }
-    if ($contact_first_name === '') {
-        $error_messages[] = 'First name is required.';
-    }
-    if ($contact_last_name === '') {
-        $error_messages[] = 'Last name is required.';
-    }
-    if (!in_array($contact_role, ['pastor', 'admin', 'other'], true)) {
-        $error_messages[] = 'A valid role is required.';
-    }
-    if ($contact_role === 'other' && $contact_role_other === '') {
-        $error_messages[] = 'Please specify the other role.';
-    }
-    if (!filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
-        $error_messages[] = 'Please provide a valid email address.';
-    } elseif (!hash_equals($contact_email, $contact_email_confirm)) {
-        $error_messages[] = 'Email addresses do not match.';
-    }
-    try {
-        $contact_phone = normalizePhoneNumber(
-            $contact_phone_country_code,
-            $contact_phone,
-            'Phone number'
-        );
-    } catch (InvalidArgumentException $exception) {
-        $error_messages[] = $exception->getMessage();
-    }
     try {
         $contact_photo = contactPhotoFromUpload($_FILES['contact_photo'] ?? []);
         if ($contact_photo !== null && $remove_contact_photo) {
@@ -96,13 +60,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (InvalidArgumentException $exception) {
         $error_messages[] = $exception->getMessage();
     } catch (Throwable $exception) {
-        error_log('Unable to read contact photo upload: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to read contact photo upload', ['error' => $exception->getMessage()]);
         $error_messages[] = 'The contact photo could not be uploaded. Try again.';
     }
 
     if (!$error_messages) {
         $conn->begin_transaction();
         try {
+            $submitted_version = is_scalar($_POST['contact_version'] ?? null)
+                ? trim((string) $_POST['contact_version'])
+                : '';
+            $lock_stmt = $conn->prepare(
+                'SELECT updated_at FROM contacts WHERE id = ? AND is_deleted = 0 FOR UPDATE'
+            );
+            if (!$lock_stmt) {
+                throw new RuntimeException('Unable to lock the contact.');
+            }
+            $lock_stmt->bind_param('i', $contact_id);
+            $lock_stmt->execute();
+            $locked_contact = $lock_stmt->get_result()->fetch_assoc();
+            $lock_stmt->close();
+            if (!$locked_contact) {
+                throw new InvalidArgumentException('That contact is no longer active.');
+            }
+            if ($submitted_version === ''
+                || !hash_equals((string) $locked_contact['updated_at'], $submitted_version)
+            ) {
+                throw new InvalidArgumentException(
+                    'This contact changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
+                );
+            }
             requireActiveOrganization($conn, $organization_id, true);
             if ($contact_photo !== null) {
                 $update_stmt = $conn->prepare(
@@ -198,6 +185,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         } catch (Throwable $exception) {
             $conn->rollback();
+            if (!$exception instanceof InvalidArgumentException) {
+                applicationLog('error', 'Contact update failed', [
+                    'contact_id' => $contact_id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
             $error_messages[] = $exception instanceof InvalidArgumentException
                 ? $exception->getMessage()
                 : 'Unable to update the contact.';
@@ -212,6 +205,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact['contact_email'] = $contact_email;
     $contact['contact_phone'] = $contact_phone;
     $contact['contact_notes'] = $contact_notes;
+    if (isset($submitted_version)) {
+        $contact['updated_at'] = $submitted_version;
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -230,7 +226,7 @@ $organizations_result = $conn->query(
     'SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
 );
 if (!$organizations_result) {
-    die('Unable to retrieve organizations.');
+    abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $cancel_url = ($_GET['from'] ?? '') === 'view'
@@ -240,68 +236,21 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <script src="assets/js/contact-photo.min.js?v=1.0.0" defer></script>
-    <style>
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-            box-sizing: border-box;
-        }
-        .dark-mode .form-group input,
-        .dark-mode .form-group select,
-        .dark-mode .form-group textarea {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        @media (max-width: 640px) {
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-        }
-    </style>
-</head>
+<?php renderPageHead('Edit Contact - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/edit_contact.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/contact-photo.min.js',
+    ),
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -317,6 +266,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 
     <form method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
             <label for="organization_id" class="required">Organization</label>
@@ -344,9 +294,9 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             <div class="form-group">
                 <label for="contact_role" class="required">Role</label>
                 <select name="contact_role" id="contact_role" required>
-                    <option value="pastor" <?php echo $contact['contact_role'] === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
-                    <option value="admin" <?php echo $contact['contact_role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                    <option value="other" <?php echo $contact['contact_role'] === 'other' ? 'selected' : ''; ?>>Other</option>
+                    <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                        <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $contact['contact_role'] === $role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group" id="other_role_group">
@@ -401,24 +351,6 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
         </div>
     </form>
 </div>
-
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-function toggleOtherRole() {
-    const roleSelect = document.getElementById('contact_role');
-    const otherRoleGroup = document.getElementById('other_role_group');
-    const otherRoleInput = document.getElementById('contact_role_other');
-    const isOther = roleSelect.value === 'other';
-
-    otherRoleGroup.style.display = isOther ? 'block' : 'none';
-    otherRoleInput.required = isOther;
-    if (!isOther) {
-        otherRoleInput.value = '';
-    }
-}
-
-document.getElementById('contact_role').addEventListener('change', toggleOtherRole);
-toggleOtherRole();
-</script>
 
 <?php include 'templates/footer.php'; ?>
 </body>

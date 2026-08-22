@@ -127,7 +127,7 @@ CREATE TABLE IF NOT EXISTS organizations (
     physical_country VARCHAR(100),
     is_deleted TINYINT(1) DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     INDEX idx_organizations_active_name (is_deleted, organization_name, id),
     FULLTEXT INDEX ft_organizations_search (
         organization_name, notes, affiliation, distinctives, email, phone,
@@ -144,12 +144,13 @@ CREATE TABLE IF NOT EXISTS engagements (
     engagement_notes TEXT,
     event_start_date DATE NOT NULL,
     event_end_date DATE NOT NULL,
-    event_type VARCHAR(50),
+    event_type VARCHAR(50) NOT NULL DEFAULT 'conference',
     event_type_other VARCHAR(50),
     book_table TINYINT(1) DEFAULT 0,
     brochures TINYINT(1) DEFAULT 0,
     caller_name VARCHAR(255),
-    confirmation_status VARCHAR(50),
+    caller_user_id INT NULL,
+    confirmation_status VARCHAR(50) NOT NULL DEFAULT 'work_in_progress',
     event_address_line_1 VARCHAR(255),
     event_address_line_2 VARCHAR(255),
     event_city VARCHAR(100),
@@ -164,18 +165,27 @@ CREATE TABLE IF NOT EXISTS engagements (
     other_housing TEXT,
     housing_amount DECIMAL(10,2) DEFAULT NULL,
     is_deleted TINYINT(1) DEFAULT 0,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
+    CONSTRAINT fk_engagement_caller_user
+        FOREIGN KEY (caller_user_id) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT chk_engagement_date_range CHECK (event_end_date >= event_start_date),
     CONSTRAINT chk_engagement_travel_amount CHECK (travel_amount IS NULL OR travel_amount >= 0),
     CONSTRAINT chk_engagement_housing_amount CHECK (housing_amount IS NULL OR housing_amount >= 0),
     CONSTRAINT chk_engagement_other_type CHECK (
         event_type <> 'other' OR TRIM(COALESCE(event_type_other, '')) <> ''
     ),
+    CONSTRAINT chk_engagement_confirmation_status CHECK (
+        confirmation_status IN ('work_in_progress', 'under_review', 'confirmed')
+    ),
+    CONSTRAINT chk_engagement_type CHECK (
+        event_type IN ('conference', 'service', 'study or teaching', 'Passover Seder', 'other')
+    ),
     INDEX idx_engagements_active_date (is_deleted, event_start_date, id),
     INDEX idx_engagements_active_status_date (
         is_deleted, confirmation_status, event_start_date, id
     ),
+    INDEX idx_engagements_caller_user (caller_user_id, is_deleted, event_start_date),
     FULLTEXT INDEX ft_engagements_search (
         event_title, event_description, engagement_notes, caller_name
     )
@@ -284,6 +294,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_photo_sha256 BINARY(32) NULL,
     contact_photo_updated_at DATETIME NULL,
     is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     FOREIGN KEY (organization_id) REFERENCES organizations(id),
     INDEX idx_contacts_last_first (contact_last_name, contact_first_name),
     INDEX idx_contacts_archived (is_deleted),

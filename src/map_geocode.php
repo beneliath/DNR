@@ -1,8 +1,7 @@
 <?php
 // Compatibility endpoint: web requests may enqueue a location, but outbound
 // geocoder traffic is deliberately restricted to the background worker.
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'map_helpers.php';
 startSecureSession();
 requireLogin();

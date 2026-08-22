@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireTwoFactorSchema($conn);
@@ -63,7 +62,7 @@ if ($is_pending_login && currentTwoFactorEnrollment($user_id) === null) {
         twoFactorEncryptionKey();
         beginTwoFactorEnrollment($user_id, 'enroll');
     } catch (Throwable $exception) {
-        error_log('Two-factor enrollment configuration error: ' . $exception->getMessage());
+        applicationLog('error', 'Two-factor enrollment configuration error', ['error' => $exception->getMessage()]);
         $error = 'Two-factor enrollment is not configured on this server. Contact an administrator.';
     }
 }
@@ -98,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $error = 'The password or authentication code was not accepted.';
                 }
             } catch (Throwable $exception) {
-                error_log('Two-factor replacement verification error: ' . $exception->getMessage());
+                applicationLog('error', 'Two-factor replacement verification error', ['error' => $exception->getMessage()]);
                 $error = 'Two-factor verification is temporarily unavailable.';
             }
         }
@@ -111,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     !empty($user['two_factor_enabled']) ? 'replace' : 'enroll'
                 );
             } catch (Throwable $exception) {
-                error_log('Two-factor enrollment configuration error: ' . $exception->getMessage());
+                applicationLog('error', 'Two-factor enrollment configuration error', ['error' => $exception->getMessage()]);
                 $error = 'Two-factor enrollment is not configured on this server.';
             }
         }
@@ -170,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: two_factor_recovery_codes.php');
                     exit();
                 } catch (Throwable $exception) {
-                    error_log('Unable to enable two-factor authentication: ' . $exception->getMessage());
+                    applicationLog('error', 'Unable to enable two-factor authentication', ['error' => $exception->getMessage()]);
                     $error = 'Two-factor authentication could not be enabled.';
                 }
             }
@@ -184,24 +183,28 @@ if ($enrollment) {
     try {
         $qr_data_uri = createTotpQrDataUri($enrollment['secret'], $user['username']);
     } catch (Throwable $exception) {
-        error_log('Unable to render the two-factor QR code: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to render the two-factor QR code', ['error' => $exception->getMessage()]);
         $error = 'The enrollment QR code could not be generated.';
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Set Up Two-Factor Authentication - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.60">
-    <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
-    </script>
-</head>
+<?php renderPageHead('Set Up Two-Factor Authentication - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/theme-init.min.js',
+      'defer' => false,
+    ),
+  ),
+)); ?>
 <body>
 <?php if (!$is_pending_login) include 'templates/header.php'; ?>
 <main class="container security-container">
@@ -262,6 +265,6 @@ if ($enrollment) {
     </form>
 </main>
 <?php if (!$is_pending_login) include 'templates/footer.php'; ?>
-<script src="assets/js/theme.min.js?v=1.1.0"></script>
+<?php renderScript('assets/js/theme.min.js', false); ?>
 </body>
 </html>

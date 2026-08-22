@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
 startSecureSession();
@@ -205,7 +204,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $touch_stmt = $conn->prepare(
-            'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+            'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?'
         );
         if (!$touch_stmt) {
             throw new RuntimeException('Unable to update the engagement calendar timestamp.');
@@ -248,12 +247,13 @@ if ($engagement_title === '') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Restore Presentations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Restore Presentations - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -362,29 +362,5 @@ if ($engagement_title === '') {
 </div>
 
 <?php include 'templates/footer.php'; ?>
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-(function () {
-    const selectAll = document.getElementById('select-all-presentations');
-    const presentationCheckboxes = Array.from(document.querySelectorAll('input[name="presentation_ids[]"]'));
-    if (!selectAll || presentationCheckboxes.length === 0) return;
-
-    selectAll.addEventListener('change', function () {
-        presentationCheckboxes.forEach(function (checkbox) {
-            checkbox.checked = selectAll.checked;
-        });
-    });
-
-    presentationCheckboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', function () {
-            selectAll.checked = presentationCheckboxes.every(function (presentationCheckbox) {
-                return presentationCheckbox.checked;
-            });
-            selectAll.indeterminate = !selectAll.checked && presentationCheckboxes.some(function (presentationCheckbox) {
-                return presentationCheckbox.checked;
-            });
-        });
-    });
-})();
-</script>
 </body>
 </html>

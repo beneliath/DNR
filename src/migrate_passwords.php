@@ -1,7 +1,6 @@
 <?php
 // Include required files
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 requireAdmin();
 
@@ -9,13 +8,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     ?>
     <!DOCTYPE html>
     <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Migrate Passwords - DNR</title>
-        <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-        <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.60">
-    </head>
+    <?php renderPageHead('Migrate Passwords - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
     <body>
         <h1>Migrate Legacy Passwords</h1>
         <p>This hashes any remaining plaintext passwords. Existing password hashes are left unchanged.</p>
@@ -68,6 +67,6 @@ if ($users) {
     echo "Updated passwords: $updated<br>";
     echo "Errors: $errors<br>";
 } else {
-    echo "Error fetching users: " . $conn->error;
+    abortApplication(503, 'The password migration is temporarily unavailable.', ['error' => $conn->error]);
 }
 ?>

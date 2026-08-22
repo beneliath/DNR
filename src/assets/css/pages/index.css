@@ -1,0 +1,300 @@
+/* Reset and contain all event field styles in a single block */
+    .event-row {
+        display: flex;
+        gap: 10px;
+        position: relative;
+        padding-top: 35px;
+        margin-bottom: 8px;
+    }
+
+    .event-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        position: relative;
+    }
+
+    .label-container {
+        position: absolute;
+        top: -30px;
+        color: var(--text-color);
+        white-space: nowrap;
+    }
+
+    /* Remove the calculated left position for the second label */
+    .event-group:nth-child(2) .label-container {
+        left: 0;
+    }
+
+    .required {
+        color: #f44336;
+        margin-left: 4px;
+    }
+
+    /* Remove any pseudo-elements that might add asterisks */
+    .required::before,
+    .required::after {
+        content: none;
+    }
+
+    .event-group select,
+    .event-group input[type="text"] {
+        height: 35px;
+        padding: 0 8px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+
+    .dark-mode .event-group select,
+    .dark-mode .event-group input[type="text"] {
+        background-color: var(--dark-input-bg);
+        color: var(--dark-text-color);
+        border-color: #333;
+    }
+
+    .event-group select {
+        width: 20ch;
+    }
+
+    #other_event_type_div[hidden] {
+        display: none;
+    }
+
+    #other_event_type_div input[type="text"] {
+        width: 300px;
+    }
+
+    .dark-mode #other_event_type_div input[type="text"] {
+        background-color: var(--dark-input-bg);
+        border-color: #666;
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+
+    .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .presentation-entry {
+        border: 1px solid #ddd;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+    }
+
+    .dark-mode .presentation-entry {
+        border-color: #333;
+    }
+
+    .presentation-fields {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+
+    .presentation-fields .form-field.topic {
+        grid-column: 1 / -1;
+    }
+
+    .presentation-fields .datetime-row {
+        display: grid;
+        grid-template-columns: 0.5fr 1fr;
+        gap: 15px;
+    }
+
+    .presentation-fields .datetime-row .form-field {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .presentation-fields .datetime-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+    }
+
+    .presentation-fields .datetime-row .form-field input[type="date"] {
+        width: 180px !important;
+        margin: 0 !important;
+    }
+
+    .presentation-fields .speaker-row {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 30px !important;
+        margin-top: 10px !important;
+        width: 100% !important;
+    }
+
+    .speaker-row .form-field {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+
+    .speaker-row .form-field.speaker {
+        flex: 1 !important;
+        min-width: 0 !important;
+    }
+
+    .speaker-row .form-field.speaker input {
+        width: 300px !important;
+        min-width: 0 !important;
+    }
+
+    .speaker-row .form-field.attendance {
+        width: auto !important;
+        min-width: unset !important;
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+    }
+
+    .speaker-row .form-field.attendance input {
+        width: 70px !important;
+        min-width: 70px !important;
+    }
+
+    .speaker-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        width: auto !important;
+        min-width: 0 !important;
+    }
+
+    .form-field label {
+        color: var(--text-color);
+        white-space: nowrap;
+        margin: 0;
+        padding: 0;
+    }
+
+    .form-field input[type="text"],
+    .form-field input[type="number"],
+    .form-field input[type="date"] {
+        padding: 8px;
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .dark-mode .form-field input[type="text"],
+    .dark-mode .form-field input[type="number"],
+    .dark-mode .form-field input[type="date"] {
+        background-color: var(--dark-input-bg);
+        color: var(--dark-text-color);
+        border-color: #666;
+    }
+
+    /* Reset and contain all event field styles in a single block */
+    .form-row {
+        display: flex;
+        align-items: flex-end !important;
+        gap: 20px;
+        position: relative;
+        justify-content: space-between !important;
+        width: 100% !important;
+    }
+
+    .form-row .form-field {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 10px !important;
+        margin: 0 !important;
+    }
+
+    .form-row .form-field label {
+        margin: 0 !important;
+        padding: 0 !important;
+        white-space: nowrap !important;
+        min-width: fit-content !important;
+    }
+
+    .form-row .form-field select {
+        width: 200px !important;
+        height: 35px !important;
+        margin: 0 !important;
+        padding: 0 8px !important;
+    }
+
+    .form-row .form-group {
+        margin: 0 !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: flex-end !important;
+    }
+
+    .form-row .save-button {
+        margin: 0 !important;
+        height: auto !important;
+        padding: var(--button-padding) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+
+    /* Reset and contain all event field styles in a single block */
+    .section-heading {
+        font-size: var(--font-size-large);
+        margin: 1em 0;
+        color: var(--text-color);
+        font-weight: var(--font-weight-normal);
+    }
+
+    /* Add new styles for presentations outer box */
+    .presentations-outer-box {
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: rgba(255, 255, 255, 0.02);
+    }
+
+    .presentations-inner-container {
+        margin-bottom: 15px;
+    }
+
+    .presentation-entry {
+        background-color: rgba(255, 255, 255, 0.05);
+        border: 1px solid #444;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 4px;
+        max-width: 100%;
+        overflow: visible;
+    }
+
+    /* Update the last presentation entry to remove bottom margin */
+    .presentation-entry:last-child {
+        margin-bottom: 0;
+    }
+
+    .add-presentation-btn {
+        background-color: var(--button-add-color);
+        color: white;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: block;
+        width: fit-content;
+    }

@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../github_version_helpers.php';
 
-$footer_version = defined('APP_VERSION') ? APP_VERSION : '1.4.2';
+$footer_version = defined('APP_VERSION') ? APP_VERSION : '1.4.3';
 $footer_push = githubPushMetadata();
 $footer_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
 $footer_short_commit = $footer_push === null ? '' : substr($footer_push['commit'], 0, 7);
@@ -35,4 +35,5 @@ $footer_repository_url = githubRepositoryUrl();
     </div>
 </dialog>
 
-<script src="assets/js/footer.min.js?v=1.0.0" defer></script>
+<?php renderScript('assets/js/page-actions.min.js'); ?>
+<?php renderScript('assets/js/footer.min.js'); ?>

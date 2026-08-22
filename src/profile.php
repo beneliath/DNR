@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/profile_helpers.php';
 startSecureSession();
 requireLogin();
@@ -15,7 +14,7 @@ function fetchCurrentUserProfile(mysqli $conn, $user_id) {
          WHERE id = ?'
     );
     if (!$stmt) {
-        error_log('DNR user profile schema is unavailable: ' . $conn->error);
+        applicationLog('error', 'User profile schema is unavailable', ['error' => $conn->error]);
         http_response_code(503);
         exit('DNR is being upgraded. The user profile database migration is required.');
     }
@@ -132,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
     } catch (Throwable $exception) {
-        error_log('Unable to update user profile: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to update user profile', ['error' => $exception->getMessage()]);
         $error = 'Your profile could not be updated. Try again.';
     }
 
@@ -151,13 +150,20 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>My Profile - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <script src="assets/js/profile.min.js?v=1.0.1" defer></script>
-</head>
+<?php renderPageHead('My Profile - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/profile.min.js',
+    ),
+  ),
+)); ?>
 <body class="profile-page">
 <?php include 'templates/header.php'; ?>
 <main class="container profile-container">

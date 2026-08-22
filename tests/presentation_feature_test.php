@@ -100,7 +100,7 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     expectPresentationFeature(
         str_contains($engagement_source, "include 'templates/presentation_form.php'")
             && str_contains($engagement_source, 'requirePresentationForConfirmedEngagement')
-            && str_contains($engagement_source, 'presentation-form.min.js?v=0.1.4'),
+            && str_contains($engagement_source, "renderScript('assets/js/presentation-form.min.js'"),
         'new and edit engagement flows should share the form and enforce the confirmation rule.'
     );
 }

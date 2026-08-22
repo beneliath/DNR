@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -126,7 +125,7 @@ $query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
           ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
           LIMIT ? OFFSET ?";
 $query_stmt = $conn->prepare($query);
-if (!$query_stmt) die('Unable to retrieve organizations.');
+if (!$query_stmt) abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
 if ($fulltext_query !== '') {
     $query_stmt->bind_param('ssii', $fulltext_query, $fulltext_query, $page_size, $offset);
 } else {
@@ -151,106 +150,14 @@ function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $pag
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .organization-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .page-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-        .list-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 15px 0 20px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .organization-table th,
-        .organization-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .dark-mode .organization-table th,
-        .dark-mode .organization-table td {
-            border-bottom-color: #444;
-        }
-        .organization-table th {
-            background-color: #f5f5f5;
-            font-weight: var(--font-weight-bold);
-        }
-        .dark-mode .organization-table th {
-            background-color: #2d2d2d;
-        }
-        .organization-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        .dark-mode .organization-table tr:hover {
-            background-color: #333;
-        }
-        .action-buttons {
-            display: inline-flex;
-            gap: 5px;
-            background-color: transparent !important;
-        }
-        .action-buttons form {
-            margin: 0;
-        }
-        .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            white-space: nowrap;
-        }
-        .view-button {
-            background-color: var(--button-view-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .delete-button {
-            background-color: var(--button-delete-color);
-        }
-        .sort-buttons {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-        .sort-button {
-            padding: 8px 15px;
-            background-color: var(--button-neutral-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-        }
-    </style>
-</head>
+<?php renderPageHead('Organizations - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/organizations.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

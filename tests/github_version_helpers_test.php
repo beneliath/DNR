@@ -2,6 +2,12 @@
 
 require_once __DIR__ . '/../src/github_version_helpers.php';
 
+function renderScript($path, $defer = true)
+{
+    echo '<script src="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '"'
+        . ($defer ? ' defer' : '') . '></script>';
+}
+
 function expectGithubVersion($condition, $message)
 {
     if (!$condition) {

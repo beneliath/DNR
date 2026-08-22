@@ -1,0 +1,117 @@
+.page-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+        }
+        .list-controls {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin: 15px 0 20px;
+        }
+        .control-group {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .sort-buttons {
+            margin: 15px 0;
+            display: flex;
+            gap: 10px;
+        }
+        .sort-button {
+            padding: 8px 15px;
+            background-color: var(--button-neutral-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            display: inline-block;
+        }
+        .sort-selection.active {
+            background-color: var(--button-edit-color) !important;
+        }
+        .page-size-button.active {
+            background-color: var(--button-edit-color) !important;
+        }
+        .contact-table-wrapper {
+            overflow-x: auto;
+        }
+        .contact-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .contact-table th,
+        .contact-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .contact-table th:last-child,
+        .contact-table td:last-child {
+            text-align: right;
+        }
+        .dark-mode .contact-table th,
+        .dark-mode .contact-table td {
+            border-bottom-color: #444;
+        }
+        .contact-table th {
+            background-color: #f5f5f5;
+            font-weight: var(--font-weight-bold);
+        }
+        .dark-mode .contact-table th {
+            background-color: #2d2d2d;
+        }
+        .contact-table tr:hover {
+            background-color: #f9f9f9;
+        }
+        .dark-mode .contact-table tr:hover {
+            background-color: #333;
+        }
+        .action-buttons {
+            display: inline-flex;
+            justify-content: flex-end;
+            gap: 5px;
+            background-color: transparent !important;
+        }
+        .action-buttons form {
+            margin: 0;
+        }
+        .action-button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            white-space: nowrap;
+        }
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        .pagination-status {
+            min-width: 110px;
+            text-align: center;
+        }
+        .empty-state {
+            text-align: center !important;
+        }
+        @media (max-width: 640px) {
+            .page-heading,
+            .list-controls {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+        }

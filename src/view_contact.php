@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -24,7 +23,7 @@ $contact_stmt = $conn->prepare(
      WHERE c.id = ?"
 );
 if (!$contact_stmt) {
-    die('Unable to retrieve the contact.');
+    abortApplication(503, 'The contact is temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $contact_stmt->bind_param('i', $contact_id);
@@ -51,48 +50,14 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .contact-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark-mode .contact-details {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .detail-row {
-            margin-bottom: 15px;
-        }
-        .detail-row strong {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-    </style>
-</head>
+<?php renderPageHead('View Contact - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_contact.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

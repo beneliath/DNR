@@ -52,15 +52,29 @@ for migration_path in "$migration_directory"/*.sql
 do
     [ -f "$migration_path" ] || continue
     migration_name=$(basename "$migration_path")
-    already_applied=$(mysql --protocol=socket -uroot -Nse "
-        SELECT COUNT(*) FROM schema_migrations WHERE migration_name = '$migration_name'" "$database_name")
-    if [ "$already_applied" = "1" ]; then
+    case "$migration_name" in
+        *[!A-Za-z0-9_.-]*) echo "Migration filename contains unsupported characters: $migration_name" >&2; exit 1 ;;
+    esac
+    migration_checksum=$(sha256sum "$migration_path" | awk '{print $1}')
+    stored_checksum=$(mysql --protocol=socket -uroot -Nse "
+        SELECT checksum FROM schema_migrations WHERE migration_name = '$migration_name'" "$database_name")
+    if [ -n "$stored_checksum" ]; then
+        if [ "$stored_checksum" = "$(printf '%064d' 0)" ]; then
+            mysql --protocol=socket -uroot "$database_name" -e "
+                UPDATE schema_migrations
+                SET checksum = '$migration_checksum'
+                WHERE migration_name = '$migration_name' AND checksum = REPEAT('0', 64)"
+            echo "Sealed baseline checksum for $migration_name"
+        elif [ "$stored_checksum" != "$migration_checksum" ]; then
+            echo "Applied migration checksum mismatch: $migration_name" >&2
+            echo "Create a new migration instead of editing an applied migration." >&2
+            exit 1
+        fi
         continue
     fi
 
     echo "Applying $migration_name"
     mysql --protocol=socket -uroot "$database_name" < "$migration_path"
-    migration_checksum=$(sha256sum "$migration_path" | awk '{print $1}')
     mysql --protocol=socket -uroot "$database_name" -e "
         INSERT INTO schema_migrations (migration_name, checksum)
         VALUES ('$migration_name', '$migration_checksum')

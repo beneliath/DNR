@@ -1,7 +1,6 @@
 <?php
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/calendar_helpers.php';
 startSecureSession();
 requireLogin();
@@ -99,13 +98,20 @@ $webcal_url = $calendar_url === null
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Calendar Subscriptions - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <script src="assets/js/calendar-subscription.min.js?v=1.0.0" defer></script>
-</head>
+<?php renderPageHead('Calendar Subscriptions - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/calendar-subscription.min.js',
+    ),
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container calendar-subscription">

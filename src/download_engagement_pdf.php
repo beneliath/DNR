@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
 
@@ -16,9 +15,11 @@ if (!$engagement_id) {
 }
 
 $engagement_stmt = $conn->prepare(
-    'SELECT e.*, o.organization_name
+    'SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,
+            o.organization_name
      FROM engagements e
      LEFT JOIN organizations o ON e.organization_id = o.id
+     LEFT JOIN users caller ON caller.id = e.caller_user_id
      WHERE e.id = ?'
 );
 if (!$engagement_stmt) {
@@ -70,7 +71,7 @@ $presentation_stmt->close();
 try {
     $chron_entries = fetchChronLogEntries($conn, $engagement_id);
 } catch (Throwable $exception) {
-    error_log($exception->getMessage());
+    applicationLog('error', 'Unable to generate engagement PDF', ['error' => $exception->getMessage()]);
     http_response_code(500);
     exit('Unable to prepare the engagement Chron export.');
 }
@@ -86,7 +87,7 @@ foreach ($autoload_paths as $autoload_path) {
     }
 }
 if (!class_exists('FPDF')) {
-    error_log('FPDF is unavailable. Rebuild the DNR web container after installing Composer dependencies.');
+    applicationLog('critical', 'FPDF is unavailable; Composer dependencies are incomplete');
     http_response_code(503);
     exit('PDF downloads are temporarily unavailable.');
 }

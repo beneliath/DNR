@@ -1,6 +1,6 @@
 <?php
 
-require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/calendar_helpers.php';
 
 $subscription = calendarSubscriptionForToken($conn, $_GET['token'] ?? null);
@@ -41,7 +41,7 @@ $presentation_version_result = $conn->query(
        AND {$presentation_window}"
 );
 if (!$engagement_version_result || !$presentation_version_result) {
-    error_log('Unable to calculate the private calendar version: ' . $conn->error);
+    applicationLog('error', 'Unable to calculate the private calendar version', ['error' => $conn->error]);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: private, no-store');
@@ -91,7 +91,7 @@ $query = "SELECT
           ORDER BY e.event_start_date, e.id";
 $result = $conn->query($query);
 if (!$result) {
-    error_log('Unable to build the private calendar: ' . $conn->error);
+    applicationLog('error', 'Unable to build the private calendar', ['error' => $conn->error]);
     http_response_code(503);
     exit('The DNR calendar is temporarily unavailable.');
 }
@@ -128,7 +128,7 @@ $presentation_query = "SELECT
                    STR_TO_DATE(p.presentation_time, '%h:%i %p'), p.id";
 $presentation_result = $conn->query($presentation_query);
 if (!$presentation_result) {
-    error_log('Unable to add presentations to the private calendar: ' . $conn->error);
+    applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);
     http_response_code(503);
     exit('The DNR calendar is temporarily unavailable.');
 }

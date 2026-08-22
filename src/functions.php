@@ -1,4 +1,43 @@
 <?php
+require_once __DIR__ . '/application_runtime.php';
+
+function assetUrl($path) {
+    $path = ltrim((string) $path, '/');
+    $version = defined('APP_VERSION') ? APP_VERSION : 'dev';
+    return $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
+}
+
+function renderPageHead($title, array $options = []) {
+    $full_title = trim((string) $title);
+    if ($full_title === '') {
+        $full_title = 'MOED';
+    }
+    $styles = $options['styles'] ?? ['assets/css/style.min.css', 'assets/css/modern.min.css'];
+    $scripts = $options['scripts'] ?? [];
+    echo '<head>' . PHP_EOL;
+    echo '    <meta charset="UTF-8">' . PHP_EOL;
+    echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
+    echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
+    foreach ($styles as $style) {
+        echo '    <link rel="stylesheet" href="'
+            . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    }
+    foreach ($scripts as $script) {
+        $path = is_array($script) ? ($script['path'] ?? '') : $script;
+        if ($path === '') {
+            continue;
+        }
+        $defer = !is_array($script) || !array_key_exists('defer', $script) || $script['defer'];
+        renderScript((string) $path, $defer);
+    }
+    echo '</head>' . PHP_EOL;
+}
+
+function renderScript($path, $defer = true) {
+    echo '<script src="' . htmlspecialchars(assetUrl((string) $path), ENT_QUOTES, 'UTF-8') . '"'
+        . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
+}
+
 function requestUsesHttps(?array $server = null) {
     $server = $server ?? $_SERVER;
     if (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off') {
@@ -35,7 +74,10 @@ function sendApplicationSecurityHeaders() {
     }
 
     $nonce = contentSecurityPolicyNonce();
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
+    $style_source = $page === 'map.php' ? "'self' 'unsafe-inline'" : "'self'";
+    $style_attribute_source = $page === 'map.php' ? "'unsafe-inline'" : "'none'";
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');
@@ -365,7 +407,7 @@ function phoneCountryPicker($field_name, $selected_code = '+1', $aria_label = 'P
 function normalizeEventType($event_type, $event_type_other) {
     $event_type = trim((string) $event_type);
     $event_type_other = trim((string) $event_type_other);
-    $valid_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
+    $valid_types = \Dnr\Domain\ReferenceData::eventTypes();
     if (!in_array($event_type, $valid_types, true)) {
         throw new InvalidArgumentException('Select a valid event type.');
     }
@@ -444,7 +486,7 @@ function requireLogin() {
          WHERE id = ?'
     );
     if (!$stmt) {
-        error_log('DNR authentication schema is unavailable: ' . $conn->error);
+        applicationLog('error', 'Authentication schema is unavailable', ['error' => $conn->error]);
         http_response_code(503);
         exit('DNR is being upgraded. The authentication database migration is required.');
     }
@@ -611,10 +653,10 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     if ($stmt) {
         $stmt->bind_param('i', $user_id);
         if (!$stmt->execute()) {
-            error_log('Unable to record the successful login timestamp: ' . $stmt->error);
+            applicationLog('error', 'Unable to record the successful login timestamp', ['error' => $stmt->error]);
         }
     } else {
-        error_log('Unable to prepare the successful login timestamp update: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the successful login timestamp update', ['error' => $conn->error]);
     }
 
     recordAuditEvent($conn, [
@@ -677,14 +719,14 @@ function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null
     );
 
     if (!$stmt) {
-        error_log('Unable to prepare the database audit context: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the database audit context', ['error' => $conn->error]);
         return false;
     }
 
     $stmt->bind_param('iss', $actor_user_id, $actor_username, $ip_address);
     $success = $stmt->execute();
     if (!$success) {
-        error_log('Unable to set the database audit context: ' . $stmt->error);
+        applicationLog('error', 'Unable to set the database audit context', ['error' => $stmt->error]);
     }
     $stmt->close();
 
@@ -912,7 +954,7 @@ function recordAuditEvent(mysqli $conn, array $event) {
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     if (!$stmt) {
-        error_log('Unable to prepare an audit log event: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare an audit log event', ['error' => $conn->error]);
         return false;
     }
 
@@ -932,7 +974,7 @@ function recordAuditEvent(mysqli $conn, array $event) {
     );
     $success = $stmt->execute();
     if (!$success) {
-        error_log('Unable to record an audit log event: ' . $stmt->error);
+        applicationLog('error', 'Unable to record an audit log event', ['error' => $stmt->error]);
     }
     $stmt->close();
 
@@ -1116,7 +1158,7 @@ function clearAuthenticationRateLimits(mysqli $conn, $purpose, $username) {
              WHERE updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)'
         );
     } catch (Throwable $exception) {
-        error_log('Unable to prune stale login rate-limit records: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to prune stale login rate-limit records', ['error' => $exception->getMessage()]);
     }
 
     return $success;

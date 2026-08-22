@@ -57,7 +57,7 @@ expectContactPhoto(
 );
 
 expectContactPhoto(
-    str_contains($add_contact, 'assets/js/contact-photo.min.js?v=1.0.0')
+    str_contains($add_contact, "'path' => 'assets/js/contact-photo.min.js'")
         && str_contains($add_contact, 'data-contact-photo-preview')
         && str_contains($add_contact, 'data-contact-photo-input')
         && str_contains($edit_contact, 'data-remove-contact-photo')

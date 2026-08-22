@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'contact_photo_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
@@ -123,7 +122,7 @@ $count_stmt = null;
 if ($fulltext_query !== '') {
     $count_stmt = $conn->prepare($count_query);
     if (!$count_stmt) {
-        die('Unable to search contacts.');
+        abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
     }
     $count_stmt->bind_param('ss', $fulltext_query, $fulltext_query);
     $count_stmt->execute();
@@ -132,7 +131,7 @@ if ($fulltext_query !== '') {
     $count_result = $conn->query($count_query);
 }
 if (!$count_result) {
-    die('Unable to retrieve contacts.');
+    abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $total_contacts = (int) $count_result->fetch_assoc()['contact_count'];
@@ -161,7 +160,7 @@ $contact_query = "SELECT
                   LIMIT ? OFFSET ?";
 $contact_stmt = $conn->prepare($contact_query);
 if (!$contact_stmt) {
-    die('Unable to retrieve contacts.');
+    abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
 
 if ($fulltext_query !== '') {
@@ -176,7 +175,7 @@ if ($fulltext_query !== '') {
     $contact_stmt->bind_param('ii', $page_size, $offset);
 }
 if (!$contact_stmt->execute()) {
-    die('Unable to retrieve contacts.');
+    abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
 $contacts_result = $contact_stmt->get_result();
 
@@ -205,131 +204,14 @@ function contactsPageUrl(
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Contacts - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .page-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-        .list-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 15px 0 20px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .sort-buttons {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-        .sort-button {
-            padding: 8px 15px;
-            background-color: var(--button-neutral-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-        }
-        .sort-selection.active {
-            background-color: var(--button-edit-color) !important;
-        }
-        .page-size-button.active {
-            background-color: var(--button-edit-color) !important;
-        }
-        .contact-table-wrapper {
-            overflow-x: auto;
-        }
-        .contact-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .contact-table th,
-        .contact-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .contact-table th:last-child,
-        .contact-table td:last-child {
-            text-align: right;
-        }
-        .dark-mode .contact-table th,
-        .dark-mode .contact-table td {
-            border-bottom-color: #444;
-        }
-        .contact-table th {
-            background-color: #f5f5f5;
-            font-weight: var(--font-weight-bold);
-        }
-        .dark-mode .contact-table th {
-            background-color: #2d2d2d;
-        }
-        .contact-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        .dark-mode .contact-table tr:hover {
-            background-color: #333;
-        }
-        .action-buttons {
-            display: inline-flex;
-            justify-content: flex-end;
-            gap: 5px;
-            background-color: transparent !important;
-        }
-        .action-buttons form {
-            margin: 0;
-        }
-        .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            white-space: nowrap;
-        }
-        .pagination {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .pagination-status {
-            min-width: 110px;
-            text-align: center;
-        }
-        .empty-state {
-            text-align: center !important;
-        }
-        @media (max-width: 640px) {
-            .page-heading,
-            .list-controls {
-                align-items: flex-start;
-                flex-direction: column;
-            }
-        }
-    </style>
-</head>
+<?php renderPageHead('Contacts - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/contacts.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

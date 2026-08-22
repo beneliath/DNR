@@ -64,7 +64,7 @@ expectUserProfile(
     'the profile form should securely save every requested personal field and the uploaded picture.'
 );
 expectUserProfile(
-    str_contains($profile_page, 'assets/js/profile.min.js?v=1.0.1')
+    str_contains($profile_page, "'path' => 'assets/js/profile.min.js'")
         && str_contains($profile_page, 'data-profile-picture-preview')
         && str_contains($profile_page, 'data-profile-picture-input')
         && str_contains($profile_page, 'aria-live="polite"'),

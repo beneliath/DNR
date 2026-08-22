@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -91,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'That security action is not permitted.';
             }
         } catch (Throwable $exception) {
-            error_log('Two-factor settings error: ' . $exception->getMessage());
+            applicationLog('error', 'Two-factor settings failed unexpectedly', ['error' => $exception->getMessage()]);
             $error = 'The security change could not be completed.';
         }
     }
@@ -105,12 +104,13 @@ $remaining_codes = !empty($user['two_factor_enabled'])
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Account Security - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Account Security - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">

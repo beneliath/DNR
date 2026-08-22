@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: gd, mysqli, sodium
+          coverage: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: npm ci
+      - run: composer check
+      - run: npm test
+      - run: git diff --exit-code -- src/assets
+
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create disposable secrets
+        run: |
+          mkdir -p secrets backups
+          openssl rand -hex 32 > secrets/mysql_root_password
+          openssl rand -hex 32 > secrets/mysql_app_password
+          openssl rand -hex 32 > secrets/mysql_maintenance_password
+          openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
+          printf '%s' 'integration backup password' > secrets/backup_password
+          cp .env.example .env
+      - name: Start and migrate disposable database
+        run: |
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d db --wait
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml exec -T db sh /opt/dnr/bin/migrate
+      - name: Start application
+        run: |
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml build web ingress maintenance
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d web ingress --wait
+      - name: Exercise HTTP boundaries
+        run: sh tests/http_smoke_test.sh
+      - name: Run database integration suites
+        run: |
+          compose='docker compose -f docker-compose.yaml -f docker-compose.dev.yaml'
+          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/contact_photo_integration_test.php
+          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/follow_up_tasks_integration_test.php
+          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/integration_beta_test.php
+          $compose run --rm --no-deps --entrypoint php -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_TEST_SOURCE_DIR=/var/www/html maintenance /opt/dnr/tests/database_backup_integration_test.php
+      - name: Show service logs
+        if: failure()
+        run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml logs --no-color
+      - name: Remove disposable environment
+        if: always()
+        run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v

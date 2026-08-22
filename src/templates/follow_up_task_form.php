@@ -88,4 +88,4 @@ $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
         <button type="submit" name="save_task" value="1" class="save-button"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>
-<script src="assets/js/task-form.min.js?v=1.0.0" defer></script>
+<?php renderScript('assets/js/task-form.min.js'); ?>

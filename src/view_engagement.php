@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'chron_log_helpers.php';
 include 'engagement_export_helpers.php';
 include 'presentation_helpers.php';
@@ -20,15 +19,15 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 $engagement_id = intval($_GET['id']);
 
 // Fetch engagement details with organization name and contacts
-$query = "SELECT e.*, o.organization_name, o.id as org_id
+$query = "SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,
+                 o.organization_name, o.id as org_id
           FROM engagements e
           LEFT JOIN organizations o ON e.organization_id = o.id
+          LEFT JOIN users caller ON caller.id = e.caller_user_id
           WHERE e.id = ?";
 
 $stmt = $conn->prepare($query);
-if ($stmt === false) {
-    die("Error preparing statement: " . $conn->error);
-}
+if ($stmt === false) abortApplication(503, 'The engagement details are temporarily unavailable.', ['error' => $conn->error]);
 
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -49,9 +48,7 @@ $is_archived = !empty($engagement['is_deleted']);
                   WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
-if ($contact_stmt === false) {
-    die("Error preparing contacts statement: " . $conn->error);
-}
+if ($contact_stmt === false) abortApplication(503, 'The engagement contacts are temporarily unavailable.', ['error' => $conn->error]);
 
 $contact_stmt->bind_param("i", $engagement['org_id']);
 $contact_stmt->execute();
@@ -66,9 +63,7 @@ $presentation_stmt = $conn->prepare(
      ORDER BY presentation_date,
               STR_TO_DATE(presentation_time, '%h:%i %p'), id"
 );
-if ($presentation_stmt === false) {
-    die("Error preparing presentations statement: " . $conn->error);
-}
+if ($presentation_stmt === false) abortApplication(503, 'The engagement presentations are temporarily unavailable.', ['error' => $conn->error]);
 $presentation_stmt->bind_param("i", $engagement_id);
 $presentation_stmt->execute();
 $presentations_result = $presentation_stmt->get_result();
@@ -118,121 +113,14 @@ $presentation_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .view-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .detail-group {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 15px;
-        }
-        .detail-group:last-child {
-            border-bottom: none;
-        }
-        .detail-label {
-            font-weight: var(--font-weight-bold);
-            margin-bottom: 5px;
-            color: var(--text-color);
-        }
-        .detail-value {
-            margin-bottom: 10px;
-            color: var(--text-color);
-        }
-        .action-buttons {
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .primary-actions,
-        .export-actions {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .export-actions {
-            margin-left: auto;
-        }
-        .action-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        /* Contact styles */
-        .contacts-list {
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-        .contact-item {
-            background-color: var(--light-bg-color);
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-        .presentation-item {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        .dark-mode .presentation-item {
-            border-color: #444;
-        }
-        .dark-mode .contact-item {
-            background-color: var(--dark-input-bg);
-            border-color: #333;
-        }
-        .contact-title {
-            color: #666;
-            font-style: italic;
-            margin: 5px 0;
-        }
-        .dark-mode .contact-title {
-            color: #aaa;
-        }
-        .contact-notes {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #eee;
-            font-size: var(--font-size-small);
-        }
-        .dark-mode .contact-notes {
-            border-top-color: #333;
-        }
-    </style>
-</head>
+<?php renderPageHead('View Engagement - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_engagement.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
@@ -446,59 +334,10 @@ $presentation_stmt->close();
     include 'templates/follow_up_task_section.php';
     ?>
 </div>
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-(function () {
-    const engagementExports = <?php echo json_encode([
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-export-data"><?php echo json_encode([
         'text' => $engagement_plain_text,
         'markdown' => $engagement_markdown,
-    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-    const status = document.getElementById('copy-status');
-
-    function copyWithFallback(value) {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        const copied = document.execCommand('copy');
-        textarea.remove();
-        if (!copied) {
-            throw new Error('The browser declined the copy command.');
-        }
-    }
-
-    async function copyEngagement(button) {
-        const format = button.dataset.copyFormat;
-        const value = engagementExports[format];
-        const originalLabel = button.textContent;
-
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
-            } else {
-                copyWithFallback(value);
-            }
-            button.textContent = 'Copied!';
-            status.textContent = originalLabel + ' copied to the clipboard.';
-        } catch (error) {
-            button.textContent = 'Copy failed';
-            status.textContent = originalLabel + ' could not be copied.';
-        }
-
-        window.setTimeout(function () {
-            button.textContent = originalLabel;
-        }, 1800);
-    }
-
-    document.querySelectorAll('[data-copy-format]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            copyEngagement(button);
-        });
-    });
-}());
-</script>
+    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

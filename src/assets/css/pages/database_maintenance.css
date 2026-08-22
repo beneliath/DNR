@@ -1,0 +1,24 @@
+.database-maintenance-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 720px);
+            gap: 20px;
+            align-items: start;
+        }
+        .database-maintenance-card {
+            border: 1px solid var(--border-color, #ddd);
+            border-radius: 8px;
+            padding: 20px;
+            background: var(--surface-color, #fff);
+        }
+        .database-maintenance-card h2 { margin-top: 0; }
+        .database-maintenance-card form { display: grid; gap: 10px; }
+        .database-maintenance-card input { box-sizing: border-box; width: 100%; }
+        .database-warning {
+            border-left: 4px solid #d97706;
+            padding: 10px 12px;
+            background: rgba(217, 119, 6, 0.12);
+        }
+        .maintenance-note { font-size: var(--font-size-small); color: var(--text-muted, #666); }
+        @media (max-width: 760px) {
+            .database-maintenance-grid { grid-template-columns: 1fr; }
+        }

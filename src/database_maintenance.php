@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/database_backup_helpers.php';
 startSecureSession();
@@ -72,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : '';
         $backup = null;
         $encrypted_backup = null;
+        $backup_started_at = microtime(true);
         try {
             if (strlen($backup_password) < 12) {
                 $error = 'The backup encryption password must contain at least 12 characters.';
@@ -104,7 +104,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'target_user_id' => $actor_id,
                     'entity_type' => 'database',
                     'entity_label' => 'DNR database',
-                    'details' => 'Administrator created a password-encrypted database backup',
+                    'details' => sprintf(
+                        'Encrypted backup: %d bytes in %d ms',
+                        (int) $encrypted_backup['size'],
+                        (int) round((microtime(true) - $backup_started_at) * 1000)
+                    ),
                 ]);
                 if (!$audit_recorded) {
                     throw new RuntimeException('Unable to record the database backup audit event.');
@@ -126,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (is_array($encrypted_backup) && isset($encrypted_backup['path'])) {
                 @unlink($encrypted_backup['path']);
             }
-            error_log('Database backup error: ' . $exception->getMessage());
+            applicationLog('error', 'Database backup failed', ['error' => $exception->getMessage()]);
             $error = 'The database backup could not be created. No database data was changed.';
         }
     }
@@ -134,38 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Database Backup - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .database-maintenance-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 720px);
-            gap: 20px;
-            align-items: start;
-        }
-        .database-maintenance-card {
-            border: 1px solid var(--border-color, #ddd);
-            border-radius: 8px;
-            padding: 20px;
-            background: var(--surface-color, #fff);
-        }
-        .database-maintenance-card h2 { margin-top: 0; }
-        .database-maintenance-card form { display: grid; gap: 10px; }
-        .database-maintenance-card input { box-sizing: border-box; width: 100%; }
-        .database-warning {
-            border-left: 4px solid #d97706;
-            padding: 10px 12px;
-            background: rgba(217, 119, 6, 0.12);
-        }
-        .maintenance-note { font-size: var(--font-size-small); color: var(--text-muted, #666); }
-        @media (max-width: 760px) {
-            .database-maintenance-grid { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
+<?php renderPageHead('Database Backup - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/database_maintenance.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container">

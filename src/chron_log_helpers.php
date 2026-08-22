@@ -64,7 +64,7 @@ function fetchChronLogEntriesForArchiveState(mysqli $conn, $engagement_id, $arch
 
     $stmt = $conn->prepare($query);
     if (!$stmt) {
-        error_log('Unable to prepare the Chron log query: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the Chron log query', ['error' => $conn->error]);
         throw new RuntimeException('Unable to prepare the Chron log query.');
     }
     $stmt->bind_param('i', $engagement_id);
@@ -97,7 +97,7 @@ function countArchivedChronLogEntries(mysqli $conn, $engagement_id) {
          WHERE engagement_id = ? AND is_archived = 1'
     );
     if (!$stmt) {
-        error_log('Unable to prepare the archived Chron count query: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the archived Chron count query', ['error' => $conn->error]);
         throw new RuntimeException('Unable to prepare the archived Chron count query.');
     }
     $stmt->bind_param('i', $engagement_id);

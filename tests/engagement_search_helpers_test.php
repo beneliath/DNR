@@ -21,7 +21,7 @@ expectEngagementSearch(
 $plan = buildEngagementSearchPlan('conference Chicago "Daniel email"');
 $patterns_per_term = substr_count(engagementSearchTermSql(), '?');
 expectEngagementSearch(
-    $patterns_per_term === 4,
+    $patterns_per_term === 5,
     'each term should search every supported engagement field group.'
 );
 expectEngagementSearch(

@@ -10,6 +10,7 @@ function expectHoverStyle($condition, $message) {
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
+$audit_log_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audit_log.css');
 $calendar_subscription_page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
 $calendar_subscription_script = file_get_contents(__DIR__ . '/../src/assets/js/calendar-subscription.js');
 $footer_template = file_get_contents(__DIR__ . '/../src/templates/footer.php');
@@ -31,7 +32,7 @@ expectHoverStyle(
     'List controls should define distinct, visible hover surfaces for both themes.'
 );
 expectHoverStyle(
-    strpos($audit_log_page, "background-color: var(--button-edit-color) !important;") !== false,
+    strpos($audit_log_styles, "background-color: var(--button-edit-color) !important;") !== false,
     'The Audit Log should apply its active selector color without relying on a cached stylesheet.'
 );
 expectHoverStyle(
@@ -115,17 +116,17 @@ expectHoverStyle(
     'Theme controls should register CSP-compatible click listeners.'
 );
 expectHoverStyle(
-    strpos($header_template, 'assets/js/theme.min.js?v=1.1.0') !== false
-        && strpos($header_template, 'assets/js/app-shell.min.js?v=1.1.0') !== false,
-    'Changed shell scripts should use cache keys so old inline-handler code cannot be reused.'
+    strpos($header_template, "renderScript('assets/js/theme.min.js'") !== false
+        && strpos($header_template, "renderScript('assets/js/app-shell.min.js'") !== false,
+    'Changed shell scripts should use the centralized versioned asset renderer.'
 );
 foreach (['login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php'] as $theme_page) {
     expectHoverStyle(
         strpos(
             file_get_contents(__DIR__ . '/../src/' . $theme_page),
-            'assets/js/theme.min.js?v=1.1.0'
+            "renderScript('assets/js/theme.min.js'"
         ) !== false,
-        $theme_page . ' should load the listener-enabled theme script with its current cache key.'
+        $theme_page . ' should load the listener-enabled theme script through the versioned asset renderer.'
     );
 }
 expectHoverStyle(
@@ -153,16 +154,11 @@ expectHoverStyle(
     'Open in Calendar App should use title case in its initial and restored labels.'
 );
 
-foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
-    $page_source = file_get_contents($page_path);
-    if (strpos($page_source, 'assets/css/style.min.css?v=') === false) {
-        continue;
-    }
-    expectHoverStyle(
-        strpos($page_source, 'assets/css/style.min.css?v=0.0.20') !== false,
-        basename($page_path) . ' should use the current stylesheet cache key.'
-    );
-}
+expectHoverStyle(
+    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "assetUrl((string) \$style)")
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css'),
+    'stylesheets should use the centralized application-version cache key.'
+);
 
 expectHoverStyle(
     strpos($audit_log_page, 'class="button-add">Back to Users</a>') !== false
@@ -170,12 +166,10 @@ expectHoverStyle(
     'Audit Log navigation controls should inherit the shared surface button style.'
 );
 
-foreach (['templates/header.php', 'login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php', 'migrate_passwords.php'] as $page) {
-    expectHoverStyle(
-        strpos(file_get_contents(__DIR__ . '/../src/' . $page), 'assets/css/modern.min.css?v=0.1.60') !== false,
-        $page . ' should use the current modern stylesheet cache key.'
-    );
-}
+expectHoverStyle(
+    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/modern.min.css'),
+    'the shared page head should load the modern control system.'
+);
 
 $interactive_markup_pattern = '/<(?:button\b|input\b[^>]*type=["\'](?:button|submit|reset)["\']|a\b[^>]*class=["\'][^"\']*(?:button|btn))/i';
 foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
@@ -187,7 +181,7 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
 
     expectHoverStyle(
         strpos($page_source, "templates/header.php") !== false
-            || strpos($page_source, 'assets/css/modern.min.css?v=0.1.60') !== false,
+            || strpos($page_source, 'renderPageHead(') !== false,
         basename($page_path) . ' has interactive controls but does not load the modern button system.'
     );
 }

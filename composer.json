@@ -2,6 +2,12 @@
     "name": "beneliath/dnr",
     "description": "DNR - MOED מוֹעֵד",
     "type": "project",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Dnr\\": "src/app/"
+        }
+    },
     "require": {
         "php": "^8.4",
         "endroid/qr-code": "^6.0",
@@ -12,5 +18,18 @@
         "allow-plugins": false,
         "optimize-autoloader": true,
         "sort-packages": true
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.1"
+    },
+    "scripts": {
+        "lint": "sh scripts/lint_php.sh",
+        "analyse": "phpstan analyse --no-progress --debug",
+        "test": "sh scripts/run_tests.sh",
+        "check": [
+            "@lint",
+            "@analyse",
+            "@test"
+        ]
     }
 }

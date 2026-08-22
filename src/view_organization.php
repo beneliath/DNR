@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -20,9 +19,7 @@ $org_id = intval($_GET['id']);
 $query = "SELECT * FROM organizations WHERE id = ?";
 
 $stmt = $conn->prepare($query);
-if ($stmt === false) {
-    die("Error preparing statement: " . $conn->error);
-}
+if ($stmt === false) abortApplication(503, 'The organization is temporarily unavailable.', ['error' => $conn->error]);
 
 $stmt->bind_param("i", $org_id);
 $stmt->execute();
@@ -43,9 +40,7 @@ $is_archived = !empty($organization['is_deleted']);
                   WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
-if ($contact_stmt === false) {
-    die("Error preparing contacts statement: " . $conn->error);
-}
+if ($contact_stmt === false) abortApplication(503, 'The organization contacts are temporarily unavailable.', ['error' => $conn->error]);
 
 $contact_stmt->bind_param("i", $org_id);
 $contact_stmt->execute();
@@ -57,85 +52,14 @@ $contact_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .organization-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark-mode .organization-details {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .detail-row {
-            margin-bottom: 15px;
-        }
-        .detail-row strong {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .contacts-section {
-            margin-top: 30px;
-        }
-        .contact-card {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .dark-mode .contact-card {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .contact-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .contact-name {
-            font-size: var(--font-size-large);
-            font-weight: var(--font-weight-bold);
-            margin: 0;
-        }
-        .contact-role {
-            font-style: italic;
-            color: #666;
-        }
-        .dark-mode .contact-role {
-            color: #888;
-        }
-        .contact-info {
-            margin-top: 10px;
-        }
-        .action-buttons {
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            margin-right: 10px;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-    </style>
-</head>
+<?php renderPageHead('View Organization - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_organization.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

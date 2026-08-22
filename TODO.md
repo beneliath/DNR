@@ -31,15 +31,16 @@
 - [ ] TEST 'Add Organization'; on pass, tag restore point
 - [ ] TEST 'Add Contact'; on pass, tag restore point
 - [ ] TEST 'Add Presentation'; on pass, tag restore point
-- [ ] header navigation bar redesign (only after base functionality complete)
+- [x] header navigation bar redesign
 - [ ] doublecheck password entry for new user creation
 - [x] allow users to change their own password with confirmation and session revocation
-- [ ] build out profiles for users (including email sub-system for initialization and password reset)
+- [x] build out profiles for users
+- [ ] build email subsystem for initialization and password reset
 - [ ] add functionality to activate/deactivate users
-- [ ] build out for Contact(s): Admin, Pastor
-- [ ] build out Anticipated Compensation
+- [x] build out for Contact(s): Admin, Pastor, and Other
+- [x] build out Anticipated Compensation
 - [ ] build out complete financial sub-system
-- [ ] 'Caller' in Engagement/Event to be listed system user
+- [x] 'Caller' in Engagement/Event is a linked system user with a historical username snapshot
 - [x] convert from plaintext to hashed passwords
 - [x] add TOTP MFA, recovery codes, throttling, encrypted secrets, and administrator enforcement
 - [x] build out multiple Presentation functionality

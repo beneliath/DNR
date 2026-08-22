@@ -52,10 +52,10 @@ $add_organization = $read('src/add_organization.php');
 $edit_organization = $read('src/edit_organization.php');
 $view_organization = $read('src/view_organization.php');
 expectBetaReadiness(
-    str_contains($add_organization, '$mailing_address_line_1 = $physical_address_line_1;')
-        && str_contains($edit_organization, '$mailing_address_line_1 = $physical_address_line_1;')
-        && str_contains($add_organization, 'normalizedHttpUrl($website_url)')
-        && str_contains($edit_organization, 'normalizedHttpUrl($website_url)')
+    str_contains($add_organization, 'OrganizationInput::normalize')
+        && str_contains($edit_organization, 'OrganizationInput::normalize')
+        && str_contains($read('src/app/Domain/OrganizationInput.php'), 'normalizedHttpUrl')
+        && str_contains($read('src/app/Domain/OrganizationInput.php'), "if (\$data['same_address'])")
         && str_contains($view_organization, 'normalizedHttpUrl'),
     'same-address data and website schemes must be enforced in every organization write/read path.'
 );

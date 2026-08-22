@@ -1,7 +1,6 @@
 <?php
 
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -20,7 +19,7 @@ try {
         'results' => searchFollowUpTaskSubjects($conn, $_GET['q'] ?? '', 24),
     ], JSON_THROW_ON_ERROR);
 } catch (Throwable $exception) {
-    error_log('Task subject search failed: ' . $exception->getMessage());
+    applicationLog('error', 'Task subject search failed', ['error' => $exception->getMessage()]);
     http_response_code(503);
     echo json_encode(['error' => 'Search is temporarily unavailable.']);
 }

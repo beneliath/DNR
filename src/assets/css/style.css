@@ -557,7 +557,7 @@ h3,
   width: 100%;
 }
 
-#other_event_type_div {
+#other_event_type_div[hidden] {
   display: none;
 }
 
@@ -1125,4 +1125,60 @@ input[type="checkbox"] {
 .dark-mode .radio-options input[type="radio"],
 .dark-mode input[type="checkbox"] {
   accent-color: #357abd;
+}
+/* Shared presentation helpers used instead of inline style attributes. */
+[hidden] {
+    display: none !important;
+}
+
+.form-flex-one {
+    flex: 1;
+}
+
+.contact-role-field {
+    flex: 0 0 200px;
+}
+
+.create-form-actions.create-form-actions-flush {
+    padding-left: 0;
+    margin-left: 0;
+}
+
+.create-form-actions.create-form-actions-end {
+    justify-content: flex-end;
+    padding: 0;
+    margin: 0;
+}
+
+.save-button.save-button-flush {
+    margin-left: 0;
+}
+
+.engagement-inline-row {
+    display: flex;
+    gap: 20px;
+}
+
+.confirmation-status-label {
+    margin-right: 10px;
+}
+
+.confirmation-status-select {
+    width: auto;
+}
+
+.inline-action-link {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.25 !important;
+    text-decoration: none !important;
+}
+
+.clipboard-fallback {
+    position: fixed;
+    inset: 0 auto auto -10000px;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
 }

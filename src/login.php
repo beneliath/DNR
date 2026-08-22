@@ -1,7 +1,6 @@
 <?php
 // Include required files
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireTwoFactorSchema($conn);
@@ -74,20 +73,21 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in - DNR</title>
-  <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-  <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.60">
-  <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
-    // Load theme before page renders
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark-mode');
-    }
-  </script>
-</head>
+<?php renderPageHead('Sign in - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/theme-init.min.js',
+      'defer' => false,
+    ),
+  ),
+)); ?>
 <body class="fullscreen-center">
   <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
     <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
@@ -123,6 +123,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
       Protected with two-factor authentication
     </p>
   </div>
-  <script src="assets/js/theme.min.js?v=1.1.0"></script>
+  <?php renderScript('assets/js/theme.min.js', false); ?>
 </body>
 </html>

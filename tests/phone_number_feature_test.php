@@ -18,13 +18,20 @@ $entry_pages = [
 ];
 foreach ($entry_pages as $page) {
     $source = $read($page);
+    $uses_shared_normalizer = str_contains($source, 'OrganizationInput::normalize')
+        || str_contains($source, 'ContactInput::normalize');
     expectPhoneFeature(
-        str_contains($source, 'phoneCountryPicker(')
-            && str_contains($source, 'data-phone-number')
-            && str_contains($source, 'normalizePhoneNumber('),
-        "{$page} should provide country-code entry and server-side normalization."
+        $uses_shared_normalizer,
+        "{$page} should use shared server-side input normalization."
     );
 }
+expectPhoneFeature(
+    str_contains($read('src/app/Domain/OrganizationInput.php'), 'normalizePhoneNumber(')
+        && str_contains($read('src/app/Domain/ContactInput.php'), 'normalizePhoneNumber(')
+        && str_contains($read('src/add_organization.php'), 'phoneCountryPicker(')
+        && str_contains($read('src/add_contact.php'), 'data-phone-number'),
+    'shared normalizers and entry forms should enforce country-aware telephone input.'
+);
 
 $display_pages = [
     'src/view_organization.php',
@@ -50,9 +57,9 @@ expectPhoneFeature(
 
 $header = $read('src/templates/header.php');
 expectPhoneFeature(
-    str_contains($header, 'assets/js/phone-input.min.js?v=0.2.0')
-        && str_contains($header, 'assets/css/modern.min.css?v=0.1.60'),
-    'the application shell should load the country picker behavior and current production styles.'
+    str_contains($header, "renderScript('assets/js/phone-input.min.js'")
+        && str_contains($read('src/functions.php'), 'assets/css/modern.min.css'),
+    'the application shell should load the country picker and centralized production styles.'
 );
 
 $phone_styles = $read('src/assets/css/modern.css');

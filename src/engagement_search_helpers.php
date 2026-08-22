@@ -44,6 +44,11 @@ function engagementSearchTermSql() {
     return "(
         MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
             AGAINST (? IN BOOLEAN MODE)
+        OR EXISTS (
+            SELECT 1 FROM users caller
+            WHERE caller.id = e.caller_user_id
+              AND caller.username LIKE CONCAT('%', REPLACE(?, '*', ''), '%')
+        )
         OR MATCH(
             o.organization_name, o.notes, o.affiliation, o.distinctives,
             o.email, o.phone, o.physical_city, o.physical_state,
