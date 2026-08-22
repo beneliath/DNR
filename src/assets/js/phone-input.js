@@ -131,6 +131,15 @@
         if (nationalInput) nationalInput.focus();
     }
 
+    if (typeof module === 'object' && module.exports) {
+        module.exports = {
+            formatNationalInput,
+            localDigits,
+            normalizedCountryCode
+        };
+    }
+    if (typeof document === 'undefined') return;
+
     document.addEventListener('click', function (event) {
         const option = event.target.closest('[data-phone-country-option]');
         if (option) {

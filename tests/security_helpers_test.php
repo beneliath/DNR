@@ -81,11 +81,27 @@ expectTrue(
 expectTrue(
     requestIpAddress([
         'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.99, 203.0.113.42, 192.168.65.1',
+    ]) === '203.0.113.42',
+    'A client-supplied leftmost forwarding value must not override the nearest untrusted address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
         'HTTP_X_FORWARDED_FOR' => '172.18.0.14',
         'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
         'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
     ]) === '203.0.113.42',
     'A trusted Cloudflare tunnel should supply the original public client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.99, 172.18.0.14',
+        'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
+        'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
+    ]) === '203.0.113.42',
+    'A trusted Cloudflare hop must ignore an untrusted value prepended to its forwarding chain.'
 );
 expectTrue(
     requestIpAddress([

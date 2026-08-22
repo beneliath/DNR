@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
+require_once __DIR__ . '/app/Http/ClientAddress.php';
 
 foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.php'] as $autoload) {
     if (is_file($autoload)) {
@@ -12,6 +13,7 @@ foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.p
 }
 
 use Dnr\Service\ArchiveService;
+use Dnr\Http\ClientAddress;
 
 function assetUrl($path) {
     $path = ltrim((string) $path, '/');
@@ -759,145 +761,56 @@ function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null
 
 function requestIpAddress($server = null) {
     $server = is_array($server) ? $server : $_SERVER;
-    $remote_address = trim((string) ($server['REMOTE_ADDR'] ?? ''));
-    $remote_address = filter_var($remote_address, FILTER_VALIDATE_IP)
-        ? $remote_address
-        : null;
+    return ClientAddress::resolve(
+        $server,
+        trustedProxyNetworks(),
+        trustedCloudflareProxyNetworks()
+    );
+}
 
-    if ($remote_address !== null && isTrustedProxyAddress($remote_address)) {
-        $forwarded_for = (string) ($server['HTTP_X_FORWARDED_FOR'] ?? '');
-        foreach (explode(',', $forwarded_for) as $forwarded_address) {
-            $forwarded_address = trim($forwarded_address);
-            if (filter_var($forwarded_address, FILTER_VALIDATE_IP)) {
-                $cloudflare_address = trim((string) ($server['HTTP_CF_CONNECTING_IP'] ?? ''));
-                $cloudflare_ray = trim((string) ($server['HTTP_CF_RAY'] ?? ''));
-                if (isTrustedCloudflareProxyAddress($forwarded_address)
-                    && filter_var($cloudflare_address, FILTER_VALIDATE_IP)
-                    && preg_match('/^[0-9a-f]{16,32}(?:-[a-z]{3})?$/i', $cloudflare_ray)
-                ) {
-                    return substr($cloudflare_address, 0, 45);
-                }
+function trustedProxyNetworks() {
+    $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
+    return is_string($configured_proxies) && trim($configured_proxies) !== ''
+        ? $configured_proxies
+        : '192.168.65.1';
+}
 
-                return substr($forwarded_address, 0, 45);
-            }
-        }
-    }
-
-    return $remote_address === null ? null : substr($remote_address, 0, 45);
+function trustedCloudflareProxyNetworks() {
+    $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+    return is_string($configured_proxies) && trim($configured_proxies) !== ''
+        ? $configured_proxies
+        : '172.18.0.0/24';
 }
 
 function isTrustedProxyAddress($ip_address) {
-    $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
-    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '192.168.65.1';
-    }
-
-    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+    return isAddressInTrustedNetworks($ip_address, trustedProxyNetworks());
 }
 
 function isTrustedCloudflareProxyAddress($ip_address) {
-    $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
-    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '172.18.0.0/24';
-    }
-
-    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+    return isAddressInTrustedNetworks($ip_address, trustedCloudflareProxyNetworks());
 }
 
 function dockerGatewayAddress($route_contents = null) {
-    if ($route_contents === null) {
-        $route_contents = @file_get_contents('/proc/net/route');
-    }
-    if (!is_string($route_contents) || trim($route_contents) === '') {
+    if ($route_contents !== null && !is_string($route_contents)) {
         return null;
     }
 
-    foreach (preg_split('/\R/', trim($route_contents)) as $route_line) {
-        $fields = preg_split('/\s+/', trim($route_line));
-        if (count($fields) < 4
-            || $fields[1] !== '00000000'
-            || preg_match('/\A[0-9A-Fa-f]{8}\z/', $fields[2]) !== 1
-            || preg_match('/\A[0-9A-Fa-f]{4}\z/', $fields[3]) !== 1
-            || (((int) hexdec($fields[3])) & 0x2) === 0
-        ) {
-            continue;
-        }
-
-        $packed_gateway = @hex2bin($fields[2]);
-        if ($packed_gateway === false || strlen($packed_gateway) !== 4) {
-            continue;
-        }
-        $gateway_address = @inet_ntop(strrev($packed_gateway));
-        if (is_string($gateway_address)
-            && filter_var($gateway_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
-        ) {
-            return $gateway_address;
-        }
-    }
-
-    return null;
+    return ClientAddress::dockerGatewayAddress($route_contents);
 }
 
 function isAddressInTrustedNetworks($ip_address, $configured_networks, $docker_gateway = null) {
-    if (!filter_var($ip_address, FILTER_VALIDATE_IP)) {
-        return false;
-    }
-
-    $trusted_networks = array_filter(array_map('trim', explode(',', $configured_networks)));
-    foreach ($trusted_networks as $trusted_network) {
-        if ($trusted_network === 'docker-gateway') {
-            $resolved_gateway = $docker_gateway ?? dockerGatewayAddress();
-            if ($resolved_gateway !== null && $ip_address === $resolved_gateway) {
-                return true;
-            }
-            continue;
-        }
-        if (ipAddressMatchesNetwork($ip_address, $trusted_network)) {
-            return true;
-        }
-    }
-
-    return false;
+    return ClientAddress::isAddressInTrustedNetworks(
+        (string) $ip_address,
+        (string) $configured_networks,
+        is_string($docker_gateway) ? $docker_gateway : null
+    );
 }
 
 function ipAddressMatchesNetwork($ip_address, $trusted_network) {
-    if (strpos($trusted_network, '/') === false) {
-        return $ip_address === $trusted_network;
-    }
-
-    [$network_address, $prefix_length] = array_map('trim', explode('/', $trusted_network, 2));
-    if (!ctype_digit($prefix_length)) {
-        return false;
-    }
-
-    $packed_address = @inet_pton($ip_address);
-    $packed_network = @inet_pton($network_address);
-    if ($packed_address === false
-        || $packed_network === false
-        || strlen($packed_address) !== strlen($packed_network)
-    ) {
-        return false;
-    }
-
-    $prefix_length = (int) $prefix_length;
-    $maximum_prefix_length = strlen($packed_address) * 8;
-    if ($prefix_length < 0 || $prefix_length > $maximum_prefix_length) {
-        return false;
-    }
-
-    $whole_bytes = intdiv($prefix_length, 8);
-    if (substr($packed_address, 0, $whole_bytes) !== substr($packed_network, 0, $whole_bytes)) {
-        return false;
-    }
-
-    $remaining_bits = $prefix_length % 8;
-    if ($remaining_bits === 0) {
-        return true;
-    }
-
-    $mask = (0xff << (8 - $remaining_bits)) & 0xff;
-    return (ord($packed_address[$whole_bytes]) & $mask)
-        === (ord($packed_network[$whole_bytes]) & $mask);
+    return ClientAddress::isAddressInTrustedNetworks(
+        (string) $ip_address,
+        (string) $trusted_network
+    );
 }
 
 function auditLogSchemaAvailable(mysqli $conn) {

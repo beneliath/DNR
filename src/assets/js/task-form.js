@@ -1,13 +1,27 @@
 (function () {
+    function waitingFieldState(statusValue) {
+        const waiting = statusValue === 'waiting';
+        return {
+            clearValue: !waiting,
+            hidden: !waiting,
+            required: waiting
+        };
+    }
+
+    if (typeof module === 'object' && module.exports) {
+        module.exports = { waitingFieldState };
+    }
+    if (typeof document === 'undefined') return;
+
     const status = document.getElementById('task-status');
     const waitingGroup = document.getElementById('task-waiting-on-group');
     const waitingInput = document.getElementById('task-waiting-on');
     if (status && waitingGroup && waitingInput) {
         const updateWaitingField = function () {
-            const waiting = status.value === 'waiting';
-            waitingGroup.hidden = !waiting;
-            waitingInput.required = waiting;
-            if (!waiting) waitingInput.value = '';
+            const state = waitingFieldState(status.value);
+            waitingGroup.hidden = state.hidden;
+            waitingInput.required = state.required;
+            if (state.clearValue) waitingInput.value = '';
         };
         status.addEventListener('change', updateWaitingField);
         updateWaitingField();

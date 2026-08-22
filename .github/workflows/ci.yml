@@ -10,11 +10,15 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ['8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.4'
+          php-version: ${{ matrix.php-version }}
           extensions: curl, gd, mbstring, mysqli, sodium
           coverage: none
       - uses: actions/setup-node@v4
@@ -57,13 +61,7 @@ jobs:
           sh tests/http_smoke_test.sh
           sh tests/http_authenticated_test.sh
       - name: Run database integration suites
-        run: |
-          compose='docker compose -f docker-compose.yaml -f docker-compose.dev.yaml'
-          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/archive_calendar_integration_test.php
-          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/contact_photo_integration_test.php
-          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/follow_up_tasks_integration_test.php
-          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/integration_beta_test.php
-          $compose run --rm --no-deps --entrypoint php -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_TEST_SOURCE_DIR=/var/www/html maintenance /opt/dnr/tests/database_backup_integration_test.php
+        run: sh scripts/run_integration_tests.sh disposable
       - name: Show service logs
         if: failure()
         run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml logs --no-color

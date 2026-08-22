@@ -2082,17 +2082,7 @@ input[type="date"],
 input[type="time"],
 input[type="number"],
 select,
-textarea,
-html.dark-mode input[type="text"],
-html.dark-mode input[type="password"],
-html.dark-mode input[type="email"],
-html.dark-mode input[type="tel"],
-html.dark-mode input[type="url"],
-html.dark-mode input[type="date"],
-html.dark-mode input[type="time"],
-html.dark-mode input[type="number"],
-html.dark-mode select,
-html.dark-mode textarea {
+textarea {
   width: 100%;
   min-height: 44px;
   margin: 0 0 18px;

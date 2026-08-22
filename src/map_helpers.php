@@ -258,7 +258,8 @@ function geocodeEngagementMapAddress($address)
         'follow_location' => 0,
     ]]);
     $body = @file_get_contents($url, false, $context, 0, 262144);
-    $status_line = $http_response_header[0] ?? '';
+    $response_headers = http_get_last_response_headers();
+    $status_line = $response_headers[0] ?? '';
     if ($body === false || !preg_match('/\s2\d\d\s/', $status_line)) {
         throw new RuntimeException('The geocoder did not return a successful response.');
     }

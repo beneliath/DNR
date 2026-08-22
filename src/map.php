@@ -212,8 +212,8 @@ $map_payload = [
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
-    1 => 'assets/css/modern.min.css',
-    2 => 'assets/css/map.min.css',
+    1 => 'assets/css/modern.min.css?rev=consistent-control-geometry-1',
+    2 => 'assets/css/map.min.css?rev=dark-controls-layout-11',
   ),
 )); ?>
 <body>
