@@ -48,8 +48,8 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
     </div>
 
     <div class="app-sidebar" id="app-sidebar">
-        <a class="app-brand" href="engagements.php" aria-label="DNR — MOED מוֹעֵד">
-            <span class="app-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
+        <a class="app-brand" href="engagements.php" aria-label="DNR home">
+            <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
         <nav class="site-navigation" aria-label="Primary">

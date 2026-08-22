@@ -151,7 +151,6 @@ html.dark-mode body {
   line-height: 1.5;
 }
 
-.app-brand-copy strong,
 .auth-brand-copy strong,
 .mobile-brand-name {
   font-family: "Rubik", Inter, ui-sans-serif, sans-serif;
@@ -237,10 +236,8 @@ p {
 }
 
 .app-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 0 4px 30px;
+  display: block;
+  margin: 0 0 30px;
   color: var(--text);
   text-decoration: none;
 }
@@ -249,22 +246,21 @@ p {
   color: var(--text);
 }
 
-.app-brand-copy {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  text-align: left;
+.app-brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  height: auto;
 }
 
-.app-brand-copy strong {
-  color: var(--text);
-  font-size: 2.175rem;
-  line-height: 1.2;
+html.dark-mode .app-sidebar nav {
+  background: transparent !important;
+  color: inherit !important;
 }
 
-.app-brand-copy small {
-  color: var(--text-muted);
-  font-size: 0.82rem;
+html.dark-mode .app-sidebar .nav-link.active {
+  background: var(--nav-active-bg) !important;
+  color: var(--nav-active-fg) !important;
 }
 
 .site-navigation ul,
