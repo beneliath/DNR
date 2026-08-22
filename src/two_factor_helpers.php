@@ -412,7 +412,7 @@ function attemptAdminElevation(mysqli $conn, $password, $code) {
     }
 
     if (!empty($user['login_is_locked'])
-        || !password_verify((string) $password, (string) $user['password'])) {
+        || !\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
         if (empty($user['login_is_locked'])) {
             recordAuthenticationFailure($conn, $user_id, 'password');
         }

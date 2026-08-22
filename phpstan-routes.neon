@@ -1,0 +1,10 @@
+parameters:
+    # The legacy HTTP entry points are intentionally introduced at level 0 so
+    # every route participates in symbol and call validation. Typed domain and
+    # helper code remains covered at the higher levels in the other configs.
+    level: 0
+    paths:
+        - src
+    tmpDir: /tmp/dnr-phpstan-routes
+    parallel:
+        maximumNumberOfProcesses: 1

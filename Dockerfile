@@ -9,6 +9,7 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     --no-progress \
     --prefer-dist \
     --ignore-platform-req=ext-gd \
+    --ignore-platform-req=ext-mysqli \
     --classmap-authoritative
 
 FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb
@@ -35,6 +36,10 @@ COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
 COPY scripts/create_admin.php /opt/dnr/bin/create_admin.php
 COPY scripts/set_password.php /opt/dnr/bin/set_password.php
+COPY scripts/cli_input.php /opt/dnr/bin/cli_input.php
+COPY --chmod=0755 scripts/password_cli_entrypoint.sh /usr/local/bin/dnr-password-cli
+RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
+    && ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-set-password
 COPY scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
 COPY scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php

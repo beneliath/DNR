@@ -38,6 +38,12 @@ csrf_from() {
     sed -n 's/.*name="csrf_token" value="\([^"]*\)".*/\1/p' "$1" | head -n 1
 }
 
+field_from() {
+    file=$1
+    field=$2
+    sed -n "s/.*name=\"$field\" value=\"\([^\"]*\)\".*/\1/p" "$file" | head -n 1
+}
+
 expect_status() {
     actual=$1
     expected=$2
@@ -52,7 +58,9 @@ expect_location() {
     headers=$1
     expected=$2
     description=$3
-    if ! grep -Eqi "^location: ${expected}()?$" "$headers"; then
+    actual=$(grep -i '^location:' "$headers" | head -n 1 \
+        | sed 's/^[^:]*:[[:space:]]*//' | tr -d '\r')
+    if [ "$actual" != "$expected" ]; then
         echo "HTTP authenticated test failed: $description did not redirect to $expected." >&2
         sed -n '1,20p' "$headers" >&2
         exit 1
@@ -100,7 +108,7 @@ status=$(curl -sS -b "$reviewer_cookies" -o /dev/null -w '%{http_code}' \
     "$base_url/organizations.php")
 expect_status "$status" '403' 'reviewer archive request'
 
-# Editors can create and archive organizations, while CSRF is enforced first.
+# Editors can create, update, and archive records, while CSRF is enforced first.
 login_password editor engagements.php
 editor_cookies="$temporary_directory/editor.cookies"
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
@@ -126,6 +134,111 @@ expect_status "$status" '302' 'editor organization creation'
 expect_location "$temporary_directory/editor-create.headers" 'add_organization.php' 'editor organization creation'
 test "$(fixture organization-state "$fixture_suffix")" = '0'
 organization_id=$(fixture organization-id "$fixture_suffix")
+
+# Exercise real contact and engagement creation, plus optimistic concurrency.
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-contact.html" "$base_url/add_contact.php"
+editor_csrf=$(csrf_from "$temporary_directory/editor-add-contact.html")
+status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-contact-create.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'save_contact=1' \
+    --data-urlencode "organization_id=$organization_id" \
+    --data-urlencode "contact_first_name=HTTP-$fixture_suffix" \
+    --data-urlencode 'contact_last_name=Contact' \
+    --data-urlencode 'contact_role=admin' \
+    --data-urlencode "contact_email=http-$fixture_suffix@example.test" \
+    --data-urlencode "contact_email_confirm=http-$fixture_suffix@example.test" \
+    "$base_url/add_contact.php")
+expect_status "$status" '302' 'editor contact creation'
+contact_id=$(fixture contact-id "$fixture_suffix")
+test "$contact_id" -gt 0
+expect_location "$temporary_directory/editor-contact-create.headers" "view_contact.php?id=$contact_id" 'editor contact creation'
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
+editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
+status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagement-create.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'save_engagement=1' \
+    --data-urlencode "organization_id=$organization_id" \
+    --data-urlencode "event_title=HTTP Test Engagement $fixture_suffix" \
+    --data-urlencode 'event_start_date=2026-09-10' \
+    --data-urlencode 'event_end_date=2026-09-12' \
+    --data-urlencode 'event_type=conference' \
+    --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'travel_covered=unknown' \
+    --data-urlencode 'compensation_type=Unknown' \
+    --data-urlencode 'housing_type=Unknown' \
+    "$base_url/index.php")
+expect_status "$status" '302' 'editor engagement creation'
+expect_location "$temporary_directory/editor-engagement-create.headers" 'engagements.php' 'editor engagement creation'
+engagement_id=$(fixture engagement-id "$fixture_suffix")
+test "$engagement_id" -gt 0
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement.html" \
+    "$base_url/edit_engagement.php?id=$engagement_id"
+editor_csrf=$(csrf_from "$temporary_directory/editor-edit-engagement.html")
+engagement_version=$(field_from "$temporary_directory/editor-edit-engagement.html" engagement_version)
+test -n "$engagement_version"
+status=$(curl -sS -b "$editor_cookies" -o "$temporary_directory/editor-conflict.html" \
+    -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'save_engagement=1' \
+    --data-urlencode 'engagement_version=stale-version' \
+    --data-urlencode "organization_id=$organization_id" \
+    --data-urlencode "event_title=HTTP Test Engagement $fixture_suffix Updated" \
+    --data-urlencode 'event_start_date=2026-09-10' \
+    --data-urlencode 'event_end_date=2026-09-12' \
+    --data-urlencode 'event_type=conference' \
+    --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'travel_covered=unknown' \
+    --data-urlencode 'compensation_type=Unknown' \
+    --data-urlencode 'housing_type=Unknown' \
+    "$base_url/edit_engagement.php?id=$engagement_id")
+expect_status "$status" '200' 'stale engagement update'
+grep -q 'changed after you opened it' "$temporary_directory/editor-conflict.html"
+test "$(fixture engagement-title "$fixture_suffix")" = "HTTP Test Engagement $fixture_suffix"
+
+status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagement-update.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'save_engagement=1' \
+    --data-urlencode "engagement_version=$engagement_version" \
+    --data-urlencode "organization_id=$organization_id" \
+    --data-urlencode "event_title=HTTP Test Engagement $fixture_suffix Updated" \
+    --data-urlencode 'event_start_date=2026-09-10' \
+    --data-urlencode 'event_end_date=2026-09-12' \
+    --data-urlencode 'event_type=conference' \
+    --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'travel_covered=unknown' \
+    --data-urlencode 'compensation_type=Unknown' \
+    --data-urlencode 'housing_type=Unknown' \
+    "$base_url/edit_engagement.php?id=$engagement_id")
+expect_status "$status" '302' 'editor engagement update'
+expect_location "$temporary_directory/editor-engagement-update.headers" 'engagements.php' 'editor engagement update'
+test "$(fixture engagement-title "$fixture_suffix")" = "HTTP Test Engagement $fixture_suffix Updated"
+
+# Archive dependent records before exercising the organization archive guard.
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-contacts.html" "$base_url/contacts.php"
+editor_csrf=$(csrf_from "$temporary_directory/editor-contacts.html")
+status=$(curl -sS -b "$editor_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode "contact_id=$contact_id" \
+    --data-urlencode 'action=archive' \
+    "$base_url/contacts.php")
+expect_status "$status" '302' 'editor contact archive'
+test "$(fixture contact-state "$fixture_suffix")" = '1'
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-engagements.html" "$base_url/engagements.php"
+editor_csrf=$(csrf_from "$temporary_directory/editor-engagements.html")
+status=$(curl -sS -b "$editor_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode "engagement_id=$engagement_id" \
+    --data-urlencode 'action=archive' \
+    "$base_url/engagements.php")
+expect_status "$status" '302' 'editor engagement archive'
+test "$(fixture engagement-state "$fixture_suffix")" = '1'
+
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-organizations.html" "$base_url/organizations.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-organizations.html")
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-archive.headers" \

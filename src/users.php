@@ -88,7 +88,7 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
                 <input type="hidden" name="action" value="elevate">
                 <div class="form-group">
                     <label for="admin_password">Administrator Password</label>
-                    <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" required>
+                    <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" maxlength="72" required>
                 </div>
                 <div class="form-group">
                     <label for="admin_code">Fresh Authentication Code</label>

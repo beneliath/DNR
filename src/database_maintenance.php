@@ -13,7 +13,9 @@ function databaseMaintenanceAuthenticationAccepted(mysqli $conn, array $actor, $
     $actor_id = (int) $actor['id'];
     $failure_event = 'database_backup_auth_failed';
 
-    if (!empty($actor['login_is_locked']) || !password_verify((string) $password, $actor['password'])) {
+    if (!empty($actor['login_is_locked'])
+        || !\Dnr\Security\PasswordPolicy::verify($password, $actor['password'])
+    ) {
         if (empty($actor['login_is_locked'])) {
             recordAuthenticationFailure($conn, $actor_id, 'password');
         }
@@ -179,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="hidden" name="action" value="backup">
 
                 <label for="backup_admin_password">Your administrator password</label>
-                <input type="password" name="admin_password" id="backup_admin_password" autocomplete="current-password" required>
+                <input type="password" name="admin_password" id="backup_admin_password" autocomplete="current-password" maxlength="72" required>
 
                 <label for="backup_admin_code">Fresh authenticator code or recovery code</label>
                 <input type="text" name="admin_code" id="backup_admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>

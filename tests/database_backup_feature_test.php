@@ -19,7 +19,7 @@ $readme = file_get_contents($root . '/README.md');
 expectDatabaseBackupFeature(
     str_contains($page, 'requireAdmin();')
         && str_contains($page, 'requireValidCsrfToken();')
-        && str_contains($page, 'password_verify')
+        && str_contains($page, 'PasswordPolicy::verify')
         && str_contains($page, 'verifyAndConsumeTotp')
         && str_contains($page, 'consumeRecoveryCode'),
     'backup and restore must require admin authorization, CSRF validation, password re-entry, and a fresh second factor.'

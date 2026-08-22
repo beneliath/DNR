@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $password = $_POST['password'] ?? '';
         $current_code = trim($_POST['current_code'] ?? '');
 
-        if (!password_verify($password, $user['password'])) {
+        if (!\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
             $error = 'The password or authentication code was not accepted.';
         } elseif (!empty($user['two_factor_enabled'])) {
             try {
@@ -225,7 +225,7 @@ if ($enrollment) {
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="start">
                 <label for="password">Current password</label>
-                <input type="password" name="password" id="password" autocomplete="current-password" required>
+                <input type="password" name="password" id="password" autocomplete="current-password" maxlength="72" required>
                 <?php if (!empty($user['two_factor_enabled'])): ?>
                     <label for="current_code">Current authenticator code</label>
                     <input type="text" name="current_code" id="current_code" autocomplete="one-time-code" inputmode="numeric" required>

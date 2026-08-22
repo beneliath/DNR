@@ -14,8 +14,12 @@ if (isLoggedIn()) {
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
 
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+    $username = is_string($_POST['username'] ?? null)
+        ? trim($_POST['username'])
+        : '';
+    $password = is_string($_POST['password'] ?? null)
+        ? $_POST['password']
+        : '';
 
     if (loginRateLimitIsBlocked($conn)) {
         http_response_code(429);
@@ -24,7 +28,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } else {
         $user = fetchAuthenticationUserByUsername($conn, $username);
         $dummy_password_hash = '$2y$12$wTYbXn3kB2NAKPhZdVBniuzRdPySg8k3v67l4dxLCh7t3kGpifYI.';
-        $password_valid = password_verify($password, $user['password'] ?? $dummy_password_hash);
+        $password_valid = \Dnr\Security\PasswordPolicy::verify(
+            $password,
+            $user['password'] ?? $dummy_password_hash
+        );
 
         if ($user && empty($user['login_is_locked']) && $password_valid) {
             setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
@@ -112,7 +119,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
       <div class="form-group">
         <label for="password">Password</label>
-        <input type="password" name="password" id="password" autocomplete="current-password" required>
+        <input type="password" name="password" id="password" autocomplete="current-password" maxlength="72" required>
       </div>
 
       <button type="submit" class="login-button">Sign in</button>

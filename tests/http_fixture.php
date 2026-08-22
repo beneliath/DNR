@@ -33,8 +33,29 @@ $usernames = [
     'target' => 'http-target-' . $suffix,
 ];
 $organizationName = 'HTTP Test Organization ' . $suffix;
+$contactFirstName = 'HTTP-' . $suffix;
+$engagementTitle = 'HTTP Test Engagement ' . $suffix;
+$updatedEngagementTitle = $engagementTitle . ' Updated';
 
 $deleteFixtures = static function () use ($conn, $usernames, $organizationName): void {
+    $engagementStatement = $conn->prepare(
+        'DELETE engagement FROM engagements engagement
+         INNER JOIN organizations organization ON organization.id = engagement.organization_id
+         WHERE organization.organization_name = ?'
+    );
+    $engagementStatement->bind_param('s', $organizationName);
+    $engagementStatement->execute();
+    $engagementStatement->close();
+
+    $contactStatement = $conn->prepare(
+        'DELETE contact FROM contacts contact
+         INNER JOIN organizations organization ON organization.id = contact.organization_id
+         WHERE organization.organization_name = ?'
+    );
+    $contactStatement->bind_param('s', $organizationName);
+    $contactStatement->execute();
+    $contactStatement->close();
+
     $organizationStatement = $conn->prepare('DELETE FROM organizations WHERE organization_name = ?');
     $organizationStatement->bind_param('s', $organizationName);
     $organizationStatement->execute();
@@ -135,6 +156,50 @@ if ($action === 'organization-id') {
     $statement->bind_param('s', $organizationName);
     $statement->execute();
     echo (int) ($statement->get_result()->fetch_assoc()['id'] ?? 0) . "\n";
+    exit(0);
+}
+
+if ($action === 'contact-id' || $action === 'contact-state') {
+    $statement = $conn->prepare(
+        'SELECT contact.id, contact.is_deleted
+         FROM contacts contact
+         INNER JOIN organizations organization ON organization.id = contact.organization_id
+         WHERE organization.organization_name = ? AND contact.contact_first_name = ?'
+    );
+    $statement->bind_param('ss', $organizationName, $contactFirstName);
+    $statement->execute();
+    $contact = $statement->get_result()->fetch_assoc();
+    $statement->close();
+    echo $action === 'contact-id'
+        ? (int) ($contact['id'] ?? 0) . "\n"
+        : ($contact ? (string) (int) $contact['is_deleted'] . "\n" : "missing\n");
+    exit(0);
+}
+
+if ($action === 'engagement-id'
+    || $action === 'engagement-state'
+    || $action === 'engagement-title'
+) {
+    $statement = $conn->prepare(
+        'SELECT engagement.id, engagement.is_deleted, engagement.event_title
+         FROM engagements engagement
+         INNER JOIN organizations organization ON organization.id = engagement.organization_id
+         WHERE organization.organization_name = ?
+           AND engagement.event_title IN (?, ?)
+         ORDER BY engagement.id DESC
+         LIMIT 1'
+    );
+    $statement->bind_param('sss', $organizationName, $engagementTitle, $updatedEngagementTitle);
+    $statement->execute();
+    $engagement = $statement->get_result()->fetch_assoc();
+    $statement->close();
+    if ($action === 'engagement-id') {
+        echo (int) ($engagement['id'] ?? 0) . "\n";
+    } elseif ($action === 'engagement-state') {
+        echo $engagement ? (string) (int) $engagement['is_deleted'] . "\n" : "missing\n";
+    } else {
+        echo $engagement ? (string) $engagement['event_title'] . "\n" : "missing\n";
+    }
     exit(0);
 }
 

@@ -143,6 +143,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? fetchAuthenticationUserById($conn, (int) $recovery['user_id'])
             : null;
 
+        $password_error = \Dnr\Security\PasswordPolicy::validationError(
+            $new_password,
+            'The new password'
+        );
         if (!$recovery
             || !$user
             || (int) $user['auth_version'] !== (int) $recovery['auth_version']
@@ -150,14 +154,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ) {
             clearPasswordRecovery();
             $error = 'The recovery request expired or the account changed. Start again.';
-        } elseif (strlen($new_password) < 12) {
-            $error = 'The new password must contain at least 12 characters.';
+        } elseif ($password_error !== null) {
+            $error = $password_error;
         } elseif (!hash_equals($new_password, $confirmation)) {
             $error = 'The new passwords do not match.';
-        } elseif (password_verify($new_password, $user['password'])) {
+        } elseif (\Dnr\Security\PasswordPolicy::verify($new_password, $user['password'])) {
             $error = 'The new password must be different from the current password.';
         } else {
-            $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $password_hash = \Dnr\Security\PasswordPolicy::hash($new_password);
             $user_id = (int) $user['id'];
             $expected_auth_version = (int) $recovery['auth_version'];
             $stmt = $conn->prepare(
@@ -266,11 +270,11 @@ $stage = $recovery['stage'] ?? 'start';
                 <input type="hidden" name="action" value="reset">
                 <div class="form-group">
                     <label for="new_password">New password</label>
-                    <input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" required autofocus>
+                    <input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus>
                 </div>
                 <div class="form-group">
                     <label for="new_password_confirmation">Confirm new password</label>
-                    <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" required>
+                    <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
                 </div>
                 <button type="submit" class="login-button">Reset password</button>
             </form>

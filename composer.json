@@ -9,7 +9,12 @@
         }
     },
     "require": {
+        "ext-fileinfo": "*",
+        "ext-gd": "*",
         "ext-mbstring": "*",
+        "ext-mysqli": "*",
+        "ext-openssl": "*",
+        "ext-sodium": "*",
         "php": "^8.4",
         "endroid/qr-code": "^6.0",
         "giggsey/libphonenumber-for-php": "^9.0",
@@ -28,7 +33,8 @@
         "lint": "sh scripts/lint_php.sh",
         "analyse": [
             "phpstan analyse --no-progress --debug --memory-limit=512M",
-            "phpstan analyse --configuration=phpstan-helpers.neon --no-progress --debug --memory-limit=512M"
+            "phpstan analyse --configuration=phpstan-helpers.neon --no-progress --debug --memory-limit=512M",
+            "phpstan analyse --configuration=phpstan-routes.neon --no-progress --debug --memory-limit=512M"
         ],
         "test": "sh scripts/run_tests.sh",
         "check": [

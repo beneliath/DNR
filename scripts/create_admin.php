@@ -6,27 +6,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/config.php';
-
-function readHiddenValue($prompt) {
-    fwrite(STDOUT, $prompt);
-    $can_hide = DIRECTORY_SEPARATOR === '/'
-        && function_exists('shell_exec')
-        && function_exists('stream_isatty')
-        && stream_isatty(STDIN);
-
-    if ($can_hide) {
-        shell_exec('stty -echo');
-    }
-
-    $value = fgets(STDIN);
-
-    if ($can_hide) {
-        shell_exec('stty echo');
-        fwrite(STDOUT, PHP_EOL);
-    }
-
-    return is_string($value) ? rtrim($value, "\r\n") : '';
-}
+require_once __DIR__ . '/cli_input.php';
 
 $username = trim($argv[1] ?? 'admin');
 if ($username === '' || strlen($username) > 50) {
@@ -42,11 +22,12 @@ if ($check->get_result()->num_rows > 0) {
     exit(1);
 }
 
-$password = readHiddenValue('New administrator password: ');
-$confirmation = readHiddenValue('Confirm administrator password: ');
+$password = readHiddenCliValue('New administrator password: ');
+$confirmation = readHiddenCliValue('Confirm administrator password: ');
 
-if (strlen($password) < 12) {
-    fwrite(STDERR, "Password must contain at least 12 characters.\n");
+$password_error = \Dnr\Security\PasswordPolicy::validationError($password);
+if ($password_error !== null) {
+    fwrite(STDERR, $password_error . "\n");
     exit(1);
 }
 
@@ -55,7 +36,7 @@ if (!hash_equals($password, $confirmation)) {
     exit(1);
 }
 
-$password_hash = password_hash($password, PASSWORD_DEFAULT);
+$password_hash = \Dnr\Security\PasswordPolicy::hash($password);
 $role = 'admin';
 $stmt = $conn->prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)');
 $stmt->bind_param('sss', $username, $password_hash, $role);

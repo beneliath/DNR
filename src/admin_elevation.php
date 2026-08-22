@@ -42,7 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo csrfInput(); ?>
             <input type="hidden" name="return" value="<?php echo htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8'); ?>">
             <label for="admin_password">Administrator password</label>
-            <input type="password" name="admin_password" id="admin_password" autocomplete="current-password" required autofocus>
+            <input type="password" name="admin_password" id="admin_password" autocomplete="current-password" maxlength="72" required autofocus>
             <label for="admin_code">Fresh authenticator code or recovery code</label>
             <input type="text" name="admin_code" id="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
             <button type="submit" class="security-button">Unlock sensitive actions</button>

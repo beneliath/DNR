@@ -33,15 +33,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ? $_POST['new_password_confirmation']
         : '';
 
-    if (strlen($new_password) < 12) {
-        $error = 'The temporary password must contain at least 12 characters.';
+    $password_error = \Dnr\Security\PasswordPolicy::validationError(
+        $new_password,
+        'The temporary password'
+    );
+    if ($password_error !== null) {
+        $error = $password_error;
     } elseif (!hash_equals($new_password, $confirmation)) {
         $error = 'The temporary passwords do not match.';
-    } elseif (password_verify($new_password, $target_user['password'])) {
+    } elseif (\Dnr\Security\PasswordPolicy::verify($new_password, $target_user['password'])) {
         $error = 'The temporary password must be different from the target user’s current password.';
     } else {
         try {
-            $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $password_hash = \Dnr\Security\PasswordPolicy::hash($new_password);
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET password = ?,
@@ -100,10 +104,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo csrfInput(); ?>
 
             <label for="new_password">Temporary password</label>
-            <input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" required>
+            <input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" maxlength="72" required>
 
             <label for="new_password_confirmation">Confirm temporary password</label>
-            <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" required>
+            <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
 
             <button type="submit" class="security-button">Set temporary password</button>
             <a href="users.php" class="danger-button cancel-button">Cancel</a>
