@@ -9,6 +9,7 @@ parameters:
         - src/database_backup_helpers.php
         - src/engagement_export_helpers.php
         - src/engagement_search_helpers.php
+        - src/email_helpers.php
         - src/follow_up_task_helpers.php
         - src/github_version_helpers.php
         - src/image_upload_helpers.php
@@ -16,6 +17,7 @@ parameters:
         - src/presentation_helpers.php
         - src/profile_helpers.php
         - src/two_factor_helpers.php
+        - src/user_lifecycle_helpers.php
     bootstrapFiles:
         - src/functions.php
     tmpDir: /tmp/dnr-phpstan-helpers

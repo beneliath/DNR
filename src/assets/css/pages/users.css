@@ -96,6 +96,18 @@
             color: #FF9800;
             font-weight: var(--font-weight-semibold);
         }
+        .account-status {
+            font-weight: var(--font-weight-semibold);
+        }
+        .account-status-active {
+            color: #067647;
+        }
+        .account-status-invited {
+            color: #175cd3;
+        }
+        .account-status-inactive {
+            color: #b42318;
+        }
         .user-profile-summary {
             display: flex;
             min-width: 0;

@@ -290,7 +290,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             ${$field} = $value;
         }
         requireActiveOrganization($conn, $organization_id, true);
-        $caller = \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
+        $caller = $caller_user_id !== null
+            && $caller_user_id === (int) ($locked_engagement['caller_user_id'] ?? 0)
+            ? [
+                'id' => $caller_user_id,
+                'username' => (string) ($locked_engagement['caller_name'] ?? ''),
+            ]
+            : \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
         $caller_user_id = $caller['id'];
         $caller_name = $caller['username'];
         $engagement_input['caller_user_id'] = $caller_user_id;
@@ -785,7 +791,12 @@ try {
                         <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
                         <?php
                         // Fetch and display users in the dropdown
-                        $users = $conn->query("SELECT id, username FROM users ORDER BY username");
+                        $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
+                        $users = $conn->query(
+                            "SELECT id, username FROM users
+                             WHERE account_status = 'active' OR id = {$current_caller_id}
+                             ORDER BY username"
+                        );
                         while ($row = $users->fetch_assoc()) {
                             $selected = (int) ($engagement['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
                             echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";

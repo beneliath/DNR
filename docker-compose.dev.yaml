@@ -3,6 +3,7 @@ services:
     volumes:
       - ./src:/var/www/html:ro
       - ./tests:/opt/dnr/tests:ro
+      - ./migrations:/opt/dnr/migrations:ro
       - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
     environment:
       DNR_REQUIRE_HTTPS: "0"

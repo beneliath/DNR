@@ -2432,6 +2432,51 @@ input[type="radio"] {
   gap: 10px !important;
 }
 
+.invitation-submit-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 14px;
+  color: var(--text-muted);
+  font-weight: 650;
+}
+
+.invitation-submit-status[hidden] {
+  display: none;
+}
+
+.invitation-submit-status-compact {
+  margin: 6px 0 0 8px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.invitation-submit-spinner {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 16px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: invitation-submit-spin 700ms linear infinite;
+}
+
+html body .register-button[disabled] {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none !important;
+}
+
+@keyframes invitation-submit-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .invitation-submit-spinner {
+    animation: none;
+  }
+}
+
 .engagement-table .action-buttons,
 .organization-table .action-buttons,
 .contact-table .action-buttons {

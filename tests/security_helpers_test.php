@@ -159,6 +159,36 @@ expectTrue(!isLoggedIn(), 'A session without an authentication version must not 
 $_SESSION['auth_version'] = 1;
 expectTrue(isLoggedIn(), 'A completed, versioned session should be recognized as logged in.');
 
+$_SESSION['_two_factor_enrollment'] = [
+    'user_id' => 1,
+    'secret' => 'logged-in-enrollment-secret',
+    'mode' => 'enroll',
+    'issued_at' => time(),
+];
+expectTrue(
+    getPendingAuthentication() === null
+        && isset($_SESSION['_two_factor_enrollment']),
+    'Checking for pending login must preserve a logged-in user\'s active 2FA enrollment.'
+);
+
+$_SESSION['_pending_auth'] = [
+    'user_id' => 1,
+    'username' => 'admin',
+    'role' => 'admin',
+    'auth_version' => 1,
+    'issued_at' => time() - 601,
+];
+expectTrue(
+    getPendingAuthentication() === null
+        && !isset($_SESSION['_pending_auth'], $_SESSION['_two_factor_enrollment']),
+    'An expired pending login should still clear its associated 2FA enrollment.'
+);
+$_SESSION = [
+    'user_id' => 1,
+    'auth_version' => 1,
+    'auth_complete' => true,
+];
+
 expectTrue(
     isApplicationRootRequest([
         'REQUEST_URI' => '/',

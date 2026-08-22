@@ -154,7 +154,7 @@ function matchingTotpStep($secret, $username, $code, $last_used_step = null, $ti
 
 function fetchAuthenticationUserByUsername(mysqli $conn, $username) {
     $stmt = $conn->prepare(
-        "SELECT id, username, password, must_change_password, role, auth_version, two_factor_enabled,
+        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled,
                 totp_secret_encrypted, totp_confirmed_at, totp_last_used_step,
                 (login_locked_until IS NOT NULL AND login_locked_until > UTC_TIMESTAMP()) AS login_is_locked,
                 (two_factor_locked_until IS NOT NULL AND two_factor_locked_until > UTC_TIMESTAMP()) AS two_factor_is_locked
@@ -169,7 +169,7 @@ function fetchAuthenticationUserByUsername(mysqli $conn, $username) {
 
 function fetchAuthenticationUserById(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
-        "SELECT id, username, password, must_change_password, role, auth_version, two_factor_enabled,
+        "SELECT id, username, password, must_change_password, role, account_status, auth_version, two_factor_enabled,
                 totp_secret_encrypted, totp_confirmed_at, totp_last_used_step,
                 (login_locked_until IS NOT NULL AND login_locked_until > UTC_TIMESTAMP()) AS login_is_locked,
                 (two_factor_locked_until IS NOT NULL AND two_factor_locked_until > UTC_TIMESTAMP()) AS two_factor_is_locked

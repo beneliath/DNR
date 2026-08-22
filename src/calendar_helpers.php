@@ -283,7 +283,9 @@ function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar s
     try {
         // Serialize subscription creation per owner so the five-token limit
         // cannot be bypassed by concurrent requests.
-        $user_stmt = $conn->prepare('SELECT id FROM users WHERE id = ? FOR UPDATE');
+        $user_stmt = $conn->prepare(
+            "SELECT id FROM users WHERE id = ? AND account_status = 'active' FOR UPDATE"
+        );
         if (!$user_stmt) {
             throw new RuntimeException('Unable to lock the subscription owner.');
         }
@@ -334,9 +336,12 @@ function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
         return null;
     }
     $stmt = $conn->prepare(
-        'SELECT id, user_id, label, created_at, last_used_at
-         FROM calendar_subscriptions
-         WHERE token_hash = ? AND revoked_at IS NULL
+        'SELECT subscription.id, subscription.user_id, subscription.label,
+                subscription.created_at, subscription.last_used_at
+         FROM calendar_subscriptions subscription
+         INNER JOIN users user ON user.id = subscription.user_id
+         WHERE subscription.token_hash = ? AND subscription.revoked_at IS NULL
+           AND user.account_status = \'active\'
          LIMIT 1'
     );
     $stmt->bind_param('s', $token_hash);

@@ -12,7 +12,9 @@ final class EngagementInput
         if ($caller_user_id === null || $caller_user_id < 1) {
             return ['id' => null, 'username' => ''];
         }
-        $statement = $connection->prepare('SELECT id, username FROM users WHERE id = ?');
+        $statement = $connection->prepare(
+            "SELECT id, username FROM users WHERE id = ? AND account_status = 'active'"
+        );
         if (!$statement) {
             throw new \RuntimeException('Unable to validate the selected caller.');
         }

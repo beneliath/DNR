@@ -472,7 +472,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
                         <?php
                         // Fetch and display users in the dropdown
-                        $users = $conn->query("SELECT id, username FROM users ORDER BY username");
+                        $users = $conn->query(
+                            "SELECT id, username FROM users WHERE account_status = 'active' ORDER BY username"
+                        );
                         while ($row = $users->fetch_assoc()) {
                             $selected = (int) ($_POST['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
                             echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";

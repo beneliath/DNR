@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/profile_helpers.php';
+require_once __DIR__ . '/email_helpers.php';
+require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -8,7 +10,7 @@ $user_id = (int) $_SESSION['user_id'];
 
 function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
-        'SELECT id, username, role, first_name, last_name, phone, email,
+        'SELECT id, username, role, first_name, last_name, phone, email, email_verified_at,
                 profile_picture_mime, profile_picture_sha256, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -38,7 +40,26 @@ if (!$user) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
+    $profile_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : 'save';
 
+    if ($profile_action === 'resend_verification') {
+        try {
+            $email = normalizeAccountEmail($user['email'] ?? '');
+            if (!empty($user['email_verified_at'])) {
+                throw new InvalidArgumentException('Your current email address is already verified.');
+            }
+            $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
+            sendVerificationEmail($email, (string) $user['username'], $issued['token']);
+            logSecurityEvent($conn, 'email_verification_sent', $user_id, $user_id);
+            header('Location: profile.php?verification_sent=1');
+            exit();
+        } catch (InvalidArgumentException $exception) {
+            $error = $exception->getMessage();
+        } catch (Throwable $exception) {
+            applicationLog('error', 'Unable to resend email verification', ['error' => $exception->getMessage()]);
+            $error = 'The verification message could not be sent. Check the address or contact an administrator.';
+        }
+    } else {
     $first_name = trim((string) ($_POST['first_name'] ?? ''));
     $last_name = trim((string) ($_POST['last_name'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
@@ -51,9 +72,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (mb_strlen($first_name, 'UTF-8') > 100 || mb_strlen($last_name, 'UTF-8') > 100) {
             throw new InvalidArgumentException('First and last names must be 100 characters or fewer.');
         }
-        if (mb_strlen($email, 'UTF-8') > 254 || ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL))) {
-            throw new InvalidArgumentException('Enter a valid email address.');
+        if ($email !== '') {
+            $email = normalizeAccountEmail($email);
+            if (emailAddressBelongsToAnotherUser($conn, $email, $user_id)) {
+                throw new InvalidArgumentException('That email address belongs to another account.');
+            }
         }
+        $current_email = strtolower(trim((string) ($user['email'] ?? '')));
+        $email_changed = !hash_equals($current_email, $email);
+        $email_verification_update = $email_changed ? 'email_verified_at = NULL,' : '';
 
         $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone number');
         $picture = profilePictureFromUpload($_FILES['profile_picture'] ?? []);
@@ -65,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
+                     ' . $email_verification_update . '
                      profile_picture = ?, profile_picture_thumbnail = ?,
                      profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                      profile_picture_sha256 = ?,
@@ -96,6 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
+                     ' . $email_verification_update . '
                      profile_picture = NULL, profile_picture_thumbnail = NULL,
                      profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                      profile_picture_sha256 = NULL,
@@ -109,7 +138,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $stmt = $conn->prepare(
                 'UPDATE users
-                 SET first_name = ?, last_name = ?, phone = ?, email = ?
+                 SET first_name = ?, last_name = ?, phone = ?, email = ?,
+                     ' . $email_verification_update . '
+                     last_updated_at = last_updated_at
                  WHERE id = ?'
             );
             if (!$stmt) {
@@ -123,6 +154,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $stmt->close();
 
+        if ($email_changed) {
+            $invalidate = $conn->prepare(
+                'UPDATE user_email_tokens SET consumed_at = UTC_TIMESTAMP()
+                 WHERE user_id = ? AND purpose IN (\'verification\', \'recovery\')
+                   AND consumed_at IS NULL'
+            );
+            $invalidate->bind_param('i', $user_id);
+            $invalidate->execute();
+            $invalidate->close();
+            logSecurityEvent($conn, 'account_email_changed', $user_id, $user_id);
+            if ($email !== '') {
+                try {
+                    $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
+                    sendVerificationEmail($email, (string) $user['username'], $issued['token']);
+                    logSecurityEvent($conn, 'email_verification_sent', $user_id, $user_id);
+                    $verification_query = '&verification_sent=1';
+                } catch (Throwable $mail_exception) {
+                    applicationLog('error', 'Email verification delivery failed', ['error' => $mail_exception->getMessage()]);
+                    $verification_query = '&verification_failed=1';
+                }
+            }
+        }
+
         $_SESSION['profile_display_name'] = profileDisplayName([
             'first_name' => $first_name,
             'last_name' => $last_name,
@@ -132,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['profile_picture_version'] = time();
         }
 
-        header('Location: profile.php?updated=1');
+        header('Location: profile.php?updated=1' . ($verification_query ?? ''));
         exit();
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
@@ -145,6 +199,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user['last_name'] = $last_name;
     $user['phone'] = $phone;
     $user['email'] = $email;
+    if (isset($email_changed) && $email_changed) {
+        $user['email_verified_at'] = null;
+    }
+    }
 }
 
 [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts(
@@ -180,9 +238,15 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
     <?php elseif (isset($_GET['updated'])): ?>
         <p class="success">Your profile was updated.</p>
     <?php endif; ?>
+    <?php if (isset($_GET['verification_sent'])): ?>
+        <p class="success">A single-use verification link was sent to your email address.</p>
+    <?php elseif (isset($_GET['verification_failed'])): ?>
+        <p class="error">Your email change was saved, but the verification message could not be delivered. Retry below or contact an administrator.</p>
+    <?php endif; ?>
 
     <form method="post" action="profile.php" enctype="multipart/form-data" class="profile-form">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="action" value="save">
         <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading">
             <div class="profile-picture-preview">
                 <img src="profile_picture.php?size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
@@ -214,6 +278,7 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
                 <div class="form-group">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email" maxlength="254" autocomplete="email" value="<?php echo htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                    <?php if (!empty($user['email'])): ?><p class="field-help"><?php echo !empty($user['email_verified_at']) ? 'Verified for password recovery.' : 'Unverified. Password recovery remains unavailable until verification.'; ?></p><?php endif; ?>
                 </div>
                 <div class="form-group">
                     <label for="phone">Phone number</label>
@@ -234,6 +299,13 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
             <button type="submit" class="save-button">Save Changes</button>
         </div>
     </form>
+    <?php if (!empty($user['email']) && empty($user['email_verified_at'])): ?>
+        <form method="post" action="profile.php" class="security-form">
+            <?php echo csrfInput(); ?>
+            <input type="hidden" name="action" value="resend_verification">
+            <button type="submit" class="security-button">Resend email verification</button>
+        </form>
+    <?php endif; ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

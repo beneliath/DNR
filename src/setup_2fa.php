@@ -19,7 +19,11 @@ if ($is_pending_login) {
 }
 
 $user = fetchAuthenticationUserById($conn, $user_id);
-if (!$user) {
+if (!$user
+    || $user['account_status'] !== 'active'
+    || ($is_pending_login
+        && (int) $user['auth_version'] !== (int) $pending['auth_version'])
+) {
     session_unset();
     header('Location: login.php');
     exit();

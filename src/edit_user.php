@@ -57,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($locked_user['role'] === 'admin' && $role !== 'admin') {
                 $admins_stmt = $conn->prepare(
-                    "SELECT id FROM users WHERE role = 'admin' FOR UPDATE"
+                    "SELECT id FROM users
+                     WHERE role = 'admin' AND account_status = 'active' FOR UPDATE"
                 );
                 if (!$admins_stmt) {
                     throw new RuntimeException('Unable to verify the administrator roster.');

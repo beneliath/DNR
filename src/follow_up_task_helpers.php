@@ -323,7 +323,10 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
 function followUpTaskUsers(mysqli $conn)
 {
     $users = [];
-    $result = $conn->query('SELECT id, username, role FROM users ORDER BY username, id');
+    $result = $conn->query(
+        "SELECT id, username, role FROM users
+         WHERE account_status = 'active' ORDER BY username, id"
+    );
     if ($result) {
         while ($row = $result->fetch_assoc()) {
             $users[] = $row;
@@ -377,7 +380,10 @@ function normalizeFollowUpTaskInput(
             throw new InvalidArgumentException('Select a valid task assignee.');
         }
         $assigned_to = (int) $assigned_raw;
-        $assignee_stmt = $conn->prepare('SELECT id FROM users WHERE id = ?');
+        $assignee_stmt = $conn->prepare(
+            "SELECT id FROM users
+             WHERE id = ? AND account_status = 'active' FOR UPDATE"
+        );
         if (!$assignee_stmt) {
             throw new RuntimeException('Unable to verify the task assignee.');
         }
@@ -590,16 +596,10 @@ function assignFollowUpTaskToUser(
 
     $conn->begin_transaction();
     try {
-        $task = fetchFollowUpTask($conn, $task_id, true);
-        if (!$task) {
-            throw new InvalidArgumentException('That task is no longer available.');
-        }
-        if ((string) $expected_version === ''
-            || !hash_equals((string) $task['updated_at'], (string) $expected_version)
-        ) {
-            throw new InvalidArgumentException('That task changed in another session. Reload the work queue before assigning it.');
-        }
-        $user_stmt = $conn->prepare('SELECT id FROM users WHERE id = ?');
+        $user_stmt = $conn->prepare(
+            "SELECT id FROM users
+             WHERE id = ? AND account_status = 'active' FOR UPDATE"
+        );
         if (!$user_stmt) {
             throw new RuntimeException('Unable to verify the task assignee.');
         }
@@ -611,6 +611,15 @@ function assignFollowUpTaskToUser(
             throw new InvalidArgumentException('That task assignee is no longer available.');
         }
 
+        $task = fetchFollowUpTask($conn, $task_id, true);
+        if (!$task) {
+            throw new InvalidArgumentException('That task is no longer available.');
+        }
+        if ((string) $expected_version === ''
+            || !hash_equals((string) $task['updated_at'], (string) $expected_version)
+        ) {
+            throw new InvalidArgumentException('That task changed in another session. Reload the work queue before assigning it.');
+        }
         $stmt = $conn->prepare('UPDATE follow_up_tasks SET assigned_to = ? WHERE id = ?');
         if (!$stmt) {
             throw new RuntimeException('Unable to prepare the task assignment.');
@@ -940,27 +949,30 @@ function generateEngagementFollowUpChecklist(
         throw new InvalidArgumentException('Checklists can only be added to active engagements.');
     }
 
-    if ($assigned_to !== null) {
-        $user_stmt = $conn->prepare('SELECT id FROM users WHERE id = ?');
-        $user_stmt->bind_param('i', $assigned_to);
-        $user_stmt->execute();
-        $has_user = $user_stmt->get_result()->num_rows === 1;
-        $user_stmt->close();
-        if (!$has_user) {
-            throw new InvalidArgumentException('Select a valid checklist assignee.');
-        }
-    }
-
-    $templates = engagementFollowUpChecklistTemplates(
-        $engagement['event_start_date'],
-        $engagement['event_end_date'],
-        fetchStandardEventTaskTemplates($conn, 'active')
-    );
     $manage_transaction = (bool) $manage_transaction;
     if ($manage_transaction) {
         $conn->begin_transaction();
     }
     try {
+        if ($assigned_to !== null) {
+            $user_stmt = $conn->prepare(
+                "SELECT id FROM users
+                 WHERE id = ? AND account_status = 'active' FOR UPDATE"
+            );
+            $user_stmt->bind_param('i', $assigned_to);
+            $user_stmt->execute();
+            $has_user = $user_stmt->get_result()->num_rows === 1;
+            $user_stmt->close();
+            if (!$has_user) {
+                throw new InvalidArgumentException('Select a valid checklist assignee.');
+            }
+        }
+
+        $templates = engagementFollowUpChecklistTemplates(
+            $engagement['event_start_date'],
+            $engagement['event_end_date'],
+            fetchStandardEventTaskTemplates($conn, 'active')
+        );
         $stmt = $conn->prepare(
             "INSERT IGNORE INTO follow_up_tasks
                 (title, details, status, priority, due_date, subject_type, engagement_id,

@@ -13,7 +13,11 @@ if (!$pending) {
 }
 
 $user = fetchAuthenticationUserById($conn, (int) $pending['user_id']);
-if (!$user || empty($user['two_factor_enabled'])) {
+if (!$user
+    || $user['account_status'] !== 'active'
+    || (int) $user['auth_version'] !== (int) $pending['auth_version']
+    || empty($user['two_factor_enabled'])
+) {
     unset($_SESSION['_pending_auth']);
     header('Location: login.php');
     exit();
@@ -25,7 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = trim($_POST['authentication_code'] ?? '');
     $user = fetchAuthenticationUserById($conn, (int) $pending['user_id']);
 
-    if (!$user || !empty($user['two_factor_is_locked'])) {
+    if (!$user
+        || $user['account_status'] !== 'active'
+        || (int) $user['auth_version'] !== (int) $pending['auth_version']
+        || !empty($user['two_factor_is_locked'])
+    ) {
         recordFailedLoginAttempt(
             $conn,
             (string) $pending['username'],

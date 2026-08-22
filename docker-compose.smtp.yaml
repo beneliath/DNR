@@ -1,0 +1,11 @@
+services:
+  web:
+    secrets:
+      - dnr_smtp_password
+    networks:
+      - backend
+      - egress
+
+secrets:
+  dnr_smtp_password:
+    file: ./secrets/smtp_password

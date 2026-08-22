@@ -86,10 +86,11 @@ do
 done
 
 # New tables are not present when an existing database's initialization grant
-# script originally ran. Refresh the least-privilege read grant after applying
-# migrations so upgraded installations can read the calendar revision.
+# script originally ran. Refresh only the least-privilege grants required by
+# schema added after initial deployment.
 mysql --protocol=socket -uroot "$database_name" -e "
-    GRANT SELECT ON \`${database_name}\`.calendar_feed_revision TO '${application_user}'@'%'
+    GRANT SELECT ON \`${database_name}\`.calendar_feed_revision TO '${application_user}'@'%';
+    GRANT SELECT, INSERT, UPDATE, DELETE ON \`${database_name}\`.user_email_tokens TO '${application_user}'@'%'
 "
 
 echo "Database migrations are current."

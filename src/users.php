@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 include 'profile_helpers.php';
 include 'two_factor_helpers.php';
+include 'user_lifecycle_helpers.php';
 startSecureSession();
 requireAdmin();
 requireTwoFactorSchema($conn);
@@ -25,14 +26,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $elevation_message = $_SESSION['_admin_elevation_message'] ?? '';
 $elevation_error = $_SESSION['_admin_elevation_error'] ?? '';
+$lifecycle_message = $_SESSION['_user_lifecycle_message'] ?? '';
+$lifecycle_error = $_SESSION['_user_lifecycle_error'] ?? '';
 unset($_SESSION['_admin_elevation_message'], $_SESSION['_admin_elevation_error']);
+unset($_SESSION['_user_lifecycle_message'], $_SESSION['_user_lifecycle_error']);
 $admin_actions_unlocked = hasRecentAdminElevation();
 
 $users = $conn->query(
     "SELECT id, username, first_name, last_name, phone, email,
             profile_picture_mime, profile_picture_thumbnail,
             profile_picture_thumbnail_mime, profile_picture_updated_at,
-            role, two_factor_enabled,
+            role, account_status, activated_at, deactivated_at,
+            email_verified_at, two_factor_enabled,
             created_at, last_updated_at, last_login_at, must_change_password
      FROM users
      ORDER BY username"
@@ -55,12 +60,12 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <div class="page-heading">
-        <div><h1>Users</h1><p class="page-intro">Manage access, roles, passwords, and two-factor authentication.</p></div>
+        <div><h1>Users</h1><p class="page-intro">Manage invitations, account access, verified recovery email, roles, passwords, and two-factor authentication.</p></div>
         <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
         <?php if ($admin_actions_unlocked): ?>
-            <a href="register.php" class="button-add">+ New user</a>
+            <a href="register.php" class="button-add">+ Invite user</a>
         <?php else: ?>
-            <span class="button-add sensitive-action-locked" aria-disabled="true" title="Unlock sensitive administrator actions first">+ New user (locked)</span>
+            <span class="button-add sensitive-action-locked" aria-disabled="true" title="Unlock sensitive administrator actions first">+ Invite user (locked)</span>
         <?php endif; ?>
     </div>
 
@@ -76,13 +81,19 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
     <?php if ($elevation_error !== ''): ?>
         <p class="error"><?php echo htmlspecialchars($elevation_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
+    <?php if ($lifecycle_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($lifecycle_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($lifecycle_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($lifecycle_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <section class="security-card admin-elevation-card" aria-labelledby="admin-elevation-title">
         <h2 id="admin-elevation-title">Sensitive Administrator Actions</h2>
         <?php if ($admin_actions_unlocked): ?>
             <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
         <?php else: ?>
-            <p>Confirm your password and a new authenticator or recovery code before creating users, editing accounts or roles, resetting 2FA, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
+            <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
             <form method="post" action="users.php" class="security-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="elevate">
@@ -133,6 +144,8 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
                                 <?php if ($has_personal_name): ?><span class="user-username">@<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
                                 <span>(<?php echo htmlspecialchars($user['role'], ENT_QUOTES, 'UTF-8'); ?>)</span>
                                 &mdash;
+                                <span class="account-status account-status-<?php echo htmlspecialchars($user['account_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(userAccountStatusLabel($user['account_status']), ENT_QUOTES, 'UTF-8'); ?></span>
+                                &mdash;
                                 <?php if (!empty($user['two_factor_enabled'])): ?>
                                     <span class="two-factor-status-enabled">2FA enabled</span>
                                 <?php else: ?>
@@ -143,16 +156,16 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
                                 <?php endif; ?>
                             </div>
                             <div class="user-contact-details">
-                                <span class="<?php echo $display_email === '' ? 'is-empty' : ''; ?>">Email: <?php echo $display_email !== '' ? htmlspecialchars($display_email, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?></span>
+                                <span class="<?php echo $display_email === '' ? 'is-empty' : ''; ?>">Email: <?php echo $display_email !== '' ? htmlspecialchars($display_email, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?><?php if ($display_email !== ''): ?> · <?php echo !empty($user['email_verified_at']) ? 'Verified' : 'Unverified'; ?><?php endif; ?></span>
                                 <span class="<?php echo $display_phone === '' ? 'is-empty' : ''; ?>">Phone: <?php echo $display_phone !== '' ? htmlspecialchars($display_phone, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?></span>
                             </div>
                         </div>
                     </div>
                     <div class="user-actions">
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
                             <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button">Reset Password</a>
                         <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && !empty($user['two_factor_enabled'])): ?>
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
                             <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
@@ -163,7 +176,33 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
                         <?php if ($admin_actions_unlocked): ?>
                             <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit user" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                         <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                        <?php if ($admin_actions_unlocked && $user['account_status'] === 'invited'): ?>
+                            <form method="post" action="user_lifecycle.php" data-invitation-form>
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="resend_invitation">
+                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend invitation</button>
+                                <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
+                                    <span class="invitation-submit-spinner" aria-hidden="true"></span>
+                                    Emailing a new activation link&hellip;
+                                </span>
+                            </form>
+                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                            <form method="post" action="user_lifecycle.php">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="deactivate">
+                                <button type="submit" class="action-button delete-button" data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
+                            </form>
+                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'inactive'): ?>
+                            <form method="post" action="user_lifecycle.php">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="activate">
+                                <button type="submit" class="action-button reset-two-factor-button">Activate</button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if ($admin_actions_unlocked && $user['account_status'] !== 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
                             <form method="post" action="delete_user.php" data-sensitive-action="delete-user">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
@@ -182,6 +221,9 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
                     </span>
                     <span class="timestamp">
                         Last Logged In: <?php echo !empty($user['last_login_at']) ? date('Y-m-d H:i', strtotime($user['last_login_at'])) : 'Never'; ?>
+                    </span>
+                    <span class="timestamp">
+                        <?php echo $user['account_status'] === 'inactive' ? 'Deactivated' : 'Activated'; ?>: <?php $lifecycle_at = $user['account_status'] === 'inactive' ? $user['deactivated_at'] : $user['activated_at']; echo !empty($lifecycle_at) ? date('Y-m-d H:i', strtotime($lifecycle_at)) : 'N/A'; ?>
                     </span>
                 </div>
             </div>

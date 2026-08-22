@@ -19,7 +19,7 @@ requireRecentAdminElevation('reset_user_password.php?id=' . $target_user_id);
 
 $target_user = fetchAuthenticationUserById($conn, $target_user_id);
 
-if (!$target_user) {
+if (!$target_user || $target_user['account_status'] !== 'active') {
     header('Location: users.php');
     exit();
 }

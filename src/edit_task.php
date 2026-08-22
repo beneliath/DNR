@@ -36,9 +36,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     $task_selected_subject = (string) ($_POST['subject'] ?? 'general');
     $transaction_started = false;
     try {
-        $normalized = normalizeFollowUpTaskInput($conn, $_POST, $existing_subject_value);
         $conn->begin_transaction();
         $transaction_started = true;
+        $normalized = normalizeFollowUpTaskInput($conn, $_POST, $existing_subject_value);
         $locked_task = fetchFollowUpTask($conn, $task_id, true);
         if (!$locked_task) {
             throw new InvalidArgumentException('That task is no longer available.');

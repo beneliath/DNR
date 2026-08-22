@@ -2,6 +2,7 @@
 // Include required files
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
+require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -10,49 +11,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireRecentAdminElevation('register.php');
 
     $username = is_string($_POST['username'] ?? null) ? trim($_POST['username']) : '';
-    $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
-    $password_confirm = is_string($_POST['password_confirm'] ?? null)
-        ? $_POST['password_confirm']
-        : '';
+    $email = is_string($_POST['email'] ?? null) ? $_POST['email'] : '';
     $role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
     $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
 
-    $password_error = \Dnr\Security\PasswordPolicy::validationError($password);
-    if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
-        $error = "Username is required and must be 50 characters or fewer.";
-    } elseif ($password_error !== null) {
-        $error = $password_error;
-    } elseif (!hash_equals($password, $password_confirm)) {
-        $error = "Passwords do not match.";
-    } elseif (!in_array($role, $valid_roles, true)) {
-        $error = "Invalid role selected.";
-    } else {
-        $check = $conn->prepare("SELECT id FROM users WHERE username = ?");
-        $check->bind_param("s", $username);
-        $check->execute();
-        $existing_user = $check->get_result();
-
-        if ($existing_user->num_rows > 0) {
-            $error = "Username already exists.";
-        } else {
-            $hashedPassword = \Dnr\Security\PasswordPolicy::hash($password);
-            $stmt = $conn->prepare(
-                "INSERT INTO users (username, password, must_change_password, role) VALUES (?, ?, 1, ?)"
-            );
-            $stmt->bind_param("sss", $username, $hashedPassword, $role);
-
-            if ($stmt->execute()) {
-                $message = "User registered successfully.";
-            } else {
-                $error = "Unable to create the user.";
-            }
+    try {
+        if (!in_array($role, $valid_roles, true)) {
+            throw new InvalidArgumentException('Invalid role selected.');
         }
+        $invitation = inviteUserAccount(
+            $conn,
+            $username,
+            $email,
+            $role,
+            (int) $_SESSION['user_id']
+        );
+        try {
+            sendInvitationEmail(
+                $invitation['email'],
+                $invitation['username'],
+                $invitation['token']
+            );
+            $_SESSION['_user_lifecycle_message'] = 'The account was created and its single-use invitation link was sent.';
+        } catch (Throwable $mail_exception) {
+            applicationLog('error', 'Invitation email delivery failed', [
+                'target_user_id' => $invitation['user_id'],
+                'error' => $mail_exception->getMessage(),
+            ]);
+            $_SESSION['_user_lifecycle_error'] = 'The invited account was created, but email delivery failed. Check the mail configuration and resend the invitation.';
+        }
+        unset($_SESSION['_admin_elevated_at']);
+        header('Location: users.php');
+        exit();
+    } catch (InvalidArgumentException $exception) {
+        $error = $exception->getMessage();
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to invite user', ['error' => $exception->getMessage()]);
+        $error = 'Unable to create the invited account.';
     }
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Register - DNR', array (
+<?php renderPageHead('Invite User - DNR', array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -62,25 +63,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>New User</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New User</h1><p class="page-intro">Create an account and assign its access level.</p></div></div>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Invite User</span></nav>
+    <div class="page-heading form-page-heading"><div><h1>Invite User</h1><p class="page-intro">Create an account and email a single-use activation link.</p></div></div>
 
-    <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <form method="post" action="register.php">
+    <form method="post" action="register.php" data-invitation-form>
         <?php echo csrfInput(); ?>
-        <div class="form-group"><label for="username">Username</label><input type="text" name="username" id="username" autocomplete="username" required></div>
-        <div class="form-group"><label for="password">Temporary password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" maxlength="72" required><p class="field-help">Use at least 12 characters and no more than 72 UTF-8 bytes. The user can change it from Account security.</p></div>
-        <div class="form-group"><label for="password_confirm">Confirm temporary password</label><input type="password" name="password_confirm" id="password_confirm" autocomplete="new-password" minlength="12" maxlength="72" required></div>
+        <div class="form-group"><label for="username">Username</label><input type="text" name="username" id="username" maxlength="50" autocomplete="username" value="<?php echo htmlspecialchars((string) ($_POST['username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required></div>
+        <div class="form-group"><label for="email">Email address</label><input type="email" name="email" id="email" maxlength="254" autocomplete="email" value="<?php echo htmlspecialchars((string) ($_POST['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" required><p class="field-help">The recipient will verify this address when they accept the invitation. The link expires after seven days.</p></div>
         <div class="form-group"><label for="role">Role</label><select name="role" id="role" required>
             <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
                 <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($_POST['role'] ?? '') === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
         </select></div>
+        <p class="invitation-submit-status" role="status" aria-live="polite" data-invitation-submit-status hidden>
+            <span class="invitation-submit-spinner" aria-hidden="true"></span>
+            Emailing the activation link&hellip;
+        </p>
         <div class="action-buttons create-form-actions">
             <a href="users.php" class="cancel-button">Cancel</a>
-            <input type="submit" value="Create user" class="register-button">
+            <button type="submit" class="register-button" data-invitation-submit>Send invitation</button>
         </div>
     </form>
 </div>

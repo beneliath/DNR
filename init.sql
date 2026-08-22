@@ -12,6 +12,14 @@ CREATE TABLE IF NOT EXISTS users (
     last_name VARCHAR(100) NULL,
     phone VARCHAR(50) NULL,
     email VARCHAR(254) NULL,
+    email_verified_at DATETIME NULL,
+    verified_email VARCHAR(254)
+        GENERATED ALWAYS AS (
+            CASE
+                WHEN email_verified_at IS NOT NULL THEN LOWER(email)
+                ELSE NULL
+            END
+        ) STORED,
     profile_picture MEDIUMBLOB NULL,
     profile_picture_thumbnail BLOB NULL,
     profile_picture_thumbnail_mime VARCHAR(32) NULL,
@@ -21,6 +29,9 @@ CREATE TABLE IF NOT EXISTS users (
     password VARCHAR(255) NOT NULL,
     must_change_password TINYINT(1) NOT NULL DEFAULT 0,
     role ENUM('admin', 'editor', 'reviewer') NOT NULL,
+    account_status ENUM('invited', 'active', 'inactive') NOT NULL DEFAULT 'active',
+    activated_at DATETIME NULL DEFAULT CURRENT_TIMESTAMP,
+    deactivated_at DATETIME NULL,
     auth_version INT UNSIGNED NOT NULL DEFAULT 1,
     two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0,
     totp_secret_encrypted TEXT NULL,
@@ -32,7 +43,29 @@ CREATE TABLE IF NOT EXISTS users (
     two_factor_locked_until DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    last_login_at DATETIME NULL
+    last_login_at DATETIME NULL,
+    UNIQUE INDEX uq_users_verified_email (verified_email),
+    INDEX idx_users_status_role (account_status, role, username)
+);
+
+CREATE TABLE IF NOT EXISTS user_email_tokens (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    purpose ENUM('invitation', 'verification', 'recovery') NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    auth_version INT UNSIGNED NOT NULL,
+    token_hash BINARY(32) NOT NULL,
+    expires_at DATETIME NOT NULL,
+    consumed_at DATETIME NULL,
+    created_by INT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_user_email_token_user
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_user_email_token_creator
+        FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE INDEX uq_user_email_token_hash (token_hash),
+    INDEX idx_user_email_token_lookup (purpose, token_hash, consumed_at, expires_at),
+    INDEX idx_user_email_token_user (user_id, purpose, auth_version, consumed_at, created_at)
 );
 
 CREATE TABLE IF NOT EXISTS user_recovery_codes (
@@ -627,4 +660,5 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260821_add_standard_event_tasks.sql', REPEAT('0', 64)),
 ('20260821_security_performance_hardening.sql', REPEAT('0', 64)),
 ('20260822_architecture_integrity_hardening.sql', REPEAT('0', 64)),
-('20260822_functional_performance_improvements.sql', REPEAT('0', 64));
+('20260822_functional_performance_improvements.sql', REPEAT('0', 64)),
+('20260823_add_user_lifecycle_and_email_tokens.sql', REPEAT('0', 64));

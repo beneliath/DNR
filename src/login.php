@@ -33,7 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user['password'] ?? $dummy_password_hash
         );
 
-        if ($user && empty($user['login_is_locked']) && $password_valid) {
+        if ($user
+            && $user['account_status'] === 'active'
+            && empty($user['login_is_locked'])
+            && $password_valid
+        ) {
             setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
             resetAuthenticationFailures($conn, (int) $user['id'], 'password');
             clearLoginRateLimitForCurrentIp($conn, $username);
@@ -54,12 +58,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             exit();
         }
 
-        if ($user && empty($user['login_is_locked'])) {
+        if ($user && $user['account_status'] === 'active' && empty($user['login_is_locked'])) {
             recordAuthenticationFailure($conn, (int) $user['id'], 'password');
         }
 
         if (!$user) {
             $failure_details = 'Unknown username';
+        } elseif ($user['account_status'] !== 'active') {
+            $failure_details = 'Account inactive';
         } elseif (!empty($user['login_is_locked'])) {
             $failure_details = 'Password authentication temporarily locked';
         } else {
@@ -108,6 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <p class="auth-intro">Sign in to manage engagements and contacts.</p>
     <?php if (isset($_GET['database_restored'])): ?>
       <p class="success">The database was restored successfully. All sessions were signed out.</p>
+    <?php elseif (isset($_GET['password_recovered'])): ?>
+      <p class="success">Your password was reset. Sign in with the new password.</p>
     <?php endif; ?>
     <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
     <form method="post" action="login.php">

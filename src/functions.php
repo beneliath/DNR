@@ -506,7 +506,7 @@ function requireLogin() {
 
     $user_id = (int) $_SESSION['user_id'];
     $stmt = $conn->prepare(
-        'SELECT username, role, auth_version, must_change_password,
+        'SELECT username, role, auth_version, must_change_password, account_status,
                 first_name, last_name, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -520,7 +520,10 @@ function requireLogin() {
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
-    if (!$user || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']) {
+    if (!$user
+        || $user['account_status'] !== 'active'
+        || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']
+    ) {
         session_unset();
         session_regenerate_id(true);
         header('Location: login.php');
@@ -580,6 +583,7 @@ function beginPendingAuthentication(array $user) {
         'user_id' => (int) $user['id'],
         'username' => (string) $user['username'],
         'role' => (string) $user['role'],
+        'auth_version' => (int) $user['auth_version'],
         'issued_at' => time(),
     ];
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
@@ -588,10 +592,17 @@ function beginPendingAuthentication(array $user) {
 function getPendingAuthentication() {
     $pending = $_SESSION['_pending_auth'] ?? null;
 
+    // A fully authenticated user may have a separate in-progress 2FA
+    // enrollment. The absence of a pending-login record must not erase it.
+    if ($pending === null) {
+        return null;
+    }
+
     if (!is_array($pending)
         || empty($pending['user_id'])
         || empty($pending['username'])
         || empty($pending['role'])
+        || !isset($pending['auth_version'])
         || !isset($pending['issued_at'])
         || (time() - (int) $pending['issued_at']) > 600
     ) {
@@ -667,6 +678,9 @@ function clearPasswordRecovery() {
 }
 
 function completeAuthentication(mysqli $conn, array $user, $two_factor_verified = false) {
+    if (($user['account_status'] ?? 'active') !== 'active') {
+        throw new RuntimeException('Inactive accounts cannot complete authentication.');
+    }
     $user_id = (int) $user['id'];
     setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $stmt = $conn->prepare(

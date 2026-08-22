@@ -35,8 +35,8 @@
 - [ ] doublecheck password entry for new user creation
 - [x] allow users to change their own password with confirmation and session revocation
 - [x] build out profiles for users
-- [ ] build email subsystem for initialization and password reset
-- [ ] add functionality to activate/deactivate users
+- [x] build email subsystem for invitations, verified addresses, and password reset
+- [x] add functionality to activate/deactivate users with coordinated access revocation
 - [x] build out for Contact(s): Admin, Pastor, and Other
 - [x] build out Anticipated Compensation
 - [ ] build out complete financial sub-system

@@ -48,7 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     requireValidCsrfToken();
     $task_form_values = $_POST;
     $task_selected_subject = (string) ($_POST['subject'] ?? 'general');
+    $transaction_started = false;
     try {
+        $conn->begin_transaction();
+        $transaction_started = true;
         $task = normalizeFollowUpTaskInput($conn, $_POST);
         $completed_by = $task['status'] === 'completed' ? (int) $_SESSION['user_id'] : null;
         $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
@@ -84,10 +87,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             throw new RuntimeException('Unable to save the task.');
         }
         $stmt->close();
+        $conn->commit();
+        $transaction_started = false;
         $_SESSION['task_action_message'] = 'Task added.';
         header('Location: ' . $task_return_to);
         exit();
     } catch (Throwable $exception) {
+        if ($transaction_started) {
+            $conn->rollback();
+        }
         $error_message = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
             : 'Unable to save the task. Please try again.';

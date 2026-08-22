@@ -164,7 +164,11 @@ Configure these values as needed:
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
 - `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, and `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`: host paths to independent secret files. The web process receives only the restricted application credential; destructive restore access exists only in the opt-in maintenance profile.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
-- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct the calendar subscription URL.
+- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, and recovery links.
+- `DNR_MAIL_TRANSPORT`: `smtp` enables account email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
+- `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for account email.
+- `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
+- `DNR_SMTP_USERNAME` and `DNR_SMTP_PASSWORD_FILE`: optional SMTP authentication. Prefer a password file mounted by a production Compose override or secret manager. `DNR_SMTP_PASSWORD` is also accepted for development. The web container remains on the private backend network, so production deployments should attach an SMTP relay to that network rather than granting the application general outbound access.
 - `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
 - `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
@@ -219,12 +223,18 @@ be supplied together.
 ### Password recovery
 
 - The login page links to a self-service password recovery flow.
-- Recovery requires proof from the account's enrolled authenticator or one unused recovery code; DNR does not send reset links because it has no verified email delivery channel.
-- The identity-verification step expires after 10 minutes, and permission to set a new password expires five minutes after verification.
-- Five failed recovery-factor attempts trigger the same 15-minute second-factor lockout used during login.
-- A successful recovery requires a new password of at least 12 characters, invalidates other sessions, records a security audit event, and signs the recovered account in.
+- Recovery links are sent only to the unique verified email address of an active account. Responses do not reveal whether an address belongs to an account.
+- Recovery links are random, single-use bearer tokens. Only their SHA-256 digests are stored, and they expire after one hour.
+- A successful recovery requires a new password of at least 12 characters, invalidates every existing session, records a security audit event, and returns the user to sign-in so normal 2FA requirements still apply.
 - Account passwords must contain at least 12 characters and no more than 72 UTF-8 bytes; the upper bound prevents bcrypt from silently ignoring part of a password.
-- Accounts without 2FA, or users who have lost every recovery method, require another administrator to set a temporary password from **Manage Users**, or a server administrator to run `docker compose exec web dnr-set-password USERNAME`.
+- Accounts without a verified email address require another administrator to set a temporary password from **Manage Users**, or a server administrator to run `docker compose exec web dnr-set-password USERNAME`.
+
+### User lifecycle and invitations
+
+- Freshly invited accounts cannot authenticate. The seven-day invitation link lets the recipient choose a private password, verifies the invited email address, and activates the account.
+- Changing an account email clears its verified status and sends a new 24-hour verification link. Only verified addresses can receive password-recovery links.
+- Deactivation retains the user and every audit reference while incrementing the authentication version, revoking all calendar subscriptions, invalidating outstanding email links, removing task assignments, and making any session-held administrator elevation unusable.
+- Reactivation restores sign-in access only. Revoked calendar links and prior task assignments are intentionally not restored.
 
 ### Usage
 
