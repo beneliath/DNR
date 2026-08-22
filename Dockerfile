@@ -34,6 +34,7 @@ RUN a2enconf zz-dnr-security \
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY scripts/create_admin.php /opt/dnr/bin/create_admin.php
 COPY scripts/set_password.php /opt/dnr/bin/set_password.php
+COPY scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
 COPY scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
 COPY scripts/restore_database.php /opt/dnr/bin/restore_database.php

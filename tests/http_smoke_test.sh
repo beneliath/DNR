@@ -14,7 +14,7 @@ grep -q '"status":"ready"' "$temporary_directory/ready.json"
 curl -fsS -D "$temporary_directory/login.headers" -o "$temporary_directory/login.html" "$base_url/login.php"
 grep -qi '^content-security-policy:' "$temporary_directory/login.headers"
 grep -qi '^x-request-id:' "$temporary_directory/login.headers"
-grep -q 'MOED' "$temporary_directory/login.html"
+grep -q 'class="auth-brand-logo"' "$temporary_directory/login.html"
 
 curl -fsS -H 'Accept-Encoding: gzip' -D "$temporary_directory/static.headers" \
     -o "$temporary_directory/static.css" "$base_url/assets/css/style.min.css?v=smoke"
@@ -26,5 +26,8 @@ status=$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/engagements.php")
 
 status=$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/init.sql")
 [ "$status" = '403' ]
+
+status=$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/migrate_passwords.php")
+[ "$status" = '404' ]
 
 echo 'HTTP smoke tests passed.'

@@ -33,15 +33,15 @@ final class EngagementInput
     public static function normalize(array $input): array
     {
         [$event_type, $event_type_other] = \normalizeEventType(
-            self::text($input, 'event_type'),
-            self::text($input, 'event_type_other')
+            InputText::value($input, 'event_type'),
+            InputText::value($input, 'event_type_other')
         );
         $data = [
             'organization_id' => max(0, (int) ($input['organization_id'] ?? 0)),
-            'event_title' => self::text($input, 'event_title'),
-            'event_description' => self::text($input, 'event_description'),
-            'event_start_date' => self::text($input, 'event_start_date'),
-            'event_end_date' => self::text($input, 'event_end_date'),
+            'event_title' => InputText::value($input, 'event_title'),
+            'event_description' => InputText::value($input, 'event_description'),
+            'event_start_date' => InputText::value($input, 'event_start_date'),
+            'event_end_date' => InputText::value($input, 'event_end_date'),
             'event_type' => $event_type,
             'event_type_other' => $event_type_other,
             'book_table' => isset($input['book_table']) ? 1 : 0,
@@ -63,23 +63,51 @@ final class EngagementInput
                 ReferenceData::compensationTypes(),
                 'Unknown'
             ),
-            'other_compensation' => self::text($input, 'other_compensation'),
+            'other_compensation' => InputText::value($input, 'other_compensation'),
             'housing_type' => ReferenceData::choice(
                 $input['housing_type'] ?? '',
                 ReferenceData::housingTypes(),
                 'Unknown'
             ),
-            'other_housing' => self::text($input, 'other_housing'),
+            'other_housing' => InputText::value($input, 'other_housing'),
             'housing_amount' => \nullableNonNegativeAmount($input['housing_amount'] ?? '', 'lodging'),
         ];
-        foreach (['line_1', 'line_2', 'city', 'state', 'zipcode', 'country'] as $part) {
-            $data['event_address_' . $part] = self::text($input, 'event_address_' . $part);
+        foreach (['line_1', 'line_2'] as $part) {
+            $data['event_address_' . $part] = InputText::value($input, 'event_address_' . $part);
+        }
+        foreach (['city', 'state', 'zipcode', 'country'] as $part) {
+            $data['event_' . $part] = InputText::value($input, 'event_' . $part);
         }
         if ($data['organization_id'] < 1) {
             throw new \InvalidArgumentException('Please select an active organization.');
         }
         if ($data['event_title'] === '') {
             throw new \InvalidArgumentException('Event title is required.');
+        }
+        $length_limits = [
+            'event_title' => [255, 'Event title'],
+            'event_address_line_1' => [255, 'Event address line 1'],
+            'event_address_line_2' => [255, 'Event address line 2'],
+            'event_city' => [100, 'Event city'],
+            'event_state' => [100, 'Event state'],
+            'event_zipcode' => [20, 'Event postal code'],
+            'event_country' => [100, 'Event country'],
+        ];
+        foreach ($length_limits as $field => [$maximum, $label]) {
+            $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
+            if ($length_error !== null) {
+                throw new \InvalidArgumentException($length_error);
+            }
+        }
+        foreach ([
+            'event_description' => 'Event description',
+            'other_compensation' => 'Other compensation',
+            'other_housing' => 'Other lodging arrangement',
+        ] as $field => $label) {
+            $storage_error = InputText::textStorageError((string) $data[$field], $label);
+            if ($storage_error !== null) {
+                throw new \InvalidArgumentException($storage_error);
+            }
         }
         \requireValidDateRange($data['event_start_date'], $data['event_end_date']);
         if ($data['compensation_type'] === 'Other' && $data['other_compensation'] === '') {
@@ -91,9 +119,4 @@ final class EngagementInput
         return $data;
     }
 
-    /** @param array<string, mixed> $input */
-    private static function text(array $input, string $key): string
-    {
-        return is_scalar($input[$key] ?? null) ? trim((string) $input[$key]) : '';
-    }
 }

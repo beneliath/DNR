@@ -2,6 +2,13 @@
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
 
+foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require_once $autoload;
+        break;
+    }
+}
+
 use Dnr\Service\ArchiveService;
 
 function assetUrl($path) {
@@ -214,7 +221,7 @@ function normalizePhoneCountryCode($country_code) {
 
 function normalizePhoneNumber($country_code, $national_number, $label = 'Phone number') {
     if (!is_scalar($national_number) && $national_number !== null) {
-        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
     }
 
     $national_number = trim((string) $national_number);
@@ -223,26 +230,29 @@ function normalizePhoneNumber($country_code, $national_number, $label = 'Phone n
     }
 
     $country_code = normalizePhoneCountryCode($country_code);
-    $country_digits = substr($country_code, 1);
-    $number_digits = preg_replace('/[^0-9]/', '', $national_number);
+    $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+    $expected_country_code = (int) substr($country_code, 1);
+    $region = $phone_util->getRegionCodeForCountryCode($expected_country_code);
+    if (!is_string($region) || $region === '' || $region === '001') {
+        throw new InvalidArgumentException("Select a supported country for {$label}.");
+    }
 
-    if (strlen($number_digits) === 10 + strlen($country_digits)
-        && str_starts_with($number_digits, $country_digits)
+    try {
+        $phone_number = $phone_util->parse(
+            $national_number,
+            str_starts_with($national_number, '+') ? null : $region
+        );
+    } catch (\libphonenumber\NumberParseException $exception) {
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
+    }
+
+    if ($phone_number->getCountryCode() !== $expected_country_code
+        || !$phone_util->isValidNumber($phone_number)
     ) {
-        $number_digits = substr($number_digits, strlen($country_digits));
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
     }
 
-    if (strlen($number_digits) !== 10) {
-        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
-    }
-
-    return sprintf(
-        '%s (%s) %s-%s',
-        $country_code,
-        substr($number_digits, 0, 3),
-        substr($number_digits, 3, 3),
-        substr($number_digits, 6, 4)
-    );
+    return $phone_util->format($phone_number, \libphonenumber\PhoneNumberFormat::E164);
 }
 
 function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
@@ -257,26 +267,23 @@ function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
         return [$country_code, ''];
     }
 
-    $national_number = $stored_phone;
-    if (str_starts_with($stored_phone, '+')) {
-        if (preg_match('/\A(\+[1-9][0-9]{0,2})(?=[\s().-])/', $stored_phone, $matches)) {
-            $country_code = $matches[1];
-            $national_number = ltrim(substr($stored_phone, strlen($matches[1])));
-        } else {
-            $phone_digits = preg_replace('/[^0-9]/', '', $stored_phone);
-            $country_digit_count = strlen($phone_digits) - 10;
-            if ($country_digit_count >= 1 && $country_digit_count <= 3) {
-                $country_code = '+' . substr($phone_digits, 0, $country_digit_count);
-                $national_number = substr($phone_digits, $country_digit_count);
-            }
-        }
-    }
-
     try {
-        $normalized = normalizePhoneNumber($country_code, $national_number);
-        return [$country_code, substr($normalized, strlen($country_code) + 1)];
-    } catch (InvalidArgumentException $exception) {
-        return [$country_code, $national_number];
+        $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+        if (str_starts_with($stored_phone, '+')) {
+            $phone_number = $phone_util->parse($stored_phone, null);
+            if (!$phone_util->isValidNumber($phone_number)) {
+                throw new InvalidArgumentException('The stored telephone number is invalid.');
+            }
+        } else {
+            $normalized = normalizePhoneNumber($country_code, $stored_phone);
+            $phone_number = $phone_util->parse($normalized, null);
+        }
+        return [
+            '+' . $phone_number->getCountryCode(),
+            $phone_util->format($phone_number, \libphonenumber\PhoneNumberFormat::NATIONAL),
+        ];
+    } catch (Throwable $exception) {
+        return [$country_code, $stored_phone];
     }
 }
 
@@ -286,10 +293,22 @@ function formatPhoneNumberForDisplay($stored_phone, $default_country_code = '+1'
         return '';
     }
 
-    [$country_code, $national_number] = phoneNumberInputParts($stored_phone, $default_country_code);
     try {
-        return normalizePhoneNumber($country_code, $national_number);
-    } catch (InvalidArgumentException $exception) {
+        $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+        if (str_starts_with($stored_phone, '+')) {
+            $phone_number = $phone_util->parse($stored_phone, null);
+            if (!$phone_util->isValidNumber($phone_number)) {
+                return $stored_phone;
+            }
+        } else {
+            $normalized = normalizePhoneNumber($default_country_code, $stored_phone);
+            $phone_number = $phone_util->parse($normalized, null);
+        }
+        return $phone_util->format(
+            $phone_number,
+            \libphonenumber\PhoneNumberFormat::INTERNATIONAL
+        );
+    } catch (Throwable $exception) {
         return $stored_phone;
     }
 }
@@ -415,7 +434,7 @@ function normalizeEventType($event_type, $event_type_other) {
         throw new InvalidArgumentException('Select a valid event type.');
     }
     if ($event_type === 'other') {
-        if ($event_type_other === '' || strlen($event_type_other) > 50) {
+        if ($event_type_other === '' || mb_strlen($event_type_other, 'UTF-8') > 50) {
             throw new InvalidArgumentException('Describe the other event type using 50 characters or fewer.');
         }
         return ['other', $event_type_other];

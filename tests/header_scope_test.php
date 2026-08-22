@@ -56,7 +56,7 @@ expectHeaderScope(
     'The primary navigation should not expose the internal Operations dashboard.'
 );
 
-foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authentication_page) {
+foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
     expectHeaderScope(
         str_contains($authentication_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
@@ -65,15 +65,36 @@ foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authenticat
     expectHeaderScope(!str_contains($authentication_markup, 'app-brand-mark'), $authentication_page . ' should not render a separate logo mark.');
 }
 
+$login_markup = file_get_contents(__DIR__ . '/../src/login.php');
+expectHeaderScope(
+    substr_count($login_markup, 'class="auth-brand-logo"') === 1
+        && str_contains($login_markup, 'data-theme-logo')
+        && str_contains($login_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
+        && str_contains($login_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($login_markup, 'width="320" height="55"'),
+    'The login page should render one responsive DNR logo with light- and dark-theme sources.'
+);
+
+$verification_markup = file_get_contents(__DIR__ . '/../src/verify_2fa.php');
+expectHeaderScope(
+    substr_count($verification_markup, 'class="auth-brand-logo"') === 1
+        && str_contains($verification_markup, 'data-theme-logo')
+        && str_contains($verification_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
+        && str_contains($verification_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($verification_markup, 'width="320" height="55"'),
+    'The verification page should render one responsive DNR logo with light- and dark-theme sources.'
+);
+
 $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
+$theme_source = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '1.4.5');"),
-    'The application version should be 1.4.5.'
+    str_contains($configuration_source, "define('APP_VERSION', '1.4.6');"),
+    'The application version should be 1.4.6.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.4.5'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.4.6'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
@@ -109,10 +130,16 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match('/\.app-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*100%;[^}]*height:\s*auto;/s', $modern_styles) === 1
+        && preg_match('/\.auth-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*320px;[^}]*height:\s*auto;/s', $modern_styles) === 1
         && preg_match('/html\.dark-mode \.app-sidebar nav\s*\{[^}]*background:\s*transparent\s*!important;/s', $modern_styles) === 1
         && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
         && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
     'The sidebar logo should scale to its container and adapt cleanly to dark mode.'
+);
+expectHeaderScope(
+    str_contains($theme_source, "document.querySelectorAll('[data-theme-logo]')")
+        && str_contains($theme_source, 'isDark ? logo.dataset.darkSrc : logo.dataset.lightSrc'),
+    'Theme changes should swap the single brand image between its light and dark sources.'
 );
 expectHeaderScope(
     str_contains($modern_styles, 'url("../fonts/rubik-latin-700.woff2")')

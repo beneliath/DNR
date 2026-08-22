@@ -14,15 +14,15 @@ final class ContactInput
     {
         $data = [
             'organization_id' => max(0, (int) ($input['organization_id'] ?? 0)),
-            'contact_first_name' => self::text($input, 'contact_first_name'),
-            'contact_last_name' => self::text($input, 'contact_last_name'),
-            'contact_role' => strtolower(self::text($input, 'contact_role')),
-            'contact_role_other' => self::text($input, 'contact_role_other'),
-            'contact_email' => self::text($input, 'contact_email'),
-            'contact_email_confirm' => self::text($input, 'contact_email_confirm'),
-            'contact_phone' => self::text($input, 'contact_phone'),
-            'contact_notes' => self::text($input, 'contact_notes'),
-            'contact_phone_country_code' => self::text($input, 'contact_phone_country_code') ?: '+1',
+            'contact_first_name' => InputText::value($input, 'contact_first_name'),
+            'contact_last_name' => InputText::value($input, 'contact_last_name'),
+            'contact_role' => strtolower(InputText::value($input, 'contact_role')),
+            'contact_role_other' => InputText::value($input, 'contact_role_other'),
+            'contact_email' => InputText::value($input, 'contact_email'),
+            'contact_email_confirm' => InputText::value($input, 'contact_email_confirm'),
+            'contact_phone' => InputText::value($input, 'contact_phone'),
+            'contact_notes' => InputText::value($input, 'contact_notes'),
+            'contact_phone_country_code' => InputText::value($input, 'contact_phone_country_code') ?: '+1',
         ];
         $errors = [];
         if ($data['organization_id'] < 1) {
@@ -33,6 +33,22 @@ final class ContactInput
         }
         if ($data['contact_last_name'] === '') {
             $errors[] = 'Last name is required.';
+        }
+        foreach ([
+            'contact_first_name' => [255, 'First name'],
+            'contact_last_name' => [255, 'Last name'],
+            'contact_role_other' => [255, 'Other role'],
+            'contact_email' => [255, 'Email address'],
+            'contact_email_confirm' => [255, 'Email confirmation'],
+        ] as $field => [$maximum, $label]) {
+            $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
+            if ($length_error !== null) {
+                $errors[] = $length_error;
+            }
+        }
+        $notes_error = InputText::textStorageError((string) $data['contact_notes'], 'Contact notes');
+        if ($notes_error !== null) {
+            $errors[] = $notes_error;
         }
         if (!in_array($data['contact_role'], ReferenceData::contactRoles(), true)) {
             $errors[] = 'A valid role is required.';
@@ -97,11 +113,5 @@ final class ContactInput
             ],
             'errors' => $normalized['errors'],
         ];
-    }
-
-    /** @param array<string, mixed> $input */
-    private static function text(array $input, string $key): string
-    {
-        return is_scalar($input[$key] ?? null) ? trim((string) $input[$key]) : '';
     }
 }

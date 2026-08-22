@@ -42,6 +42,9 @@ $new_engagement = $read('src/index.php');
 $form = $read('src/templates/standard_event_task_form.php');
 $header = $read('src/templates/header.php');
 $privileges = $read('scripts/configure_database_privileges.sh');
+$checklist_position = strpos($new_engagement, 'generateEngagementFollowUpChecklist(');
+$map_queue_position = strpos($new_engagement, 'queueEngagementMapAddress(', $checklist_position ?: 0);
+$engagement_commit_position = strpos($new_engagement, '$conn->commit()', $map_queue_position ?: 0);
 
 expectStandardEventTaskFeature(
     str_contains($helpers, "FROM standard_event_tasks template")
@@ -71,8 +74,12 @@ expectStandardEventTaskFeature(
     str_contains($new_engagement, "include 'follow_up_task_helpers.php'")
         && str_contains($new_engagement, 'generateEngagementFollowUpChecklist(')
         && str_contains($new_engagement, '$standard_task_count')
-        && preg_match('/generateEngagementFollowUpChecklist\([^;]+false\s*\);\s*\$conn->commit\(\)/s', $new_engagement) === 1,
-    'new engagement creation should atomically generate and assign every active standard task before commit.'
+        && $checklist_position !== false
+        && $map_queue_position !== false
+        && $engagement_commit_position !== false
+        && $checklist_position < $map_queue_position
+        && $map_queue_position < $engagement_commit_position,
+    'new engagement creation should atomically generate standard tasks and queue its map lookup before commit.'
 );
 expectStandardEventTaskFeature(
     str_contains($view, 'standardEventTaskScheduleLabel')

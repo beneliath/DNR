@@ -142,7 +142,7 @@ function normalizeEngagementPresentations(
             throw new InvalidArgumentException('Enter a topic/title for each presentation.');
         }
 
-        if (strlen($topic_title) > 255) {
+        if (mb_strlen($topic_title, 'UTF-8') > 255) {
             throw new InvalidArgumentException('Presentation topic/title must be 255 characters or fewer.');
         }
 
@@ -162,7 +162,7 @@ function normalizeEngagementPresentations(
         $normalized_presentation_time = normalizePresentationTime($presentation_time);
 
         $speaker_name = $speaker_name !== '' ? $speaker_name : (string) $default_speaker;
-        if (strlen($speaker_name) > 255) {
+        if (mb_strlen($speaker_name, 'UTF-8') > 255) {
             throw new InvalidArgumentException('Presentation speaker name must be 255 characters or fewer.');
         }
 

@@ -48,10 +48,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $picture = null;
 
     try {
-        if (strlen($first_name) > 100 || strlen($last_name) > 100) {
+        if (mb_strlen($first_name, 'UTF-8') > 100 || mb_strlen($last_name, 'UTF-8') > 100) {
             throw new InvalidArgumentException('First and last names must be 100 characters or fewer.');
         }
-        if (strlen($email) > 254 || ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL))) {
+        if (mb_strlen($email, 'UTF-8') > 254 || ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL))) {
             throw new InvalidArgumentException('Enter a valid email address.');
         }
 

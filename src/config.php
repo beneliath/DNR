@@ -16,7 +16,7 @@ function configurationSecret($name, $default = '') {
     return $value === false ? $default : trim((string) $value);
 }
 
-define('APP_VERSION', '1.4.5');
+define('APP_VERSION', '1.4.6');
 
 // Use environment variables and secret files without committed credentials.
 $DB_HOST = getenv('DB_HOST') ? getenv('DB_HOST') : 'db';
@@ -31,17 +31,14 @@ if ($DB_PASS === '') {
     abortApplication(503, 'Database credentials are not configured.');
 }
 
-// Preserve explicit error handling across PHP 7.4 and PHP 8.x.
-mysqli_report(MYSQLI_REPORT_OFF);
-$conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
-if ($conn->connect_error) {
-    applicationLog('error', 'Database connection failed', ['error' => $conn->connect_error]);
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+try {
+    $conn = new mysqli($DB_HOST, $DB_USER, $DB_PASS, $DB_NAME);
+    $conn->set_charset('utf8mb4');
+} catch (mysqli_sql_exception $exception) {
+    applicationLog('error', 'Database connection failed', ['error' => $exception->getMessage()]);
     if (defined('DNR_DATABASE_FAILURES_THROW') && DNR_DATABASE_FAILURES_THROW) {
-        throw new RuntimeException('Database service unavailable.');
+        throw new RuntimeException('Database service unavailable.', 0, $exception);
     }
     abortApplication(503, 'Database service unavailable.');
-}
-
-if (!$conn->set_charset('utf8mb4')) {
-    applicationLog('error', 'Unable to set database connection charset', ['error' => $conn->error]);
 }

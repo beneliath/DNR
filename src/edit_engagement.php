@@ -608,16 +608,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $chron_stmt->close();
         }
 
-        // Commit transaction
-        $conn->commit();
-        queueEngagementMapAddress($conn, engagementMapAddress([
+        $map_address = engagementMapAddress([
             'event_address_line_1' => $event_address_line_1,
             'event_address_line_2' => $event_address_line_2,
             'event_city' => $event_city,
             'event_state' => $event_state,
             'event_zipcode' => $event_zipcode,
             'event_country' => $event_country,
-        ]));
+        ]);
+        if ($map_address !== '' && !queueEngagementMapAddress($conn, $map_address)) {
+            throw new RuntimeException('Unable to queue the engagement location.');
+        }
+
+        // Commit the engagement and its background lookup request atomically.
+        $conn->commit();
         $success_message = "Engagement updated successfully.";
         applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 

@@ -186,9 +186,4 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
     );
 }
 
-expectHoverStyle(
-    strpos(file_get_contents(__DIR__ . '/../src/migrate_passwords.php'), 'class="security-button">Run migration</button>') !== false,
-    'The standalone password migration page should classify its action with the shared safe-action style.'
-);
-
 echo "Button hover style tests passed.\n";

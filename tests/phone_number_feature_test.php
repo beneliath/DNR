@@ -51,8 +51,9 @@ expectPhoneFeature(
     str_contains($phone_script, "document.addEventListener('focusout'")
         && str_contains($phone_script, "document.addEventListener('submit'")
         && str_contains($phone_script, '[data-phone-country-option]')
-        && str_contains($phone_script, 'Enter a 10-digit telephone number.'),
-    'the shared client behavior should select countries, format on blur and save, and validate local digits.'
+        && str_contains($phone_script, 'totalDigits > 15')
+        && str_contains($phone_script, 'valid telephone number for the selected country'),
+    'the shared client behavior should select countries, preserve international formats, and validate E.164 length boundaries.'
 );
 
 $header = $read('src/templates/header.php');
@@ -72,12 +73,15 @@ expectPhoneFeature(
 );
 
 $migration = $read('migrations/20260818_standardize_phone_numbers.sql');
+$e164_migration = $read('migrations/20260822_normalize_phone_e164.sql');
 expectPhoneFeature(
     str_contains($migration, 'UPDATE organizations')
         && str_contains($migration, 'UPDATE contacts')
         && str_contains($migration, "'+1 ('")
-        && str_contains($migration, 'REGEXP_REPLACE'),
-    'the migration should normalize legacy U.S. organization, fax, and contact values.'
+        && str_contains($migration, 'REGEXP_REPLACE')
+        && str_contains($e164_migration, "CONCAT('+', REGEXP_REPLACE")
+        && str_contains($e164_migration, 'UPDATE users'),
+    'tracked migrations should normalize legacy U.S. values and canonicalize stored telephone numbers as E.164.'
 );
 
 echo "Phone number feature tests passed.\n";

@@ -121,6 +121,79 @@ function queueEngagementMapAddress(mysqli $conn, $address)
     return $queued;
 }
 
+/**
+ * Store a completed lookup and acknowledge its queue item as one atomic change.
+ *
+ * @param array{latitude: float, longitude: float}|null $coordinates
+ */
+function completeEngagementMapGeocodeJob(
+    mysqli $conn,
+    string $address_hash,
+    string $address_query,
+    ?array $coordinates
+): void {
+    $latitude = $coordinates['latitude'] ?? null;
+    $longitude = $coordinates['longitude'] ?? null;
+    $lookup_status = $coordinates === null ? 'not_found' : 'found';
+    if ($coordinates !== null && !engagementMapCoordinatesAreValid($latitude, $longitude)) {
+        throw new InvalidArgumentException('A completed geocoding job must contain valid coordinates.');
+    }
+    if (!$conn->begin_transaction()) {
+        throw new RuntimeException('Unable to start geocoding result storage: ' . $conn->error);
+    }
+
+    try {
+        $save = $conn->prepare(
+            'INSERT INTO engagement_map_geocodes
+                (address_hash, address_query, latitude, longitude, lookup_status, geocoded_at)
+             VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())
+             ON DUPLICATE KEY UPDATE
+                address_query = VALUES(address_query), latitude = VALUES(latitude),
+                longitude = VALUES(longitude), lookup_status = VALUES(lookup_status),
+                geocoded_at = VALUES(geocoded_at)'
+        );
+        if (!$save) {
+            throw new RuntimeException('Unable to prepare geocoding result storage: ' . $conn->error);
+        }
+        $save->bind_param(
+            'ssdds',
+            $address_hash,
+            $address_query,
+            $latitude,
+            $longitude,
+            $lookup_status
+        );
+        if (!$save->execute()) {
+            $save_error = $save->error;
+            $save->close();
+            throw new RuntimeException('Unable to store a geocoding result: ' . $save_error);
+        }
+        $save->close();
+
+        $delete = $conn->prepare(
+            "DELETE FROM engagement_map_geocode_queue
+             WHERE address_hash = ? AND status = 'processing'"
+        );
+        if (!$delete) {
+            throw new RuntimeException('Unable to prepare geocoding-job completion: ' . $conn->error);
+        }
+        $delete->bind_param('s', $address_hash);
+        if (!$delete->execute() || $delete->affected_rows !== 1) {
+            $delete_error = $delete->error;
+            $delete->close();
+            throw new RuntimeException('Unable to complete the geocoding job: ' . $delete_error);
+        }
+        $delete->close();
+
+        if (!$conn->commit()) {
+            throw new RuntimeException('Unable to commit the geocoding result: ' . $conn->error);
+        }
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
 function geocoderHostIsPublic($host)
 {
     $addresses = array_values(array_unique(array_filter(array_merge(

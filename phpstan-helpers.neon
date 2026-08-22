@@ -1,6 +1,8 @@
 parameters:
-    level: 1
+    level: 3
     paths:
+        - src/config.php
+        - src/functions.php
         - src/calendar_helpers.php
         - src/chron_log_helpers.php
         - src/contact_photo_helpers.php

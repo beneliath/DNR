@@ -12,6 +12,7 @@
         "ext-mbstring": "*",
         "php": "^8.4",
         "endroid/qr-code": "^6.0",
+        "giggsey/libphonenumber-for-php": "^9.0",
         "spomky-labs/otphp": "^11.4",
         "tecnickcom/tcpdf": "^6.11"
     },

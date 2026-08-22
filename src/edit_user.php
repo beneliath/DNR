@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $role = $_POST['role'] ?? '';
     $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
 
-    if ($username === '' || strlen($username) > 50) {
+    if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
     } elseif (!in_array($role, $valid_roles, true)) {
         $error = "Invalid role selected.";

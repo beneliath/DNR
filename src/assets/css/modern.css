@@ -2663,6 +2663,13 @@ html.dark-mode body.fullscreen-center .login-container {
   margin-bottom: 28px;
 }
 
+.auth-brand-logo {
+  display: block;
+  width: 100%;
+  max-width: 320px;
+  height: auto;
+}
+
 .auth-brand-copy {
   display: flex;
   flex-direction: column;

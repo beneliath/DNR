@@ -21,9 +21,7 @@ final class OrganizationInput
         ];
         $data = [];
         foreach ($fields as $field) {
-            $data[$field] = is_scalar($input[$field] ?? null)
-                ? trim((string) $input[$field])
-                : '';
+            $data[$field] = InputText::value($input, $field);
         }
         $data['same_address'] = ($input['same_address'] ?? 'no') === 'yes';
         $data['phone_country_code'] = is_scalar($input['phone_country_code'] ?? null)
@@ -42,6 +40,33 @@ final class OrganizationInput
         $errors = [];
         if ($data['organization_name'] === '') {
             $errors[] = 'Organization name is required.';
+        }
+        foreach ([
+            'organization_name' => [255, 'Organization name'],
+            'affiliation' => [255, 'Affiliation'],
+            'distinctives' => [255, 'Distinctives'],
+            'website_url' => [255, 'Website URL'],
+            'mailing_address_line_1' => [255, 'Mailing address line 1'],
+            'mailing_address_line_2' => [255, 'Mailing address line 2'],
+            'mailing_city' => [100, 'Mailing city'],
+            'mailing_state' => [100, 'Mailing state'],
+            'mailing_zipcode' => [20, 'Mailing postal code'],
+            'mailing_country' => [100, 'Mailing country'],
+            'physical_address_line_1' => [255, 'Physical address line 1'],
+            'physical_address_line_2' => [255, 'Physical address line 2'],
+            'physical_city' => [100, 'Physical city'],
+            'physical_state' => [100, 'Physical state'],
+            'physical_zipcode' => [20, 'Physical postal code'],
+            'physical_country' => [100, 'Physical country'],
+        ] as $field => [$maximum, $label]) {
+            $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
+            if ($length_error !== null) {
+                $errors[] = $length_error;
+            }
+        }
+        $notes_error = InputText::textStorageError((string) $data['notes'], 'Organization notes');
+        if ($notes_error !== null) {
+            $errors[] = $notes_error;
         }
         $normalized_url = \normalizedHttpUrl($data['website_url']);
         if ($normalized_url === null) {

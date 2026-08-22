@@ -15,7 +15,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $role = $_POST['role'] ?? '';
     $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
 
-    if ($username === '' || strlen($username) > 50) {
+    if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
     } elseif (strlen($password) < 12) {
         $error = "Password must be at least 12 characters.";
