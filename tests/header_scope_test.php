@@ -55,6 +55,12 @@ expectHeaderScope(
         && !str_contains($header_markup, '<span>Operations</span>'),
     'The primary navigation should not expose the internal Operations dashboard.'
 );
+expectHeaderScope(
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 2
+        && str_contains($header_markup, '<span>Users</span>')
+        && str_contains($header_markup, '<span>Database</span>'),
+    'Administrator-only navigation links should carry the dedicated visual treatment.'
+);
 
 foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
@@ -137,6 +143,13 @@ expectHeaderScope(
         && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
         && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
     'The sidebar logo should scale to its container and adapt cleanly to dark mode.'
+);
+expectHeaderScope(
+    str_contains($modern_styles, '--admin-nav: #9a3f00;')
+        && str_contains($modern_styles, '--admin-nav: #f4a261;')
+        && preg_match('/\.nav-link\.admin-nav-link\s*\{[^}]*color:\s*var\(--admin-nav\)\s*!important;/s', $modern_styles) === 1
+        && str_contains($modern_styles, 'html.dark-mode .app-sidebar .nav-link.admin-nav-link.active'),
+    'Admin navigation should use accessible burnt-orange colors in light and dark themes.'
 );
 expectHeaderScope(
     str_contains($theme_source, "document.querySelectorAll('[data-theme-logo]')")

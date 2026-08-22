@@ -40,6 +40,12 @@
   --nav-active-bg: #d8f1ed;
   --nav-active-fg: #0b5d57;
   --nav-focus: #84caff;
+  --admin-nav: #9a3f00;
+  --admin-nav-hover-bg: #fff0e5;
+  --admin-nav-hover-fg: #843600;
+  --admin-nav-active-bg: #ffe2cc;
+  --admin-nav-active-fg: #7c2d12;
+  --admin-nav-focus: #c2410c;
   --action-view: #175cd3;
   --action-view-bg: #dbeafe;
   --action-edit: #0f766e;
@@ -100,6 +106,12 @@ html.dark-mode {
   --nav-active-bg: #174b47;
   --nav-active-fg: #9ae9e3;
   --nav-focus: #84caff;
+  --admin-nav: #f4a261;
+  --admin-nav-hover-bg: #4a2717;
+  --admin-nav-hover-fg: #ffc08a;
+  --admin-nav-active-bg: #59301d;
+  --admin-nav-active-fg: #ffd0a6;
+  --admin-nav-focus: #fb923c;
   --action-view: #84adff;
   --action-view-bg: #243f73;
   --action-edit: #5eead4;
@@ -328,6 +340,30 @@ html.dark-mode .app-sidebar .nav-link.active {
   color: var(--nav-active-fg) !important;
   font-weight: 650;
   box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.nav-link.admin-nav-link {
+  color: var(--admin-nav) !important;
+  font-weight: 620;
+}
+
+.nav-link.admin-nav-link:hover,
+.nav-link.admin-nav-link:focus-visible {
+  background: var(--admin-nav-hover-bg) !important;
+  color: var(--admin-nav-hover-fg) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--admin-nav-focus) 18%, transparent);
+}
+
+.nav-link.admin-nav-link.active,
+html.dark-mode .app-sidebar .nav-link.admin-nav-link.active {
+  background: var(--admin-nav-active-bg) !important;
+  color: var(--admin-nav-active-fg) !important;
+  font-weight: 680;
+  box-shadow: inset 3px 0 0 var(--admin-nav);
+}
+
+.nav-link.admin-nav-link:focus-visible {
+  outline-color: var(--admin-nav-focus) !important;
 }
 
 .nav-link:focus-visible,

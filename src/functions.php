@@ -18,7 +18,26 @@ use Dnr\Http\ClientAddress;
 function assetUrl($path) {
     $path = ltrim((string) $path, '/');
     $version = defined('APP_VERSION') ? APP_VERSION : 'dev';
-    return $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
+    $url = $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
+
+    // Static assets are cached as immutable. Include their content fingerprint
+    // so a rebuilt asset receives a new URL even within the same app release.
+    $asset_path = parse_url($path, PHP_URL_PATH);
+    if (is_string($asset_path) && str_starts_with($asset_path, 'assets/')) {
+        $local_path = __DIR__ . '/' . $asset_path;
+        if (is_file($local_path)) {
+            static $fingerprints = [];
+            if (!array_key_exists($local_path, $fingerprints)) {
+                $hash = hash_file('sha256', $local_path);
+                $fingerprints[$local_path] = is_string($hash) ? substr($hash, 0, 12) : '';
+            }
+            if ($fingerprints[$local_path] !== '') {
+                $url .= '&h=' . rawurlencode($fingerprints[$local_path]);
+            }
+        }
+    }
+
+    return $url;
 }
 
 function renderPageHead($title, array $options = []) {

@@ -156,8 +156,10 @@ expectHoverStyle(
 
 expectHoverStyle(
     str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "assetUrl((string) \$style)")
-        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css'),
-    'stylesheets should use the centralized application-version cache key.'
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css')
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "hash_file('sha256', \$local_path)")
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "\$url .= '&h='"),
+    'stylesheets should use application-version and content-fingerprint cache keys.'
 );
 
 expectHoverStyle(
