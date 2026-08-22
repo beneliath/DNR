@@ -92,11 +92,15 @@ expectMapFeature(
         && !str_contains($geocoder, 'file_get_contents($geocoder_url')
         && str_contains($geocoder_worker, 'usleep(1100000)')
         && str_contains($geocoder_worker, 'FOR UPDATE SKIP LOCKED')
+        && str_contains($geocoder_worker, 'processing_started_at')
+        && str_contains($geocoder_worker, "? 'failed' : 'retry'")
+        && str_contains($geocoder_worker, 'WHERE attempts < {$maximum_attempts}')
+        && str_contains($geocoder_worker, 'Maximum geocoding attempts reached')
         && str_contains($map_helpers, 'validatedGeocoderBaseUrl')
         && str_contains($map_helpers, 'DNR_GEOCODER_ALLOWED_HOSTS')
         && str_contains($migration, 'engagement_map_geocodes')
         && str_contains($hardening_migration, 'engagement_map_geocode_queue'),
-    'web requests should enqueue lookups while the allowlisted background worker rate-limits and caches outbound geocoding.'
+    'web requests should enqueue lookups while the worker reclaims stale jobs, dead-letters exhausted work, rate-limits, and caches outbound geocoding.'
 );
 expectMapFeature(
     str_contains($security_headers, "https://tile.openstreetmap.org")

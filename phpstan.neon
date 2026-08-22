@@ -3,6 +3,7 @@ parameters:
     paths:
         - src/app
         - src/application_runtime.php
+        - src/pagination_helpers.php
     bootstrapFiles:
         - src/functions.php
     tmpDir: /tmp/dnr-phpstan

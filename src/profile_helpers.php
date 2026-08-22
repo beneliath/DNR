@@ -35,6 +35,15 @@ function profileInitials(array $user) {
     return strtoupper($initials !== '' ? $initials : 'A');
 }
 
+function profileInitialsSvg(array $user) {
+    $initials = htmlspecialchars(profileInitials($user), ENT_QUOTES | ENT_XML1, 'UTF-8');
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img">'
+        . '<rect width="128" height="128" rx="64" fill="#1f57e7"/>'
+        . '<text x="64" y="68" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" text-anchor="middle" dominant-baseline="middle">'
+        . $initials
+        . '</text></svg>';
+}
+
 function validatedProfilePictureFile($path) {
     return normalizedUploadedImage(
         $path,

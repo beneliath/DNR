@@ -16,7 +16,7 @@ function configurationSecret($name, $default = '') {
     return $value === false ? $default : trim((string) $value);
 }
 
-define('APP_VERSION', '1.4.3');
+define('APP_VERSION', '1.4.4');
 
 // Use environment variables and secret files without committed credentials.
 $DB_HOST = getenv('DB_HOST') ? getenv('DB_HOST') : 'db';

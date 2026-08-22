@@ -45,9 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     "INSERT INTO contacts (
                         organization_id, contact_first_name, contact_last_name, contact_role,
                         contact_role_other, contact_email, contact_phone, contact_notes,
-                        contact_photo, contact_photo_mime, contact_photo_sha256,
+                        contact_photo, contact_photo_thumbnail,
+                        contact_photo_thumbnail_mime, contact_photo_mime,
+                        contact_photo_sha256,
                         contact_photo_updated_at
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
                 );
             } else {
                 $stmt = $conn->prepare(
@@ -62,10 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             }
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
+                $contact_photo_thumbnail = $contact_photo['thumbnail_data'];
+                $contact_photo_thumbnail_mime = $contact_photo['thumbnail_mime_type'];
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $contact_photo_sha256 = $contact_photo['sha256'];
                 $stmt->bind_param(
-                    'issssssssss',
+                    'issssssssssss',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -75,6 +79,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     $contact_phone,
                     $contact_notes,
                     $contact_photo_data,
+                    $contact_photo_thumbnail,
+                    $contact_photo_thumbnail_mime,
                     $contact_photo_mime,
                     $contact_photo_sha256
                 );

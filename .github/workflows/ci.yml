@@ -15,7 +15,7 @@ jobs:
       - uses: shivammathur/setup-php@v2
         with:
           php-version: '8.4'
-          extensions: gd, mysqli, sodium
+          extensions: curl, gd, mbstring, mysqli, sodium
           coverage: none
       - uses: actions/setup-node@v4
         with:
@@ -54,6 +54,7 @@ jobs:
       - name: Run database integration suites
         run: |
           compose='docker compose -f docker-compose.yaml -f docker-compose.dev.yaml'
+          $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/archive_calendar_integration_test.php
           $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/contact_photo_integration_test.php
           $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/follow_up_tasks_integration_test.php
           $compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php /opt/dnr/tests/integration_beta_test.php

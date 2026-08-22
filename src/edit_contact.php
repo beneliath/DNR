@@ -103,6 +103,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_phone = ?,
                         contact_notes = ?,
                         contact_photo = ?,
+                        contact_photo_thumbnail = ?,
+                        contact_photo_thumbnail_mime = ?,
                         contact_photo_mime = ?,
                         contact_photo_sha256 = ?,
                         contact_photo_updated_at = UTC_TIMESTAMP()
@@ -120,6 +122,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_phone = ?,
                         contact_notes = ?,
                         contact_photo = NULL,
+                        contact_photo_thumbnail = NULL,
+                        contact_photo_thumbnail_mime = NULL,
                         contact_photo_mime = NULL,
                         contact_photo_sha256 = NULL,
                         contact_photo_updated_at = UTC_TIMESTAMP()
@@ -144,10 +148,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
+                $contact_photo_thumbnail = $contact_photo['thumbnail_data'];
+                $contact_photo_thumbnail_mime = $contact_photo['thumbnail_mime_type'];
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $contact_photo_sha256 = $contact_photo['sha256'];
                 $update_stmt->bind_param(
-                    'issssssssssi',
+                    'issssssssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -157,6 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_phone,
                     $contact_notes,
                     $contact_photo_data,
+                    $contact_photo_thumbnail,
+                    $contact_photo_thumbnail_mime,
                     $contact_photo_mime,
                     $contact_photo_sha256,
                     $contact_id
@@ -331,7 +339,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 
         <div class="form-group contact-photo-field">
             <div class="contact-photo-preview">
-                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;v=<?php echo $contact_photo_version; ?>" alt="Current contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>" data-contact-photo-preview>
+                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;size=full&amp;v=<?php echo $contact_photo_version; ?>" alt="Current contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>" data-contact-photo-preview>
             </div>
             <div>
                 <label for="contact_photo">Contact Photo</label>

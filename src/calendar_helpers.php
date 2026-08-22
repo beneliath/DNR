@@ -158,7 +158,7 @@ function calendarPresentationStart(array $presentation, $timezone_name = 'Americ
 
     $formats = str_contains($time, 'AM') || str_contains($time, 'PM')
         ? ['!Y-m-d g:i A', '!Y-m-d h:i A']
-        : ['!Y-m-d H:i'];
+        : ['!Y-m-d H:i:s', '!Y-m-d H:i'];
     foreach ($formats as $format) {
         $start = DateTimeImmutable::createFromFormat($format, $date . ' ' . $time, $timezone);
         $date_errors = DateTimeImmutable::getLastErrors();
@@ -277,29 +277,53 @@ function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar s
         throw new InvalidArgumentException('A subscription owner and label are required.');
     }
 
-    $count_stmt = $conn->prepare(
-        'SELECT COUNT(*) AS active_count FROM calendar_subscriptions
-         WHERE user_id = ? AND revoked_at IS NULL'
-    );
-    $count_stmt->bind_param('i', $user_id);
-    $count_stmt->execute();
-    $active_count = (int) $count_stmt->get_result()->fetch_assoc()['active_count'];
-    $count_stmt->close();
-    if ($active_count >= 5) {
-        throw new RuntimeException('Revoke an existing subscription before creating another.');
-    }
+    $conn->begin_transaction();
+    try {
+        // Serialize subscription creation per owner so the five-token limit
+        // cannot be bypassed by concurrent requests.
+        $user_stmt = $conn->prepare('SELECT id FROM users WHERE id = ? FOR UPDATE');
+        if (!$user_stmt) {
+            throw new RuntimeException('Unable to lock the subscription owner.');
+        }
+        $user_stmt->bind_param('i', $user_id);
+        $user_stmt->execute();
+        $user_exists = $user_stmt->get_result()->num_rows === 1;
+        $user_stmt->close();
+        if (!$user_exists) {
+            throw new InvalidArgumentException('The subscription owner is unavailable.');
+        }
 
-    $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-    $token_hash = calendarTokenHash($token);
-    $stmt = $conn->prepare(
-        'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
-         VALUES (?, ?, ?)'
-    );
-    $stmt->bind_param('iss', $user_id, $label, $token_hash);
-    $stmt->execute();
-    $subscription_id = (int) $conn->insert_id;
-    $stmt->close();
-    return ['id' => $subscription_id, 'token' => $token, 'label' => $label];
+        $count_stmt = $conn->prepare(
+            'SELECT COUNT(*) AS active_count FROM calendar_subscriptions
+             WHERE user_id = ? AND revoked_at IS NULL'
+        );
+        $count_stmt->bind_param('i', $user_id);
+        $count_stmt->execute();
+        $active_count = (int) $count_stmt->get_result()->fetch_assoc()['active_count'];
+        $count_stmt->close();
+        if ($active_count >= 5) {
+            throw new RuntimeException('Revoke an existing subscription before creating another.');
+        }
+
+        $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $token_hash = calendarTokenHash($token);
+        $stmt = $conn->prepare(
+            'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
+             VALUES (?, ?, ?)'
+        );
+        $stmt->bind_param('iss', $user_id, $label, $token_hash);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new RuntimeException('Unable to create the calendar subscription.');
+        }
+        $subscription_id = (int) $conn->insert_id;
+        $stmt->close();
+        $conn->commit();
+        return ['id' => $subscription_id, 'token' => $token, 'label' => $label];
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
 }
 
 function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {

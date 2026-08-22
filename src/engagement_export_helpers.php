@@ -2,6 +2,7 @@
 
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/presentation_helpers.php';
 
 function addEngagementExportField(array &$fields, $label, $value, $include_empty = false) {
     $value = is_string($value) ? trim($value) : (string) $value;
@@ -116,7 +117,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
     foreach ($presentations as $presentation) {
         $presentation_date_time = trim(
             (string) ($presentation['presentation_date'] ?? '') . ' ' .
-            (string) ($presentation['presentation_time'] ?? '')
+            formatPresentationTime($presentation['presentation_time'] ?? '')
         );
         $fields = [];
         addEngagementExportField($fields, 'Speaker', $presentation['speaker_name'] ?? '');

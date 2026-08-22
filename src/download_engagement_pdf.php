@@ -56,8 +56,7 @@ $presentation_stmt = $conn->prepare(
     'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date,
-              STR_TO_DATE(presentation_time, \'%h:%i %p\'), id'
+     ORDER BY presentation_date, presentation_time, id'
 );
 if (!$presentation_stmt) {
     http_response_code(500);
@@ -69,7 +68,8 @@ $presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt->close();
 
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $pdf_chron_limit = max(50, min(1000, (int) (getenv('DNR_PDF_MAX_CHRON_ENTRIES') ?: 500)));
+    $chron_entries = fetchChronLogEntries($conn, $engagement_id, false, $pdf_chron_limit, 0);
 } catch (Throwable $exception) {
     applicationLog('error', 'Unable to generate engagement PDF', ['error' => $exception->getMessage()]);
     http_response_code(500);
@@ -86,8 +86,8 @@ foreach ($autoload_paths as $autoload_path) {
         break;
     }
 }
-if (!class_exists('FPDF')) {
-    applicationLog('critical', 'FPDF is unavailable; Composer dependencies are incomplete');
+if (!class_exists('TCPDF')) {
+    applicationLog('critical', 'TCPDF is unavailable; Composer dependencies are incomplete');
     http_response_code(503);
     exit('PDF downloads are temporarily unavailable.');
 }

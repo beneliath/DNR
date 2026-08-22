@@ -1,5 +1,8 @@
 <?php
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/app/Service/ArchiveService.php';
+
+use Dnr\Service\ArchiveService;
 
 function assetUrl($path) {
     $path = ltrim((string) $path, '/');
@@ -1237,38 +1240,18 @@ function restoreEntity(mysqli $conn, $entity, $id) {
 }
 
 function organizationActiveDependencyCounts(mysqli $conn, $organization_id) {
-    $organization_id = (int) $organization_id;
-    if ($organization_id < 1) {
+    try {
+        return ArchiveService::organizationActiveDependencyCounts(
+            $conn,
+            (int) $organization_id
+        );
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to count active organization dependencies', [
+            'organization_id' => (int) $organization_id,
+            'error' => $exception->getMessage(),
+        ]);
         return null;
     }
-
-    $stmt = $conn->prepare(
-        'SELECT
-            (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
-              AS active_contacts,
-            (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
-              AS active_engagements'
-    );
-    if (!$stmt) {
-        return null;
-    }
-
-    $stmt->bind_param('ii', $organization_id, $organization_id);
-    if (!$stmt->execute()) {
-        $stmt->close();
-        return null;
-    }
-
-    $dependencies = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$dependencies) {
-        return null;
-    }
-
-    return [
-        'contacts' => (int) ($dependencies['active_contacts'] ?? 0),
-        'engagements' => (int) ($dependencies['active_engagements'] ?? 0),
-    ];
 }
 
 function organizationArchiveDependencyMessage(array $dependencies) {
@@ -1300,61 +1283,19 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
         return false;
     }
 
-    $tables = [
-        'contact' => 'contacts',
-        'engagement' => 'engagements',
-        'event' => 'engagements',
-        'organization' => 'organizations',
-    ];
-
-    if (!isset($tables[$entity]) || (int) $id < 1) {
-        return false;
-    }
-
     $id = (int) $id;
-    if (($entity === 'organization') && $is_archived) {
-        $dependencies = organizationActiveDependencyCounts($conn, $id);
-        if ($dependencies === null
-            || $dependencies['contacts'] > 0
-            || $dependencies['engagements'] > 0
-        ) {
-            return false;
-        }
-    }
-
-    if (!$is_archived && in_array($entity, ['contact', 'engagement', 'event'], true)) {
-        $child_table = $entity === 'contact' ? 'contacts' : 'engagements';
-        $organization_stmt = $conn->prepare(
-            "SELECT o.is_deleted
-             FROM {$child_table} child
-             INNER JOIN organizations o ON o.id = child.organization_id
-             WHERE child.id = ?"
-        );
-        if (!$organization_stmt) {
-            return false;
-        }
-        $organization_stmt->bind_param('i', $id);
-        $organization_stmt->execute();
-        $organization = $organization_stmt->get_result()->fetch_assoc();
-        $organization_stmt->close();
-        if (!$organization || !empty($organization['is_deleted'])) {
-            return false;
-        }
-    }
-
     $archive_value = $is_archived ? 1 : 0;
-    $stmt = $conn->prepare(
-        "UPDATE {$tables[$entity]} SET is_deleted = ? WHERE id = ?"
-    );
-    if (!$stmt) {
+    try {
+        return ArchiveService::setArchived($conn, (string) $entity, $id, (bool) $is_archived);
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to change archive state', [
+            'entity' => $entity,
+            'entity_id' => $id,
+            'is_archived' => $archive_value,
+            'error' => $exception->getMessage(),
+        ]);
         return false;
     }
-
-    $stmt->bind_param('ii', $archive_value, $id);
-    $success = $stmt->execute();
-    $stmt->close();
-
-    return $success;
 }
 
 // Permanently remove an entity. Organization deletion explicitly removes its

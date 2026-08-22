@@ -1,7 +1,9 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../src/engagement_export_helpers.php';
-require_once __DIR__ . '/../src/engagement_pdf.php';
+$source_directory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
+$vendor_autoload = getenv('DNR_TEST_VENDOR_AUTOLOAD') ?: __DIR__ . '/../vendor/autoload.php';
+require_once $vendor_autoload;
+require_once $source_directory . '/engagement_export_helpers.php';
+require_once $source_directory . '/engagement_pdf.php';
 
 putenv('DNR_TIMEZONE=America/Chicago');
 
@@ -15,7 +17,7 @@ function expectExport($condition, $message) {
 $engagement = [
     'id' => 42,
     'event_title' => 'Summer *Summit*',
-    'event_description' => "A multi-day gathering\nfor community leaders.",
+    'event_description' => "A multi-day gathering\nfor community leaders — أهلاً وسهلاً — שלום.",
     'organization_name' => 'Example & Partners',
     'event_type' => 'Conference',
     'event_start_date' => '2026-08-20',
@@ -88,8 +90,8 @@ $markdown = renderEngagementMarkdown($export);
 expectExport(str_contains($plain_text, "Organization: Example & Partners"), 'Plain text includes the organization.');
 expectExport(!str_contains($plain_text, 'Event Title:'), 'Overview does not repeat the event title.');
 expectExport(
-    str_contains($plain_text, "Event Description: A multi-day gathering\n  for community leaders."),
-    'Plain text includes the multi-line event description.'
+    str_contains($plain_text, "Event Description: A multi-day gathering\n  for community leaders — أهلاً وسهلاً — שלום."),
+    'Plain text preserves the multi-line Unicode event description.'
 );
 expectExport(str_contains($plain_text, "Jamie Smith\nRole: Events Director"), 'Plain text includes contact details.');
 expectExport(str_contains($plain_text, 'Phone: +1 (312) 555-0100'), 'Exports use the canonical telephone format.');

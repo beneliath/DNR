@@ -1,5 +1,15 @@
 <?php
 
+const UPLOADED_IMAGE_THUMBNAIL_DIMENSION = 256;
+const UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES = 60000;
+
+function uploadedImageDataUrl($mime_type, $data) {
+    if (!is_string($data) || $data === '') {
+        return '';
+    }
+    return 'data:' . (string) $mime_type . ';base64,' . base64_encode($data);
+}
+
 function normalizedUploadedImage(
     $path,
     $maximum_bytes,
@@ -51,7 +61,6 @@ function normalizedUploadedImage(
     $target_height = max(1, (int) round($height * $scale));
     $target = imagecreatetruecolor($target_width, $target_height);
     if (!$target instanceof GdImage) {
-        imagedestroy($source);
         throw new RuntimeException('The image could not be resized.');
     }
     if (in_array($mime_type, ['image/png', 'image/webp'], true)) {
@@ -88,6 +97,101 @@ function normalizedUploadedImage(
         throw new InvalidArgumentException('The processed ' . $label . ' is still too large.');
     }
 
+    $thumbnail_scale = min(
+        1,
+        UPLOADED_IMAGE_THUMBNAIL_DIMENSION / max($target_width, $target_height)
+    );
+    $thumbnail_width = max(1, (int) round($target_width * $thumbnail_scale));
+    $thumbnail_height = max(1, (int) round($target_height * $thumbnail_scale));
+    $thumbnail = imagecreatetruecolor($thumbnail_width, $thumbnail_height);
+    if (!$thumbnail instanceof GdImage) {
+        throw new RuntimeException('The image thumbnail could not be created.');
+    }
+    imagealphablending($thumbnail, false);
+    imagesavealpha($thumbnail, true);
+    $thumbnail_transparent = imagecolorallocatealpha($thumbnail, 0, 0, 0, 127);
+    imagefilledrectangle(
+        $thumbnail,
+        0,
+        0,
+        $thumbnail_width,
+        $thumbnail_height,
+        $thumbnail_transparent
+    );
+    imagecopyresampled(
+        $thumbnail,
+        $target,
+        0,
+        0,
+        0,
+        0,
+        $thumbnail_width,
+        $thumbnail_height,
+        $target_width,
+        $target_height
+    );
+    $thumbnail_mime = function_exists('imagewebp') ? 'image/webp' : $mime_type;
+    ob_start();
+    $thumbnail_encoded = match ($thumbnail_mime) {
+        'image/webp' => imagewebp($thumbnail, null, 82),
+        'image/jpeg' => imagejpeg($thumbnail, null, 82),
+        'image/png' => imagepng($thumbnail, null, 6),
+        default => false,
+    };
+    $thumbnail_data = ob_get_clean();
+    if (!$thumbnail_encoded || !is_string($thumbnail_data) || $thumbnail_data === '') {
+        throw new RuntimeException('The image thumbnail could not be encoded.');
+    }
+    if (strlen($thumbnail_data) > UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES) {
+        // Keep thumbnails within MySQL BLOB limits and keep list-page payloads
+        // bounded even for high-entropy images that compress poorly.
+        $fallback_scale = min(1, 112 / max($thumbnail_width, $thumbnail_height));
+        $fallback_width = max(1, (int) round($thumbnail_width * $fallback_scale));
+        $fallback_height = max(1, (int) round($thumbnail_height * $fallback_scale));
+        $fallback = imagecreatetruecolor($fallback_width, $fallback_height);
+        if (!$fallback instanceof GdImage) {
+            throw new RuntimeException('The image thumbnail could not be compacted.');
+        }
+        imagealphablending($fallback, false);
+        imagesavealpha($fallback, true);
+        $fallback_transparent = imagecolorallocatealpha($fallback, 0, 0, 0, 127);
+        imagefilledrectangle(
+            $fallback,
+            0,
+            0,
+            $fallback_width,
+            $fallback_height,
+            $fallback_transparent
+        );
+        imagecopyresampled(
+            $fallback,
+            $thumbnail,
+            0,
+            0,
+            0,
+            0,
+            $fallback_width,
+            $fallback_height,
+            $thumbnail_width,
+            $thumbnail_height
+        );
+        ob_start();
+        $fallback_encoded = match ($thumbnail_mime) {
+            'image/webp' => imagewebp($fallback, null, 70),
+            'image/jpeg' => imagejpeg($fallback, null, 70),
+            'image/png' => imagepng($fallback, null, 7),
+            default => false,
+        };
+        $thumbnail_data = ob_get_clean();
+        if (!$fallback_encoded
+            || !is_string($thumbnail_data)
+            || $thumbnail_data === ''
+            || strlen($thumbnail_data) > UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES
+        ) {
+            throw new RuntimeException('The image thumbnail could not be compacted.');
+        }
+    }
+
     return [
         'mime_type' => $mime_type,
         'data' => $normalized,
@@ -95,5 +199,8 @@ function normalizedUploadedImage(
         'size' => strlen($normalized),
         'width' => $target_width,
         'height' => $target_height,
+        'thumbnail_mime_type' => $thumbnail_mime,
+        'thumbnail_data' => $thumbnail_data,
+        'thumbnail_sha256' => hash('sha256', $thumbnail_data, true),
     ];
 }

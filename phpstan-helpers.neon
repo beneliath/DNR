@@ -1,0 +1,21 @@
+parameters:
+    level: 1
+    paths:
+        - src/calendar_helpers.php
+        - src/chron_log_helpers.php
+        - src/contact_photo_helpers.php
+        - src/database_backup_helpers.php
+        - src/engagement_export_helpers.php
+        - src/engagement_search_helpers.php
+        - src/follow_up_task_helpers.php
+        - src/github_version_helpers.php
+        - src/image_upload_helpers.php
+        - src/map_helpers.php
+        - src/presentation_helpers.php
+        - src/profile_helpers.php
+        - src/two_factor_helpers.php
+    bootstrapFiles:
+        - src/functions.php
+    tmpDir: /tmp/dnr-phpstan-helpers
+    parallel:
+        maximumNumberOfProcesses: 1

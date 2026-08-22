@@ -115,6 +115,45 @@ expectFollowUpTaskIntegration(
     'repeated checklist generation should not duplicate standard tasks.'
 );
 
+rescheduleGeneratedEngagementTasks($conn, $engagement_id, '2026-09-20', '2026-09-22');
+$rescheduled_stmt = $conn->prepare(
+    'SELECT due_date, due_date_overridden
+     FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$rescheduled_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$rescheduled_stmt->execute();
+$rescheduled = $rescheduled_stmt->get_result()->fetch_assoc();
+$rescheduled_stmt->close();
+expectFollowUpTaskIntegration(
+    $rescheduled
+        && $rescheduled['due_date'] === '2026-09-15'
+        && (int) $rescheduled['due_date_overridden'] === 0,
+    'generated open task dates should follow a changed engagement date range.'
+);
+
+$override_stmt = $conn->prepare(
+    'UPDATE follow_up_tasks
+     SET due_date = ?, due_date_overridden = 1
+     WHERE engagement_id = ? AND template_key = ?'
+);
+$overridden_due_date = '2026-12-31';
+$override_stmt->bind_param('sis', $overridden_due_date, $engagement_id, $custom_template_key);
+$override_stmt->execute();
+$override_stmt->close();
+rescheduleGeneratedEngagementTasks($conn, $engagement_id, '2026-10-01', '2026-10-03');
+
+$preserved_stmt = $conn->prepare(
+    'SELECT due_date FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$preserved_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$preserved_stmt->execute();
+$preserved_due_date = $preserved_stmt->get_result()->fetch_assoc()['due_date'] ?? null;
+$preserved_stmt->close();
+expectFollowUpTaskIntegration(
+    $preserved_due_date === $overridden_due_date,
+    'a manually overridden generated due date should survive later engagement rescheduling.'
+);
+
 $task_stmt = $conn->prepare(
     'SELECT id, updated_at FROM follow_up_tasks
      WHERE engagement_id = ? ORDER BY id LIMIT 1'

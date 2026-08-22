@@ -44,7 +44,13 @@ function sortChronLogEntriesReverseChronological(array $entries) {
     return $entries;
 }
 
-function fetchChronLogEntriesForArchiveState(mysqli $conn, $engagement_id, $archive_state = 0) {
+function fetchChronLogEntriesForArchiveState(
+    mysqli $conn,
+    $engagement_id,
+    $archive_state = 0,
+    $limit = null,
+    $offset = 0
+) {
     $query = 'SELECT ce.*,
                     COALESCE(creator.username, ce.created_by_username_snapshot)
                         AS created_by_username,
@@ -61,6 +67,11 @@ function fetchChronLogEntriesForArchiveState(mysqli $conn, $engagement_id, $arch
             : ' AND ce.is_archived = 0';
     }
     $query .= ' ORDER BY ce.created_at DESC, ce.id DESC';
+    if ($limit !== null) {
+        $limit = max(1, min(1000, (int) $limit));
+        $offset = max(0, (int) $offset);
+        $query .= " LIMIT {$limit} OFFSET {$offset}";
+    }
 
     $stmt = $conn->prepare($query);
     if (!$stmt) {
@@ -78,11 +89,19 @@ function fetchChronLogEntriesForArchiveState(mysqli $conn, $engagement_id, $arch
     return $entries;
 }
 
-function fetchChronLogEntries(mysqli $conn, $engagement_id, $include_archived = false) {
+function fetchChronLogEntries(
+    mysqli $conn,
+    $engagement_id,
+    $include_archived = false,
+    $limit = 50,
+    $offset = 0
+) {
     return fetchChronLogEntriesForArchiveState(
         $conn,
         $engagement_id,
-        $include_archived ? null : 0
+        $include_archived ? null : 0,
+        $limit,
+        $offset
     );
 }
 
@@ -109,6 +128,25 @@ function countArchivedChronLogEntries(mysqli $conn, $engagement_id) {
     $stmt->close();
 
     return (int) ($result['archived_count'] ?? 0);
+}
+
+function countActiveChronLogEntries(mysqli $conn, $engagement_id) {
+    $stmt = $conn->prepare(
+        'SELECT COUNT(*) AS active_count
+         FROM engagement_chron_entries
+         WHERE engagement_id = ? AND is_archived = 0'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the Chron count query.');
+    }
+    $stmt->bind_param('i', $engagement_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to count Chron entries.');
+    }
+    $count = (int) ($stmt->get_result()->fetch_assoc()['active_count'] ?? 0);
+    $stmt->close();
+    return $count;
 }
 
 function chronLogEntryExportTitle(array $entry) {

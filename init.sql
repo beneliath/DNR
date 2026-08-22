@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
     phone VARCHAR(50) NULL,
     email VARCHAR(254) NULL,
     profile_picture MEDIUMBLOB NULL,
+    profile_picture_thumbnail BLOB NULL,
+    profile_picture_thumbnail_mime VARCHAR(32) NULL,
     profile_picture_mime VARCHAR(32) NULL,
     profile_picture_sha256 BINARY(32) NULL,
     profile_picture_updated_at DATETIME NULL,
@@ -98,6 +100,16 @@ CREATE TABLE IF NOT EXISTS calendar_subscriptions (
     UNIQUE INDEX uq_calendar_subscription_token (token_hash),
     INDEX idx_calendar_subscription_user_active (user_id, revoked_at, created_at)
 );
+
+CREATE TABLE IF NOT EXISTS calendar_feed_revision (
+    id TINYINT UNSIGNED PRIMARY KEY,
+    revision BIGINT UNSIGNED NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+        ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT chk_calendar_feed_revision_singleton CHECK (id = 1)
+);
+
+INSERT IGNORE INTO calendar_feed_revision (id, revision) VALUES (1, 1);
 
 -- Create the first administrator after startup with:
 -- docker compose exec web php /opt/dnr/bin/create_admin.php admin
@@ -211,13 +223,16 @@ CREATE TABLE IF NOT EXISTS engagement_map_geocodes (
 CREATE TABLE IF NOT EXISTS engagement_map_geocode_queue (
     address_hash CHAR(64) PRIMARY KEY,
     address_query VARCHAR(1000) NOT NULL,
-    status ENUM('pending', 'processing', 'retry') NOT NULL DEFAULT 'pending',
+    status ENUM('pending', 'processing', 'retry', 'failed') NOT NULL DEFAULT 'pending',
     attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
     next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    processing_started_at DATETIME NULL,
     last_error VARCHAR(255) NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_geocode_queue_ready (status, next_attempt_at, attempts)
+    INDEX idx_geocode_queue_ready (
+        status, next_attempt_at, processing_started_at, attempts
+    )
 );
 
 -- Timestamped Chron log entries for engagements. engagement_notes remains on
@@ -255,7 +270,7 @@ CREATE TABLE IF NOT EXISTS presentations (
     engagement_id INT NOT NULL,
     topic_title VARCHAR(255) NOT NULL,
     presentation_date DATE NULL,
-    presentation_time VARCHAR(8) NULL,
+    presentation_time TIME NULL,
     speaker_name VARCHAR(255) NOT NULL,
     expected_attendance INT NULL,
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
@@ -269,12 +284,11 @@ CREATE TABLE IF NOT EXISTS presentations (
     CONSTRAINT chk_presentation_attendance CHECK (
         expected_attendance IS NULL OR expected_attendance >= 1
     ),
-    CONSTRAINT chk_presentation_time_format CHECK (
-        presentation_time IS NULL
-        OR presentation_time REGEXP '^(0[1-9]|1[0-2]):[0-5][0-9] (AM|PM)$'
-    ),
     INDEX idx_presentation_engagement_active_schedule (
         engagement_id, is_archived, presentation_date, presentation_time, id
+    ),
+    INDEX idx_presentation_calendar_schedule (
+        is_archived, presentation_date, presentation_time, id, engagement_id
     )
 );
 
@@ -290,6 +304,8 @@ CREATE TABLE IF NOT EXISTS contacts (
     contact_phone VARCHAR(50),
     contact_notes TEXT NULL,
     contact_photo MEDIUMBLOB NULL,
+    contact_photo_thumbnail BLOB NULL,
+    contact_photo_thumbnail_mime VARCHAR(32) NULL,
     contact_photo_mime VARCHAR(32) NULL,
     contact_photo_sha256 BINARY(32) NULL,
     contact_photo_updated_at DATETIME NULL,
@@ -375,6 +391,7 @@ CREATE TABLE IF NOT EXISTS follow_up_tasks (
     created_by INT NULL,
     completed_by INT NULL,
     template_key VARCHAR(100) NULL,
+    due_date_overridden TINYINT(1) NOT NULL DEFAULT 0,
     completed_at DATETIME NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -418,6 +435,7 @@ CREATE TABLE IF NOT EXISTS follow_up_tasks (
     INDEX idx_follow_up_task_organization (organization_id, status, due_date),
     INDEX idx_follow_up_task_contact (contact_id, status, due_date),
     INDEX idx_follow_up_task_updated (updated_at, id),
+    INDEX idx_follow_up_task_template (template_key),
     FULLTEXT INDEX ft_follow_up_tasks_search (title, details, waiting_on)
 );
 
@@ -565,6 +583,27 @@ FOR EACH ROW INSERT INTO security_audit_log
 VALUES
     (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'standard_event_tasks', OLD.id, LEFT(OLD.title, 255), LEFT(@dnr_request_ip, 45));
 
+CREATE TRIGGER calendar_organizations_after_insert AFTER INSERT ON organizations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_organizations_after_update AFTER UPDATE ON organizations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_organizations_after_delete AFTER DELETE ON organizations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+
+CREATE TRIGGER calendar_engagements_after_insert AFTER INSERT ON engagements
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_engagements_after_update AFTER UPDATE ON engagements
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_engagements_after_delete AFTER DELETE ON engagements
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+
+CREATE TRIGGER calendar_presentations_after_insert AFTER INSERT ON presentations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_presentations_after_update AFTER UPDATE ON presentations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+CREATE TRIGGER calendar_presentations_after_delete AFTER DELETE ON presentations
+FOR EACH ROW UPDATE calendar_feed_revision SET revision = revision + 1 WHERE id = 1;
+
 INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260814_add_last_login_at.sql', REPEAT('0', 64)),
 ('20260814_add_must_change_password.sql', REPEAT('0', 64)),
@@ -586,4 +625,6 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260818_add_user_profiles.sql', REPEAT('0', 64)),
 ('20260818_standardize_phone_numbers.sql', REPEAT('0', 64)),
 ('20260821_add_standard_event_tasks.sql', REPEAT('0', 64)),
-('20260821_security_performance_hardening.sql', REPEAT('0', 64));
+('20260821_security_performance_hardening.sql', REPEAT('0', 64)),
+('20260822_architecture_integrity_hardening.sql', REPEAT('0', 64)),
+('20260822_functional_performance_improvements.sql', REPEAT('0', 64));

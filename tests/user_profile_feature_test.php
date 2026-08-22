@@ -32,12 +32,17 @@ file_put_contents(
     base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true)
 );
 $picture = validatedProfilePictureFile($png_path);
+$thumbnail_dimensions = getimagesizefromstring($picture['thumbnail_data']);
 expectUserProfile(
     $picture['mime_type'] === 'image/png'
         && $picture['width'] === 1
         && $picture['height'] === 1
-        && $picture['size'] > 0,
-    'a real PNG within the upload bounds should be accepted.'
+        && $picture['size'] > 0
+        && in_array($picture['thumbnail_mime_type'], ['image/png', 'image/webp'], true)
+        && ($thumbnail_dimensions[0] ?? 0) === 1
+        && ($thumbnail_dimensions[1] ?? 0) === 1
+        && str_starts_with(uploadedImageDataUrl($picture['thumbnail_mime_type'], $picture['thumbnail_data']), 'data:image/'),
+    'a real PNG should be accepted and accompanied by a decodable embeddable thumbnail.'
 );
 unlink($png_path);
 
@@ -95,7 +100,8 @@ expectUserProfile(
 
 $users_page = $read('src/users.php');
 expectUserProfile(
-    str_contains($users_page, 'profile_picture_mime, profile_picture_updated_at')
+    str_contains($users_page, 'profile_picture_thumbnail')
+        && str_contains($users_page, 'uploadedImageDataUrl(')
         && str_contains($users_page, 'class="user-list-avatar"')
         && str_contains($users_page, 'profile_picture.php?id=')
         && str_contains($users_page, 'formatPhoneNumberForDisplay(')

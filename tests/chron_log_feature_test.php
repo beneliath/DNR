@@ -73,8 +73,8 @@ expectChronFeature(
     'editors should archive entries while permanent deletion remains admin-only.'
 );
 expectChronFeature(
-    str_contains($edit_engagement, 'fetchChronLogEntries($conn, $engagement_id)')
-        && !str_contains($edit_engagement, 'fetchChronLogEntries($conn, $engagement_id, true)')
+    str_contains($edit_engagement, 'fetchChronLogEntries(')
+        && str_contains($edit_engagement, '$chron_page_size')
         && !str_contains($edit_engagement, "\$chron_action === 'restore'")
         && str_contains($edit_engagement, 'restore_chron_entries.php?engagement_id=')
         && str_contains($view_engagement, 'restore_chron_entries.php?engagement_id='),

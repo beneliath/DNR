@@ -25,26 +25,26 @@ expectEngagementSearch(
     'each term should search every supported engagement field group.'
 );
 expectEngagementSearch(
-    substr_count($plan['sql'], engagementSearchTermSql()) === 4,
-    'the search plan should apply one complete field search per term.'
+    substr_count($plan['sql'], engagementSearchTermSql()) === 2,
+    'the search plan should apply one complete field search per OR/AND group.'
 );
 expectEngagementSearch(
-    count($plan['patterns']) === 4 * $patterns_per_term,
+    count($plan['patterns']) === 2 * $patterns_per_term,
     'the search plan should bind every placeholder.'
 );
 expectEngagementSearch(
-    array_unique(array_slice($plan['patterns'], 0, $patterns_per_term)) === ['conference*']
-        && array_unique(array_slice($plan['patterns'], $patterns_per_term, $patterns_per_term)) === ['Chicago*']
-        && array_unique(array_slice($plan['patterns'], 2 * $patterns_per_term, $patterns_per_term)) === ['Daniel*']
-        && array_unique(array_slice($plan['patterns'], 3 * $patterns_per_term, $patterns_per_term)) === ['email*'],
-    'bound patterns should preserve OR terms first and required AND terms second.'
+    array_unique(array_slice($plan['patterns'], 0, $patterns_per_term))
+            === ['conference* Chicago*']
+        && array_unique(array_slice($plan['patterns'], $patterns_per_term, $patterns_per_term))
+            === ['+Daniel* +email*'],
+    'bound patterns should consolidate OR terms and required AND terms.'
 );
 
 $quoted_only = buildEngagementSearchPlan('"north hall"');
 expectEngagementSearch(
     $quoted_only['or_terms'] === []
         && $quoted_only['and_terms'] === ['north', 'hall']
-        && str_contains($quoted_only['sql'], ' AND '),
+        && array_unique($quoted_only['patterns']) === ['+north* +hall*'],
     'a quoted query should require all quoted words.'
 );
 

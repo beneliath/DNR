@@ -11,3 +11,4 @@ foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.p
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/pagination_helpers.php';

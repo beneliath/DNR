@@ -91,13 +91,10 @@ if ($sort_column === 'organization') {
                      c.id {$order_direction}";
 }
 
-$requested_page = filter_input(
-    INPUT_GET,
-    'page',
-    FILTER_VALIDATE_INT,
-    ['options' => ['min_range' => 1]]
-);
-$requested_page = $requested_page ?: 1;
+$cursor_keys = $sort_column === 'organization'
+    ? ['organization', 'last_name', 'first_name', 'id']
+    : ['last_name', 'first_name', 'id'];
+$cursor = decodePaginationCursor($_GET['cursor'] ?? '', $cursor_keys);
 
 $archive_value = $show_archived ? 1 : 0;
 $active_organization_filter = '';
@@ -114,33 +111,35 @@ $search_filter = $fulltext_query === ''
             o.mailing_city, o.mailing_state
         ) AGAINST (? IN BOOLEAN MODE)
     )";
-$count_query = "SELECT COUNT(*) AS contact_count
-                FROM contacts c
-                INNER JOIN organizations o ON c.organization_id = o.id
-                WHERE c.is_deleted = {$archive_value}{$active_organization_filter}{$search_filter}";
-$count_stmt = null;
-if ($fulltext_query !== '') {
-    $count_stmt = $conn->prepare($count_query);
-    if (!$count_stmt) {
-        abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
+$cursor_filter = '';
+$cursor_types = '';
+$cursor_values = [];
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    $comparison = $order_direction === 'ASC' ? '>' : '<';
+    if ($sort_column === 'organization') {
+        $cursor_filter = " AND (o.organization_name, c.contact_last_name,
+            c.contact_first_name, c.id) {$comparison} (?, ?, ?, ?)";
+        $cursor_types = 'sssi';
+        $cursor_values = [
+            (string) $cursor['organization'],
+            (string) $cursor['last_name'],
+            (string) $cursor['first_name'],
+            (int) $cursor['id'],
+        ];
+    } else {
+        $cursor_filter = " AND (c.contact_last_name, c.contact_first_name, c.id)
+            {$comparison} (?, ?, ?)";
+        $cursor_types = 'ssi';
+        $cursor_values = [
+            (string) $cursor['last_name'],
+            (string) $cursor['first_name'],
+            (int) $cursor['id'],
+        ];
     }
-    $count_stmt->bind_param('ss', $fulltext_query, $fulltext_query);
-    $count_stmt->execute();
-    $count_result = $count_stmt->get_result();
 } else {
-    $count_result = $conn->query($count_query);
+    $cursor = null;
 }
-if (!$count_result) {
-    abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
-}
-
-$total_contacts = (int) $count_result->fetch_assoc()['contact_count'];
-if ($count_stmt) {
-    $count_stmt->close();
-}
-$total_pages = max(1, (int) ceil($total_contacts / $page_size));
-$current_page = min($requested_page, $total_pages);
-$offset = ($current_page - 1) * $page_size;
+$query_limit = $page_size + 1;
 
 $contact_query = "SELECT
                     c.id,
@@ -150,37 +149,54 @@ $contact_query = "SELECT
                     c.contact_phone,
                     c.contact_email,
                     c.contact_photo_mime,
+                    c.contact_photo_thumbnail,
+                    c.contact_photo_thumbnail_mime,
                     c.contact_photo_updated_at,
                     o.organization_name,
                     o.is_deleted AS organization_is_archived
                   FROM contacts c
                   INNER JOIN organizations o ON c.organization_id = o.id
-                  WHERE c.is_deleted = {$archive_value}{$active_organization_filter}{$search_filter}
+                  WHERE c.is_deleted = {$archive_value}{$active_organization_filter}{$search_filter}{$cursor_filter}
                   ORDER BY {$order_clause}
-                  LIMIT ? OFFSET ?";
+                  LIMIT ?";
 $contact_stmt = $conn->prepare($contact_query);
 if (!$contact_stmt) {
     abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
 
-if ($fulltext_query !== '') {
-    $contact_stmt->bind_param(
-        'ssii',
-        $fulltext_query,
-        $fulltext_query,
-        $page_size,
-        $offset
-    );
-} else {
-    $contact_stmt->bind_param('ii', $page_size, $offset);
-}
+$contact_types = ($fulltext_query !== '' ? 'ss' : '') . $cursor_types . 'i';
+$contact_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
+$contact_values = array_merge($contact_values, $cursor_values, [$query_limit]);
+$contact_bind = [$contact_types];
+foreach ($contact_values as &$contact_value) $contact_bind[] = &$contact_value;
+unset($contact_value);
+$contact_stmt->bind_param(...$contact_bind);
 if (!$contact_stmt->execute()) {
     abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
-$contacts_result = $contact_stmt->get_result();
+$contacts = $contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$has_more_contacts = count($contacts) > $page_size;
+if ($has_more_contacts) array_pop($contacts);
+$next_cursor = null;
+if ($has_more_contacts && $contacts !== []) {
+    $last_contact = $contacts[array_key_last($contacts)];
+    $cursor_values = $sort_column === 'organization'
+        ? [
+            'organization' => (string) $last_contact['organization_name'],
+            'last_name' => (string) $last_contact['contact_last_name'],
+            'first_name' => (string) $last_contact['contact_first_name'],
+            'id' => (int) $last_contact['id'],
+        ]
+        : [
+            'last_name' => (string) $last_contact['contact_last_name'],
+            'first_name' => (string) $last_contact['contact_first_name'],
+            'id' => (int) $last_contact['id'],
+        ];
+    $next_cursor = encodePaginationCursor($cursor_values);
+}
 
 function contactsPageUrl(
-    $page,
+    $cursor,
     $page_size,
     $sort_column,
     $last_name_sort,
@@ -189,13 +205,13 @@ function contactsPageUrl(
     $search = ''
 ) {
     $parameters = [
-        'page' => $page,
         'per_page' => $page_size,
         'sort_by' => $sort_column,
         'last_name_sort' => $last_name_sort,
         'organization_sort' => $organization_sort,
         'status' => $list_status,
     ];
+    if (is_string($cursor) && $cursor !== '') $parameters['cursor'] = $cursor;
     if ($search !== '') {
         $parameters['q'] = $search;
     }
@@ -239,24 +255,24 @@ function contactsPageUrl(
             <label class="visually-hidden" for="contact-search">Search contacts</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search contacts">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Contact archive status">
-            <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search), ENT_QUOTES, 'UTF-8'); ?>"
+            <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search), ENT_QUOTES, 'UTF-8'); ?>"
+            <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Contact sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, 'last_name', $last_name_sort === 'asc' ? 'desc' : 'asc', $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'last_name', $last_name_sort === 'asc' ? 'desc' : 'asc', $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button sort-selection<?php echo $sort_column === 'last_name' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'last_name' ? 'aria-current="true"' : ''; ?>>
                     Last Name <?php echo $last_name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
-                <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $page_size, 'organization', $last_name_sort, $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'organization', $last_name_sort, $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button sort-selection<?php echo $sort_column === 'organization' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'organization' ? 'aria-current="true"' : ''; ?>>
                     Organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
@@ -267,7 +283,7 @@ function contactsPageUrl(
     </div>
 
     <?php if ($search !== ''): ?>
-        <p class="result-context"><?php echo $total_contacts; ?> result<?php echo $total_contacts === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context">Showing contacts matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
     <div class="contact-table-wrapper">
@@ -282,17 +298,27 @@ function contactsPageUrl(
                 </tr>
             </thead>
             <tbody>
-                <?php if ($contacts_result->num_rows === 0): ?>
+                <?php if ($contacts === []): ?>
                     <tr>
                         <td colspan="5" class="empty-state">No contacts match the current view.</td>
                     </tr>
                 <?php else: ?>
-                    <?php while ($contact = $contacts_result->fetch_assoc()): ?>
+                    <?php foreach ($contacts as $contact): ?>
                         <tr>
                             <td>
                                 <span class="contact-name-cell">
                                     <?php if (!empty($contact['contact_photo_mime'])): ?>
-                                        <img class="contact-list-avatar" src="contact_photo.php?id=<?php echo (int) $contact['id']; ?>&amp;v=<?php echo strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0; ?>" alt="">
+                                        <?php $contact_thumbnail_url = uploadedImageDataUrl(
+                                            $contact['contact_photo_thumbnail_mime'] ?? '',
+                                            $contact['contact_photo_thumbnail'] ?? null
+                                        ); ?>
+                                        <img class="contact-list-avatar" src="<?php echo htmlspecialchars(
+                                            $contact_thumbnail_url !== ''
+                                                ? $contact_thumbnail_url
+                                                : 'contact_photo.php?id=' . (int) $contact['id'] . '&v=' . (strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0),
+                                            ENT_QUOTES,
+                                            'UTF-8'
+                                        ); ?>" alt="">
                                     <?php else: ?>
                                         <span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(contactInitials($contact), ENT_QUOTES, 'UTF-8'); ?></span>
                                     <?php endif; ?>
@@ -364,29 +390,29 @@ function contactsPageUrl(
                                 </div>
                             </td>
                         </tr>
-                    <?php endwhile; ?>
+                    <?php endforeach; ?>
                 <?php endif; ?>
             </tbody>
         </table>
     </div>
 
-    <?php if ($total_contacts > 0): ?>
+    <?php if ($contacts !== [] || $cursor !== null): ?>
         <nav class="pagination pagination-with-size" aria-label="Contact pages">
             <div class="page-size-selector" aria-label="Contacts per page">
                 <span class="page-size-label">Rows per page:</span>
                 <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                    <a href="<?php echo htmlspecialchars(contactsPageUrl(1, $allowed_page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
+                    <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $allowed_page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
                        class="sort-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
                        <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
                 <?php endforeach; ?>
             </div>
-            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_contacts; ?> contacts</span>
+            <span class="pagination-status">Showing up to <?php echo $page_size; ?> contacts</span>
             <div class="pagination-actions">
-                <?php if ($current_page > 1): ?>
-                    <a href="<?php echo htmlspecialchars(contactsPageUrl($current_page - 1, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">Previous</a>
+                <?php if ($cursor !== null): ?>
+                    <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">First page</a>
                 <?php endif; ?>
-                <?php if ($current_page < $total_pages): ?>
-                    <a href="<?php echo htmlspecialchars(contactsPageUrl($current_page + 1, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">Next</a>
+                <?php if ($next_cursor !== null): ?>
+                    <a href="<?php echo htmlspecialchars(contactsPageUrl($next_cursor, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">Next</a>
                 <?php endif; ?>
             </div>
         </nav>

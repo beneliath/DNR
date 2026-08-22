@@ -12,6 +12,8 @@ require_once '/var/www/html/map_helpers.php';
 $loop = in_array('--loop', $argv, true);
 $batch_size = max(1, min(50, (int) (getenv('DNR_GEOCODER_BATCH_SIZE') ?: 10)));
 $idle_seconds = max(5, min(300, (int) (getenv('DNR_GEOCODER_IDLE_SECONDS') ?: 30)));
+$lease_seconds = max(60, min(3600, (int) (getenv('DNR_GEOCODER_LEASE_SECONDS') ?: 600)));
+$maximum_attempts = max(1, min(100, (int) (getenv('DNR_GEOCODER_MAX_ATTEMPTS') ?: 8)));
 $lock_path = sys_get_temp_dir() . '/dnr-geocoder-worker.lock';
 $lock = fopen($lock_path, 'c+');
 if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
@@ -21,14 +23,33 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 
 do {
     $processed = 0;
+    // A worker can disappear after consuming its final attempt. Reap those
+    // expired leases (and any legacy exhausted ready rows) so they do not
+    // remain permanently stuck in a runnable-looking state.
+    $conn->query(
+        "UPDATE engagement_map_geocode_queue
+         SET status = 'failed', processing_started_at = NULL,
+             last_error = COALESCE(last_error, 'Maximum geocoding attempts reached')
+         WHERE attempts >= {$maximum_attempts}
+           AND (
+                status IN ('pending', 'retry')
+                OR (status = 'processing'
+                    AND processing_started_at <= DATE_SUB(
+                        UTC_TIMESTAMP(), INTERVAL {$lease_seconds} SECOND
+                    ))
+           )"
+    );
     for ($index = 0; $index < $batch_size; $index++) {
         $conn->begin_transaction();
         $job_result = $conn->query(
             "SELECT address_hash, address_query, attempts
              FROM engagement_map_geocode_queue
-             WHERE status IN ('pending', 'retry')
-               AND next_attempt_at <= UTC_TIMESTAMP()
-             ORDER BY next_attempt_at, created_at
+             WHERE attempts < {$maximum_attempts}
+               AND (
+                    (status IN ('pending', 'retry') AND next_attempt_at <= UTC_TIMESTAMP())
+                    OR (status = 'processing' AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$lease_seconds} SECOND))
+               )
+             ORDER BY status = 'processing' DESC, next_attempt_at, created_at
              LIMIT 1 FOR UPDATE SKIP LOCKED"
         );
         $job = $job_result ? $job_result->fetch_assoc() : null;
@@ -38,7 +59,8 @@ do {
         }
         $mark = $conn->prepare(
             "UPDATE engagement_map_geocode_queue
-             SET status = 'processing', attempts = attempts + 1, last_error = NULL
+             SET status = 'processing', attempts = attempts + 1,
+                 processing_started_at = UTC_TIMESTAMP(), last_error = NULL
              WHERE address_hash = ?"
         );
         $mark->bind_param('s', $job['address_hash']);
@@ -80,20 +102,22 @@ do {
             $attempts = (int) $job['attempts'] + 1;
             $delay_minutes = min(1440, 2 ** min(10, $attempts));
             $error = substr($exception->getMessage(), 0, 255);
+            $next_status = $attempts >= $maximum_attempts ? 'failed' : 'retry';
             $retry = $conn->prepare(
                 "UPDATE engagement_map_geocode_queue
-                 SET status = 'retry',
+                 SET status = ?, processing_started_at = NULL,
                      next_attempt_at = DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? MINUTE),
                      last_error = ?
                  WHERE address_hash = ?"
             );
-            $retry->bind_param('iss', $delay_minutes, $error, $job['address_hash']);
+            $retry->bind_param('siss', $next_status, $delay_minutes, $error, $job['address_hash']);
             $retry->execute();
             $retry->close();
             applicationLog('error', 'Background geocoding failed', [
                 'error' => $error,
                 'address_hash' => $job['address_hash'],
                 'attempts' => $attempts,
+                'status' => $next_status,
             ]);
         }
 

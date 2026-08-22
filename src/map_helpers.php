@@ -106,8 +106,10 @@ function queueEngagementMapAddress(mysqli $conn, $address)
          VALUES (?, ?, 'pending', 0, UTC_TIMESTAMP())
          ON DUPLICATE KEY UPDATE
             address_query = VALUES(address_query),
+            attempts = IF(status = 'failed', 0, attempts),
             status = IF(status = 'processing', status, 'pending'),
             next_attempt_at = IF(status = 'processing', next_attempt_at, UTC_TIMESTAMP()),
+            processing_started_at = IF(status = 'processing', processing_started_at, NULL),
             last_error = NULL"
     );
     if (!$stmt) {
@@ -164,6 +166,7 @@ function validatedGeocoderBaseUrl()
 function geocodeEngagementMapAddress($address)
 {
     $base_url = validatedGeocoderBaseUrl();
+    $application_version = defined('APP_VERSION') ? APP_VERSION : 'dev';
     $separator = strpos($base_url, '?') === false ? '?' : '&';
     $url = $base_url . $separator . http_build_query([
         'format' => 'jsonv2',
@@ -171,7 +174,7 @@ function geocodeEngagementMapAddress($address)
         'q' => $address,
     ], '', '&', PHP_QUERY_RFC3986);
     $user_agent = preg_replace('/[\r\n]+/', ' ', trim((string) (getenv('DNR_GEOCODER_USER_AGENT')
-        ?: 'MOED/' . APP_VERSION . ' (https://github.com/beneliath/DNR)')));
+        ?: 'MOED/' . $application_version . ' (https://github.com/beneliath/DNR)')));
     $context = stream_context_create(['http' => [
         'method' => 'GET',
         'header' => "Accept: application/json\r\nUser-Agent: {$user_agent}\r\n",

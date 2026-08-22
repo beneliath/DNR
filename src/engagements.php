@@ -104,7 +104,7 @@ if (!$has_search_terms) {
 }
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
-$requested_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+$cursor = decodePaginationCursor($_GET['cursor'] ?? '', ['value', 'id']);
 $list_url = static function (array $overrides = []) use (
     $list_status,
     $sort_column,
@@ -155,29 +155,20 @@ $where = "e.is_deleted = {$archive_value}";
 if ($has_search_terms) {
     $where .= ' AND (' . $search_plan['sql'] . ')';
 }
-
-$count_query = "SELECT COUNT(*) AS engagement_count
-                FROM engagements e
-                LEFT JOIN organizations o ON e.organization_id = o.id
-                WHERE {$where}";
-$count_stmt = $conn->prepare($count_query);
-if (!$count_stmt) {
-    abortApplication(503, 'Engagements are temporarily unavailable.', ['error' => $conn->error]);
+$query_values = $search_plan['patterns'];
+$bind_types = str_repeat('s', count($search_plan['patterns']));
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    $comparison = $order_direction === 'ASC' ? '>' : '<';
+    $where .= " AND ({$order_by} {$comparison} ?
+        OR ({$order_by} = ? AND e.id {$comparison} ?))";
+    $query_values[] = (string) $cursor['value'];
+    $query_values[] = (string) $cursor['value'];
+    $query_values[] = (int) $cursor['id'];
+    $bind_types .= 'ssi';
+} else {
+    $cursor = null;
 }
-if ($has_search_terms) {
-    $count_types = str_repeat('s', count($search_plan['patterns']));
-    $count_values = $search_plan['patterns'];
-    $count_bind = [$count_types];
-    foreach ($count_values as &$count_value) $count_bind[] = &$count_value;
-    unset($count_value);
-    $count_stmt->bind_param(...$count_bind);
-}
-$count_stmt->execute();
-$total_engagements = (int) $count_stmt->get_result()->fetch_assoc()['engagement_count'];
-$count_stmt->close();
-$total_pages = max(1, (int) ceil($total_engagements / $page_size));
-$current_page = min($requested_page, $total_pages);
-$offset = ($current_page - 1) * $page_size;
+$query_limit = $page_size + 1;
 
 $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                  e.event_type, e.event_type_other, e.confirmation_status,
@@ -187,7 +178,7 @@ $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
           WHERE {$where}";
 $query .= "
           ORDER BY {$order_by} {$order_direction}, e.id {$order_direction}
-          LIMIT ? OFFSET ?";
+          LIMIT ?";
 
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) {
@@ -195,8 +186,8 @@ if (!$query_stmt) {
     http_response_code(503);
     exit('Engagements are temporarily unavailable.');
 }
-$query_values = array_merge($search_plan['patterns'], [$page_size, $offset]);
-$bind_types = str_repeat('s', count($search_plan['patterns'])) . 'ii';
+$query_values[] = $query_limit;
+$bind_types .= 'i';
 $bind_params = [$bind_types];
 foreach ($query_values as &$query_value) $bind_params[] = &$query_value;
 unset($query_value);
@@ -206,7 +197,24 @@ if (!$query_stmt->execute()) {
     http_response_code(500);
     exit('Unable to retrieve engagements.');
 }
-$result = $query_stmt->get_result();
+$engagement_rows = $query_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$has_more_engagements = count($engagement_rows) > $page_size;
+if ($has_more_engagements) {
+    array_pop($engagement_rows);
+}
+$next_cursor = null;
+if ($has_more_engagements && $engagement_rows !== []) {
+    $last_engagement = $engagement_rows[array_key_last($engagement_rows)];
+    $cursor_field = match ($sort_column) {
+        'status' => 'confirmation_status',
+        'org' => 'organization_name',
+        default => 'event_start_date',
+    };
+    $next_cursor = encodePaginationCursor([
+        'value' => (string) $last_engagement[$cursor_field],
+        'id' => (int) $last_engagement['id'],
+    ]);
+}
 
 $format_date_range = static function ($start, $end) {
     $start_timestamp = strtotime((string) $start);
@@ -295,7 +303,7 @@ $format_date_range = static function ($start, $end) {
         </div>
     </div>
     <?php if ($search !== ''): ?>
-        <p class="result-context"><?php echo $total_engagements; ?> result<?php echo $total_engagements === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
     <table class="engagement-table">
         <thead>
@@ -309,10 +317,10 @@ $format_date_range = static function ($start, $end) {
             </tr>
         </thead>
         <tbody>
-            <?php if ($result->num_rows === 0): ?>
+            <?php if ($engagement_rows === []): ?>
                 <tr><td colspan="6" class="empty-state">No engagements match the current view.</td></tr>
             <?php endif; ?>
-            <?php while ($row = $result->fetch_assoc()): ?>
+            <?php foreach ($engagement_rows as $row): ?>
                 <tr>
                     <td><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
                     <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
@@ -363,15 +371,15 @@ $format_date_range = static function ($start, $end) {
                         </div>
                     </td>
                 </tr>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($total_pages > 1): ?>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
         <nav class="pagination pagination-with-size" aria-label="Engagement pages">
-            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_engagements; ?> engagements</span>
+            <span class="pagination-status">Showing up to <?php echo $page_size; ?> engagements</span>
             <div class="pagination-actions">
-                <?php if ($current_page > 1): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['page' => $current_page - 1]), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-                <?php if ($current_page < $total_pages): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['page' => $current_page + 1]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>

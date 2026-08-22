@@ -29,9 +29,11 @@ $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$current_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT) ?: 1;
-$current_page = max(1, $current_page);
 $page_size = 50;
+$cursor_keys = $view === 'completed'
+    ? ['updated_at', 'id']
+    : ['due_date', 'priority_rank', 'id'];
+$cursor = decodePaginationCursor($_GET['cursor'] ?? '', $cursor_keys);
 
 $queue_parameters = [
     'view' => $view,
@@ -43,10 +45,11 @@ if ($has_subject_filter) {
     $queue_parameters['subject_type'] = $subject_filter_type;
     $queue_parameters['subject_id'] = (int) $subject_filter_id;
 }
-$task_return_to = 'tasks.php?' . http_build_query(array_merge(
-    $queue_parameters,
-    ['page' => $current_page]
-));
+$task_return_parameters = $queue_parameters;
+if (is_string($_GET['cursor'] ?? null) && $cursor !== null) {
+    $task_return_parameters['cursor'] = $_GET['cursor'];
+}
+$task_return_to = 'tasks.php?' . http_build_query($task_return_parameters);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
@@ -230,44 +233,38 @@ $where_sql = implode(' AND ', array_map(
     static fn($clause) => '(' . $clause . ')',
     $where
 ));
-$count_sql = "SELECT COUNT(*) AS total
-              FROM follow_up_tasks t
-              LEFT JOIN users assignee ON assignee.id = t.assigned_to
-              LEFT JOIN engagements e ON e.id = t.engagement_id
-              LEFT JOIN organizations eo ON eo.id = e.organization_id
-              LEFT JOIN organizations o ON o.id = t.organization_id
-              LEFT JOIN contacts c ON c.id = t.contact_id
-              WHERE {$where_sql}";
-$count_stmt = $conn->prepare($count_sql);
-if (!$count_stmt) {
-    http_response_code(500);
-    exit('Unable to load the work queue.');
-}
-if ($bind_types !== '') {
-    $count_bind = [$bind_types];
-    foreach ($bind_values as &$bind_value) {
-        $count_bind[] = &$bind_value;
-    }
-    unset($bind_value);
-    $count_stmt->bind_param(...$count_bind);
-}
-$count_stmt->execute();
-$total_tasks = (int) ($count_stmt->get_result()->fetch_assoc()['total'] ?? 0);
-$count_stmt->close();
-$total_pages = max(1, (int) ceil($total_tasks / $page_size));
-$current_page = min($current_page, $total_pages);
-$offset = ($current_page - 1) * $page_size;
-
 $order_sql = $view === 'completed'
     ? 't.updated_at DESC, t.id DESC'
-    : "t.due_date IS NULL,
-       t.due_date ASC,
+    : "COALESCE(t.due_date, '9999-12-31') ASC,
        FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
        t.id ASC";
+$cursor_sql = '';
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    if ($view === 'completed') {
+        $cursor_sql = ' AND (t.updated_at, t.id) < (?, ?)';
+        $bind_types .= 'si';
+        $bind_values[] = (string) $cursor['updated_at'];
+        $bind_values[] = (int) $cursor['id'];
+    } elseif (ctype_digit((string) $cursor['priority_rank'])) {
+        $cursor_sql = " AND (
+            COALESCE(t.due_date, '9999-12-31'),
+            FIELD(t.priority, 'urgent', 'high', 'normal', 'low'), t.id
+        ) > (?, ?, ?)";
+        $bind_types .= 'sii';
+        $bind_values[] = (string) $cursor['due_date'];
+        $bind_values[] = (int) $cursor['priority_rank'];
+        $bind_values[] = (int) $cursor['id'];
+    } else {
+        $cursor = null;
+    }
+} else {
+    $cursor = null;
+}
+$query_limit = $page_size + 1;
 $task_sql = followUpTaskSelectSql()
-    . " WHERE {$where_sql}
+    . " WHERE {$where_sql}{$cursor_sql}
         ORDER BY {$order_sql}
-        LIMIT {$page_size} OFFSET {$offset}";
+        LIMIT {$query_limit}";
 $task_stmt = $conn->prepare($task_sql);
 if (!$task_stmt) {
     http_response_code(500);
@@ -284,6 +281,26 @@ if ($bind_types !== '') {
 $task_stmt->execute();
 $tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $task_stmt->close();
+$has_more_tasks = count($tasks) > $page_size;
+if ($has_more_tasks) array_pop($tasks);
+$next_cursor = null;
+if ($has_more_tasks && $tasks !== []) {
+    $last_task = $tasks[array_key_last($tasks)];
+    $next_cursor = $view === 'completed'
+        ? encodePaginationCursor([
+            'updated_at' => (string) $last_task['updated_at'],
+            'id' => (int) $last_task['id'],
+        ])
+        : encodePaginationCursor([
+            'due_date' => (string) ($last_task['due_date'] ?: '9999-12-31'),
+            'priority_rank' => array_search(
+                (string) $last_task['priority'],
+                ['urgent', 'high', 'normal', 'low'],
+                true
+            ) + 1,
+            'id' => (int) $last_task['id'],
+        ]);
+}
 
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
     return 'tasks.php?' . http_build_query(array_merge($queue_parameters, $overrides));
@@ -332,12 +349,12 @@ $priority_labels = followUpTaskPriorities();
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
     <div class="summary-grid task-summary-grid" aria-label="Work queue summary">
-        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
-        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
-        <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
-        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next 7 days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
-        <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
-        <a class="summary-card<?php echo $view === 'unassigned' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'unassigned', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Unassigned</small><strong><?php echo $summary['unassigned']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
+        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
+        <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
+        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next 7 days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'unassigned' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'unassigned']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Unassigned</small><strong><?php echo $summary['unassigned']; ?></strong></span></a>
     </div>
 
     <div class="list-controls task-list-controls">
@@ -350,12 +367,12 @@ $priority_labels = followUpTaskPriorities();
             <label class="visually-hidden" for="task-search">Search tasks</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search tasks, records, and assignees">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Work queue view">
             <?php foreach ($view_labels as $view_value => $view_label): ?>
                 <?php if (in_array($view_value, ['my', 'overdue', 'today', 'upcoming', 'waiting', 'unassigned'], true)) continue; ?>
-                <a href="<?php echo htmlspecialchars($queue_url(['view' => $view_value, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $view === $view_value ? ' active' : ''; ?>"><?php echo htmlspecialchars($view_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                <a href="<?php echo htmlspecialchars($queue_url(['view' => $view_value]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $view === $view_value ? ' active' : ''; ?>"><?php echo htmlspecialchars($view_label, ENT_QUOTES, 'UTF-8'); ?></a>
             <?php endforeach; ?>
         </div>
     </div>
@@ -372,7 +389,7 @@ $priority_labels = followUpTaskPriorities();
                     <span class="task-priority-legend-item task-priority-<?php echo $priority_value; ?>"><?php echo htmlspecialchars($priority_labels[$priority_value], ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php endforeach; ?>
             </div>
-            <span class="task-count"><?php echo $total_tasks; ?> task<?php echo $total_tasks === 1 ? '' : 's'; ?></span>
+            <span class="task-count">Showing <?php echo count($tasks); ?> task<?php echo count($tasks) === 1 ? '' : 's'; ?></span>
         </div>
     </div>
 
@@ -424,11 +441,11 @@ $priority_labels = followUpTaskPriorities();
         </tbody>
     </table>
 
-    <?php if ($total_pages > 1): ?>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
     <nav class="pagination" aria-label="Work queue pages">
-        <?php if ($current_page > 1): ?><a href="<?php echo htmlspecialchars($queue_url(['page' => $current_page - 1]), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-        <span>Page <?php echo $current_page; ?> of <?php echo $total_pages; ?></span>
-        <?php if ($current_page < $total_pages): ?><a href="<?php echo htmlspecialchars($queue_url(['page' => $current_page + 1]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+        <?php if ($cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+        <span>Showing up to <?php echo $page_size; ?> tasks</span>
+        <?php if ($next_cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
     </nav>
     <?php endif; ?>
 </div>

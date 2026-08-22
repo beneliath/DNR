@@ -20,40 +20,27 @@ $engagement_window = "e.event_end_date >= DATE_SUB(CURDATE(), INTERVAL {$past_da
 $presentation_window = "p.presentation_date >= DATE_SUB(CURDATE(), INTERVAL {$past_days} DAY)
     AND p.presentation_date <= DATE_ADD(CURDATE(), INTERVAL {$future_days} DAY)";
 
-// Calculate a cheap data version before allocating rows or rendering the ICS.
-$engagement_version_result = $conn->query(
-    "SELECT COUNT(*) AS row_count,
-            COALESCE(UNIX_TIMESTAMP(MAX(GREATEST(e.updated_at, o.updated_at))), 0) AS changed_at
-     FROM engagements e
-     INNER JOIN organizations o ON o.id = e.organization_id
-     WHERE e.is_deleted = 0 AND {$engagement_window}"
+$revision_result = $conn->query(
+    'SELECT revision, UNIX_TIMESTAMP(updated_at) AS changed_at
+     FROM calendar_feed_revision WHERE id = 1'
 );
-$presentation_version_result = $conn->query(
-    "SELECT COUNT(*) AS row_count,
-            COALESCE(UNIX_TIMESTAMP(MAX(GREATEST(e.updated_at, o.updated_at, p.updated_at))), 0) AS changed_at
-     FROM presentations p
-     INNER JOIN engagements e ON e.id = p.engagement_id
-     INNER JOIN organizations o ON o.id = e.organization_id
-     WHERE e.is_deleted = 0
-       AND p.is_archived = 0
-       AND p.presentation_time IS NOT NULL
-       AND p.presentation_time <> ''
-       AND {$presentation_window}"
-);
-if (!$engagement_version_result || !$presentation_version_result) {
+if (!$revision_result) {
     applicationLog('error', 'Unable to calculate the private calendar version', ['error' => $conn->error]);
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: private, no-store');
     exit('The DNR calendar is temporarily unavailable.');
 }
-$engagement_version = $engagement_version_result->fetch_assoc();
-$presentation_version = $presentation_version_result->fetch_assoc();
+$calendar_revision = $revision_result->fetch_assoc();
+if (!$calendar_revision) {
+    http_response_code(503);
+    header('Content-Type: text/plain; charset=utf-8');
+    header('Cache-Control: private, no-store');
+    exit('The DNR calendar is temporarily unavailable.');
+}
 $etag = '"calendar-' . hash('sha256', implode('|', [
-    $engagement_version['row_count'] ?? 0,
-    $engagement_version['changed_at'] ?? 0,
-    $presentation_version['row_count'] ?? 0,
-    $presentation_version['changed_at'] ?? 0,
+    $calendar_revision['revision'] ?? 0,
+    $calendar_revision['changed_at'] ?? 0,
     $past_days,
     $future_days,
 ])) . '"';
@@ -122,10 +109,8 @@ $presentation_query = "SELECT
           WHERE e.is_deleted = 0
             AND p.is_archived = 0
             AND p.presentation_time IS NOT NULL
-            AND p.presentation_time <> ''
             AND {$presentation_window}
-          ORDER BY p.presentation_date,
-                   STR_TO_DATE(p.presentation_time, '%h:%i %p'), p.id";
+          ORDER BY p.presentation_date, p.presentation_time, p.id";
 $presentation_result = $conn->query($presentation_query);
 if (!$presentation_result) {
     applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);

@@ -65,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
-                     profile_picture = ?, profile_picture_mime = ?,
+                     profile_picture = ?, profile_picture_thumbnail = ?,
+                     profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                      profile_picture_sha256 = ?,
                      profile_picture_updated_at = UTC_TIMESTAMP()
                  WHERE id = ?'
@@ -74,15 +75,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
             $picture_data = $picture['data'];
+            $picture_thumbnail = $picture['thumbnail_data'];
+            $picture_thumbnail_mime = $picture['thumbnail_mime_type'];
             $picture_mime = $picture['mime_type'];
             $picture_sha256 = $picture['sha256'];
             $stmt->bind_param(
-                'sssssssi',
+                'sssssssssi',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
                 $picture_data,
+                $picture_thumbnail,
+                $picture_thumbnail_mime,
                 $picture_mime,
                 $picture_sha256,
                 $user_id
@@ -91,7 +96,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
-                     profile_picture = NULL, profile_picture_mime = NULL,
+                     profile_picture = NULL, profile_picture_thumbnail = NULL,
+                     profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                      profile_picture_sha256 = NULL,
                      profile_picture_updated_at = UTC_TIMESTAMP()
                  WHERE id = ?'
@@ -179,7 +185,7 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
         <?php echo csrfInput(); ?>
         <section class="profile-card profile-picture-card" aria-labelledby="profile-picture-heading">
             <div class="profile-picture-preview">
-                <img src="profile_picture.php?v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
+                <img src="profile_picture.php?size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
             </div>
             <div class="profile-picture-controls">
                 <h2 id="profile-picture-heading">Profile Picture</h2>

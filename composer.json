@@ -9,10 +9,11 @@
         }
     },
     "require": {
+        "ext-mbstring": "*",
         "php": "^8.4",
         "endroid/qr-code": "^6.0",
-        "setasign/fpdf": "^1.8",
-        "spomky-labs/otphp": "^11.4"
+        "spomky-labs/otphp": "^11.4",
+        "tecnickcom/tcpdf": "^6.11"
     },
     "config": {
         "allow-plugins": false,
@@ -24,7 +25,10 @@
     },
     "scripts": {
         "lint": "sh scripts/lint_php.sh",
-        "analyse": "phpstan analyse --no-progress --debug",
+        "analyse": [
+            "phpstan analyse --no-progress --debug --memory-limit=512M",
+            "phpstan analyse --configuration=phpstan-helpers.neon --no-progress --debug --memory-limit=512M"
+        ],
         "test": "sh scripts/run_tests.sh",
         "check": [
             "@lint",

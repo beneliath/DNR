@@ -9,6 +9,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1'
 
 $source_directory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source_directory . '/config.php';
+require_once $source_directory . '/contact_photo_helpers.php';
 
 function expectContactPhotoIntegration($condition, $message) {
     if (!$condition) {
@@ -18,11 +19,18 @@ function expectContactPhotoIntegration($condition, $message) {
 
 mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 $suffix = bin2hex(random_bytes(4));
-$photo_data = base64_decode(
+$uploaded_photo_data = base64_decode(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
     true
 );
-$photo_mime = 'image/png';
+$photo_path = tempnam(sys_get_temp_dir(), 'dnr-contact-integration-');
+file_put_contents($photo_path, $uploaded_photo_data);
+$photo = validatedContactPhotoFile($photo_path);
+unlink($photo_path);
+$photo_data = $photo['data'];
+$photo_mime = $photo['mime_type'];
+$thumbnail_data = $photo['thumbnail_data'];
+$thumbnail_mime = $photo['thumbnail_mime_type'];
 
 $conn->begin_transaction();
 try {
@@ -38,16 +46,26 @@ try {
     $contact_stmt = $conn->prepare(
         "INSERT INTO contacts (
             organization_id, contact_first_name, contact_last_name, contact_role,
-            contact_email, contact_photo, contact_photo_mime, contact_photo_updated_at
-         ) VALUES (?, 'Photo', 'Test', 'admin', 'photo-test@example.com', ?, ?, UTC_TIMESTAMP())"
+            contact_email, contact_photo, contact_photo_mime,
+            contact_photo_thumbnail, contact_photo_thumbnail_mime, contact_photo_updated_at
+         ) VALUES (?, 'Photo', 'Test', 'admin', 'photo-test@example.com', ?, ?, ?, ?, UTC_TIMESTAMP())"
     );
-    $contact_stmt->bind_param('iss', $organization_id, $photo_data, $photo_mime);
+    $contact_stmt->bind_param(
+        'issss',
+        $organization_id,
+        $photo_data,
+        $photo_mime,
+        $thumbnail_data,
+        $thumbnail_mime
+    );
     $contact_stmt->execute();
     $contact_id = $conn->insert_id;
     $contact_stmt->close();
 
     $stored_stmt = $conn->prepare(
-        'SELECT contact_photo, contact_photo_mime, contact_photo_updated_at
+        'SELECT contact_photo, contact_photo_mime,
+                contact_photo_thumbnail, contact_photo_thumbnail_mime,
+                contact_photo_updated_at
          FROM contacts WHERE id = ?'
     );
     $stored_stmt->bind_param('i', $contact_id);
@@ -58,13 +76,16 @@ try {
         is_string($stored['contact_photo'])
             && hash_equals(hash('sha256', $photo_data), hash('sha256', $stored['contact_photo']))
             && $stored['contact_photo_mime'] === 'image/png'
+            && hash_equals(hash('sha256', $thumbnail_data), hash('sha256', $stored['contact_photo_thumbnail']))
+            && $stored['contact_photo_thumbnail_mime'] === $thumbnail_mime
             && $stored['contact_photo_updated_at'] !== null,
-        'MySQL should preserve the uploaded binary image, MIME type, and update time.'
+        'MySQL should preserve full and thumbnail image variants, MIME types, and update time.'
     );
 
     $remove_stmt = $conn->prepare(
         'UPDATE contacts
          SET contact_photo = NULL, contact_photo_mime = NULL,
+             contact_photo_thumbnail = NULL, contact_photo_thumbnail_mime = NULL,
              contact_photo_updated_at = UTC_TIMESTAMP()
          WHERE id = ?'
     );
@@ -73,15 +94,20 @@ try {
     $remove_stmt->close();
 
     $removed_stmt = $conn->prepare(
-        'SELECT contact_photo, contact_photo_mime FROM contacts WHERE id = ?'
+        'SELECT contact_photo, contact_photo_mime,
+                contact_photo_thumbnail, contact_photo_thumbnail_mime
+         FROM contacts WHERE id = ?'
     );
     $removed_stmt->bind_param('i', $contact_id);
     $removed_stmt->execute();
     $removed = $removed_stmt->get_result()->fetch_assoc();
     $removed_stmt->close();
     expectContactPhotoIntegration(
-        $removed['contact_photo'] === null && $removed['contact_photo_mime'] === null,
-        'removing a contact photo should clear both stored values.'
+        $removed['contact_photo'] === null
+            && $removed['contact_photo_mime'] === null
+            && $removed['contact_photo_thumbnail'] === null
+            && $removed['contact_photo_thumbnail_mime'] === null,
+        'removing a contact photo should clear both full and thumbnail variants.'
     );
 
     $conn->rollback();

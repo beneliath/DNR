@@ -85,26 +85,24 @@ function buildEngagementSearchPlan($search) {
     $patterns_per_term = substr_count($term_condition, '?');
 
     if ($parsed_search['or_terms']) {
-        $groups[] = '(' . implode(
-            ' OR ',
-            array_fill(0, count($parsed_search['or_terms']), $term_condition)
-        ) . ')';
-        foreach ($parsed_search['or_terms'] as $term) {
-            for ($index = 0; $index < $patterns_per_term; $index++) {
-                $patterns[] = engagementFulltextTerm($term);
-            }
+        $groups[] = $term_condition;
+        $or_query = implode(' ', array_map(
+            'engagementFulltextTerm',
+            $parsed_search['or_terms']
+        ));
+        for ($index = 0; $index < $patterns_per_term; $index++) {
+            $patterns[] = $or_query;
         }
     }
 
     if ($parsed_search['and_terms']) {
-        $groups[] = '(' . implode(
-            ' AND ',
-            array_fill(0, count($parsed_search['and_terms']), $term_condition)
-        ) . ')';
-        foreach ($parsed_search['and_terms'] as $term) {
-            for ($index = 0; $index < $patterns_per_term; $index++) {
-                $patterns[] = engagementFulltextTerm($term);
-            }
+        $groups[] = $term_condition;
+        $and_query = implode(' ', array_map(
+            static fn($term) => '+' . engagementFulltextTerm($term),
+            $parsed_search['and_terms']
+        ));
+        for ($index = 0; $index < $patterns_per_term; $index++) {
+            $patterns[] = $and_query;
         }
     }
 

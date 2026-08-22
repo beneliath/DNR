@@ -40,17 +40,26 @@ function normalizePresentationTime($time)
     }
 
     if (preg_match('/^(0?[1-9]|1[0-2]):([0-5][0-9])\s*(AM|PM)$/i', $time, $matches)) {
-        return sprintf('%02d:%s %s', (int) $matches[1], $matches[2], strtoupper($matches[3]));
+        $parsed_time = DateTimeImmutable::createFromFormat(
+            '!g:i A',
+            (int) $matches[1] . ':' . $matches[2] . ' ' . strtoupper($matches[3])
+        );
+        if ($parsed_time instanceof DateTimeImmutable) {
+            return $parsed_time->format('H:i:s');
+        }
     }
 
     if (preg_match('/^([01][0-9]|2[0-3])([0-5][0-9])$/', $time, $matches)) {
         $time = $matches[1] . ':' . $matches[2];
     }
 
-    if (preg_match('/^([01][0-9]|2[0-3]):([0-5][0-9])$/', $time)) {
-        $parsed_time = DateTimeImmutable::createFromFormat('!H:i', $time);
+    if (preg_match('/^([01][0-9]|2[0-3]):([0-5][0-9])(?::([0-5][0-9]))?$/', $time)) {
+        $parsed_time = DateTimeImmutable::createFromFormat(
+            strlen($time) === 5 ? '!H:i' : '!H:i:s',
+            $time
+        );
         if ($parsed_time instanceof DateTimeImmutable) {
-            return $parsed_time->format('h:i A');
+            return $parsed_time->format('H:i:s');
         }
     }
 
@@ -70,8 +79,26 @@ function presentationTimeParts($time)
         return [$time, 'AM'];
     }
 
-    $parts = explode(' ', (string) $normalized_time, 2);
-    return [$parts[0] ?? '', $parts[1] ?? 'AM'];
+    $parsed_time = DateTimeImmutable::createFromFormat('!H:i:s', (string) $normalized_time);
+    if (!$parsed_time instanceof DateTimeImmutable) {
+        return [$time, 'AM'];
+    }
+    return [$parsed_time->format('h:i'), $parsed_time->format('A')];
+}
+
+function formatPresentationTime($time)
+{
+    $time = trim((string) $time);
+    if ($time === '') {
+        return '';
+    }
+    try {
+        $normalized = normalizePresentationTime($time);
+        $parsed = DateTimeImmutable::createFromFormat('!H:i:s', (string) $normalized);
+        return $parsed instanceof DateTimeImmutable ? $parsed->format('h:i A') : $time;
+    } catch (InvalidArgumentException $exception) {
+        return $time;
+    }
 }
 
 function normalizeEngagementPresentations(
@@ -216,8 +243,7 @@ function fetchArchivedEngagementPresentations(mysqli $conn, $engagement_id)
          FROM presentations p
          LEFT JOIN users archiver ON archiver.id = p.archived_by
          WHERE p.engagement_id = ? AND p.is_archived = 1
-         ORDER BY p.presentation_date,
-                  STR_TO_DATE(p.presentation_time, \'%h:%i %p\'), p.id'
+         ORDER BY p.presentation_date, p.presentation_time, p.id'
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to load archived presentations.');

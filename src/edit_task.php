@@ -60,19 +60,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
                 : gmdate('Y-m-d H:i:s');
         }
 
+        $due_date_overridden = !empty($locked_task['due_date_overridden'])
+            || ($locked_task['template_key'] !== null
+                && (($locked_task['due_date'] ?: null) !== $normalized['due_date']
+                    || (string) $locked_task['subject_type'] !== $normalized['subject_type']
+                    || (int) ($locked_task['engagement_id'] ?? 0)
+                        !== (int) ($normalized['engagement_id'] ?? 0)))
+            ? 1
+            : 0;
+
         $stmt = $conn->prepare(
             'UPDATE follow_up_tasks
              SET title = ?, details = ?, status = ?, priority = ?, due_date = ?,
                  waiting_on = ?, subject_type = ?, engagement_id = ?,
                  organization_id = ?, contact_id = ?, assigned_to = ?,
-                 completed_by = ?, completed_at = ?
+                 completed_by = ?, completed_at = ?, due_date_overridden = ?
              WHERE id = ?'
         );
         if (!$stmt) {
             throw new RuntimeException('Unable to prepare the task update.');
         }
         $stmt->bind_param(
-            'sssssssiiiiisi',
+            'sssssssiiiiisii',
             $normalized['title'],
             $normalized['details'],
             $normalized['status'],
@@ -86,6 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             $normalized['assigned_to'],
             $completed_by,
             $completed_at,
+            $due_date_overridden,
             $task_id
         );
         if (!$stmt->execute()) {

@@ -1,6 +1,6 @@
 <?php
 
-class DnrEngagementPdf extends FPDF {
+class DnrEngagementPdf extends TCPDF {
     private $engagement_title = 'Engagement';
     private $generated_date = '';
 
@@ -20,7 +20,7 @@ class DnrEngagementPdf extends FPDF {
 
         $suffix = '...';
         while ($title !== '' && $this->GetStringWidth(rtrim($title) . $suffix) > $maximum_width) {
-            $title = substr($title, 0, -1);
+            $title = mb_substr($title, 0, -1, 'UTF-8');
         }
 
         return rtrim($title) . $suffix;
@@ -28,7 +28,7 @@ class DnrEngagementPdf extends FPDF {
 
     public function Header() {
         $this->SetY(10);
-        $this->SetFont('Helvetica', 'B', 9);
+        $this->SetFont('dejavusans', 'B', 9);
         $this->SetTextColor(31, 87, 231);
         $this->Cell(0, 5, engagementPdfText('DNR Engagement'), 0, 1, 'L');
         $this->SetDrawColor(210, 216, 224);
@@ -41,7 +41,7 @@ class DnrEngagementPdf extends FPDF {
         $this->SetDrawColor(210, 216, 224);
         $this->Line($this->lMargin, $this->GetY(), $this->w - $this->rMargin, $this->GetY());
         $this->Ln(2);
-        $this->SetFont('Helvetica', '', 8);
+        $this->SetFont('dejavusans', '', 8);
         $this->SetTextColor(100, 108, 118);
         $available_width = $this->w - $this->lMargin - $this->rMargin;
         $date_width = 55;
@@ -66,7 +66,9 @@ class DnrEngagementPdf extends FPDF {
         $this->Cell(
             $page_width,
             5,
-            engagementPdfText('Page ' . $this->PageNo() . '/{nb}'),
+            engagementPdfText(
+                'Page ' . $this->getAliasNumPage() . '/' . $this->getAliasNbPages()
+            ),
             0,
             0,
             'R'
@@ -76,12 +78,7 @@ class DnrEngagementPdf extends FPDF {
 
 function engagementPdfText($value) {
     $value = str_replace(["\r\n", "\r"], "\n", (string) $value);
-    $converted = iconv('UTF-8', 'Windows-1252//TRANSLIT//IGNORE', $value);
-    if ($converted !== false) {
-        return $converted;
-    }
-
-    return preg_replace('/[^\x09\x0A\x20-\x7E]/', '?', $value);
+    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/u', '', $value) ?? '';
 }
 
 function estimateEngagementPdfSectionHeight(array $section) {
@@ -91,13 +88,13 @@ function estimateEngagementPdfSectionHeight(array $section) {
             $height += 1;
         }
         if (!empty($entry['title'])) {
-            $height += max(1, (int) ceil(strlen(engagementPdfText($entry['title'])) / 80)) * 5.5;
+            $height += max(1, (int) ceil(mb_strlen(engagementPdfText($entry['title']), 'UTF-8') / 80)) * 5.5;
         }
         foreach ($entry['fields'] ?? [] as $field) {
             $text = (string) ($field['label'] ?? '') . ': ' . (string) ($field['value'] ?? '');
             $line_count = 0;
             foreach (explode("\n", engagementPdfText($text)) as $line) {
-                $line_count += max(1, (int) ceil(strlen($line) / 85));
+                $line_count += max(1, (int) ceil(mb_strlen($line, 'UTF-8') / 85));
             }
             $height += $line_count * 5;
         }
@@ -115,7 +112,7 @@ function addEngagementPdfSection(DnrEngagementPdf $pdf, array $section) {
 
     $pdf->SetFillColor(31, 87, 231);
     $pdf->SetTextColor(255, 255, 255);
-    $pdf->SetFont('Helvetica', 'B', 11);
+    $pdf->SetFont('dejavusans', 'B', 11);
     $pdf->Cell(0, 7, engagementPdfText($section['heading'] ?? ''), 0, 1, 'L', true);
     $pdf->Ln(2);
 
@@ -127,7 +124,7 @@ function addEngagementPdfSection(DnrEngagementPdf $pdf, array $section) {
             $pdf->Ln(1);
         }
         if (!empty($entry['title'])) {
-            $pdf->SetFont('Helvetica', 'B', 10);
+            $pdf->SetFont('dejavusans', 'B', 10);
             $pdf->SetTextColor(33, 37, 41);
             $pdf->MultiCell(0, 5.5, engagementPdfText($entry['title']));
         }
@@ -136,15 +133,15 @@ function addEngagementPdfSection(DnrEngagementPdf $pdf, array $section) {
             $label = trim((string) ($field['label'] ?? ''));
             $value = (string) ($field['value'] ?? '');
             if (($section['heading'] ?? '') === 'Chron' && in_array($label, ['Entry', 'Notes'], true)) {
-                $pdf->SetFont('Helvetica', '', 9.5);
+                $pdf->SetFont('dejavusans', '', 9.5);
                 $pdf->SetTextColor(54, 60, 68);
                 $pdf->MultiCell(0, 5, engagementPdfText($value));
                 continue;
             }
-            $pdf->SetFont('Helvetica', 'B', 9.5);
+            $pdf->SetFont('dejavusans', 'B', 9.5);
             $pdf->SetTextColor(54, 60, 68);
             $pdf->Write(5, engagementPdfText($label . ': '));
-            $pdf->SetFont('Helvetica', '', 9.5);
+            $pdf->SetFont('dejavusans', '', 9.5);
             $pdf->MultiCell(0, 5, engagementPdfText($value));
         }
     }
@@ -182,7 +179,7 @@ function orderEngagementPdfSections(array $sections) {
 function renderEngagementPdf(array $export, $generated_date = null) {
     $title = (string) ($export['title'] ?? 'Engagement');
     $generated_date = $generated_date ?: date('F j, Y');
-    $pdf = new DnrEngagementPdf('P', 'mm', 'Letter');
+    $pdf = new DnrEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
     $pdf->SetTitle(engagementPdfText($title));
     $pdf->SetAuthor('DNR');
     $pdf->SetCreator('DNR');
@@ -190,10 +187,9 @@ function renderEngagementPdf(array $export, $generated_date = null) {
     $pdf->setGeneratedDate($generated_date);
     $pdf->SetMargins(18, 18, 18);
     $pdf->SetAutoPageBreak(true, 18);
-    $pdf->AliasNbPages();
     $pdf->AddPage();
 
-    $pdf->SetFont('Helvetica', 'B', 18);
+    $pdf->SetFont('dejavusans', 'B', 18);
     $pdf->SetTextColor(24, 29, 35);
     $pdf->MultiCell(0, 8, engagementPdfText($title));
     $pdf->Ln(4);
@@ -213,5 +209,5 @@ function renderEngagementPdf(array $export, $generated_date = null) {
         addEngagementPdfSection($pdf, $chron_section);
     }
 
-    return $pdf->Output('S');
+    return $pdf->Output('', 'S');
 }

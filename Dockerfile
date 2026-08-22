@@ -16,10 +16,10 @@ FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad
 # Install the extensions used by the database and PDF export dependencies.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        libfreetype6-dev libjpeg62-turbo-dev libpng-dev libwebp-dev zlib1g-dev \
+        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j"$(nproc)" gd mysqli opcache \
-    && a2enmod headers proxy proxy_http \
+    && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli opcache \
+    && a2enmod headers proxy proxy_http deflate expires \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && rm -rf /var/lib/apt/lists/*

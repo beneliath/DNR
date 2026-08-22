@@ -12,6 +12,7 @@ if (!$contact_id) {
 
 $stmt = $conn->prepare(
     'SELECT contact_first_name, contact_last_name, contact_photo_mime,
+            contact_photo_thumbnail, contact_photo_thumbnail_mime,
             HEX(contact_photo_sha256) AS contact_photo_sha256
      FROM contacts
      WHERE id = ?'
@@ -48,16 +49,24 @@ if (preg_match('/^[0-9a-f]{64}$/', $photo_hash) === 1
         exit;
     }
 
-    $photo_stmt = $conn->prepare('SELECT contact_photo FROM contacts WHERE id = ?');
-    $photo_stmt->bind_param('i', $contact_id);
-    $photo_stmt->execute();
-    $photo = $photo_stmt->get_result()->fetch_assoc()['contact_photo'] ?? null;
-    $photo_stmt->close();
+    $serve_full_size = ($_GET['size'] ?? '') === 'full';
+    $photo = $serve_full_size ? null : ($contact['contact_photo_thumbnail'] ?? null);
+    $served_mime = $serve_full_size
+        ? $mime_type
+        : (string) ($contact['contact_photo_thumbnail_mime'] ?? '');
+    if (!is_string($photo) || $photo === '') {
+        $photo_stmt = $conn->prepare('SELECT contact_photo FROM contacts WHERE id = ?');
+        $photo_stmt->bind_param('i', $contact_id);
+        $photo_stmt->execute();
+        $photo = $photo_stmt->get_result()->fetch_assoc()['contact_photo'] ?? null;
+        $photo_stmt->close();
+        $served_mime = $mime_type;
+    }
     if (!is_string($photo) || $photo === '') {
         http_response_code(404);
         exit;
     }
-    header('Content-Type: ' . $mime_type);
+    header('Content-Type: ' . $served_mime);
     header('Content-Length: ' . strlen($photo));
     echo $photo;
     exit;

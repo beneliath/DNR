@@ -4,6 +4,7 @@ include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
 include 'map_helpers.php';
 include 'two_factor_helpers.php';
+include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -497,6 +498,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
         }
 
+        $engagement_dates_changed = $event_start_date !== $engagement['event_start_date']
+            || $event_end_date !== $engagement['event_end_date'];
+        if ($engagement_dates_changed) {
+            rescheduleGeneratedEngagementTasks(
+                $conn,
+                $engagement_id,
+                $event_start_date,
+                $event_end_date
+            );
+        }
+
         $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations);
         if ($presentations_changed) {
             $touch_engagement_stmt = $conn->prepare(
@@ -650,8 +662,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 // Get presentations for this engagement
 $presentations_query = "SELECT * FROM presentations
                         WHERE engagement_id = ? AND is_archived = 0
-                        ORDER BY presentation_date,
-                                 STR_TO_DATE(presentation_time, '%h:%i %p'), id";
+                        ORDER BY presentation_date, presentation_time, id";
 $stmt = $conn->prepare($presentations_query);
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -672,7 +683,20 @@ unset(
     $_SESSION['presentation_action_error']
 );
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $chron_page_size = 20;
+    $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchChronLogEntries(
+        $conn,
+        $engagement_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
     $archived_chron_count = countArchivedChronLogEntries($conn, $engagement_id);
     $archived_presentation_count = countArchivedEngagementPresentations($conn, $engagement_id);
 } catch (Throwable $exception) {
@@ -1018,6 +1042,15 @@ try {
                 <p class="chron-empty-state">No Chron entries have been added yet.</p>
             <?php endif; ?>
         </div>
+        <?php if ($chron_total_pages > 1): ?>
+            <nav class="pagination" aria-label="Chron log pages">
+                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
+                <div class="pagination-actions">
+                    <?php if ($chron_page > 1): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page - 1; ?>#chron-log">Newer</a><?php endif; ?>
+                    <?php if ($chron_page < $chron_total_pages): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page + 1; ?>#chron-log">Older</a><?php endif; ?>
+                </div>
+            </nav>
+        <?php endif; ?>
     </section>
 
     <div class="engagement-page-actions" aria-label="Engagement form actions">

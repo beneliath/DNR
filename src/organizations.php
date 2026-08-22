@@ -81,7 +81,7 @@ if ($fulltext_query === '') {
 }
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
-$requested_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: 1;
+$cursor = decodePaginationCursor($_GET['cursor'] ?? '', ['name', 'id']);
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
@@ -102,46 +102,100 @@ $search_filter = $fulltext_query === '' ? '' : " AND (
               ) AGAINST (? IN BOOLEAN MODE)
         )
     )";
-$count_query = "SELECT COUNT(*) AS organization_count FROM organizations o
-                WHERE o.is_deleted = {$archive_value}{$search_filter}";
-$count_stmt = $conn->prepare($count_query);
-if ($fulltext_query !== '') $count_stmt->bind_param('ss', $fulltext_query, $fulltext_query);
-$count_stmt->execute();
-$total_organizations = (int) $count_stmt->get_result()->fetch_assoc()['organization_count'];
-$count_stmt->close();
-$total_pages = max(1, (int) ceil($total_organizations / $page_size));
-$current_page = min($requested_page, $total_pages);
-$offset = ($current_page - 1) * $page_size;
+$cursor_filter = '';
+$cursor_values = [];
+$cursor_types = '';
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    $comparison = $order_direction === 'ASC' ? '>' : '<';
+    $cursor_filter = " AND (o.organization_name, o.id) {$comparison} (?, ?)";
+    $cursor_values = [(string) $cursor['name'], (int) $cursor['id']];
+    $cursor_types = 'si';
+} else {
+    $cursor = null;
+}
+$query_limit = $page_size + 1;
 
 $query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
-                 GROUP_CONCAT(
-                    CONCAT_WS(' ', c.contact_first_name, c.contact_last_name)
-                    ORDER BY c.contact_last_name, c.contact_first_name SEPARATOR ', '
-                 ) AS contact_names
+                 '' AS contact_names
           FROM organizations o
-          LEFT JOIN contacts c ON c.organization_id = o.id AND c.is_deleted = 0
-          WHERE o.is_deleted = {$archive_value}{$search_filter}
-          GROUP BY o.id, o.organization_name, o.physical_city, o.physical_state
+          WHERE o.is_deleted = {$archive_value}{$search_filter}{$cursor_filter}
           ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
-          LIMIT ? OFFSET ?";
+          LIMIT ?";
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
-if ($fulltext_query !== '') {
-    $query_stmt->bind_param('ssii', $fulltext_query, $fulltext_query, $page_size, $offset);
-} else {
-    $query_stmt->bind_param('ii', $page_size, $offset);
-}
+$query_types = ($fulltext_query !== '' ? 'ss' : '') . $cursor_types . 'i';
+$query_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
+$query_values = array_merge($query_values, $cursor_values, [$query_limit]);
+$query_bind = [$query_types];
+foreach ($query_values as &$query_value) $query_bind[] = &$query_value;
+unset($query_value);
+$query_stmt->bind_param(...$query_bind);
 $query_stmt->execute();
-$result = $query_stmt->get_result();
+$organizations = $query_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$has_more_organizations = count($organizations) > $page_size;
+if ($has_more_organizations) array_pop($organizations);
+$next_cursor = null;
+if ($has_more_organizations && $organizations !== []) {
+    $last_organization = $organizations[array_key_last($organizations)];
+    $next_cursor = encodePaginationCursor([
+        'name' => (string) $last_organization['organization_name'],
+        'id' => (int) $last_organization['id'],
+    ]);
+}
 
-function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $page_size = 20)
+if ($organizations !== []) {
+    $organization_ids = array_map(static fn($row) => (int) $row['id'], $organizations);
+    $placeholders = implode(', ', array_fill(0, count($organization_ids), '?'));
+    $contacts_stmt = $conn->prepare(
+        "SELECT organization_id, contact_name, contact_count
+         FROM (
+             SELECT c.organization_id,
+                    CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) AS contact_name,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY c.organization_id
+                        ORDER BY c.contact_last_name, c.contact_first_name, c.id
+                    ) AS contact_position,
+                    COUNT(*) OVER (PARTITION BY c.organization_id) AS contact_count
+             FROM contacts c
+             WHERE c.is_deleted = 0 AND c.organization_id IN ({$placeholders})
+         ) ranked_contacts
+         WHERE contact_position <= 3
+         ORDER BY organization_id, contact_position"
+    );
+    if ($contacts_stmt) {
+        $contact_types = str_repeat('i', count($organization_ids));
+        $contact_bind = [$contact_types];
+        foreach ($organization_ids as &$organization_id) $contact_bind[] = &$organization_id;
+        unset($organization_id);
+        $contacts_stmt->bind_param(...$contact_bind);
+        $contacts_stmt->execute();
+        $contact_previews = [];
+        foreach ($contacts_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $contact_preview) {
+            $organization_id = (int) $contact_preview['organization_id'];
+            $contact_previews[$organization_id]['names'][] = $contact_preview['contact_name'];
+            $contact_previews[$organization_id]['count'] = (int) $contact_preview['contact_count'];
+        }
+        $contacts_stmt->close();
+        foreach ($organizations as &$organization) {
+            $preview = $contact_previews[(int) $organization['id']] ?? ['names' => [], 'count' => 0];
+            $organization['contact_names'] = implode(', ', $preview['names']);
+            if ($preview['count'] > count($preview['names'])) {
+                $organization['contact_names'] .= ' (+'
+                    . ($preview['count'] - count($preview['names'])) . ' more)';
+            }
+        }
+        unset($organization);
+    }
+}
+
+function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null, $page_size = 20)
 {
     $parameters = [
         'status' => $status,
         'name_sort' => $name_sort,
-        'page' => $page,
         'per_page' => $page_size,
     ];
+    if (is_string($cursor) && $cursor !== '') $parameters['cursor'] = $cursor;
     if ($search !== '') {
         $parameters['q'] = $search;
     }
@@ -182,17 +236,17 @@ function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $pag
             <label class="visually-hidden" for="organization-search">Search organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, '', 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, '', null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Organization archive status">
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Organization sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search, 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
+                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
@@ -200,7 +254,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $pag
     </div>
 
     <?php if ($search !== ''): ?>
-        <p class="result-context"><?php echo $total_organizations; ?> result<?php echo $total_organizations === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
     <table class="organization-table">
@@ -213,10 +267,10 @@ function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $pag
             </tr>
         </thead>
         <tbody>
-            <?php if ($result->num_rows === 0): ?>
+            <?php if ($organizations === []): ?>
                 <tr><td colspan="4" class="empty-state">No organizations match the current view.</td></tr>
             <?php endif; ?>
-            <?php while ($org = $result->fetch_assoc()): ?>
+            <?php foreach ($organizations as $org): ?>
                 <tr>
                     <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
                     <td>
@@ -269,15 +323,15 @@ function organizationsPageUrl($status, $name_sort, $search = '', $page = 1, $pag
                         </div>
                     </td>
                 </tr>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($total_pages > 1): ?>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
         <nav class="pagination" aria-label="Organization pages">
-            <span class="pagination-status">Page <?php echo $current_page; ?> of <?php echo $total_pages; ?> · <?php echo $total_organizations; ?> organizations</span>
+            <span class="pagination-status">Showing up to <?php echo $page_size; ?> organizations</span>
             <div class="pagination-actions">
-                <?php if ($current_page > 1): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $current_page - 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-                <?php if ($current_page < $total_pages): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $current_page + 1, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $next_cursor, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>

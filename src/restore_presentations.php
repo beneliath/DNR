@@ -300,7 +300,8 @@ if ($engagement_title === '') {
                         <?php
                         $presentation_id = (int) $presentation['id'];
                         $restore_date_value = $_POST['presentation_dates'][$presentation_id] ?? $presentation['presentation_date'];
-                        $restore_time_value = $_POST['presentation_times'][$presentation_id] ?? $presentation['presentation_time'];
+                        $restore_time_value = $_POST['presentation_times'][$presentation_id]
+                            ?? formatPresentationTime($presentation['presentation_time']);
                         ?>
                         <div class="date-fields">
                             <div class="date-field">

@@ -867,6 +867,46 @@ function engagementFollowUpChecklistTemplates(
     return $scheduled;
 }
 
+function rescheduleGeneratedEngagementTasks(
+    mysqli $conn,
+    $engagement_id,
+    $event_start_date,
+    $event_end_date
+) {
+    $engagement_id = (int) $engagement_id;
+    if ($engagement_id < 1
+        || !validIsoDate($event_start_date)
+        || !validIsoDate($event_end_date)
+    ) {
+        throw new InvalidArgumentException('Unable to reschedule the engagement checklist.');
+    }
+
+    $stmt = $conn->prepare(
+        "UPDATE follow_up_tasks task
+         INNER JOIN standard_event_tasks template
+             ON template.template_key = task.template_key
+         SET task.due_date = DATE_ADD(
+                IF(template.due_anchor = 'event_end', ?, ?),
+                INTERVAL template.due_offset_days DAY
+             )
+         WHERE task.engagement_id = ?
+           AND task.template_key IS NOT NULL
+           AND task.due_date_overridden = 0
+           AND task.status IN ('open', 'in_progress', 'waiting')"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare checklist rescheduling.');
+    }
+    $stmt->bind_param('ssi', $event_end_date, $event_start_date, $engagement_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to reschedule the engagement checklist.');
+    }
+    $updated = $stmt->affected_rows;
+    $stmt->close();
+    return $updated;
+}
+
 function generateEngagementFollowUpChecklist(
     mysqli $conn,
     $engagement_id,
@@ -922,8 +962,8 @@ function generateEngagementFollowUpChecklist(
         $stmt = $conn->prepare(
             "INSERT IGNORE INTO follow_up_tasks
                 (title, details, status, priority, due_date, subject_type, engagement_id,
-                 assigned_to, created_by, template_key)
-             VALUES (?, ?, 'open', ?, ?, 'engagement', ?, ?, ?, ?)"
+                 assigned_to, created_by, template_key, due_date_overridden)
+             VALUES (?, ?, 'open', ?, ?, 'engagement', ?, ?, ?, ?, 0)"
         );
         if (!$stmt) {
             throw new RuntimeException('Unable to prepare the engagement checklist.');

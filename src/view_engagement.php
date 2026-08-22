@@ -60,8 +60,7 @@ $presentation_stmt = $conn->prepare(
     "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date,
-              STR_TO_DATE(presentation_time, '%h:%i %p'), id"
+     ORDER BY presentation_date, presentation_time, id"
 );
 if ($presentation_stmt === false) abortApplication(503, 'The engagement presentations are temporarily unavailable.', ['error' => $conn->error]);
 $presentation_stmt->bind_param("i", $engagement_id);
@@ -70,7 +69,20 @@ $presentations_result = $presentation_stmt->get_result();
 $presentations = $presentations_result->fetch_all(MYSQLI_ASSOC);
 
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $chron_page_size = 50;
+    $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchChronLogEntries(
+        $conn,
+        $engagement_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
     $archived_chron_count = (!$is_archived && canArchiveEntries($user_role))
         ? countArchivedChronLogEntries($conn, $engagement_id)
         : 0;
@@ -222,7 +234,7 @@ $presentation_stmt->close();
                 <?php endif; ?>
                 <?php if (!empty($presentation['presentation_date']) || !empty($presentation['presentation_time'])): ?>
                 <div>
-                    <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . ($presentation['presentation_time'] ?? ''))); ?>
+                    <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . formatPresentationTime($presentation['presentation_time'] ?? ''))); ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($presentation['expected_attendance'] !== null): ?>
@@ -312,6 +324,15 @@ $presentation_stmt->close();
                 <p class="chron-empty-state">No Chron entries have been added yet.</p>
             <?php endif; ?>
         </div>
+        <?php if ($chron_total_pages > 1): ?>
+            <nav class="pagination" aria-label="Chron log pages">
+                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
+                <div class="pagination-actions">
+                    <?php if ($chron_page > 1): ?><a href="view_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page - 1; ?>#chron-log">Newer</a><?php endif; ?>
+                    <?php if ($chron_page < $chron_total_pages): ?><a href="view_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page + 1; ?>#chron-log">Older</a><?php endif; ?>
+                </div>
+            </nav>
+        <?php endif; ?>
     </div>
 
     <div class="action-buttons">

@@ -23,13 +23,14 @@ $presentations = normalizeEngagementPresentations(
 );
 
 expectPresentationFeature(count($presentations) === 1, 'a complete presentation should be normalized.');
-expectPresentationFeature($presentations[0]['presentation_time'] === '09:30 PM', 'time should be normalized.');
+expectPresentationFeature($presentations[0]['presentation_time'] === '21:30:00', 'time should be normalized for the SQL TIME column.');
 expectPresentationFeature($presentations[0]['speaker_name'] === 'Default Speaker', 'blank speaker should use the default.');
 expectPresentationFeature($presentations[0]['expected_attendance'] === 125, 'attendance should be an integer.');
-expectPresentationFeature(normalizePresentationTime('0800') === '08:00 AM', '0800 should convert to 08:00 AM.');
-expectPresentationFeature(normalizePresentationTime('1530') === '03:30 PM', '1530 should convert to 03:30 PM.');
-expectPresentationFeature(normalizePresentationTime('0000') === '12:00 AM', '0000 should convert to 12:00 AM.');
-expectPresentationFeature(normalizePresentationTime('1200') === '12:00 PM', '1200 should convert to 12:00 PM.');
+expectPresentationFeature(normalizePresentationTime('0800') === '08:00:00', '0800 should convert to 08:00:00.');
+expectPresentationFeature(normalizePresentationTime('1530') === '15:30:00', '1530 should convert to 15:30:00.');
+expectPresentationFeature(normalizePresentationTime('0000') === '00:00:00', '0000 should convert to 00:00:00.');
+expectPresentationFeature(normalizePresentationTime('1200') === '12:00:00', '1200 should convert to 12:00:00.');
+expectPresentationFeature(formatPresentationTime('21:30:00') === '09:30 PM', 'stored times should be formatted for people.');
 
 $blank_presentations = normalizeEngagementPresentations(
     [['topic_title' => '', 'speaker_name' => 'Default Speaker']],

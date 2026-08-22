@@ -16,7 +16,15 @@ grep -qi '^content-security-policy:' "$temporary_directory/login.headers"
 grep -qi '^x-request-id:' "$temporary_directory/login.headers"
 grep -q 'MOED' "$temporary_directory/login.html"
 
+curl -fsS -H 'Accept-Encoding: gzip' -D "$temporary_directory/static.headers" \
+    -o "$temporary_directory/static.css" "$base_url/assets/css/style.min.css?v=smoke"
+grep -qi '^cache-control:.*max-age=31536000.*immutable' "$temporary_directory/static.headers"
+grep -qi '^content-encoding: gzip' "$temporary_directory/static.headers"
+
 status=$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/engagements.php")
 [ "$status" = '302' ]
+
+status=$(curl -sS -o /dev/null -w '%{http_code}' "$base_url/init.sql")
+[ "$status" = '403' ]
 
 echo 'HTTP smoke tests passed.'

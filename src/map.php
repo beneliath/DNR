@@ -29,6 +29,14 @@ if ($filters['date_to'] !== '') {
 }
 
 $map_event_limit = max(50, min(2000, (int) (getenv('DNR_MAP_MAX_EVENTS') ?: 500)));
+$usable_address_clause = "COALESCE(
+    NULLIF(TRIM(e.event_address_line_1), ''),
+    NULLIF(TRIM(e.event_address_line_2), ''),
+    NULLIF(TRIM(e.event_city), ''),
+    NULLIF(TRIM(e.event_state), ''),
+    NULLIF(TRIM(e.event_zipcode), ''),
+    NULLIF(TRIM(e.event_country), '')
+) IS NOT NULL";
 $engagement_sql = "SELECT
         e.id,
         e.event_title,
@@ -45,6 +53,7 @@ $engagement_sql = "SELECT
     FROM engagements e
     LEFT JOIN organizations o ON o.id = e.organization_id
     WHERE " . implode(' AND ', $clauses) . "
+      AND {$usable_address_clause}
     ORDER BY e.event_start_date ASC, e.id ASC
     LIMIT " . ($map_event_limit + 1);
 
@@ -70,14 +79,16 @@ if (!$engagement_stmt->execute()) {
 $engagement_result = $engagement_stmt->get_result();
 $engagement_rows = [];
 $address_hashes = [];
-$events_without_addresses = 0;
+$map_results_truncated = false;
 while ($row = $engagement_result->fetch_assoc()) {
-    if (count($engagement_rows) + $events_without_addresses >= $map_event_limit) {
+    if (count($engagement_rows) >= $map_event_limit) {
+        $map_results_truncated = true;
         break;
     }
     $address = engagementMapAddress($row);
     if ($address === '') {
-        $events_without_addresses++;
+        // The SQL predicate is intentionally permissive; retain this guard in
+        // case address normalization becomes stricter than candidate filtering.
         continue;
     }
     $address_hash = engagementMapAddressHash($address);
@@ -87,6 +98,29 @@ while ($row = $engagement_result->fetch_assoc()) {
     $address_hashes[$address_hash] = true;
 }
 $engagement_stmt->close();
+
+$events_without_addresses = 0;
+$without_address_sql = "SELECT COUNT(*) AS addressless_count
+    FROM engagements e
+    WHERE " . implode(' AND ', $clauses) . "
+      AND NOT ({$usable_address_clause})";
+$without_address_stmt = $conn->prepare($without_address_sql);
+if ($without_address_stmt) {
+    if ($parameters !== []) {
+        $without_address_bind = [$parameter_types];
+        foreach ($parameters as &$without_address_parameter) {
+            $without_address_bind[] = &$without_address_parameter;
+        }
+        unset($without_address_parameter);
+        $without_address_stmt->bind_param(...$without_address_bind);
+    }
+    if ($without_address_stmt->execute()) {
+        $events_without_addresses = (int) (
+            $without_address_stmt->get_result()->fetch_assoc()['addressless_count'] ?? 0
+        );
+    }
+    $without_address_stmt->close();
+}
 
 $geocodes = [];
 if ($address_hashes !== []) {
@@ -168,6 +202,7 @@ $map_payload = [
     'pendingGeocodeCount' => $pending_geocode_count,
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
+    'resultsTruncated' => $map_results_truncated,
     'queueFailureCount' => $queue_failures,
 ];
 ?>

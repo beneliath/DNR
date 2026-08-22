@@ -30,7 +30,8 @@ $admin_actions_unlocked = hasRecentAdminElevation();
 
 $users = $conn->query(
     "SELECT id, username, first_name, last_name, phone, email,
-            profile_picture_mime, profile_picture_updated_at,
+            profile_picture_mime, profile_picture_thumbnail,
+            profile_picture_thumbnail_mime, profile_picture_updated_at,
             role, two_factor_enabled,
             created_at, last_updated_at, last_login_at, must_change_password
      FROM users
@@ -107,11 +108,25 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
             $display_phone = formatPhoneNumberForDisplay($user['phone'] ?? '');
             $display_email = trim((string) ($user['email'] ?? ''));
             $picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
+            $profile_thumbnail_url = uploadedImageDataUrl(
+                $user['profile_picture_thumbnail_mime'] ?? '',
+                $user['profile_picture_thumbnail'] ?? null
+            );
+            if ($profile_thumbnail_url === '' && empty($user['profile_picture_mime'])) {
+                $profile_thumbnail_url = 'data:image/svg+xml;base64,'
+                    . base64_encode(profileInitialsSvg($user));
+            }
             ?>
             <div class="user-details">
                 <div class="user-main">
                     <div class="user-profile-summary">
-                        <img class="user-list-avatar" src="profile_picture.php?id=<?php echo (int) $user['id']; ?>&amp;v=<?php echo $picture_version; ?>" alt="">
+                        <img class="user-list-avatar" src="<?php echo htmlspecialchars(
+                            $profile_thumbnail_url !== ''
+                                ? $profile_thumbnail_url
+                                : 'profile_picture.php?id=' . (int) $user['id'] . '&v=' . $picture_version,
+                            ENT_QUOTES,
+                            'UTF-8'
+                        ); ?>" alt="">
                         <div class="user-identity-copy">
                             <div class="user-account-heading">
                                 <strong class="user-display-name"><?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?></strong>

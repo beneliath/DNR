@@ -3,9 +3,13 @@ set -eu
 
 migration_directory=${DNR_MIGRATION_DIRECTORY:-/opt/dnr/migrations}
 database_name=${MYSQL_DATABASE:-dnr}
+application_user=${MYSQL_USER:-dnruser}
 
 case "$database_name" in
     ''|*[!A-Za-z0-9_]*) echo "MYSQL_DATABASE contains unsupported characters" >&2; exit 1 ;;
+esac
+case "$application_user" in
+    ''|*[!A-Za-z0-9_]*) echo "MYSQL_USER contains unsupported characters" >&2; exit 1 ;;
 esac
 
 root_password=${MYSQL_ROOT_PASSWORD:-}
@@ -80,5 +84,12 @@ do
         VALUES ('$migration_name', '$migration_checksum')
         ON DUPLICATE KEY UPDATE checksum = VALUES(checksum), applied_at = CURRENT_TIMESTAMP"
 done
+
+# New tables are not present when an existing database's initialization grant
+# script originally ran. Refresh the least-privilege read grant after applying
+# migrations so upgraded installations can read the calendar revision.
+mysql --protocol=socket -uroot "$database_name" -e "
+    GRANT SELECT ON \`${database_name}\`.calendar_feed_revision TO '${application_user}'@'%'
+"
 
 echo "Database migrations are current."
