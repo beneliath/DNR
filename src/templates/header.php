@@ -17,7 +17,6 @@ $nav_groups = [
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
-    'operations' => ['operations.php'],
     'profile' => ['profile.php'],
 ];
 $active_nav = '';
@@ -76,9 +75,6 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
                     </a></li>
                     <li><a href="database_maintenance.php" class="nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
-                    </a></li>
-                    <li><a href="operations.php" class="nav-link<?php echo $active_nav === 'operations' ? ' active' : ''; ?>"<?php echo $active_nav === 'operations' ? ' aria-current="page"' : ''; ?>>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-7M22 19H2"/></svg><span>Operations</span>
                     </a></li>
                 <?php endif; ?>
             </ul>

@@ -129,7 +129,6 @@ npm test
 
 - `/health.php` is a dependency-free liveness response.
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
-- Administrators can open **Operations** to review task backlog, geocoding retries, recent failed authentication, migration state, and the latest recorded encrypted backup.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
 
 Database Initialization:

@@ -41,6 +41,11 @@ expectHeaderScope(
     'The complete MOED brand should render in the mobile application bar.'
 );
 expectHeaderScope(!str_contains($header_markup, 'app-brand-mark'), 'The shared application brand should not render a separate logo mark.');
+expectHeaderScope(
+    !str_contains($header_markup, 'operations.php')
+        && !str_contains($header_markup, '<span>Operations</span>'),
+    'The primary navigation should not expose the internal Operations dashboard.'
+);
 
 foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
