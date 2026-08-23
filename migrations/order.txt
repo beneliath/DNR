@@ -36,3 +36,4 @@
 20260823_add_engagement_contacts.sql
 20260823_add_engagement_lifecycle.sql
 20260823_add_task_notifications.sql
+20260823_add_engagement_aware_inbound_mail.sql

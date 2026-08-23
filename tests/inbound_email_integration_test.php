@@ -29,6 +29,7 @@ $username = 'mail-test-' . $suffix;
 $createdIds = [
     'messages' => [],
     'contacts' => [],
+    'engagements' => [],
     'organizations' => [],
     'users' => [],
 ];
@@ -76,6 +77,27 @@ try {
     $createdIds['organizations'][] = $organizationId;
     $organizationStmt->close();
 
+    $engagementTitle = 'Inbound Mail Engagement ' . $suffix;
+    $eventStartDate = '2026-09-10';
+    $eventEndDate = '2026-09-12';
+    $engagementStmt = $conn->prepare(
+        "INSERT INTO engagements
+            (organization_id, event_title, event_start_date, event_end_date,
+             event_type, confirmation_status, lifecycle_status, is_deleted)
+         VALUES (?, ?, ?, ?, 'conference', 'confirmed', 'active', 0)"
+    );
+    $engagementStmt->bind_param(
+        'isss',
+        $organizationId,
+        $engagementTitle,
+        $eventStartDate,
+        $eventEndDate
+    );
+    $engagementStmt->execute();
+    $engagementId = (int) $conn->insert_id;
+    $createdIds['engagements'][] = $engagementId;
+    $engagementStmt->close();
+
     $contactStmt = $conn->prepare(
         "INSERT INTO contacts
             (organization_id, contact_first_name, contact_last_name,
@@ -93,7 +115,7 @@ try {
         'Staff <' . $userEmail . '>',
         'Inbound Contact <' . $contactEmail . '>',
         'outgoing-' . $suffix . '@beneliath.com',
-        'Outgoing routing test'
+        'Outgoing routing test [MOED#' . $engagementId . ']'
     ), '2026-08-23T15:01:00Z');
     $stored = storeInboundEmailMessage($conn, 'file', 'outgoing-' . $suffix, $outgoing);
     $createdIds['messages'][] = $stored['id'];
@@ -122,14 +144,25 @@ try {
     $organizationChron->execute();
     $organizationEntry = $organizationChron->get_result()->fetch_assoc();
     $organizationChron->close();
+    $engagementChron = $conn->prepare(
+        'SELECT id, inbound_email_message_id, entry_text
+         FROM engagement_chron_entries
+         WHERE engagement_id = ? AND inbound_email_message_id = ?'
+    );
+    $engagementChron->bind_param('ii', $engagementId, $stored['id']);
+    $engagementChron->execute();
+    $engagementEntry = $engagementChron->get_result()->fetch_assoc();
+    $engagementChron->close();
     expectInboundIntegration(
         $contactEntry
             && (int) $contactEntry['created_by'] === $userId
             && $contactEntry['created_by_username_snapshot'] === $username
             && str_contains((string) $contactEntry['entry_text'], 'Outgoing routing test')
             && $organizationEntry
-            && str_contains((string) $organizationEntry['entry_text'], 'Outgoing routing test'),
-        'one Contact entry and one deduplicated Organization entry should retain sender attribution.'
+            && str_contains((string) $organizationEntry['entry_text'], 'Outgoing routing test')
+            && $engagementEntry
+            && str_contains((string) $engagementEntry['entry_text'], '[MOED#' . $engagementId . ']'),
+        'one Contact, Organization, and explicitly marked Engagement entry should retain sender attribution.'
     );
 
     $duplicate = storeInboundEmailMessage(
@@ -140,7 +173,7 @@ try {
             'Staff <' . $userEmail . '>',
             'Inbound Contact <' . $contactEmail . '>',
             'outgoing-' . $suffix . '@beneliath.com',
-            'Outgoing routing test'
+            'Outgoing routing test [MOED#' . $engagementId . ']'
         )))
     );
     expectInboundIntegration(
@@ -178,6 +211,15 @@ try {
     $preservedOrganizationEntry = $preservedOrganizationChron->get_result()->fetch_assoc();
     $preservedOrganizationChron->close();
 
+    $preservedEngagementChron = $conn->prepare(
+        'SELECT inbound_email_message_id, entry_text FROM engagement_chron_entries WHERE id = ?'
+    );
+    $engagementEntryId = (int) $engagementEntry['id'];
+    $preservedEngagementChron->bind_param('i', $engagementEntryId);
+    $preservedEngagementChron->execute();
+    $preservedEngagementEntry = $preservedEngagementChron->get_result()->fetch_assoc();
+    $preservedEngagementChron->close();
+
     expectInboundIntegration(
         $purgedMessageTotal === 0
             && $preservedContactEntry
@@ -188,8 +230,14 @@ try {
             && str_contains(
                 (string) $preservedOrganizationEntry['entry_text'],
                 'Outgoing routing test'
+            )
+            && $preservedEngagementEntry
+            && $preservedEngagementEntry['inbound_email_message_id'] === null
+            && str_contains(
+                (string) $preservedEngagementEntry['entry_text'],
+                '[MOED#' . $engagementId . ']'
             ),
-        'purging a source should clear both foreign-key links without deleting or changing either Chron entry.'
+        'purging a source should clear every foreign-key link without deleting or changing any Chron entry.'
     );
 
     $reply = parseInboundEmail($rawMessage(
@@ -240,10 +288,20 @@ try {
             $ambiguousStored['id'],
             [$contactId],
             [$organizationId],
-            $userId
+            $userId,
+            [$engagementId]
         ) === 'processed',
-        'a reviewer should be able to approve selected matched targets.'
+        'a reviewer should be able to approve matched targets and select an Engagement manually.'
     );
+
+    $manualEngagementChron = $conn->prepare(
+        'SELECT COUNT(*) AS total FROM engagement_chron_entries
+         WHERE engagement_id = ? AND inbound_email_message_id = ?'
+    );
+    $manualEngagementChron->bind_param('ii', $engagementId, $ambiguousStored['id']);
+    $manualEngagementChron->execute();
+    $manualEngagementTotal = (int) $manualEngagementChron->get_result()->fetch_assoc()['total'];
+    $manualEngagementChron->close();
 
     $statusStmt = $conn->prepare(
         'SELECT status, processed_by FROM inbound_email_messages WHERE id = ?'
@@ -253,8 +311,10 @@ try {
     $reviewed = $statusStmt->get_result()->fetch_assoc();
     $statusStmt->close();
     expectInboundIntegration(
-        $reviewed['status'] === 'processed' && (int) $reviewed['processed_by'] === $userId,
-        'manual approval should record the reviewer and final state.'
+        $reviewed['status'] === 'processed'
+            && (int) $reviewed['processed_by'] === $userId
+            && $manualEngagementTotal === 1,
+        'manual approval should record the reviewer, selected Engagement, and final state.'
     );
 } finally {
     foreach (array_reverse($createdIds['contacts']) as $id) {
@@ -265,6 +325,12 @@ try {
     }
     foreach (array_reverse($createdIds['messages']) as $id) {
         $stmt = $conn->prepare('DELETE FROM inbound_email_messages WHERE id = ?');
+        $stmt->bind_param('i', $id);
+        $stmt->execute();
+        $stmt->close();
+    }
+    foreach (array_reverse($createdIds['engagements']) as $id) {
+        $stmt = $conn->prepare('DELETE FROM engagements WHERE id = ?');
         $stmt->bind_param('i', $id);
         $stmt->execute();
         $stmt->close();

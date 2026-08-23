@@ -114,11 +114,44 @@
     border-top: 1px solid var(--border-color, #ddd);
 }
 
+.inbound-engagement-route {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 10px 0;
+    padding: 9px 11px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    text-decoration: none;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease,
+        box-shadow 150ms ease, transform 150ms ease;
+}
+
+.inbound-engagement-route code {
+    flex: 0 0 auto;
+    color: var(--primary);
+    font-weight: 700;
+}
+
+.inbound-engagement-route:hover,
+.inbound-engagement-route:focus-visible {
+    border-color: var(--control-hover-border);
+    background: var(--control-hover-bg);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
+    color: var(--control-hover-fg);
+    transform: translateY(-1px);
+}
+
 .inbound-review-form fieldset {
     display: grid;
     gap: 8px;
     margin: 12px 0;
     padding: 12px;
+}
+
+.inbound-engagement-select {
+    width: 100%;
 }
 
 .inbound-review-actions {

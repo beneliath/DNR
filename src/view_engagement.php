@@ -178,6 +178,12 @@ $presentation_stmt->close();
         <div class="detail-value"><?php echo htmlspecialchars($engagement['event_title']); ?></div>
         <?php endif; ?>
 
+        <div class="detail-label">Email Subject Marker</div>
+        <div class="detail-value engagement-email-marker">
+            <code>[MOED#<?php echo $engagement_id; ?>]</code>
+            <span>Keep this marker in an email subject to route the message to this Engagement’s Chron log.</span>
+        </div>
+
         <?php if (!empty($engagement['event_description'])): ?>
         <div class="detail-label">Event Description</div>
         <div class="detail-value"><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></div>

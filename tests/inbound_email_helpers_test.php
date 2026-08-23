@@ -62,6 +62,33 @@ expectInboundEmail(
     'mail dates should be retained in UTC.'
 );
 
+$markers = parseInboundEmailEngagementMarkers(
+    'Re: Schedule [MOED#123] [moed#123]'
+);
+$invalidMarkers = parseInboundEmailEngagementMarkers(
+    'Bad [MOED#0] [MOED#abc] [MOED#2147483648]'
+);
+expectInboundEmail(
+    $markers === ['ids' => [123], 'invalid' => []]
+        && $invalidMarkers['ids'] === []
+        && count($invalidMarkers['invalid']) === 3,
+    'Engagement subject markers should be exact, bounded, case-insensitive, and deduplicated.'
+);
+$engagementRoute = inboundEmailEngagementRoute([
+    'id' => 123,
+    'event_title' => 'Are You Ready? – Texas',
+    'organization_label' => 'Hope For Our Times',
+    'event_start_date' => '2026-09-11',
+    'event_end_date' => '2026-09-12',
+    'lifecycle_status' => 'active',
+]);
+expectInboundEmail(
+    $engagementRoute['marker'] === '[MOED#123]'
+        && str_contains($engagementRoute['label'], 'Are You Ready? – Texas')
+        && str_contains($engagementRoute['label'], '2026-09-11 – 2026-09-12'),
+    'Engagement routes should expose a canonical marker and recognizable review label.'
+);
+
 $sameId = parseInboundEmail(str_replace('updated schedule', 'different body', $raw));
 expectInboundEmail(
     hash_equals($parsed['deduplication_hash'], $sameId['deduplication_hash']),

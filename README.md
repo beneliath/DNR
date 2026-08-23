@@ -180,9 +180,9 @@ Create `secrets/smtp_password`, configure the sender and relay in `.env`, and us
 
 ### Inbound email to Chron
 
-DNR can poll a dedicated IMAP mailbox and turn messages copied to it into Contact and Organization
-Chron entries. Event routing is intentionally not included. This first version uses exact email-address
-rules; it does not send message content to an AI service.
+DNR can poll a dedicated IMAP mailbox and turn messages copied to it into Contact, Organization, and
+Engagement Chron entries. It uses exact email-address rules plus an explicit Engagement marker; it
+does not send message content to an AI service.
 
 The routing policy is deliberately conservative:
 
@@ -191,10 +191,15 @@ The routing policy is deliberately conservative:
 - DNR considers the message's `From`, `To`, and `Cc` addresses, excluding the configured gateway
   address and recognized internal users. A unique Contact match adds the message to that Contact and
   the Contact's Organization. A direct Organization email match adds it to the Organization.
+- Put the exact marker `[MOED#123]` in the subject to route the message to Engagement 123. A reply
+  remains routable while that marker stays in its subject. One unique valid marker may be processed
+  automatically when the sender is recognized; invalid markers, unknown or archived Engagements,
+  and subjects containing multiple different markers require review.
 - Duplicate delivery of the same RFC Message-ID is idempotent. Ambiguous senders, shared email
   addresses, unknown senders, and messages with no matched target go to **Inbound Mail** for an
-  administrator or editor to review. If an address is missing from DNR, update the record and use
-  **Retry routing**.
+  administrator or editor to review. Reviewers may choose an active Engagement from the manual selector,
+  in addition to approving matched Contact and Organization routes. If an address is
+  missing from DNR, update the record and use **Retry routing**.
 - The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
   names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
   mail is converted to inert plain text.
@@ -227,8 +232,9 @@ privileges needed for this workflow.
 
 An administrator with a recent elevated session can purge an individual retained mail entry from
 its **Inbound Mail** detail view. Purging removes the DNR mail card and its retained source content,
-but preserves every associated Contact and Organization Chron Log entry; only the source-email link
-on those Chron entries is cleared. The original message in the IMAP mailbox is not deleted or moved.
+but preserves every associated Contact, Organization, and Engagement Chron Log entry; only the
+source-email link on those Chron entries is cleared. The original message in the IMAP mailbox is not
+deleted or moved.
 
 Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
 and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password

@@ -20,6 +20,24 @@
             margin-bottom: 10px;
             color: var(--text-color);
         }
+        .engagement-email-marker {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 12px;
+        }
+        .engagement-email-marker code {
+            padding: 4px 8px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: var(--surface-subtle);
+            color: var(--text);
+            font-weight: 700;
+        }
+        .engagement-email-marker span {
+            color: var(--text-muted);
+            font-size: var(--font-size-small);
+        }
         .action-buttons {
             margin-top: 20px;
             display: flex;

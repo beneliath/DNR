@@ -17,9 +17,20 @@ $smtp = file_get_contents($root . '/docker-compose.smtp.yaml');
 $grants = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $emailHelpers = file_get_contents($root . '/src/email_helpers.php');
 $notificationHelpers = file_get_contents($root . '/src/notification_helpers.php');
+$inboundEmailHelpers = file_get_contents($root . '/src/inbound_email_helpers.php');
 $smtpWebSection = explode("\n  mail-dispatch:", $smtp, 2)[0];
 $baseWebSection = explode("\nservices:", $compose, 2)[0];
 $webGrantSection = explode("CREATE USER IF NOT EXISTS '\${geocoder_user}'", $grants, 2)[0];
+$mailIngestGrantSection = explode(
+    "CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'",
+    explode("CREATE USER IF NOT EXISTS '\${mail_ingest_user}'", $grants, 2)[1] ?? '',
+    2
+)[0];
+$inboundTargetValidationSection = explode(
+    'function processInboundEmailMessage',
+    explode('function inboundEmailActiveTargetIds', $inboundEmailHelpers, 2)[1] ?? '',
+    2
+)[0];
 
 expectServiceDatabaseIsolation(
     str_contains($compose, 'MYSQL_USER: dnruser')
@@ -59,6 +70,14 @@ expectServiceDatabaseIsolation(
         && str_contains($grants, '.notification_outbox TO')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%';"),
     'only the outbound-mail identity should schedule and mutate the notification outbox.'
+);
+expectServiceDatabaseIsolation(
+    str_contains($mailIngestGrantSection, '.engagements')
+        && str_contains($mailIngestGrantSection, '.engagement_chron_entries')
+        && str_contains($mailIngestGrantSection, 'GRANT SELECT, INSERT ON')
+        && !str_contains($mailIngestGrantSection, 'DELETE ON')
+        && !str_contains($inboundTargetValidationSection, 'FOR UPDATE'),
+    'the inbound-mail identity should validate targets read-only and append Engagement Chron entries without delete access.'
 );
 expectServiceDatabaseIsolation(
     is_string($emailHelpers)

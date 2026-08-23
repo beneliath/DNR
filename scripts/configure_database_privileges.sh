@@ -142,8 +142,10 @@ REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_ingest_user}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.contact_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.organization_chron_entries TO '${mail_ingest_user}'@'%';
 

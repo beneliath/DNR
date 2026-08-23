@@ -54,12 +54,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST,
                 'organization_ids'
             );
+            $engagementIds = \Dnr\Http\RequestInput::positiveIntList(
+                $_POST,
+                'engagement_ids'
+            );
             processInboundEmailMessage(
                 $conn,
                 $messageId,
                 $contactIds,
                 $organizationIds,
-                (int) $_SESSION['user_id']
+                (int) $_SESSION['user_id'],
+                $engagementIds
             );
             $_SESSION['inbound_mail_message'] = 'The email was added to the selected Chron logs.';
         } elseif ($action === 'retry') {
@@ -143,6 +148,7 @@ $messageStmt->close();
 $selectedId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $selectedMessage = null;
 $selectedRouting = null;
+$engagementOptions = [];
 if ($selectedId) {
     $selectedStmt = $conn->prepare(
         'SELECT message.*, processor.username AS processed_by_username
@@ -160,6 +166,9 @@ if ($selectedId) {
     if ($selectedMessage) {
         try {
             $selectedRouting = routeInboundEmailMessage($conn, $selectedMessage);
+            if (in_array($selectedMessage['status'], ['review', 'failed', 'pending'], true)) {
+                $engagementOptions = inboundEmailEngagementOptions($conn);
+            }
         } catch (Throwable $exception) {
             applicationLog('error', 'Unable to refresh inbound routing candidates', [
                 'message_id' => (int) $selectedId,
@@ -194,7 +203,7 @@ $statusLabels = [
     <div class="page-heading">
         <div>
             <h1>Inbound Mail</h1>
-            <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured MOED mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact and Organization Chron logs.</p>
+            <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured MOED mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact, Organization, and Engagement Chron logs.</p>
         </div>
     </div>
 
@@ -255,7 +264,7 @@ $statusLabels = [
                     <div class="inbound-detail-actions">
                         <small>Inbound message #<?php echo (int) $selectedMessage['id']; ?></small>
                         <?php if (canDeleteEntries($userRole)): ?>
-                            <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact and Organization Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
+                            <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="message_id" value="<?php echo (int) $selectedMessage['id']; ?>">
                                 <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
@@ -278,6 +287,12 @@ $statusLabels = [
                     <section class="inbound-routing-summary">
                         <h3>Routing</h3>
                         <p>Sender classification: <strong><?php echo htmlspecialchars(ucfirst((string) $selectedRouting['sender']['type']), ENT_QUOTES, 'UTF-8'); ?></strong> — <?php echo htmlspecialchars((string) $selectedRouting['sender']['label'], ENT_QUOTES, 'UTF-8'); ?></p>
+                        <?php foreach ($selectedRouting['engagements'] as $engagement): ?>
+                            <a class="inbound-engagement-route" href="view_engagement.php?id=<?php echo (int) $engagement['id']; ?>">
+                                <code><?php echo htmlspecialchars((string) $engagement['marker'], ENT_QUOTES, 'UTF-8'); ?></code>
+                                <span><?php echo htmlspecialchars((string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </a>
+                        <?php endforeach; ?>
                         <?php if ($selectedRouting['reasons']): ?>
                             <ul><?php foreach ($selectedRouting['reasons'] as $reason): ?><li><?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?></li><?php endforeach; ?></ul>
                         <?php else: ?>
@@ -305,8 +320,22 @@ $statusLabels = [
                             <?php endforeach; ?>
                             <?php if (!$selectedRouting['organizations']): ?><p>No matching active Organizations.</p><?php endif; ?>
                         </fieldset>
+                        <fieldset>
+                            <legend>Engagement Chron Log</legend>
+                            <?php $markerEngagementIds = array_map('intval', array_column($selectedRouting['engagements'], 'id')); ?>
+                            <label for="inbound-engagement-id">Engagement</label>
+                            <select id="inbound-engagement-id" name="engagement_ids[]" class="inbound-engagement-select">
+                                <option value="">No engagement selected</option>
+                                <?php foreach ($engagementOptions as $engagement): ?>
+                                    <?php $optionEngagementId = (int) $engagement['id']; ?>
+                                    <option value="<?php echo $optionEngagementId; ?>"<?php echo in_array($optionEngagementId, $markerEngagementIds, true) ? ' selected' : ''; ?>><?php echo htmlspecialchars((string) $engagement['marker'] . ' · ' . (string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <p class="field-help">A valid subject marker is selected automatically. Choose a different active engagement when reviewing an unmarked or incorrect message.</p>
+                            <?php if (!$engagementOptions): ?><p>No active Engagements are available.</p><?php endif; ?>
+                        </fieldset>
                         <div class="inbound-review-actions">
-                            <?php if ($selectedRouting['contacts'] || $selectedRouting['organizations']): ?><button type="submit" name="action" value="approve" class="save-button">Approve selected routes</button><?php endif; ?>
+                            <?php if ($selectedRouting['contacts'] || $selectedRouting['organizations'] || $engagementOptions): ?><button type="submit" name="action" value="approve" class="save-button">Approve selected routes</button><?php endif; ?>
                             <button type="submit" name="action" value="retry" class="button-secondary">Retry automatic routing</button>
                             <button type="submit" name="action" value="reject" class="danger-button">Reject message</button>
                         </div>

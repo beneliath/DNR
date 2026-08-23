@@ -418,12 +418,143 @@ function inboundEmailOrganizationMatches(mysqli $conn, string $address): array
 }
 
 /**
+ * @return array{ids: list<int>, invalid: list<string>}
+ */
+function parseInboundEmailEngagementMarkers(string $subject): array
+{
+    $matches = [];
+    preg_match_all('/\[MOED#([^\]\r\n]*)\]/i', $subject, $matches, PREG_SET_ORDER);
+    $ids = [];
+    $invalid = [];
+    foreach ($matches as $match) {
+        $marker = (string) $match[0];
+        $candidate = (string) $match[1];
+        if (!preg_match('/^[1-9][0-9]{0,9}$/D', $candidate)) {
+            $invalid[$marker] = true;
+            continue;
+        }
+        $id = (int) $candidate;
+        if ($id < 1 || $id > 2147483647) {
+            $invalid[$marker] = true;
+            continue;
+        }
+        $ids[$id] = true;
+    }
+    return [
+        'ids' => array_map('intval', array_keys($ids)),
+        'invalid' => array_map('strval', array_keys($invalid)),
+    ];
+}
+
+/**
+ * @param array<string, mixed> $row
+ * @return array{
+ *   id: int, label: string, title: string, organization_label: string,
+ *   date_label: string, lifecycle_status: string, marker: string
+ * }
+ */
+function inboundEmailEngagementRoute(array $row): array
+{
+    $id = (int) ($row['id'] ?? 0);
+    $organization = (string) ($row['organization_label'] ?? '');
+    $title = trim((string) ($row['event_title'] ?? ''));
+    if ($title === '') {
+        $title = $organization;
+    }
+    $startDate = (string) ($row['event_start_date'] ?? '');
+    $endDate = (string) ($row['event_end_date'] ?? '');
+    $dateLabel = $startDate;
+    if ($endDate !== '' && $endDate !== $startDate) {
+        $dateLabel .= ' – ' . $endDate;
+    }
+    $parts = array_values(array_filter([$title, $organization, $dateLabel]));
+    return [
+        'id' => $id,
+        'label' => implode(' · ', $parts),
+        'title' => $title,
+        'organization_label' => $organization,
+        'date_label' => $dateLabel,
+        'lifecycle_status' => (string) ($row['lifecycle_status'] ?? 'active'),
+        'marker' => '[MOED#' . $id . ']',
+    ];
+}
+
+/**
+ * @return array{
+ *   id: int, label: string, title: string, organization_label: string,
+ *   date_label: string, lifecycle_status: string, marker: string
+ * }|null
+ */
+function inboundEmailEngagementMatch(mysqli $conn, int $engagementId): ?array
+{
+    if ($engagementId < 1) {
+        return null;
+    }
+    $stmt = $conn->prepare(
+        'SELECT engagement.id, engagement.event_title,
+                engagement.event_start_date, engagement.event_end_date,
+                engagement.lifecycle_status,
+                organization.organization_name AS organization_label
+         FROM engagements engagement
+         INNER JOIN organizations organization
+            ON organization.id = engagement.organization_id
+         WHERE engagement.id = ?
+           AND engagement.is_deleted = 0
+           AND organization.is_deleted = 0
+         LIMIT 1'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare inbound Engagement matching.');
+    }
+    $stmt->bind_param('i', $engagementId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    return $row ? inboundEmailEngagementRoute($row) : null;
+}
+
+/**
+ * @return list<array{
+ *   id: int, label: string, title: string, organization_label: string,
+ *   date_label: string, lifecycle_status: string, marker: string
+ * }>
+ */
+function inboundEmailEngagementOptions(mysqli $conn, int $limit = 500): array
+{
+    $limit = max(1, min(1000, $limit));
+    $result = $conn->query(
+        'SELECT engagement.id, engagement.event_title,
+                engagement.event_start_date, engagement.event_end_date,
+                engagement.lifecycle_status,
+                organization.organization_name AS organization_label
+         FROM engagements engagement
+         INNER JOIN organizations organization
+            ON organization.id = engagement.organization_id
+         WHERE engagement.is_deleted = 0
+           AND organization.is_deleted = 0
+         ORDER BY
+            (COALESCE(engagement.event_end_date, engagement.event_start_date) < CURRENT_DATE),
+            CASE WHEN COALESCE(engagement.event_end_date, engagement.event_start_date) >= CURRENT_DATE
+                THEN engagement.event_start_date END ASC,
+            CASE WHEN COALESCE(engagement.event_end_date, engagement.event_start_date) < CURRENT_DATE
+                THEN engagement.event_start_date END DESC,
+            engagement.id DESC
+         LIMIT ' . $limit
+    );
+    if (!$result) {
+        throw new RuntimeException('Unable to load inbound Engagement options.');
+    }
+    return array_map('inboundEmailEngagementRoute', $result->fetch_all(MYSQLI_ASSOC));
+}
+
+/**
  * @param array<string, mixed> $message
  * @return array{
  *   automatic: bool, reasons: list<string>, sender: array<string, mixed>,
  *   participants: list<array<string, mixed>>,
  *   contacts: list<array{id: int, label: string}>,
- *   organizations: list<array{id: int, label: string}>
+ *   organizations: list<array{id: int, label: string}>,
+ *   engagements: list<array<string, mixed>>
  * }
  */
 function routeInboundEmailMessage(mysqli $conn, array $message): array
@@ -462,6 +593,23 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         $reasons[] = 'The sender address matches more than one active record.';
     } else {
         $reasons[] = 'The sender is not a uniquely recognized active user, Contact, or Organization.';
+    }
+
+    $engagements = [];
+    $markers = parseInboundEmailEngagementMarkers((string) ($message['subject'] ?? ''));
+    if ($markers['invalid'] !== []) {
+        $reasons[] = 'The subject contains an invalid Engagement marker. Use the exact format [MOED#123].';
+    }
+    if (count($markers['ids']) > 1) {
+        $reasons[] = 'The subject contains more than one Engagement marker.';
+    } elseif (count($markers['ids']) === 1) {
+        $engagement = inboundEmailEngagementMatch($conn, $markers['ids'][0]);
+        if ($engagement === null) {
+            $reasons[] = '[MOED#' . $markers['ids'][0]
+                . '] does not identify an active Engagement.';
+        } else {
+            $engagements[$engagement['id']] = $engagement;
+        }
     }
 
     $participantAddresses = array_values(array_unique(array_merge([$senderAddress], $to, $cc)));
@@ -520,12 +668,13 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         ];
     }
 
-    if (!$contacts && !$organizations) {
-        $reasons[] = 'No active Contact or Organization email address was matched.';
+    if (!$contacts && !$organizations && !$engagements) {
+        $reasons[] = 'No active Contact, Organization, or Engagement was matched.';
     }
     $reasons = array_values(array_unique($reasons));
     ksort($contacts);
     ksort($organizations);
+    ksort($engagements);
 
     return [
         'automatic' => $reasons === [],
@@ -534,6 +683,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         'participants' => $participants,
         'contacts' => array_values($contacts),
         'organizations' => array_values($organizations),
+        'engagements' => array_values($engagements),
     ];
 }
 
@@ -593,13 +743,19 @@ function inboundEmailActiveTargetIds(mysqli $conn, string $type, array $ids): ar
         $table = 'contacts';
     } elseif ($type === 'organization') {
         $table = 'organizations';
+    } elseif ($type === 'engagement') {
+        $table = 'engagements';
     } else {
         throw new InvalidArgumentException('Invalid inbound email target type.');
     }
     $placeholders = implode(', ', array_fill(0, count($ids), '?'));
-    $stmt = $conn->prepare(
-        "SELECT id FROM {$table} WHERE is_deleted = 0 AND id IN ({$placeholders}) FOR UPDATE"
-    );
+    $sql = $type === 'engagement'
+        ? "SELECT target.id FROM engagements target
+           INNER JOIN organizations organization ON organization.id = target.organization_id
+           WHERE target.is_deleted = 0 AND organization.is_deleted = 0
+             AND target.id IN ({$placeholders})"
+        : "SELECT id FROM {$table} WHERE is_deleted = 0 AND id IN ({$placeholders})";
+    $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare inbound target validation.');
     }
@@ -620,18 +776,20 @@ function inboundEmailActiveTargetIds(mysqli $conn, string $type, array $ids): ar
 /**
  * @param list<int>|null $contactIds
  * @param list<int>|null $organizationIds
+ * @param list<int>|null $engagementIds
  */
 function processInboundEmailMessage(
     mysqli $conn,
     int $messageId,
     ?array $contactIds = null,
     ?array $organizationIds = null,
-    ?int $processedBy = null
+    ?int $processedBy = null,
+    ?array $engagementIds = null
 ): string {
     if ($messageId < 1) {
         throw new InvalidArgumentException('Select a valid inbound message.');
     }
-    $manual = $contactIds !== null || $organizationIds !== null;
+    $manual = $contactIds !== null || $organizationIds !== null || $engagementIds !== null;
     $conn->begin_transaction();
     try {
         $stmt = $conn->prepare('SELECT * FROM inbound_email_messages WHERE id = ? FOR UPDATE');
@@ -681,14 +839,22 @@ function processInboundEmailMessage(
                 array_map('intval', $organizationIds ?? []),
                 $candidateOrganizationIds
             ));
+            $engagementIds = array_values(array_unique(array_map('intval', $engagementIds ?? [])));
+            if (count($engagementIds) > 1) {
+                throw new InvalidArgumentException('Select no more than one Engagement.');
+            }
         } else {
             $contactIds = array_map('intval', array_column($routing['contacts'], 'id'));
             $organizationIds = array_map('intval', array_column($routing['organizations'], 'id'));
+            $engagementIds = array_map('intval', array_column($routing['engagements'], 'id'));
         }
         $contactIds = inboundEmailActiveTargetIds($conn, 'contact', $contactIds);
         $organizationIds = inboundEmailActiveTargetIds($conn, 'organization', $organizationIds);
-        if (!$contactIds && !$organizationIds) {
-            throw new InvalidArgumentException('Select at least one active matched Contact or Organization.');
+        $engagementIds = inboundEmailActiveTargetIds($conn, 'engagement', $engagementIds);
+        if (!$contactIds && !$organizationIds && !$engagementIds) {
+            throw new InvalidArgumentException(
+                'Select at least one active Contact, Organization, or Engagement.'
+            );
         }
 
         $entryText = formatInboundEmailChronEntry($message);
@@ -753,8 +919,35 @@ function processInboundEmailMessage(
         }
         $organizationInsert->close();
 
+        $engagementInsert = $conn->prepare(
+            'INSERT INTO engagement_chron_entries
+                (engagement_id, inbound_email_message_id, entry_text, created_by,
+                 created_by_username_snapshot, updated_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE id = id'
+        );
+        if (!$engagementInsert) {
+            throw new RuntimeException('Unable to prepare Engagement Chron email routing.');
+        }
+        foreach ($engagementIds as $engagementId) {
+            $engagementInsert->bind_param(
+                'iisisiss',
+                $engagementId,
+                $messageId,
+                $entryText,
+                $creatorId,
+                $creatorName,
+                $creatorId,
+                $createdAt,
+                $createdAt
+            );
+            $engagementInsert->execute();
+        }
+        $engagementInsert->close();
+
         $routing['applied_contacts'] = $contactIds;
         $routing['applied_organizations'] = $organizationIds;
+        $routing['applied_engagements'] = $engagementIds;
         $routingJson = inboundEmailJson($routing);
         $update = $conn->prepare(
             "UPDATE inbound_email_messages
