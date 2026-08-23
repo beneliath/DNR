@@ -56,6 +56,13 @@ expectHeaderScope(
     'The primary navigation should not expose the internal Operations dashboard.'
 );
 expectHeaderScope(
+    preg_match(
+        '/<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
+        $header_markup
+    ) === 1,
+    'The primary navigation should place organizations and contacts after engagements and inbound mail immediately above the map.'
+);
+expectHeaderScope(
     substr_count($header_markup, 'class="nav-link admin-nav-link') === 2
         && str_contains($header_markup, '<span>Users</span>')
         && str_contains($header_markup, '<span>Database</span>'),
