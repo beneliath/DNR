@@ -522,6 +522,20 @@ excluded from future checklists and may be restored;
 administrators can permanently delete archived definitions after fresh authentication. Editing,
 archiving, or deleting a definition does not rewrite tasks already generated for events.
 
+## Financial closeout and giving history
+
+Editors and administrators can close an active event from its detail page by finalizing the actual
+giving/income, lodging, and travel amounts received. These actual receipts are stored separately
+from the anticipated travel, lodging, and compensation fields used during planning. A report can be
+corrected later without changing its original closer or close timestamp; concurrent corrections are
+rejected rather than silently overwriting newer figures. Every insert and correction is captured by
+the database audit log.
+
+Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
+event, and aggregate lodging and travel receipts from finalized reports only. “Latest event” follows
+the event end date, even if its report was entered later, and archived events remain part of the
+historical totals. The organization list also shows latest-event and lifetime giving for quick review.
+
 Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
 
 The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure an allowlisted provider appropriate for that workload instead of relying on the public default.

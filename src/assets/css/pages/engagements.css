@@ -103,3 +103,25 @@
         .status-confirmed {
             color: #FF9800; /* Orange */
         }
+        .engagement-closeout {
+            white-space: nowrap;
+        }
+        .event-closeout-badge {
+            display: inline-flex;
+            min-width: 64px;
+            align-items: center;
+            justify-content: center;
+            padding: 5px 10px;
+            border-radius: 999px;
+            color: #fff;
+            font-size: var(--font-size-small);
+            font-weight: var(--font-weight-bold);
+            line-height: 1;
+            letter-spacing: .01em;
+        }
+        .event-closeout-badge.is-open {
+            background-color: #6b7280;
+        }
+        .event-closeout-badge.is-closed {
+            background-color: #1f7a4c;
+        }

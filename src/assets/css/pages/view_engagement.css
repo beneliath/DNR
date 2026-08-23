@@ -105,3 +105,80 @@
         .dark-mode .contact-notes {
             border-top-color: #333;
         }
+        .financial-closeout-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 14px;
+        }
+        .financial-closeout-heading p,
+        .financial-empty,
+        .financial-meta {
+            margin: 4px 0 0;
+            color: var(--text-muted);
+        }
+        .financial-status {
+            flex: 0 0 auto;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: var(--font-size-small);
+            font-weight: var(--font-weight-bold);
+        }
+        .financial-status.is-finalized {
+            background: var(--success-bg-light);
+            color: var(--success-color);
+        }
+        .financial-status.is-open {
+            background: var(--warning-bg-light, #fff3cd);
+            color: var(--warning-color, #664d03);
+        }
+        .financial-amount-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px;
+            margin: 12px 0;
+        }
+        .financial-amount-grid > div {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+        }
+        .financial-amount-grid small {
+            color: var(--text-muted);
+        }
+        .financial-amount-grid strong {
+            font-size: 1.15rem;
+        }
+        .financial-amount-grid .financial-total {
+            border-color: var(--primary);
+        }
+        .financial-notes {
+            margin: 14px 0;
+            padding: 12px;
+            border-left: 3px solid var(--border-strong, var(--border));
+        }
+        .financial-notes p {
+            margin: 6px 0 0;
+        }
+        .financial-closeout .action-button {
+            display: inline-flex;
+            margin-top: 14px;
+        }
+        .financial-closeout .save-button {
+            background: var(--button-save-color);
+        }
+        @media (max-width: 700px) {
+            .financial-amount-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 440px) {
+            .financial-amount-grid {
+                grid-template-columns: 1fr;
+            }
+        }

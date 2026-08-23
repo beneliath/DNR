@@ -4,6 +4,7 @@ require_once __DIR__ . '/../src/functions.php';
 
 use Dnr\Domain\ContactInput;
 use Dnr\Domain\EngagementInput;
+use Dnr\Domain\FinancialReportInput;
 use Dnr\Domain\OrganizationInput;
 
 function expectDomainInput(bool $condition, string $message): void
@@ -159,6 +160,44 @@ $oversizedContactNotes = ContactInput::normalize([
 expectDomainInput(
     in_array('Contact notes is too long; shorten it and try again.', $oversizedContactNotes['errors'], true),
     'TEXT-backed fields should be limited by their UTF-8 storage size.'
+);
+
+$financialReport = FinancialReportInput::normalize([
+    'giving_income_received' => '001250.5',
+    'lodging_received' => '275.25',
+    'travel_received' => '0',
+    'notes' => 'Final check received.',
+]);
+expectDomainInput(
+    $financialReport['giving_income_received'] === '1250.50'
+        && $financialReport['lodging_received'] === '275.25'
+        && $financialReport['travel_received'] === '0.00'
+        && $financialReport['total_received'] === '1525.75',
+    'final financial amounts should remain exact fixed-precision values and calculate an exact total.'
+);
+
+foreach ([
+    [['giving_income_received' => '', 'lodging_received' => '0', 'travel_received' => '0'], 'enter 0'],
+    [['giving_income_received' => '-1', 'lodging_received' => '0', 'travel_received' => '0'], 'non-negative'],
+    [['giving_income_received' => '1.001', 'lodging_received' => '0', 'travel_received' => '0'], 'two decimal'],
+    [['giving_income_received' => '10000000000.00', 'lodging_received' => '0', 'travel_received' => '0'], 'maximum'],
+] as [$submission, $expectedMessage]) {
+    expectDomainInputFailure(
+        static fn () => FinancialReportInput::normalize($submission),
+        $expectedMessage,
+        'invalid final financial amounts should be rejected before database writes.'
+    );
+}
+
+expectDomainInputFailure(
+    static fn () => FinancialReportInput::normalize([
+        'giving_income_received' => '0',
+        'lodging_received' => '0',
+        'travel_received' => '0',
+        'notes' => str_repeat('🚀', 16384),
+    ]),
+    'too long',
+    'oversized final financial notes should be rejected before database writes.'
 );
 
 echo "Domain input tests passed.\n";

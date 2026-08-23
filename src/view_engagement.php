@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/financial_report_helpers.php';
 require_once __DIR__ . '/presentation_helpers.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
@@ -38,6 +39,17 @@ if ($result->num_rows === 0) {
 
 $engagement = $result->fetch_assoc();
 $is_archived = !empty($engagement['is_deleted']);
+
+try {
+    $financial_report = fetchEngagementFinancialReport($conn, $engagement_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement financial report is temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+$financial_report_message = (string) ($_SESSION['financial_report_message'] ?? '');
+unset($_SESSION['financial_report_message']);
 
 // Fetch contacts for the organization
     $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
@@ -140,6 +152,10 @@ $presentation_stmt->close();
         <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
         <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
     </div>
+
+    <?php if ($financial_report_message !== ''): ?>
+        <p class="success" role="status"><?php echo htmlspecialchars($financial_report_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <div class="detail-group">
         <?php if (!empty($engagement['event_title'])): ?>
@@ -275,6 +291,54 @@ $presentation_stmt->close();
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="detail-group financial-closeout" id="financial-closeout">
+        <div class="financial-closeout-heading">
+            <div>
+                <div class="detail-label">Financial Closeout</div>
+                <p>Actual receipts recorded after the event; planning estimates above remain unchanged.</p>
+            </div>
+            <span class="financial-status <?php echo $financial_report ? 'is-finalized' : 'is-open'; ?>">
+                <?php echo $financial_report ? 'Finalized' : 'Open'; ?>
+            </span>
+        </div>
+
+        <?php if ($financial_report): ?>
+            <div class="financial-amount-grid">
+                <div><small>Giving / income</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
+                <div><small>Lodging received</small><strong><?php echo formatFinancialAmount($financial_report['lodging_received']); ?></strong></div>
+                <div><small>Travel received</small><strong><?php echo formatFinancialAmount($financial_report['travel_received']); ?></strong></div>
+                <div class="financial-total"><small>Total received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
+            </div>
+            <?php
+            $closed_timestamp = chronLogTimestampDetails($financial_report['closed_at']);
+            $was_corrected = (string) $financial_report['updated_at'] !== (string) $financial_report['closed_at'];
+            $updated_timestamp = $was_corrected
+                ? chronLogTimestampDetails($financial_report['updated_at'])
+                : null;
+            ?>
+            <p class="financial-meta">
+                Finalized <time datetime="<?php echo htmlspecialchars($closed_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($closed_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time>
+                <?php if (!empty($financial_report['closed_by_username'])): ?>
+                    by <?php echo htmlspecialchars((string) $financial_report['closed_by_username'], ENT_QUOTES, 'UTF-8'); ?>
+                <?php endif; ?>.
+                <?php if ($updated_timestamp !== null): ?>
+                    Last corrected <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($updated_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time><?php if (!empty($financial_report['updated_by_username'])): ?> by <?php echo htmlspecialchars((string) $financial_report['updated_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>.
+                <?php endif; ?>
+            </p>
+            <?php if (!empty($financial_report['notes'])): ?>
+                <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo nl2br(htmlspecialchars((string) $financial_report['notes'], ENT_QUOTES, 'UTF-8')); ?></p></div>
+            <?php endif; ?>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct final report</a>
+            <?php endif; ?>
+        <?php else: ?>
+            <p class="financial-empty">No actual received amounts have been finalized for this event.</p>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button save-button">Close out event</a>
+            <?php endif; ?>
+        <?php endif; ?>
+    </div>
 
     <?php if (!empty($event_address_parts)): ?>
     <div class="detail-group">

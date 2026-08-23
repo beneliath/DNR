@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/financial_report_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'two_factor_helpers.php';
 startSecureSession();
@@ -196,6 +197,20 @@ if ($organizations !== []) {
         }
         unset($organization);
     }
+
+    try {
+        $financial_summaries = fetchOrganizationFinancialSummaries($conn, $organization_ids);
+    } catch (Throwable $exception) {
+        abortApplication(503, 'Organization financial summaries are temporarily unavailable.', [
+            'error' => $exception->getMessage(),
+        ]);
+    }
+    foreach ($organizations as &$organization) {
+        $financial_summary = $financial_summaries[(int) $organization['id']];
+        $organization['lifetime_giving'] = $financial_summary['lifetime_giving'];
+        $organization['last_event_giving'] = $financial_summary['last_event_giving'];
+    }
+    unset($organization);
 }
 
 function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null, $page_size = 20)
@@ -273,12 +288,14 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                 <th>Organization</th>
                 <th>Location</th>
                 <th>Contact(s)</th>
+                <th>Last Giving</th>
+                <th>Lifetime Giving</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             <?php if ($organizations === []): ?>
-                <tr><td colspan="4" class="empty-state">No organizations match the current view.</td></tr>
+                <tr><td colspan="6" class="empty-state">No organizations match the current view.</td></tr>
             <?php endif; ?>
             <?php foreach ($organizations as $org): ?>
                 <tr>
@@ -294,6 +311,8 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                     <td>
                         <?php echo htmlspecialchars($org['contact_names'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                     </td>
+                    <td class="money-column"><?php echo $org['last_event_giving'] === null ? '—' : formatFinancialAmount($org['last_event_giving']); ?></td>
+                    <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_giving']); ?></strong></td>
                     <td>
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>

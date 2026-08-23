@@ -43,6 +43,10 @@
         .organization-table tr:hover {
             background-color: #f9f9f9;
         }
+        .organization-table .money-column {
+            white-space: nowrap;
+            font-variant-numeric: tabular-nums;
+        }
         .dark-mode .organization-table tr:hover {
             background-color: #333;
         }

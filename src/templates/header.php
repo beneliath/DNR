@@ -2,7 +2,7 @@
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
-    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'restore_chron_entries.php'],
+    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'close_engagement.php', 'restore_chron_entries.php'],
     'tasks' => [
         'tasks.php',
         'add_task.php',

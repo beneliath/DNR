@@ -22,7 +22,7 @@
 - [x] Engagements: add role-based edit/delete functionality; with attendant change to db schema
 - [x] !!! if contact name on add_organizations.php, then Role is required and Email/Email-confirm is required (w/ red asterisks re same)
 - [x] view Organizations rebuild
-- [ ] view Organizations supplement: add columns for last and lifetime giving
+- [x] view Organizations supplement: add columns for last and lifetime giving
 - [ ] view/add contact for selected Organization
 - [x] view/add presentation for selected Event
 - [x] code Mailing Address / Physical Address

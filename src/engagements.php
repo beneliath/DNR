@@ -183,9 +183,12 @@ $query_limit = $page_size + 1;
 
 $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                  e.event_type, e.event_type_other, e.confirmation_status,
-                 o.organization_name
+                 o.organization_name,
+                 financial_report.engagement_id IS NOT NULL AS financially_closed
           FROM engagements e
           LEFT JOIN organizations o ON e.organization_id = o.id
+          LEFT JOIN engagement_financial_reports financial_report
+              ON financial_report.engagement_id = e.id
           WHERE {$where}";
 $query .= "
           ORDER BY {$order_by} {$order_direction}, e.id {$order_direction}
@@ -324,12 +327,13 @@ $format_date_range = static function ($start, $end) {
                 <th>Event Date(s)</th>
                 <th>Type</th>
                 <th>Status</th>
+                <th>Closeout</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             <?php if ($engagement_rows === []): ?>
-                <tr><td colspan="6" class="empty-state">No engagements match the current view.</td></tr>
+                <tr><td colspan="7" class="empty-state">No engagements match the current view.</td></tr>
             <?php endif; ?>
             <?php foreach ($engagement_rows as $row): ?>
                 <tr>
@@ -343,6 +347,13 @@ $format_date_range = static function ($start, $end) {
                         $display_status = str_replace('_', ' ', $status);
                         echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
                     ?></td>
+                    <?php $is_financially_closed = !empty($row['financially_closed']); ?>
+                    <td class="engagement-closeout">
+                        <span class="event-closeout-badge <?php echo $is_financially_closed ? 'is-closed' : 'is-open'; ?>"
+                              aria-label="Financial closeout: <?php echo $is_financially_closed ? 'Closed' : 'Open'; ?>">
+                            <?php echo $is_financially_closed ? 'Closed' : 'Open'; ?>
+                        </span>
+                    </td>
                     <td>
                         <div class="action-buttons">
                             <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button action-icon-button view-button" aria-label="View event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
