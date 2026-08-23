@@ -6,6 +6,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.users TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.user_recovery_codes TO 'dnruser'@'%';
 GRANT SELECT, INSERT ON dnr.security_audit_log TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.authentication_rate_limits TO 'dnruser'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.inbound_email_messages TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.calendar_subscriptions TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.organizations TO 'dnruser'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON dnr.engagements TO 'dnruser'@'%';

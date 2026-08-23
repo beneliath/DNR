@@ -126,6 +126,7 @@ $entity_labels = [
     'users' => 'user',
     'organizations' => 'organization',
     'contacts' => 'contact',
+    'inbound_email_messages' => 'inbound email',
     'engagements' => 'engagement',
     'presentations' => 'presentation',
     'audit_log' => 'audit log',

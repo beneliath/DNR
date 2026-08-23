@@ -7,7 +7,9 @@ usage() {
     cat <<'EOF'
 Usage:
   scripts/compose_with_provenance.sh development [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh development-mail [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-mail [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh --print-metadata
 
 With no Compose arguments, development and production run: up -d --build
@@ -86,8 +88,21 @@ case "$mode" in
             -f docker-compose.dev.yaml \
             "$@"
         ;;
+    development-mail|dev-mail)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            -f docker-compose.mail.yaml \
+            "$@"
+        ;;
     production|prod)
         exec docker compose -f docker-compose.yaml "$@"
+        ;;
+    production-mail|prod-mail)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.mail.yaml \
+            "$@"
         ;;
     *)
         usage >&2

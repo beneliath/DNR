@@ -35,6 +35,13 @@ expectBuildProvenanceScript(
     'development and production builds should use the correct Compose files.'
 );
 expectBuildProvenanceScript(
+    str_contains($script, 'development-mail|dev-mail)')
+        && str_contains($script, 'production-mail|prod-mail)')
+        && substr_count($script, '-f docker-compose.mail.yaml') === 2
+        && str_contains($readme, 'compose_with_provenance.sh production-mail'),
+    'mail-enabled modes should add the inbound worker Compose overlay.'
+);
+expectBuildProvenanceScript(
     substr_count($readme, 'compose_with_provenance.sh') >= 6
         && str_contains($secure_existing, 'compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder ingress')
         && str_contains($readme, 'DNR_COMPOSE_MODE=development'),

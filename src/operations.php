@@ -30,6 +30,11 @@ try {
         SUM(event_category = 'login' AND event_type <> 'successful_login') AS failed_last_24_hours
         FROM security_audit_log
         WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 24 HOUR");
+    $inboundMail = $metric($conn, "SELECT
+        SUM(status = 'review') AS review_count,
+        SUM(status = 'failed') AS failed_count,
+        SUM(status IN ('pending', 'processing')) AS queued_count
+        FROM inbound_email_messages");
     $backup = $metric($conn, "SELECT created_at AS last_backup_at, details AS last_backup_details
         FROM security_audit_log
         WHERE event_type = 'database_backup_created'
@@ -52,6 +57,8 @@ try {
         <div class="summary-card summary-danger"><span><small>Overdue tasks</small><strong><?php echo (int) ($tasks['overdue'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Unassigned tasks</small><strong><?php echo (int) ($tasks['unassigned'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Geocoding retries</small><strong><?php echo (int) ($geocoding['retry'] ?? 0); ?></strong></span></div>
+        <div class="summary-card"><span><small>Inbound mail review</small><strong><?php echo (int) ($inboundMail['review_count'] ?? 0); ?></strong></span></div>
+        <div class="summary-card summary-danger"><span><small>Inbound mail failures</small><strong><?php echo (int) ($inboundMail['failed_count'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Failed authentication, 24h</small><strong><?php echo (int) ($authentication['failed_last_24_hours'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Applied migrations</small><strong><?php echo (int) ($migration['applied'] ?? 0); ?></strong></span></div>
     </div>
@@ -64,6 +71,7 @@ try {
             <div><dt>Last backup result</dt><dd><?php echo htmlspecialchars((string) ($backup['last_backup_details'] ?? 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Geocoding pending / processing</dt><dd><?php echo (int) ($geocoding['pending'] ?? 0); ?> / <?php echo (int) ($geocoding['processing'] ?? 0); ?></dd></div>
             <div><dt>Highest geocoding attempt count</dt><dd><?php echo (int) ($geocoding['maximum_attempts'] ?? 0); ?></dd></div>
+            <div><dt>Inbound mail queued / review</dt><dd><?php echo (int) ($inboundMail['queued_count'] ?? 0); ?> / <?php echo (int) ($inboundMail['review_count'] ?? 0); ?></dd></div>
         </dl>
         <p><a href="ready.php" class="button-secondary">View readiness response</a></p>
     </section>

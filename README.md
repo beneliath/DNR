@@ -152,6 +152,64 @@ Database integration suites are discovered automatically from `tests/*_integrati
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
 
+### Inbound email to Chron
+
+DNR can poll a dedicated IMAP mailbox and turn messages copied to it into Contact and Organization
+Chron entries. Event routing is intentionally not included. This first version uses exact email-address
+rules; it does not send message content to an AI service.
+
+The routing policy is deliberately conservative:
+
+- The sender must uniquely match an active DNR user with a verified email address, an active Contact,
+  or an active Organization.
+- DNR considers the message's `From`, `To`, and `Cc` addresses, excluding the configured gateway
+  address and recognized internal users. A unique Contact match adds the message to that Contact and
+  the Contact's Organization. A direct Organization email match adds it to the Organization.
+- Duplicate delivery of the same RFC Message-ID is idempotent. Ambiguous senders, shared email
+  addresses, unknown senders, and messages with no matched target go to **Inbound Mail** for an
+  administrator or editor to review. If an address is missing from DNR, update the record and use
+  **Retry routing**.
+- The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
+  names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
+  mail is converted to inert plain text.
+
+Exact address matching is a routing decision, not independent proof of sender identity. The mailbox
+provider should enforce its normal spam and SPF/DKIM/DMARC checks, and suspicious messages should be
+left for manual review rather than approved solely because the visible `From` address is familiar.
+
+Both `Cc: moed@beneliath.com` and `Bcc: moed@beneliath.com` work. A Bcc delivery normally omits the
+gateway address from the stored message headers, which is expected; DNR routes using the remaining
+participants. For example, mail from a verified DNR user to a unique Contact routes to the Contact
+and its Organization, while a reply from that Contact is recognized from `From`.
+
+Apply the tracked database migration before enabling the worker. Then create the ignored IMAP
+password secret, set the inbound variables in `.env`, and start a mail-enabled Compose mode:
+
+```sh
+install -m 600 /dev/null secrets/imap_password
+# Put the exact IMAP/Bridge password in secrets/imap_password without committing it.
+./scripts/compose_with_provenance.sh production-mail
+```
+
+For local development, use `development-mail`. The worker imports unseen messages in bounded
+batches, marks a message seen only after DNR has stored it, and retries transient routing failures.
+It does not delete or move the source message, including after successful routing; the IMAP mailbox
+remains a recoverable source of record. The web and worker accounts retain only the database
+privileges needed for this workflow.
+
+Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
+and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password
+shown by Bridge—not the Proton account password. Bridge uses a local, self-signed IMAP endpoint and
+is designed for clients on the same computer. Set `DNR_IMAP_VERIFY_PEER=0` only for that local or
+tightly isolated Bridge connection; keep certificate verification enabled for any remote IMAP
+server. Because a Docker container may not be able to reach a Bridge listener bound only to the
+host's loopback interface, confirm network reachability from the `mail-ingest` service before using
+the production mail mode. If Bridge cannot be made reachable without exposing it, run the worker
+beside Bridge or use a dedicated standards-compliant IMAP mailbox rather than publishing Bridge to
+an untrusted network. Proton documents the local-only design in its
+[Bridge overview](https://proton.me/support/why-you-need-bridge) and
+[Bridge CLI guide](https://proton.me/support/bridge-cli-guide).
+
 Database Initialization:
 
 The init.sql file contains the necessary SQL commands to set up the initial database schema and data. Ensure that this script is executed when the database service starts.
@@ -169,6 +227,11 @@ Configure these values as needed:
 - `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for account email.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
 - `DNR_SMTP_USERNAME` and `DNR_SMTP_PASSWORD_FILE`: optional SMTP authentication. Prefer a password file mounted by a production Compose override or secret manager. `DNR_SMTP_PASSWORD` is also accepted for development. The web container remains on the private backend network, so production deployments should attach an SMTP relay to that network rather than granting the application general outbound access.
+- `DNR_INBOUND_ADDRESS`: dedicated mailbox address copied on messages for Chron capture; defaults to `moed@beneliath.com` in the mail Compose overlay.
+- `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
+- `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
+- `DNR_IMAP_USERNAME`, `DNR_IMAP_PASSWORD_FILE`, and `DNR_IMAP_MAILBOX`: mailbox credentials and selected folder. The mail Compose overlay mounts the password as a Docker secret; `DNR_IMAP_PASSWORD` is accepted only for simple non-Compose or development execution.
+- `DNR_IMAP_VERIFY_PEER`: verifies the IMAP server certificate by default. Disable it only for a local Proton Bridge endpoint using Bridge's self-signed certificate.
 - `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
 - `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
@@ -197,6 +260,12 @@ accurately identify uncommitted source files.
 
 # Production behind the configured HTTPS proxy
 ./scripts/compose_with_provenance.sh production
+
+# Production with the inbound IMAP worker
+./scripts/compose_with_provenance.sh production-mail
+
+# Local HTTP development with the inbound IMAP worker
+./scripts/compose_with_provenance.sh development-mail
 
 # Forward a specific Compose command or service selection
 ./scripts/compose_with_provenance.sh development up -d --build web ingress

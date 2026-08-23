@@ -91,6 +91,7 @@ done
 mysql --protocol=socket -uroot "$database_name" -e "
     GRANT SELECT ON \`${database_name}\`.calendar_feed_revision TO '${application_user}'@'%';
     GRANT SELECT, INSERT, UPDATE, DELETE ON \`${database_name}\`.user_email_tokens TO '${application_user}'@'%';
+    GRANT SELECT, INSERT, UPDATE, DELETE ON \`${database_name}\`.inbound_email_messages TO '${application_user}'@'%';
     GRANT SELECT, INSERT, UPDATE, DELETE ON \`${database_name}\`.contact_chron_entries TO '${application_user}'@'%';
     GRANT SELECT, INSERT, UPDATE, DELETE ON \`${database_name}\`.organization_chron_entries TO '${application_user}'@'%'
 "

@@ -26,6 +26,9 @@
                     <?php if ($was_edited): ?>
                         <small>Last updated <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($updated_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time><?php if (!empty($chron_entry['updated_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['updated_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></small>
                     <?php endif; ?>
+                    <?php if (!empty($chron_entry['inbound_email_message_id']) && canArchiveEntries($user_role)): ?>
+                        <small><a href="inbound_mail.php?status=all&amp;id=<?php echo (int) $chron_entry['inbound_email_message_id']; ?>">View source email</a></small>
+                    <?php endif; ?>
                 </div>
                 <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'], ENT_QUOTES, 'UTF-8')); ?></div>
             </article>

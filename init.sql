@@ -120,6 +120,47 @@ CREATE TABLE IF NOT EXISTS authentication_rate_limits (
     INDEX idx_auth_rate_limits_updated (updated_at)
 );
 
+-- Parsed source messages for email-driven Contact and Organization Chron
+-- entries. The source record makes mailbox retries idempotent and preserves
+-- enough context to review ambiguous routing without storing attachments.
+CREATE TABLE IF NOT EXISTS inbound_email_messages (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    transport ENUM('imap', 'webhook', 'file') NOT NULL DEFAULT 'imap',
+    transport_key VARCHAR(255) NOT NULL,
+    deduplication_hash BINARY(32) NOT NULL,
+    rfc_message_id VARCHAR(998) NULL,
+    gateway_address VARCHAR(254) NOT NULL,
+    sender_name VARCHAR(255) NULL,
+    sender_address VARCHAR(254) NOT NULL,
+    to_addresses JSON NOT NULL,
+    cc_addresses JSON NOT NULL,
+    subject VARCHAR(998) NOT NULL DEFAULT '',
+    sent_at DATETIME NULL,
+    received_at DATETIME NOT NULL,
+    body_text MEDIUMTEXT NOT NULL,
+    attachment_names JSON NOT NULL,
+    raw_headers MEDIUMTEXT NOT NULL,
+    routing_details JSON NULL,
+    status ENUM('pending', 'processing', 'processed', 'review', 'rejected', 'failed')
+        NOT NULL DEFAULT 'pending',
+    review_reason VARCHAR(255) NULL,
+    attempts SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+    processing_started_at DATETIME NULL,
+    next_attempt_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    last_error VARCHAR(255) NULL,
+    processed_by INT NULL,
+    processed_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    CONSTRAINT fk_inbound_email_processed_by
+        FOREIGN KEY (processed_by) REFERENCES users(id) ON DELETE SET NULL,
+    UNIQUE INDEX uq_inbound_email_transport_key (transport, transport_key),
+    UNIQUE INDEX uq_inbound_email_deduplication (deduplication_hash),
+    INDEX idx_inbound_email_queue (status, next_attempt_at, processing_started_at, id),
+    INDEX idx_inbound_email_review (status, received_at, id),
+    INDEX idx_inbound_email_sender (sender_address, received_at, id)
+);
+
 CREATE TABLE IF NOT EXISTS calendar_subscriptions (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
@@ -365,6 +406,7 @@ CREATE TABLE IF NOT EXISTS contacts (
 CREATE TABLE IF NOT EXISTS contact_chron_entries (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     contact_id INT NOT NULL,
+    inbound_email_message_id BIGINT UNSIGNED NULL,
     entry_text MEDIUMTEXT NOT NULL,
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
     created_by INT NULL,
@@ -376,6 +418,9 @@ CREATE TABLE IF NOT EXISTS contact_chron_entries (
     archived_at TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_contact_chron_entry_contact
         FOREIGN KEY (contact_id) REFERENCES contacts(id) ON DELETE CASCADE,
+    CONSTRAINT fk_contact_chron_inbound_email
+        FOREIGN KEY (inbound_email_message_id)
+        REFERENCES inbound_email_messages(id) ON DELETE SET NULL,
     CONSTRAINT fk_contact_chron_entry_creator
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_contact_chron_entry_updater
@@ -385,6 +430,9 @@ CREATE TABLE IF NOT EXISTS contact_chron_entries (
     INDEX idx_contact_chron_entry_active_created (
         contact_id, is_archived, created_at, id
     ),
+    UNIQUE INDEX uq_contact_chron_inbound_email (
+        inbound_email_message_id, contact_id
+    ),
     FULLTEXT INDEX ft_contact_chron_entries_search (
         entry_text, created_by_username_snapshot
     )
@@ -393,6 +441,7 @@ CREATE TABLE IF NOT EXISTS contact_chron_entries (
 CREATE TABLE IF NOT EXISTS organization_chron_entries (
     id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     organization_id INT NOT NULL,
+    inbound_email_message_id BIGINT UNSIGNED NULL,
     entry_text MEDIUMTEXT NOT NULL,
     is_archived TINYINT(1) NOT NULL DEFAULT 0,
     created_by INT NULL,
@@ -404,6 +453,9 @@ CREATE TABLE IF NOT EXISTS organization_chron_entries (
     archived_at TIMESTAMP NULL DEFAULT NULL,
     CONSTRAINT fk_organization_chron_entry_organization
         FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE,
+    CONSTRAINT fk_organization_chron_inbound_email
+        FOREIGN KEY (inbound_email_message_id)
+        REFERENCES inbound_email_messages(id) ON DELETE SET NULL,
     CONSTRAINT fk_organization_chron_entry_creator
         FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL,
     CONSTRAINT fk_organization_chron_entry_updater
@@ -412,6 +464,9 @@ CREATE TABLE IF NOT EXISTS organization_chron_entries (
         FOREIGN KEY (archived_by) REFERENCES users(id) ON DELETE SET NULL,
     INDEX idx_organization_chron_entry_active_created (
         organization_id, is_archived, created_at, id
+    ),
+    UNIQUE INDEX uq_organization_chron_inbound_email (
+        inbound_email_message_id, organization_id
     ),
     FULLTEXT INDEX ft_organization_chron_entries_search (
         entry_text, created_by_username_snapshot
@@ -583,6 +638,24 @@ FOR EACH ROW INSERT INTO security_audit_log
     (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
 VALUES
     (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'contacts', OLD.id, LEFT(TRIM(CONCAT_WS(' ', OLD.contact_first_name, OLD.contact_last_name)), 255), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_inbound_email_messages_after_insert AFTER INSERT ON inbound_email_messages
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_insert', 'inbound_email_messages', NEW.id, LEFT(NULLIF(NEW.subject, ''), 255), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_inbound_email_messages_after_update AFTER UPDATE ON inbound_email_messages
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_update', 'inbound_email_messages', NEW.id, LEFT(NULLIF(NEW.subject, ''), 255), LEFT(@dnr_request_ip, 45));
+
+CREATE TRIGGER audit_inbound_email_messages_after_delete AFTER DELETE ON inbound_email_messages
+FOR EACH ROW INSERT INTO security_audit_log
+    (actor_user_id, actor_username, event_category, event_type, entity_type, entity_id, entity_label, ip_address)
+VALUES
+    (@dnr_actor_user_id, LEFT(@dnr_actor_username, 50), 'database_change', 'database_delete', 'inbound_email_messages', OLD.id, LEFT(NULLIF(OLD.subject, ''), 255), LEFT(@dnr_request_ip, 45));
 
 CREATE TRIGGER audit_contact_chron_entries_after_insert AFTER INSERT ON contact_chron_entries
 FOR EACH ROW INSERT INTO security_audit_log
@@ -756,4 +829,5 @@ INSERT IGNORE INTO schema_migrations (migration_name, checksum) VALUES
 ('20260822_architecture_integrity_hardening.sql', REPEAT('0', 64)),
 ('20260822_functional_performance_improvements.sql', REPEAT('0', 64)),
 ('20260823_add_contact_organization_chron_entries.sql', REPEAT('0', 64)),
+('20260823_add_inbound_chron_mail.sql', REPEAT('0', 64)),
 ('20260823_add_user_lifecycle_and_email_tokens.sql', REPEAT('0', 64));

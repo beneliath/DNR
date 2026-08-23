@@ -43,6 +43,7 @@ RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
 COPY scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
 COPY scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
+COPY scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
 COPY scripts/restore_database.php /opt/dnr/bin/restore_database.php
 COPY migrations/ /opt/dnr/migrations/
 

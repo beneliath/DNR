@@ -13,6 +13,7 @@ parameters:
         - src/follow_up_task_helpers.php
         - src/github_version_helpers.php
         - src/image_upload_helpers.php
+        - src/inbound_email_helpers.php
         - src/map_helpers.php
         - src/presentation_helpers.php
         - src/profile_helpers.php
