@@ -148,6 +148,7 @@ expectPresentationFeature(
         && str_contains($edit_engagement_source, 'data-delete-confirmation="Permanently delete this presentation?"')
         && str_contains($restore_presentations, "SET is_archived = 0, archived_by = NULL, archived_at = NULL")
         && str_contains($restore_presentations, 'falls outside the current engagement dates')
+        && str_contains($restore_presentations, 'requireRecentAdminElevation(')
         && str_contains($restore_presentations, 'name="presentation_dates[')
         && str_contains($restore_presentations, 'data-archive-button-label="Keep Archived"'),
     'saved presentations should support archive, restore, and confirmed permanent deletion.'

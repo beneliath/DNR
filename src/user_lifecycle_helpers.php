@@ -86,7 +86,9 @@ function inviteUserAccount(mysqli $conn, $username, $email, $role, $actor_user_i
             $user_id,
             'invitation',
             $email,
-            $actor_user_id
+            $actor_user_id,
+            null,
+            true
         );
         if (!recordAuditEvent($conn, [
             'event_category' => 'security',
@@ -138,7 +140,9 @@ function renewUserInvitation(mysqli $conn, $user_id, $actor_user_id)
             $user_id,
             'invitation',
             $email,
-            $actor_user_id
+            $actor_user_id,
+            null,
+            true
         );
         if (!recordAuditEvent($conn, [
             'event_category' => 'security',

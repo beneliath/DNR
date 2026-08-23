@@ -46,32 +46,7 @@ function twoFactorRequiredForRole($role) {
 }
 
 function twoFactorEncryptionKey() {
-    static $key = null;
-
-    if ($key !== null) {
-        return $key;
-    }
-
-    $key_file = getenv('DNR_2FA_ENCRYPTION_KEY_FILE');
-    $encoded = null;
-
-    if (is_string($key_file) && $key_file !== '' && is_readable($key_file)) {
-        $encoded = trim((string) file_get_contents($key_file));
-    }
-
-    if (!$encoded) {
-        $encoded = getenv('DNR_2FA_ENCRYPTION_KEY');
-    }
-    $decoded = is_string($encoded) && $encoded !== '' ? base64_decode($encoded, true) : false;
-
-    if (!is_string($decoded) || strlen($decoded) !== SODIUM_CRYPTO_SECRETBOX_KEYBYTES) {
-        throw new RuntimeException(
-            'The DNR 2FA encryption key must be a base64-encoded 32-byte key.'
-        );
-    }
-
-    $key = $decoded;
-    return $key;
+    return \Dnr\Security\ApplicationKey::bytes();
 }
 
 function encryptTwoFactorSecret($secret) {

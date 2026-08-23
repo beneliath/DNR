@@ -135,7 +135,9 @@ final class ImapClient
             true
         );
         if (count($response['literals']) !== 1) {
-            throw new RuntimeException('The IMAP service returned an unexpected message payload.');
+            throw new ImapMessageRejectedException(
+                'The IMAP service returned an unexpected message payload.'
+            );
         }
         return $response['literals'][0];
     }
@@ -160,7 +162,18 @@ final class ImapClient
         } catch (\Throwable $exception) {
             // The connection may already be unavailable; closing it is enough.
         }
-        fclose($this->stream);
+        $this->abort();
+    }
+
+    /**
+     * Close immediately when a rejected literal leaves the protocol stream
+     * intentionally unread and therefore unsafe for another command.
+     */
+    public function abort(): void
+    {
+        if (is_resource($this->stream)) {
+            fclose($this->stream);
+        }
         $this->stream = null;
         $this->uidValidity = 0;
     }
@@ -203,7 +216,9 @@ final class ImapClient
                 }
                 $literalLength = (int) $literalMatch[1];
                 if ($literalLength < 0 || $literalLength > $this->maximumMessageBytes) {
-                    throw new RuntimeException('The IMAP message exceeds the configured size limit.');
+                    throw new ImapMessageRejectedException(
+                        'The IMAP message exceeds the configured size limit.'
+                    );
                 }
                 $literals[] = $this->readExact($literalLength);
             }

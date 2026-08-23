@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'follow_up_task_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
@@ -10,8 +11,8 @@ $user_role = $_SESSION['role'] ?? '';
 $current_user_id = (int) $_SESSION['user_id'];
 $can_manage_tasks = canManageFollowUpTasks($user_role);
 
-$requested_view = (string) ($_GET['view'] ?? '');
-$subject_filter_type = (string) ($_GET['subject_type'] ?? '');
+$requested_view = \Dnr\Http\RequestInput::string($_GET, 'view');
+$subject_filter_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type');
 $subject_filter_id = filter_input(INPUT_GET, 'subject_id', FILTER_VALIDATE_INT);
 $has_subject_filter = in_array(
     $subject_filter_type,
@@ -21,10 +22,7 @@ $has_subject_filter = in_array(
 $view = array_key_exists($requested_view, followUpTaskQueueViews())
     ? $requested_view
     : ($has_subject_filter ? 'all' : 'my');
-$search = trim((string) ($_GET['q'] ?? ''));
-if (strlen($search) > 100) {
-    $search = substr($search, 0, 100);
-}
+$search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 100);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
@@ -33,7 +31,8 @@ $page_size = 50;
 $cursor_keys = $view === 'completed'
     ? ['updated_at', 'id']
     : ['due_date', 'priority_rank', 'id'];
-$cursor = decodePaginationCursor($_GET['cursor'] ?? '', $cursor_keys);
+$cursor_value = \Dnr\Http\RequestInput::string($_GET, 'cursor');
+$cursor = decodePaginationCursor($cursor_value, $cursor_keys);
 
 $queue_parameters = [
     'view' => $view,
@@ -46,8 +45,8 @@ if ($has_subject_filter) {
     $queue_parameters['subject_id'] = (int) $subject_filter_id;
 }
 $task_return_parameters = $queue_parameters;
-if (is_string($_GET['cursor'] ?? null) && $cursor !== null) {
-    $task_return_parameters['cursor'] = $_GET['cursor'];
+if ($cursor_value !== '' && $cursor !== null) {
+    $task_return_parameters['cursor'] = $cursor_value;
 }
 $task_return_to = 'tasks.php?' . http_build_query($task_return_parameters);
 

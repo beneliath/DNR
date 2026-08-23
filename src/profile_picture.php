@@ -7,11 +7,12 @@ requireLogin();
 $current_user_id = (int) $_SESSION['user_id'];
 $user_id = $current_user_id;
 if (isset($_GET['id'])) {
-    if (!ctype_digit((string) $_GET['id'])) {
+    $requested_user_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+    if ($requested_user_id === null) {
         http_response_code(400);
         exit;
     }
-    $user_id = (int) $_GET['id'];
+    $user_id = $requested_user_id;
 }
 if ($user_id < 1 || ($user_id !== $current_user_id && !checkRole('admin'))) {
     http_response_code(403);
@@ -58,7 +59,7 @@ if (preg_match('/^[0-9a-f]{64}$/', $picture_hash) === 1
         exit;
     }
 
-    $serve_full_size = ($_GET['size'] ?? '') === 'full';
+    $serve_full_size = \Dnr\Http\RequestInput::string($_GET, 'size') === 'full';
     $picture = $serve_full_size ? null : ($user['profile_picture_thumbnail'] ?? null);
     $served_mime = $serve_full_size
         ? $mime_type

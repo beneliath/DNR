@@ -37,9 +37,17 @@ expectBuildProvenanceScript(
 expectBuildProvenanceScript(
     str_contains($script, 'development-mail|dev-mail)')
         && str_contains($script, 'production-mail|prod-mail)')
-        && substr_count($script, '-f docker-compose.mail.yaml') === 2
+        && substr_count($script, '-f docker-compose.mail.yaml') === 4
         && str_contains($readme, 'compose_with_provenance.sh production-mail'),
     'mail-enabled modes should add the inbound worker Compose overlay.'
+);
+expectBuildProvenanceScript(
+    str_contains($script, 'development-smtp|dev-smtp)')
+        && str_contains($script, 'production-smtp|prod-smtp)')
+        && str_contains($script, 'development-mail-smtp|dev-mail-smtp)')
+        && str_contains($script, 'production-mail-smtp|prod-mail-smtp)')
+        && substr_count($script, '-f docker-compose.smtp.yaml') === 4,
+    'SMTP modes should add durable outbound delivery alone or alongside inbound mail.'
 );
 expectBuildProvenanceScript(
     substr_count($readme, 'compose_with_provenance.sh') >= 6

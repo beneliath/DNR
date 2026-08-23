@@ -41,7 +41,11 @@ if [ -e "$environment_path" ]; then
     fi
 fi
 
-for secret_name in mysql_root_password mysql_app_password mysql_maintenance_password backup_password; do
+for secret_name in \
+    mysql_root_password mysql_app_password mysql_maintenance_password \
+    mysql_geocoder_password mysql_mail_ingest_password mysql_mail_dispatch_password \
+    backup_password
+do
     if [ -e "$secret_directory/$secret_name" ]; then
         echo "A database secret file already exists; refusing a potentially partial migration." >&2
         exit 1
@@ -75,6 +79,9 @@ chmod 600 "$backup_path"
 new_root_password=$(openssl rand -hex 32)
 new_app_password=$(openssl rand -hex 32)
 new_maintenance_password=$(openssl rand -hex 32)
+new_geocoder_password=$(openssl rand -hex 32)
+new_mail_ingest_password=$(openssl rand -hex 32)
+new_mail_dispatch_password=$(openssl rand -hex 32)
 
 sql_file=$(mktemp "${TMPDIR:-/tmp}/dnr-credential-rotation.XXXXXX")
 environment_temp=$(mktemp "$project_directory/.env.XXXXXX")
@@ -88,6 +95,12 @@ printf "%s\n" \
     "ALTER USER 'dnruser'@'%' IDENTIFIED BY '$new_app_password';" \
     "CREATE USER IF NOT EXISTS 'dnrmaintenance'@'%' IDENTIFIED BY '$new_maintenance_password';" \
     "ALTER USER 'dnrmaintenance'@'%' IDENTIFIED BY '$new_maintenance_password';" \
+    "CREATE USER IF NOT EXISTS 'dnrgeocoder'@'%' IDENTIFIED BY '$new_geocoder_password';" \
+    "ALTER USER 'dnrgeocoder'@'%' IDENTIFIED BY '$new_geocoder_password';" \
+    "CREATE USER IF NOT EXISTS 'dnrmailingest'@'%' IDENTIFIED BY '$new_mail_ingest_password';" \
+    "ALTER USER 'dnrmailingest'@'%' IDENTIFIED BY '$new_mail_ingest_password';" \
+    "CREATE USER IF NOT EXISTS 'dnrmaildispatch'@'%' IDENTIFIED BY '$new_mail_dispatch_password';" \
+    "ALTER USER 'dnrmaildispatch'@'%' IDENTIFIED BY '$new_mail_dispatch_password';" \
     > "$sql_file"
 docker exec -i "$database_container" sh -c \
     'exec mysql -uroot -p"$MYSQL_ROOT_PASSWORD"' < "$sql_file"
@@ -95,6 +108,9 @@ docker exec -i "$database_container" sh -c \
 printf '%s' "$new_root_password" > "$secret_directory/mysql_root_password"
 printf '%s' "$new_app_password" > "$secret_directory/mysql_app_password"
 printf '%s' "$new_maintenance_password" > "$secret_directory/mysql_maintenance_password"
+printf '%s' "$new_geocoder_password" > "$secret_directory/mysql_geocoder_password"
+printf '%s' "$new_mail_ingest_password" > "$secret_directory/mysql_mail_ingest_password"
+printf '%s' "$new_mail_dispatch_password" > "$secret_directory/mysql_mail_dispatch_password"
 : > "$secret_directory/backup_password"
 if [ ! -s "$secret_directory/dnr_2fa_encryption_key" ]; then
     openssl rand -base64 32 > "$secret_directory/dnr_2fa_encryption_key"
@@ -106,6 +122,9 @@ printf "%s\n" \
     'DNR_MYSQL_ROOT_PASSWORD_FILE=./secrets/mysql_root_password' \
     'DNR_MYSQL_APP_PASSWORD_FILE=./secrets/mysql_app_password' \
     'DNR_MYSQL_MAINTENANCE_PASSWORD_FILE=./secrets/mysql_maintenance_password' \
+    'DNR_MYSQL_GEOCODER_PASSWORD_FILE=./secrets/mysql_geocoder_password' \
+    'DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE=./secrets/mysql_mail_ingest_password' \
+    'DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE=./secrets/mysql_mail_dispatch_password' \
     'DNR_2FA_KEY_FILE=./secrets/dnr_2fa_encryption_key' \
     'DNR_BACKUP_PASSWORD_FILE=./secrets/backup_password' \
     > "$environment_temp"
@@ -176,9 +195,8 @@ mv "$environment_temp" "$environment_path"
 cd "$project_directory"
 compose up -d --force-recreate --wait --wait-timeout "${DNR_COMPOSE_WAIT_TIMEOUT:-120}" db
 compose exec db sh /opt/dnr/bin/migrate
-compose exec db sh /docker-entrypoint-initdb.d/99-configure_database_privileges.sh
 "$project_directory/scripts/compose_with_provenance.sh" "$compose_mode" up -d --build web geocoder ingress
 
-echo "Database credentials were moved to separate secret files and the maintenance account was isolated."
+echo "Database credentials were moved to separate secret files and service accounts were isolated."
 echo "The pre-rotation safety backup is $backup_path"
 echo "Review DNR_PUBLIC_BASE_URL and trusted proxy settings in .env before accepting traffic."

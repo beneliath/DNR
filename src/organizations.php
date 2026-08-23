@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -8,7 +9,11 @@ requireLogin();
 $user_role = $_SESSION['role'] ?? '';
 $allowed_page_sizes = [20, 50, 100];
 
-$list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
+$list_status = \Dnr\Http\RequestInput::string(
+    $_POST,
+    'list_status',
+    \Dnr\Http\RequestInput::string($_GET, 'status')
+) === 'archived'
     ? 'archived'
     : 'active';
 $show_archived = $list_status === 'archived';
@@ -72,16 +77,21 @@ $action_error = $_SESSION['organization_action_error'] ?? '';
 unset($_SESSION['organization_action_message'], $_SESSION['organization_action_error']);
 
 // Retrieve organizations using an allowlisted name-sort direction.
-$name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
+$name_sort = strtolower(\Dnr\Http\RequestInput::string($_GET, 'name_sort')) === 'desc'
+    ? 'desc'
+    : 'asc';
 $order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
-$search = trim(substr((string) ($_GET['q'] ?? ''), 0, 256));
+$search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
-$cursor = decodePaginationCursor($_GET['cursor'] ?? '', ['name', 'id']);
+$cursor = decodePaginationCursor(
+    \Dnr\Http\RequestInput::string($_GET, 'cursor'),
+    ['name', 'id']
+);
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;

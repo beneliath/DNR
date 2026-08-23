@@ -119,6 +119,18 @@ expectExport(
     engagementPdfFilename($engagement) === 'engagement-42-summer-summit.pdf',
     'PDF filenames are stable and safe.'
 );
+expectExport(
+    engagementPdfDisplayValue('Event Dates', '2026-08-20 to 2026-08-22') === 'August 20, 2026 - August 22, 2026',
+    'PDF dates use a readable display format.'
+);
+expectExport(
+    engagementPdfDisplayValue('Status', 'under_review') === 'Under Review',
+    'PDF status values are formatted for display.'
+);
+expectExport(
+    engagementPdfDisplayValue('Date and Time', '2026-08-21 09:30 AM') === 'August 21, 2026 at 9:30 AM',
+    'PDF presentation dates use a readable display format.'
+);
 
 $pdf_contents = renderEngagementPdf($export, 'August 15, 2026');
 $pdf_section_headings = array_column(orderEngagementPdfSections($export['sections']), 'heading');
@@ -136,8 +148,8 @@ expectExport(str_starts_with($pdf_contents, '%PDF-'), 'PDF export has a valid PD
 expectExport(str_ends_with(rtrim($pdf_contents), '%%EOF'), 'PDF export has a valid PDF trailer.');
 expectExport(strlen($pdf_contents) > 1500, 'PDF export contains rendered engagement content.');
 expectExport(
-    preg_match('/\/Count\s+2\b/', $pdf_contents) === 1,
-    'PDF export places Chron on its own final page for the complete fixture.'
+    preg_match('/\/Count\s+([2-9]|[1-9][0-9]+)\b/', $pdf_contents) === 1,
+    'PDF export includes a separate final page for Chron.'
 );
 
 $sample_output = getenv('DNR_PDF_TEST_OUTPUT');

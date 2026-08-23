@@ -15,13 +15,11 @@ if (!in_array($user_role, ['admin', 'editor'])) {
     exit();
 }
 
-// Check if ID is provided and valid
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$engagement_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($engagement_id === null) {
     header("Location: engagements.php");
     exit();
 }
-
-$engagement_id = intval($_GET['id']);
 
 // Get engagement data
 $query = "SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,

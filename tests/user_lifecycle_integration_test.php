@@ -45,6 +45,7 @@ $target_id = (int) $conn->insert_id;
 $insert->close();
 
 try {
+    putenv('DNR_MAIL_TRANSPORT=smtp');
     $calendar_token = random_bytes(32);
     $calendar = $conn->prepare(
         'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
@@ -71,7 +72,25 @@ try {
         findUserEmailToken($conn, 'recovery', $stale_token['token']) === null,
         'an authentication-version change should invalidate an outstanding email token.'
     );
-    issueUserEmailToken($conn, $target_id, 'recovery', $target_email);
+    $previous_token = issueUserEmailToken($conn, $target_id, 'recovery', $target_email);
+    $replacement_token = issueUserEmailToken($conn, $target_id, 'recovery', $target_email);
+    expectLifecycleIntegration(
+        findUserEmailToken($conn, 'recovery', $previous_token['token']) !== null,
+        'a previous recovery link should remain usable while replacement delivery is pending.'
+    );
+    $conn->begin_transaction();
+    completeQueuedAccountEmail(
+        $conn,
+        $replacement_token['id'],
+        $target_id,
+        'recovery'
+    );
+    $conn->commit();
+    expectLifecycleIntegration(
+        findUserEmailToken($conn, 'recovery', $previous_token['token']) === null
+            && findUserEmailToken($conn, 'recovery', $replacement_token['token']) !== null,
+        'successful replacement delivery should invalidate only the superseded link.'
+    );
     $before = $conn->query("SELECT auth_version FROM users WHERE id = {$target_id}")->fetch_assoc();
     $result = deactivateUserAccount($conn, $target_id, $actor_id);
 
@@ -119,6 +138,7 @@ try {
         'an administrator should be able to reactivate an inactive account.'
     );
 } finally {
+    putenv('DNR_MAIL_TRANSPORT');
     $delete_actor = $conn->prepare('DELETE FROM users WHERE id = ?');
     $delete_actor->bind_param('i', $actor_id);
     $delete_actor->execute();

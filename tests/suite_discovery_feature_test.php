@@ -42,5 +42,15 @@ expectIntegrationRunner(
         && str_contains($runner, 'maintenance'),
     'the destructive backup suite should remain isolated in the maintenance container.'
 );
+expectIntegrationRunner(
+    substr_count($runner, '</dev/null') === 3,
+    'containerized tests should not consume the loop input before every discovered suite runs.'
+);
+expectIntegrationRunner(
+    in_array('geocoder_worker_integration_test.php', $discovered, true)
+        && str_contains($runner, "'geocoder_worker_integration_test.php'")
+        && str_contains($runner, 'geocoder "/opt/dnr/${test_file}"'),
+    'geocoder write-path tests should run under the restricted worker identity.'
+);
 
 echo "Integration runner tests passed.\n";

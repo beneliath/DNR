@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'map_helpers.php';
 startSecureSession();
 requireLogin();
@@ -159,7 +160,6 @@ $map_events = [];
 $cached_pin_count = 0;
 $pending_geocode_count = 0;
 $not_found_count = 0;
-$queue_failures = 0;
 foreach ($engagement_rows as $row) {
     $hash = $row['_map_address_hash'];
     $geocode = $geocodes[$hash] ?? null;
@@ -173,9 +173,6 @@ foreach ($engagement_rows as $row) {
         $cached_pin_count++;
     } elseif ($needs_geocoding) {
         $pending_geocode_count++;
-        if (!queueEngagementMapAddress($conn, $row['_map_address'])) {
-            $queue_failures++;
-        }
     } else {
         $not_found_count++;
     }
@@ -203,7 +200,6 @@ $map_payload = [
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
     'resultsTruncated' => $map_results_truncated,
-    'queueFailureCount' => $queue_failures,
 ];
 ?>
 <!DOCTYPE html>

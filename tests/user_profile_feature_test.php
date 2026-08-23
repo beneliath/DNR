@@ -75,6 +75,12 @@ expectUserProfile(
         && str_contains($profile_page, 'aria-live="polite"'),
     'the profile page should load an accessible immediate picture preview.'
 );
+expectUserProfile(
+    str_contains($profile_page, 'form="profile-resend-verification-form"')
+        && str_contains($profile_page, '<form id="profile-resend-verification-form" method="post" action="profile.php" hidden>')
+        && strpos($profile_page, 'profile-verification-button') < strpos($profile_page, 'profile-save-actions'),
+    'the resend-verification action should remain a separate secure form while its button sits at the lower-left of the profile pane.'
+);
 
 $profile_script = $read('src/assets/js/profile.js');
 expectUserProfile(
@@ -123,22 +129,22 @@ expectUserProfile(
 );
 
 $migration = $read('migrations/20260818_add_user_profiles.sql');
-$initial_schema = $read('init.sql');
 expectUserProfile(
     str_contains($migration, 'first_name VARCHAR(100)')
         && str_contains($migration, 'last_name VARCHAR(100)')
         && str_contains($migration, 'phone VARCHAR(50)')
         && str_contains($migration, 'email VARCHAR(254)')
-        && str_contains($migration, 'profile_picture MEDIUMBLOB')
-        && str_contains($initial_schema, "'20260818_add_user_profiles.sql'"),
-    'fresh and upgraded databases should both include the user profile fields.'
+        && str_contains($migration, 'profile_picture MEDIUMBLOB'),
+    'the forward migration should include the user profile fields.'
 );
 
 $styles = $read('src/assets/css/modern.css');
 expectUserProfile(
     str_contains($styles, '.sidebar-account-link')
         && str_contains($styles, '.profile-picture-preview')
-        && str_contains($styles, '.profile-field-grid'),
+        && str_contains($styles, '.profile-field-grid')
+        && str_contains($styles, '.profile-save-actions')
+        && preg_match('/\.profile-actions\s*\{[^}]*justify-content:\s*space-between;/s', $styles) === 1,
     'the clickable sidebar account and responsive profile form should use shared application styling.'
 );
 

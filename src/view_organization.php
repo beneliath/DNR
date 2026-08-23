@@ -8,13 +8,11 @@ requireLogin();
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$org_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($org_id === null) {
     header("Location: organizations.php");
     exit();
 }
-
-$org_id = intval($_GET['id']);
 
 // Fetch organization details
 $query = "SELECT * FROM organizations WHERE id = ?";

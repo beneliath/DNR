@@ -1,0 +1,34 @@
+parameters:
+    # Routes moved onto explicit connection and request boundaries graduate
+    # here before the remaining procedural surface is raised as a whole.
+    level: 3
+    paths:
+        - src/map_geocode.php
+        - src/task_subject_search.php
+        - src/user_lifecycle.php
+        - src/restore_presentations.php
+        - src/calendar_subscription.php
+        - src/contacts.php
+        - src/organizations.php
+        - src/engagements.php
+        - src/tasks.php
+        - src/audit_log.php
+        - src/map.php
+    bootstrapFiles:
+        - src/functions.php
+    scanFiles:
+        - src/config.php
+        - src/calendar_helpers.php
+        - src/chron_log_helpers.php
+        - src/contact_photo_helpers.php
+        - src/engagement_search_helpers.php
+        - src/follow_up_task_helpers.php
+        - src/map_helpers.php
+        - src/pagination_helpers.php
+        - src/presentation_helpers.php
+        - src/image_upload_helpers.php
+        - src/two_factor_helpers.php
+        - src/user_lifecycle_helpers.php
+    tmpDir: /tmp/dnr-phpstan-modern-routes
+    parallel:
+        maximumNumberOfProcesses: 1

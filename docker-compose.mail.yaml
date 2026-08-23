@@ -15,16 +15,16 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      db:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     secrets:
-      - dnr_mysql_app_password
+      - dnr_mysql_mail_ingest_password
       - dnr_imap_password
     environment:
       DB_HOST: db
       MYSQL_DATABASE: dnr
-      MYSQL_USER: dnruser
-      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+      MYSQL_USER: dnrmailingest
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
       DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-moed@beneliath.com}
       DNR_INBOUND_MAX_BYTES: ${DNR_INBOUND_MAX_BYTES:-10485760}
       DNR_INBOUND_BATCH_SIZE: ${DNR_INBOUND_BATCH_SIZE:-20}

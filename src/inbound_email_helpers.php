@@ -271,6 +271,36 @@ function storeInboundEmailMessage(
     return ['id' => $messageId, 'inserted' => $inserted];
 }
 
+function quarantineInboundEmailMessage(
+    mysqli $conn,
+    string $transportKey,
+    Throwable $exception
+): void {
+    $transportKey = trim($transportKey);
+    if ($transportKey === '' || strlen($transportKey) > 255) {
+        throw new InvalidArgumentException('Invalid inbound quarantine transport key.');
+    }
+    $reason = mb_substr($exception->getMessage(), 0, 255, 'UTF-8');
+    if ($reason === '') {
+        $reason = 'Inbound message parsing failed.';
+    }
+    $stmt = $conn->prepare(
+        "INSERT INTO inbound_email_quarantine
+            (transport, transport_key, failure_reason)
+         VALUES ('imap', ?, ?)
+         ON DUPLICATE KEY UPDATE
+            failure_reason = VALUES(failure_reason),
+            occurrences = occurrences + 1,
+            last_failed_at = CURRENT_TIMESTAMP"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare inbound email quarantine storage.');
+    }
+    $stmt->bind_param('ss', $transportKey, $reason);
+    $stmt->execute();
+    $stmt->close();
+}
+
 /** @return list<string> */
 function inboundEmailDecodeAddressList(mixed $json): array
 {

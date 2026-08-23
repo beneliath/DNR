@@ -407,20 +407,35 @@ function purgeRevokedCalendarSubscriptions(mysqli $conn, $user_id) {
 }
 
 function calendarSubscriptionUrl(array $server, $token = null) {
+    $requires_https = function_exists('applicationRequiresHttps')
+        ? applicationRequiresHttps()
+        : filter_var(getenv('DNR_REQUIRE_HTTPS') ?: '0', FILTER_VALIDATE_BOOL);
     $configured_base_url = trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
-    if ($configured_base_url !== ''
-        && filter_var($configured_base_url, FILTER_VALIDATE_URL)
-        && in_array(strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME)), ['http', 'https'], true)
-    ) {
+    if ($configured_base_url !== '') {
+        $configured_scheme = strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME));
+        if (!filter_var($configured_base_url, FILTER_VALIDATE_URL)
+            || !in_array($configured_scheme, ['http', 'https'], true)
+            || parse_url($configured_base_url, PHP_URL_USER) !== null
+            || parse_url($configured_base_url, PHP_URL_PASS) !== null
+            || parse_url($configured_base_url, PHP_URL_QUERY) !== null
+            || parse_url($configured_base_url, PHP_URL_FRAGMENT) !== null
+            || ($requires_https && $configured_scheme !== 'https')
+        ) {
+            throw new RuntimeException('DNR_PUBLIC_BASE_URL must be a canonical HTTP(S) origin.');
+        }
         $calendar_url = rtrim($configured_base_url, '/') . '/calendar.php';
         return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
     }
 
-    $forwarded_proto = strtolower(trim(explode(',', $server['HTTP_X_FORWARDED_PROTO'] ?? '')[0]));
-    $scheme = $forwarded_proto === 'https'
-        || (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off')
-        ? 'https'
-        : 'http';
+    if ($requires_https) {
+        throw new RuntimeException(
+            'DNR_PUBLIC_BASE_URL is required before a production calendar subscription can be created.'
+        );
+    }
+    $uses_https = function_exists('requestUsesHttps')
+        ? requestUsesHttps($server)
+        : (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off');
+    $scheme = $uses_https ? 'https' : 'http';
 
     $host = (string) ($server['HTTP_HOST'] ?? 'localhost');
     if (!preg_match('/^[a-z0-9.\-\[\]:]+$/i', $host)) {

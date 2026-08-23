@@ -19,14 +19,6 @@ x-app-environment: &app-environment
   DNR_MAP_FUTURE_DAYS: ${DNR_MAP_FUTURE_DAYS:-730}
   DNR_MAP_MAX_EVENTS: ${DNR_MAP_MAX_EVENTS:-500}
   DNR_MAIL_TRANSPORT: ${DNR_MAIL_TRANSPORT:-disabled}
-  DNR_MAIL_FROM: ${DNR_MAIL_FROM:-}
-  DNR_MAIL_FROM_NAME: ${DNR_MAIL_FROM_NAME:-MOED}
-  DNR_SMTP_HOST: ${DNR_SMTP_HOST:-}
-  DNR_SMTP_PORT: ${DNR_SMTP_PORT:-587}
-  DNR_SMTP_ENCRYPTION: ${DNR_SMTP_ENCRYPTION:-starttls}
-  DNR_SMTP_USERNAME: ${DNR_SMTP_USERNAME:-}
-  DNR_SMTP_PASSWORD: ${DNR_SMTP_PASSWORD:-}
-  DNR_SMTP_PASSWORD_FILE: ${DNR_SMTP_PASSWORD_FILE:-}
 
 services:
   web:
@@ -47,8 +39,8 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      db:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     secrets:
       - dnr_2fa_encryption_key
       - dnr_mysql_app_password
@@ -107,15 +99,15 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      db:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     secrets:
-      - dnr_mysql_app_password
+      - dnr_mysql_geocoder_password
     environment:
       DB_HOST: db
       MYSQL_DATABASE: dnr
-      MYSQL_USER: dnruser
-      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+      MYSQL_USER: dnrgeocoder
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
       DNR_GEOCODER_BASE_URL: ${DNR_GEOCODER_BASE_URL:-https://nominatim.openstreetmap.org/search}
       DNR_GEOCODER_ALLOWED_HOSTS: ${DNR_GEOCODER_ALLOWED_HOSTS:-nominatim.openstreetmap.org}
       DNR_GEOCODER_USER_AGENT: ${DNR_GEOCODER_USER_AGENT:-}
@@ -139,8 +131,8 @@ services:
     security_opt:
       - no-new-privileges:true
     depends_on:
-      db:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     volumes:
       - ./backups:/backups:ro
     secrets:
@@ -167,16 +159,25 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
       MYSQL_MAINTENANCE_USER: dnrmaintenance
       MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      MYSQL_GEOCODER_USER: dnrgeocoder
+      MYSQL_GEOCODER_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      MYSQL_MAIL_INGEST_USER: dnrmailingest
+      MYSQL_MAIL_INGEST_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
+      MYSQL_MAIL_DISPATCH_USER: dnrmaildispatch
+      MYSQL_MAIL_DISPATCH_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
     secrets:
       - dnr_mysql_root_password
       - dnr_mysql_app_password
       - dnr_mysql_maintenance_password
+      - dnr_mysql_geocoder_password
+      - dnr_mysql_mail_ingest_password
+      - dnr_mysql_mail_dispatch_password
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro
-      - ./scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro
+      - db_socket:/var/run/mysqld
       - ./migrations:/opt/dnr/migrations:ro
       - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro
+      - ./scripts/configure_database_privileges.sh:/opt/dnr/bin/configure_database_privileges:ro
     networks: [backend]
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
@@ -185,8 +186,49 @@ services:
       retries: 20
       start_period: 20s
 
+  migrator:
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "/opt/dnr/bin/migrate"]
+    secrets:
+      - dnr_mysql_root_password
+      - dnr_mysql_app_password
+      - dnr_mysql_maintenance_password
+      - dnr_mysql_geocoder_password
+      - dnr_mysql_mail_ingest_password
+      - dnr_mysql_mail_dispatch_password
+    environment:
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnruser
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password
+      MYSQL_MAINTENANCE_USER: dnrmaintenance
+      MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      MYSQL_GEOCODER_USER: dnrgeocoder
+      MYSQL_GEOCODER_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      MYSQL_MAIL_INGEST_USER: dnrmailingest
+      MYSQL_MAIL_INGEST_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
+      MYSQL_MAIL_DISPATCH_USER: dnrmaildispatch
+      MYSQL_MAIL_DISPATCH_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+      DNR_PRIVILEGE_SCRIPT: /opt/dnr/bin/configure_database_privileges
+    volumes:
+      - db_socket:/var/run/mysqld
+      - ./migrations:/opt/dnr/migrations:ro
+      - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro
+      - ./scripts/configure_database_privileges.sh:/opt/dnr/bin/configure_database_privileges:ro
+    networks: [backend]
+
 volumes:
   db_data:
+  db_socket:
 
 networks:
   # Docker Engine does not activate published ports for containers connected
@@ -210,5 +252,11 @@ secrets:
     file: ${DNR_MYSQL_APP_PASSWORD_FILE:-./secrets/mysql_app_password}
   dnr_mysql_maintenance_password:
     file: ${DNR_MYSQL_MAINTENANCE_PASSWORD_FILE:-./secrets/mysql_maintenance_password}
+  dnr_mysql_geocoder_password:
+    file: ${DNR_MYSQL_GEOCODER_PASSWORD_FILE:-./secrets/mysql_geocoder_password}
+  dnr_mysql_mail_ingest_password:
+    file: ${DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE:-./secrets/mysql_mail_ingest_password}
+  dnr_mysql_mail_dispatch_password:
+    file: ${DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE:-./secrets/mysql_mail_dispatch_password}
   dnr_backup_password:
     file: ${DNR_BACKUP_PASSWORD_FILE:-./secrets/backup_password}

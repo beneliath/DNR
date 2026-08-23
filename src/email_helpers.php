@@ -29,14 +29,15 @@ function userEmailTokenLifetime($purpose)
     };
 }
 
-/** @return array{token: string, id: int, expires_at: string} */
+/** @return array{token: string, id: int, expires_at: string, queued: bool} */
 function issueUserEmailToken(
     mysqli $conn,
     $user_id,
     $purpose,
     $email,
     $created_by = null,
-    $lifetime_seconds = null
+    $lifetime_seconds = null,
+    bool $caller_manages_transaction = false
 ) {
     $user_id = (int) $user_id;
     $created_by = $created_by === null ? null : (int) $created_by;
@@ -49,61 +50,92 @@ function issueUserEmailToken(
         throw new InvalidArgumentException('An email-token owner is required.');
     }
 
-    $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
-    $token_hash = userEmailTokenHash($token);
-    if ($token_hash === null) {
-        throw new RuntimeException('Unable to create an email token.');
+    $transport = accountMailTransport();
+    $owns_transaction = !$caller_manages_transaction;
+    if ($owns_transaction) {
+        $conn->begin_transaction();
     }
-    $expires_at = gmdate('Y-m-d H:i:s', time() + $lifetime_seconds);
 
-    $version_stmt = $conn->prepare('SELECT auth_version FROM users WHERE id = ?');
-    if (!$version_stmt) {
-        throw new RuntimeException('Unable to prepare the email-token owner lookup.');
-    }
-    $version_stmt->bind_param('i', $user_id);
-    $version_stmt->execute();
-    $owner = $version_stmt->get_result()->fetch_assoc();
-    $version_stmt->close();
-    if (!$owner) {
-        throw new InvalidArgumentException('The email-token owner is unavailable.');
-    }
-    $auth_version = (int) $owner['auth_version'];
+    try {
+        $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $token_hash = userEmailTokenHash($token);
+        if ($token_hash === null) {
+            throw new RuntimeException('Unable to create an email token.');
+        }
+        $expires_at = gmdate('Y-m-d H:i:s', time() + $lifetime_seconds);
 
-    $invalidate = $conn->prepare(
-        'UPDATE user_email_tokens
-         SET consumed_at = UTC_TIMESTAMP()
-         WHERE user_id = ? AND purpose = ? AND consumed_at IS NULL'
-    );
-    if (!$invalidate) {
-        throw new RuntimeException('Unable to prepare email-token invalidation.');
-    }
-    $invalidate->bind_param('is', $user_id, $purpose);
-    $invalidate->execute();
-    $invalidate->close();
+        $version_stmt = $conn->prepare(
+            'SELECT auth_version, username FROM users WHERE id = ? FOR UPDATE'
+        );
+        if (!$version_stmt) {
+            throw new RuntimeException('Unable to prepare the email-token owner lookup.');
+        }
+        $version_stmt->bind_param('i', $user_id);
+        $version_stmt->execute();
+        $owner = $version_stmt->get_result()->fetch_assoc();
+        $version_stmt->close();
+        if (!$owner) {
+            throw new InvalidArgumentException('The email-token owner is unavailable.');
+        }
+        $auth_version = (int) $owner['auth_version'];
 
-    $stmt = $conn->prepare(
-        'INSERT INTO user_email_tokens
-            (user_id, purpose, email, auth_version, token_hash, expires_at, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
-    );
-    if (!$stmt) {
-        throw new RuntimeException('Unable to prepare an email token.');
-    }
-    $stmt->bind_param(
-        'ississi',
-        $user_id,
-        $purpose,
-        $email,
-        $auth_version,
-        $token_hash,
-        $expires_at,
-        $created_by
-    );
-    $stmt->execute();
-    $token_id = (int) $conn->insert_id;
-    $stmt->close();
+        $stmt = $conn->prepare(
+            'INSERT INTO user_email_tokens
+                (user_id, purpose, email, auth_version, token_hash, expires_at, created_by)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
+        );
+        if (!$stmt) {
+            throw new RuntimeException('Unable to prepare an email token.');
+        }
+        $stmt->bind_param(
+            'ississi',
+            $user_id,
+            $purpose,
+            $email,
+            $auth_version,
+            $token_hash,
+            $expires_at,
+            $created_by
+        );
+        $stmt->execute();
+        $token_id = (int) $conn->insert_id;
+        $stmt->close();
 
-    return ['token' => $token, 'id' => $token_id, 'expires_at' => $expires_at];
+        $message = accountTokenEmailMessage(
+            $purpose,
+            $email,
+            (string) $owner['username'],
+            $token
+        );
+        queueAccountEmail(
+            $conn,
+            $token_id,
+            $user_id,
+            $purpose,
+            $message['recipient'],
+            $message['subject'],
+            $message['body']
+        );
+        if ($transport === 'log') {
+            deliverAccountEmail($message['recipient'], $message['subject'], $message['body']);
+            completeQueuedAccountEmail($conn, $token_id, $user_id, $purpose);
+        }
+
+        if ($owns_transaction) {
+            $conn->commit();
+        }
+        return [
+            'token' => $token,
+            'id' => $token_id,
+            'expires_at' => $expires_at,
+            'queued' => $transport === 'smtp',
+        ];
+    } catch (Throwable $exception) {
+        if ($owns_transaction) {
+            $conn->rollback();
+        }
+        throw $exception;
+    }
 }
 
 function findUserEmailToken(mysqli $conn, $purpose, $token, $lock = false)
@@ -159,14 +191,238 @@ function consumeUserEmailToken(mysqli $conn, $token_id)
 function applicationPublicUrl($path, array $query = [])
 {
     $base_url = rtrim(trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: '')), '/');
+    $scheme = strtolower((string) parse_url($base_url, PHP_URL_SCHEME));
+    $requires_https = function_exists('applicationRequiresHttps')
+        ? applicationRequiresHttps()
+        : filter_var(getenv('DNR_REQUIRE_HTTPS') ?: '0', FILTER_VALIDATE_BOOL);
     if ($base_url === ''
         || !filter_var($base_url, FILTER_VALIDATE_URL)
-        || !in_array(strtolower((string) parse_url($base_url, PHP_URL_SCHEME)), ['http', 'https'], true)
+        || !in_array($scheme, ['http', 'https'], true)
+        || parse_url($base_url, PHP_URL_USER) !== null
+        || parse_url($base_url, PHP_URL_PASS) !== null
+        || parse_url($base_url, PHP_URL_QUERY) !== null
+        || parse_url($base_url, PHP_URL_FRAGMENT) !== null
+        || ($requires_https && $scheme !== 'https')
     ) {
         throw new RuntimeException('DNR_PUBLIC_BASE_URL must be configured before email links can be sent.');
     }
     $url = $base_url . '/' . ltrim((string) $path, '/');
     return $query === [] ? $url : $url . '?' . http_build_query($query);
+}
+
+function accountMailTransport(): string
+{
+    $transport = strtolower(trim((string) (getenv('DNR_MAIL_TRANSPORT') ?: 'disabled')));
+    if (!in_array($transport, ['smtp', 'log'], true)) {
+        throw new RuntimeException('Email delivery is disabled. Configure DNR_MAIL_TRANSPORT=smtp.');
+    }
+    return $transport;
+}
+
+/** @return array{recipient: string, subject: string, body: string} */
+function accountTokenEmailMessage(string $purpose, string $email, string $username, string $token): array
+{
+    $email = normalizeAccountEmail($email);
+    if ($purpose === 'invitation') {
+        return [
+            'recipient' => $email,
+            'subject' => 'Your MOED account invitation',
+            'body' => "You have been invited to MOED as {$username}.\n\n"
+                . "Accept the invitation and choose your password:\n"
+                . applicationPublicUrl('accept_invitation.php', ['token' => $token]) . "\n\n"
+                . 'This single-use link expires in seven days.',
+        ];
+    }
+    if ($purpose === 'verification') {
+        return [
+            'recipient' => $email,
+            'subject' => 'Verify your MOED email address',
+            'body' => "Hello {$username},\n\nVerify this email address for your MOED account:\n"
+                . applicationPublicUrl('verify_email.php', ['token' => $token]) . "\n\n"
+                . 'This single-use link expires in 24 hours.',
+        ];
+    }
+    if ($purpose === 'recovery') {
+        return [
+            'recipient' => $email,
+            'subject' => 'Reset your MOED password',
+            'body' => "Hello {$username},\n\nUse this link to choose a new MOED password:\n"
+                . applicationPublicUrl('recover_password.php', ['token' => $token]) . "\n\n"
+                . 'This single-use link expires in one hour. If you did not request it, ignore this email.',
+        ];
+    }
+    throw new InvalidArgumentException('Invalid email-token purpose.');
+}
+
+function queueAccountEmail(
+    mysqli $conn,
+    int $tokenId,
+    int $userId,
+    string $purpose,
+    string $recipient,
+    string $subject,
+    string $body
+): void {
+    $json = json_encode([
+        'recipient' => normalizeAccountEmail($recipient),
+        'subject' => $subject,
+        'body' => $body,
+    ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
+    $ciphertext = \Dnr\Security\ApplicationKey::seal($json);
+    $stmt = $conn->prepare(
+        'INSERT INTO email_outbox
+            (token_id, user_id, purpose, payload_ciphertext)
+         VALUES (?, ?, ?, ?)'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare durable email delivery.');
+    }
+    $stmt->bind_param('iiss', $tokenId, $userId, $purpose, $ciphertext);
+    $stmt->execute();
+    $stmt->close();
+}
+
+function completeQueuedAccountEmail(
+    mysqli $conn,
+    int $tokenId,
+    int $userId,
+    string $purpose
+): void {
+    $complete = $conn->prepare(
+        "UPDATE email_outbox
+         SET status = 'sent', sent_at = UTC_TIMESTAMP(), processing_started_at = NULL,
+             payload_ciphertext = NULL, last_error = NULL
+         WHERE token_id = ? AND status IN ('pending', 'processing', 'retry')"
+    );
+    if (!$complete) {
+        throw new RuntimeException('Unable to prepare email completion.');
+    }
+    $complete->bind_param('i', $tokenId);
+    $complete->execute();
+    if ($complete->affected_rows !== 1) {
+        $complete->close();
+        throw new RuntimeException('The queued email can no longer be completed.');
+    }
+    $complete->close();
+
+    $invalidate = $conn->prepare(
+        'UPDATE user_email_tokens
+         SET consumed_at = UTC_TIMESTAMP()
+         WHERE user_id = ? AND purpose = ? AND id <> ? AND consumed_at IS NULL'
+    );
+    if (!$invalidate) {
+        throw new RuntimeException('Unable to prepare superseded email-token invalidation.');
+    }
+    $invalidate->bind_param('isi', $userId, $purpose, $tokenId);
+    $invalidate->execute();
+    $invalidate->close();
+}
+
+/**
+ * @return array{id: int, token_id: int, user_id: int, purpose: string,
+ *   payload_ciphertext: string, expires_at: string}|null
+ */
+function claimQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): ?array
+{
+    $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    $conn->begin_transaction();
+    try {
+        $result = $conn->query(
+            "SELECT outbox.id, outbox.token_id, outbox.user_id, outbox.purpose,
+                    outbox.payload_ciphertext, token.expires_at
+             FROM email_outbox outbox
+             INNER JOIN user_email_tokens token ON token.id = outbox.token_id
+             WHERE outbox.attempts < 8
+               AND outbox.payload_ciphertext IS NOT NULL
+               AND (
+                    (outbox.status IN ('pending', 'retry')
+                        AND outbox.next_attempt_at <= UTC_TIMESTAMP())
+                    OR (outbox.status = 'processing'
+                        AND outbox.processing_started_at <= DATE_SUB(
+                            UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
+                        ))
+               )
+             ORDER BY outbox.next_attempt_at, outbox.id
+             LIMIT 1 FOR UPDATE SKIP LOCKED"
+        );
+        $row = $result ? $result->fetch_assoc() : null;
+        if (!$row) {
+            $conn->commit();
+            return null;
+        }
+        $id = (int) $row['id'];
+        $claim = $conn->prepare(
+            "UPDATE email_outbox
+             SET status = 'processing', attempts = attempts + 1,
+                 processing_started_at = UTC_TIMESTAMP(), last_error = NULL
+             WHERE id = ?"
+        );
+        $claim->bind_param('i', $id);
+        $claim->execute();
+        $claim->close();
+        $conn->commit();
+        return [
+            'id' => $id,
+            'token_id' => (int) $row['token_id'],
+            'user_id' => (int) $row['user_id'],
+            'purpose' => (string) $row['purpose'],
+            'payload_ciphertext' => (string) $row['payload_ciphertext'],
+            'expires_at' => (string) $row['expires_at'],
+        ];
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
+/** @return array{recipient: string, subject: string, body: string} */
+function decryptQueuedAccountEmail(string $ciphertext): array
+{
+    $decoded = json_decode(
+        \Dnr\Security\ApplicationKey::open($ciphertext),
+        true,
+        4,
+        JSON_THROW_ON_ERROR
+    );
+    if (!is_array($decoded)
+        || !is_string($decoded['recipient'] ?? null)
+        || !is_string($decoded['subject'] ?? null)
+        || !is_string($decoded['body'] ?? null)
+    ) {
+        throw new RuntimeException('The queued email payload is invalid.');
+    }
+    return [
+        'recipient' => normalizeAccountEmail($decoded['recipient']),
+        'subject' => $decoded['subject'],
+        'body' => $decoded['body'],
+    ];
+}
+
+function failQueuedAccountEmail(
+    mysqli $conn,
+    int $outboxId,
+    int $tokenId,
+    Throwable $exception,
+    bool $permanent = false
+): void {
+    $error = mb_substr($exception->getMessage(), 0, 255, 'UTF-8');
+    $stmt = $conn->prepare(
+        "UPDATE email_outbox
+         SET status = IF(? OR attempts >= 8, 'failed', 'retry'),
+             processing_started_at = NULL, last_error = ?,
+             payload_ciphertext = IF(? OR attempts >= 8, NULL, payload_ciphertext),
+             next_attempt_at = TIMESTAMPADD(
+                 MINUTE, LEAST(1440, CAST(POW(2, attempts) AS UNSIGNED)), UTC_TIMESTAMP()
+             )
+         WHERE id = ? AND token_id = ? AND status = 'processing'"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare queued email failure handling.');
+    }
+    $permanentFlag = $permanent ? 1 : 0;
+    $stmt->bind_param('isiii', $permanentFlag, $error, $permanentFlag, $outboxId, $tokenId);
+    $stmt->execute();
+    $stmt->close();
 }
 
 function mailConfigurationSecret($name)
@@ -282,16 +538,13 @@ function sendSmtpMessage($recipient, $subject, $body)
 
 function deliverAccountEmail($recipient, $subject, $body)
 {
-    $transport = strtolower(trim((string) (getenv('DNR_MAIL_TRANSPORT') ?: 'disabled')));
+    $transport = accountMailTransport();
     if ($transport === 'log') {
         applicationLog('info', 'Account email accepted by development transport', [
             'recipient' => normalizeAccountEmail($recipient),
             'subject' => (string) $subject,
         ]);
         return true;
-    }
-    if ($transport !== 'smtp') {
-        throw new RuntimeException('Email delivery is disabled. Configure DNR_MAIL_TRANSPORT=smtp.');
     }
     return sendSmtpMessage($recipient, $subject, $body);
 }

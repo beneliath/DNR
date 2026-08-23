@@ -27,26 +27,14 @@ $suffix = bin2hex(random_bytes(4));
 $organization_id = 0;
 $engagement_id = 0;
 $subscription_user_id = 0;
-$geocode_hashes = [];
 
 register_shutdown_function(static function () use (
     $conn,
     &$organization_id,
     &$engagement_id,
-    &$subscription_user_id,
-    &$geocode_hashes
+    &$subscription_user_id
 ) {
     try {
-        foreach ($geocode_hashes as $geocode_hash) {
-            $stmt = $conn->prepare('DELETE FROM engagement_map_geocode_queue WHERE address_hash = ?');
-            $stmt->bind_param('s', $geocode_hash);
-            $stmt->execute();
-            $stmt->close();
-            $stmt = $conn->prepare('DELETE FROM engagement_map_geocodes WHERE address_hash = ?');
-            $stmt->bind_param('s', $geocode_hash);
-            $stmt->execute();
-            $stmt->close();
-        }
         if ($subscription_user_id > 0) {
             $stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
             $stmt->bind_param('i', $subscription_user_id);
@@ -227,79 +215,22 @@ expectBetaIntegration(
 
 $successful_address = 'Integration geocode success ' . $suffix;
 $successful_hash = engagementMapAddressHash($successful_address);
-$geocode_hashes[] = $successful_hash;
 expectBetaIntegration(
     queueEngagementMapAddress($conn, $successful_address),
     'a valid address should be queued for background geocoding.'
 );
-$processing_stmt = $conn->prepare(
-    "UPDATE engagement_map_geocode_queue SET status = 'processing' WHERE address_hash = ?"
+$queued_stmt = $conn->prepare(
+    'SELECT status, address_query FROM engagement_map_geocode_queue WHERE address_hash = ?'
 );
-$processing_stmt->bind_param('s', $successful_hash);
-$processing_stmt->execute();
-$processing_stmt->close();
-completeEngagementMapGeocodeJob(
-    $conn,
-    $successful_hash,
-    $successful_address,
-    ['latitude' => 32.7767, 'longitude' => -96.7970]
-);
-$completed_stmt = $conn->prepare(
-    'SELECT g.lookup_status, g.latitude, g.longitude, q.address_hash AS queued_hash
-     FROM engagement_map_geocodes g
-     LEFT JOIN engagement_map_geocode_queue q ON q.address_hash = g.address_hash
-     WHERE g.address_hash = ?'
-);
-$completed_stmt->bind_param('s', $successful_hash);
-$completed_stmt->execute();
-$completed_geocode = $completed_stmt->get_result()->fetch_assoc();
-$completed_stmt->close();
+$queued_stmt->bind_param('s', $successful_hash);
+$queued_stmt->execute();
+$queued_geocode = $queued_stmt->get_result()->fetch_assoc();
+$queued_stmt->close();
 expectBetaIntegration(
-    $completed_geocode !== null
-        && $completed_geocode['lookup_status'] === 'found'
-        && $completed_geocode['queued_hash'] === null,
-    'storing a geocode should atomically acknowledge its queue item.'
-);
-
-$failed_address = 'Integration geocode rollback ' . $suffix;
-$failed_hash = engagementMapAddressHash($failed_address);
-$geocode_hashes[] = $failed_hash;
-expectBetaIntegration(
-    queueEngagementMapAddress($conn, $failed_address),
-    'the rollback fixture should be queued.'
-);
-$processing_stmt = $conn->prepare(
-    "UPDATE engagement_map_geocode_queue SET status = 'processing' WHERE address_hash = ?"
-);
-$processing_stmt->bind_param('s', $failed_hash);
-$processing_stmt->execute();
-$processing_stmt->close();
-$completion_failed = false;
-try {
-    completeEngagementMapGeocodeJob(
-        $conn,
-        $failed_hash,
-        str_repeat('x', 1001),
-        ['latitude' => 32.7767, 'longitude' => -96.7970]
-    );
-} catch (Throwable $exception) {
-    $completion_failed = true;
-}
-$rollback_stmt = $conn->prepare(
-    'SELECT q.status,
-        (SELECT COUNT(*) FROM engagement_map_geocodes g WHERE g.address_hash = ?) AS result_count
-     FROM engagement_map_geocode_queue q WHERE q.address_hash = ?'
-);
-$rollback_stmt->bind_param('ss', $failed_hash, $failed_hash);
-$rollback_stmt->execute();
-$rolled_back_geocode = $rollback_stmt->get_result()->fetch_assoc();
-$rollback_stmt->close();
-expectBetaIntegration(
-    $completion_failed
-        && $rolled_back_geocode !== null
-        && $rolled_back_geocode['status'] === 'processing'
-        && (int) $rolled_back_geocode['result_count'] === 0,
-    'a geocode storage failure must roll back without losing the queue item.'
+    $queued_geocode !== null
+        && $queued_geocode['status'] === 'pending'
+        && $queued_geocode['address_query'] === $successful_address,
+    'the application identity should be able to enqueue, but not complete, geocoding work.'
 );
 
 echo "Beta integration tests passed.\n";

@@ -1,11 +1,48 @@
 services:
   web:
+    environment:
+      DNR_MAIL_TRANSPORT: smtp
+
+  mail-dispatch:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    entrypoint: ["php", "/opt/dnr/bin/process_email_outbox.php", "--loop"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
     secrets:
+      - dnr_mysql_mail_dispatch_password
+      - dnr_2fa_encryption_key
       - dnr_smtp_password
-    networks:
-      - backend
-      - egress
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrmaildispatch
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+      DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
+      DNR_MAIL_TRANSPORT: smtp
+      DNR_MAIL_FROM: ${DNR_MAIL_FROM:-}
+      DNR_MAIL_FROM_NAME: ${DNR_MAIL_FROM_NAME:-MOED}
+      DNR_SMTP_HOST: ${DNR_SMTP_HOST:-}
+      DNR_SMTP_PORT: ${DNR_SMTP_PORT:-587}
+      DNR_SMTP_ENCRYPTION: ${DNR_SMTP_ENCRYPTION:-starttls}
+      DNR_SMTP_USERNAME: ${DNR_SMTP_USERNAME:-}
+      DNR_SMTP_PASSWORD_FILE: /run/secrets/dnr_smtp_password
+      DNR_EMAIL_OUTBOX_BATCH_SIZE: ${DNR_EMAIL_OUTBOX_BATCH_SIZE:-20}
+      DNR_EMAIL_OUTBOX_IDLE_SECONDS: ${DNR_EMAIL_OUTBOX_IDLE_SECONDS:-15}
+    networks: [backend, egress]
 
 secrets:
   dnr_smtp_password:
-    file: ./secrets/smtp_password
+    file: ${DNR_SMTP_PASSWORD_SECRET_FILE:-./secrets/smtp_password}

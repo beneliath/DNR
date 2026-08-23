@@ -139,4 +139,29 @@ expectCalendar(
 );
 putenv('DNR_PUBLIC_BASE_URL');
 
+putenv('DNR_REQUIRE_HTTPS=1');
+try {
+    calendarSubscriptionUrl([
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_HOST' => 'attacker.example',
+    ], $calendar_token);
+    $missingOriginRejected = false;
+} catch (RuntimeException $exception) {
+    $missingOriginRejected = true;
+}
+expectCalendar(
+    $missingOriginRejected,
+    'production bearer links should require a configured canonical public origin.'
+);
+putenv('DNR_REQUIRE_HTTPS');
+
+expectCalendar(
+    str_starts_with(calendarSubscriptionUrl([
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_HOST' => 'localhost:8080',
+        'SCRIPT_NAME' => '/calendar_subscription.php',
+    ], $calendar_token), 'http://localhost:8080/'),
+    'an untrusted forwarded protocol should not change development link schemes.'
+);
+
 echo "Calendar helper tests passed.\n";

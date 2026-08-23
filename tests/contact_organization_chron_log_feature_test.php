@@ -16,7 +16,6 @@ $root = dirname(__DIR__);
 $migration = file_get_contents(
     $root . '/migrations/20260823_add_contact_organization_chron_entries.sql'
 );
-$schema = file_get_contents($root . '/init.sql');
 $editContact = file_get_contents($root . '/src/edit_contact.php');
 $editOrganization = file_get_contents($root . '/src/edit_organization.php');
 $viewContact = file_get_contents($root . '/src/view_contact.php');
@@ -26,7 +25,6 @@ $editTemplate = file_get_contents($root . '/src/templates/entity_chron_log_edit_
 $viewTemplate = file_get_contents($root . '/src/templates/entity_chron_log_view_section.php');
 $migrationRunner = file_get_contents($root . '/scripts/migrate.sh');
 $privilegeScript = file_get_contents($root . '/scripts/configure_database_privileges.sh');
-$restrictedPrivileges = file_get_contents($root . '/operations/restrict_app_database_user.sql');
 
 expectEntityChronFeature(
     is_string($migration)
@@ -36,14 +34,6 @@ expectEntityChronFeature(
         && str_contains($migration, 'FOREIGN KEY (organization_id) REFERENCES organizations(id) ON DELETE CASCADE'),
     'contacts and organizations should have separate parent-scoped tables.'
 );
-expectEntityChronFeature(
-    is_string($schema)
-        && str_contains($schema, 'CREATE TABLE IF NOT EXISTS contact_chron_entries')
-        && str_contains($schema, 'CREATE TABLE IF NOT EXISTS organization_chron_entries')
-        && str_contains($schema, '20260823_add_contact_organization_chron_entries.sql'),
-    'fresh installs should include both independent tables and seal the migration baseline.'
-);
-
 $contactConfiguration = chronLogEntityConfiguration('contact');
 $organizationConfiguration = chronLogEntityConfiguration('organization');
 expectEntityChronFeature(
@@ -109,13 +99,11 @@ expectEntityChronFeature(
     'the restore route should accept only contact and organization owners and remain editor-protected.'
 );
 
-foreach ([$migrationRunner, $privilegeScript, $restrictedPrivileges] as $privilegeSource) {
-    expectEntityChronFeature(
-        is_string($privilegeSource)
-            && str_contains($privilegeSource, 'contact_chron_entries')
-            && str_contains($privilegeSource, 'organization_chron_entries'),
-        'deployment privilege manifests should grant access to both new Chron tables.'
-    );
-}
+expectEntityChronFeature(
+    str_contains($migrationRunner, 'DNR_PRIVILEGE_SCRIPT')
+        && str_contains($privilegeScript, 'contact_chron_entries')
+        && str_contains($privilegeScript, 'organization_chron_entries'),
+    'the single deployment privilege manifest should grant access to both new Chron tables.'
+);
 
 echo "Contact and organization Chron log feature tests passed.\n";

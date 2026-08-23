@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
 startSecureSession();
@@ -66,6 +67,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(403);
                 exit('Forbidden.');
             }
+            requireRecentAdminElevation(
+                'restore_presentations.php?' . http_build_query(['engagement_id' => $engagement_id])
+            );
             $presentation_id = filter_input(INPUT_POST, 'presentation_id', FILTER_VALIDATE_INT);
             if (!$presentation_id) {
                 throw new InvalidArgumentException('Select a valid archived presentation.');

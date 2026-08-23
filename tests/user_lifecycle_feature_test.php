@@ -54,7 +54,7 @@ if ($old_base_url === false) {
 }
 
 $migration = $read('migrations/20260823_add_user_lifecycle_and_email_tokens.sql');
-$initial_schema = $read('init.sql');
+$outbox_migration = $read('migrations/20260823_add_user_token_email_outbox.sql');
 expectUserLifecycle(
     str_contains($migration, "account_status ENUM('invited', 'active', 'inactive')")
         && str_contains($migration, 'email_verified_at DATETIME')
@@ -62,8 +62,9 @@ expectUserLifecycle(
         && str_contains($migration, 'CREATE TABLE user_email_tokens')
         && str_contains($migration, 'auth_version INT UNSIGNED NOT NULL')
         && str_contains($migration, 'token_hash BINARY(32)')
-        && str_contains($initial_schema, '20260823_add_user_lifecycle_and_email_tokens.sql'),
-    'fresh and upgraded databases should contain durable lifecycle state and hashed email tokens.'
+        && str_contains($outbox_migration, 'CREATE TABLE email_outbox')
+        && str_contains($outbox_migration, 'payload_ciphertext MEDIUMTEXT'),
+    'forward migrations should contain durable lifecycle state, hashed tokens, and encrypted delivery state.'
 );
 
 $lifecycle = $read('src/user_lifecycle_helpers.php');
@@ -96,7 +97,8 @@ $accept_invitation = $read('src/accept_invitation.php');
 $page_actions = $read('src/assets/js/page-actions.js');
 expectUserLifecycle(
     str_contains($register, 'inviteUserAccount(')
-        && str_contains($register, 'sendInvitationEmail(')
+        && str_contains($register, 'queued for delivery')
+        && !str_contains($register, 'sendInvitationEmail(')
         && str_contains($accept_invitation, "require_once __DIR__ . '/user_lifecycle_helpers.php';")
         && str_contains($accept_invitation, "account_status = 'active'")
         && str_contains($read('src/verify_email.php'), 'email_verified_at = UTC_TIMESTAMP()')

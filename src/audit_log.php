@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 startSecureSession();
 requireAdmin();
 requireAuditLogSchema($conn);
@@ -14,25 +15,33 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 
 $allowed_categories = ['login', 'database_change', 'security'];
 $allowed_page_sizes = [20, 50, 100];
-$category = $_GET['category'] ?? '';
+$category = \Dnr\Http\RequestInput::string($_GET, 'category');
 if (!in_array($category, $allowed_categories, true)) {
     $category = '';
 }
-$search = trim(substr((string) ($_GET['q'] ?? ''), 0, 256));
+$search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$from_date = validIsoDate($_GET['from'] ?? '') ? $_GET['from'] : '';
-$to_date = validIsoDate($_GET['to'] ?? '') ? $_GET['to'] : '';
-$ip_filter = filter_var($_GET['ip'] ?? '', FILTER_VALIDATE_IP) ?: '';
+$requested_from_date = \Dnr\Http\RequestInput::string($_GET, 'from');
+$requested_to_date = \Dnr\Http\RequestInput::string($_GET, 'to');
+$from_date = validIsoDate($requested_from_date) ? $requested_from_date : '';
+$to_date = validIsoDate($requested_to_date) ? $requested_to_date : '';
+$ip_filter = filter_var(
+    \Dnr\Http\RequestInput::string($_GET, 'ip'),
+    FILTER_VALIDATE_IP
+) ?: '';
 
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true)
     ? $requested_page_size
     : 20;
 
-$cursor = decodePaginationCursor($_GET['cursor'] ?? '', ['created_at', 'id']);
+$cursor = decodePaginationCursor(
+    \Dnr\Http\RequestInput::string($_GET, 'cursor'),
+    ['created_at', 'id']
+);
 $where_parts = [];
 $filter_types = '';
 $filter_values = [];

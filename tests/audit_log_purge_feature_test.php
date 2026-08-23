@@ -10,7 +10,7 @@ function expectAuditLogPurgeFeature($condition, $message) {
 $page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 $styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audit_log.css');
 $purge = file_get_contents(__DIR__ . '/../scripts/purge_audit_log.sh');
-$grants = file_get_contents(__DIR__ . '/../operations/restrict_app_database_user.sql');
+$grants = file_get_contents(__DIR__ . '/../scripts/configure_database_privileges.sh');
 
 expectAuditLogPurgeFeature(
     str_contains($page, 'requireAdmin();')
@@ -37,8 +37,8 @@ expectAuditLogPurgeFeature(
     'purging must require a local literal confirmation and append a replacement maintenance event atomically.'
 );
 expectAuditLogPurgeFeature(
-    str_contains($grants, 'GRANT SELECT, INSERT ON dnr.security_audit_log')
-        && !str_contains($grants, 'UPDATE, DELETE ON dnr.security_audit_log'),
+    str_contains($grants, 'GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log')
+        && !str_contains($grants, 'UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.security_audit_log'),
     'the runtime database user must be unable to alter or delete audit entries.'
 );
 

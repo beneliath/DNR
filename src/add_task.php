@@ -12,9 +12,13 @@ if (!canManageFollowUpTasks($user_role)) {
 }
 
 $task_return_to = safeFollowUpTaskReturnUrl(
-    $_POST['return_to'] ?? $_GET['return_to'] ?? 'tasks.php'
+    \Dnr\Http\RequestInput::string(
+        $_POST,
+        'return_to',
+        \Dnr\Http\RequestInput::string($_GET, 'return_to', 'tasks.php')
+    )
 );
-$requested_subject_type = (string) ($_GET['subject_type'] ?? 'general');
+$requested_subject_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type', 'general');
 $requested_subject_id = filter_input(INPUT_GET, 'subject_id', FILTER_VALIDATE_INT);
 $task_selected_subject = $requested_subject_type === 'general'
     ? 'general'

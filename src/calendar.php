@@ -3,7 +3,10 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/calendar_helpers.php';
 
-$subscription = calendarSubscriptionForToken($conn, $_GET['token'] ?? null);
+$subscription = calendarSubscriptionForToken(
+    $conn,
+    \Dnr\Http\RequestInput::string($_GET, 'token')
+);
 if ($subscription === null) {
     http_response_code(404);
     header('Content-Type: text/plain; charset=utf-8');

@@ -13,14 +13,13 @@ if ($user_role !== 'admin' && $user_role !== 'editor') {
     exit();
 }
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$org_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($org_id === null) {
     header("Location: organizations.php");
     exit();
 }
 
-$org_id = intval($_GET['id']);
-$from = $_GET['from'] ?? '';
+$from = \Dnr\Http\RequestInput::string($_GET, 'from');
 if ($from === 'view') {
     $cancel_url = "view_organization.php?id=$org_id";
 } else {

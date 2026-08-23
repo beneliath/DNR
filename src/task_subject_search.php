@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -16,7 +17,11 @@ if (!canManageFollowUpTasks($_SESSION['role'] ?? '')) {
 
 try {
     echo json_encode([
-        'results' => searchFollowUpTaskSubjects($conn, $_GET['q'] ?? '', 24),
+        'results' => searchFollowUpTaskSubjects(
+            $conn,
+            \Dnr\Http\RequestInput::string($_GET, 'q', '', 100),
+            24
+        ),
     ], JSON_THROW_ON_ERROR);
 } catch (Throwable $exception) {
     applicationLog('error', 'Task subject search failed', ['error' => $exception->getMessage()]);

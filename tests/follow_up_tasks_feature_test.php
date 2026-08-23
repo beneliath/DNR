@@ -18,18 +18,15 @@ $read = static function ($path) use ($root) {
 };
 
 $migration = $read('migrations/20260818_add_follow_up_tasks.sql');
-$schema = $read('init.sql');
-foreach ([$migration, $schema] as $task_schema) {
-    expectFollowUpTaskFeature(
-        str_contains($task_schema, 'CREATE TABLE IF NOT EXISTS follow_up_tasks')
-            && str_contains($task_schema, "ENUM('open', 'in_progress', 'waiting', 'completed', 'canceled')")
-            && str_contains($task_schema, 'chk_follow_up_task_subject')
-            && str_contains($task_schema, 'chk_follow_up_task_completion')
-            && str_contains($task_schema, 'uq_follow_up_task_engagement_template')
-            && str_contains($task_schema, 'audit_follow_up_tasks_after_insert'),
-        'fresh and upgraded databases should enforce task subjects, completion state, template idempotence, and auditing.'
-    );
-}
+expectFollowUpTaskFeature(
+    str_contains($migration, 'CREATE TABLE IF NOT EXISTS follow_up_tasks')
+        && str_contains($migration, "ENUM('open', 'in_progress', 'waiting', 'completed', 'canceled')")
+        && str_contains($migration, 'chk_follow_up_task_subject')
+        && str_contains($migration, 'chk_follow_up_task_completion')
+        && str_contains($migration, 'uq_follow_up_task_engagement_template')
+        && str_contains($migration, 'audit_follow_up_tasks_after_insert'),
+    'the forward migration should enforce task subjects, completion state, template idempotence, and auditing.'
+);
 
 $helpers = $read('src/follow_up_task_helpers.php');
 $queue = $read('src/tasks.php');

@@ -49,7 +49,7 @@ if (preg_match('/^[0-9a-f]{64}$/', $photo_hash) === 1
         exit;
     }
 
-    $serve_full_size = ($_GET['size'] ?? '') === 'full';
+    $serve_full_size = \Dnr\Http\RequestInput::string($_GET, 'size') === 'full';
     $photo = $serve_full_size ? null : ($contact['contact_photo_thumbnail'] ?? null);
     $served_mime = $serve_full_size
         ? $mime_type

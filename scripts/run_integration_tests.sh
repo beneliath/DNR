@@ -38,7 +38,15 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore \
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
-            maintenance "/opt/dnr/${test_file}"
+            maintenance "/opt/dnr/${test_file}" </dev/null
+        continue
+    fi
+    if [ "$test_name" = 'geocoder_worker_integration_test.php' ]; then
+        compose run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 \
+            -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            geocoder "/opt/dnr/${test_file}" </dev/null
         continue
     fi
 
@@ -46,5 +54,5 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         -e DNR_INTEGRATION_TEST=1 \
         -e DNR_INTEGRATION_TARGET=disposable \
         -e DNR_TEST_SOURCE_DIR=/var/www/html \
-        web php "/opt/dnr/${test_file}"
+        web php "/opt/dnr/${test_file}" </dev/null
 done

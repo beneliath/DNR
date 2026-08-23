@@ -67,7 +67,6 @@ import * as L from 'leaflet';
     const notFoundCount = Number(payload.notFoundCount) || 0;
     const withoutAddressCount = Number(payload.withoutAddressCount) || 0;
     const resultsTruncated = payload.resultsTruncated === true;
-    const queueFailureCount = Number(payload.queueFailureCount) || 0;
 
     function plural(count, singular, pluralForm) {
         return count + ' ' + (count === 1 ? singular : (pluralForm || singular + 's'));
@@ -75,11 +74,10 @@ import * as L from 'leaflet';
 
     function updateFeedback() {
         const parts = [plural(pinCount, 'visible pin')];
-        if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' queued');
+        if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' awaiting lookup');
         if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address') + ' not found');
         if (withoutAddressCount > 0) parts.push(plural(withoutAddressCount, 'event') + ' without an address');
         if (resultsTruncated) parts.push('more matching events are outside the display limit');
-        if (queueFailureCount > 0) parts.push(plural(queueFailureCount, 'lookup') + ' unavailable');
         feedbackElement.textContent = parts.join(' · ');
         fitButton.disabled = pinCount === 0;
     }

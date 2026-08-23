@@ -10,13 +10,10 @@ function expectContactNotesFeature($condition, $message) {
 $root = dirname(__DIR__);
 $read = static fn($path) => file_get_contents($root . '/' . $path);
 
-$init = $read('init.sql');
 $migration = $read('migrations/20260818_add_contact_notes.sql');
 expectContactNotesFeature(
-    str_contains($init, 'contact_notes TEXT NULL')
-        && str_contains($init, "'20260818_add_contact_notes.sql'")
-        && str_contains($migration, 'ADD COLUMN contact_notes TEXT NULL'),
-    'fresh and upgraded databases should include optional contact notes.'
+    str_contains($migration, 'ADD COLUMN contact_notes TEXT NULL'),
+    'the forward migration should include optional contact notes.'
 );
 
 $add_contact = $read('src/add_contact.php');

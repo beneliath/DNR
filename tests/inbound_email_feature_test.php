@@ -12,7 +12,7 @@ function expectInboundFeature(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $migration = file_get_contents($root . '/migrations/20260823_add_inbound_chron_mail.sql');
-$schema = file_get_contents($root . '/init.sql');
+$quarantineMigration = file_get_contents($root . '/migrations/20260823_add_inbound_email_quarantine.sql');
 $helper = file_get_contents($root . '/src/inbound_email_helpers.php');
 $worker = file_get_contents($root . '/scripts/process_inbound_mail.php');
 $review = file_get_contents($root . '/src/inbound_mail.php');
@@ -28,9 +28,8 @@ expectInboundFeature(
         && str_contains($migration, 'deduplication_hash')
         && str_contains($migration, 'inbound_email_message_id')
         && str_contains($migration, 'uq_contact_chron_inbound_email')
-        && str_contains($schema, 'CREATE TABLE IF NOT EXISTS inbound_email_messages')
-        && str_contains($schema, "('20260823_add_inbound_chron_mail.sql', REPEAT('0', 64))"),
-    'fresh and upgraded databases should retain idempotent inbound sources and Chron links.'
+        && str_contains($quarantineMigration, 'CREATE TABLE inbound_email_quarantine'),
+    'the forward migrations should retain idempotent inbound sources, Chron links, and poison-message quarantine.'
 );
 expectInboundFeature(
     str_contains($helper, 'routeInboundEmailMessage')
@@ -43,6 +42,9 @@ expectInboundFeature(
     str_contains($worker, 'unseenUids')
         && str_contains($worker, 'markSeen')
         && str_contains($worker, 'claimInboundEmailMessage')
+        && str_contains($worker, 'quarantineInboundEmailMessage')
+        && str_contains($worker, '$client->abort()')
+        && str_contains($worker, 'UIDVALIDITY changed after reconnecting')
         && str_contains($compose, 'DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password')
         && str_contains($compose, 'cap_drop: [ALL]'),
     'the least-privilege worker should poll configurable IMAP and use a mounted password secret.'
@@ -57,8 +59,9 @@ expectInboundFeature(
 );
 expectInboundFeature(
     str_contains($grants, '.inbound_email_messages')
-        && str_contains($migrate, '.inbound_email_messages'),
-    'fresh and upgraded databases should grant only the application operations needed by inbound mail.'
+        && str_contains($grants, "TO '\${mail_ingest_user}'@'%'")
+        && str_contains($migrate, 'DNR_PRIVILEGE_SCRIPT'),
+    'fresh and upgraded databases should apply the single least-privilege manifest for inbound mail.'
 );
 expectInboundFeature(
     str_contains($environment, 'DNR_INBOUND_ADDRESS=moed@beneliath.com')

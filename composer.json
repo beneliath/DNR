@@ -35,6 +35,7 @@
         "analyse": [
             "phpstan analyse --no-progress --debug --memory-limit=512M",
             "phpstan analyse --configuration=phpstan-helpers.neon --no-progress --debug --memory-limit=512M",
+            "phpstan analyse --configuration=phpstan-modern-routes.neon --no-progress --debug --memory-limit=512M",
             "phpstan analyse --configuration=phpstan-routes.neon --no-progress --debug --memory-limit=512M"
         ],
         "test": "sh scripts/run_tests.sh",

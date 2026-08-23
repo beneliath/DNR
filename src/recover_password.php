@@ -62,12 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         (string) $user['email'],
                         null
                     );
-                    sendPasswordRecoveryEmail(
-                        (string) $user['email'],
-                        (string) $user['username'],
-                        $issued['token']
-                    );
-                    logSecurityEvent($conn, 'password_recovery_email_sent', (int) $user['id']);
+                    logSecurityEvent($conn, 'password_recovery_email_queued', (int) $user['id']);
                 } catch (Throwable $exception) {
                     applicationLog('error', 'Password recovery email delivery failed', [
                         'target_user_id' => (int) $user['id'],

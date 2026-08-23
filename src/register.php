@@ -26,20 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $role,
             (int) $_SESSION['user_id']
         );
-        try {
-            sendInvitationEmail(
-                $invitation['email'],
-                $invitation['username'],
-                $invitation['token']
-            );
-            $_SESSION['_user_lifecycle_message'] = 'The account was created and its single-use invitation link was sent.';
-        } catch (Throwable $mail_exception) {
-            applicationLog('error', 'Invitation email delivery failed', [
-                'target_user_id' => $invitation['user_id'],
-                'error' => $mail_exception->getMessage(),
-            ]);
-            $_SESSION['_user_lifecycle_error'] = 'The invited account was created, but email delivery failed. Check the mail configuration and resend the invitation.';
-        }
+        $_SESSION['_user_lifecycle_message'] = 'The account was created and its single-use invitation link was queued for delivery.';
         unset($_SESSION['_admin_elevated_at']);
         header('Location: users.php');
         exit();

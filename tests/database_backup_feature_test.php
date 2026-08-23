@@ -65,12 +65,11 @@ expectDatabaseBackupFeature(
     'restore should use an isolated maintenance credential and document the complete safety-dump workflow.'
 );
 expectDatabaseBackupFeature(
-    str_contains($compose, './init.sql:/docker-entrypoint-initdb.d/00-init.sql:ro')
-        && str_contains(
-            $compose,
-            './scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro'
-        ),
-    'a fresh database volume should load the schema before configuring table privileges.'
+    str_contains($compose, 'migrator:')
+        && str_contains($compose, 'condition: service_completed_successfully')
+        && str_contains($compose, 'DNR_PRIVILEGE_SCRIPT: /opt/dnr/bin/configure_database_privileges')
+        && !str_contains($compose, 'docker-entrypoint-initdb.d/00-init.sql'),
+    'fresh databases should run the same ordered migrations and grants as upgrades.'
 );
 
 echo "Database backup feature tests passed.\n";

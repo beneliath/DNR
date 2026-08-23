@@ -8,7 +8,12 @@ requireFollowUpTaskSchema($conn);
 
 $user_role = $_SESSION['role'] ?? '';
 $current_user_id = (int) ($_SESSION['user_id'] ?? 0);
-$list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
+$requested_list_status = \Dnr\Http\RequestInput::string(
+    $_POST,
+    'list_status',
+    \Dnr\Http\RequestInput::string($_GET, 'status')
+);
+$list_status = $requested_list_status === 'archived'
     ? 'archived'
     : 'active';
 $show_archived = $list_status === 'archived';

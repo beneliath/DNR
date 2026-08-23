@@ -49,8 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new InvalidArgumentException('Your current email address is already verified.');
             }
             $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
-            sendVerificationEmail($email, (string) $user['username'], $issued['token']);
-            logSecurityEvent($conn, 'email_verification_sent', $user_id, $user_id);
+            logSecurityEvent($conn, 'email_verification_queued', $user_id, $user_id);
             header('Location: profile.php?verification_sent=1');
             exit();
         } catch (InvalidArgumentException $exception) {
@@ -167,8 +166,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($email !== '') {
                 try {
                     $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
-                    sendVerificationEmail($email, (string) $user['username'], $issued['token']);
-                    logSecurityEvent($conn, 'email_verification_sent', $user_id, $user_id);
+                    logSecurityEvent($conn, 'email_verification_queued', $user_id, $user_id);
                     $verification_query = '&verification_sent=1';
                 } catch (Throwable $mail_exception) {
                     applicationLog('error', 'Email verification delivery failed', ['error' => $mail_exception->getMessage()]);
@@ -295,15 +293,19 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
         </section>
 
         <div class="action-buttons profile-actions">
-            <a href="engagements.php" class="cancel-button">Cancel</a>
-            <button type="submit" class="save-button">Save Changes</button>
+            <?php if (!empty($user['email']) && empty($user['email_verified_at'])): ?>
+                <button type="submit" form="profile-resend-verification-form" class="security-button profile-verification-button">Resend email verification</button>
+            <?php endif; ?>
+            <div class="profile-save-actions">
+                <a href="engagements.php" class="cancel-button">Cancel</a>
+                <button type="submit" class="save-button">Save Changes</button>
+            </div>
         </div>
     </form>
     <?php if (!empty($user['email']) && empty($user['email_verified_at'])): ?>
-        <form method="post" action="profile.php" class="security-form">
+        <form id="profile-resend-verification-form" method="post" action="profile.php" hidden>
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="resend_verification">
-            <button type="submit" class="security-button">Resend email verification</button>
         </form>
     <?php endif; ?>
 </main>

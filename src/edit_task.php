@@ -23,7 +23,11 @@ if (!$task) {
 }
 
 $task_return_to = safeFollowUpTaskReturnUrl(
-    $_POST['return_to'] ?? $_GET['return_to'] ?? 'tasks.php'
+    \Dnr\Http\RequestInput::string(
+        $_POST,
+        'return_to',
+        \Dnr\Http\RequestInput::string($_GET, 'return_to', 'tasks.php')
+    )
 );
 $existing_subject_value = followUpTaskSubjectValue($task);
 $task_selected_subject = $existing_subject_value;

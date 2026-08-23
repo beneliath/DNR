@@ -18,19 +18,16 @@ $read = static function ($path) use ($root) {
 };
 
 $migration = $read('migrations/20260821_add_standard_event_tasks.sql');
-$schema = $read('init.sql');
-foreach ([$migration, $schema] as $standard_task_schema) {
-    expectStandardEventTaskFeature(
-        str_contains($standard_task_schema, 'CREATE TABLE IF NOT EXISTS standard_event_tasks')
-            && str_contains($standard_task_schema, 'due_offset_days SMALLINT')
-            && str_contains($standard_task_schema, 'is_archived TINYINT(1)')
-            && str_contains($standard_task_schema, 'chk_standard_event_task_archive')
-            && str_contains($standard_task_schema, 'uq_standard_event_task_key')
-            && str_contains($standard_task_schema, 'audit_standard_event_tasks_after_insert')
-            && substr_count($standard_task_schema, "('standard.") >= 9,
-        'fresh and upgraded databases should seed, constrain, and audit configurable standard event tasks.'
-    );
-}
+expectStandardEventTaskFeature(
+    str_contains($migration, 'CREATE TABLE IF NOT EXISTS standard_event_tasks')
+        && str_contains($migration, 'due_offset_days SMALLINT')
+        && str_contains($migration, 'is_archived TINYINT(1)')
+        && str_contains($migration, 'chk_standard_event_task_archive')
+        && str_contains($migration, 'uq_standard_event_task_key')
+        && str_contains($migration, 'audit_standard_event_tasks_after_insert')
+        && substr_count($migration, "('standard.") >= 9,
+    'the forward migration should seed, constrain, and audit configurable standard event tasks.'
+);
 
 $helpers = $read('src/follow_up_task_helpers.php');
 $queue = $read('src/tasks.php');

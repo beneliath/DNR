@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 require_once __DIR__ . '/calendar_helpers.php';
 startSecureSession();
 requireLogin();

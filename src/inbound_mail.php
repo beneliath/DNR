@@ -16,10 +16,12 @@ header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
 $allowedStatuses = ['review', 'pending', 'processing', 'failed', 'processed', 'rejected', 'all'];
-$statusFilter = (string) ($_GET['status'] ?? $_POST['status'] ?? 'review');
-if (!in_array($statusFilter, $allowedStatuses, true)) {
-    $statusFilter = 'review';
-}
+$statusFilter = \Dnr\Http\RequestInput::enum(
+    $_POST,
+    'status',
+    $allowedStatuses,
+    \Dnr\Http\RequestInput::enum($_GET, 'status', $allowedStatuses, 'review')
+);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
@@ -30,12 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new InvalidArgumentException('Select a valid inbound message.');
         }
         if ($action === 'approve') {
-            $contactIds = is_array($_POST['contact_ids'] ?? null)
-                ? array_map('intval', $_POST['contact_ids'])
-                : [];
-            $organizationIds = is_array($_POST['organization_ids'] ?? null)
-                ? array_map('intval', $_POST['organization_ids'])
-                : [];
+            $contactIds = \Dnr\Http\RequestInput::positiveIntList($_POST, 'contact_ids');
+            $organizationIds = \Dnr\Http\RequestInput::positiveIntList(
+                $_POST,
+                'organization_ids'
+            );
             processInboundEmailMessage(
                 $conn,
                 $messageId,

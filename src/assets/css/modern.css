@@ -592,8 +592,20 @@ html body .container > .profile-form {
 }
 
 .profile-actions {
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 16px !important;
+}
+
+.profile-verification-button {
+  align-self: center;
+}
+
+.profile-save-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-left: auto;
 }
 
 @media (max-width: 640px) {
@@ -606,7 +618,20 @@ html body .container > .profile-form {
     justify-items: start;
   }
 
-  .profile-actions > * {
+  .profile-actions {
+    align-items: stretch !important;
+  }
+
+  .profile-verification-button {
+    align-self: flex-start;
+  }
+
+  .profile-save-actions {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .profile-save-actions > * {
     flex: 1;
   }
 }

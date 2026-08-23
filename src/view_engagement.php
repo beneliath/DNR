@@ -10,13 +10,11 @@ requireLogin();
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$engagement_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($engagement_id === null) {
     header("Location: engagements.php");
     exit();
 }
-
-$engagement_id = intval($_GET['id']);
 
 // Fetch engagement details with organization name and contacts
 $query = "SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,

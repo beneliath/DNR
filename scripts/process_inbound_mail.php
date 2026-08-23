@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Dnr\Infrastructure\ImapClient;
+use Dnr\Infrastructure\ImapMessageRejectedException;
 
 if (PHP_SAPI !== 'cli') {
     fwrite(STDERR, "The inbound mail worker is available only from the CLI.\n");
@@ -54,7 +55,67 @@ do {
         foreach ($client->unseenUids($batchSize) as $uid) {
             try {
                 $rawMessage = $client->fetchRawMessage($uid);
+            } catch (ImapMessageRejectedException $exception) {
+                $quarantined = false;
+                try {
+                    quarantineInboundEmailMessage($conn, $uidValidity . ':' . $uid, $exception);
+                    $quarantined = true;
+                } catch (Throwable $quarantineException) {
+                    applicationLog('error', 'Unable to quarantine a rejected IMAP message', [
+                        'uid_validity' => $uidValidity,
+                        'uid' => $uid,
+                        'error' => $quarantineException->getMessage(),
+                    ]);
+                }
+                // A size rejection deliberately leaves the server literal
+                // unread. Reconnect before issuing another command so an
+                // oversized poison message cannot desynchronize the session.
+                $client->abort();
+                try {
+                    $client->connect($username, $password, $mailbox);
+                    if ($client->uidValidity() !== $uidValidity) {
+                        throw new RuntimeException('IMAP UIDVALIDITY changed after reconnecting.');
+                    }
+                    if ($quarantined) {
+                        $client->markSeen($uid);
+                        $activity++;
+                    }
+                } catch (Throwable $reconnectException) {
+                    applicationLog('error', 'Unable to resume IMAP after rejecting a message', [
+                        'uid_validity' => $uidValidity,
+                        'uid' => $uid,
+                        'error' => $reconnectException->getMessage(),
+                    ]);
+                    break;
+                }
+                continue;
+            } catch (Throwable $exception) {
+                applicationLog('error', 'Unable to fetch an IMAP message', [
+                    'uid_validity' => $uidValidity,
+                    'uid' => $uid,
+                    'error' => $exception->getMessage(),
+                ]);
+                continue;
+            }
+
+            try {
                 $parsed = parseInboundEmail($rawMessage);
+            } catch (Throwable $exception) {
+                try {
+                    quarantineInboundEmailMessage($conn, $uidValidity . ':' . $uid, $exception);
+                    $client->markSeen($uid);
+                    $activity++;
+                } catch (Throwable $quarantineException) {
+                    applicationLog('error', 'Unable to quarantine an unparseable IMAP message', [
+                        'uid_validity' => $uidValidity,
+                        'uid' => $uid,
+                        'error' => $quarantineException->getMessage(),
+                    ]);
+                }
+                continue;
+            }
+
+            try {
                 storeInboundEmailMessage(
                     $conn,
                     'imap',

@@ -86,9 +86,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     requireValidCsrfToken();
 
     $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
-    foreach ($normalized_contact['data'] as $field_name => $field_value) {
-        ${$field_name} = $field_value;
-    }
+    $organization_id = (int) $normalized_contact['data']['organization_id'];
+    $contact_first_name = (string) $normalized_contact['data']['contact_first_name'];
+    $contact_last_name = (string) $normalized_contact['data']['contact_last_name'];
+    $contact_role = (string) $normalized_contact['data']['contact_role'];
+    $contact_role_other = (string) $normalized_contact['data']['contact_role_other'];
+    $contact_email = (string) $normalized_contact['data']['contact_email'];
+    $contact_email_confirm = (string) $normalized_contact['data']['contact_email_confirm'];
+    $contact_phone = (string) $normalized_contact['data']['contact_phone'];
+    $contact_notes = (string) $normalized_contact['data']['contact_notes'];
+    $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
     $submitted_chron_entries = [];
     $new_chron_entry = '';

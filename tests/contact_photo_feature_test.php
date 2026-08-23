@@ -122,13 +122,10 @@ expectContactPhoto(
 );
 
 $migration = $read('migrations/20260818_add_contact_photos.sql');
-$initial_schema = $read('init.sql');
 expectContactPhoto(
     str_contains($migration, 'contact_photo MEDIUMBLOB')
-        && str_contains($migration, 'contact_photo_mime VARCHAR(32)')
-        && str_contains($initial_schema, 'contact_photo MEDIUMBLOB')
-        && str_contains($initial_schema, "'20260818_add_contact_photos.sql'"),
-    'fresh and upgraded databases should both include contact photo storage.'
+        && str_contains($migration, 'contact_photo_mime VARCHAR(32)'),
+    'the forward migration should include contact photo storage.'
 );
 
 $styles = $read('src/assets/css/modern.css');

@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
@@ -34,8 +35,7 @@ try {
         $_SESSION['_user_lifecycle_message'] = 'The account was activated. Revoked calendar links and prior task assignments were not restored.';
     } elseif ($action === 'resend_invitation') {
         $invitation = renewUserInvitation($conn, $user_id, $actor_user_id);
-        sendInvitationEmail($invitation['email'], $invitation['username'], $invitation['token']);
-        $_SESSION['_user_lifecycle_message'] = 'A new invitation link was sent. Every older invitation link is invalid.';
+        $_SESSION['_user_lifecycle_message'] = 'A new invitation link was queued. The older link remains usable until delivery succeeds.';
     } else {
         throw new InvalidArgumentException('Invalid account lifecycle action.');
     }
@@ -48,7 +48,7 @@ try {
         'error' => $exception->getMessage(),
     ]);
     $_SESSION['_user_lifecycle_error'] = $action === 'resend_invitation'
-        ? 'The invitation was renewed, but email delivery failed. Check the mail configuration and resend it.'
+        ? 'The invitation could not be queued. Check the mail configuration and try again.'
         : 'The account lifecycle change could not be completed.';
 }
 
