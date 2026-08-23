@@ -26,6 +26,18 @@ expectHoverStyle(
     strpos($stylesheet, '.filter-button,') !== false,
     'Audit filters and pagination controls should use the shared button styles.'
 );
+$shared_button_start = strpos($stylesheet, "/* Buttons */\n:where(");
+$shared_button_end = $shared_button_start === false
+    ? false
+    : strpos($stylesheet, "\n}\n\n.login-button", $shared_button_start);
+$shared_button_styles = $shared_button_start === false || $shared_button_end === false
+    ? ''
+    : substr($stylesheet, $shared_button_start, $shared_button_end - $shared_button_start);
+expectHoverStyle(
+    str_contains($shared_button_styles, '.button-secondary')
+        && str_contains($shared_button_styles, 'text-decoration: none;'),
+    'Secondary links styled as buttons should never retain browser link underlines.'
+);
 expectHoverStyle(
     strpos($modern_stylesheet, '--control-hover-bg: #dbeafe;') !== false
         && strpos($modern_stylesheet, '--control-hover-bg: #243f73;') !== false,

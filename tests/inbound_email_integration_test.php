@@ -104,7 +104,8 @@ try {
     );
 
     $contactChron = $conn->prepare(
-        'SELECT created_by, created_by_username_snapshot, entry_text
+        'SELECT id, inbound_email_message_id, created_by,
+                created_by_username_snapshot, entry_text
          FROM contact_chron_entries
          WHERE contact_id = ? AND inbound_email_message_id = ?'
     );
@@ -113,19 +114,21 @@ try {
     $contactEntry = $contactChron->get_result()->fetch_assoc();
     $contactChron->close();
     $organizationChron = $conn->prepare(
-        'SELECT COUNT(*) AS total FROM organization_chron_entries
+        'SELECT id, inbound_email_message_id, entry_text
+         FROM organization_chron_entries
          WHERE organization_id = ? AND inbound_email_message_id = ?'
     );
     $organizationChron->bind_param('ii', $organizationId, $stored['id']);
     $organizationChron->execute();
-    $organizationTotal = (int) $organizationChron->get_result()->fetch_assoc()['total'];
+    $organizationEntry = $organizationChron->get_result()->fetch_assoc();
     $organizationChron->close();
     expectInboundIntegration(
         $contactEntry
             && (int) $contactEntry['created_by'] === $userId
             && $contactEntry['created_by_username_snapshot'] === $username
             && str_contains((string) $contactEntry['entry_text'], 'Outgoing routing test')
-            && $organizationTotal === 1,
+            && $organizationEntry
+            && str_contains((string) $organizationEntry['entry_text'], 'Outgoing routing test'),
         'one Contact entry and one deduplicated Organization entry should retain sender attribution.'
     );
 
@@ -143,6 +146,50 @@ try {
     expectInboundIntegration(
         !$duplicate['inserted'] && $duplicate['id'] === $stored['id'],
         'delivery retries with the same RFC Message-ID should resolve to the original source.'
+    );
+
+    expectInboundIntegration(
+        purgeInboundEmailMessage($conn, $stored['id']),
+        'an administrator should be able to purge a retained inbound source record.'
+    );
+    $purgedMessage = $conn->prepare(
+        'SELECT COUNT(*) AS total FROM inbound_email_messages WHERE id = ?'
+    );
+    $purgedMessage->bind_param('i', $stored['id']);
+    $purgedMessage->execute();
+    $purgedMessageTotal = (int) $purgedMessage->get_result()->fetch_assoc()['total'];
+    $purgedMessage->close();
+
+    $preservedContactChron = $conn->prepare(
+        'SELECT inbound_email_message_id, entry_text FROM contact_chron_entries WHERE id = ?'
+    );
+    $contactEntryId = (int) $contactEntry['id'];
+    $preservedContactChron->bind_param('i', $contactEntryId);
+    $preservedContactChron->execute();
+    $preservedContactEntry = $preservedContactChron->get_result()->fetch_assoc();
+    $preservedContactChron->close();
+
+    $preservedOrganizationChron = $conn->prepare(
+        'SELECT inbound_email_message_id, entry_text FROM organization_chron_entries WHERE id = ?'
+    );
+    $organizationEntryId = (int) $organizationEntry['id'];
+    $preservedOrganizationChron->bind_param('i', $organizationEntryId);
+    $preservedOrganizationChron->execute();
+    $preservedOrganizationEntry = $preservedOrganizationChron->get_result()->fetch_assoc();
+    $preservedOrganizationChron->close();
+
+    expectInboundIntegration(
+        $purgedMessageTotal === 0
+            && $preservedContactEntry
+            && $preservedContactEntry['inbound_email_message_id'] === null
+            && str_contains((string) $preservedContactEntry['entry_text'], 'Outgoing routing test')
+            && $preservedOrganizationEntry
+            && $preservedOrganizationEntry['inbound_email_message_id'] === null
+            && str_contains(
+                (string) $preservedOrganizationEntry['entry_text'],
+                'Outgoing routing test'
+            ),
+        'purging a source should clear both foreign-key links without deleting or changing either Chron entry.'
     );
 
     $reply = parseInboundEmail($rawMessage(

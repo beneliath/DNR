@@ -217,6 +217,11 @@ It does not delete or move the source message, including after successful routin
 remains a recoverable source of record. The web and worker accounts retain only the database
 privileges needed for this workflow.
 
+An administrator with a recent elevated session can purge an individual retained mail entry from
+its **Inbound Mail** detail view. Purging removes the DNR mail card and its retained source content,
+but preserves every associated Contact and Organization Chron Log entry; only the source-email link
+on those Chron entries is cleared. The original message in the IMAP mailbox is not deleted or moved.
+
 Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
 and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password
 shown by Bridge—not the Proton account password. Bridge uses a local, self-signed IMAP endpoint and

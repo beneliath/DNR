@@ -14,6 +14,7 @@ parameters:
         - src/tasks.php
         - src/audit_log.php
         - src/map.php
+        - src/inbound_mail.php
     bootstrapFiles:
         - src/functions.php
     scanFiles:
@@ -28,6 +29,7 @@ parameters:
         - src/pagination_helpers.php
         - src/presentation_helpers.php
         - src/image_upload_helpers.php
+        - src/inbound_email_helpers.php
         - src/two_factor_helpers.php
         - src/user_lifecycle_helpers.php
     tmpDir: /tmp/dnr-phpstan-modern-routes

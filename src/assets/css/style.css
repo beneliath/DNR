@@ -283,7 +283,8 @@ footer .ascii-art-container pre {
   .security-button,
   .archive-button,
   .restore-button,
-  .danger-button
+  .danger-button,
+  .button-secondary
 ) {
   display: inline-flex !important;
   align-items: center;

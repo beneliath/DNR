@@ -27,6 +27,7 @@ expectInboundFeature(
     str_contains($migration, 'CREATE TABLE inbound_email_messages')
         && str_contains($migration, 'deduplication_hash')
         && str_contains($migration, 'inbound_email_message_id')
+        && str_contains($migration, 'REFERENCES inbound_email_messages(id) ON DELETE SET NULL')
         && str_contains($migration, 'uq_contact_chron_inbound_email')
         && str_contains($quarantineMigration, 'CREATE TABLE inbound_email_quarantine'),
     'the forward migrations should retain idempotent inbound sources, Chron links, and poison-message quarantine.'
@@ -35,7 +36,9 @@ expectInboundFeature(
     str_contains($helper, 'routeInboundEmailMessage')
         && str_contains($helper, "'automatic' => \$reasons === []")
         && str_contains($helper, "'Email Gateway'")
-        && str_contains($helper, 'ON DUPLICATE KEY UPDATE id = id'),
+        && str_contains($helper, 'ON DUPLICATE KEY UPDATE id = id')
+        && str_contains($helper, 'function purgeInboundEmailMessage')
+        && str_contains($helper, 'DELETE FROM inbound_email_messages WHERE id = ?'),
     'routing should distinguish automatic matches, gateway attribution, and duplicate delivery.'
 );
 expectInboundFeature(
@@ -54,8 +57,13 @@ expectInboundFeature(
         && str_contains($review, "['admin', 'editor']")
         && str_contains($review, 'Approve selected routes')
         && str_contains($review, 'Reject message')
+        && str_contains($review, "\$action === 'purge'")
+        && str_contains($review, 'canDeleteEntries($userRole)')
+        && str_contains($review, 'requireRecentAdminElevation')
+        && str_contains($review, 'Purge Mail Entry')
+        && str_contains($review, 'Associated Contact and Organization Chron Log entries will be preserved')
         && str_contains($header, '<span>Inbound Mail</span>'),
-    'editors and administrators should have a CSRF-protected review workflow.'
+    'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
 );
 expectInboundFeature(
     str_contains($grants, '.inbound_email_messages')

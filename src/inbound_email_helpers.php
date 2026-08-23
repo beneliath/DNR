@@ -796,6 +796,24 @@ function rejectInboundEmailMessage(mysqli $conn, int $messageId, int $processedB
     }
 }
 
+function purgeInboundEmailMessage(mysqli $conn, int $messageId): bool
+{
+    if ($messageId < 1) {
+        throw new InvalidArgumentException('Select a valid inbound message.');
+    }
+
+    $stmt = $conn->prepare('DELETE FROM inbound_email_messages WHERE id = ?');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare inbound message purge.');
+    }
+    $stmt->bind_param('i', $messageId);
+    $succeeded = $stmt->execute();
+    $purged = $succeeded && $stmt->affected_rows === 1;
+    $stmt->close();
+
+    return $purged;
+}
+
 function claimInboundEmailMessage(mysqli $conn, int $leaseSeconds = 600): ?int
 {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));

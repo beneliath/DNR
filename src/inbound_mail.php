@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 require_once __DIR__ . '/inbound_email_helpers.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -27,11 +29,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $messageId = filter_input(INPUT_POST, 'message_id', FILTER_VALIDATE_INT);
     $action = is_scalar($_POST['action'] ?? null) ? (string) $_POST['action'] : '';
+    $redirectMessageId = $messageId;
     try {
         if (!$messageId) {
             throw new InvalidArgumentException('Select a valid inbound message.');
         }
-        if ($action === 'approve') {
+        if ($action === 'purge') {
+            if (!canDeleteEntries($userRole)) {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            requireRecentAdminElevation('inbound_mail.php?' . http_build_query([
+                'status' => $statusFilter,
+                'id' => $messageId,
+            ]));
+            if (!purgeInboundEmailMessage($conn, $messageId)) {
+                throw new InvalidArgumentException('That inbound message is no longer available.');
+            }
+            $redirectMessageId = null;
+            $_SESSION['inbound_mail_message'] = 'The inbound mail entry was purged. Associated Chron Log entries were preserved.';
+        } elseif ($action === 'approve') {
             $contactIds = \Dnr\Http\RequestInput::positiveIntList($_POST, 'contact_ids');
             $organizationIds = \Dnr\Http\RequestInput::positiveIntList(
                 $_POST,
@@ -66,10 +83,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $exception->getMessage()
             : 'The inbound email could not be updated. Please try again.';
     }
-    header('Location: inbound_mail.php?' . http_build_query([
+    $redirectParameters = [
         'status' => $statusFilter,
-        'id' => $messageId,
-    ]));
+    ];
+    if ($redirectMessageId) {
+        $redirectParameters['id'] = $redirectMessageId;
+    }
+    header('Location: inbound_mail.php?' . http_build_query($redirectParameters));
     exit();
 }
 
@@ -232,7 +252,18 @@ $statusLabels = [
                         <h2><?php echo htmlspecialchars((string) ($selectedMessage['subject'] ?: '(no subject)'), ENT_QUOTES, 'UTF-8'); ?></h2>
                         <span class="inbound-status inbound-status-<?php echo htmlspecialchars((string) $selectedMessage['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusLabels[(string) $selectedMessage['status']] ?? ucfirst((string) $selectedMessage['status']), ENT_QUOTES, 'UTF-8'); ?></span>
                     </div>
-                    <small>Inbound message #<?php echo (int) $selectedMessage['id']; ?></small>
+                    <div class="inbound-detail-actions">
+                        <small>Inbound message #<?php echo (int) $selectedMessage['id']; ?></small>
+                        <?php if (canDeleteEntries($userRole)): ?>
+                            <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact and Organization Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="message_id" value="<?php echo (int) $selectedMessage['id']; ?>">
+                                <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="hidden" name="action" value="purge">
+                                <button type="submit" class="danger-button">Purge Mail Entry</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <dl class="inbound-message-headers">
                     <div><dt>From</dt><dd><?php echo htmlspecialchars(trim((string) $selectedMessage['sender_name']) !== '' ? $selectedMessage['sender_name'] . ' <' . $selectedMessage['sender_address'] . '>' : (string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></dd></div>
