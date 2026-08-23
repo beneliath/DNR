@@ -200,18 +200,30 @@ function normalizeEngagementPresentations(
     return $normalized_presentations;
 }
 
-function requirePresentationForConfirmedEngagement($confirmation_status, array $presentations)
+function requirePresentationForConfirmedEngagement(
+    $confirmation_status,
+    array $presentations,
+    $lifecycle_status = 'active'
+)
 {
-    if ($confirmation_status === 'confirmed' && count($presentations) === 0) {
+    if ($confirmation_status === 'confirmed'
+        && (string) $lifecycle_status === 'active'
+        && count($presentations) === 0
+    ) {
         throw new InvalidArgumentException(
             'Add at least one presentation before setting the engagement status to confirmed.'
         );
     }
 }
 
-function presentationRemovalRequiresReview($confirmation_status, $active_presentation_count)
+function presentationRemovalRequiresReview(
+    $confirmation_status,
+    $active_presentation_count,
+    $lifecycle_status = 'active'
+)
 {
     return (string) $confirmation_status === 'confirmed'
+        && (string) $lifecycle_status === 'active'
         && (int) $active_presentation_count <= 1;
 }
 

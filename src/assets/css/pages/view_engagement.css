@@ -133,6 +133,10 @@
             background: var(--warning-bg-light, #fff3cd);
             color: var(--warning-color, #664d03);
         }
+        .financial-status.is-not-applicable {
+            background: var(--surface-hover, #e5e7eb);
+            color: var(--text-muted, #4b5563);
+        }
         .financial-amount-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));

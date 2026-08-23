@@ -27,6 +27,9 @@ $current = [
     'caller_name' => 'editor-one',
     'caller_user_id' => 7,
     'confirmation_status' => 'under_review',
+    'lifecycle_status' => 'active',
+    'cancellation_reason' => null,
+    'rescheduled_to_engagement_id' => null,
     'travel_covered' => 'yes',
     'travel_amount' => '125.00',
     'compensation_type' => 'Honorarium',
@@ -51,6 +54,22 @@ expectEngagementUpdatePlan(
         && $unchanged['types'] === ''
         && !$unchanged['date_range_changed'],
     'equivalent normalized values should not produce an update.'
+);
+
+$lifecycleSubmitted = $current;
+$lifecycleSubmitted['lifecycle_status'] = 'canceled';
+$lifecycleSubmitted['cancellation_reason'] = 'Host withdrew';
+$lifecycleSubmitted['rescheduled_to_engagement_id'] = 99;
+$lifecycleChanged = EngagementUpdatePlan::build($current, $lifecycleSubmitted);
+expectEngagementUpdatePlan(
+    $lifecycleChanged['assignments'] === [
+        'lifecycle_status = ?',
+        'cancellation_reason = ?',
+        'rescheduled_to_engagement_id = ?',
+    ]
+        && $lifecycleChanged['values'] === ['canceled', 'Host withdrew', 99]
+        && $lifecycleChanged['types'] === 'ssi',
+    'lifecycle updates should preserve nullable cancellation and replacement fields.'
 );
 
 $submitted['organization_id'] = 8;

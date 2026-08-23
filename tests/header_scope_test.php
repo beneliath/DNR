@@ -57,10 +57,15 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
+        '/<span>Dashboard<\/span>.*<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
         $header_markup
     ) === 1,
-    'The primary navigation should place organizations and contacts after engagements and inbound mail immediately above the map.'
+    'The primary navigation should lead with the dashboard and keep inbound mail immediately above the map.'
+);
+expectHeaderScope(
+    str_contains($header_markup, '<a class="app-brand" href="dashboard.php"')
+        && str_contains($header_markup, '<a href="dashboard.php" class="mobile-brand"'),
+    'Desktop and mobile brand links should return to the daily dashboard.'
 );
 expectHeaderScope(
     substr_count($header_markup, 'class="nav-link admin-nav-link') === 2

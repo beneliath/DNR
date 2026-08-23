@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 use Dnr\Domain\FinancialReportInput;
 use Dnr\Http\RequestInput;
@@ -27,6 +28,7 @@ if ($engagement_id === null) {
 $engagement_stmt = $conn->prepare(
     'SELECT engagement.id, engagement.event_title, engagement.event_start_date,
             engagement.event_end_date, engagement.confirmation_status,
+            engagement.lifecycle_status,
             organization.organization_name
      FROM engagements engagement
      INNER JOIN organizations organization ON organization.id = engagement.organization_id
@@ -54,6 +56,12 @@ try {
         'error' => $exception->getMessage(),
     ]);
 }
+if ($financial_report === null
+    && in_array((string) $engagement['lifecycle_status'], ['postponed', 'canceled'], true)
+) {
+    http_response_code(409);
+    exit('Postponed or canceled engagements cannot be financially closed.');
+}
 
 $form_values = $financial_report ?: [
     'giving_income_received' => '0.00',
@@ -80,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Every closeout writer locks the parent first. This also serializes
             // the first insert, when no report row exists yet to lock.
             $lock_engagement_stmt = $conn->prepare(
-                'SELECT id FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE'
+                'SELECT id, lifecycle_status
+                 FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE'
             );
             if (!$lock_engagement_stmt) {
                 throw new RuntimeException('Unable to prepare the engagement closeout.');
@@ -106,6 +115,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lock_report_stmt->execute();
             $locked_report = $lock_report_stmt->get_result()->fetch_assoc();
             $lock_report_stmt->close();
+            if (!$locked_report
+                && in_array(
+                    (string) $locked_engagement['lifecycle_status'],
+                    ['postponed', 'canceled'],
+                    true
+                )
+            ) {
+                throw new InvalidArgumentException(
+                    'Postponed or canceled engagements cannot be financially closed.'
+                );
+            }
 
             $notes = $submitted['notes'] === '' ? null : $submitted['notes'];
             $giving_received = $submitted['giving_income_received'];
@@ -177,6 +197,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to save the financial report.');
             }
             $save_stmt->close();
+            if (!$locked_report
+                && (string) $locked_engagement['lifecycle_status'] !== 'completed'
+            ) {
+                $complete_stmt = $conn->prepare(
+                    "UPDATE engagements
+                     SET lifecycle_status = 'completed',
+                         cancellation_reason = NULL,
+                         rescheduled_to_engagement_id = NULL,
+                         lifecycle_changed_by = ?,
+                         lifecycle_changed_at = UTC_TIMESTAMP(6),
+                         updated_at = CURRENT_TIMESTAMP(6)
+                     WHERE id = ?"
+                );
+                if (!$complete_stmt) {
+                    throw new RuntimeException('Unable to complete the engagement lifecycle.');
+                }
+                $complete_stmt->bind_param('ii', $current_user_id, $engagement_id);
+                if (!$complete_stmt->execute() || $complete_stmt->affected_rows !== 1) {
+                    $complete_stmt->close();
+                    throw new RuntimeException('Unable to complete the engagement lifecycle.');
+                }
+                $complete_stmt->close();
+                $success_message = 'Event completed with a final financial report.';
+            }
             $conn->commit();
         } catch (Throwable $exception) {
             $conn->rollback();

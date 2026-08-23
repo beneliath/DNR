@@ -551,6 +551,7 @@ function requireLogin() {
 
     $_SESSION['username'] = (string) $user['username'];
     $_SESSION['role'] = (string) $user['role'];
+    $_SESSION['profile_first_name'] = trim((string) ($user['first_name'] ?? ''));
     $profile_display_name = trim(
         trim((string) ($user['first_name'] ?? ''))
         . ' '
@@ -749,11 +750,11 @@ function authenticationDestination(array $user) {
         return 'two_factor_settings.php?password_reset_required=1';
     }
 
-    return 'engagements.php';
+    return 'dashboard.php';
 }
 
 function twoFactorRecoveryCodesDestination($initial_login = false) {
-    return $initial_login ? 'engagements.php' : 'two_factor_settings.php';
+    return $initial_login ? 'dashboard.php' : 'two_factor_settings.php';
 }
 
 function hasRecentTwoFactorVerification($maximum_age_seconds = 300) {

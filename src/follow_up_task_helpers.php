@@ -118,7 +118,8 @@ function followUpTaskSubjectRecord(mysqli $conn, $subject_type, $subject_id = nu
         $stmt = $conn->prepare(
             "SELECT e.id,
                     COALESCE(NULLIF(TRIM(e.event_title), ''), o.organization_name) AS label,
-                    (e.is_deleted = 0 AND o.is_deleted = 0) AS is_active
+                    (e.is_deleted = 0 AND o.is_deleted = 0
+                     AND e.lifecycle_status <> 'canceled') AS is_active
              FROM engagements e
              INNER JOIN organizations o ON o.id = e.organization_id
              WHERE e.id = ?"
@@ -188,6 +189,7 @@ function followUpTaskSubjectOptions(mysqli $conn)
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
          WHERE e.is_deleted = 0 AND o.is_deleted = 0
+           AND e.lifecycle_status <> 'canceled'
          ORDER BY e.event_start_date DESC, label, e.id"
     );
     if ($engagements) {
@@ -258,8 +260,12 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
          WHERE e.is_deleted = 0 AND o.is_deleted = 0
+           AND e.lifecycle_status <> 'canceled'
            AND (
-             MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
+             MATCH(
+                e.event_title, e.event_description, e.engagement_notes,
+                e.caller_name, e.cancellation_reason
+             )
                  AGAINST (? IN BOOLEAN MODE)
              OR MATCH(
                 o.organization_name, o.notes, o.affiliation, o.distinctives,
@@ -441,6 +447,7 @@ function safeFollowUpTaskReturnUrl($value, $fallback = 'tasks.php')
     }
     $path = $parts['path'] ?? '';
     $allowed_pages = [
+        'dashboard.php',
         'tasks.php',
         'view_engagement.php',
         'view_organization.php',
@@ -943,10 +950,11 @@ function generateEngagementFollowUpChecklist(
     }
 
     $engagement_stmt = $conn->prepare(
-        'SELECT e.event_start_date, e.event_end_date
+        "SELECT e.event_start_date, e.event_end_date
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
-         WHERE e.id = ? AND e.is_deleted = 0 AND o.is_deleted = 0'
+         WHERE e.id = ? AND e.is_deleted = 0 AND o.is_deleted = 0
+           AND e.lifecycle_status = 'active'"
     );
     if (!$engagement_stmt) {
         throw new RuntimeException('Unable to load the engagement checklist dates.');

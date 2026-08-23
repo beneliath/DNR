@@ -384,9 +384,9 @@ function claimQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): ?array
                         AND outbox.processing_started_at <= DATE_SUB(
                             UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
                         ))
-               )
+             )
              ORDER BY outbox.next_attempt_at, outbox.id
-             LIMIT 1 FOR UPDATE SKIP LOCKED"
+             LIMIT 1 FOR UPDATE OF outbox SKIP LOCKED"
         );
         $row = $result ? $result->fetch_assoc() : null;
         if (!$row) {

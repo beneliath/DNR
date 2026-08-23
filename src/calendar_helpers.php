@@ -11,6 +11,51 @@ function calendarStatusLabel($status) {
     return ucwords(str_replace('_', ' ', $status));
 }
 
+function calendarLifecycleLabel($status) {
+    return match (trim((string) $status)) {
+        'active' => 'Active',
+        'postponed' => 'Postponed',
+        'canceled' => 'Canceled',
+        'completed' => 'Completed',
+        default => 'Active',
+    };
+}
+
+function calendarOperationalStatus(array $engagement) {
+    $lifecycle = trim((string) ($engagement['lifecycle_status'] ?? 'active'));
+    return $lifecycle === 'active'
+        ? calendarStatusLabel($engagement['confirmation_status'] ?? '')
+        : calendarLifecycleLabel($lifecycle);
+}
+
+function calendarIcsStatus(array $engagement) {
+    if (($engagement['lifecycle_status'] ?? 'active') === 'canceled') {
+        return 'CANCELLED';
+    }
+    return ($engagement['confirmation_status'] ?? '') === 'confirmed'
+        ? 'CONFIRMED'
+        : 'TENTATIVE';
+}
+
+function calendarTransparency(array $engagement) {
+    return in_array(
+        (string) ($engagement['lifecycle_status'] ?? 'active'),
+        ['postponed', 'canceled'],
+        true
+    ) ? 'TRANSPARENT' : 'OPAQUE';
+}
+
+function calendarRescheduledEventLabel(array $engagement) {
+    $title = trim((string) ($engagement['rescheduled_event_title'] ?? ''));
+    $organization = trim((string) ($engagement['rescheduled_organization_name'] ?? ''));
+    $date = trim((string) ($engagement['rescheduled_event_start_date'] ?? ''));
+    $label = $title !== '' ? $title : $organization;
+    if ($label === '') {
+        return '';
+    }
+    return $date !== '' ? $label . ' · ' . $date : $label;
+}
+
 function calendarEscapeText($value) {
     $value = str_replace(["\r\n", "\r"], "\n", (string) $value);
     return str_replace(
@@ -89,7 +134,9 @@ function calendarLocation(array $engagement) {
 }
 
 function calendarEventLines(array $engagement) {
-    $status = calendarStatusLabel($engagement['confirmation_status'] ?? '');
+    $status = calendarOperationalStatus($engagement);
+    $confirmation = calendarStatusLabel($engagement['confirmation_status'] ?? '');
+    $lifecycle = calendarLifecycleLabel($engagement['lifecycle_status'] ?? 'active');
     $organization = trim((string) ($engagement['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($engagement['event_title'] ?? ''));
     $event_type = trim((string) ($engagement['event_type'] ?? ''));
@@ -130,16 +177,25 @@ function calendarEventLines(array $engagement) {
     }
 
     $description_parts = [
-        'Status: ' . $status,
+        'Lifecycle: ' . $lifecycle,
+        'Confirmation: ' . $confirmation,
         'Organization: ' . $organization,
         'Event type: ' . ($event_type !== '' ? $event_type : 'Unspecified'),
     ];
     if ($event_title !== '') {
-        array_splice($description_parts, 1, 0, ['Event title: ' . $event_title]);
+        array_splice($description_parts, 2, 0, ['Event title: ' . $event_title]);
+    }
+    $cancellation_reason = trim((string) ($engagement['cancellation_reason'] ?? ''));
+    if ($cancellation_reason !== '') {
+        $description_parts[] = 'Cancellation reason: ' . $cancellation_reason;
+    }
+    $rescheduled_event = calendarRescheduledEventLabel($engagement);
+    if ($rescheduled_event !== '') {
+        $description_parts[] = 'Rescheduled as: ' . $rescheduled_event;
     }
     $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
-    $lines[] = 'STATUS:' . (($engagement['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
-    $lines[] = 'TRANSP:OPAQUE';
+    $lines[] = 'STATUS:' . calendarIcsStatus($engagement);
+    $lines[] = 'TRANSP:' . calendarTransparency($engagement);
     $lines[] = 'END:VEVENT';
 
     return $lines;
@@ -192,7 +248,8 @@ function calendarPresentationEventLines(
     $organization = trim((string) ($presentation['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($presentation['event_title'] ?? ''));
     $engagement_label = $event_title !== '' ? $event_title : $organization;
-    $status = calendarStatusLabel($presentation['confirmation_status'] ?? '');
+    $confirmation = calendarStatusLabel($presentation['confirmation_status'] ?? '');
+    $lifecycle = calendarLifecycleLabel($presentation['lifecycle_status'] ?? 'active');
     $speaker = trim((string) ($presentation['speaker_name'] ?? ''));
     $speaker_label = $speaker !== '' ? $speaker : 'Unknown Speaker';
     $updated_timestamp = $presentation['calendar_updated_at'] ?? null;
@@ -220,14 +277,15 @@ function calendarPresentationEventLines(
         'Presentation: ' . $topic_title,
         'Engagement: ' . $engagement_label,
         'Organization: ' . $organization,
-        'Status: ' . $status,
+        'Lifecycle: ' . $lifecycle,
+        'Confirmation: ' . $confirmation,
     ];
     if ($speaker !== '') {
         $description_parts[] = 'Speaker: ' . $speaker;
     }
     $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
-    $lines[] = 'STATUS:' . (($presentation['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
-    $lines[] = 'TRANSP:OPAQUE';
+    $lines[] = 'STATUS:' . calendarIcsStatus($presentation);
+    $lines[] = 'TRANSP:' . calendarTransparency($presentation);
     $lines[] = 'END:VEVENT';
 
     return $lines;

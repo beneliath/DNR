@@ -137,7 +137,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 ? trim((string) $_POST['contact_version'])
                 : '';
             $lock_stmt = $conn->prepare(
-                'SELECT updated_at FROM contacts WHERE id = ? AND is_deleted = 0 FOR UPDATE'
+                'SELECT organization_id, updated_at
+                 FROM contacts
+                 WHERE id = ? AND is_deleted = 0
+                 FOR UPDATE'
             );
             if (!$lock_stmt) {
                 throw new RuntimeException('Unable to lock the contact.');
@@ -157,6 +160,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 );
             }
             requireActiveOrganization($conn, $organization_id, true);
+            if ((int) $locked_contact['organization_id'] !== $organization_id) {
+                $touch_engagements_stmt = $conn->prepare(
+                    'UPDATE engagements engagement
+                     INNER JOIN engagement_contacts event_contact
+                             ON event_contact.engagement_id = engagement.id
+                     SET engagement.updated_at = CURRENT_TIMESTAMP(6)
+                     WHERE event_contact.contact_id = ?'
+                );
+                if (!$touch_engagements_stmt) {
+                    throw new RuntimeException('Unable to prepare the event contact changes.');
+                }
+                $touch_engagements_stmt->bind_param('i', $contact_id);
+                if (!$touch_engagements_stmt->execute()) {
+                    $touch_engagements_stmt->close();
+                    throw new RuntimeException('Unable to update related engagements.');
+                }
+                $touch_engagements_stmt->close();
+
+                $clear_assignments_stmt = $conn->prepare(
+                    'DELETE FROM engagement_contacts WHERE contact_id = ?'
+                );
+                if (!$clear_assignments_stmt) {
+                    throw new RuntimeException('Unable to prepare the event contact changes.');
+                }
+                $clear_assignments_stmt->bind_param('i', $contact_id);
+                if (!$clear_assignments_stmt->execute()) {
+                    $clear_assignments_stmt->close();
+                    throw new RuntimeException('Unable to clear the prior event contact assignments.');
+                }
+                $clear_assignments_stmt->close();
+            }
             if ($contact_photo !== null) {
                 $update_stmt = $conn->prepare(
                     "UPDATE contacts SET

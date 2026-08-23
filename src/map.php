@@ -7,9 +7,16 @@ requireLogin();
 
 $filters = normalizeEngagementMapFilters($_GET);
 $status_labels = engagementMapStatuses();
+$lifecycle_labels = engagementMapLifecycles();
 $clauses = ['e.is_deleted = 0'];
 $parameters = [];
 $parameter_types = '';
+
+if ($filters['lifecycle'] !== '') {
+    $clauses[] = 'e.lifecycle_status = ?';
+    $parameters[] = $filters['lifecycle'];
+    $parameter_types .= 's';
+}
 
 if ($filters['status'] !== '') {
     $clauses[] = 'e.confirmation_status = ?';
@@ -44,6 +51,7 @@ $engagement_sql = "SELECT
         e.event_start_date,
         e.event_end_date,
         e.confirmation_status,
+        e.lifecycle_status,
         e.event_address_line_1,
         e.event_address_line_2,
         e.event_city,
@@ -185,6 +193,8 @@ foreach ($engagement_rows as $row) {
         'organization' => $organization_name,
         'status' => (string) $row['confirmation_status'],
         'statusLabel' => $status_labels[$row['confirmation_status']] ?? 'Unknown',
+        'lifecycle' => (string) $row['lifecycle_status'],
+        'lifecycleLabel' => $lifecycle_labels[$row['lifecycle_status']] ?? 'Unknown',
         'dateLabel' => engagementMapDateLabel($row['event_start_date'], $row['event_end_date']),
         'address' => $row['_map_address'],
         'viewUrl' => 'view_engagement.php?id=' . (int) $row['id'],
@@ -218,7 +228,7 @@ $map_payload = [
     <div class="page-heading">
         <div>
             <h1>Map</h1>
-            <p class="page-intro">Explore active engagement locations by status and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
+            <p class="page-intro">Explore engagement locations by lifecycle, confirmation, and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
         </div>
     </div>
 
@@ -227,8 +237,17 @@ $map_payload = [
     <?php endforeach; ?>
 
     <form method="get" action="map.php" class="map-filters" aria-label="Map filters">
+        <div class="map-filter-field map-lifecycle-filter">
+            <label for="map-lifecycle">Lifecycle</label>
+            <select name="lifecycle" id="map-lifecycle">
+                <option value="">All lifecycle states</option>
+                <?php foreach ($lifecycle_labels as $lifecycle_value => $lifecycle_label): ?>
+                    <option value="<?php echo htmlspecialchars($lifecycle_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $filters['lifecycle'] === $lifecycle_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div class="map-filter-field map-status-filter">
-            <label for="map-status">Status</label>
+            <label for="map-status">Confirmation</label>
             <select name="status" id="map-status">
                 <option value="">All statuses</option>
                 <?php foreach ($status_labels as $status_value => $status_label): ?>

@@ -118,6 +118,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.calendar_subscript
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.calendar_feed_revision TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.organizations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagements TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_map_geocodes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${MYSQL_USER}'@'%';
@@ -151,7 +152,21 @@ ALTER USER '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}'
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${mail_dispatch_user}'@'%';
-GRANT SELECT (id, auth_version, account_status) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (
+    id, username, first_name, email, email_verified_at, role,
+    auth_version, account_status, task_digest_enabled
+) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (
+    id, title, status, priority, due_date, waiting_on, assigned_to
+) ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (
+    id, organization_id, event_title, event_end_date, is_deleted, lifecycle_status
+) ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id, organization_name, is_deleted)
+    ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (engagement_id)
+    ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${mail_dispatch_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';

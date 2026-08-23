@@ -2,6 +2,7 @@
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
+    'dashboard' => ['dashboard.php'],
     'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'close_engagement.php', 'restore_chron_entries.php'],
     'tasks' => [
         'tasks.php',
@@ -31,6 +32,23 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
+$nav_reminder_count = 0;
+if (!empty($_SESSION['user_id'])) {
+    try {
+        require_once dirname(__DIR__) . '/notification_helpers.php';
+        $nav_reminders = fetchTaskReminderCounts(
+            applicationDatabaseConnection(),
+            (int) $_SESSION['user_id'],
+            $user_role
+        );
+        $nav_reminder_count = (int) $nav_reminders['total'];
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to load navigation reminders', [
+            'user_id' => (int) $_SESSION['user_id'],
+            'error' => $exception->getMessage(),
+        ]);
+    }
+}
 ?>
 
 <header class="app-shell-header">
@@ -39,7 +57,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
             <span class="visually-hidden">Open navigation</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <a href="engagements.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
+        <a href="dashboard.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
             <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
         </a>
         <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to dark theme">
@@ -49,12 +67,15 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
     </div>
 
     <div class="app-sidebar" id="app-sidebar">
-        <a class="app-brand" href="engagements.php" aria-label="DNR home">
+        <a class="app-brand" href="dashboard.php" aria-label="DNR home">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
         <nav class="site-navigation" aria-label="Primary">
             <ul>
+                <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
+                </a></li>
                 <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
                 </a></li>
@@ -66,6 +87,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
                 </a></li>
                 <li><a href="tasks.php" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>Work Queue</span>
+                    <?php if ($nav_reminder_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_reminder_count; ?> work reminders"><?php echo $nav_reminder_count > 99 ? '99+' : $nav_reminder_count; ?></span><?php endif; ?>
                 </a></li>
                 <?php if (in_array($user_role, ['admin', 'editor'], true)) : ?>
                     <li><a href="inbound_mail.php" class="nav-link<?php echo $active_nav === 'inbound_mail' ? ' active' : ''; ?>"<?php echo $active_nav === 'inbound_mail' ? ' aria-current="page"' : ''; ?>>

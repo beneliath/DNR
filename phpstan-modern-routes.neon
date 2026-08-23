@@ -4,6 +4,9 @@ parameters:
     level: 3
     paths:
         - src/map_geocode.php
+        - src/dashboard.php
+        - src/organization_contacts.php
+        - src/engagement_reschedule_options.php
         - src/task_subject_search.php
         - src/user_lifecycle.php
         - src/restore_presentations.php
@@ -22,10 +25,14 @@ parameters:
         - src/calendar_helpers.php
         - src/chron_log_helpers.php
         - src/contact_photo_helpers.php
+        - src/dashboard_helpers.php
+        - src/engagement_contact_helpers.php
+        - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/follow_up_task_helpers.php
         - src/financial_report_helpers.php
         - src/map_helpers.php
+        - src/notification_helpers.php
         - src/pagination_helpers.php
         - src/presentation_helpers.php
         - src/image_upload_helpers.php

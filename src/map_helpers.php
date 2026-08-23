@@ -11,6 +11,16 @@ function engagementMapStatuses()
     ];
 }
 
+function engagementMapLifecycles()
+{
+    return [
+        'active' => 'Active',
+        'postponed' => 'Postponed',
+        'canceled' => 'Canceled',
+        'completed' => 'Completed',
+    ];
+}
+
 function normalizeEngagementMapFilters(array $query)
 {
     $scalar = static function ($value) {
@@ -20,6 +30,13 @@ function normalizeEngagementMapFilters(array $query)
     $status = $scalar($query['status'] ?? '');
     if (!array_key_exists($status, engagementMapStatuses())) {
         $status = '';
+    }
+
+    $lifecycle = array_key_exists('lifecycle', $query)
+        ? $scalar($query['lifecycle'])
+        : 'active';
+    if ($lifecycle !== '' && !array_key_exists($lifecycle, engagementMapLifecycles())) {
+        $lifecycle = 'active';
     }
 
     $date_from = $scalar($query['date_from'] ?? '');
@@ -51,6 +68,7 @@ function normalizeEngagementMapFilters(array $query)
 
     return [
         'status' => $status,
+        'lifecycle' => $lifecycle,
         'date_from' => $date_from,
         'date_to' => $date_to,
         'errors' => $errors,

@@ -41,8 +41,9 @@ expectAccountOutbox(
         && str_contains($outbox_source, 'AND id < ? AND consumed_at IS NULL')
         && str_contains($outbox_source, 'token.consumed_at IS NULL')
         && str_contains($outbox_source, 'token.auth_version = user.auth_version')
-        && str_contains($outbox_source, "user.account_status = 'active'"),
-    'queued delivery should preserve newer tokens and reject stale account links before sending.'
+        && str_contains($outbox_source, "user.account_status = 'active'")
+        && str_contains($outbox_source, 'FOR UPDATE OF outbox SKIP LOCKED'),
+    'queued delivery should preserve newer tokens, reject stale links, and lock only rows the restricted worker may update.'
 );
 
 putenv('DNR_2FA_ENCRYPTION_KEY');

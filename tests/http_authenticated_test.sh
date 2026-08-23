@@ -106,11 +106,18 @@ elevate_admin() {
     expect_location "$temporary_directory/admin-elevation.headers" 'users.php' "$description"
 }
 
+active_mail_transport=$(compose exec -T web php -r 'echo getenv("DNR_MAIL_TRANSPORT");' </dev/null)
+if [ "$active_mail_transport" != 'log' ]; then
+    echo 'HTTP authenticated tests require the non-delivering log mail transport.' >&2
+    echo 'Refusing to generate test account links through an active SMTP relay.' >&2
+    exit 1
+fi
+
 fixtures_created=1
 fixture setup "$fixture_suffix" >/dev/null
 
 # Reviewers may inspect records but cannot enter edit/create routes or archive data.
-login_password reviewer engagements.php
+login_password reviewer dashboard.php
 reviewer_cookies="$temporary_directory/reviewer.cookies"
 status=$(curl -sS -b "$reviewer_cookies" -D "$temporary_directory/reviewer-edit.headers" \
     -o /dev/null -w '%{http_code}' "$base_url/edit_engagement.php?id=1")
@@ -127,9 +134,48 @@ status=$(curl -sS -b "$reviewer_cookies" -o /dev/null -w '%{http_code}' \
     "$base_url/organizations.php")
 expect_status "$status" '403' 'reviewer archive request'
 
+# Resending verification should queue and audit successfully instead of
+# reporting a failure after the transport has already accepted the message.
+fixture mark-email-unverified "$fixture_suffix" reviewer >/dev/null
+curl -fsS -b "$reviewer_cookies" -o "$temporary_directory/reviewer-profile.html" \
+    "$base_url/profile.php"
+reviewer_csrf=$(csrf_from "$temporary_directory/reviewer-profile.html")
+status=$(curl -sS -b "$reviewer_cookies" \
+    -D "$temporary_directory/reviewer-verification.headers" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$reviewer_csrf" \
+    --data-urlencode 'action=resend_verification' \
+    "$base_url/profile.php")
+expect_status "$status" '302' 'reviewer verification resend'
+expect_location "$temporary_directory/reviewer-verification.headers" \
+    'profile.php?verification_test_only=1' 'reviewer verification resend'
+
 # Editors can create, update, and archive records, while CSRF is enforced first.
-login_password editor engagements.php
+login_password editor dashboard.php
 editor_cookies="$temporary_directory/editor.cookies"
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-profile.html" \
+    "$base_url/profile.php"
+editor_csrf=$(csrf_from "$temporary_directory/editor-profile.html")
+grep -q 'name="task_digest_enabled"' "$temporary_directory/editor-profile.html"
+status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-profile.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'action=save' \
+    --data-urlencode 'first_name=HTTP' \
+    --data-urlencode 'last_name=Editor' \
+    --data-urlencode "email=http-editor-$fixture_suffix@example.test" \
+    --data-urlencode 'phone_country_code=+1' \
+    --data-urlencode 'phone=' \
+    --data-urlencode 'task_digest_enabled=1' \
+    "$base_url/profile.php")
+expect_status "$status" '302' 'editor digest preference update'
+expect_location "$temporary_directory/editor-profile.headers" 'profile.php?updated=1' 'editor digest preference update'
+test "$(fixture digest-enabled "$fixture_suffix" editor)" = '1'
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
+    "$base_url/tasks.php"
+grep -q 'class="task-reminder-badges"' "$temporary_directory/editor-task-reminders.html"
+
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add.html")
 status=$(curl -sS -b "$editor_cookies" -o /dev/null -w '%{http_code}' \
@@ -173,6 +219,12 @@ contact_id=$(fixture contact-id "$fixture_suffix")
 test "$contact_id" -gt 0
 expect_location "$temporary_directory/editor-contact-create.headers" "view_contact.php?id=$contact_id" 'editor contact creation'
 
+curl -fsS -b "$editor_cookies" \
+    -o "$temporary_directory/editor-organization-contacts.json" \
+    "$base_url/organization_contacts.php?organization_id=$organization_id"
+grep -q "\"id\":$contact_id" "$temporary_directory/editor-organization-contacts.json"
+grep -q '"primary_host":"Primary host"' "$temporary_directory/editor-organization-contacts.json"
+
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagement-create.headers" \
@@ -185,14 +237,27 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagemen
     --data-urlencode 'event_end_date=2026-09-12' \
     --data-urlencode 'event_type=conference' \
     --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'lifecycle_status=active' \
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
+    --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/index.php")
 expect_status "$status" '302' 'editor engagement creation'
 expect_location "$temporary_directory/editor-engagement-create.headers" 'engagements.php' 'editor engagement creation'
 engagement_id=$(fixture engagement-id "$fixture_suffix")
 test "$engagement_id" -gt 0
+
+curl -fsS -b "$editor_cookies" \
+    -o "$temporary_directory/editor-reschedule-options.json" \
+    "$base_url/engagement_reschedule_options.php?organization_id=$organization_id&exclude_id=$engagement_id"
+grep -q '"engagements":' "$temporary_directory/editor-reschedule-options.json"
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-view-engagement.html" \
+    "$base_url/view_engagement.php?id=$engagement_id"
+grep -q 'Primary host' "$temporary_directory/editor-view-engagement.html"
+grep -q '>Travel<' "$temporary_directory/editor-view-engagement.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement.html" \
     "$base_url/edit_engagement.php?id=$engagement_id"
@@ -210,9 +275,12 @@ status=$(curl -sS -b "$editor_cookies" -o "$temporary_directory/editor-conflict.
     --data-urlencode 'event_end_date=2026-09-12' \
     --data-urlencode 'event_type=conference' \
     --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'lifecycle_status=active' \
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
+    --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/edit_engagement.php?id=$engagement_id")
 expect_status "$status" '200' 'stale engagement update'
 grep -q 'changed after you opened it' "$temporary_directory/editor-conflict.html"
@@ -229,9 +297,12 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagemen
     --data-urlencode 'event_end_date=2026-09-12' \
     --data-urlencode 'event_type=conference' \
     --data-urlencode 'confirmation_status=work_in_progress' \
+    --data-urlencode 'lifecycle_status=active' \
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
+    --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/edit_engagement.php?id=$engagement_id")
 expect_status "$status" '302' 'editor engagement update'
 expect_location "$temporary_directory/editor-engagement-update.headers" 'engagements.php' 'editor engagement update'
@@ -280,7 +351,7 @@ status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
     --data-urlencode "authentication_code=$login_recovery_code" \
     "$base_url/verify_2fa.php")
 expect_status "$status" '302' 'administrator second factor'
-expect_location "$temporary_directory/admin-verify.headers" 'engagements.php' 'administrator second factor'
+expect_location "$temporary_directory/admin-verify.headers" 'dashboard.php' 'administrator second factor'
 status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html" \
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'

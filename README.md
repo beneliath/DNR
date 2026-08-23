@@ -157,7 +157,7 @@ Database integration suites are discovered automatically from `tests/*_integrati
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
 
-### Outbound account email
+### Outbound email and task digests
 
 Invitation, verification, and recovery messages use an encrypted transactional outbox. Creating a
 token and its queued message is one database change; a dedicated `mail-dispatch` worker owns the
@@ -165,6 +165,14 @@ SMTP credential and the only SMTP egress path. The web service never connects to
 single-use link remains valid while its replacement is pending and is invalidated only after the
 relay accepts the new message. Failed deliveries retry with bounded exponential backoff, and the
 encrypted payload is erased after success or terminal failure.
+
+Verified users may also opt into a daily work digest under **My Profile → Notifications**. After the
+configured local digest hour, the same worker queues at most one message per user and business date
+with their overdue, due-today, next-seven-days, and waiting tasks. Administrators and editors also
+receive incomplete financial closeouts. Digests use a separate encrypted `notification_outbox` so
+account-token delivery remains isolated; messages are discarded if the recipient opts out, changes
+their email, becomes inactive, or no longer has a verified address. Sent and terminal payloads are
+erased.
 
 Create `secrets/smtp_password`, configure the sender and relay in `.env`, and use
 `production-smtp` or `development-smtp`. Combine inbound and outbound mail with
@@ -248,12 +256,15 @@ Configure these values as needed:
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
 - `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. Web, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance identities receive only their own table-specific privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
-- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, and recovery links.
-- `DNR_MAIL_TRANSPORT`: `smtp` enables account email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
-- `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for account email.
+- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
+- `DNR_MAIL_TRANSPORT`: `smtp` enables account and task-digest email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
+- `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for outbound email.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
 - `DNR_SMTP_USERNAME` and `DNR_SMTP_PASSWORD_SECRET_FILE`: optional SMTP authentication and the host path mounted by the SMTP overlay. The dedicated `mail-dispatch` service receives it as `DNR_SMTP_PASSWORD_FILE`; the web service remains backend-only and cannot reach the relay.
 - `DNR_EMAIL_OUTBOX_BATCH_SIZE` and `DNR_EMAIL_OUTBOX_IDLE_SECONDS`: bounded outbound messages per worker cycle and idle polling interval. Defaults are 20 messages and 15 seconds.
+- `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
+- `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
+- `DNR_TASK_DIGEST_HOUR`: local hour from 0–23 after which opted-in users may receive that business day's digest; defaults to 7 and uses `DNR_TIMEZONE`.
 - `DNR_INBOUND_ADDRESS`: dedicated mailbox address copied on messages for Chron capture; defaults to `moed@beneliath.com` in the mail Compose overlay.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
@@ -508,6 +519,42 @@ retention period ends, remove the plaintext rollback dump with
 `rm -f backups/pre-restore-safety.sql`; filesystem-level secure erasure must follow the host's
 encrypted-storage and media-disposal policy.
 
+## Daily operations dashboard
+
+The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
+view. It combines active engagements in the next 30 days, the signed-in user's active and overdue
+work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
+identify unconfirmed events, missing venue addresses, missing presentations, and organizations
+without an assigned event contact. The greeting uses the signed-in user's first name when it is
+available. Administrators and editors also see inbound messages awaiting routing
+review and quick actions for creating engagements and tasks; reviewers receive the same operational
+context without write controls.
+
+## Event contacts and roles
+
+Engagement create and edit forms can assign active contacts from the selected organization to the
+event. Each contact may hold one or more event-specific roles: **Primary host**, **On-site
+contact**, **Billing**, **Travel**, and **Materials**. Engagement detail pages and exports include
+only assigned event contacts and distinguish these event responsibilities from the contact's
+organization-level role. Changing the engagement organization clears incompatible assignments;
+moving a contact to another organization removes assignments that are no longer valid.
+
+## Engagement lifecycle
+
+Engagements track operational lifecycle separately from planning confirmation. Lifecycle states are
+**Active**, **Postponed**, **Canceled**, and **Completed**; confirmation remains **Work in
+progress**, **Under review**, or **Confirmed**. Canceling an engagement requires a reason, and a
+postponed or canceled engagement may link to a replacement event from the same organization.
+Replacement links cannot point to the same event or form a cycle.
+
+Canceling an engagement also cancels its open, in-progress, and waiting follow-up tasks while
+preserving completed work. Postponed and canceled events cannot receive a new standard checklist or
+financial closeout. Finalizing the first financial report marks an active event completed, and an
+event with a final report cannot be moved back to another lifecycle state. Engagement lists,
+exports, maps, calendar feeds, and detail screens expose lifecycle and confirmation independently;
+daily operational queues default to active events so postponed, canceled, and completed records do
+not appear as current work.
+
 Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
 general or linked to one engagement, organization, or contact. Each task supports an owner,
 due date, priority, notes, and the states **Open**, **In progress**, **Waiting**, **Completed**,
@@ -515,6 +562,12 @@ and **Canceled**. The queue provides personal, overdue, due-today, next-seven-da
 unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and
 editors can create, edit, assign, and complete them; permanent deletion remains limited to
 administrators.
+
+The navigation badge and the **My reminders** panel summarize only the signed-in user's actionable
+work: overdue, due today, next seven days, and waiting tasks. Administrators and editors also see
+their open financial closeouts. Each count links to the matching personal queue. Users with a
+verified email address can enable the optional daily email version under **My Profile →
+Notifications**.
 
 Engagement, organization, and contact detail pages show their open follow-up work. Active
 engagements also offer an optional, idempotent standard checklist covering location, travel,
@@ -544,11 +597,22 @@ event, and aggregate lodging and travel receipts from finalized reports only. �
 the event end date, even if its report was entered later, and archived events remain part of the
 historical totals. The organization list also shows latest-event and lifetime giving for quick review.
 
-Authenticated users can open **Map** in the primary navigation to view active engagements on an interactive, zoomable map. Pins use engagement-status colors and can be filtered to one status or to events that overlap a selected date window. Selecting a pin opens the event summary and a link to the full engagement. Events without an address are counted but cannot be placed.
+Authenticated users can open **Map** in the primary navigation to view engagements on an interactive,
+zoomable map. The initial view contains active lifecycle records; lifecycle, confirmation, and date
+filters can include other records when needed. Active pins use confirmation colors, while
+postponed, canceled, and completed pins display their lifecycle state. Selecting a pin opens the
+event summary and a link to the full engagement. Events without an address are counted but cannot
+be placed.
 
 The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure an allowlisted provider appropriate for that workload instead of relying on the public default.
 
-Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke private subscription URLs per device. The feed includes active (non-archived) engagements in the configured bounded calendar window, regardless of status. Calendar entries use `Event Status-Event Title-Event Type` when an event title is set and `Event Status-Organization-Event Type` otherwise; entries are all-day events covering the engagement date range and include the organization, event title, event type, status, and location. Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
+private subscription URLs per device. The feed includes non-archived engagements in the configured
+bounded calendar window, regardless of lifecycle. Entries are all-day events covering the event
+date range and include lifecycle, confirmation, organization, title, type, and location. Canceled
+events use the calendar-standard `CANCELLED` status; postponed and canceled entries are marked
+transparent, and their descriptions include any cancellation reason and replacement event.
+Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 
 Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest, redacts all query strings from Apache access logs, and never includes contacts, chronological notes, travel, lodging, or compensation in the feed.
 

@@ -31,11 +31,13 @@ expectMapHelper(
 
 $filters = normalizeEngagementMapFilters([
     'status' => 'confirmed',
+    'lifecycle' => 'postponed',
     'date_from' => '2026-08-01',
     'date_to' => '2026-08-31',
 ]);
 expectMapHelper(
     $filters['status'] === 'confirmed'
+        && $filters['lifecycle'] === 'postponed'
         && $filters['date_from'] === '2026-08-01'
         && $filters['date_to'] === '2026-08-31'
         && $filters['errors'] === [],
@@ -44,11 +46,13 @@ expectMapHelper(
 
 $invalid_filters = normalizeEngagementMapFilters([
     'status' => 'not-a-status',
+    'lifecycle' => 'not-a-lifecycle',
     'date_from' => '2026-09-01',
     'date_to' => '2026-08-01',
 ]);
 expectMapHelper(
     $invalid_filters['status'] === ''
+        && $invalid_filters['lifecycle'] === 'active'
         && validIsoDate($invalid_filters['date_from'])
         && validIsoDate($invalid_filters['date_to'])
         && $invalid_filters['date_to'] > $invalid_filters['date_from']

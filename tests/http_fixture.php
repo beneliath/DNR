@@ -40,6 +40,17 @@ $engagementTitle = 'HTTP Test Engagement ' . $suffix;
 $updatedEngagementTitle = $engagementTitle . ' Updated';
 
 $deleteFixtures = static function () use ($conn, $usernames, $organizationName): void {
+    $taskStatement = $conn->prepare(
+        'DELETE task FROM follow_up_tasks task
+         INNER JOIN users user ON user.id = task.created_by
+         WHERE user.username = ?'
+    );
+    foreach ($usernames as $username) {
+        $taskStatement->bind_param('s', $username);
+        $taskStatement->execute();
+    }
+    $taskStatement->close();
+
     $engagementStatement = $conn->prepare(
         'DELETE engagement FROM engagements engagement
          INNER JOIN organizations organization ON organization.id = engagement.organization_id
@@ -81,20 +92,37 @@ if ($action === 'setup') {
     $deleteFixtures();
     $passwordHash = password_hash(HTTP_FIXTURE_PASSWORD, PASSWORD_DEFAULT);
     $insertUser = $conn->prepare(
-        'INSERT INTO users (username, password, role, two_factor_enabled)
-         VALUES (?, ?, ?, ?)'
+        'INSERT INTO users
+            (username, email, email_verified_at, password, role, two_factor_enabled)
+         VALUES (?, ?, UTC_TIMESTAMP(), ?, ?, ?)'
     );
     foreach (['reviewer', 'editor', 'target'] as $fixtureRole) {
         $username = $usernames[$fixtureRole];
+        $email = $username . '@example.test';
         $role = $fixtureRole === 'target' ? 'reviewer' : $fixtureRole;
         $twoFactorEnabled = 0;
-        $insertUser->bind_param('sssi', $username, $passwordHash, $role, $twoFactorEnabled);
+        $insertUser->bind_param(
+            'ssssi',
+            $username,
+            $email,
+            $passwordHash,
+            $role,
+            $twoFactorEnabled
+        );
         $insertUser->execute();
     }
     $username = $usernames['admin'];
+    $email = $username . '@example.test';
     $role = 'admin';
     $twoFactorEnabled = 1;
-    $insertUser->bind_param('sssi', $username, $passwordHash, $role, $twoFactorEnabled);
+    $insertUser->bind_param(
+        'ssssi',
+        $username,
+        $email,
+        $passwordHash,
+        $role,
+        $twoFactorEnabled
+    );
     $insertUser->execute();
     $adminId = (int) $conn->insert_id;
     $insertUser->close();
@@ -120,19 +148,28 @@ if ($action === 'setup') {
     exit(0);
 }
 
-if ($action === 'user-exists' || $action === 'user-status') {
+if ($action === 'user-exists'
+    || $action === 'user-status'
+    || $action === 'digest-enabled'
+) {
     $fixture = $argv[3] ?? '';
     if (!isset($usernames[$fixture])) {
         fwrite(STDERR, "Unknown user fixture.\n");
         exit(1);
     }
-    $statement = $conn->prepare('SELECT account_status FROM users WHERE username = ?');
+    $statement = $conn->prepare(
+        'SELECT account_status, task_digest_enabled FROM users WHERE username = ?'
+    );
     $statement->bind_param('s', $usernames[$fixture]);
     $statement->execute();
     $user = $statement->get_result()->fetch_assoc();
-    echo $action === 'user-exists'
-        ? ($user ? "1\n" : "0\n")
-        : ($user ? (string) $user['account_status'] . "\n" : "missing\n");
+    if ($action === 'user-exists') {
+        echo $user ? "1\n" : "0\n";
+    } elseif ($action === 'digest-enabled') {
+        echo $user ? (string) (int) $user['task_digest_enabled'] . "\n" : "missing\n";
+    } else {
+        echo $user ? (string) $user['account_status'] . "\n" : "missing\n";
+    }
     exit(0);
 }
 
@@ -146,6 +183,24 @@ if ($action === 'user-id') {
     $statement->bind_param('s', $usernames[$fixture]);
     $statement->execute();
     echo (int) ($statement->get_result()->fetch_assoc()['id'] ?? 0) . "\n";
+    exit(0);
+}
+
+if ($action === 'mark-email-unverified') {
+    $fixture = $argv[3] ?? '';
+    if (!isset($usernames[$fixture])) {
+        fwrite(STDERR, "Unknown user fixture.\n");
+        exit(1);
+    }
+    $statement = $conn->prepare(
+        'UPDATE users
+         SET email_verified_at = NULL, task_digest_enabled = 0
+         WHERE username = ?'
+    );
+    $statement->bind_param('s', $usernames[$fixture]);
+    $statement->execute();
+    $statement->close();
+    echo "Fixture email marked unverified.\n";
     exit(0);
 }
 

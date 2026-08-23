@@ -121,7 +121,7 @@ function engagementPdfDisplayValue($label, $value) {
         }
     }
 
-    if (in_array($label, ['Event Type', 'Status'], true)) {
+    if (in_array($label, ['Event Type', 'Status', 'Confirmation', 'Lifecycle'], true)) {
         return ucwords(str_replace('_', ' ', $value));
     }
 

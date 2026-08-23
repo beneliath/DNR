@@ -78,8 +78,13 @@ expectUserProfile(
 expectUserProfile(
     str_contains($profile_page, 'form="profile-resend-verification-form"')
         && str_contains($profile_page, '<form id="profile-resend-verification-form" method="post" action="profile.php" hidden>')
+        && str_contains($profile_page, "require_once __DIR__ . '/two_factor_helpers.php';")
+        && str_contains($profile_page, "logSecurityEvent(\$conn, 'email_verification_queued'")
+        && str_contains($profile_page, 'verification_queued=1')
+        && str_contains($profile_page, 'verification_test_only=1')
+        && str_contains($profile_page, 'No external email was sent because the development test transport is active.')
         && strpos($profile_page, 'profile-verification-button') < strpos($profile_page, 'profile-save-actions'),
-    'the resend-verification action should remain a separate secure form while its button sits at the lower-left of the profile pane.'
+    'the resend-verification action should load its audit dependency and distinguish queued SMTP mail from test-only acceptance.'
 );
 
 $profile_script = $read('src/assets/js/profile.js');

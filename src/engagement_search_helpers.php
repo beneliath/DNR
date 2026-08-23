@@ -44,7 +44,10 @@ function parseEngagementSearchQuery($search) {
 
 function engagementSearchTermSql() {
     return "(
-        MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
+        MATCH(
+            e.event_title, e.event_description, e.engagement_notes,
+            e.caller_name, e.cancellation_reason
+        )
             AGAINST (? IN BOOLEAN MODE)
         OR EXISTS (
             SELECT 1 FROM users caller

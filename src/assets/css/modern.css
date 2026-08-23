@@ -335,6 +335,20 @@ html.dark-mode .app-sidebar .nav-link.active {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--nav-hover-fg) 18%, transparent);
 }
 
+.nav-notification-badge {
+  min-width: 1.45rem;
+  margin-left: auto;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--danger, #b42318);
+  color: #fff;
+  font-size: .72rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+  line-height: 1.35;
+  text-align: center;
+}
+
 .nav-link.active {
   background: var(--nav-active-bg) !important;
   color: var(--nav-active-fg) !important;
@@ -589,6 +603,42 @@ html body .container > .profile-form {
 
 .profile-account-meta strong {
   color: var(--text);
+}
+
+.profile-notification-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.profile-notification-option input {
+  margin: 3px 0 0;
+}
+
+.profile-notification-option span {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-notification-option strong {
+  color: var(--text);
+  font-size: .96rem;
+}
+
+.profile-notification-option small {
+  color: var(--text-muted);
+  font-size: .84rem;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.profile-notification-option:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: .68;
 }
 
 .profile-actions {
@@ -1365,8 +1415,119 @@ html body .chron-restore-page-actions a:focus-visible {
 }
 
 /* Follow-up work queue */
+.task-reminder-panel {
+  margin-bottom: 22px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-sm);
+}
+
+.task-reminder-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.task-reminder-heading h2 {
+  margin: 0 0 4px;
+  font-size: 1.08rem;
+}
+
+.task-reminder-heading p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: .86rem;
+}
+
+.task-reminder-badges {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.task-reminder-badge {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  color: var(--text);
+  text-decoration: none;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.task-reminder-badge span {
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: .78rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-reminder-badge strong {
+  min-width: 1.55rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary-subtle);
+  color: var(--primary);
+  font-size: .82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.task-reminder-badge:hover,
+.task-reminder-badge:focus-visible {
+  border-color: var(--control-hover-border);
+  background: var(--control-hover-bg);
+  color: var(--control-hover-fg);
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.task-reminder-badge.reminder-overdue strong {
+  background: var(--danger-subtle);
+  color: var(--danger);
+}
+
+.task-reminder-badge.reminder-today strong,
+.task-reminder-badge.reminder-waiting strong,
+.task-reminder-badge.reminder-closeout strong {
+  background: var(--warning-subtle);
+  color: var(--warning);
+}
+
 .task-summary-grid {
   grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .task-reminder-badges {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .task-reminder-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .task-reminder-heading > a {
+    width: 100%;
+  }
+
+  .task-reminder-badges {
+    grid-template-columns: 1fr;
+  }
 }
 
 .task-summary-grid .summary-card {
@@ -3224,10 +3385,10 @@ html.dark-mode .login-secondary-link a {
   }
 
   .engagement-table td:nth-child(1)::before { content: "Event"; }
-  .engagement-table td:nth-child(2)::before { content: "Organization"; }
-  .engagement-table td:nth-child(3)::before { content: "Dates"; }
-  .engagement-table td:nth-child(4)::before { content: "Type"; }
-  .engagement-table td:nth-child(5)::before { content: "Status"; }
+  .engagement-table td:nth-child(2)::before { content: "Dates"; }
+  .engagement-table td:nth-child(3)::before { content: "Lifecycle"; }
+  .engagement-table td:nth-child(4)::before { content: "Confirmation"; }
+  .engagement-table td:nth-child(5)::before { content: "Closeout"; }
   .engagement-table td:nth-child(6)::before { content: "Actions"; }
   .organization-table td:nth-child(1)::before { content: "Organization"; }
   .organization-table td:nth-child(2)::before { content: "Location"; }

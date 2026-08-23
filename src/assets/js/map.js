@@ -137,6 +137,13 @@ import * as L from 'leaflet';
         status.textContent = event.statusLabel;
         content.appendChild(status);
 
+        if (event.lifecycleLabel && event.lifecycle !== 'active') {
+            const lifecycle = document.createElement('span');
+            lifecycle.className = 'map-popup-detail';
+            lifecycle.textContent = 'Lifecycle: ' + event.lifecycleLabel;
+            content.appendChild(lifecycle);
+        }
+
         const date = document.createElement('span');
         date.className = 'map-popup-detail';
         date.textContent = event.dateLabel;

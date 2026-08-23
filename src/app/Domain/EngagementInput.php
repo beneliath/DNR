@@ -54,6 +54,16 @@ final class EngagementInput
                 ReferenceData::engagementStatuses(),
                 'work_in_progress'
             ),
+            'lifecycle_status' => ReferenceData::choice(
+                $input['lifecycle_status'] ?? '',
+                ReferenceData::engagementLifecycleStatuses(),
+                'active'
+            ),
+            'cancellation_reason' => InputText::value($input, 'cancellation_reason'),
+            'rescheduled_to_engagement_id' => max(
+                0,
+                (int) ($input['rescheduled_to_engagement_id'] ?? 0)
+            ) ?: null,
             'travel_covered' => ReferenceData::choice(
                 $input['travel_covered'] ?? '',
                 ReferenceData::travelCoverage(),
@@ -110,6 +120,26 @@ final class EngagementInput
             if ($storage_error !== null) {
                 throw new \InvalidArgumentException($storage_error);
             }
+        }
+        $cancellation_length_error = InputText::lengthError(
+            (string) $data['cancellation_reason'],
+            1000,
+            'Cancellation reason'
+        );
+        if ($cancellation_length_error !== null) {
+            throw new \InvalidArgumentException($cancellation_length_error);
+        }
+        if ($data['lifecycle_status'] === 'canceled') {
+            if ($data['cancellation_reason'] === '') {
+                throw new \InvalidArgumentException(
+                    'Provide a cancellation reason for a canceled engagement.'
+                );
+            }
+        } else {
+            $data['cancellation_reason'] = null;
+        }
+        if (!in_array($data['lifecycle_status'], ['postponed', 'canceled'], true)) {
+            $data['rescheduled_to_engagement_id'] = null;
         }
         \requireValidDateRange($data['event_start_date'], $data['event_end_date']);
         if ($data['compensation_type'] === 'Other' && $data['other_compensation'] === '') {

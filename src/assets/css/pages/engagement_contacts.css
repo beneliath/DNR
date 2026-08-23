@@ -1,0 +1,140 @@
+.engagement-contacts-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.engagement-contacts-heading h2 {
+    margin-bottom: 6px;
+}
+
+.engagement-contacts-heading .field-help {
+    margin: 0;
+}
+
+.engagement-contact-count {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    border-radius: 999px;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    font-size: 0.78rem;
+    font-weight: 680;
+}
+
+.engagement-contact-status {
+    min-height: 1.4em;
+    margin: 10px 0;
+}
+
+.engagement-contact-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+    transition: opacity 150ms ease;
+}
+
+.engagement-contact-list[aria-busy="true"] {
+    opacity: 0.55;
+}
+
+.engagement-contact-card {
+    min-width: 0;
+    margin: 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.engagement-contact-card legend {
+    max-width: calc(100% - 12px);
+    padding: 0 6px;
+}
+
+.engagement-contact-card legend > span,
+.engagement-contact-card legend > small {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.engagement-contact-card legend > span {
+    color: var(--text);
+    font-weight: 700;
+}
+
+.engagement-contact-card legend > small {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 520;
+}
+
+.engagement-contact-role-options {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 12px;
+    margin-top: 4px;
+}
+
+.engagement-contact-role-options label {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-width: 0;
+    margin: 0;
+    color: var(--text) !important;
+    cursor: pointer;
+    font-size: 0.86rem;
+}
+
+.engagement-contact-role-options input {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.engagement-contact-role-options label:hover span {
+    color: var(--primary-hover);
+}
+
+.engagement-contact-empty,
+.engagement-contacts-empty {
+    margin: 0;
+    color: var(--text-muted);
+}
+
+.engagement-contact-empty {
+    grid-column: 1 / -1;
+    padding: 18px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    text-align: center;
+}
+
+.event-contact-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 7px 0;
+}
+
+.event-contact-roles > span {
+    padding: 3px 7px;
+    border-radius: 999px;
+    background: var(--primary-subtle);
+    color: var(--primary);
+    font-size: 0.76rem;
+    font-weight: 680;
+}
+
+@media (max-width: 560px) {
+    .engagement-contacts-heading {
+        flex-direction: column;
+    }
+
+    .engagement-contact-list,
+    .engagement-contact-role-options {
+        grid-template-columns: 1fr;
+    }
+}

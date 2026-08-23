@@ -10,7 +10,7 @@ header('Pragma: no-cache');
 header('Referrer-Policy: no-referrer');
 
 if (isLoggedIn()) {
-    header('Location: engagements.php');
+    header('Location: dashboard.php');
     exit();
 }
 
@@ -103,7 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
                 header('Location: setup_2fa.php');
             } else {
                 completeAuthentication($conn, $user, false);
-                header('Location: engagements.php');
+                header('Location: dashboard.php');
             }
             exit();
         } catch (InvalidArgumentException $exception) {

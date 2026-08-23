@@ -225,22 +225,22 @@ expectTrue(
 );
 expectTrue(
     authenticationDestination(['role' => 'reviewer', 'must_change_password' => 0])
-        === 'engagements.php',
-    'A reviewer without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'A reviewer without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
     authenticationDestination(['role' => 'editor', 'must_change_password' => 0])
-        === 'engagements.php',
-    'An editor without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'An editor without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
     authenticationDestination(['role' => 'admin', 'must_change_password' => 0])
-        === 'engagements.php',
-    'An administrator without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'An administrator without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
-    twoFactorRecoveryCodesDestination(true) === 'engagements.php',
-    'Initial two-factor enrollment should continue to Engagements.'
+    twoFactorRecoveryCodesDestination(true) === 'dashboard.php',
+    'Initial two-factor enrollment should continue to the daily dashboard.'
 );
 expectTrue(
     twoFactorRecoveryCodesDestination(false) === 'two_factor_settings.php',

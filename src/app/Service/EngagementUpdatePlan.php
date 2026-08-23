@@ -54,9 +54,25 @@ final class EngagementUpdatePlan
             $types .= 'si';
         }
 
-        foreach (['confirmation_status', 'travel_covered'] as $field) {
+        foreach (['confirmation_status', 'lifecycle_status', 'travel_covered'] as $field) {
             self::addStringChange($assignments, $values, $types, $current, $submitted, $field);
         }
+        self::addNullableStringChange(
+            $assignments,
+            $values,
+            $types,
+            $current,
+            $submitted,
+            'cancellation_reason'
+        );
+        self::addNullableIntegerChange(
+            $assignments,
+            $values,
+            $types,
+            $current,
+            $submitted,
+            'rescheduled_to_engagement_id'
+        );
         self::addAmountChange($assignments, $values, $types, $current, $submitted, 'travel_amount');
 
         foreach (['compensation_type', 'other_compensation', 'housing_type', 'other_housing'] as $field) {
@@ -154,5 +170,61 @@ final class EngagementUpdatePlan
         $assignments[] = $field . ' = ?';
         $values[] = $value;
         $types .= 'd';
+    }
+
+    /**
+     * @param list<string> $assignments
+     * @param list<float|int|string|null> $values
+     * @param array<string, mixed> $current
+     * @param array<string, float|int|string|null> $submitted
+     */
+    private static function addNullableIntegerChange(
+        array &$assignments,
+        array &$values,
+        string &$types,
+        array $current,
+        array $submitted,
+        string $field
+    ): void {
+        $value = ($submitted[$field] ?? null) === null
+            ? null
+            : (int) $submitted[$field];
+        $currentValue = ($current[$field] ?? null) === null
+            ? null
+            : (int) $current[$field];
+        if ($value === $currentValue) {
+            return;
+        }
+        $assignments[] = $field . ' = ?';
+        $values[] = $value;
+        $types .= 'i';
+    }
+
+    /**
+     * @param list<string> $assignments
+     * @param list<float|int|string|null> $values
+     * @param array<string, mixed> $current
+     * @param array<string, float|int|string|null> $submitted
+     */
+    private static function addNullableStringChange(
+        array &$assignments,
+        array &$values,
+        string &$types,
+        array $current,
+        array $submitted,
+        string $field
+    ): void {
+        $value = ($submitted[$field] ?? null) === null
+            ? null
+            : (string) $submitted[$field];
+        $currentValue = ($current[$field] ?? null) === null
+            ? null
+            : (string) $current[$field];
+        if ($value === $currentValue) {
+            return;
+        }
+        $assignments[] = $field . ' = ?';
+        $values[] = $value;
+        $types .= 's';
     }
 }

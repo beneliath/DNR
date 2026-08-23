@@ -39,11 +39,15 @@ expectIntegrationRunner(
     in_array('database_backup_integration_test.php', $discovered, true)
         && str_contains($runner, "'database_backup_integration_test.php'")
         && str_contains($runner, 'DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore')
+        && str_contains($runner, 'isolated_project="dnr-backup-test-')
+        && str_contains($runner, 'compose_isolated up -d --wait db')
+        && str_contains($runner, 'compose_isolated down --volumes --remove-orphans')
+        && str_contains($runner, 'trap cleanup_isolated_backup EXIT HUP INT TERM')
         && str_contains($runner, 'maintenance'),
-    'the destructive backup suite should remain isolated in the maintenance container.'
+    'the destructive backup suite should use and always destroy its own database project and volume.'
 );
 expectIntegrationRunner(
-    substr_count($runner, '</dev/null') === 4,
+    substr_count($runner, '</dev/null') >= 7,
     'containerized tests should not consume the loop input before every discovered suite runs.'
 );
 expectIntegrationRunner(
@@ -51,6 +55,12 @@ expectIntegrationRunner(
         && str_contains($runner, "'email_outbox_worker_integration_test.php'")
         && str_contains($runner, 'maintenance "/opt/dnr/${test_file}"'),
     'email outbox state-machine tests should run with the isolated maintenance database identity.'
+);
+expectIntegrationRunner(
+    in_array('task_notifications_integration_test.php', $discovered, true)
+        && str_contains($runner, "'task_notifications_integration_test.php'")
+        && str_contains($runner, 'maintenance "/opt/dnr/${test_file}"'),
+    'notification scheduling and delivery state-machine tests should use the maintenance test identity.'
 );
 expectIntegrationRunner(
     in_array('geocoder_worker_integration_test.php', $discovered, true)

@@ -7,7 +7,7 @@ requireTwoFactorSchema($conn);
 requireLoginRateLimitSchema($conn);
 
 if (isLoggedIn()) {
-    header('Location: engagements.php');
+    header('Location: dashboard.php');
     exit();
 }
 

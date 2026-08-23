@@ -67,6 +67,8 @@ $query = "SELECT
             e.event_type,
             e.event_type_other,
             e.confirmation_status,
+            e.lifecycle_status,
+            e.cancellation_reason,
             e.event_address_line_1,
             e.event_address_line_2,
             e.event_city,
@@ -74,9 +76,21 @@ $query = "SELECT
             e.event_zipcode,
             e.event_country,
             o.organization_name,
-            UNIX_TIMESTAMP(GREATEST(e.updated_at, o.updated_at)) AS calendar_updated_at
+            replacement.event_title AS rescheduled_event_title,
+            replacement.event_start_date AS rescheduled_event_start_date,
+            replacement_organization.organization_name AS rescheduled_organization_name,
+            UNIX_TIMESTAMP(GREATEST(
+                e.updated_at,
+                o.updated_at,
+                COALESCE(replacement.updated_at, e.updated_at),
+                COALESCE(replacement_organization.updated_at, o.updated_at)
+            )) AS calendar_updated_at
           FROM engagements e
           INNER JOIN organizations o ON o.id = e.organization_id
+          LEFT JOIN engagements replacement
+                 ON replacement.id = e.rescheduled_to_engagement_id
+          LEFT JOIN organizations replacement_organization
+                 ON replacement_organization.id = replacement.organization_id
           WHERE e.is_deleted = 0 AND {$engagement_window}
           ORDER BY e.event_start_date, e.id";
 $engagement_statement = $conn->prepare($query);
@@ -102,6 +116,8 @@ $presentation_query = "SELECT
             e.event_type,
             e.event_type_other,
             e.confirmation_status,
+            e.lifecycle_status,
+            e.cancellation_reason,
             e.event_address_line_1,
             e.event_address_line_2,
             e.event_city,
@@ -109,10 +125,23 @@ $presentation_query = "SELECT
             e.event_zipcode,
             e.event_country,
             o.organization_name,
-            UNIX_TIMESTAMP(GREATEST(e.updated_at, o.updated_at, p.updated_at)) AS calendar_updated_at
+            replacement.event_title AS rescheduled_event_title,
+            replacement.event_start_date AS rescheduled_event_start_date,
+            replacement_organization.organization_name AS rescheduled_organization_name,
+            UNIX_TIMESTAMP(GREATEST(
+                e.updated_at,
+                o.updated_at,
+                p.updated_at,
+                COALESCE(replacement.updated_at, e.updated_at),
+                COALESCE(replacement_organization.updated_at, o.updated_at)
+            )) AS calendar_updated_at
           FROM presentations p
           INNER JOIN engagements e ON e.id = p.engagement_id
           INNER JOIN organizations o ON o.id = e.organization_id
+          LEFT JOIN engagements replacement
+                 ON replacement.id = e.rescheduled_to_engagement_id
+          LEFT JOIN organizations replacement_organization
+                 ON replacement_organization.id = replacement.organization_id
           WHERE e.is_deleted = 0
             AND p.is_archived = 0
             AND p.presentation_time IS NOT NULL

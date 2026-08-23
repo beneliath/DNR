@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 $conn = applicationDatabaseConnection();
 include 'follow_up_task_helpers.php';
+include 'notification_helpers.php';
 include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -22,6 +23,7 @@ $has_subject_filter = in_array(
 $view = array_key_exists($requested_view, followUpTaskQueueViews())
     ? $requested_view
     : ($has_subject_filter ? 'all' : 'my');
+$owner_filter = \Dnr\Http\RequestInput::string($_GET, 'owner') === 'me' ? 'me' : '';
 $search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 100);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
@@ -37,6 +39,9 @@ $cursor = decodePaginationCursor($cursor_value, $cursor_keys);
 $queue_parameters = [
     'view' => $view,
 ];
+if ($owner_filter === 'me') {
+    $queue_parameters['owner'] = 'me';
+}
 if ($search !== '') {
     $queue_parameters['q'] = $search;
 }
@@ -135,6 +140,12 @@ $action_message = $_SESSION['task_action_message'] ?? '';
 $action_error = $_SESSION['task_action_error'] ?? '';
 unset($_SESSION['task_action_message'], $_SESSION['task_action_error']);
 $business_date = applicationBusinessDate();
+$personal_reminders = fetchTaskReminderCounts(
+    $conn,
+    $current_user_id,
+    (string) $user_role,
+    $business_date
+);
 
 $summary_stmt = $conn->prepare(
     "SELECT
@@ -204,6 +215,11 @@ if ($view === 'my') {
 } else {
     $where[] = $active_status_sql;
 }
+if ($owner_filter === 'me' && $view !== 'my') {
+    $where[] = 't.assigned_to = ?';
+    $bind_types .= 'i';
+    $bind_values[] = $current_user_id;
+}
 
 if ($has_subject_filter) {
     $where[] = 't.' . $subject_filter_type . '_id = ?';
@@ -214,7 +230,10 @@ if ($fulltext_query !== '') {
     $where[] = "(
         MATCH(t.title, t.details, t.waiting_on) AGAINST (? IN BOOLEAN MODE)
         OR assignee.username LIKE ?
-        OR MATCH(e.event_title, e.event_description, e.engagement_notes, e.caller_name)
+        OR MATCH(
+            e.event_title, e.event_description, e.engagement_notes,
+            e.caller_name, e.cancellation_reason
+        )
             AGAINST (? IN BOOLEAN MODE)
         OR MATCH(
             eo.organization_name, eo.notes, eo.affiliation, eo.distinctives,
@@ -362,6 +381,25 @@ $priority_labels = followUpTaskPriorities();
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
+    <section class="task-reminder-panel" aria-labelledby="task-reminder-heading">
+        <div class="task-reminder-heading">
+            <div>
+                <h2 id="task-reminder-heading">My Reminders</h2>
+                <p>Assigned work and operational closeouts that need your attention.</p>
+            </div>
+            <a href="profile.php#notification-preferences-heading" class="button-secondary">Digest settings</a>
+        </div>
+        <div class="task-reminder-badges">
+            <a href="tasks.php?view=overdue&amp;owner=me" class="task-reminder-badge reminder-overdue"><span>Overdue</span><strong><?php echo $personal_reminders['overdue']; ?></strong></a>
+            <a href="tasks.php?view=today&amp;owner=me" class="task-reminder-badge reminder-today"><span>Due today</span><strong><?php echo $personal_reminders['today']; ?></strong></a>
+            <a href="tasks.php?view=upcoming&amp;owner=me" class="task-reminder-badge reminder-upcoming"><span>Next 7 days</span><strong><?php echo $personal_reminders['upcoming']; ?></strong></a>
+            <a href="tasks.php?view=waiting&amp;owner=me" class="task-reminder-badge reminder-waiting"><span>Waiting</span><strong><?php echo $personal_reminders['waiting']; ?></strong></a>
+            <?php if (in_array((string) $user_role, ['admin', 'editor'], true)): ?>
+                <a href="dashboard.php#financial-closeouts" class="task-reminder-badge reminder-closeout"><span>Closeouts</span><strong><?php echo $personal_reminders['closeouts']; ?></strong></a>
+            <?php endif; ?>
+        </div>
+    </section>
+
     <div class="summary-grid task-summary-grid" aria-label="Work queue summary">
         <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
         <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
@@ -393,6 +431,9 @@ $priority_labels = followUpTaskPriorities();
 
     <?php if ($subject_filter_record): ?>
         <p class="result-context">Showing tasks for <a href="<?php echo htmlspecialchars($subject_filter_record['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject_filter_record['label'], ENT_QUOTES, 'UTF-8'); ?></a>. <a href="tasks.php?view=<?php echo urlencode($view); ?>">Clear record filter</a></p>
+    <?php endif; ?>
+    <?php if ($owner_filter === 'me'): ?>
+        <p class="result-context">Showing tasks assigned to you. <a href="<?php echo htmlspecialchars($queue_url(['owner' => '']), ENT_QUOTES, 'UTF-8'); ?>">Show all owners</a>.</p>
     <?php endif; ?>
     <div class="task-view-heading">
         <h2><?php echo htmlspecialchars($view_labels[$view], ENT_QUOTES, 'UTF-8'); ?></h2>

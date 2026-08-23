@@ -4,6 +4,9 @@ requireFollowUpTaskSchema($conn);
 $context_task_subject_id = isset($context_task_subject_id) ? (int) $context_task_subject_id : null;
 $context_task_return_to = safeFollowUpTaskReturnUrl($context_task_return_to ?? 'tasks.php');
 $context_task_subject_active = !empty($context_task_subject_active);
+$context_task_allow_checklist = isset($context_task_allow_checklist)
+    ? !empty($context_task_allow_checklist)
+    : $context_task_subject_active;
 $context_task_can_manage = canManageFollowUpTasks($_SESSION['role'] ?? '');
 $context_tasks = fetchFollowUpTasksForSubject(
     $conn,
@@ -44,6 +47,7 @@ $context_status_labels = followUpTaskStatuses();
 
     <?php if ($context_task_can_manage
         && $context_task_subject_active
+        && $context_task_allow_checklist
         && $context_task_subject_type === 'engagement'
     ): ?>
         <form method="post" action="tasks.php" class="checklist-generation-form">

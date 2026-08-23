@@ -3,6 +3,11 @@
             border-collapse: collapse;
             margin-top: 20px;
         }
+        @media (min-width: 761px) {
+            .engagement-table .engagement-title {
+                width: 32%;
+            }
+        }
         .page-heading {
             display: flex;
             align-items: center;
@@ -124,4 +129,11 @@
         }
         .event-closeout-badge.is-closed {
             background-color: #1f7a4c;
+        }
+        .event-closeout-badge.is-not-applicable {
+            background-color: #475569;
+        }
+        .engagement-lifecycle,
+        .engagement-status {
+            white-space: nowrap;
         }

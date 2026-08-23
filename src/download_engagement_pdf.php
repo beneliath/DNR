@@ -2,6 +2,8 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 startSecureSession();
 requireLogin();
@@ -36,21 +38,30 @@ if (!$engagement) {
     exit('Engagement not found.');
 }
 
-$contact_stmt = $conn->prepare(
-    'SELECT contact_first_name, contact_last_name, contact_role, contact_role_other,
-            contact_email, contact_phone
-     FROM contacts
-     WHERE organization_id = ? AND is_deleted = 0
-     ORDER BY contact_last_name, contact_first_name'
-);
-if (!$contact_stmt) {
+try {
+    $rescheduled_target = fetchEngagementRescheduleTarget($conn, (int) $engagement_id);
+    if ($rescheduled_target !== null) {
+        $engagement['rescheduled_event_label'] = engagementReferenceLabel($rescheduled_target);
+    }
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load the rescheduled-event PDF link', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+    http_response_code(500);
+    exit('Unable to prepare the engagement lifecycle export.');
+}
+
+try {
+    $contacts = fetchEngagementContacts($conn, $engagement_id);
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load engagement contacts for PDF export', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
     http_response_code(500);
     exit('Unable to prepare the engagement contacts export.');
 }
-$contact_stmt->bind_param('i', $engagement['organization_id']);
-$contact_stmt->execute();
-$contacts = $contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$contact_stmt->close();
 
 $presentation_stmt = $conn->prepare(
     'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance

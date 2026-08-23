@@ -19,6 +19,12 @@ final class ReferenceData
     }
 
     /** @return list<string> */
+    public static function engagementLifecycleStatuses(): array
+    {
+        return ['active', 'postponed', 'canceled', 'completed'];
+    }
+
+    /** @return list<string> */
     public static function eventTypes(): array
     {
         return ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];

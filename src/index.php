@@ -6,14 +6,16 @@ require_once __DIR__ . '/bootstrap.php';
 include 'presentation_helpers.php';
 include 'map_helpers.php';
 include 'follow_up_task_helpers.php';
+include 'engagement_contact_helpers.php';
+include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 requireFollowUpTaskSchema($conn);
 
-// The bare application URL is the engagement list; index.php remains the add form.
+// The bare application URL is the daily dashboard; index.php remains the add form.
 $request_method = strtoupper($_SERVER['REQUEST_METHOD'] ?? 'GET');
 if (in_array($request_method, ['GET', 'HEAD'], true) && isApplicationRootRequest($_SERVER)) {
-    header('Location: engagements.php');
+    header('Location: dashboard.php');
     exit();
 }
 
@@ -29,6 +31,7 @@ $DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unkn
 // Handle form submission for adding a new engagement
 $success_message = '';
 $error_message = '';
+$submitted_engagement_contacts = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     requireValidCsrfToken();
@@ -36,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $chron_entry = trim($_POST['chron_entry'] ?? '');
 
     try {
+        $submitted_engagement_contacts = normalizeEngagementContactAssignments(
+            $_POST['engagement_contacts'] ?? null
+        );
         $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
         foreach ($engagement_input as $field => $value) {
             ${$field} = $value;
@@ -49,7 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             $event_end_date,
             $DEFAULT_SPEAKER
         );
-        requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
+        requirePresentationForConfirmedEngagement(
+            $confirmation_status,
+            $presentations,
+            $lifecycle_status
+        );
     } catch (Throwable $exception) {
         $presentations = [];
         if (!$exception instanceof InvalidArgumentException) {
@@ -68,20 +78,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         try {
             requireActiveOrganization($conn, $organization_id, true);
+            validateEngagementContactAssignments(
+                $conn,
+                $organization_id,
+                $submitted_engagement_contacts
+            );
+            validateEngagementRescheduleLink(
+                $conn,
+                $organization_id,
+                $lifecycle_status,
+                $rescheduled_to_engagement_id
+            );
+            $current_user_id = (int) $_SESSION['user_id'];
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
                 organization_id, event_title, event_description, event_start_date, event_end_date,
                 event_type, event_type_other, book_table, brochures, caller_name, caller_user_id,
-                confirmation_status,
+                confirmation_status, lifecycle_status, cancellation_reason,
+                rescheduled_to_engagement_id, lifecycle_changed_by,
                 event_address_line_1, event_address_line_2, event_city, event_state,
                 event_zipcode, event_country,
                 travel_covered, travel_amount, compensation_type, other_compensation,
                 housing_type, other_housing, housing_amount
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "issssssiisissssssssdssssd",
+                    "issssssiisisssiisssssssdssssd",
                     $organization_id,
                     $event_title,
                     $event_description,
@@ -94,6 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     $caller_name,
                     $caller_user_id,
                     $confirmation_status,
+                    $lifecycle_status,
+                    $cancellation_reason,
+                    $rescheduled_to_engagement_id,
+                    $current_user_id,
                     $event_address_line_1,
                     $event_address_line_2,
                     $event_city,
@@ -111,7 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
                 if ($stmt->execute()) {
                     $engagement_id = $conn->insert_id;
-                    $current_user_id = (int) $_SESSION['user_id'];
+
+                    syncEngagementContacts(
+                        $conn,
+                        $engagement_id,
+                        $submitted_engagement_contacts,
+                        $current_user_id,
+                        false
+                    );
 
                     // Insert presentations
                     if (!empty($presentations)) {
@@ -167,13 +201,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         $chron_stmt->close();
                     }
 
-                    $standard_task_count = generateEngagementFollowUpChecklist(
-                        $conn,
-                        $engagement_id,
-                        $current_user_id,
-                        $current_user_id,
-                        false
-                    );
+                    $standard_task_count = $lifecycle_status === 'active'
+                        ? generateEngagementFollowUpChecklist(
+                            $conn,
+                            $engagement_id,
+                            $current_user_id,
+                            $current_user_id,
+                            false
+                        )
+                        : 0;
 
                     $map_address = engagementMapAddress([
                         'event_address_line_1' => $event_address_line_1,
@@ -213,6 +249,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         }
     }
 }
+
+$engagement_contact_role_options = engagementContactRoles();
+$selected_engagement_organization_id = !empty($error_message)
+    ? (int) ($_POST['organization_id'] ?? 0)
+    : 0;
+try {
+    $organization_contacts = fetchOrganizationContactOptions(
+        $conn,
+        $selected_engagement_organization_id
+    );
+} catch (Throwable $exception) {
+    abortApplication(503, 'Organization contacts are temporarily unavailable.', [
+        'error' => $exception->getMessage(),
+    ]);
+}
+$engagement_contact_assignment_map = engagementContactAssignmentMap(
+    $submitted_engagement_contacts
+);
+$engagement_lifecycle_options = engagementLifecycleStatuses();
+$engagement_confirmation_statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
+$selected_lifecycle_status = !empty($error_message)
+    ? (string) ($_POST['lifecycle_status'] ?? 'active')
+    : 'active';
+$selected_confirmation_status = !empty($error_message)
+    ? (string) ($_POST['confirmation_status'] ?? 'work_in_progress')
+    : 'work_in_progress';
+$selected_cancellation_reason = !empty($error_message)
+    ? (string) ($_POST['cancellation_reason'] ?? '')
+    : '';
+$selected_rescheduled_to_engagement_id = !empty($error_message)
+    ? (int) ($_POST['rescheduled_to_engagement_id'] ?? 0)
+    : 0;
+$current_engagement_id = 0;
+try {
+    $reschedule_candidates = fetchEngagementRescheduleCandidates(
+        $conn,
+        $selected_engagement_organization_id
+    );
+} catch (Throwable $exception) {
+    abortApplication(503, 'Rescheduled-event options are temporarily unavailable.', [
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 
 <!DOCTYPE html>
@@ -224,6 +303,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/index.min.css',
+    3 => 'assets/css/pages/engagement_contacts.min.css',
+    4 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
   'scripts' =>
   array (
@@ -280,6 +361,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         <textarea name="event_description" id="event_description" rows="5"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
 
         </section>
+
+        <?php include 'templates/engagement_contact_form.php'; ?>
 
         <section class="form-section">
         <h2>Schedule</h2>
@@ -457,6 +540,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         </div>
         </section>
 
+        <?php include 'templates/engagement_lifecycle_form.php'; ?>
+
         <section class="form-section chron-log-section" id="chron-log">
             <h2>Chron Log</h2>
             <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
@@ -483,19 +568,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                     </select>
                 </div>
 
-                <div class="form-field">
-                    <label for="confirmation_status">Status</label>
-                    <select name="confirmation_status" id="confirmation_status">
-                        <?php
-                        $statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
-                        $selected_status = $_POST['confirmation_status'] ?? 'work_in_progress';
-                        foreach ($statuses as $status) {
-                            $selected = ($selected_status === $status) ? 'selected' : '';
-                            echo "<option value='{$status}' {$selected}>" . str_replace('_', ' ', $status) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
             </div>
 
             <div class="form-group create-form-actions create-form-actions-flush">
@@ -508,6 +580,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 <?php include 'templates/footer.php'; ?>
 
 <?php renderScript('assets/js/presentation-form.min.js', false); ?>
+<?php renderScript('assets/js/engagement-contacts.min.js', false); ?>
+<?php renderScript('assets/js/engagement-lifecycle.min.js', false); ?>
 
 </body>
 </html>

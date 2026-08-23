@@ -5,6 +5,8 @@ include 'presentation_helpers.php';
 include 'map_helpers.php';
 include 'two_factor_helpers.php';
 include 'follow_up_task_helpers.php';
+include 'engagement_contact_helpers.php';
+include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -41,6 +43,7 @@ if (!$result || $result->num_rows === 0) {
 
 $engagement = $result->fetch_assoc();
 $DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+$submitted_engagement_contacts = null;
 
 // Archive or permanently delete one saved presentation without submitting
 // unrelated edits in the engagement form.
@@ -70,7 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $conn->begin_transaction();
     try {
         $engagement_lock_stmt = $conn->prepare(
-            'SELECT confirmation_status FROM engagements WHERE id = ? FOR UPDATE'
+            'SELECT confirmation_status, lifecycle_status
+             FROM engagements WHERE id = ? FOR UPDATE'
         );
         if (!$engagement_lock_stmt) {
             throw new RuntimeException('Unable to prepare the presentation action.');
@@ -116,7 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $active_count_stmt->close();
             $presentation_removal_requires_review = presentationRemovalRequiresReview(
                 $locked_engagement['confirmation_status'],
-                $active_count
+                $active_count,
+                $locked_engagement['lifecycle_status']
             );
         }
 
@@ -283,11 +288,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $event_type_raw = is_scalar($_POST['event_type'] ?? null)
             ? trim((string) $_POST['event_type'])
             : '';
+        $submitted_engagement_contacts = normalizeEngagementContactAssignments(
+            $_POST['engagement_contacts'] ?? null
+        );
         $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
         foreach ($engagement_input as $field => $value) {
             ${$field} = $value;
         }
         requireActiveOrganization($conn, $organization_id, true);
+        validateEngagementContactAssignments(
+            $conn,
+            $organization_id,
+            $submitted_engagement_contacts
+        );
+        validateEngagementLifecycleStatus($conn, $engagement_id, $lifecycle_status);
+        validateEngagementRescheduleLink(
+            $conn,
+            $organization_id,
+            $lifecycle_status,
+            $rescheduled_to_engagement_id,
+            $engagement_id
+        );
         $caller = $caller_user_id !== null
             && $caller_user_id === (int) ($locked_engagement['caller_user_id'] ?? 0)
             ? [
@@ -308,7 +329,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $DEFAULT_SPEAKER,
             true
         );
-        requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
+        requirePresentationForConfirmedEngagement(
+            $confirmation_status,
+            $presentations,
+            $lifecycle_status
+        );
 
         $submitted_chron_entries = [];
         foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
@@ -331,10 +356,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException("Please provide valid required fields, dates, and non-negative amounts.");
         }
 
+        $current_user_id = (int) $_SESSION['user_id'];
+        $lifecycle_changed = $lifecycle_status
+            !== (string) ($locked_engagement['lifecycle_status'] ?? 'active');
         $update_plan = \Dnr\Service\EngagementUpdatePlan::build($engagement, $engagement_input);
         $update_fields = $update_plan['assignments'];
         $update_values = $update_plan['values'];
         $types = $update_plan['types'];
+        if ($lifecycle_changed) {
+            $update_fields[] = 'lifecycle_changed_by = ?, lifecycle_changed_at = UTC_TIMESTAMP(6)';
+            $update_values[] = $current_user_id;
+            $types .= 'i';
+        }
 
         $update_values[] = $engagement_id;
         $types .= "i";
@@ -363,6 +396,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             );
         }
 
+        $canceled_task_count = 0;
+        if ($lifecycle_changed && $lifecycle_status === 'canceled') {
+            $canceled_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id);
+        }
+
         $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations);
         if ($presentations_changed) {
             $touch_engagement_stmt = $conn->prepare(
@@ -379,7 +417,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $touch_engagement_stmt->close();
         }
 
-        $current_user_id = (int) $_SESSION['user_id'];
+        syncEngagementContacts(
+            $conn,
+            $engagement_id,
+            $submitted_engagement_contacts,
+            $current_user_id
+        );
         if ($submitted_chron_entries) {
             $current_chron_stmt = $conn->prepare(
                 'SELECT id, entry_text
@@ -476,7 +519,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         // Commit the engagement and its background lookup request atomically.
         $conn->commit();
-        $success_message = "Engagement updated successfully.";
+        $success_message = 'Engagement updated successfully.';
+        if ($canceled_task_count > 0) {
+            $success_message .= ' ' . $canceled_task_count . ' open task'
+                . ($canceled_task_count === 1 ? ' was' : 's were') . ' canceled.';
+        }
+        $_SESSION['engagement_action_message'] = $success_message;
         applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 
         // Redirect to engagements listing
@@ -495,7 +543,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         $rehydrated_fields = [
             'organization_id', 'event_title', 'event_description', 'event_start_date', 'event_end_date',
-            'caller_user_id', 'confirmation_status', 'travel_covered', 'travel_amount',
+            'caller_user_id', 'confirmation_status', 'lifecycle_status',
+            'cancellation_reason', 'rescheduled_to_engagement_id',
+            'travel_covered', 'travel_amount',
             'compensation_type', 'other_compensation', 'housing_type', 'other_housing',
             'housing_amount', 'event_address_line_1', 'event_address_line_2',
             'event_city', 'event_state', 'event_zipcode', 'event_country',
@@ -529,6 +579,43 @@ $presentations = [];
 while ($row = $presentations_result->fetch_assoc()) {
     $presentations[] = $row;
 }
+
+$engagement_contact_role_options = engagementContactRoles();
+$selected_engagement_organization_id = (int) ($engagement['organization_id'] ?? 0);
+try {
+    $organization_contacts = fetchOrganizationContactOptions(
+        $conn,
+        $selected_engagement_organization_id
+    );
+    $displayed_engagement_contact_assignments = $submitted_engagement_contacts !== null
+        && !empty($error_message)
+        ? $submitted_engagement_contacts
+        : fetchEngagementContactAssignments($conn, $engagement_id);
+$engagement_contact_assignment_map = engagementContactAssignmentMap(
+        $displayed_engagement_contact_assignments
+    );
+    $reschedule_candidates = fetchEngagementRescheduleCandidates(
+        $conn,
+        $selected_engagement_organization_id,
+        $engagement_id
+    );
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement contacts are temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+$engagement_lifecycle_options = engagementLifecycleStatuses();
+$engagement_confirmation_statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
+$selected_lifecycle_status = (string) ($engagement['lifecycle_status'] ?? 'active');
+$selected_confirmation_status = (string) (
+    $engagement['confirmation_status'] ?? 'work_in_progress'
+);
+$selected_cancellation_reason = (string) ($engagement['cancellation_reason'] ?? '');
+$selected_rescheduled_to_engagement_id = (int) (
+    $engagement['rescheduled_to_engagement_id'] ?? 0
+);
+$current_engagement_id = $engagement_id;
 
 $chron_action_message = $_SESSION['chron_action_message'] ?? '';
 $chron_action_error = $_SESSION['chron_action_error'] ?? '';
@@ -570,6 +657,8 @@ try {
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/edit_engagement.min.css',
+    3 => 'assets/css/pages/engagement_contacts.min.css',
+    4 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
 )); ?>
 <body>
@@ -645,6 +734,8 @@ try {
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="5"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
         </section>
+
+        <?php include 'templates/engagement_contact_form.php'; ?>
 
         <?php
         $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
@@ -781,6 +872,8 @@ try {
         </div>
         </section>
 
+        <?php include 'templates/engagement_lifecycle_form.php'; ?>
+
         <div class="form-row">
             <div class="engagement-inline-row">
                 <div class="form-field">
@@ -803,18 +896,6 @@ try {
                     </select>
                 </div>
 
-                <div class="form-field">
-                    <label for="confirmation_status" class="confirmation-status-label">Status</label>
-                    <select name="confirmation_status" id="confirmation_status" class="confirmation-status-select">
-                        <?php
-                        $statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
-                        foreach ($statuses as $status) {
-                            $selected = ($engagement['confirmation_status'] === $status) ? 'selected' : '';
-                            echo "<option value='{$status}' {$selected}>" . str_replace('_', ' ', $status) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
             </div>
 
         </div>
@@ -925,6 +1006,8 @@ try {
 <?php include 'templates/footer.php'; ?>
 
 <?php renderScript('assets/js/presentation-form.min.js', false); ?>
+<?php renderScript('assets/js/engagement-contacts.min.js', false); ?>
+<?php renderScript('assets/js/engagement-lifecycle.min.js', false); ?>
 
 </body>
 </html>

@@ -23,6 +23,9 @@ $engagement = [
     'event_start_date' => '2026-08-20',
     'event_end_date' => '2026-08-22',
     'confirmation_status' => 'under_review',
+    'lifecycle_status' => 'canceled',
+    'cancellation_reason' => 'Venue unavailable',
+    'rescheduled_event_label' => 'Autumn Summit · 2026-10-20',
     'is_deleted' => 1,
     'book_table' => 1,
     'brochures' => 0,
@@ -46,6 +49,7 @@ $contacts = [[
     'contact_last_name' => 'Smith',
     'contact_role' => 'other',
     'contact_role_other' => 'Events Director',
+    'engagement_contact_roles' => ['primary_host', 'travel'],
     'contact_email' => 'jamie@example.test',
     'contact_phone' => '+13125550100',
 ]];
@@ -88,12 +92,21 @@ $plain_text = renderEngagementPlainText($export);
 $markdown = renderEngagementMarkdown($export);
 
 expectExport(str_contains($plain_text, "Organization: Example & Partners"), 'Plain text includes the organization.');
+expectExport(
+    str_contains($plain_text, "Lifecycle: Canceled\nConfirmation: under review")
+        && str_contains($plain_text, 'Cancellation Reason: Venue unavailable')
+        && str_contains($plain_text, 'Rescheduled Event: Autumn Summit · 2026-10-20'),
+    'exports should distinguish lifecycle, confirmation, cancellation, and replacement details.'
+);
 expectExport(!str_contains($plain_text, 'Event Title:'), 'Overview does not repeat the event title.');
 expectExport(
     str_contains($plain_text, "Event Description: A multi-day gathering\n  for community leaders — أهلاً وسهلاً — שלום."),
     'Plain text preserves the multi-line Unicode event description.'
 );
-expectExport(str_contains($plain_text, "Jamie Smith\nRole: Events Director"), 'Plain text includes contact details.');
+expectExport(
+    str_contains($plain_text, "Jamie Smith\nEvent Roles: Primary host, Travel\nRole: Events Director"),
+    'Plain text includes event-specific and organization contact roles.'
+);
 expectExport(str_contains($plain_text, 'Phone: +1 312-555-0100'), 'Exports format canonical telephone values for display.');
 expectExport(str_contains($plain_text, "Opening Keynote\nSpeaker: Jordan Speaker"), 'Plain text includes presentations.');
 expectExport(

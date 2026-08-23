@@ -52,13 +52,15 @@ try {
 
 requirePresentationForConfirmedEngagement('under_review', []);
 requirePresentationForConfirmedEngagement('confirmed', $presentations);
+requirePresentationForConfirmedEngagement('confirmed', [], 'canceled');
 expectPresentationFeature(
     presentationRemovalRequiresReview('confirmed', 1),
     'removing the last presentation from a confirmed engagement should require review.'
 );
 expectPresentationFeature(
     !presentationRemovalRequiresReview('confirmed', 2)
-        && !presentationRemovalRequiresReview('under_review', 1),
+        && !presentationRemovalRequiresReview('under_review', 1)
+        && !presentationRemovalRequiresReview('confirmed', 1, 'completed'),
     'presentation removal should preserve status when the confirmed invariant remains satisfied.'
 );
 

@@ -9,10 +9,20 @@ if (PHP_SAPI !== 'cli') {
 
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/email_helpers.php';
+require_once '/var/www/html/notification_helpers.php';
 
 $loop = in_array('--loop', $argv, true);
 $batchSize = max(1, min(100, (int) (getenv('DNR_EMAIL_OUTBOX_BATCH_SIZE') ?: 20)));
+$notificationBatchSize = max(
+    1,
+    min(100, (int) (getenv('DNR_NOTIFICATION_OUTBOX_BATCH_SIZE') ?: 20))
+);
 $idleSeconds = max(5, min(300, (int) (getenv('DNR_EMAIL_OUTBOX_IDLE_SECONDS') ?: 15)));
+$scheduleInterval = max(
+    60,
+    min(3600, (int) (getenv('DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS') ?: 300))
+);
+$lastScheduleCheck = 0;
 $lockPath = sys_get_temp_dir() . '/dnr-email-outbox-worker.lock';
 $lock = fopen($lockPath, 'c+');
 if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
@@ -22,6 +32,17 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 
 do {
     $processed = 0;
+    if (!$loop || time() - $lastScheduleCheck >= $scheduleInterval) {
+        try {
+            $processed += queueDueDailyTaskDigests($conn);
+        } catch (Throwable $exception) {
+            applicationLog('error', 'Unable to schedule daily work digests', [
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $lastScheduleCheck = time();
+    }
+
     for ($index = 0; $index < $batchSize; $index++) {
         $queued = claimQueuedAccountEmail($conn);
         if ($queued === null) {
@@ -64,6 +85,39 @@ do {
             applicationLog('error', 'Queued account-email delivery failed', [
                 'outbox_id' => $queued['id'],
                 'purpose' => $queued['purpose'],
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $processed++;
+    }
+
+    $businessDate = applicationBusinessDate();
+    for ($index = 0; $index < $notificationBatchSize; $index++) {
+        $queued = claimQueuedNotificationEmail($conn, $businessDate);
+        if ($queued === null) {
+            break;
+        }
+        try {
+            $message = decryptQueuedNotificationEmail($queued['payload_ciphertext']);
+            deliverAccountEmail($message['recipient'], $message['subject'], $message['body']);
+            completeQueuedNotificationEmail($conn, $queued['id']);
+        } catch (Throwable $exception) {
+            try {
+                failQueuedNotificationEmail(
+                    $conn,
+                    $queued['id'],
+                    $exception,
+                    $exception instanceof DomainException
+                );
+            } catch (Throwable $recordException) {
+                applicationLog('error', 'Unable to record notification delivery failure', [
+                    'outbox_id' => $queued['id'],
+                    'error' => $recordException->getMessage(),
+                ]);
+            }
+            applicationLog('error', 'Queued notification delivery failed', [
+                'outbox_id' => $queued['id'],
+                'notification_type' => $queued['notification_type'],
                 'error' => $exception->getMessage(),
             ]);
         }

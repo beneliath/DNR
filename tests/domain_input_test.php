@@ -99,10 +99,40 @@ $engagement = EngagementInput::normalize([
 expectDomainInput(
     $engagement['event_type_other'] === 'Retreat'
         && $engagement['confirmation_status'] === 'work_in_progress'
+        && $engagement['lifecycle_status'] === 'active'
         && $engagement['travel_amount'] === 125.5
         && $engagement['event_city'] === 'Chicago'
         && $engagement['event_country'] === 'USA',
     'engagement reference choices, amounts, and address fields should be normalized consistently.'
+);
+
+$canceledEngagement = EngagementInput::normalize([
+    'organization_id' => 10,
+    'event_title' => 'Canceled conference',
+    'event_start_date' => '2026-09-10',
+    'event_end_date' => '2026-09-12',
+    'event_type' => 'conference',
+    'lifecycle_status' => 'canceled',
+    'cancellation_reason' => 'Venue unavailable',
+    'rescheduled_to_engagement_id' => '25',
+]);
+expectDomainInput(
+    $canceledEngagement['lifecycle_status'] === 'canceled'
+        && $canceledEngagement['cancellation_reason'] === 'Venue unavailable'
+        && $canceledEngagement['rescheduled_to_engagement_id'] === 25,
+    'canceled lifecycle data should preserve its reason and replacement link.'
+);
+expectDomainInputFailure(
+    static fn () => EngagementInput::normalize([
+        'organization_id' => 10,
+        'event_title' => 'Canceled conference',
+        'event_start_date' => '2026-09-10',
+        'event_end_date' => '2026-09-12',
+        'event_type' => 'conference',
+        'lifecycle_status' => 'canceled',
+    ]),
+    'cancellation reason',
+    'canceled engagements should require a reason.'
 );
 
 $maximumTitle = str_repeat('é', 255);

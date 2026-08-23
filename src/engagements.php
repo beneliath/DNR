@@ -3,6 +3,7 @@ require_once __DIR__ . '/bootstrap.php';
 $conn = applicationDatabaseConnection();
 include 'engagement_search_helpers.php';
 include 'two_factor_helpers.php';
+include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -70,13 +71,22 @@ unset($_SESSION['engagement_action_message'], $_SESSION['engagement_action_error
 // before it is used in SQL or reflected into a link.
 $date_sort = \Dnr\Http\RequestInput::string($_GET, 'date_sort') === 'desc' ? 'desc' : 'asc';
 $status_sort = \Dnr\Http\RequestInput::string($_GET, 'status_sort') === 'desc' ? 'desc' : 'asc';
+$lifecycle_sort = \Dnr\Http\RequestInput::string($_GET, 'lifecycle_sort') === 'desc'
+    ? 'desc'
+    : 'asc';
 $org_sort = \Dnr\Http\RequestInput::string($_GET, 'org_sort') === 'desc' ? 'desc' : 'asc';
+$lifecycle_filter = \Dnr\Http\RequestInput::enum(
+    $_GET,
+    'lifecycle',
+    ['all', 'active', 'postponed', 'canceled', 'completed'],
+    'all'
+);
 
 // Determine which column to sort by based on which button was clicked
 $sort_column = \Dnr\Http\RequestInput::enum(
     $_GET,
     'sort_by',
-    ['date', 'status', 'org'],
+    ['date', 'status', 'lifecycle', 'org'],
     'date'
 );
 
@@ -85,6 +95,8 @@ if ($sort_column === 'date') {
     $sort_order = $date_sort;
 } elseif ($sort_column === 'status') {
     $sort_order = $status_sort;
+} elseif ($sort_column === 'lifecycle') {
+    $sort_order = $lifecycle_sort;
 } elseif ($sort_column === 'org') {
     $sort_order = $org_sort;
 } else {
@@ -96,6 +108,8 @@ if ($sort_column === 'date') {
     $order_by = 'e.event_start_date';
 } elseif ($sort_column === 'status') {
     $order_by = 'e.confirmation_status';
+} elseif ($sort_column === 'lifecycle') {
+    $order_by = 'e.lifecycle_status';
 } elseif ($sort_column === 'org') {
     $order_by = 'o.organization_name';
 } else {
@@ -121,7 +135,9 @@ $list_url = static function (array $overrides = []) use (
     $sort_column,
     $date_sort,
     $status_sort,
+    $lifecycle_sort,
     $org_sort,
+    $lifecycle_filter,
     $search,
     $page_size
 ) {
@@ -130,32 +146,37 @@ $list_url = static function (array $overrides = []) use (
         'sort_by' => $sort_column,
         'date_sort' => $date_sort,
         'status_sort' => $status_sort,
+        'lifecycle_sort' => $lifecycle_sort,
         'org_sort' => $org_sort,
+        'lifecycle' => $lifecycle_filter,
         'q' => $search,
         'per_page' => $page_size,
     ], $overrides));
 };
 
 $summary = [
-    'work_in_progress' => 0,
-    'review' => 0,
-    'confirmed' => 0,
+    'active' => 0,
+    'postponed' => 0,
+    'canceled' => 0,
+    'completed' => 0,
     'archived' => 0,
 ];
 $summary_result = $conn->query(
     "SELECT
-        SUM(is_deleted = 0 AND confirmation_status = 'work_in_progress') AS work_in_progress_count,
-        SUM(is_deleted = 0 AND confirmation_status = 'under_review') AS review_count,
-        SUM(is_deleted = 0 AND confirmation_status = 'confirmed') AS confirmed_count,
+        SUM(is_deleted = 0 AND lifecycle_status = 'active') AS active_count,
+        SUM(is_deleted = 0 AND lifecycle_status = 'postponed') AS postponed_count,
+        SUM(is_deleted = 0 AND lifecycle_status = 'canceled') AS canceled_count,
+        SUM(is_deleted = 0 AND lifecycle_status = 'completed') AS completed_count,
         SUM(is_deleted = 1) AS archived_count
      FROM engagements"
 );
 if ($summary_result) {
     $summary_row = $summary_result->fetch_assoc();
     $summary = [
-        'work_in_progress' => (int) ($summary_row['work_in_progress_count'] ?? 0),
-        'review' => (int) ($summary_row['review_count'] ?? 0),
-        'confirmed' => (int) ($summary_row['confirmed_count'] ?? 0),
+        'active' => (int) ($summary_row['active_count'] ?? 0),
+        'postponed' => (int) ($summary_row['postponed_count'] ?? 0),
+        'canceled' => (int) ($summary_row['canceled_count'] ?? 0),
+        'completed' => (int) ($summary_row['completed_count'] ?? 0),
         'archived' => (int) ($summary_row['archived_count'] ?? 0),
     ];
 }
@@ -163,11 +184,18 @@ if ($summary_result) {
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
 $where = "e.is_deleted = {$archive_value}";
+$query_values = [];
+$bind_types = '';
+if ($lifecycle_filter !== 'all') {
+    $where .= ' AND e.lifecycle_status = ?';
+    $query_values[] = $lifecycle_filter;
+    $bind_types .= 's';
+}
 if ($has_search_terms) {
     $where .= ' AND (' . $search_plan['sql'] . ')';
+    $query_values = array_merge($query_values, $search_plan['patterns']);
+    $bind_types .= str_repeat('s', count($search_plan['patterns']));
 }
-$query_values = $search_plan['patterns'];
-$bind_types = str_repeat('s', count($search_plan['patterns']));
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
     $where .= " AND ({$order_by} {$comparison} ?
@@ -183,6 +211,7 @@ $query_limit = $page_size + 1;
 
 $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                  e.event_type, e.event_type_other, e.confirmation_status,
+                 e.lifecycle_status,
                  o.organization_name,
                  financial_report.engagement_id IS NOT NULL AS financially_closed
           FROM engagements e
@@ -221,6 +250,7 @@ if ($has_more_engagements && $engagement_rows !== []) {
     $last_engagement = $engagement_rows[array_key_last($engagement_rows)];
     $cursor_field = match ($sort_column) {
         'status' => 'confirmation_status',
+        'lifecycle' => 'lifecycle_status',
         'org' => 'organization_name',
         default => 'event_start_date',
     };
@@ -247,6 +277,7 @@ $format_date_range = static function ($start, $end) {
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/engagements.min.css',
+    3 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
 )); ?>
 <body>
@@ -255,7 +286,7 @@ $format_date_range = static function ($start, $end) {
     <div class="page-heading">
         <div>
             <h1><?php echo $show_archived ? 'Archived Engagements' : 'Engagements'; ?></h1>
-            <p class="page-intro">Manage upcoming events and speaking commitments.</p>
+            <p class="page-intro">Manage event lifecycle, confirmation, schedules, and speaking commitments.</p>
         </div>
         <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
             <a href="index.php" class="button-add">+ New engagement</a>
@@ -270,10 +301,10 @@ $format_date_range = static function ($start, $end) {
     <?php endif; ?>
 
     <div class="summary-grid" aria-label="Engagement summary">
-        <div class="summary-card summary-work-in-progress"><span class="summary-icon" aria-hidden="true">◌</span><span><small>Work in Progress</small><strong><?php echo $summary['work_in_progress']; ?></strong></span></div>
-        <div class="summary-card summary-review"><span class="summary-icon" aria-hidden="true">◷</span><span><small>Needs review</small><strong><?php echo $summary['review']; ?></strong></span></div>
-        <div class="summary-card summary-confirmed"><span class="summary-icon" aria-hidden="true">✓</span><span><small>Confirmed</small><strong><?php echo $summary['confirmed']; ?></strong></span></div>
-        <div class="summary-card summary-archived"><span class="summary-icon" aria-hidden="true">□</span><span><small>Archived</small><strong><?php echo $summary['archived']; ?></strong></span></div>
+        <div class="summary-card summary-confirmed"><span class="summary-icon" aria-hidden="true">◆</span><span><small>Active</small><strong><?php echo $summary['active']; ?></strong></span></div>
+        <div class="summary-card summary-review"><span class="summary-icon" aria-hidden="true">Ⅱ</span><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></div>
+        <div class="summary-card summary-archived"><span class="summary-icon" aria-hidden="true">×</span><span><small>Canceled</small><strong><?php echo $summary['canceled']; ?></strong></span></div>
+        <div class="summary-card summary-work-in-progress"><span class="summary-icon" aria-hidden="true">✓</span><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></div>
     </div>
 
     <div class="list-controls engagement-controls">
@@ -282,17 +313,28 @@ $format_date_range = static function ($start, $end) {
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="date_sort" value="<?php echo htmlspecialchars($date_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="status_sort" value="<?php echo htmlspecialchars($status_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="lifecycle_sort" value="<?php echo htmlspecialchars($lifecycle_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
             <label class="visually-hidden" for="engagement-search">title, organization, contact, chron log text, "and"/or user</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
-            <?php if ($search !== ''): ?><a href="engagements.php?status=<?php echo urlencode($list_status); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Engagement archive status">
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+               class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Current</a>
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>"
-               class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+               class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $summary['archived']; ?>)</a>
+        </div>
+
+        <div class="control-group" aria-label="Engagement lifecycle filter">
+            <span class="control-label">Lifecycle:</span>
+            <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
+                <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="sort-button<?php echo $lifecycle_filter === $lifecycle_value ? ' active' : ''; ?>"
+                   <?php echo $lifecycle_filter === $lifecycle_value ? 'aria-current="true"' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></a>
+            <?php endforeach; ?>
         </div>
 
         <div class="control-group" aria-label="Engagement sort order">
@@ -311,7 +353,12 @@ $format_date_range = static function ($start, $end) {
                 <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'status', 'status_sort' => $status_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button<?php echo $sort_column === 'status' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'status' ? 'aria-current="true"' : ''; ?>>
-                    Status <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
+                    Confirmation <?php echo $status_sort === 'asc' ? '↑' : '↓'; ?>
+                </a>
+                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'lifecycle', 'lifecycle_sort' => $lifecycle_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
+                   class="sort-button<?php echo $sort_column === 'lifecycle' ? ' active' : ''; ?>"
+                   <?php echo $sort_column === 'lifecycle' ? 'aria-current="true"' : ''; ?>>
+                    Lifecycle <?php echo $lifecycle_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
         </div>
@@ -323,24 +370,22 @@ $format_date_range = static function ($start, $end) {
         <thead>
             <tr>
                 <th>Event Title</th>
-                <th>Organization</th>
                 <th>Event Date(s)</th>
-                <th>Type</th>
-                <th>Status</th>
+                <th>Lifecycle</th>
+                <th>Confirmation</th>
                 <th>Closeout</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
             <?php if ($engagement_rows === []): ?>
-                <tr><td colspan="7" class="empty-state">No engagements match the current view.</td></tr>
+                <tr><td colspan="6" class="empty-state">No engagements match the current view.</td></tr>
             <?php endif; ?>
             <?php foreach ($engagement_rows as $row): ?>
                 <tr>
-                    <td><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
-                    <td><?php echo htmlspecialchars($row['organization_name']); ?></td>
+                    <td class="engagement-title"><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
                     <td class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
-                    <td><?php echo htmlspecialchars(ucwords($row['event_type'] === 'other' && !empty($row['event_type_other']) ? $row['event_type_other'] : $row['event_type'])); ?></td>
+                    <td class="engagement-lifecycle"><span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $row['lifecycle_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($row['lifecycle_status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
                     <td class="engagement-status"><?php
                         $status = $row['confirmation_status'];
                         $status_class = 'status-' . str_replace('_', '-', $status);
@@ -348,10 +393,11 @@ $format_date_range = static function ($start, $end) {
                         echo "<span class='{$status_class}'>" . htmlspecialchars($display_status) . "</span>";
                     ?></td>
                     <?php $is_financially_closed = !empty($row['financially_closed']); ?>
+                    <?php $closeout_applicable = !in_array((string) $row['lifecycle_status'], ['postponed', 'canceled'], true); ?>
                     <td class="engagement-closeout">
-                        <span class="event-closeout-badge <?php echo $is_financially_closed ? 'is-closed' : 'is-open'; ?>"
-                              aria-label="Financial closeout: <?php echo $is_financially_closed ? 'Closed' : 'Open'; ?>">
-                            <?php echo $is_financially_closed ? 'Closed' : 'Open'; ?>
+                        <span class="event-closeout-badge <?php echo $is_financially_closed ? 'is-closed' : ($closeout_applicable ? 'is-open' : 'is-not-applicable'); ?>"
+                              aria-label="Financial closeout: <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'Not applicable'); ?>">
+                            <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'N/A'); ?>
                         </span>
                     </td>
                     <td>

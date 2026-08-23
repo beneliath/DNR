@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/profile_helpers.php';
 require_once __DIR__ . '/email_helpers.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
@@ -11,6 +12,7 @@ $user_id = (int) $_SESSION['user_id'];
 function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
         'SELECT id, username, role, first_name, last_name, phone, email, email_verified_at,
+                task_digest_enabled,
                 profile_picture_mime, profile_picture_sha256, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -50,13 +52,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
             logSecurityEvent($conn, 'email_verification_queued', $user_id, $user_id);
-            header('Location: profile.php?verification_sent=1');
+            header(
+                'Location: profile.php?'
+                . (!empty($issued['queued'])
+                    ? 'verification_queued=1'
+                    : 'verification_test_only=1')
+            );
             exit();
         } catch (InvalidArgumentException $exception) {
             $error = $exception->getMessage();
         } catch (Throwable $exception) {
             applicationLog('error', 'Unable to resend email verification', ['error' => $exception->getMessage()]);
-            $error = 'The verification message could not be sent. Check the address or contact an administrator.';
+            $error = 'The verification message could not be queued. Check the address or contact an administrator.';
         }
     } else {
     $first_name = trim((string) ($_POST['first_name'] ?? ''));
@@ -64,6 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = trim((string) ($_POST['email'] ?? ''));
     $phone_country_code = trim((string) ($_POST['phone_country_code'] ?? '+1'));
     $phone = trim((string) ($_POST['phone'] ?? ''));
+    $task_digest_enabled_requested = ($_POST['task_digest_enabled'] ?? '') === '1';
     $remove_profile_picture = isset($_POST['remove_profile_picture']);
     $picture = null;
 
@@ -80,6 +88,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $current_email = strtolower(trim((string) ($user['email'] ?? '')));
         $email_changed = !hash_equals($current_email, $email);
         $email_verification_update = $email_changed ? 'email_verified_at = NULL,' : '';
+        if ($task_digest_enabled_requested
+            && !$email_changed
+            && empty($user['email_verified_at'])
+        ) {
+            throw new InvalidArgumentException(
+                'Verify your email address before enabling the daily work digest.'
+            );
+        }
+        $task_digest_enabled = $task_digest_enabled_requested && !$email_changed ? 1 : 0;
 
         $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone number');
         $picture = profilePictureFromUpload($_FILES['profile_picture'] ?? []);
@@ -92,6 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
+                     task_digest_enabled = ?,
                      profile_picture = ?, profile_picture_thumbnail = ?,
                      profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                      profile_picture_sha256 = ?,
@@ -107,11 +125,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $picture_mime = $picture['mime_type'];
             $picture_sha256 = $picture['sha256'];
             $stmt->bind_param(
-                'sssssssssi',
+                'ssssisssssi',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
+                $task_digest_enabled,
                 $picture_data,
                 $picture_thumbnail,
                 $picture_thumbnail_mime,
@@ -124,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
+                     task_digest_enabled = ?,
                      profile_picture = NULL, profile_picture_thumbnail = NULL,
                      profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                      profile_picture_sha256 = NULL,
@@ -133,19 +153,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
-            $stmt->bind_param('ssssi', $first_name, $last_name, $phone, $email, $user_id);
+            $stmt->bind_param(
+                'ssssii',
+                $first_name,
+                $last_name,
+                $phone,
+                $email,
+                $task_digest_enabled,
+                $user_id
+            );
         } else {
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
+                     task_digest_enabled = ?,
                      last_updated_at = last_updated_at
                  WHERE id = ?'
             );
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
-            $stmt->bind_param('ssssi', $first_name, $last_name, $phone, $email, $user_id);
+            $stmt->bind_param(
+                'ssssii',
+                $first_name,
+                $last_name,
+                $phone,
+                $email,
+                $task_digest_enabled,
+                $user_id
+            );
         }
 
         if (!$stmt->execute()) {
@@ -167,7 +204,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
                     logSecurityEvent($conn, 'email_verification_queued', $user_id, $user_id);
-                    $verification_query = '&verification_sent=1';
+                    $verification_query = !empty($issued['queued'])
+                        ? '&verification_queued=1'
+                        : '&verification_test_only=1';
                 } catch (Throwable $mail_exception) {
                     applicationLog('error', 'Email verification delivery failed', ['error' => $mail_exception->getMessage()]);
                     $verification_query = '&verification_failed=1';
@@ -180,11 +219,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'last_name' => $last_name,
             'username' => $user['username'],
         ]);
+        $_SESSION['profile_first_name'] = $first_name;
         if ($picture !== null || $remove_profile_picture) {
             $_SESSION['profile_picture_version'] = time();
         }
 
-        header('Location: profile.php?updated=1' . ($verification_query ?? ''));
+        $digest_query = $email_changed && $task_digest_enabled_requested
+            ? '&digest_paused=1'
+            : '';
+        header(
+            'Location: profile.php?updated=1'
+            . ($verification_query ?? '')
+            . $digest_query
+        );
         exit();
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
@@ -197,6 +244,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user['last_name'] = $last_name;
     $user['phone'] = $phone;
     $user['email'] = $email;
+    $user['task_digest_enabled'] = $task_digest_enabled_requested ? 1 : 0;
     if (isset($email_changed) && $email_changed) {
         $user['email_verified_at'] = null;
     }
@@ -236,10 +284,15 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
     <?php elseif (isset($_GET['updated'])): ?>
         <p class="success">Your profile was updated.</p>
     <?php endif; ?>
-    <?php if (isset($_GET['verification_sent'])): ?>
-        <p class="success">A single-use verification link was sent to your email address.</p>
+    <?php if (isset($_GET['verification_queued']) || isset($_GET['verification_sent'])): ?>
+        <p class="success">A single-use verification link was queued for delivery to your email address.</p>
+    <?php elseif (isset($_GET['verification_test_only'])): ?>
+        <p class="error">No external email was sent because the development test transport is active. Enable the SMTP delivery worker and retry.</p>
     <?php elseif (isset($_GET['verification_failed'])): ?>
         <p class="error">Your email change was saved, but the verification message could not be delivered. Retry below or contact an administrator.</p>
+    <?php endif; ?>
+    <?php if (isset($_GET['digest_paused'])): ?>
+        <p class="success">Your daily work digest was paused until the new email address is verified.</p>
     <?php endif; ?>
 
     <form method="post" action="profile.php" enctype="multipart/form-data" class="profile-form">
@@ -290,6 +343,24 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
                 <span><strong>Username</strong><?php echo htmlspecialchars((string) $user['username'], ENT_QUOTES, 'UTF-8'); ?></span>
                 <span><strong>Role</strong><?php echo htmlspecialchars(ucfirst((string) $user['role']), ENT_QUOTES, 'UTF-8'); ?></span>
             </div>
+        </section>
+
+        <section class="profile-card" aria-labelledby="notification-preferences-heading">
+            <h2 id="notification-preferences-heading">Notifications</h2>
+            <label class="profile-notification-option">
+                <input type="checkbox" name="task_digest_enabled" value="1"
+                    <?php echo !empty($user['task_digest_enabled']) ? 'checked' : ''; ?>
+                    <?php echo empty($user['email_verified_at']) ? 'disabled' : ''; ?>>
+                <span>
+                    <strong>Daily work digest</strong>
+                    <small>Email me each morning with my overdue, due-today, upcoming, and waiting tasks<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus financial closeouts' : ''; ?>.</small>
+                </span>
+            </label>
+            <?php if (empty($user['email_verified_at'])): ?>
+                <p class="field-help">Verify your email address to enable daily digests.</p>
+            <?php else: ?>
+                <p class="field-help">Digests are sent once per business day after the configured morning delivery time.</p>
+            <?php endif; ?>
         </section>
 
         <div class="action-buttons profile-actions">

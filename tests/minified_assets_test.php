@@ -21,6 +21,8 @@ $asset_pairs = [
     'assets/js/calendar-subscription.js' => 'assets/js/calendar-subscription.min.js',
     'assets/js/task-form.js' => 'assets/js/task-form.min.js',
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
+    'assets/js/engagement-contacts.js' => 'assets/js/engagement-contacts.min.js',
+    'assets/js/engagement-lifecycle.js' => 'assets/js/engagement-lifecycle.min.js',
 ];
 $bundled_assets = [
     'assets/css/map.min.css',
