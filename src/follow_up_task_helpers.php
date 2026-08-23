@@ -678,7 +678,7 @@ function followUpTaskDueState($due_date, $today = null)
     if ($due_date === null || trim((string) $due_date) === '') {
         return ['key' => 'none', 'label' => 'No due date'];
     }
-    $today = $today ?: date('Y-m-d');
+    $today = $today ?: applicationBusinessDate();
     if ($due_date < $today) {
         return ['key' => 'overdue', 'label' => 'Overdue · ' . $due_date];
     }
@@ -694,6 +694,16 @@ function standardEventTaskDueAnchors()
         'event_start' => 'Event start',
         'event_end' => 'Event end',
     ];
+}
+
+function requiredStandardEventTaskKeys()
+{
+    return ['standard.financial_closeout'];
+}
+
+function isRequiredStandardEventTask($template_key)
+{
+    return in_array((string) $template_key, requiredStandardEventTaskKeys(), true);
 }
 
 function standardEventTaskScheduleLabel($due_anchor, $due_offset_days)

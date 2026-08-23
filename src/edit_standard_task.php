@@ -16,6 +16,11 @@ if (!$standard_task) {
     header('Location: standard_tasks.php');
     exit();
 }
+if (isRequiredStandardEventTask($standard_task['template_key'])) {
+    $_SESSION['standard_task_action_error'] = 'The financial closeout reminder is a required built-in standard task and cannot be edited.';
+    header('Location: view_standard_task.php?id=' . (int) $standard_task['id']);
+    exit();
+}
 if (!empty($standard_task['is_archived'])) {
     header('Location: view_standard_task.php?id=' . (int) $standard_task['id']);
     exit();

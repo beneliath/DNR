@@ -44,8 +44,9 @@ expectServiceDatabaseIsolation(
 );
 expectServiceDatabaseIsolation(
     str_contains($grants, 'GRANT SELECT (token_id, status)')
+        && str_contains($grants, 'GRANT SELECT (id, auth_version, account_status)')
         && !str_contains($grants, 'GRANT SELECT, INSERT, UPDATE, DELETE ON `${MYSQL_DATABASE}`.email_outbox TO'),
-    'the web account should not be able to read encrypted outbox payloads.'
+    'the web account should not read encrypted payloads, and the mail worker should receive only the user state needed to reject stale links.'
 );
 
 echo "Service database isolation tests passed.\n";

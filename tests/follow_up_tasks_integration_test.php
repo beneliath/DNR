@@ -110,6 +110,24 @@ expectFollowUpTaskIntegration(
         && (int) $custom_task['assigned_to'] === $user_id,
     'new standard definitions should be copied, dated, and assigned during event creation.'
 );
+$financial_closeout_stmt = $conn->prepare(
+    "SELECT title, details, due_date, priority
+     FROM follow_up_tasks
+     WHERE engagement_id = ? AND template_key = 'standard.financial_closeout'"
+);
+$financial_closeout_stmt->bind_param('i', $engagement_id);
+$financial_closeout_stmt->execute();
+$financial_closeout_task = $financial_closeout_stmt->get_result()->fetch_assoc();
+$financial_closeout_stmt->close();
+expectFollowUpTaskIntegration(
+    $financial_closeout_task
+        && $financial_closeout_task['title'] === 'Complete the event financial closeout'
+        && $financial_closeout_task['details']
+            === 'Finalize the event financial report with all giving/income, lodging, and travel received.'
+        && $financial_closeout_task['due_date'] === '2026-09-19'
+        && $financial_closeout_task['priority'] === 'high',
+    'every new event should receive the required financial closeout task one week after its end date.'
+);
 expectFollowUpTaskIntegration(
     generateEngagementFollowUpChecklist($conn, $engagement_id, $user_id, $user_id) === 0,
     'repeated checklist generation should not duplicate standard tasks.'

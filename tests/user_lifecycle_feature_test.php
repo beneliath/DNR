@@ -68,6 +68,7 @@ expectUserLifecycle(
 );
 
 $lifecycle = $read('src/user_lifecycle_helpers.php');
+$delete_user = $read('src/delete_user.php');
 expectUserLifecycle(
     str_contains($lifecycle, 'auth_version = auth_version + 1')
         && str_contains($lifecycle, 'UPDATE calendar_subscriptions SET revoked_at = UTC_TIMESTAMP()')
@@ -76,6 +77,14 @@ expectUserLifecycle(
         && str_contains($lifecycle, "'event_type' => 'user_deactivated'")
         && !str_contains($lifecycle, 'DELETE FROM security_audit_log'),
     'deactivation should atomically revoke access and assignments without deleting audit history.'
+);
+expectUserLifecycle(
+    str_contains($lifecycle, 'function deleteInactiveUserAccount')
+        && str_contains($lifecycle, "account_status IN ('invited', 'inactive')")
+        && str_contains($lifecycle, "'event_type' => 'user_deleted'")
+        && str_contains($delete_user, 'deleteInactiveUserAccount(')
+        && !str_contains($delete_user, 'DELETE FROM users'),
+    'permanent deletion should be serialized through the inactive-account lifecycle guard.'
 );
 
 expectUserLifecycle(

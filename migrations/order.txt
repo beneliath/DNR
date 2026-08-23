@@ -32,3 +32,4 @@
 20260823_add_user_lifecycle_and_email_tokens.sql
 20260823_add_user_token_email_outbox.sql
 20260823_add_engagement_financial_reports.sql
+20260823_add_financial_closeout_standard_task.sql

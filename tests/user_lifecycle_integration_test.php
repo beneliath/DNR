@@ -78,6 +78,21 @@ try {
         findUserEmailToken($conn, 'recovery', $previous_token['token']) !== null,
         'a previous recovery link should remain usable while replacement delivery is pending.'
     );
+
+    $conn->begin_transaction();
+    completeQueuedAccountEmail(
+        $conn,
+        $previous_token['id'],
+        $target_id,
+        'recovery'
+    );
+    $conn->commit();
+    expectLifecycleIntegration(
+        findUserEmailToken($conn, 'recovery', $previous_token['token']) !== null
+            && findUserEmailToken($conn, 'recovery', $replacement_token['token']) !== null,
+        'delivery of an older queued link must not invalidate its newer replacement.'
+    );
+
     $conn->begin_transaction();
     completeQueuedAccountEmail(
         $conn,
@@ -136,6 +151,39 @@ try {
     expectLifecycleIntegration(
         $reactivated['account_status'] === 'active',
         'an administrator should be able to reactivate an inactive account.'
+    );
+
+    try {
+        deleteInactiveUserAccount($conn, $target_id, $actor_id);
+        expectLifecycleIntegration(false, 'an active account deletion should be rejected.');
+    } catch (InvalidArgumentException $exception) {
+        expectLifecycleIntegration(
+            str_contains($exception->getMessage(), 'Deactivate the account'),
+            'an active account deletion should require deactivation first.'
+        );
+    }
+    $target_after_rejection = $conn->query(
+        "SELECT account_status FROM users WHERE id = {$target_id}"
+    )->fetch_assoc();
+    expectLifecycleIntegration(
+        ($target_after_rejection['account_status'] ?? null) === 'active',
+        'a rejected active-account deletion should leave the account intact.'
+    );
+
+    deactivateUserAccount($conn, $target_id, $actor_id);
+    deleteInactiveUserAccount($conn, $target_id, $actor_id);
+    $deleted_target = $conn->query(
+        "SELECT COUNT(*) AS total FROM users WHERE id = {$target_id}"
+    )->fetch_assoc();
+    $deletion_audit = $conn->query(
+        "SELECT COUNT(*) AS total FROM security_audit_log
+         WHERE event_type = 'user_deleted'
+           AND entity_type = 'users' AND entity_id = {$target_id}"
+    )->fetch_assoc();
+    expectLifecycleIntegration(
+        (int) ($deleted_target['total'] ?? 1) === 0
+            && (int) ($deletion_audit['total'] ?? 0) === 1,
+        'an inactive account deletion should remove the account and retain a semantic audit event.'
     );
 } finally {
     putenv('DNR_MAIL_TRANSPORT');

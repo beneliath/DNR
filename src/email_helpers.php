@@ -308,7 +308,7 @@ function completeQueuedAccountEmail(
     $invalidate = $conn->prepare(
         'UPDATE user_email_tokens
          SET consumed_at = UTC_TIMESTAMP()
-         WHERE user_id = ? AND purpose = ? AND id <> ? AND consumed_at IS NULL'
+         WHERE user_id = ? AND purpose = ? AND id < ? AND consumed_at IS NULL'
     );
     if (!$invalidate) {
         throw new RuntimeException('Unable to prepare superseded email-token invalidation.');
@@ -327,13 +327,56 @@ function claimQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): ?array
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
     $conn->begin_transaction();
     try {
+        $discard = $conn->query(
+            "UPDATE email_outbox outbox
+             INNER JOIN user_email_tokens token ON token.id = outbox.token_id
+             INNER JOIN users user ON user.id = token.user_id
+             SET outbox.status = 'failed', outbox.payload_ciphertext = NULL,
+                 outbox.processing_started_at = NULL,
+                 outbox.last_error = 'Queued account link is no longer valid.'
+             WHERE outbox.attempts < 8
+               AND outbox.payload_ciphertext IS NOT NULL
+               AND (
+                    (outbox.status IN ('pending', 'retry')
+                        AND outbox.next_attempt_at <= UTC_TIMESTAMP())
+                    OR (outbox.status = 'processing'
+                        AND outbox.processing_started_at <= DATE_SUB(
+                            UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
+                        ))
+               )
+               AND (
+                    token.user_id <> outbox.user_id
+                    OR token.purpose <> outbox.purpose
+                    OR token.consumed_at IS NOT NULL
+                    OR token.expires_at <= UTC_TIMESTAMP()
+                    OR token.auth_version <> user.auth_version
+                    OR (outbox.purpose = 'invitation' AND user.account_status <> 'invited')
+                    OR (outbox.purpose IN ('verification', 'recovery')
+                        AND user.account_status <> 'active')
+               )"
+        );
+        if ($discard === false) {
+            throw new RuntimeException('Unable to discard invalid queued account email.');
+        }
+
         $result = $conn->query(
             "SELECT outbox.id, outbox.token_id, outbox.user_id, outbox.purpose,
                     outbox.payload_ciphertext, token.expires_at
              FROM email_outbox outbox
              INNER JOIN user_email_tokens token ON token.id = outbox.token_id
+             INNER JOIN users user ON user.id = token.user_id
              WHERE outbox.attempts < 8
                AND outbox.payload_ciphertext IS NOT NULL
+               AND token.user_id = outbox.user_id
+               AND token.purpose = outbox.purpose
+               AND token.consumed_at IS NULL
+               AND token.expires_at > UTC_TIMESTAMP()
+               AND token.auth_version = user.auth_version
+               AND (
+                    (outbox.purpose = 'invitation' AND user.account_status = 'invited')
+                    OR (outbox.purpose IN ('verification', 'recovery')
+                        AND user.account_status = 'active')
+               )
                AND (
                     (outbox.status IN ('pending', 'retry')
                         AND outbox.next_attempt_at <= UTC_TIMESTAMP())

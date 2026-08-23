@@ -40,6 +40,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$template_id) {
             throw new InvalidArgumentException('Select a valid standard task.');
         }
+        $target_standard_task = fetchStandardEventTask($conn, $template_id);
+        if (!$target_standard_task) {
+            throw new InvalidArgumentException('That standard task is no longer available.');
+        }
+        if (isRequiredStandardEventTask($target_standard_task['template_key'])
+            && $action !== 'restore'
+        ) {
+            throw new InvalidArgumentException(
+                'The financial closeout reminder is a required built-in standard task and cannot be archived or deleted.'
+            );
+        }
         if ($action === 'archive') {
             $stmt = $conn->prepare(
                 'UPDATE standard_event_tasks
@@ -157,10 +168,12 @@ $priority_labels = followUpTaskPriorities();
         <tbody>
         <?php if (!$standard_tasks): ?><tr><td colspan="6" class="empty-state">No <?php echo $show_archived ? 'archived' : 'active'; ?> standard event tasks.</td></tr><?php endif; ?>
         <?php foreach ($standard_tasks as $standard_task): ?>
+            <?php $is_required_standard_task = isRequiredStandardEventTask($standard_task['template_key']); ?>
             <tr>
                 <td><?php echo (int) $standard_task['sort_order']; ?></td>
                 <td>
                     <a class="record-link" href="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>"><?php echo htmlspecialchars($standard_task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                    <?php if ($is_required_standard_task): ?><small class="task-notes-preview">Required built-in task</small><?php endif; ?>
                     <?php if (!empty($standard_task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($standard_task['details']) > 160 ? substr($standard_task['details'], 0, 157) . '…' : $standard_task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
                 <td><?php echo htmlspecialchars(standardEventTaskScheduleLabel($standard_task['due_anchor'], $standard_task['due_offset_days']), ENT_QUOTES, 'UTF-8'); ?></td>
@@ -169,13 +182,13 @@ $priority_labels = followUpTaskPriorities();
                 <td>
                     <div class="task-actions">
                         <a href="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button view-button" aria-label="View standard task" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
-                        <?php if (!$show_archived && canManageFollowUpTasks($user_role)): ?>
+                        <?php if (!$show_archived && !$is_required_standard_task && canManageFollowUpTasks($user_role)): ?>
                             <a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit standard task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                         <?php endif; ?>
-                        <?php if (canArchiveEntries($user_role)): ?>
+                        <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $show_archived)): ?>
                             <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $list_status; ?>"><input type="hidden" name="action" value="<?php echo $show_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="action-button action-icon-button <?php echo $show_archived ? 'restore-button' : 'archive-button'; ?>" aria-label="<?php echo $show_archived ? 'Restore' : 'Archive'; ?> standard task" title="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>" data-tooltip="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>"><?php echo actionIconSvg($show_archived ? 'restore' : 'archive'); ?></button></form>
                         <?php endif; ?>
-                        <?php if ($show_archived && canDeleteEntries($user_role)): ?>
+                        <?php if ($show_archived && !$is_required_standard_task && canDeleteEntries($user_role)): ?>
                             <form method="post" action="standard_tasks.php" data-delete-confirmation="Permanently delete this standard task? Existing tasks already added to events will remain." data-archive-button-label="Keep archived"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="archived"><input type="hidden" name="action" value="delete"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete standard task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
                         <?php endif; ?>
                     </div>

@@ -45,8 +45,8 @@ function normalizeEngagementMapFilters(array $query)
     if ($date_from === '' && $date_to === '') {
         $past_days = max(0, min(3650, (int) (getenv('DNR_MAP_PAST_DAYS') ?: 90)));
         $future_days = max(1, min(3650, (int) (getenv('DNR_MAP_FUTURE_DAYS') ?: 730)));
-        $date_from = gmdate('Y-m-d', time() - ($past_days * 86400));
-        $date_to = gmdate('Y-m-d', time() + ($future_days * 86400));
+        $date_from = applicationBusinessDateOffset(-$past_days);
+        $date_to = applicationBusinessDateOffset($future_days);
     }
 
     return [

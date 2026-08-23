@@ -156,6 +156,7 @@ $security_event_labels = [
     'two_factor_login' => 'Two-factor login verification succeeded',
     'recovery_code_login' => 'Recovery-code login verification succeeded',
     'recovery_codes_regenerated' => 'Recovery codes regenerated',
+    'user_deleted' => 'User deleted',
     'database_backup_created' => 'Database backup created',
     'database_backup_auth_failed' => 'Database backup verification failed',
     'database_restored' => 'Database restored',
@@ -165,13 +166,8 @@ $security_event_labels = [
     'calendar_subscription_revoked' => 'Calendar subscription revoked',
     'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged',
 ];
-$audit_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
-try {
-    $audit_timezone = new DateTimeZone($audit_timezone_name);
-} catch (Throwable $exception) {
-    $audit_timezone_name = 'UTC';
-    $audit_timezone = new DateTimeZone('UTC');
-}
+$audit_timezone_name = applicationTimezoneName();
+$audit_timezone = applicationTimezone();
 
 function auditLogPageUrl($cursor, $category, $page_size, $search = '', $from = '', $to = '', $ip = '') {
     $parameters = [

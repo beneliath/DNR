@@ -6,6 +6,8 @@ fixture_suffix=${DNR_HTTP_FIXTURE_SUFFIX:-$(openssl rand -hex 6)}
 fixture_password='HttpTestPassword!123'
 login_recovery_code='ABCD-EFGH-JKLM'
 elevation_recovery_code='NPQR-STUV-WXYZ'
+deactivation_recovery_code='BCDF-GHJK-LMNP'
+deletion_recovery_code='QRST-VWXY-ZABC'
 temporary_directory=$(mktemp -d)
 fixtures_created=0
 
@@ -85,6 +87,23 @@ login_password() {
         "$base_url/login.php")
     expect_status "$status" '302' "$role password login"
     expect_location "$login_headers" "$expected_location" "$role password login"
+}
+
+elevate_admin() {
+    recovery_code=$1
+    description=$2
+    curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-elevation.html" \
+        "$base_url/admin_elevation.php?return=users.php"
+    admin_csrf=$(csrf_from "$temporary_directory/admin-elevation.html")
+    status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
+        -D "$temporary_directory/admin-elevation.headers" -o /dev/null -w '%{http_code}' \
+        --data-urlencode "csrf_token=$admin_csrf" \
+        --data-urlencode "admin_password=$fixture_password" \
+        --data-urlencode "admin_code=$recovery_code" \
+        --data-urlencode 'return=users.php' \
+        "$base_url/admin_elevation.php")
+    expect_status "$status" '302' "$description"
+    expect_location "$temporary_directory/admin-elevation.headers" 'users.php' "$description"
 }
 
 fixtures_created=1
@@ -266,19 +285,7 @@ status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html"
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'
 
-status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-elevation.html" \
-    -w '%{http_code}' "$base_url/admin_elevation.php?return=users.php")
-expect_status "$status" '200' 'administrator elevation form'
-admin_csrf=$(csrf_from "$temporary_directory/admin-elevation.html")
-status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
-    -D "$temporary_directory/admin-elevation.headers" -o /dev/null -w '%{http_code}' \
-    --data-urlencode "csrf_token=$admin_csrf" \
-    --data-urlencode "admin_password=$fixture_password" \
-    --data-urlencode "admin_code=$elevation_recovery_code" \
-    --data-urlencode 'return=users.php' \
-    "$base_url/admin_elevation.php")
-expect_status "$status" '302' 'administrator elevation'
-expect_location "$temporary_directory/admin-elevation.headers" 'users.php' 'administrator elevation'
+elevate_admin "$elevation_recovery_code" 'administrator elevation for active-account deletion check'
 
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-elevated.html" "$base_url/users.php"
 admin_csrf=$(csrf_from "$temporary_directory/admin-users-elevated.html")
@@ -289,8 +296,34 @@ status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-delete.head
     --data-urlencode "id=$target_user_id" \
     --data-urlencode 'delete_confirmation=DELETE USER' \
     "$base_url/delete_user.php")
-expect_status "$status" '302' 'elevated administrator user deletion'
-expect_location "$temporary_directory/admin-delete.headers" 'users.php' 'elevated administrator user deletion'
+expect_status "$status" '302' 'active-account deletion rejection'
+expect_location "$temporary_directory/admin-delete.headers" 'users.php' 'active-account deletion rejection'
+test "$(fixture user-exists "$fixture_suffix" target)" = '1'
+
+elevate_admin "$deactivation_recovery_code" 'administrator elevation for account deactivation'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-deactivation.html" "$base_url/users.php"
+admin_csrf=$(csrf_from "$temporary_directory/admin-users-deactivation.html")
+status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-deactivation.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode "id=$target_user_id" \
+    --data-urlencode 'action=deactivate' \
+    "$base_url/user_lifecycle.php")
+expect_status "$status" '302' 'administrator user deactivation'
+expect_location "$temporary_directory/admin-deactivation.headers" 'users.php' 'administrator user deactivation'
+test "$(fixture user-status "$fixture_suffix" target)" = 'inactive'
+
+elevate_admin "$deletion_recovery_code" 'administrator elevation for inactive-account deletion'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-delete.html" "$base_url/users.php"
+admin_csrf=$(csrf_from "$temporary_directory/admin-users-delete.html")
+status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-delete.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode "id=$target_user_id" \
+    --data-urlencode 'delete_confirmation=DELETE USER' \
+    "$base_url/delete_user.php")
+expect_status "$status" '302' 'inactive administrator user deletion'
+expect_location "$temporary_directory/admin-delete.headers" 'users.php' 'inactive administrator user deletion'
 test "$(fixture user-exists "$fixture_suffix" target)" = '0'
 
 echo 'Authenticated HTTP behavior tests passed.'

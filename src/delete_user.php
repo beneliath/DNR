@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 requireValidCsrfToken();
 require_once __DIR__ . '/two_factor_helpers.php';
+require_once __DIR__ . '/user_lifecycle_helpers.php';
 requireRecentAdminElevation('users.php');
 $user_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 $delete_confirmation = $_POST['delete_confirmation'] ?? '';
@@ -21,16 +22,22 @@ if (!is_string($delete_confirmation) || !hash_equals('DELETE USER', $delete_conf
     exit('User not deleted: confirmation phrase must be DELETE USER.');
 }
 
-// Prevent an administrator from deleting the account backing the active session.
-if (!$user_id || $user_id === (int) $_SESSION['user_id']) {
-    header("Location: users.php");
-    exit();
+try {
+    if (!$user_id) {
+        throw new InvalidArgumentException('Select a valid user account.');
+    }
+    deleteInactiveUserAccount($conn, $user_id, (int) $_SESSION['user_id']);
+    $_SESSION['_user_lifecycle_message'] = 'The inactive account was permanently deleted.';
+} catch (InvalidArgumentException $exception) {
+    $_SESSION['_user_lifecycle_error'] = $exception->getMessage();
+} catch (Throwable $exception) {
+    applicationLog('error', 'User deletion failed', [
+        'target_user_id' => $user_id,
+        'error' => $exception->getMessage(),
+    ]);
+    $_SESSION['_user_lifecycle_error'] = 'The account could not be deleted.';
 }
 
-$stmt = $conn->prepare("DELETE FROM users WHERE id = ?");
-$stmt->bind_param("i", $user_id);
-$stmt->execute();
-
-header("Location: users.php");
+unset($_SESSION['_admin_elevated_at']);
+header('Location: users.php');
 exit();
-?>

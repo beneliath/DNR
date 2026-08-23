@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/operations_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -15,21 +16,28 @@ $metric = static function (mysqli $connection, string $query): array {
 };
 
 try {
+    $business_date = applicationBusinessDate();
     $geocoding = $metric($conn, "SELECT
         SUM(status = 'pending') AS pending,
         SUM(status = 'processing') AS processing,
         SUM(status = 'retry') AS retry,
         COALESCE(MAX(attempts), 0) AS maximum_attempts
         FROM engagement_map_geocode_queue");
-    $tasks = $metric($conn, "SELECT
+    $task_metric = $conn->prepare("SELECT
         SUM(status IN ('open', 'in_progress', 'waiting')) AS active,
-        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < CURDATE()) AS overdue,
+        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < ?) AS overdue,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned
         FROM follow_up_tasks");
-    $authentication = $metric($conn, "SELECT
-        SUM(event_category = 'login' AND event_type <> 'successful_login') AS failed_last_24_hours
-        FROM security_audit_log
-        WHERE created_at >= UTC_TIMESTAMP() - INTERVAL 24 HOUR");
+    if (!$task_metric) {
+        throw new RuntimeException('Unable to prepare operational task metrics.');
+    }
+    $task_metric->bind_param('s', $business_date);
+    $task_metric->execute();
+    $tasks = $task_metric->get_result()->fetch_assoc() ?: [];
+    $task_metric->close();
+    $authentication = [
+        'failed_last_24_hours' => countRecentFailedAuthentications($conn),
+    ];
     $inboundMail = $metric($conn, "SELECT
         SUM(status = 'review') AS review_count,
         SUM(status = 'failed') AS failed_count,

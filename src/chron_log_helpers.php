@@ -2,20 +2,10 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 function chronLogDisplayTimezone() {
-    static $timezone = null;
-    if ($timezone instanceof DateTimeZone) {
-        return $timezone;
-    }
-
-    $timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
-    try {
-        $timezone = new DateTimeZone($timezone_name);
-    } catch (Throwable $exception) {
-        $timezone = new DateTimeZone('UTC');
-    }
-
-    return $timezone;
+    return applicationTimezone();
 }
 
 function chronLogTimestampDetails($timestamp) {

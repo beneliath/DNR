@@ -123,6 +123,13 @@ expectFollowUpTaskHelper(
     'standard task schedules should be described in plain language.'
 );
 
+expectFollowUpTaskHelper(
+    isRequiredStandardEventTask('standard.financial_closeout')
+        && !isRequiredStandardEventTask('standard.send_thanks')
+        && !isRequiredStandardEventTask('custom.example'),
+    'the financial closeout reminder should be the required hard-coded standard task.'
+);
+
 $normalized_standard_task = normalizeStandardEventTaskInput([
     'title' => '  Prepare follow-up  ',
     'details' => ' Notes ',

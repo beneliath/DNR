@@ -18,10 +18,10 @@ if ($subscription === null) {
 
 $past_days = max(0, min(3650, (int) (getenv('DNR_CALENDAR_PAST_DAYS') ?: 365)));
 $future_days = max(30, min(3650, (int) (getenv('DNR_CALENDAR_FUTURE_DAYS') ?: 1095)));
-$engagement_window = "e.event_end_date >= DATE_SUB(CURDATE(), INTERVAL {$past_days} DAY)
-    AND e.event_start_date <= DATE_ADD(CURDATE(), INTERVAL {$future_days} DAY)";
-$presentation_window = "p.presentation_date >= DATE_SUB(CURDATE(), INTERVAL {$past_days} DAY)
-    AND p.presentation_date <= DATE_ADD(CURDATE(), INTERVAL {$future_days} DAY)";
+$window_start = applicationBusinessDateOffset(-$past_days);
+$window_end = applicationBusinessDateOffset($future_days);
+$engagement_window = 'e.event_end_date >= ? AND e.event_start_date <= ?';
+$presentation_window = 'p.presentation_date >= ? AND p.presentation_date <= ?';
 
 $revision_result = $conn->query(
     'SELECT revision, UNIX_TIMESTAMP(updated_at) AS changed_at
@@ -44,8 +44,8 @@ if (!$calendar_revision) {
 $etag = '"calendar-' . hash('sha256', implode('|', [
     $calendar_revision['revision'] ?? 0,
     $calendar_revision['changed_at'] ?? 0,
-    $past_days,
-    $future_days,
+    $window_start,
+    $window_end,
 ])) . '"';
 
 header('Content-Type: text/calendar; charset=utf-8');
@@ -79,13 +79,17 @@ $query = "SELECT
           INNER JOIN organizations o ON o.id = e.organization_id
           WHERE e.is_deleted = 0 AND {$engagement_window}
           ORDER BY e.event_start_date, e.id";
-$result = $conn->query($query);
-if (!$result) {
+$engagement_statement = $conn->prepare($query);
+if (!$engagement_statement) {
     applicationLog('error', 'Unable to build the private calendar', ['error' => $conn->error]);
     http_response_code(503);
     exit('The DNR calendar is temporarily unavailable.');
 }
+$engagement_statement->bind_param('ss', $window_start, $window_end);
+$engagement_statement->execute();
+$result = $engagement_statement->get_result();
 $engagements = $result->fetch_all(MYSQLI_ASSOC);
+$engagement_statement->close();
 
 $presentation_query = "SELECT
             p.id,
@@ -114,13 +118,17 @@ $presentation_query = "SELECT
             AND p.presentation_time IS NOT NULL
             AND {$presentation_window}
           ORDER BY p.presentation_date, p.presentation_time, p.id";
-$presentation_result = $conn->query($presentation_query);
-if (!$presentation_result) {
+$presentation_statement = $conn->prepare($presentation_query);
+if (!$presentation_statement) {
     applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);
     http_response_code(503);
     exit('The DNR calendar is temporarily unavailable.');
 }
+$presentation_statement->bind_param('ss', $window_start, $window_end);
+$presentation_statement->execute();
+$presentation_result = $presentation_statement->get_result();
 $presentations = $presentation_result->fetch_all(MYSQLI_ASSOC);
+$presentation_statement->close();
 
-$calendar_timezone = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
+$calendar_timezone = applicationTimezoneName();
 echo buildCalendar($engagements, 'DNR Events', $presentations, $calendar_timezone);

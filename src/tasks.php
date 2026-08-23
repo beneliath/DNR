@@ -134,15 +134,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['task_action_message'] ?? '';
 $action_error = $_SESSION['task_action_error'] ?? '';
 unset($_SESSION['task_action_message'], $_SESSION['task_action_error']);
+$business_date = applicationBusinessDate();
 
 $summary_stmt = $conn->prepare(
     "SELECT
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to = ?) AS my_count,
-        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < CURDATE()) AS overdue_count,
-        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date = CURDATE()) AS today_count,
+        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < ?) AS overdue_count,
+        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date = ?) AS today_count,
         SUM(status IN ('open', 'in_progress', 'waiting')
-            AND due_date > CURDATE()
-            AND due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)) AS upcoming_count,
+            AND due_date > ?
+            AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)) AS upcoming_count,
         SUM(status = 'waiting') AS waiting_count,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned_count
      FROM follow_up_tasks"
@@ -156,7 +157,14 @@ $summary = [
     'unassigned' => 0,
 ];
 if ($summary_stmt) {
-    $summary_stmt->bind_param('i', $current_user_id);
+    $summary_stmt->bind_param(
+        'issss',
+        $current_user_id,
+        $business_date,
+        $business_date,
+        $business_date,
+        $business_date
+    );
     $summary_stmt->execute();
     $summary_row = $summary_stmt->get_result()->fetch_assoc() ?: [];
     $summary_stmt->close();
@@ -174,12 +182,19 @@ if ($view === 'my') {
     $bind_types .= 'i';
     $bind_values[] = $current_user_id;
 } elseif ($view === 'overdue') {
-    $where[] = $active_status_sql . ' AND t.due_date < CURDATE()';
+    $where[] = $active_status_sql . ' AND t.due_date < ?';
+    $bind_types .= 's';
+    $bind_values[] = $business_date;
 } elseif ($view === 'today') {
-    $where[] = $active_status_sql . ' AND t.due_date = CURDATE()';
+    $where[] = $active_status_sql . ' AND t.due_date = ?';
+    $bind_types .= 's';
+    $bind_values[] = $business_date;
 } elseif ($view === 'upcoming') {
     $where[] = $active_status_sql
-        . ' AND t.due_date > CURDATE() AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)';
+        . ' AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL 7 DAY)';
+    $bind_types .= 'ss';
+    $bind_values[] = $business_date;
+    $bind_values[] = $business_date;
 } elseif ($view === 'waiting') {
     $where[] = "t.status = 'waiting'";
 } elseif ($view === 'unassigned') {

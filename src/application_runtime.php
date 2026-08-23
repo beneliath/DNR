@@ -15,6 +15,50 @@ spl_autoload_register(static function (string $class): void {
     }
 });
 
+function applicationTimezoneName(): string
+{
+    $timezone_name = trim((string) (getenv('DNR_TIMEZONE') ?: 'America/Chicago'));
+    try {
+        new DateTimeZone($timezone_name);
+        return $timezone_name;
+    } catch (Throwable $exception) {
+        return 'UTC';
+    }
+}
+
+function applicationTimezone(): DateTimeZone
+{
+    return new DateTimeZone(applicationTimezoneName());
+}
+
+function applicationBusinessDate(?DateTimeImmutable $instant = null): string
+{
+    $instant ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
+    return $instant->setTimezone(applicationTimezone())->format('Y-m-d');
+}
+
+function applicationBusinessDateOffset(
+    int $days,
+    ?DateTimeImmutable $instant = null
+): string {
+    $business_date = new DateTimeImmutable(
+        applicationBusinessDate($instant) . ' 12:00:00',
+        applicationTimezone()
+    );
+    return $business_date->modify(sprintf('%+d days', $days))->format('Y-m-d');
+}
+
+function applicationTimestampLabel(mixed $timestamp, string $format = 'Y-m-d H:i'): string
+{
+    try {
+        return (new DateTimeImmutable((string) $timestamp, new DateTimeZone('UTC')))
+            ->setTimezone(applicationTimezone())
+            ->format($format);
+    } catch (Throwable $exception) {
+        return (string) $timestamp;
+    }
+}
+
 /** @param list<string>|null $candidate_paths */
 function applicationVersion(?array $candidate_paths = null): string
 {

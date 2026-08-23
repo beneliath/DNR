@@ -262,6 +262,68 @@ function deactivateUserAccount(mysqli $conn, $user_id, $actor_user_id)
     }
 }
 
+function deleteInactiveUserAccount(mysqli $conn, $user_id, $actor_user_id): bool
+{
+    $user_id = (int) $user_id;
+    $actor_user_id = (int) $actor_user_id;
+    if ($user_id < 1 || $user_id === $actor_user_id) {
+        throw new InvalidArgumentException('You cannot delete the account backing your current session.');
+    }
+
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare(
+            'SELECT id, username, account_status FROM users WHERE id = ? FOR UPDATE'
+        );
+        if (!$stmt) {
+            throw new RuntimeException('Unable to prepare the account deletion.');
+        }
+        $stmt->bind_param('i', $user_id);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+        if (!$user) {
+            throw new InvalidArgumentException('That account is no longer available.');
+        }
+        if ($user['account_status'] === 'active') {
+            throw new InvalidArgumentException('Deactivate the account before permanently deleting it.');
+        }
+
+        if (!recordAuditEvent($conn, [
+            'event_category' => 'security',
+            'event_type' => 'user_deleted',
+            'actor_user_id' => $actor_user_id,
+            'target_user_id' => $user_id,
+            'target_username' => (string) $user['username'],
+            'entity_type' => 'users',
+            'entity_id' => $user_id,
+            'entity_label' => (string) $user['username'],
+            'details' => 'Inactive or invited account permanently deleted',
+        ])) {
+            throw new RuntimeException('Unable to audit the account deletion.');
+        }
+
+        $delete = $conn->prepare(
+            "DELETE FROM users WHERE id = ? AND account_status IN ('invited', 'inactive')"
+        );
+        if (!$delete) {
+            throw new RuntimeException('Unable to prepare the account deletion.');
+        }
+        $delete->bind_param('i', $user_id);
+        $delete->execute();
+        if ($delete->affected_rows !== 1) {
+            throw new RuntimeException('The account can no longer be deleted.');
+        }
+        $delete->close();
+
+        $conn->commit();
+        return true;
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
 function activateUserAccount(mysqli $conn, $user_id, $actor_user_id)
 {
     $user_id = (int) $user_id;

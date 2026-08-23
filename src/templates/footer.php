@@ -1,9 +1,10 @@
 <?php
+require_once __DIR__ . '/../application_runtime.php';
 require_once __DIR__ . '/../github_version_helpers.php';
 
 $footer_version = defined('APP_VERSION') ? APP_VERSION : 'dev';
 $footer_push = githubPushMetadata();
-$footer_timezone_name = getenv('DNR_TIMEZONE') ?: 'America/Chicago';
+$footer_timezone_name = applicationTimezoneName();
 $footer_short_commit = $footer_push === null ? '' : substr($footer_push['commit'], 0, 7);
 $footer_push_label = $footer_push === null
     ? ''

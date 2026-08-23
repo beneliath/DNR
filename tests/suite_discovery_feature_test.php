@@ -43,8 +43,14 @@ expectIntegrationRunner(
     'the destructive backup suite should remain isolated in the maintenance container.'
 );
 expectIntegrationRunner(
-    substr_count($runner, '</dev/null') === 3,
+    substr_count($runner, '</dev/null') === 4,
     'containerized tests should not consume the loop input before every discovered suite runs.'
+);
+expectIntegrationRunner(
+    in_array('email_outbox_worker_integration_test.php', $discovered, true)
+        && str_contains($runner, "'email_outbox_worker_integration_test.php'")
+        && str_contains($runner, 'maintenance "/opt/dnr/${test_file}"'),
+    'email outbox state-machine tests should run with the isolated maintenance database identity.'
 );
 expectIntegrationRunner(
     in_array('geocoder_worker_integration_test.php', $discovered, true)

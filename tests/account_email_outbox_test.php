@@ -35,6 +35,16 @@ expectAccountOutbox(
     'account links should use the canonical origin and remain encrypted at rest.'
 );
 
+$outbox_source = file_get_contents(__DIR__ . '/../src/email_helpers.php');
+expectAccountOutbox(
+    is_string($outbox_source)
+        && str_contains($outbox_source, 'AND id < ? AND consumed_at IS NULL')
+        && str_contains($outbox_source, 'token.consumed_at IS NULL')
+        && str_contains($outbox_source, 'token.auth_version = user.auth_version')
+        && str_contains($outbox_source, "user.account_status = 'active'"),
+    'queued delivery should preserve newer tokens and reject stale account links before sending.'
+);
+
 putenv('DNR_2FA_ENCRYPTION_KEY');
 putenv('DNR_PUBLIC_BASE_URL');
 putenv('DNR_REQUIRE_HTTPS');

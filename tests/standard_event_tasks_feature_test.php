@@ -18,6 +18,8 @@ $read = static function ($path) use ($root) {
 };
 
 $migration = $read('migrations/20260821_add_standard_event_tasks.sql');
+$closeout_migration = $read('migrations/20260823_add_financial_closeout_standard_task.sql');
+$migration_order = $read('migrations/order.txt');
 expectStandardEventTaskFeature(
     str_contains($migration, 'CREATE TABLE IF NOT EXISTS standard_event_tasks')
         && str_contains($migration, 'due_offset_days SMALLINT')
@@ -27,6 +29,18 @@ expectStandardEventTaskFeature(
         && str_contains($migration, 'audit_standard_event_tasks_after_insert')
         && substr_count($migration, "('standard.") >= 9,
     'the forward migration should seed, constrain, and audit configurable standard event tasks.'
+);
+expectStandardEventTaskFeature(
+    str_contains($closeout_migration, "'standard.financial_closeout'")
+        && str_contains($closeout_migration, "'Complete the event financial closeout'")
+        && str_contains($closeout_migration, "'high', 'event_end', 7")
+        && str_contains($closeout_migration, 'ON DUPLICATE KEY UPDATE')
+        && str_contains($closeout_migration, 'is_archived = 0')
+        && str_contains(
+            $migration_order,
+            '20260823_add_financial_closeout_standard_task.sql'
+        ),
+    'an upgrade-safe migration should enforce the required one-week financial closeout reminder.'
 );
 
 $helpers = $read('src/follow_up_task_helpers.php');
@@ -46,6 +60,8 @@ $engagement_commit_position = strpos($new_engagement, '$conn->commit()', $map_qu
 expectStandardEventTaskFeature(
     str_contains($helpers, "FROM standard_event_tasks template")
         && str_contains($helpers, "fetchStandardEventTaskTemplates(\$conn, 'active')")
+        && str_contains($helpers, "return ['standard.financial_closeout']")
+        && str_contains($helpers, 'function isRequiredStandardEventTask')
         && str_contains($helpers, "\$template['details']")
         && str_contains($helpers, "INSERT IGNORE INTO follow_up_tasks"),
     'checklist generation should copy only active persisted definitions, including their notes.'
@@ -55,6 +71,8 @@ expectStandardEventTaskFeature(
         && str_contains($list, 'href="add_standard_task.php"')
         && str_contains($list, "['archive', 'restore']")
         && str_contains($list, "requireRecentAdminElevation('standard_tasks.php?status=archived')")
+        && str_contains($list, 'isRequiredStandardEventTask')
+        && str_contains($list, 'Required built-in task')
         && str_contains($list, 'DELETE FROM standard_event_tasks WHERE id = ? AND is_archived = 1')
         && str_contains($list, 'Existing event tasks were not changed'),
     'the Work Queue should expose archive, restore, and guarded permanent deletion workflows.'
@@ -80,8 +98,10 @@ expectStandardEventTaskFeature(
 );
 expectStandardEventTaskFeature(
     str_contains($view, 'standardEventTaskScheduleLabel')
+        && str_contains($view, 'fixed at one week after the event ends')
         && str_contains($view, 'Generated work')
         && str_contains($edit, 'normalizeStandardEventTaskInput')
+        && str_contains($edit, 'required built-in standard task and cannot be edited')
         && str_contains($edit, 'task_version')
         && str_contains($edit, 'hash_equals')
         && str_contains($form, 'name="due_anchor"')

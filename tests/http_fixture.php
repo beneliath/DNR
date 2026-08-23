@@ -18,6 +18,8 @@ require_once $sourceDirectory . '/two_factor_helpers.php';
 const HTTP_FIXTURE_PASSWORD = 'HttpTestPassword!123';
 const HTTP_FIXTURE_LOGIN_RECOVERY_CODE = 'ABCD-EFGH-JKLM';
 const HTTP_FIXTURE_ELEVATION_RECOVERY_CODE = 'NPQR-STUV-WXYZ';
+const HTTP_FIXTURE_DEACTIVATION_RECOVERY_CODE = 'BCDF-GHJK-LMNP';
+const HTTP_FIXTURE_DELETION_RECOVERY_CODE = 'QRST-VWXY-ZABC';
 
 $action = $argv[1] ?? '';
 $suffix = $argv[2] ?? '';
@@ -110,22 +112,27 @@ if ($action === 'setup') {
     replaceRecoveryCodes($conn, $adminId, [
         HTTP_FIXTURE_LOGIN_RECOVERY_CODE,
         HTTP_FIXTURE_ELEVATION_RECOVERY_CODE,
+        HTTP_FIXTURE_DEACTIVATION_RECOVERY_CODE,
+        HTTP_FIXTURE_DELETION_RECOVERY_CODE,
     ]);
 
     echo "HTTP fixtures created.\n";
     exit(0);
 }
 
-if ($action === 'user-exists') {
+if ($action === 'user-exists' || $action === 'user-status') {
     $fixture = $argv[3] ?? '';
     if (!isset($usernames[$fixture])) {
         fwrite(STDERR, "Unknown user fixture.\n");
         exit(1);
     }
-    $statement = $conn->prepare('SELECT COUNT(*) AS total FROM users WHERE username = ?');
+    $statement = $conn->prepare('SELECT account_status FROM users WHERE username = ?');
     $statement->bind_param('s', $usernames[$fixture]);
     $statement->execute();
-    echo (int) $statement->get_result()->fetch_assoc()['total'] . "\n";
+    $user = $statement->get_result()->fetch_assoc();
+    echo $action === 'user-exists'
+        ? ($user ? "1\n" : "0\n")
+        : ($user ? (string) $user['account_status'] . "\n" : "missing\n");
     exit(0);
 }
 
