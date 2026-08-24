@@ -34,6 +34,7 @@ RUN a2enconf zz-dnr-security \
 # bind mount cannot hide or expose them.
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
+RUN install -d -m 0755 /opt/dnr/bin
 COPY --chmod=0644 scripts/create_admin.php /opt/dnr/bin/create_admin.php
 COPY --chmod=0644 scripts/set_password.php /opt/dnr/bin/set_password.php
 COPY --chmod=0644 scripts/cli_input.php /opt/dnr/bin/cli_input.php

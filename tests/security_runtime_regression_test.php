@@ -137,6 +137,12 @@ foreach ([
         "{$runtimeScript} should be readable by the unprivileged runtime user."
     );
 }
+expectSecurityRuntime(
+    str_contains($dockerfile, 'RUN install -d -m 0755 /opt/dnr/bin')
+        && strpos($dockerfile, 'RUN install -d -m 0755 /opt/dnr/bin')
+            < strpos($dockerfile, 'COPY --chmod=0644 scripts/create_admin.php'),
+    'the runtime script directory should be traversable before unprivileged scripts are copied.'
+);
 
 $passwordEntrypoint = file_get_contents($root . '/scripts/password_cli_entrypoint.sh');
 expectSecurityRuntime(
