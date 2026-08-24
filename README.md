@@ -193,12 +193,14 @@ The routing policy is deliberately conservative:
   the Contact's Organization. A direct Organization email match adds it to the Organization.
 - Put the exact marker `[MOED#123]` in the subject to route the message to Engagement 123. A reply
   remains routable while that marker stays in its subject. One unique valid marker may be processed
-  automatically when the sender is recognized; invalid markers, unknown or archived Engagements,
-  and subjects containing multiple different markers require review.
+  automatically when the sender is recognized. For an external Contact or Organization sender, the
+  Engagement must belong to an Organization identified by the message participants. Invalid markers,
+  unrelated, unknown, or archived Engagements, and subjects containing multiple different markers
+  require review.
 - Duplicate delivery of the same RFC Message-ID is idempotent. Ambiguous senders, shared email
   addresses, unknown senders, and messages with no matched target go to **Inbound Mail** for an
-  administrator or editor to review. Reviewers may choose an active Engagement from the manual selector,
-  in addition to approving matched Contact and Organization routes. If an address is
+  administrator or editor to review. Reviewers may choose any active Engagement from the searchable
+  selector, in addition to approving matched Contact and Organization routes. If an address is
   missing from DNR, update the record and use **Retry routing**.
 - The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
   names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only

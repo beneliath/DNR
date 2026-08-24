@@ -20,6 +20,7 @@ $read = static function (string $path) use ($root): string {
 };
 
 $migration = $read('migrations/20260823_add_task_notifications.sql');
+$reminderIndexMigration = $read('migrations/20260824_optimize_task_reminders.sql');
 $order = $read('migrations/order.txt');
 $helpers = $read('src/notification_helpers.php');
 $worker = $read('scripts/process_email_outbox.php');
@@ -39,6 +40,19 @@ expectTaskNotificationsFeature(
         && str_contains($migration, 'ON DELETE CASCADE')
         && str_contains($order, '20260823_add_task_notifications.sql'),
     'the schema should provide opt-in preferences and a separate idempotent encrypted notification outbox.'
+);
+expectTaskNotificationsFeature(
+    str_contains(
+        $reminderIndexMigration,
+        'idx_follow_up_task_assignee_queue'
+    )
+        && str_contains(
+            $reminderIndexMigration,
+            '(assigned_to, status, due_date, priority, id)'
+        )
+        && str_contains($order, '20260824_optimize_task_reminders.sql')
+        && str_contains($helpers, "status IN ('open', 'in_progress', 'waiting')"),
+    'header reminders should ignore terminal rows and use an assignee-first covering queue index.'
 );
 expectTaskNotificationsFeature(
     str_contains($helpers, 'function queueDueDailyTaskDigests(')

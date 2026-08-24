@@ -18,6 +18,7 @@ parameters:
         - src/audit_log.php
         - src/map.php
         - src/inbound_mail.php
+        - src/inbound_engagement_search.php
     bootstrapFiles:
         - src/functions.php
     scanFiles:

@@ -98,7 +98,7 @@ expectInboundFeature(
         && str_contains($environment, 'DNR_IMAP_PASSWORD_FILE=./secrets/imap_password')
         && str_contains($readme, '### Inbound email to Chron')
         && str_contains($readme, '[MOED#123]')
-        && str_contains($readme, 'manual selector')
+        && str_contains($readme, 'searchable')
         && str_contains($readme, 'production-mail')
         && str_contains($readme, 'Attachment contents are not stored')
         && str_contains($readme, 'does not delete or move the source message'),

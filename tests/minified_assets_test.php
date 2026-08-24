@@ -23,6 +23,7 @@ $asset_pairs = [
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
     'assets/js/engagement-contacts.js' => 'assets/js/engagement-contacts.min.js',
     'assets/js/engagement-lifecycle.js' => 'assets/js/engagement-lifecycle.min.js',
+    'assets/js/inbound-mail.js' => 'assets/js/inbound-mail.min.js',
 ];
 $bundled_assets = [
     'assets/css/map.min.css',

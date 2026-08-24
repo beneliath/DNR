@@ -76,6 +76,7 @@ expectInboundEmail(
 );
 $engagementRoute = inboundEmailEngagementRoute([
     'id' => 123,
+    'organization_id' => 45,
     'event_title' => 'Are You Ready? – Texas',
     'organization_label' => 'Hope For Our Times',
     'event_start_date' => '2026-09-11',
@@ -84,10 +85,37 @@ $engagementRoute = inboundEmailEngagementRoute([
 ]);
 expectInboundEmail(
     $engagementRoute['marker'] === '[MOED#123]'
+        && $engagementRoute['organization_id'] === 45
         && str_contains($engagementRoute['label'], 'Are You Ready? – Texas')
         && str_contains($engagementRoute['label'], '2026-09-11 – 2026-09-12'),
-    'Engagement routes should expose a canonical marker and recognizable review label.'
+    'Engagement routes should expose ownership, a canonical marker, and a recognizable review label.'
 );
+
+foreach (['processed', 'rejected'] as $terminalStatus) {
+    $terminalRejected = false;
+    try {
+        requireInboundEmailProcessableStatus($terminalStatus, false);
+    } catch (InvalidArgumentException $exception) {
+        $terminalRejected = str_contains($exception->getMessage(), 'already been');
+    }
+    expectInboundEmail(
+        $terminalRejected,
+        "{$terminalStatus} inbound messages should be terminal."
+    );
+}
+$manualProcessingRejected = false;
+try {
+    requireInboundEmailProcessableStatus('processing', true);
+} catch (InvalidArgumentException $exception) {
+    $manualProcessingRejected = str_contains($exception->getMessage(), 'currently being processed');
+}
+expectInboundEmail(
+    $manualProcessingRejected,
+    'review actions should not race a message currently leased by the worker.'
+);
+foreach (['pending', 'processing', 'review', 'failed'] as $processableStatus) {
+    requireInboundEmailProcessableStatus($processableStatus, false);
+}
 
 $sameId = parseInboundEmail(str_replace('updated schedule', 'different body', $raw));
 expectInboundEmail(

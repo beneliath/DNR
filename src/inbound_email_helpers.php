@@ -449,7 +449,7 @@ function parseInboundEmailEngagementMarkers(string $subject): array
 /**
  * @param array<string, mixed> $row
  * @return array{
- *   id: int, label: string, title: string, organization_label: string,
+ *   id: int, organization_id: int, label: string, title: string, organization_label: string,
  *   date_label: string, lifecycle_status: string, marker: string
  * }
  */
@@ -470,6 +470,7 @@ function inboundEmailEngagementRoute(array $row): array
     $parts = array_values(array_filter([$title, $organization, $dateLabel]));
     return [
         'id' => $id,
+        'organization_id' => (int) ($row['organization_id'] ?? 0),
         'label' => implode(' · ', $parts),
         'title' => $title,
         'organization_label' => $organization,
@@ -481,7 +482,7 @@ function inboundEmailEngagementRoute(array $row): array
 
 /**
  * @return array{
- *   id: int, label: string, title: string, organization_label: string,
+ *   id: int, organization_id: int, label: string, title: string, organization_label: string,
  *   date_label: string, lifecycle_status: string, marker: string
  * }|null
  */
@@ -491,7 +492,7 @@ function inboundEmailEngagementMatch(mysqli $conn, int $engagementId): ?array
         return null;
     }
     $stmt = $conn->prepare(
-        'SELECT engagement.id, engagement.event_title,
+        'SELECT engagement.id, engagement.organization_id, engagement.event_title,
                 engagement.event_start_date, engagement.event_end_date,
                 engagement.lifecycle_status,
                 organization.organization_name AS organization_label
@@ -515,15 +516,40 @@ function inboundEmailEngagementMatch(mysqli $conn, int $engagementId): ?array
 
 /**
  * @return list<array{
- *   id: int, label: string, title: string, organization_label: string,
+ *   id: int, organization_id: int, label: string, title: string, organization_label: string,
  *   date_label: string, lifecycle_status: string, marker: string
  * }>
  */
-function inboundEmailEngagementOptions(mysqli $conn, int $limit = 500): array
+function searchInboundEmailEngagements(
+    mysqli $conn,
+    string $search,
+    int $limit = 30
+): array
 {
-    $limit = max(1, min(1000, $limit));
-    $result = $conn->query(
-        'SELECT engagement.id, engagement.event_title,
+    $search = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $search) ?? '';
+    $search = trim(mb_substr($search, 0, 100, 'UTF-8'));
+    $limit = max(1, min(50, $limit));
+
+    $exactId = 0;
+    $idMatch = [];
+    if (preg_match(
+        '/\A(?:\[MOED#([1-9][0-9]{0,9})\]|([1-9][0-9]{0,9}))\z/i',
+        $search,
+        $idMatch
+    ) === 1) {
+        $candidate = (int) ($idMatch[1] !== '' ? $idMatch[1] : $idMatch[2]);
+        if ($candidate <= 2147483647) {
+            $exactId = $candidate;
+        }
+    }
+    if ($exactId === 0 && mb_strlen($search, 'UTF-8') < 2) {
+        return [];
+    }
+
+    $escapedSearch = strtr($search, ['!' => '!!', '%' => '!%', '_' => '!_']);
+    $like = '%' . $escapedSearch . '%';
+    $stmt = $conn->prepare(
+        'SELECT engagement.id, engagement.organization_id, engagement.event_title,
                 engagement.event_start_date, engagement.event_end_date,
                 engagement.lifecycle_status,
                 organization.organization_name AS organization_label
@@ -532,7 +558,13 @@ function inboundEmailEngagementOptions(mysqli $conn, int $limit = 500): array
             ON organization.id = engagement.organization_id
          WHERE engagement.is_deleted = 0
            AND organization.is_deleted = 0
+           AND (
+                engagement.id = ?
+                OR engagement.event_title LIKE ? ESCAPE \'!\'
+                OR organization.organization_name LIKE ? ESCAPE \'!\'
+           )
          ORDER BY
+            (engagement.id = ?) DESC,
             (COALESCE(engagement.event_end_date, engagement.event_start_date) < CURRENT_DATE),
             CASE WHEN COALESCE(engagement.event_end_date, engagement.event_start_date) >= CURRENT_DATE
                 THEN engagement.event_start_date END ASC,
@@ -541,10 +573,14 @@ function inboundEmailEngagementOptions(mysqli $conn, int $limit = 500): array
             engagement.id DESC
          LIMIT ' . $limit
     );
-    if (!$result) {
-        throw new RuntimeException('Unable to load inbound Engagement options.');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare inbound Engagement search.');
     }
-    return array_map('inboundEmailEngagementRoute', $result->fetch_all(MYSQLI_ASSOC));
+    $stmt->bind_param('issi', $exactId, $like, $like, $exactId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return array_map('inboundEmailEngagementRoute', $rows);
 }
 
 /**
@@ -668,6 +704,16 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         ];
     }
 
+    if (in_array($sender['type'], ['contact', 'organization'], true)) {
+        foreach ($engagements as $engagement) {
+            $engagementOrganizationId = $engagement['organization_id'];
+            if ($engagementOrganizationId > 0 && !isset($organizations[$engagementOrganizationId])) {
+                $reasons[] = (string) $engagement['marker']
+                    . ' belongs to an Organization not identified by the message participants.';
+            }
+        }
+    }
+
     if (!$contacts && !$organizations && !$engagements) {
         $reasons[] = 'No active Contact, Organization, or Engagement was matched.';
     }
@@ -773,6 +819,23 @@ function inboundEmailActiveTargetIds(mysqli $conn, string $type, array $ids): ar
     return $valid;
 }
 
+function requireInboundEmailProcessableStatus(string $status, bool $manual): void
+{
+    if (in_array($status, ['processed', 'rejected'], true)) {
+        throw new InvalidArgumentException(
+            'That inbound message has already been ' . $status . '.'
+        );
+    }
+    if (!in_array($status, ['pending', 'processing', 'review', 'failed'], true)) {
+        throw new InvalidArgumentException('That inbound message cannot be processed.');
+    }
+    if ($manual && $status === 'processing') {
+        throw new InvalidArgumentException(
+            'That inbound message is currently being processed. Try again shortly.'
+        );
+    }
+}
+
 /**
  * @param list<int>|null $contactIds
  * @param list<int>|null $organizationIds
@@ -803,9 +866,8 @@ function processInboundEmailMessage(
         if (!$message) {
             throw new InvalidArgumentException('That inbound message is no longer available.');
         }
-        if ($message['status'] === 'rejected') {
-            throw new InvalidArgumentException('That inbound message was rejected.');
-        }
+        $messageStatus = (string) ($message['status'] ?? '');
+        requireInboundEmailProcessableStatus($messageStatus, $manual);
 
         $routing = routeInboundEmailMessage($conn, $message);
         if (!$manual && !$routing['automatic']) {

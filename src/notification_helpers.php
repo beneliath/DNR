@@ -34,7 +34,8 @@ function fetchTaskReminderCounts(
                 AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)) AS upcoming_count,
             SUM(status = 'waiting') AS waiting_count
          FROM follow_up_tasks
-         WHERE assigned_to = ?"
+         WHERE assigned_to = ?
+           AND status IN ('open', 'in_progress', 'waiting')"
     );
     if (!$taskStatement) {
         throw new RuntimeException('Unable to prepare work reminder counts.');

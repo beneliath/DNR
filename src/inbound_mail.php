@@ -148,7 +148,6 @@ $messageStmt->close();
 $selectedId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $selectedMessage = null;
 $selectedRouting = null;
-$engagementOptions = [];
 if ($selectedId) {
     $selectedStmt = $conn->prepare(
         'SELECT message.*, processor.username AS processed_by_username
@@ -166,9 +165,6 @@ if ($selectedId) {
     if ($selectedMessage) {
         try {
             $selectedRouting = routeInboundEmailMessage($conn, $selectedMessage);
-            if (in_array($selectedMessage['status'], ['review', 'failed', 'pending'], true)) {
-                $engagementOptions = inboundEmailEngagementOptions($conn);
-            }
         } catch (Throwable $exception) {
             applicationLog('error', 'Unable to refresh inbound routing candidates', [
                 'message_id' => (int) $selectedId,
@@ -196,6 +192,7 @@ $statusLabels = [
         'assets/css/modern.min.css',
         'assets/css/pages/inbound_mail.min.css',
     ],
+    'scripts' => ['assets/js/inbound-mail.min.js'],
 ]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
@@ -322,20 +319,22 @@ $statusLabels = [
                         </fieldset>
                         <fieldset>
                             <legend>Engagement Chron Log</legend>
-                            <?php $markerEngagementIds = array_map('intval', array_column($selectedRouting['engagements'], 'id')); ?>
+                            <?php $markerEngagements = $selectedRouting['engagements']; ?>
+                            <label for="inbound-engagement-search">Find an active engagement</label>
+                            <input type="search" id="inbound-engagement-search" class="inbound-engagement-search" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by marker, ID, title, or organization">
+                            <p id="inbound-engagement-search-status" class="field-help" role="status" aria-live="polite">Type at least two characters, an engagement ID, or a subject marker.</p>
                             <label for="inbound-engagement-id">Engagement</label>
                             <select id="inbound-engagement-id" name="engagement_ids[]" class="inbound-engagement-select">
                                 <option value="">No engagement selected</option>
-                                <?php foreach ($engagementOptions as $engagement): ?>
-                                    <?php $optionEngagementId = (int) $engagement['id']; ?>
-                                    <option value="<?php echo $optionEngagementId; ?>"<?php echo in_array($optionEngagementId, $markerEngagementIds, true) ? ' selected' : ''; ?>><?php echo htmlspecialchars((string) $engagement['marker'] . ' · ' . (string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php foreach ($markerEngagements as $engagement): ?>
+                                    <option value="<?php echo (int) $engagement['id']; ?>" selected><?php echo htmlspecialchars((string) $engagement['marker'] . ' · ' . (string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <p class="field-help">A valid subject marker is selected automatically. Choose a different active engagement when reviewing an unmarked or incorrect message.</p>
-                            <?php if (!$engagementOptions): ?><p>No active Engagements are available.</p><?php endif; ?>
+                            <p class="field-help">A valid subject marker is selected automatically. Search for any active engagement when reviewing an unmarked or incorrect message.</p>
+                            <noscript><p class="error">JavaScript is required to search for an engagement that was not selected by a valid subject marker.</p></noscript>
                         </fieldset>
                         <div class="inbound-review-actions">
-                            <?php if ($selectedRouting['contacts'] || $selectedRouting['organizations'] || $engagementOptions): ?><button type="submit" name="action" value="approve" class="save-button">Approve selected routes</button><?php endif; ?>
+                            <button type="submit" name="action" value="approve" class="save-button">Approve selected routes</button>
                             <button type="submit" name="action" value="retry" class="button-secondary">Retry automatic routing</button>
                             <button type="submit" name="action" value="reject" class="danger-button">Reject message</button>
                         </div>

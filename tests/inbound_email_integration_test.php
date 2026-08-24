@@ -110,6 +110,52 @@ try {
     $createdIds['contacts'][] = $contactId;
     $contactStmt->close();
 
+    $unrelatedOrganizationName = 'Unrelated Inbound Organization ' . $suffix;
+    $unrelatedOrganizationEmail = 'unrelated-' . $suffix . '@example.org';
+    $organizationStmt = $conn->prepare(
+        'INSERT INTO organizations (organization_name, email, is_deleted) VALUES (?, ?, 0)'
+    );
+    $organizationStmt->bind_param(
+        'ss',
+        $unrelatedOrganizationName,
+        $unrelatedOrganizationEmail
+    );
+    $organizationStmt->execute();
+    $unrelatedOrganizationId = (int) $conn->insert_id;
+    $createdIds['organizations'][] = $unrelatedOrganizationId;
+    $organizationStmt->close();
+
+    $unrelatedEngagementTitle = 'Searchable Unrelated Engagement ' . $suffix;
+    $engagementStmt = $conn->prepare(
+        "INSERT INTO engagements
+            (organization_id, event_title, event_start_date, event_end_date,
+             event_type, confirmation_status, lifecycle_status, is_deleted)
+         VALUES (?, ?, ?, ?, 'conference', 'confirmed', 'active', 0)"
+    );
+    $engagementStmt->bind_param(
+        'isss',
+        $unrelatedOrganizationId,
+        $unrelatedEngagementTitle,
+        $eventStartDate,
+        $eventEndDate
+    );
+    $engagementStmt->execute();
+    $unrelatedEngagementId = (int) $conn->insert_id;
+    $createdIds['engagements'][] = $unrelatedEngagementId;
+    $engagementStmt->close();
+
+    $searchedEngagements = searchInboundEmailEngagements(
+        $conn,
+        '[MOED#' . $unrelatedEngagementId . ']',
+        1
+    );
+    expectInboundIntegration(
+        count($searchedEngagements) === 1
+            && $searchedEngagements[0]['id'] === $unrelatedEngagementId
+            && $searchedEngagements[0]['organization_id'] === $unrelatedOrganizationId,
+        'Engagement review search should resolve an exact marker without relying on a global option slice.'
+    );
+
     setDatabaseAuditContext($conn, null, 'Email Gateway');
     $outgoing = parseInboundEmail($rawMessage(
         'Staff <' . $userEmail . '>',
@@ -253,6 +299,35 @@ try {
         'a reply should route from the uniquely matched Contact in From.'
     );
 
+    $crossOrganization = parseInboundEmail($rawMessage(
+        'Inbound Contact <' . $contactEmail . '>',
+        'Staff <' . $userEmail . '>',
+        'cross-organization-' . $suffix . '@example.org',
+        'Unrelated marker [MOED#' . $unrelatedEngagementId . ']'
+    ));
+    $crossOrganizationRouting = routeInboundEmailMessage($conn, $crossOrganization);
+    expectInboundIntegration(
+        !$crossOrganizationRouting['automatic']
+            && in_array(
+                '[MOED#' . $unrelatedEngagementId
+                    . '] belongs to an Organization not identified by the message participants.',
+                $crossOrganizationRouting['reasons'],
+                true
+            ),
+        'an external sender should not automatically route a marker owned by an unrelated Organization.'
+    );
+    $crossOrganizationStored = storeInboundEmailMessage(
+        $conn,
+        'file',
+        'cross-organization-' . $suffix,
+        $crossOrganization
+    );
+    $createdIds['messages'][] = $crossOrganizationStored['id'];
+    expectInboundIntegration(
+        processInboundEmailMessage($conn, $crossOrganizationStored['id']) === 'review',
+        'an unrelated external Engagement marker should be held for explicit review.'
+    );
+
     $duplicateContactStmt = $conn->prepare(
         "INSERT INTO contacts
             (organization_id, contact_first_name, contact_last_name,
@@ -315,6 +390,37 @@ try {
             && (int) $reviewed['processed_by'] === $userId
             && $manualEngagementTotal === 1,
         'manual approval should record the reviewer, selected Engagement, and final state.'
+    );
+
+    $terminalStateRejected = false;
+    try {
+        processInboundEmailMessage(
+            $conn,
+            $ambiguousStored['id'],
+            [$contactId],
+            [$organizationId],
+            $userId,
+            [$unrelatedEngagementId]
+        );
+    } catch (InvalidArgumentException $exception) {
+        $terminalStateRejected = str_contains($exception->getMessage(), 'already been processed');
+    }
+    $unexpectedEngagementChron = $conn->prepare(
+        'SELECT COUNT(*) AS total FROM engagement_chron_entries
+         WHERE engagement_id = ? AND inbound_email_message_id = ?'
+    );
+    $unexpectedEngagementChron->bind_param(
+        'ii',
+        $unrelatedEngagementId,
+        $ambiguousStored['id']
+    );
+    $unexpectedEngagementChron->execute();
+    $unexpectedEngagementTotal = (int) $unexpectedEngagementChron
+        ->get_result()->fetch_assoc()['total'];
+    $unexpectedEngagementChron->close();
+    expectInboundIntegration(
+        $terminalStateRejected && $unexpectedEngagementTotal === 0,
+        'processed inbound messages should be terminal and reject crafted reprocessing attempts.'
     );
 } finally {
     foreach (array_reverse($createdIds['contacts']) as $id) {
