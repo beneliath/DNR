@@ -1,0 +1,164 @@
+.organization-details {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .dark-mode .organization-details {
+            background-color: #1e1e1e;
+            border-color: #444;
+        }
+        .detail-row {
+            margin-bottom: 15px;
+        }
+        .detail-row strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        .contacts-section {
+            margin-top: 30px;
+        }
+        .contact-card {
+            background-color: #fff;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+        .dark-mode .contact-card {
+            background-color: #1e1e1e;
+            border-color: #444;
+        }
+        .contact-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .contact-name {
+            font-size: var(--font-size-large);
+            font-weight: var(--font-weight-bold);
+            margin: 0;
+        }
+        .contact-role {
+            font-style: italic;
+            color: #666;
+        }
+        .dark-mode .contact-role {
+            color: #888;
+        }
+        .contact-info {
+            margin-top: 10px;
+        }
+        .action-buttons {
+            margin-top: 20px;
+        }
+        .action-button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            color: white;
+            margin-right: 10px;
+        }
+        .back-button {
+            background-color: var(--button-neutral-color);
+        }
+        .edit-button {
+            background-color: var(--button-edit-color);
+        }
+        .organization-financials {
+            margin-bottom: 24px;
+            padding: clamp(18px, 3vw, 26px);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            background: var(--surface);
+            box-shadow: var(--shadow-sm);
+        }
+        .section-heading-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+        .section-heading-row h2,
+        .section-heading-row p {
+            margin: 0;
+        }
+        .section-heading-row p,
+        .section-heading-row > span,
+        .financial-history-empty {
+            color: var(--text-muted);
+        }
+        .section-heading-row > span {
+            white-space: nowrap;
+        }
+        .financial-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .financial-summary-card {
+            display: flex;
+            min-width: 0;
+            flex-direction: column;
+            gap: 5px;
+            padding: 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-color);
+        }
+        .financial-summary-card small {
+            color: var(--text-muted);
+        }
+        .financial-summary-card strong {
+            font-size: clamp(1.15rem, 2vw, 1.45rem);
+        }
+        .financial-summary-card a {
+            overflow: hidden;
+            font-size: var(--font-size-small);
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .financial-history-table-wrap {
+            overflow-x: auto;
+        }
+        .financial-history-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .financial-history-table th,
+        .financial-history-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+            white-space: nowrap;
+        }
+        .financial-history-table th {
+            color: var(--text-muted);
+            font-size: var(--font-size-small);
+        }
+        .financial-history-table td:first-child {
+            min-width: 190px;
+            white-space: normal;
+        }
+        .financial-history-table .archive-status {
+            margin-left: 6px;
+        }
+        @media (max-width: 900px) {
+            .financial-summary-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+        @media (max-width: 520px) {
+            .financial-summary-grid {
+                grid-template-columns: 1fr;
+            }
+            .section-heading-row {
+                flex-direction: column;
+            }
+        }

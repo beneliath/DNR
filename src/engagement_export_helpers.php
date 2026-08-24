@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/presentation_helpers.php';
 
 function addEngagementExportField(array &$fields, $label, $value, $include_empty = false) {
     $value = is_string($value) ? trim($value) : (string) $value;
@@ -38,8 +43,24 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
     }
     addEngagementExportField($overview_fields, 'Event Dates', $event_dates, true);
 
+    addEngagementExportField(
+        $overview_fields,
+        'Lifecycle',
+        engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'),
+        true
+    );
     $status = str_replace('_', ' ', trim((string) ($engagement['confirmation_status'] ?? '')));
-    addEngagementExportField($overview_fields, 'Status', $status, true);
+    addEngagementExportField($overview_fields, 'Confirmation', $status, true);
+    addEngagementExportField(
+        $overview_fields,
+        'Cancellation Reason',
+        $engagement['cancellation_reason'] ?? ''
+    );
+    addEngagementExportField(
+        $overview_fields,
+        'Rescheduled Event',
+        $engagement['rescheduled_event_label'] ?? ''
+    );
     if (!empty($engagement['is_deleted'])) {
         addEngagementExportField($overview_fields, 'Archived', 'Yes', true);
     }
@@ -63,6 +84,15 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         }
 
         $fields = [];
+        $event_role_labels = [];
+        foreach ((array) ($contact['engagement_contact_roles'] ?? []) as $event_contact_role) {
+            $event_role_labels[] = engagementContactRoleLabel($event_contact_role);
+        }
+        addEngagementExportField(
+            $fields,
+            count($event_role_labels) === 1 ? 'Event Role' : 'Event Roles',
+            implode(', ', $event_role_labels)
+        );
         addEngagementExportField($fields, 'Role', $role);
         addEngagementExportField($fields, 'Email', $contact['contact_email'] ?? '');
         addEngagementExportField(
@@ -116,7 +146,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
     foreach ($presentations as $presentation) {
         $presentation_date_time = trim(
             (string) ($presentation['presentation_date'] ?? '') . ' ' .
-            (string) ($presentation['presentation_time'] ?? '')
+            formatPresentationTime($presentation['presentation_time'] ?? '')
         );
         $fields = [];
         addEngagementExportField($fields, 'Speaker', $presentation['speaker_name'] ?? '');

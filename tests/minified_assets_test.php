@@ -14,10 +14,17 @@ $asset_pairs = [
     'assets/js/main.js' => 'assets/js/main.min.js',
     'assets/js/theme.js' => 'assets/js/theme.min.js',
     'assets/js/app-shell.js' => 'assets/js/app-shell.min.js',
+    'assets/js/footer.js' => 'assets/js/footer.min.js',
     'assets/js/phone-input.js' => 'assets/js/phone-input.min.js',
     'assets/js/profile.js' => 'assets/js/profile.min.js',
     'assets/js/contact-photo.js' => 'assets/js/contact-photo.min.js',
+    'assets/js/calendar-subscription.js' => 'assets/js/calendar-subscription.min.js',
+    'assets/js/task-form.js' => 'assets/js/task-form.min.js',
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
+    'assets/js/engagement-contacts.js' => 'assets/js/engagement-contacts.min.js',
+    'assets/js/engagement-lifecycle.js' => 'assets/js/engagement-lifecycle.min.js',
+    'assets/js/inbound-mail.js' => 'assets/js/inbound-mail.min.js',
+    'assets/js/user-manual.js' => 'assets/js/user-manual.min.js',
 ];
 $bundled_assets = [
     'assets/css/map.min.css',

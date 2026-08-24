@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'contact_photo_helpers.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -18,13 +18,16 @@ if (!$contact_id) {
 }
 
 $contact_stmt = $conn->prepare(
-    "SELECT c.*
+    "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+            c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+            c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
+            c.contact_photo_updated_at, c.created_at, c.updated_at, c.is_deleted
      FROM contacts c
      INNER JOIN organizations o ON o.id = c.organization_id
      WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0"
 );
 if (!$contact_stmt) {
-    die('Unable to retrieve the contact.');
+    abortApplication(503, 'The contact is temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $contact_stmt->bind_param('i', $contact_id);
@@ -38,53 +41,83 @@ if ($contact_result->num_rows === 0) {
 
 $contact = $contact_result->fetch_assoc();
 $contact_stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
+    requireValidCsrfToken();
+    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
+    $chron_action = is_scalar($_POST['chron_action']) ? (string) $_POST['chron_action'] : '';
+    try {
+        if (!$chron_entry_id) {
+            throw new InvalidArgumentException('Select a valid Chron entry.');
+        }
+        if ($chron_action === 'archive') {
+            archiveEntityChronLogEntry(
+                $conn,
+                'contact',
+                $contact_id,
+                $chron_entry_id,
+                (int) $_SESSION['user_id']
+            );
+            $_SESSION['chron_action_message'] = 'Chron entry archived.';
+        } elseif ($chron_action === 'delete') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            requireRecentAdminElevation('edit_contact.php?id=' . $contact_id . '#chron-log');
+            deleteEntityChronLogEntry($conn, 'contact', $contact_id, $chron_entry_id);
+            $_SESSION['chron_action_message'] = 'Chron entry permanently deleted.';
+        } else {
+            throw new InvalidArgumentException('Invalid Chron action.');
+        }
+    } catch (Throwable $exception) {
+        $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the Chron log. Please try again.';
+    }
+    header('Location: edit_contact.php?id=' . $contact_id . '#chron-log');
+    exit();
+}
+
 $error_messages = [];
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_contact']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
 
-    $organization_id = intval($_POST['organization_id'] ?? 0);
-    $contact_first_name = trim($_POST['contact_first_name'] ?? '');
-    $contact_last_name = trim($_POST['contact_last_name'] ?? '');
-    $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
-    $contact_role_other = trim($_POST['contact_role_other'] ?? '');
-    $contact_email = trim($_POST['contact_email'] ?? '');
-    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
-    $contact_phone = trim($_POST['contact_phone'] ?? '');
-    $contact_notes = trim($_POST['contact_notes'] ?? '');
-    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
-    $remove_contact_photo = isset($_POST['remove_contact_photo']);
-    $contact_photo = null;
-
-    if (!$organization_id) {
-        $error_messages[] = 'Organization is required.';
-    }
-    if ($contact_first_name === '') {
-        $error_messages[] = 'First name is required.';
-    }
-    if ($contact_last_name === '') {
-        $error_messages[] = 'Last name is required.';
-    }
-    if (!in_array($contact_role, ['pastor', 'admin', 'other'], true)) {
-        $error_messages[] = 'A valid role is required.';
-    }
-    if ($contact_role === 'other' && $contact_role_other === '') {
-        $error_messages[] = 'Please specify the other role.';
-    }
-    if (!filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
-        $error_messages[] = 'Please provide a valid email address.';
-    } elseif (!hash_equals($contact_email, $contact_email_confirm)) {
-        $error_messages[] = 'Email addresses do not match.';
-    }
+    $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
+    $organization_id = (int) $normalized_contact['data']['organization_id'];
+    $contact_first_name = (string) $normalized_contact['data']['contact_first_name'];
+    $contact_last_name = (string) $normalized_contact['data']['contact_last_name'];
+    $contact_role = (string) $normalized_contact['data']['contact_role'];
+    $contact_role_other = (string) $normalized_contact['data']['contact_role_other'];
+    $contact_email = (string) $normalized_contact['data']['contact_email'];
+    $contact_email_confirm = (string) $normalized_contact['data']['contact_email_confirm'];
+    $contact_phone = (string) $normalized_contact['data']['contact_phone'];
+    $contact_notes = (string) $normalized_contact['data']['contact_notes'];
+    $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
+    $error_messages = $normalized_contact['errors'];
+    $submitted_chron_entries = [];
+    $new_chron_entry = '';
     try {
-        $contact_phone = normalizePhoneNumber(
-            $contact_phone_country_code,
-            $contact_phone,
-            'Phone number'
+        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
+            $_POST['chron_entries'] ?? null
         );
+        if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
+            throw new InvalidArgumentException('Enter a valid Chron entry.');
+        }
+        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
+        if (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') {
+            throw new InvalidArgumentException('Enter a Chron entry before adding it.');
+        }
+        if ($new_chron_entry !== '') {
+            $new_chron_entry = normalizeChronLogEntryText($new_chron_entry);
+        }
     } catch (InvalidArgumentException $exception) {
         $error_messages[] = $exception->getMessage();
     }
+    $remove_contact_photo = isset($_POST['remove_contact_photo']);
+    $contact_photo = null;
     try {
         $contact_photo = contactPhotoFromUpload($_FILES['contact_photo'] ?? []);
         if ($contact_photo !== null && $remove_contact_photo) {
@@ -93,14 +126,71 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (InvalidArgumentException $exception) {
         $error_messages[] = $exception->getMessage();
     } catch (Throwable $exception) {
-        error_log('Unable to read contact photo upload: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to read contact photo upload', ['error' => $exception->getMessage()]);
         $error_messages[] = 'The contact photo could not be uploaded. Try again.';
     }
 
     if (!$error_messages) {
         $conn->begin_transaction();
         try {
+            $submitted_version = is_scalar($_POST['contact_version'] ?? null)
+                ? trim((string) $_POST['contact_version'])
+                : '';
+            $lock_stmt = $conn->prepare(
+                'SELECT organization_id, updated_at
+                 FROM contacts
+                 WHERE id = ? AND is_deleted = 0
+                 FOR UPDATE'
+            );
+            if (!$lock_stmt) {
+                throw new RuntimeException('Unable to lock the contact.');
+            }
+            $lock_stmt->bind_param('i', $contact_id);
+            $lock_stmt->execute();
+            $locked_contact = $lock_stmt->get_result()->fetch_assoc();
+            $lock_stmt->close();
+            if (!$locked_contact) {
+                throw new InvalidArgumentException('That contact is no longer active.');
+            }
+            if ($submitted_version === ''
+                || !hash_equals((string) $locked_contact['updated_at'], $submitted_version)
+            ) {
+                throw new InvalidArgumentException(
+                    'This contact changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
+                );
+            }
             requireActiveOrganization($conn, $organization_id, true);
+            if ((int) $locked_contact['organization_id'] !== $organization_id) {
+                $touch_engagements_stmt = $conn->prepare(
+                    'UPDATE engagements engagement
+                     INNER JOIN engagement_contacts event_contact
+                             ON event_contact.engagement_id = engagement.id
+                     SET engagement.updated_at = CURRENT_TIMESTAMP(6)
+                     WHERE event_contact.contact_id = ?'
+                );
+                if (!$touch_engagements_stmt) {
+                    throw new RuntimeException('Unable to prepare the event contact changes.');
+                }
+                $touch_engagements_stmt->bind_param('i', $contact_id);
+                if (!$touch_engagements_stmt->execute()) {
+                    $touch_engagements_stmt->close();
+                    throw new RuntimeException('Unable to update related engagements.');
+                }
+                $touch_engagements_stmt->close();
+
+                $clear_assignments_stmt = $conn->prepare(
+                    'DELETE FROM engagement_contacts WHERE contact_id = ?'
+                );
+                if (!$clear_assignments_stmt) {
+                    throw new RuntimeException('Unable to prepare the event contact changes.');
+                }
+                $clear_assignments_stmt->bind_param('i', $contact_id);
+                if (!$clear_assignments_stmt->execute()) {
+                    $clear_assignments_stmt->close();
+                    throw new RuntimeException('Unable to clear the prior event contact assignments.');
+                }
+                $clear_assignments_stmt->close();
+            }
             if ($contact_photo !== null) {
                 $update_stmt = $conn->prepare(
                     "UPDATE contacts SET
@@ -113,7 +203,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_phone = ?,
                         contact_notes = ?,
                         contact_photo = ?,
+                        contact_photo_thumbnail = ?,
+                        contact_photo_thumbnail_mime = ?,
                         contact_photo_mime = ?,
+                        contact_photo_sha256 = ?,
                         contact_photo_updated_at = UTC_TIMESTAMP()
                      WHERE id = ? AND is_deleted = 0"
                 );
@@ -129,7 +222,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         contact_phone = ?,
                         contact_notes = ?,
                         contact_photo = NULL,
+                        contact_photo_thumbnail = NULL,
+                        contact_photo_thumbnail_mime = NULL,
                         contact_photo_mime = NULL,
+                        contact_photo_sha256 = NULL,
                         contact_photo_updated_at = UTC_TIMESTAMP()
                      WHERE id = ? AND is_deleted = 0"
                 );
@@ -152,9 +248,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
+                $contact_photo_thumbnail = $contact_photo['thumbnail_data'];
+                $contact_photo_thumbnail_mime = $contact_photo['thumbnail_mime_type'];
                 $contact_photo_mime = $contact_photo['mime_type'];
+                $contact_photo_sha256 = $contact_photo['sha256'];
                 $update_stmt->bind_param(
-                    'isssssssssi',
+                    'issssssssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -164,7 +263,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $contact_phone,
                     $contact_notes,
                     $contact_photo_data,
+                    $contact_photo_thumbnail,
+                    $contact_photo_thumbnail_mime,
                     $contact_photo_mime,
+                    $contact_photo_sha256,
                     $contact_id
                 );
             } else {
@@ -185,12 +287,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to update the contact.');
             }
             $update_stmt->close();
+            $current_user_id = (int) $_SESSION['user_id'];
+            updateEntityChronLogEntries(
+                $conn,
+                'contact',
+                $contact_id,
+                $submitted_chron_entries,
+                $current_user_id
+            );
+            if ($new_chron_entry !== '') {
+                insertEntityChronLogEntry(
+                    $conn,
+                    'contact',
+                    $contact_id,
+                    $new_chron_entry,
+                    $current_user_id,
+                    (string) ($_SESSION['username'] ?? '')
+                );
+            }
             $conn->commit();
             $_SESSION['success_message'] = 'Contact updated successfully.';
             header("Location: view_contact.php?id={$contact_id}");
             exit();
         } catch (Throwable $exception) {
             $conn->rollback();
+            if (!$exception instanceof InvalidArgumentException) {
+                applicationLog('error', 'Contact update failed', [
+                    'contact_id' => $contact_id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
             $error_messages[] = $exception instanceof InvalidArgumentException
                 ? $exception->getMessage()
                 : 'Unable to update the contact.';
@@ -205,6 +331,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact['contact_email'] = $contact_email;
     $contact['contact_phone'] = $contact_phone;
     $contact['contact_notes'] = $contact_notes;
+    if (isset($submitted_version)) {
+        $contact['updated_at'] = $submitted_version;
+    }
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -223,78 +352,58 @@ $organizations_result = $conn->query(
     'SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
 );
 if (!$organizations_result) {
-    die('Unable to retrieve organizations.');
+    abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $cancel_url = ($_GET['from'] ?? '') === 'view'
     ? "view_contact.php?id={$contact_id}"
     : 'contacts.php';
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+$chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
+$chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
+unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'contact',
+        $contact_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'contact', $contact_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The contact Chron log is temporarily unavailable.', [
+        'contact_id' => $contact_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <script src="assets/js/contact-photo.min.js?v=1.0.0" defer></script>
-    <style>
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-            box-sizing: border-box;
-        }
-        .dark-mode .form-group input,
-        .dark-mode .form-group select,
-        .dark-mode .form-group textarea {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        @media (max-width: 640px) {
-            .form-row {
-                grid-template-columns: 1fr;
-                gap: 0;
-            }
-        }
-    </style>
-</head>
+<?php renderPageHead('Edit Contact - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/edit_contact.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/contact-photo.min.js',
+    ),
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -307,9 +416,16 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             array_map(fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), $error_messages)
         ); ?></p>
     <?php endif; ?>
+    <?php if ($chron_action_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($chron_action_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
-    <form method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>">
+    <form id="contact-edit-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
             <label for="organization_id" class="required">Organization</label>
@@ -336,10 +452,10 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
         <div class="form-row">
             <div class="form-group">
                 <label for="contact_role" class="required">Role</label>
-                <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
-                    <option value="pastor" <?php echo $contact['contact_role'] === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
-                    <option value="admin" <?php echo $contact['contact_role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                    <option value="other" <?php echo $contact['contact_role'] === 'other' ? 'selected' : ''; ?>>Other</option>
+                <select name="contact_role" id="contact_role" required>
+                    <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                        <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $contact['contact_role'] === $role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <div class="form-group" id="other_role_group">
@@ -374,7 +490,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 
         <div class="form-group contact-photo-field">
             <div class="contact-photo-preview">
-                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;v=<?php echo $contact_photo_version; ?>" alt="Current contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>" data-contact-photo-preview>
+                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;size=full&amp;v=<?php echo $contact_photo_version; ?>" alt="Current contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>" data-contact-photo-preview>
             </div>
             <div>
                 <label for="contact_photo">Contact Photo</label>
@@ -388,29 +504,21 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             </div>
         </div>
 
-        <div class="action-buttons">
-            <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button cancel-button">Cancel</a>
-            <button type="submit" class="action-button save-button">Save Changes</button>
-        </div>
     </form>
+
+    <?php
+    $chron_entity_label = 'contact';
+    $chron_edit_form_id = 'contact-edit-form';
+    $chron_edit_url = 'edit_contact.php?id=' . $contact_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
+    include 'templates/entity_chron_log_edit_section.php';
+    ?>
+
+    <div class="action-buttons">
+        <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button cancel-button">Cancel</a>
+        <button type="submit" name="save_contact" value="1" class="action-button save-button" form="contact-edit-form">Save Changes</button>
+    </div>
 </div>
-
-<script>
-function toggleOtherRole() {
-    const roleSelect = document.getElementById('contact_role');
-    const otherRoleGroup = document.getElementById('other_role_group');
-    const otherRoleInput = document.getElementById('contact_role_other');
-    const isOther = roleSelect.value === 'other';
-
-    otherRoleGroup.style.display = isOther ? 'block' : 'none';
-    otherRoleInput.required = isOther;
-    if (!isOther) {
-        otherRoleInput.value = '';
-    }
-}
-
-toggleOtherRole();
-</script>
 
 <?php include 'templates/footer.php'; ?>
 </body>

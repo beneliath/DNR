@@ -1,7 +1,9 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'follow_up_task_helpers.php';
+include 'notification_helpers.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 requireFollowUpTaskSchema($conn);
@@ -10,8 +12,8 @@ $user_role = $_SESSION['role'] ?? '';
 $current_user_id = (int) $_SESSION['user_id'];
 $can_manage_tasks = canManageFollowUpTasks($user_role);
 
-$requested_view = (string) ($_GET['view'] ?? '');
-$subject_filter_type = (string) ($_GET['subject_type'] ?? '');
+$requested_view = \Dnr\Http\RequestInput::string($_GET, 'view');
+$subject_filter_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type');
 $subject_filter_id = filter_input(INPUT_GET, 'subject_id', FILTER_VALIDATE_INT);
 $has_subject_filter = in_array(
     $subject_filter_type,
@@ -21,17 +23,25 @@ $has_subject_filter = in_array(
 $view = array_key_exists($requested_view, followUpTaskQueueViews())
     ? $requested_view
     : ($has_subject_filter ? 'all' : 'my');
-$search = trim((string) ($_GET['q'] ?? ''));
-if (strlen($search) > 100) {
-    $search = substr($search, 0, 100);
+$owner_filter = \Dnr\Http\RequestInput::string($_GET, 'owner') === 'me' ? 'me' : '';
+$search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 100);
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
 }
-$current_page = filter_input(INPUT_GET, 'page', FILTER_VALIDATE_INT) ?: 1;
-$current_page = max(1, $current_page);
 $page_size = 50;
+$cursor_keys = $view === 'completed'
+    ? ['updated_at', 'id']
+    : ['due_date', 'priority_rank', 'id'];
+$cursor_value = \Dnr\Http\RequestInput::string($_GET, 'cursor');
+$cursor = decodePaginationCursor($cursor_value, $cursor_keys);
 
 $queue_parameters = [
     'view' => $view,
 ];
+if ($owner_filter === 'me') {
+    $queue_parameters['owner'] = 'me';
+}
 if ($search !== '') {
     $queue_parameters['q'] = $search;
 }
@@ -39,10 +49,11 @@ if ($has_subject_filter) {
     $queue_parameters['subject_type'] = $subject_filter_type;
     $queue_parameters['subject_id'] = (int) $subject_filter_id;
 }
-$task_return_to = 'tasks.php?' . http_build_query(array_merge(
-    $queue_parameters,
-    ['page' => $current_page]
-));
+$task_return_parameters = $queue_parameters;
+if ($cursor_value !== '' && $cursor !== null) {
+    $task_return_parameters['cursor'] = $cursor_value;
+}
+$task_return_to = 'tasks.php?' . http_build_query($task_return_parameters);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
@@ -81,14 +92,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $current_user_id,
                 $current_user_id
             );
-            $_SESSION['task_action_message'] = $inserted > 0
-                ? $inserted . ' checklist task' . ($inserted === 1 ? '' : 's') . ' added and assigned to you.'
-                : 'The standard checklist is already present for this engagement.';
+            if ($inserted > 0) {
+                $_SESSION['task_action_message'] = $inserted . ' checklist task'
+                    . ($inserted === 1 ? '' : 's') . ' added and assigned to you.';
+            } else {
+                $active_standard_task_count = count(
+                    fetchStandardEventTaskTemplates($conn, 'active')
+                );
+                $_SESSION['task_action_message'] = $active_standard_task_count > 0
+                    ? 'The active standard checklist is already present for this engagement.'
+                    : 'There are no active standard event tasks to add.';
+            }
         } elseif ($action === 'delete') {
             if (!canDeleteEntries($user_role)) {
                 http_response_code(403);
                 exit('Forbidden.');
             }
+            requireRecentAdminElevation($return_to);
             $task_id = filter_input(INPUT_POST, 'task_id', FILTER_VALIDATE_INT);
             if (!$task_id) {
                 throw new InvalidArgumentException('Select a valid task.');
@@ -119,15 +139,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['task_action_message'] ?? '';
 $action_error = $_SESSION['task_action_error'] ?? '';
 unset($_SESSION['task_action_message'], $_SESSION['task_action_error']);
+$business_date = applicationBusinessDate();
+$personal_reminders = fetchTaskReminderCounts(
+    $conn,
+    $current_user_id,
+    (string) $user_role,
+    $business_date
+);
 
 $summary_stmt = $conn->prepare(
     "SELECT
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to = ?) AS my_count,
-        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < CURDATE()) AS overdue_count,
-        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date = CURDATE()) AS today_count,
+        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < ?) AS overdue_count,
+        SUM(status IN ('open', 'in_progress', 'waiting') AND due_date = ?) AS today_count,
         SUM(status IN ('open', 'in_progress', 'waiting')
-            AND due_date > CURDATE()
-            AND due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)) AS upcoming_count,
+            AND due_date > ?
+            AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)) AS upcoming_count,
         SUM(status = 'waiting') AS waiting_count,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned_count
      FROM follow_up_tasks"
@@ -141,7 +168,14 @@ $summary = [
     'unassigned' => 0,
 ];
 if ($summary_stmt) {
-    $summary_stmt->bind_param('i', $current_user_id);
+    $summary_stmt->bind_param(
+        'issss',
+        $current_user_id,
+        $business_date,
+        $business_date,
+        $business_date,
+        $business_date
+    );
     $summary_stmt->execute();
     $summary_row = $summary_stmt->get_result()->fetch_assoc() ?: [];
     $summary_stmt->close();
@@ -159,12 +193,19 @@ if ($view === 'my') {
     $bind_types .= 'i';
     $bind_values[] = $current_user_id;
 } elseif ($view === 'overdue') {
-    $where[] = $active_status_sql . ' AND t.due_date < CURDATE()';
+    $where[] = $active_status_sql . ' AND t.due_date < ?';
+    $bind_types .= 's';
+    $bind_values[] = $business_date;
 } elseif ($view === 'today') {
-    $where[] = $active_status_sql . ' AND t.due_date = CURDATE()';
+    $where[] = $active_status_sql . ' AND t.due_date = ?';
+    $bind_types .= 's';
+    $bind_values[] = $business_date;
 } elseif ($view === 'upcoming') {
     $where[] = $active_status_sql
-        . ' AND t.due_date > CURDATE() AND t.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)';
+        . ' AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL 7 DAY)';
+    $bind_types .= 'ss';
+    $bind_values[] = $business_date;
+    $bind_values[] = $business_date;
 } elseif ($view === 'waiting') {
     $where[] = "t.status = 'waiting'";
 } elseif ($view === 'unassigned') {
@@ -174,71 +215,89 @@ if ($view === 'my') {
 } else {
     $where[] = $active_status_sql;
 }
+if ($owner_filter === 'me' && $view !== 'my') {
+    $where[] = 't.assigned_to = ?';
+    $bind_types .= 'i';
+    $bind_values[] = $current_user_id;
+}
 
 if ($has_subject_filter) {
     $where[] = 't.' . $subject_filter_type . '_id = ?';
     $bind_types .= 'i';
     $bind_values[] = (int) $subject_filter_id;
 }
-if ($search !== '') {
+if ($fulltext_query !== '') {
     $where[] = "(
-        t.title LIKE ?
-        OR COALESCE(t.details, '') LIKE ?
-        OR COALESCE(t.waiting_on, '') LIKE ?
-        OR COALESCE(assignee.username, '') LIKE ?
-        OR COALESCE(NULLIF(TRIM(e.event_title), ''), eo.organization_name, '') LIKE ?
-        OR COALESCE(o.organization_name, '') LIKE ?
-        OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
+        MATCH(t.title, t.details, t.waiting_on) AGAINST (? IN BOOLEAN MODE)
+        OR assignee.username LIKE ?
+        OR MATCH(
+            e.event_title, e.event_description, e.engagement_notes,
+            e.caller_name, e.cancellation_reason
+        )
+            AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            eo.organization_name, eo.notes, eo.affiliation, eo.distinctives,
+            eo.email, eo.phone, eo.physical_city, eo.physical_state,
+            eo.mailing_city, eo.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            c.contact_first_name, c.contact_last_name, c.contact_email,
+            c.contact_phone, c.contact_role_other, c.contact_notes
+        ) AGAINST (? IN BOOLEAN MODE)
     )";
-    $search_pattern = '%' . $search . '%';
-    for ($index = 0; $index < 7; $index++) {
-        $bind_types .= 's';
-        $bind_values[] = $search_pattern;
-    }
+    $bind_types .= 'ssssss';
+    array_push(
+        $bind_values,
+        $fulltext_query,
+        $search . '%',
+        $fulltext_query,
+        $fulltext_query,
+        $fulltext_query,
+        $fulltext_query
+    );
 }
 
 $where_sql = implode(' AND ', array_map(
     static fn($clause) => '(' . $clause . ')',
     $where
 ));
-$count_sql = "SELECT COUNT(*) AS total
-              FROM follow_up_tasks t
-              LEFT JOIN users assignee ON assignee.id = t.assigned_to
-              LEFT JOIN engagements e ON e.id = t.engagement_id
-              LEFT JOIN organizations eo ON eo.id = e.organization_id
-              LEFT JOIN organizations o ON o.id = t.organization_id
-              LEFT JOIN contacts c ON c.id = t.contact_id
-              WHERE {$where_sql}";
-$count_stmt = $conn->prepare($count_sql);
-if (!$count_stmt) {
-    http_response_code(500);
-    exit('Unable to load the work queue.');
-}
-if ($bind_types !== '') {
-    $count_bind = [$bind_types];
-    foreach ($bind_values as &$bind_value) {
-        $count_bind[] = &$bind_value;
-    }
-    unset($bind_value);
-    $count_stmt->bind_param(...$count_bind);
-}
-$count_stmt->execute();
-$total_tasks = (int) ($count_stmt->get_result()->fetch_assoc()['total'] ?? 0);
-$count_stmt->close();
-$total_pages = max(1, (int) ceil($total_tasks / $page_size));
-$current_page = min($current_page, $total_pages);
-$offset = ($current_page - 1) * $page_size;
-
 $order_sql = $view === 'completed'
     ? 't.updated_at DESC, t.id DESC'
-    : "t.due_date IS NULL,
-       t.due_date ASC,
+    : "COALESCE(t.due_date, '9999-12-31') ASC,
        FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
        t.id ASC";
+$cursor_sql = '';
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    if ($view === 'completed') {
+        $cursor_sql = ' AND (t.updated_at, t.id) < (?, ?)';
+        $bind_types .= 'si';
+        $bind_values[] = (string) $cursor['updated_at'];
+        $bind_values[] = (int) $cursor['id'];
+    } elseif (ctype_digit((string) $cursor['priority_rank'])) {
+        $cursor_sql = " AND (
+            COALESCE(t.due_date, '9999-12-31'),
+            FIELD(t.priority, 'urgent', 'high', 'normal', 'low'), t.id
+        ) > (?, ?, ?)";
+        $bind_types .= 'sii';
+        $bind_values[] = (string) $cursor['due_date'];
+        $bind_values[] = (int) $cursor['priority_rank'];
+        $bind_values[] = (int) $cursor['id'];
+    } else {
+        $cursor = null;
+    }
+} else {
+    $cursor = null;
+}
+$query_limit = $page_size + 1;
 $task_sql = followUpTaskSelectSql()
-    . " WHERE {$where_sql}
+    . " WHERE {$where_sql}{$cursor_sql}
         ORDER BY {$order_sql}
-        LIMIT {$page_size} OFFSET {$offset}";
+        LIMIT {$query_limit}";
 $task_stmt = $conn->prepare($task_sql);
 if (!$task_stmt) {
     http_response_code(500);
@@ -255,6 +314,26 @@ if ($bind_types !== '') {
 $task_stmt->execute();
 $tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $task_stmt->close();
+$has_more_tasks = count($tasks) > $page_size;
+if ($has_more_tasks) array_pop($tasks);
+$next_cursor = null;
+if ($has_more_tasks && $tasks !== []) {
+    $last_task = $tasks[array_key_last($tasks)];
+    $next_cursor = $view === 'completed'
+        ? encodePaginationCursor([
+            'updated_at' => (string) $last_task['updated_at'],
+            'id' => (int) $last_task['id'],
+        ])
+        : encodePaginationCursor([
+            'due_date' => (string) ($last_task['due_date'] ?: '9999-12-31'),
+            'priority_rank' => array_search(
+                (string) $last_task['priority'],
+                ['urgent', 'high', 'normal', 'low'],
+                true
+            ) + 1,
+            'id' => (int) $last_task['id'],
+        ]);
+}
 
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
     return 'tasks.php?' . http_build_query(array_merge($queue_parameters, $overrides));
@@ -276,12 +355,13 @@ $priority_labels = followUpTaskPriorities();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Work Queue - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Work Queue - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -290,21 +370,43 @@ $priority_labels = followUpTaskPriorities();
             <h1>Work Queue</h1>
             <p class="page-intro">Make the next action, owner, and due date visible.</p>
         </div>
-        <?php if ($can_manage_tasks): ?>
-            <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New task</a>
-        <?php endif; ?>
+        <div class="page-heading-actions">
+            <a href="standard_tasks.php" class="button-secondary">Standard event tasks</a>
+            <?php if ($can_manage_tasks): ?>
+                <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New task</a>
+            <?php endif; ?>
+        </div>
     </div>
 
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
+    <section class="task-reminder-panel" aria-labelledby="task-reminder-heading">
+        <div class="task-reminder-heading">
+            <div>
+                <h2 id="task-reminder-heading">My Reminders</h2>
+                <p>Assigned work and operational closeouts that need your attention.</p>
+            </div>
+            <a href="profile.php#notification-preferences-heading" class="button-secondary">Digest settings</a>
+        </div>
+        <div class="task-reminder-badges">
+            <a href="tasks.php?view=overdue&amp;owner=me" class="task-reminder-badge reminder-overdue"><span>Overdue</span><strong><?php echo $personal_reminders['overdue']; ?></strong></a>
+            <a href="tasks.php?view=today&amp;owner=me" class="task-reminder-badge reminder-today"><span>Due today</span><strong><?php echo $personal_reminders['today']; ?></strong></a>
+            <a href="tasks.php?view=upcoming&amp;owner=me" class="task-reminder-badge reminder-upcoming"><span>Next 7 days</span><strong><?php echo $personal_reminders['upcoming']; ?></strong></a>
+            <a href="tasks.php?view=waiting&amp;owner=me" class="task-reminder-badge reminder-waiting"><span>Waiting</span><strong><?php echo $personal_reminders['waiting']; ?></strong></a>
+            <?php if (in_array((string) $user_role, ['admin', 'editor'], true)): ?>
+                <a href="dashboard.php#financial-closeouts" class="task-reminder-badge reminder-closeout"><span>Closeouts</span><strong><?php echo $personal_reminders['closeouts']; ?></strong></a>
+            <?php endif; ?>
+        </div>
+    </section>
+
     <div class="summary-grid task-summary-grid" aria-label="Work queue summary">
-        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
-        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
-        <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
-        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next 7 days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
-        <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
-        <a class="summary-card<?php echo $view === 'unassigned' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'unassigned', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Unassigned</small><strong><?php echo $summary['unassigned']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
+        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
+        <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
+        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next 7 days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'unassigned' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'unassigned']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Unassigned</small><strong><?php echo $summary['unassigned']; ?></strong></span></a>
     </div>
 
     <div class="list-controls task-list-controls">
@@ -317,18 +419,21 @@ $priority_labels = followUpTaskPriorities();
             <label class="visually-hidden" for="task-search">Search tasks</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="task-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search tasks, records, and assignees">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '', 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($queue_url(['q' => '']), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Work queue view">
             <?php foreach ($view_labels as $view_value => $view_label): ?>
                 <?php if (in_array($view_value, ['my', 'overdue', 'today', 'upcoming', 'waiting', 'unassigned'], true)) continue; ?>
-                <a href="<?php echo htmlspecialchars($queue_url(['view' => $view_value, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $view === $view_value ? ' active' : ''; ?>"><?php echo htmlspecialchars($view_label, ENT_QUOTES, 'UTF-8'); ?></a>
+                <a href="<?php echo htmlspecialchars($queue_url(['view' => $view_value]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $view === $view_value ? ' active' : ''; ?>"><?php echo htmlspecialchars($view_label, ENT_QUOTES, 'UTF-8'); ?></a>
             <?php endforeach; ?>
         </div>
     </div>
 
     <?php if ($subject_filter_record): ?>
         <p class="result-context">Showing tasks for <a href="<?php echo htmlspecialchars($subject_filter_record['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject_filter_record['label'], ENT_QUOTES, 'UTF-8'); ?></a>. <a href="tasks.php?view=<?php echo urlencode($view); ?>">Clear record filter</a></p>
+    <?php endif; ?>
+    <?php if ($owner_filter === 'me'): ?>
+        <p class="result-context">Showing tasks assigned to you. <a href="<?php echo htmlspecialchars($queue_url(['owner' => '']), ENT_QUOTES, 'UTF-8'); ?>">Show all owners</a>.</p>
     <?php endif; ?>
     <div class="task-view-heading">
         <h2><?php echo htmlspecialchars($view_labels[$view], ENT_QUOTES, 'UTF-8'); ?></h2>
@@ -339,7 +444,7 @@ $priority_labels = followUpTaskPriorities();
                     <span class="task-priority-legend-item task-priority-<?php echo $priority_value; ?>"><?php echo htmlspecialchars($priority_labels[$priority_value], ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php endforeach; ?>
             </div>
-            <span class="task-count"><?php echo $total_tasks; ?> task<?php echo $total_tasks === 1 ? '' : 's'; ?></span>
+            <span class="task-count">Showing <?php echo count($tasks); ?> task<?php echo count($tasks) === 1 ? '' : 's'; ?></span>
         </div>
     </div>
 
@@ -381,7 +486,7 @@ $priority_labels = followUpTaskPriorities();
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="completed"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete"><?php echo actionIconSvg('complete'); ?></button></form>
                         <?php endif; ?>
                         <?php if (canDeleteEntries($user_role)): ?>
-                            <form method="post" action="tasks.php" onsubmit="return confirm('Permanently delete this task?');"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
+                            <form method="post" action="tasks.php" data-confirm="Permanently delete this task?"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
                         <?php endif; ?>
                     </div>
                     <?php else: ?><span class="task-read-only-label">Read only</span><?php endif; ?>
@@ -391,11 +496,11 @@ $priority_labels = followUpTaskPriorities();
         </tbody>
     </table>
 
-    <?php if ($total_pages > 1): ?>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
     <nav class="pagination" aria-label="Work queue pages">
-        <?php if ($current_page > 1): ?><a href="<?php echo htmlspecialchars($queue_url(['page' => $current_page - 1]), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-        <span>Page <?php echo $current_page; ?> of <?php echo $total_pages; ?></span>
-        <?php if ($current_page < $total_pages): ?><a href="<?php echo htmlspecialchars($queue_url(['page' => $current_page + 1]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+        <?php if ($cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+        <span>Showing up to <?php echo $page_size; ?> tasks</span>
+        <?php if ($next_cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
     </nav>
     <?php endif; ?>
 </div>

@@ -21,10 +21,10 @@
     function localDigits(value, countryCode) {
         let digits = String(value || '').replace(/[^0-9]/g, '');
         const countryDigits = countryCode.slice(1);
-        if (digits.length === 10 + countryDigits.length && digits.startsWith(countryDigits)) {
+        if (String(value || '').trim().startsWith('+') && digits.startsWith(countryDigits)) {
             digits = digits.slice(countryDigits.length);
         }
-        return digits.length === 10 ? digits : null;
+        return digits;
     }
 
     function formatNationalInput(input) {
@@ -43,13 +43,22 @@
 
         countryInput.value = countryCode;
         countryInput.setCustomValidity('');
-        const digits = localDigits(input.value, countryCode);
-        if (!digits) {
-            input.setCustomValidity('Enter a 10-digit telephone number.');
+        let digits = localDigits(input.value, countryCode);
+        if (countryCode === '+1' && digits.length === 11 && digits.startsWith('1')) {
+            digits = digits.slice(1);
+        }
+        const totalDigits = countryCode.length - 1 + digits.length;
+        if ((countryCode === '+1' && digits.length !== 10)
+            || (countryCode !== '+1' && (digits.length < 4 || totalDigits > 15))) {
+            input.setCustomValidity('Enter a valid telephone number for the selected country.');
             return false;
         }
 
-        input.value = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+        if (countryCode === '+1') {
+            input.value = `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+        } else {
+            input.value = input.value.trim();
+        }
         input.setCustomValidity('');
         return true;
     }
@@ -121,6 +130,15 @@
         const nationalInput = group.querySelector('[data-phone-number]');
         if (nationalInput) nationalInput.focus();
     }
+
+    if (typeof module === 'object' && module.exports) {
+        module.exports = {
+            formatNationalInput,
+            localDigits,
+            normalizedCountryCode
+        };
+    }
+    if (typeof document === 'undefined') return;
 
     document.addEventListener('click', function (event) {
         const option = event.target.closest('[data-phone-country-option]');

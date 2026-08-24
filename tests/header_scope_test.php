@@ -13,6 +13,17 @@ function csrfInput()
     return '';
 }
 
+function renderScript($path, $defer = true)
+{
+    echo '<script src="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '"'
+        . ($defer ? ' defer' : '') . '></script>';
+}
+
+function assetUrl($path)
+{
+    return $path . (str_contains($path, '?') ? '&' : '?') . 'v=test';
+}
+
 $_SERVER['PHP_SELF'] = '/contacts.php';
 $_SESSION = [
     'username' => 'Test User',
@@ -27,16 +38,55 @@ $header_markup = ob_get_clean();
 expectHeaderScope($current_page === 2, 'The shared header must not overwrite a page\'s pagination state.');
 expectHeaderScope($shell_current_page === 'contacts.php', 'The header should retain its own active-page state.');
 expectHeaderScope(
-    str_contains($header_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
-    'The MOED application brand should render with isolated right-to-left Hebrew text.'
+    substr_count($header_markup, 'class="app-brand-logo"') === 1
+        && str_contains($header_markup, 'src="assets/dnr-logo.svg?rev=sidebar-crop-1&amp;v=test"')
+        && str_contains($header_markup, 'data-theme-logo')
+        && str_contains($header_markup, 'data-dark-src="assets/dnr-logo-dark.svg?rev=sidebar-dark-1&amp;v=test"')
+        && str_contains($header_markup, 'width="228" height="39"'),
+    'The desktop sidebar should render one logo element with versioned light- and dark-theme sources.'
 );
 expectHeaderScope(
     str_contains($header_markup, 'class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
     'The complete MOED brand should render in the mobile application bar.'
 );
-expectHeaderScope(!str_contains($header_markup, 'app-brand-mark'), 'The shared application brand should not render a separate logo mark.');
+expectHeaderScope(!str_contains($header_markup, 'app-brand-copy'), 'The desktop sidebar should not retain the previous text-only brand.');
+expectHeaderScope(
+    !str_contains($header_markup, 'operations.php')
+        && !str_contains($header_markup, '<span>Operations</span>'),
+    'The primary navigation should not expose the internal Operations dashboard.'
+);
+expectHeaderScope(
+    preg_match(
+        '/<span>Dashboard<\/span>.*<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
+        $header_markup
+    ) === 1,
+    'The primary navigation should lead with the dashboard and keep inbound mail immediately above the map.'
+);
+expectHeaderScope(
+    str_contains($header_markup, '<a class="app-brand" href="dashboard.php"')
+        && str_contains($header_markup, '<a href="dashboard.php" class="mobile-brand"'),
+    'Desktop and mobile brand links should return to the daily dashboard.'
+);
+expectHeaderScope(
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 2
+        && str_contains($header_markup, '<span>Users</span>')
+        && str_contains($header_markup, '<span>Database</span>'),
+    'Administrator-only navigation links should carry the dedicated visual treatment.'
+);
+expectHeaderScope(
+    str_contains($header_markup, 'href="help.php"')
+        && str_contains($header_markup, '<span>User Manual</span>'),
+    'The in-app user manual should be available from the shared utility navigation.'
+);
+expectHeaderScope(
+    preg_match(
+        '/<span>Calendar<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        $header_markup
+    ) === 1,
+    'The utility navigation should place the user manual between account security and the theme selector using Title Case labels.'
+);
 
-foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authentication_page) {
+foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
     expectHeaderScope(
         str_contains($authentication_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
@@ -45,15 +95,38 @@ foreach (['login.php', 'recover_password.php', 'verify_2fa.php'] as $authenticat
     expectHeaderScope(!str_contains($authentication_markup, 'app-brand-mark'), $authentication_page . ' should not render a separate logo mark.');
 }
 
+$login_markup = file_get_contents(__DIR__ . '/../src/login.php');
+expectHeaderScope(
+    substr_count($login_markup, 'class="auth-brand-logo"') === 1
+        && str_contains($login_markup, 'data-theme-logo')
+        && str_contains($login_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
+        && str_contains($login_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($login_markup, 'width="320" height="55"'),
+    'The login page should render one responsive DNR logo with light- and dark-theme sources.'
+);
+
+$verification_markup = file_get_contents(__DIR__ . '/../src/verify_2fa.php');
+expectHeaderScope(
+    substr_count($verification_markup, 'class="auth-brand-logo"') === 1
+        && str_contains($verification_markup, 'data-theme-logo')
+        && str_contains($verification_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
+        && str_contains($verification_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($verification_markup, 'width="320" height="55"'),
+    'The verification page should render one responsive DNR logo with light- and dark-theme sources.'
+);
+
 $configuration_source = file_get_contents(__DIR__ . '/../src/config.php');
 $footer_source = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$version = trim((string) file_get_contents(__DIR__ . '/../VERSION'));
 $modern_styles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
+$theme_source = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
 expectHeaderScope(
-    str_contains($configuration_source, "define('APP_VERSION', '1.3.10');"),
-    'The application version should be 1.3.10.'
+    preg_match('/\A[0-9]+\.[0-9]+\.[0-9]+(?:[-+][0-9A-Za-z.-]+)?\z/', $version) === 1
+        && str_contains($configuration_source, "define('APP_VERSION', applicationVersion());"),
+    'The application version should be valid and come from the single release metadata file.'
 );
 expectHeaderScope(
-    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : '1.3.10'"),
+    str_contains($footer_source, "defined('APP_VERSION') ? APP_VERSION : 'dev'"),
     'The footer should render the configured application version.'
 );
 expectHeaderScope(
@@ -63,7 +136,7 @@ expectHeaderScope(
         && str_contains($footer_source, '<time datetime=')
         && !str_contains($footer_source, '> pushed <time datetime=')
         && str_contains($footer_source, "'/commit/' . \$footer_push['commit']"),
-    'The footer should show automatically refreshed GitHub push metadata without a stale tracked fallback.'
+    'The footer should show build-injected provenance without a tracked fallback.'
 );
 expectHeaderScope(
     str_contains($footer_source, 'githubRepositoryUrl()')
@@ -88,17 +161,30 @@ expectHeaderScope(
     'The dark-theme transparency reset should preserve the mobile sidebar surface.'
 );
 expectHeaderScope(
-    !str_contains($modern_styles, '.app-brand-mark')
-        && preg_match('/\.app-brand-copy strong\s*\{[^}]*font-size:\s*2\.175rem;/s', $modern_styles) === 1
+    preg_match('/\.app-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*100%;[^}]*height:\s*auto;/s', $modern_styles) === 1
+        && preg_match('/\.auth-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*320px;[^}]*height:\s*auto;/s', $modern_styles) === 1
+        && preg_match('/html\.dark-mode \.app-sidebar nav\s*\{[^}]*background:\s*transparent\s*!important;/s', $modern_styles) === 1
         && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
         && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
-    'MOED and its Hebrew text should render at the enlarged sizes without a separate logo mark.'
+    'The sidebar logo should scale to its container and adapt cleanly to dark mode.'
+);
+expectHeaderScope(
+    str_contains($modern_styles, '--admin-nav: #9a3f00;')
+        && str_contains($modern_styles, '--admin-nav: #f4a261;')
+        && preg_match('/\.nav-link\.admin-nav-link\s*\{[^}]*color:\s*var\(--admin-nav\)\s*!important;/s', $modern_styles) === 1
+        && str_contains($modern_styles, 'html.dark-mode .app-sidebar .nav-link.admin-nav-link.active'),
+    'Admin navigation should use accessible burnt-orange colors in light and dark themes.'
+);
+expectHeaderScope(
+    str_contains($theme_source, "document.querySelectorAll('[data-theme-logo]')")
+        && str_contains($theme_source, 'isDark ? logo.dataset.darkSrc : logo.dataset.lightSrc'),
+    'Theme changes should swap the single brand image between its light and dark sources.'
 );
 expectHeaderScope(
     str_contains($modern_styles, 'url("../fonts/rubik-latin-700.woff2")')
         && str_contains($modern_styles, 'url("../fonts/rubik-hebrew-700.woff2")')
-        && preg_match('/\.app-brand-copy strong,\s*\.auth-brand-copy strong,\s*\.mobile-brand-name\s*\{[^}]*font-family:\s*"Rubik"[^;}]*;[^}]*font-weight:\s*700;/s', $modern_styles) === 1,
-    'The Latin and Hebrew MOED branding should use the self-hosted Rubik font at weight 700.'
+        && preg_match('/\.auth-brand-copy strong,\s*\.mobile-brand-name\s*\{[^}]*font-family:\s*"Rubik"[^;}]*;[^}]*font-weight:\s*700;/s', $modern_styles) === 1,
+    'The Latin and Hebrew text branding should use the self-hosted Rubik font at weight 700.'
 );
 
 echo "Header scope tests passed.\n";

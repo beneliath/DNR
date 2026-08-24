@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -17,28 +16,38 @@ $must_change_password = !empty($user['must_change_password']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
-    $action = $_POST['action'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $current_code = trim($_POST['current_code'] ?? '');
+    $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
+    $password = is_string($_POST['password'] ?? null) ? $_POST['password'] : '';
+    $current_code = is_string($_POST['current_code'] ?? null)
+        ? trim($_POST['current_code'])
+        : '';
 
     if ($must_change_password && $action !== 'change_password') {
         $error = 'You must replace the temporary password before making other security changes.';
     } elseif ($action === 'change_password') {
-        $new_password = $_POST['new_password'] ?? '';
-        $new_password_confirmation = $_POST['new_password_confirmation'] ?? '';
+        $new_password = is_string($_POST['new_password'] ?? null)
+            ? $_POST['new_password']
+            : '';
+        $new_password_confirmation = is_string($_POST['new_password_confirmation'] ?? null)
+            ? $_POST['new_password_confirmation']
+            : '';
 
-        if (!password_verify($password, $user['password'])) {
+        $password_error = \Dnr\Security\PasswordPolicy::validationError(
+            $new_password,
+            'The new password'
+        );
+        if (!\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
             $error = 'The current password was not accepted.';
         } elseif (!empty($user['two_factor_enabled']) && !hasRecentTwoFactorVerification()) {
             $error = 'Sign in with two-factor authentication again before changing the password.';
-        } elseif (strlen($new_password) < 12) {
-            $error = 'The new password must contain at least 12 characters.';
+        } elseif ($password_error !== null) {
+            $error = $password_error;
         } elseif (!hash_equals($new_password, $new_password_confirmation)) {
             $error = 'The new passwords do not match.';
         } elseif (hash_equals($password, $new_password)) {
             $error = 'The new password must be different from the current password.';
         } else {
-            $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+            $password_hash = \Dnr\Security\PasswordPolicy::hash($new_password);
             $stmt = $conn->prepare(
                 'UPDATE users
                  SET password = ?, auth_version = auth_version + 1, must_change_password = 0
@@ -55,7 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif (empty($user['two_factor_enabled'])) {
         $error = 'Two-factor authentication is not enabled.';
-    } elseif (!password_verify($password, $user['password'])) {
+    } elseif (!\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
         $error = 'The password or authentication code was not accepted.';
     } elseif (!empty($user['two_factor_is_locked'])) {
         $error = 'Two-factor verification is temporarily locked. Try again later.';
@@ -91,7 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = 'That security action is not permitted.';
             }
         } catch (Throwable $exception) {
-            error_log('Two-factor settings error: ' . $exception->getMessage());
+            applicationLog('error', 'Two-factor settings failed unexpectedly', ['error' => $exception->getMessage()]);
             $error = 'The security change could not be completed.';
         }
     }
@@ -105,12 +114,13 @@ $remaining_codes = !empty($user['two_factor_enabled'])
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Account Security - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Account Security - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">
@@ -153,11 +163,11 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="change_password">
             <label for="password_change_current">Current password</label>
-            <input type="password" name="password" id="password_change_current" autocomplete="current-password" required>
+            <input type="password" name="password" id="password_change_current" autocomplete="current-password" maxlength="72" required>
             <label for="password_change_new">New password</label>
-            <input type="password" name="new_password" id="password_change_new" autocomplete="new-password" minlength="12" required>
+            <input type="password" name="new_password" id="password_change_new" autocomplete="new-password" minlength="12" maxlength="72" required>
             <label for="password_change_confirmation">Confirm new password</label>
-            <input type="password" name="new_password_confirmation" id="password_change_confirmation" autocomplete="new-password" minlength="12" required>
+            <input type="password" name="new_password_confirmation" id="password_change_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
             <button type="submit" class="security-button">Change password</button>
         </form>
     </section>
@@ -170,7 +180,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="regenerate_codes">
                 <label for="recovery_password">Current password</label>
-                <input type="password" name="password" id="recovery_password" autocomplete="current-password" required>
+                <input type="password" name="password" id="recovery_password" autocomplete="current-password" maxlength="72" required>
                 <label for="recovery_current_code">Current authenticator code</label>
                 <input type="text" name="current_code" id="recovery_current_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
                 <button type="submit" class="security-button">Generate new codes</button>
@@ -181,11 +191,11 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <section class="security-card danger-card">
                 <h2>Disable Two-Factor Authentication</h2>
                 <p>This makes the account less secure.</p>
-                <form method="post" action="two_factor_settings.php" class="security-form" onsubmit="return confirm('Disable two-factor authentication for this account?');">
+                <form method="post" action="two_factor_settings.php" class="security-form" data-confirm="Disable two-factor authentication for this account?">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="disable">
                     <label for="disable_password">Current password</label>
-                    <input type="password" name="password" id="disable_password" autocomplete="current-password" required>
+                    <input type="password" name="password" id="disable_password" autocomplete="current-password" maxlength="72" required>
                     <label for="disable_current_code">Current authenticator code</label>
                     <input type="text" name="current_code" id="disable_current_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
                     <button type="submit" class="danger-button">Disable 2FA</button>

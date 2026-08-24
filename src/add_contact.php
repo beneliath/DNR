@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'contact_photo_helpers.php';
 startSecureSession();
 
@@ -17,54 +16,26 @@ $error_message = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     requireValidCsrfToken();
 
-    $organization_id = intval($_POST['organization_id'] ?? 0);
-    $contact_first_name = trim($_POST['contact_first_name'] ?? '');
-    $contact_last_name = trim($_POST['contact_last_name'] ?? '');
-    $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
-    $contact_role_other = trim($_POST['contact_role_other'] ?? '');
-    $contact_email = trim($_POST['contact_email'] ?? '');
-    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
-    $contact_phone = trim($_POST['contact_phone'] ?? '');
-    $contact_notes = trim($_POST['contact_notes'] ?? '');
-    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
-    $phone_error = '';
+    $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
+    foreach ($normalized_contact['data'] as $field_name => $field_value) {
+        ${$field_name} = $field_value;
+    }
+    $validation_errors = $normalized_contact['errors'];
     $photo_error = '';
     $contact_photo = null;
-    try {
-        $contact_phone = normalizePhoneNumber(
-            $contact_phone_country_code,
-            $contact_phone,
-            'Phone number'
-        );
-    } catch (InvalidArgumentException $exception) {
-        $phone_error = $exception->getMessage();
-    }
     try {
         $contact_photo = contactPhotoFromUpload($_FILES['contact_photo'] ?? []);
     } catch (InvalidArgumentException $exception) {
         $photo_error = $exception->getMessage();
     } catch (Throwable $exception) {
-        error_log('Unable to read contact photo upload: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to read contact photo upload', ['error' => $exception->getMessage()]);
         $photo_error = 'The contact photo could not be uploaded. Try again.';
     }
 
-    // Validate required fields
-    $valid_contact_roles = ['pastor', 'admin', 'other'];
-
-    if (!$organization_id || !$contact_first_name || !$contact_last_name || !$contact_role || !$contact_email || !$contact_email_confirm) {
-        $error_message = "Please fill in all required fields.";
-    } elseif ($contact_email !== $contact_email_confirm) {
-        $error_message = "Email addresses do not match.";
-    } elseif (!filter_var($contact_email, FILTER_VALIDATE_EMAIL)) {
-        $error_message = "Please provide a valid email address.";
-    } elseif (!in_array($contact_role, $valid_contact_roles, true)) {
-        $error_message = "Invalid contact role selected.";
-    } elseif ($contact_role === 'other' && empty($contact_role_other)) {
-        $error_message = "Please specify the other role.";
-    } elseif ($phone_error !== '') {
-        $error_message = $phone_error;
-    } elseif ($photo_error !== '') {
+    if ($photo_error !== '') {
         $error_message = $photo_error;
+    } elseif ($validation_errors) {
+        $error_message = $validation_errors[0];
     } else {
         $conn->begin_transaction();
         try {
@@ -74,8 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     "INSERT INTO contacts (
                         organization_id, contact_first_name, contact_last_name, contact_role,
                         contact_role_other, contact_email, contact_phone, contact_notes,
-                        contact_photo, contact_photo_mime, contact_photo_updated_at
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
+                        contact_photo, contact_photo_thumbnail,
+                        contact_photo_thumbnail_mime, contact_photo_mime,
+                        contact_photo_sha256,
+                        contact_photo_updated_at
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
                 );
             } else {
                 $stmt = $conn->prepare(
@@ -90,9 +64,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             }
             if ($contact_photo !== null) {
                 $contact_photo_data = $contact_photo['data'];
+                $contact_photo_thumbnail = $contact_photo['thumbnail_data'];
+                $contact_photo_thumbnail_mime = $contact_photo['thumbnail_mime_type'];
                 $contact_photo_mime = $contact_photo['mime_type'];
+                $contact_photo_sha256 = $contact_photo['sha256'];
                 $stmt->bind_param(
-                    'isssssssss',
+                    'issssssssssss',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -102,7 +79,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     $contact_phone,
                     $contact_notes,
                     $contact_photo_data,
-                    $contact_photo_mime
+                    $contact_photo_thumbnail,
+                    $contact_photo_thumbnail_mime,
+                    $contact_photo_mime,
+                    $contact_photo_sha256
                 );
             } else {
                 $stmt->bind_param(
@@ -148,126 +128,29 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Add Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <script src="assets/js/contact-photo.min.js?v=1.0.0" defer></script>
-    <style>
-        .success {
-            background-color: #d4edda !important;
-            color: #155724 !important;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da !important;
-            color: #721c24 !important;
-            padding: 15px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            border: 1px solid #f5c6cb;
-        }
-        .dark-mode .success {
-            background-color: #d4edda !important;
-            color: #155724 !important;
-        }
-        .dark-mode .error {
-            background-color: #f8d7da !important;
-            color: #721c24 !important;
-        }
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="email"],
-        .form-group input[type="tel"],
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-        }
-        .dark-mode .form-group input[type="text"],
-        .dark-mode .form-group input[type="email"],
-        .dark-mode .form-group input[type="tel"],
-        .dark-mode .form-group select,
-        .dark-mode .form-group textarea {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-        }
-        .required {
-            color: inherit;
-        }
-        .organization-container {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        .add-org-button {
-            padding: 8px 15px;
-            background-color: var(--button-add-color);
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-        }
-        .role-container {
-            display: flex;
-            gap: 30px;
-            margin-bottom: 15px;
-        }
-        .role-container .form-group {
-            margin-bottom: 0;
-        }
-        #other_role_group {
-            flex: 1;
-        }
-        .email-container {
-            display: flex;
-            gap: 30px;
-            margin-bottom: 15px;
-        }
-        .name-container {
-            display: flex;
-            gap: 30px;
-            margin-bottom: 15px;
-        }
-        .name-container .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
-        .email-container .form-group {
-            margin-bottom: 0;
-        }
-        .email-field {
-            flex: 1;
-        }
-    </style>
-</head>
+<?php renderPageHead('Add Contact - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/add_contact.min.css',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/contact-photo.min.js',
+    ),
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <?php if (!empty($error_message)): ?>
-        <div class="error" style="background-color: #f8d7da !important; color: #721c24 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #f5c6cb;"><?php echo htmlspecialchars($error_message); ?></div>
+        <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
-        <div class="success" style="background-color: #d4edda !important; color: #155724 !important; padding: 15px; margin-bottom: 20px; border-radius: 4px; border: 1px solid #c3e6cb;"><?php echo htmlspecialchars($success_message); ?></div>
+        <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
@@ -276,7 +159,7 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
-            <div class="form-group" style="flex: 1;">
+            <div class="form-group form-flex-one">
                 <label for="organization_id" class="required">Organization</label>
                 <select name="organization_id" id="organization_id" required>
                     <option value="" disabled selected>Select an organization</option>
@@ -304,15 +187,15 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
         </div>
 
         <div class="role-container">
-            <div class="form-group" style="flex: 0 0 200px;">
+            <div class="form-group contact-role-field">
                 <label for="contact_role" class="required">Role</label>
-                <select name="contact_role" id="contact_role" required onchange="toggleOtherRole()">
-                    <option value="pastor" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'pastor') ? 'selected' : ''; ?>>Pastor</option>
-                    <option value="admin" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'admin') ? 'selected' : ''; ?>>Admin</option>
-                    <option value="other" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'selected' : ''; ?>>Other</option>
+                <select name="contact_role" id="contact_role" required>
+                    <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                        <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
-            <div class="form-group" id="other_role_group" style="display: <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? 'block' : 'none'; ?>;">
+            <div class="form-group" id="other_role_group" <?php echo (!empty($error_message) && isset($_POST['contact_role']) && $_POST['contact_role'] === 'other') ? '' : 'hidden'; ?>>
                 <label for="contact_role_other" class="required">Other Role Description</label>
                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_role_other'] ?? '') : ''; ?>">
             </div>
@@ -355,29 +238,12 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
             </div>
         </div>
 <br>
-        <div class="form-group create-form-actions" style="padding-left: 0; margin-left: 0;">
+        <div class="form-group create-form-actions create-form-actions-flush">
             <a href="contacts.php" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_contact" value="Create contact" class="save-button" style="margin-left: 0;">
+            <input type="submit" name="save_contact" value="Create contact" class="save-button save-button-flush">
         </div>
     </form>
 </div>
-
-<script>
-function toggleOtherRole() {
-    const roleSelect = document.getElementById('contact_role');
-    const otherRoleGroup = document.getElementById('other_role_group');
-    const otherRoleInput = document.getElementById('contact_role_other');
-
-    if (roleSelect.value === 'other') {
-        otherRoleGroup.style.display = 'block';
-        otherRoleInput.required = true;
-    } else {
-        otherRoleGroup.style.display = 'none';
-        otherRoleInput.required = false;
-        otherRoleInput.value = '';
-    }
-}
-</script>
 
 <?php include 'templates/footer.php'; ?>
 </body>

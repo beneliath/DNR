@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
@@ -124,12 +123,13 @@ if ($engagement_title === '') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Restore Chron Entries - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Restore Chron Entries - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -198,35 +198,11 @@ if ($engagement_title === '') {
     <?php endif; ?>
 
     <div class="form-row chron-restore-page-actions">
-        <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="cancel-button" style="display: inline-flex !important; align-items: center; justify-content: center; line-height: 1.25 !important; text-decoration: none !important;">Edit Engagement</a>
-        <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="button-secondary" style="display: inline-flex !important; align-items: center; justify-content: center; line-height: 1.25 !important; text-decoration: none !important;">View Engagement</a>
+        <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="cancel-button inline-action-link">Edit Engagement</a>
+        <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="button-secondary inline-action-link">View Engagement</a>
     </div>
 </div>
 
 <?php include 'templates/footer.php'; ?>
-<script>
-(function () {
-    const selectAll = document.getElementById('select-all-chron-entries');
-    const entryCheckboxes = Array.from(document.querySelectorAll('input[name="chron_entry_ids[]"]'));
-    if (!selectAll || entryCheckboxes.length === 0) return;
-
-    selectAll.addEventListener('change', function () {
-        entryCheckboxes.forEach(function (checkbox) {
-            checkbox.checked = selectAll.checked;
-        });
-    });
-
-    entryCheckboxes.forEach(function (checkbox) {
-        checkbox.addEventListener('change', function () {
-            selectAll.checked = entryCheckboxes.every(function (entryCheckbox) {
-                return entryCheckbox.checked;
-            });
-            selectAll.indeterminate = !selectAll.checked && entryCheckboxes.some(function (entryCheckbox) {
-                return entryCheckbox.checked;
-            });
-        });
-    });
-})();
-</script>
 </body>
 </html>

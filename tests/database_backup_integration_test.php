@@ -1,7 +1,10 @@
 <?php
 
-if (getenv('DNR_INTEGRATION_TEST') !== '1') {
-    echo "Database backup integration tests skipped (set DNR_INTEGRATION_TEST=1).\n";
+if (getenv('DNR_INTEGRATION_TEST') !== '1'
+    || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
+    || getenv('DNR_DESTRUCTIVE_BACKUP_TEST') !== 'isolated-restore'
+) {
+    echo "Database backup integration tests skipped (requires an explicitly isolated disposable restore database).\n";
     exit(0);
 }
 

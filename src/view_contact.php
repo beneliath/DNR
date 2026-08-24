@@ -1,7 +1,7 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -14,7 +14,9 @@ if (!$contact_id) {
 
 $contact_stmt = $conn->prepare(
     "SELECT
-        c.*,
+        c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+        c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+        c.contact_notes, c.contact_photo_updated_at, c.is_deleted,
         o.organization_name,
         o.is_deleted AS organization_is_archived
      FROM contacts c
@@ -22,7 +24,7 @@ $contact_stmt = $conn->prepare(
      WHERE c.id = ?"
 );
 if (!$contact_stmt) {
-    die('Unable to retrieve the contact.');
+    abortApplication(503, 'The contact is temporarily unavailable.', ['error' => $conn->error]);
 }
 
 $contact_stmt->bind_param('i', $contact_id);
@@ -46,51 +48,40 @@ $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
 $contact_notes = trim((string) ($contact['contact_notes'] ?? ''));
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'contact',
+        $contact_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'contact', $contact_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The contact Chron log is temporarily unavailable.', [
+        'contact_id' => $contact_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Contact - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .contact-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark-mode .contact-details {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .detail-row {
-            margin-bottom: 15px;
-        }
-        .detail-row strong {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-    </style>
-</head>
+<?php renderPageHead('View Contact - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_contact.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -107,7 +98,7 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
 
     <div class="contact-details contact-details-layout">
         <div class="contact-details-photo">
-            <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;v=<?php echo $contact_photo_version; ?>" alt="Contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>">
+            <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;size=full&amp;v=<?php echo $contact_photo_version; ?>" alt="Contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>">
         </div>
         <div>
             <div class="detail-row">
@@ -151,6 +142,15 @@ $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'
             </div>
         </div>
     </div>
+
+    <?php
+    $chron_entity_label = 'contact';
+    $chron_log_description = "Communication history for this contact only. Entries are shown newest first. Select 'Edit Contact' to add/edit Chron Log entry.";
+    $chron_view_url = 'view_contact.php?id=' . $contact_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
+    $chron_can_restore = !$is_archived && empty($contact['organization_is_archived']);
+    include 'templates/entity_chron_log_view_section.php';
+    ?>
 
     <?php
     $context_task_subject_type = 'contact';

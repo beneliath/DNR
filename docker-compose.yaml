@@ -1,60 +1,262 @@
+x-app-environment: &app-environment
+  DEFAULT_SPEAKER: ${DEFAULT_SPEAKER:-Olivier Melnick}
+  DB_HOST: db
+  MYSQL_DATABASE: dnr
+  MYSQL_USER: dnruser
+  MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+  DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
+  DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
+  DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
+  DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
+  DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
+  DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
+  DNR_GITHUB_REPOSITORY: ${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
+  DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
+  DNR_SESSION_IDLE_SECONDS: ${DNR_SESSION_IDLE_SECONDS:-1800}
+  DNR_SESSION_ABSOLUTE_SECONDS: ${DNR_SESSION_ABSOLUTE_SECONDS:-43200}
+  DNR_SESSION_ROTATION_SECONDS: ${DNR_SESSION_ROTATION_SECONDS:-900}
+  DNR_MAP_PAST_DAYS: ${DNR_MAP_PAST_DAYS:-90}
+  DNR_MAP_FUTURE_DAYS: ${DNR_MAP_FUTURE_DAYS:-730}
+  DNR_MAP_MAX_EVENTS: ${DNR_MAP_MAX_EVENTS:-500}
+  DNR_MAIL_TRANSPORT: ${DNR_MAIL_TRANSPORT:-disabled}
+
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
     restart: unless-stopped
-    ports:
-      - "${DNR_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
-    volumes:
-      - ./src:/var/www/html
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+      - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
+      - /var/lock/apache2:rw,noexec,nosuid,size=1m
+      - /var/run/apache2:rw,noexec,nosuid,size=1m
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
     depends_on:
-      db:
-        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
     secrets:
       - dnr_2fa_encryption_key
+      - dnr_mysql_app_password
+    environment: *app-environment
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  ingress:
+    build:
+      context: .
+      dockerfile: docker/ingress.Dockerfile
+    restart: unless-stopped
+    read_only: true
+    ports:
+      - "${DNR_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /var/lock/apache2:rw,noexec,nosuid,size=1m
+      - /var/run/apache2:rw,noexec,nosuid,size=1m
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      web:
+        condition: service_healthy
+    networks:
+      ingress: {}
+      backend:
+        ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit((@fsockopen('127.0.0.1', 80) && @fsockopen('web', 80)) ? 0 : 1);"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  geocoder:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    entrypoint: ["php", "/opt/dnr/bin/process_geocode_queue.php", "--loop"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    secrets:
+      - dnr_mysql_geocoder_password
     environment:
-      - DEFAULT_SPEAKER=${DEFAULT_SPEAKER:-Olivier Melnick}
-      - DB_HOST=db
-      - MYSQL_DATABASE=dnr
-      - MYSQL_USER=dnruser
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
-      - DNR_2FA_ENCRYPTION_KEY_FILE=/run/secrets/dnr_2fa_encryption_key
-      - DNR_CALENDAR_TOKEN=${DNR_CALENDAR_TOKEN:-}
-      - DNR_PUBLIC_BASE_URL=${DNR_PUBLIC_BASE_URL:-}
-      - DNR_TRUSTED_PROXY_IPS=${DNR_TRUSTED_PROXY_IPS:-192.168.65.1}
-      - DNR_TRUSTED_CLOUDFLARE_PROXY_IPS=${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
-      - DNR_TIMEZONE=${DNR_TIMEZONE:-America/Chicago}
-      - DNR_DATABASE_BACKUP_MAX_BYTES=${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
-      - DNR_GITHUB_REPOSITORY=${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
-      - DNR_GITHUB_BRANCH=${DNR_GITHUB_BRANCH:-main}
-      - DNR_GITHUB_PUSH_CACHE_TTL=${DNR_GITHUB_PUSH_CACHE_TTL:-120}
-      - DNR_GITHUB_RETRY_TTL=${DNR_GITHUB_RETRY_TTL:-300}
-      - DNR_GEOCODER_BASE_URL=${DNR_GEOCODER_BASE_URL:-https://nominatim.openstreetmap.org/search}
-      - DNR_GEOCODER_USER_AGENT=${DNR_GEOCODER_USER_AGENT:-}
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrgeocoder
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      DNR_GEOCODER_BASE_URL: ${DNR_GEOCODER_BASE_URL:-https://nominatim.openstreetmap.org/search}
+      DNR_GEOCODER_ALLOWED_HOSTS: ${DNR_GEOCODER_ALLOWED_HOSTS:-nominatim.openstreetmap.org}
+      DNR_GEOCODER_USER_AGENT: ${DNR_GEOCODER_USER_AGENT:-}
+      DNR_GEOCODER_BATCH_SIZE: ${DNR_GEOCODER_BATCH_SIZE:-10}
+      DNR_GEOCODER_IDLE_SECONDS: ${DNR_GEOCODER_IDLE_SECONDS:-30}
+    networks: [backend, egress]
+
+  maintenance:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    profiles: [maintenance]
+    read_only: true
+    user: www-data
+    entrypoint: ["php", "/opt/dnr/bin/restore_database.php"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    volumes:
+      - ./backups:/backups:ro
+    secrets:
+      - dnr_mysql_maintenance_password
+      - dnr_backup_password
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrmaintenance
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      DNR_BACKUP_PASSWORD_FILE: /run/secrets/dnr_backup_password
+      DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
+    networks: [backend]
 
   db:
-    image: mysql:8.0
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnruser
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Set MYSQL_PASSWORD in .env}
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+      MYSQL_MAINTENANCE_USER: dnrmaintenance
+      MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      MYSQL_GEOCODER_USER: dnrgeocoder
+      MYSQL_GEOCODER_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      MYSQL_MAIL_INGEST_USER: dnrmailingest
+      MYSQL_MAIL_INGEST_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
+      MYSQL_MAIL_DISPATCH_USER: dnrmaildispatch
+      MYSQL_MAIL_DISPATCH_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+    secrets:
+      - dnr_mysql_root_password
+      - dnr_mysql_app_password
+      - dnr_mysql_maintenance_password
+      - dnr_mysql_geocoder_password
+      - dnr_mysql_mail_ingest_password
+      - dnr_mysql_mail_dispatch_password
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./scripts/configure_database_privileges.sh:/docker-entrypoint-initdb.d/99-configure_database_privileges.sh:ro
+      - db_socket:/var/run/mysqld
       - ./migrations:/opt/dnr/migrations:ro
       - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro
+      - ./scripts/configure_database_privileges.sh:/opt/dnr/bin/configure_database_privileges:ro
+    networks: [backend]
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$$MYSQL_ROOT_PASSWORD --silent"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
       interval: 5s
       timeout: 5s
       retries: 20
       start_period: 20s
 
+  migrator:
+    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      db:
+        condition: service_healthy
+    entrypoint: ["sh", "/opt/dnr/bin/migrate"]
+    secrets:
+      - dnr_mysql_root_password
+      - dnr_mysql_app_password
+      - dnr_mysql_maintenance_password
+      - dnr_mysql_geocoder_password
+      - dnr_mysql_mail_ingest_password
+      - dnr_mysql_mail_dispatch_password
+    environment:
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnruser
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password
+      MYSQL_MAINTENANCE_USER: dnrmaintenance
+      MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      MYSQL_GEOCODER_USER: dnrgeocoder
+      MYSQL_GEOCODER_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      MYSQL_MAIL_INGEST_USER: dnrmailingest
+      MYSQL_MAIL_INGEST_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
+      MYSQL_MAIL_DISPATCH_USER: dnrmaildispatch
+      MYSQL_MAIL_DISPATCH_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+      DNR_PRIVILEGE_SCRIPT: /opt/dnr/bin/configure_database_privileges
+    volumes:
+      - db_socket:/var/run/mysqld
+      - ./migrations:/opt/dnr/migrations:ro
+      - ./scripts/migrate.sh:/opt/dnr/bin/migrate:ro
+      - ./scripts/configure_database_privileges.sh:/opt/dnr/bin/configure_database_privileges:ro
+    networks: [backend]
+
 volumes:
   db_data:
+  db_socket:
+
+networks:
+  # Docker Engine does not activate published ports for containers connected
+  # only to an internal network. A fixed reverse proxy accepts localhost
+  # traffic here while the application remains isolated on the backend.
+  ingress:
+    driver: bridge
+  backend:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${DNR_BACKEND_SUBNET:-172.30.255.0/24}
+  egress:
 
 secrets:
   dnr_2fa_encryption_key:
     file: ${DNR_2FA_KEY_FILE:-./secrets/dnr_2fa_encryption_key}
+  dnr_mysql_root_password:
+    file: ${DNR_MYSQL_ROOT_PASSWORD_FILE:-./secrets/mysql_root_password}
+  dnr_mysql_app_password:
+    file: ${DNR_MYSQL_APP_PASSWORD_FILE:-./secrets/mysql_app_password}
+  dnr_mysql_maintenance_password:
+    file: ${DNR_MYSQL_MAINTENANCE_PASSWORD_FILE:-./secrets/mysql_maintenance_password}
+  dnr_mysql_geocoder_password:
+    file: ${DNR_MYSQL_GEOCODER_PASSWORD_FILE:-./secrets/mysql_geocoder_password}
+  dnr_mysql_mail_ingest_password:
+    file: ${DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE:-./secrets/mysql_mail_ingest_password}
+  dnr_mysql_mail_dispatch_password:
+    file: ${DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE:-./secrets/mysql_mail_dispatch_password}
+  dnr_backup_password:
+    file: ${DNR_BACKUP_PASSWORD_FILE:-./secrets/backup_password}

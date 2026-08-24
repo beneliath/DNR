@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
+include 'two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -28,12 +28,13 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
 // Handle the form submission for editing user
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
+    requireRecentAdminElevation('edit_user.php?id=' . $user_id);
 
     $username = trim($_POST['username'] ?? '');
     $role = $_POST['role'] ?? '';
-    $valid_roles = ['admin', 'editor', 'reviewer'];
+    $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
 
-    if ($username === '' || strlen($username) > 50) {
+    if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
     } elseif (!in_array($role, $valid_roles, true)) {
         $error = "Invalid role selected.";
@@ -56,7 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if ($locked_user['role'] === 'admin' && $role !== 'admin') {
                 $admins_stmt = $conn->prepare(
-                    "SELECT id FROM users WHERE role = 'admin' FOR UPDATE"
+                    "SELECT id FROM users
+                     WHERE role = 'admin' AND account_status = 'active' FOR UPDATE"
                 );
                 if (!$admins_stmt) {
                     throw new RuntimeException('Unable to verify the administrator roster.');
@@ -99,12 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit User - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Edit User - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -117,9 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <?php echo csrfInput(); ?>
         <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
         <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
-            <option value="admin" <?php if ($user['role'] === 'admin') echo 'selected'; ?>>Admin</option>
-            <option value="editor" <?php if ($user['role'] === 'editor') echo 'selected'; ?>>Editor</option>
-            <option value="reviewer" <?php if ($user['role'] === 'reviewer') echo 'selected'; ?>>Reviewer</option>
+            <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
+                <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?>
         </select></div>
         <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save changes" class="save-button"></div>
     </form>

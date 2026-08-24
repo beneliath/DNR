@@ -1,4 +1,76 @@
 <?php
+
+declare(strict_types=1);
+require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/app/Service/ArchiveService.php';
+require_once __DIR__ . '/app/Http/ClientAddress.php';
+
+foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require_once $autoload;
+        break;
+    }
+}
+
+use Dnr\Service\ArchiveService;
+use Dnr\Http\ClientAddress;
+
+function assetUrl($path) {
+    $path = ltrim((string) $path, '/');
+    $version = defined('APP_VERSION') ? APP_VERSION : 'dev';
+    $url = $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
+
+    // Static assets are cached as immutable. Include their content fingerprint
+    // so a rebuilt asset receives a new URL even within the same app release.
+    $asset_path = parse_url($path, PHP_URL_PATH);
+    if (is_string($asset_path) && str_starts_with($asset_path, 'assets/')) {
+        $local_path = __DIR__ . '/' . $asset_path;
+        if (is_file($local_path)) {
+            static $fingerprints = [];
+            if (!array_key_exists($local_path, $fingerprints)) {
+                $hash = hash_file('sha256', $local_path);
+                $fingerprints[$local_path] = is_string($hash) ? substr($hash, 0, 12) : '';
+            }
+            if ($fingerprints[$local_path] !== '') {
+                $url .= '&h=' . rawurlencode($fingerprints[$local_path]);
+            }
+        }
+    }
+
+    return $url;
+}
+
+function renderPageHead($title, array $options = []) {
+    $full_title = trim((string) $title);
+    if ($full_title === '') {
+        $full_title = 'MOED';
+    }
+    $styles = $options['styles'] ?? ['assets/css/style.min.css', 'assets/css/modern.min.css'];
+    $scripts = $options['scripts'] ?? [];
+    echo '<head>' . PHP_EOL;
+    echo '    <meta charset="UTF-8">' . PHP_EOL;
+    echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
+    echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
+    foreach ($styles as $style) {
+        echo '    <link rel="stylesheet" href="'
+            . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    }
+    foreach ($scripts as $script) {
+        $path = is_array($script) ? ($script['path'] ?? '') : $script;
+        if ($path === '') {
+            continue;
+        }
+        $defer = !is_array($script) || !array_key_exists('defer', $script) || $script['defer'];
+        renderScript((string) $path, $defer);
+    }
+    echo '</head>' . PHP_EOL;
+}
+
+function renderScript($path, $defer = true) {
+    echo '<script src="' . htmlspecialchars(assetUrl((string) $path), ENT_QUOTES, 'UTF-8') . '"'
+        . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
+}
+
 function requestUsesHttps(?array $server = null) {
     $server = $server ?? $_SERVER;
     if (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off') {
@@ -17,6 +89,34 @@ function requestUsesHttps(?array $server = null) {
     return $forwarded_proto === 'https';
 }
 
+function applicationRequiresHttps() {
+    return filter_var(getenv('DNR_REQUIRE_HTTPS') ?: '0', FILTER_VALIDATE_BOOL);
+}
+
+function contentSecurityPolicyNonce() {
+    static $nonce = null;
+    if ($nonce === null) {
+        $nonce = base64_encode(random_bytes(18));
+    }
+    return $nonce;
+}
+
+function sendApplicationSecurityHeaders() {
+    if (headers_sent()) {
+        return;
+    }
+
+    $nonce = contentSecurityPolicyNonce();
+    $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
+    $style_source = $page === 'map.php' ? "'self' 'unsafe-inline'" : "'self'";
+    $style_attribute_source = $page === 'map.php' ? "'unsafe-inline'" : "'none'";
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+}
+
 // Start a cookie-only session with safe defaults for HTTP development and HTTPS deployment.
 function startSecureSession() {
     if (session_status() !== PHP_SESSION_NONE) {
@@ -27,15 +127,40 @@ function startSecureSession() {
     ini_set('session.use_only_cookies', '1');
 
     $is_https = requestUsesHttps();
+    if (applicationRequiresHttps() && !$is_https) {
+        http_response_code(400);
+        exit('HTTPS is required for this deployment.');
+    }
+    sendApplicationSecurityHeaders();
     session_set_cookie_params([
         'lifetime' => 0,
         'path' => '/',
-        'secure' => $is_https,
+        'secure' => $is_https || applicationRequiresHttps(),
         'httponly' => true,
         'samesite' => 'Lax'
     ]);
 
     session_start();
+
+    $now = time();
+    $idle_timeout = max(300, (int) (getenv('DNR_SESSION_IDLE_SECONDS') ?: 1800));
+    $absolute_timeout = max($idle_timeout, (int) (getenv('DNR_SESSION_ABSOLUTE_SECONDS') ?: 43200));
+    $rotation_interval = max(300, (int) (getenv('DNR_SESSION_ROTATION_SECONDS') ?: 900));
+    $started_at = (int) ($_SESSION['_session_started_at'] ?? $now);
+    $last_seen_at = (int) ($_SESSION['_session_last_seen_at'] ?? $now);
+
+    if (($now - $last_seen_at) > $idle_timeout || ($now - $started_at) > $absolute_timeout) {
+        session_unset();
+        session_regenerate_id(true);
+        $started_at = $now;
+    } elseif (($now - (int) ($_SESSION['_session_rotated_at'] ?? $started_at)) >= $rotation_interval) {
+        session_regenerate_id(true);
+        $_SESSION['_session_rotated_at'] = $now;
+    }
+
+    $_SESSION['_session_started_at'] = $started_at;
+    $_SESSION['_session_last_seen_at'] = $now;
+    $_SESSION['_session_rotated_at'] = (int) ($_SESSION['_session_rotated_at'] ?? $now);
 }
 
 function validIsoDate($date) {
@@ -64,6 +189,22 @@ function nullableNonNegativeAmount($value, $label) {
         throw new InvalidArgumentException("Enter a non-negative {$label} amount with no more than two decimal places.");
     }
     return (float) $value;
+}
+
+function fulltextSearchQuery($search, $maximum_terms = 8) {
+    $search = trim(substr((string) $search, 0, 256));
+    if ($search === '' || preg_match('//u', $search) !== 1) {
+        return '';
+    }
+    $terms = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+    $boolean_terms = [];
+    foreach (array_slice($terms, 0, max(1, (int) $maximum_terms)) as $term) {
+        $term = preg_replace('/[+\-><()~*"@]+/u', '', $term) ?? '';
+        if (strlen($term) >= 3) {
+            $boolean_terms[] = '+' . substr($term, 0, 64) . '*';
+        }
+    }
+    return implode(' ', array_values(array_unique($boolean_terms)));
 }
 
 function nullableAmountsEqual($left, $right) {
@@ -103,7 +244,7 @@ function normalizePhoneCountryCode($country_code) {
 
 function normalizePhoneNumber($country_code, $national_number, $label = 'Phone number') {
     if (!is_scalar($national_number) && $national_number !== null) {
-        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
     }
 
     $national_number = trim((string) $national_number);
@@ -112,26 +253,29 @@ function normalizePhoneNumber($country_code, $national_number, $label = 'Phone n
     }
 
     $country_code = normalizePhoneCountryCode($country_code);
-    $country_digits = substr($country_code, 1);
-    $number_digits = preg_replace('/[^0-9]/', '', $national_number);
+    $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+    $expected_country_code = (int) substr($country_code, 1);
+    $region = $phone_util->getRegionCodeForCountryCode($expected_country_code);
+    if ($region === '' || $region === '001') {
+        throw new InvalidArgumentException("Select a supported country for {$label}.");
+    }
 
-    if (strlen($number_digits) === 10 + strlen($country_digits)
-        && str_starts_with($number_digits, $country_digits)
+    try {
+        $phone_number = $phone_util->parse(
+            $national_number,
+            str_starts_with($national_number, '+') ? null : $region
+        );
+    } catch (\libphonenumber\NumberParseException $exception) {
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
+    }
+
+    if ($phone_number->getCountryCode() !== $expected_country_code
+        || !$phone_util->isValidNumber($phone_number)
     ) {
-        $number_digits = substr($number_digits, strlen($country_digits));
+        throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
     }
 
-    if (strlen($number_digits) !== 10) {
-        throw new InvalidArgumentException("{$label} must contain a 10-digit local number.");
-    }
-
-    return sprintf(
-        '%s (%s) %s-%s',
-        $country_code,
-        substr($number_digits, 0, 3),
-        substr($number_digits, 3, 3),
-        substr($number_digits, 6, 4)
-    );
+    return $phone_util->format($phone_number, \libphonenumber\PhoneNumberFormat::E164);
 }
 
 function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
@@ -146,26 +290,23 @@ function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
         return [$country_code, ''];
     }
 
-    $national_number = $stored_phone;
-    if (str_starts_with($stored_phone, '+')) {
-        if (preg_match('/\A(\+[1-9][0-9]{0,2})(?=[\s().-])/', $stored_phone, $matches)) {
-            $country_code = $matches[1];
-            $national_number = ltrim(substr($stored_phone, strlen($matches[1])));
-        } else {
-            $phone_digits = preg_replace('/[^0-9]/', '', $stored_phone);
-            $country_digit_count = strlen($phone_digits) - 10;
-            if ($country_digit_count >= 1 && $country_digit_count <= 3) {
-                $country_code = '+' . substr($phone_digits, 0, $country_digit_count);
-                $national_number = substr($phone_digits, $country_digit_count);
-            }
-        }
-    }
-
     try {
-        $normalized = normalizePhoneNumber($country_code, $national_number);
-        return [$country_code, substr($normalized, strlen($country_code) + 1)];
-    } catch (InvalidArgumentException $exception) {
-        return [$country_code, $national_number];
+        $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+        if (str_starts_with($stored_phone, '+')) {
+            $phone_number = $phone_util->parse($stored_phone, null);
+            if (!$phone_util->isValidNumber($phone_number)) {
+                throw new InvalidArgumentException('The stored telephone number is invalid.');
+            }
+        } else {
+            $normalized = normalizePhoneNumber($country_code, $stored_phone);
+            $phone_number = $phone_util->parse($normalized, null);
+        }
+        return [
+            '+' . $phone_number->getCountryCode(),
+            $phone_util->format($phone_number, \libphonenumber\PhoneNumberFormat::NATIONAL),
+        ];
+    } catch (Throwable $exception) {
+        return [$country_code, $stored_phone];
     }
 }
 
@@ -175,10 +316,22 @@ function formatPhoneNumberForDisplay($stored_phone, $default_country_code = '+1'
         return '';
     }
 
-    [$country_code, $national_number] = phoneNumberInputParts($stored_phone, $default_country_code);
     try {
-        return normalizePhoneNumber($country_code, $national_number);
-    } catch (InvalidArgumentException $exception) {
+        $phone_util = \libphonenumber\PhoneNumberUtil::getInstance();
+        if (str_starts_with($stored_phone, '+')) {
+            $phone_number = $phone_util->parse($stored_phone, null);
+            if (!$phone_util->isValidNumber($phone_number)) {
+                return $stored_phone;
+            }
+        } else {
+            $normalized = normalizePhoneNumber($default_country_code, $stored_phone);
+            $phone_number = $phone_util->parse($normalized, null);
+        }
+        return $phone_util->format(
+            $phone_number,
+            \libphonenumber\PhoneNumberFormat::INTERNATIONAL
+        );
+    } catch (Throwable $exception) {
         return $stored_phone;
     }
 }
@@ -299,12 +452,12 @@ function phoneCountryPicker($field_name, $selected_code = '+1', $aria_label = 'P
 function normalizeEventType($event_type, $event_type_other) {
     $event_type = trim((string) $event_type);
     $event_type_other = trim((string) $event_type_other);
-    $valid_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
+    $valid_types = \Dnr\Domain\ReferenceData::eventTypes();
     if (!in_array($event_type, $valid_types, true)) {
         throw new InvalidArgumentException('Select a valid event type.');
     }
     if ($event_type === 'other') {
-        if ($event_type_other === '' || strlen($event_type_other) > 50) {
+        if ($event_type_other === '' || mb_strlen($event_type_other, 'UTF-8') > 50) {
             throw new InvalidArgumentException('Describe the other event type using 50 characters or fewer.');
         }
         return ['other', $event_type_other];
@@ -372,13 +525,13 @@ function requireLogin() {
 
     $user_id = (int) $_SESSION['user_id'];
     $stmt = $conn->prepare(
-        'SELECT username, role, auth_version, must_change_password,
+        'SELECT username, role, auth_version, must_change_password, account_status,
                 first_name, last_name, profile_picture_updated_at
          FROM users
          WHERE id = ?'
     );
     if (!$stmt) {
-        error_log('DNR authentication schema is unavailable: ' . $conn->error);
+        applicationLog('error', 'Authentication schema is unavailable', ['error' => $conn->error]);
         http_response_code(503);
         exit('DNR is being upgraded. The authentication database migration is required.');
     }
@@ -386,7 +539,10 @@ function requireLogin() {
     $stmt->execute();
     $user = $stmt->get_result()->fetch_assoc();
 
-    if (!$user || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']) {
+    if (!$user
+        || $user['account_status'] !== 'active'
+        || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']
+    ) {
         session_unset();
         session_regenerate_id(true);
         header('Location: login.php');
@@ -395,6 +551,7 @@ function requireLogin() {
 
     $_SESSION['username'] = (string) $user['username'];
     $_SESSION['role'] = (string) $user['role'];
+    $_SESSION['profile_first_name'] = trim((string) ($user['first_name'] ?? ''));
     $profile_display_name = trim(
         trim((string) ($user['first_name'] ?? ''))
         . ' '
@@ -446,6 +603,7 @@ function beginPendingAuthentication(array $user) {
         'user_id' => (int) $user['id'],
         'username' => (string) $user['username'],
         'role' => (string) $user['role'],
+        'auth_version' => (int) $user['auth_version'],
         'issued_at' => time(),
     ];
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
@@ -454,10 +612,17 @@ function beginPendingAuthentication(array $user) {
 function getPendingAuthentication() {
     $pending = $_SESSION['_pending_auth'] ?? null;
 
+    // A fully authenticated user may have a separate in-progress 2FA
+    // enrollment. The absence of a pending-login record must not erase it.
+    if ($pending === null) {
+        return null;
+    }
+
     if (!is_array($pending)
         || empty($pending['user_id'])
         || empty($pending['username'])
         || empty($pending['role'])
+        || !isset($pending['auth_version'])
         || !isset($pending['issued_at'])
         || (time() - (int) $pending['issued_at']) > 600
     ) {
@@ -470,7 +635,7 @@ function getPendingAuthentication() {
 
 // Password recovery is allowed only after proving possession of an enrolled
 // authenticator or one unused recovery code. Keep that proof short-lived.
-function beginPasswordRecovery($eligible_user = null) {
+function beginPasswordRecovery($eligible_user = null, $attempted_username = '') {
     session_regenerate_id(true);
     unset(
         $_SESSION['user_id'],
@@ -486,6 +651,7 @@ function beginPasswordRecovery($eligible_user = null) {
     $_SESSION['_password_recovery'] = [
         'user_id' => is_array($eligible_user) ? (int) $eligible_user['id'] : 0,
         'auth_version' => is_array($eligible_user) ? (int) $eligible_user['auth_version'] : 0,
+        'account_identifier' => authenticationRateLimitAccountIdentifier($attempted_username),
         'stage' => 'verify',
         'issued_at' => time(),
         'verified_at' => null,
@@ -532,6 +698,9 @@ function clearPasswordRecovery() {
 }
 
 function completeAuthentication(mysqli $conn, array $user, $two_factor_verified = false) {
+    if (($user['account_status'] ?? 'active') !== 'active') {
+        throw new RuntimeException('Inactive accounts cannot complete authentication.');
+    }
     $user_id = (int) $user['id'];
     setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $stmt = $conn->prepare(
@@ -544,10 +713,10 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     if ($stmt) {
         $stmt->bind_param('i', $user_id);
         if (!$stmt->execute()) {
-            error_log('Unable to record the successful login timestamp: ' . $stmt->error);
+            applicationLog('error', 'Unable to record the successful login timestamp', ['error' => $stmt->error]);
         }
     } else {
-        error_log('Unable to prepare the successful login timestamp update: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the successful login timestamp update', ['error' => $conn->error]);
     }
 
     recordAuditEvent($conn, [
@@ -581,11 +750,11 @@ function authenticationDestination(array $user) {
         return 'two_factor_settings.php?password_reset_required=1';
     }
 
-    return 'engagements.php';
+    return 'dashboard.php';
 }
 
 function twoFactorRecoveryCodesDestination($initial_login = false) {
-    return $initial_login ? 'engagements.php' : 'two_factor_settings.php';
+    return $initial_login ? 'dashboard.php' : 'two_factor_settings.php';
 }
 
 function hasRecentTwoFactorVerification($maximum_age_seconds = 300) {
@@ -610,14 +779,14 @@ function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null
     );
 
     if (!$stmt) {
-        error_log('Unable to prepare the database audit context: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare the database audit context', ['error' => $conn->error]);
         return false;
     }
 
     $stmt->bind_param('iss', $actor_user_id, $actor_username, $ip_address);
     $success = $stmt->execute();
     if (!$success) {
-        error_log('Unable to set the database audit context: ' . $stmt->error);
+        applicationLog('error', 'Unable to set the database audit context', ['error' => $stmt->error]);
     }
     $stmt->close();
 
@@ -626,160 +795,66 @@ function setDatabaseAuditContext(mysqli $conn, $user_id = null, $username = null
 
 function requestIpAddress($server = null) {
     $server = is_array($server) ? $server : $_SERVER;
-    $remote_address = trim((string) ($server['REMOTE_ADDR'] ?? ''));
-    $remote_address = filter_var($remote_address, FILTER_VALIDATE_IP)
-        ? $remote_address
-        : null;
+    return ClientAddress::resolve(
+        $server,
+        trustedProxyNetworks(),
+        trustedCloudflareProxyNetworks()
+    );
+}
 
-    if ($remote_address !== null && isTrustedProxyAddress($remote_address)) {
-        $forwarded_for = (string) ($server['HTTP_X_FORWARDED_FOR'] ?? '');
-        foreach (explode(',', $forwarded_for) as $forwarded_address) {
-            $forwarded_address = trim($forwarded_address);
-            if (filter_var($forwarded_address, FILTER_VALIDATE_IP)) {
-                $cloudflare_address = trim((string) ($server['HTTP_CF_CONNECTING_IP'] ?? ''));
-                $cloudflare_ray = trim((string) ($server['HTTP_CF_RAY'] ?? ''));
-                if (isTrustedCloudflareProxyAddress($forwarded_address)
-                    && filter_var($cloudflare_address, FILTER_VALIDATE_IP)
-                    && preg_match('/^[0-9a-f]{16,32}(?:-[a-z]{3})?$/i', $cloudflare_ray)
-                ) {
-                    return substr($cloudflare_address, 0, 45);
-                }
+function trustedProxyNetworks() {
+    $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
+    return is_string($configured_proxies) && trim($configured_proxies) !== ''
+        ? $configured_proxies
+        : '192.168.65.1';
+}
 
-                return substr($forwarded_address, 0, 45);
-            }
-        }
-    }
-
-    return $remote_address === null ? null : substr($remote_address, 0, 45);
+function trustedCloudflareProxyNetworks() {
+    $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
+    return is_string($configured_proxies) && trim($configured_proxies) !== ''
+        ? $configured_proxies
+        : '172.18.0.0/24';
 }
 
 function isTrustedProxyAddress($ip_address) {
-    $configured_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
-    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '192.168.65.1';
-    }
-
-    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+    return isAddressInTrustedNetworks($ip_address, trustedProxyNetworks());
 }
 
 function isTrustedCloudflareProxyAddress($ip_address) {
-    $configured_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');
-    if (!is_string($configured_proxies) || trim($configured_proxies) === '') {
-        $configured_proxies = '172.18.0.0/24';
-    }
-
-    return isAddressInTrustedNetworks($ip_address, $configured_proxies);
+    return isAddressInTrustedNetworks($ip_address, trustedCloudflareProxyNetworks());
 }
 
 function dockerGatewayAddress($route_contents = null) {
-    if ($route_contents === null) {
-        $route_contents = @file_get_contents('/proc/net/route');
-    }
-    if (!is_string($route_contents) || trim($route_contents) === '') {
+    if ($route_contents !== null && !is_string($route_contents)) {
         return null;
     }
 
-    foreach (preg_split('/\R/', trim($route_contents)) as $route_line) {
-        $fields = preg_split('/\s+/', trim($route_line));
-        if (count($fields) < 4
-            || $fields[1] !== '00000000'
-            || preg_match('/\A[0-9A-Fa-f]{8}\z/', $fields[2]) !== 1
-            || preg_match('/\A[0-9A-Fa-f]{4}\z/', $fields[3]) !== 1
-            || (((int) hexdec($fields[3])) & 0x2) === 0
-        ) {
-            continue;
-        }
-
-        $packed_gateway = @hex2bin($fields[2]);
-        if ($packed_gateway === false || strlen($packed_gateway) !== 4) {
-            continue;
-        }
-        $gateway_address = @inet_ntop(strrev($packed_gateway));
-        if (is_string($gateway_address)
-            && filter_var($gateway_address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)
-        ) {
-            return $gateway_address;
-        }
-    }
-
-    return null;
+    return ClientAddress::dockerGatewayAddress($route_contents);
 }
 
 function isAddressInTrustedNetworks($ip_address, $configured_networks, $docker_gateway = null) {
-    if (!filter_var($ip_address, FILTER_VALIDATE_IP)) {
-        return false;
-    }
-
-    $trusted_networks = array_filter(array_map('trim', explode(',', $configured_networks)));
-    foreach ($trusted_networks as $trusted_network) {
-        if ($trusted_network === 'docker-gateway') {
-            $resolved_gateway = $docker_gateway ?? dockerGatewayAddress();
-            if ($resolved_gateway !== null && $ip_address === $resolved_gateway) {
-                return true;
-            }
-            continue;
-        }
-        if (ipAddressMatchesNetwork($ip_address, $trusted_network)) {
-            return true;
-        }
-    }
-
-    return false;
+    return ClientAddress::isAddressInTrustedNetworks(
+        (string) $ip_address,
+        (string) $configured_networks,
+        is_string($docker_gateway) ? $docker_gateway : null
+    );
 }
 
 function ipAddressMatchesNetwork($ip_address, $trusted_network) {
-    if (strpos($trusted_network, '/') === false) {
-        return $ip_address === $trusted_network;
-    }
-
-    [$network_address, $prefix_length] = array_map('trim', explode('/', $trusted_network, 2));
-    if (!ctype_digit($prefix_length)) {
-        return false;
-    }
-
-    $packed_address = @inet_pton($ip_address);
-    $packed_network = @inet_pton($network_address);
-    if ($packed_address === false
-        || $packed_network === false
-        || strlen($packed_address) !== strlen($packed_network)
-    ) {
-        return false;
-    }
-
-    $prefix_length = (int) $prefix_length;
-    $maximum_prefix_length = strlen($packed_address) * 8;
-    if ($prefix_length < 0 || $prefix_length > $maximum_prefix_length) {
-        return false;
-    }
-
-    $whole_bytes = intdiv($prefix_length, 8);
-    if (substr($packed_address, 0, $whole_bytes) !== substr($packed_network, 0, $whole_bytes)) {
-        return false;
-    }
-
-    $remaining_bits = $prefix_length % 8;
-    if ($remaining_bits === 0) {
-        return true;
-    }
-
-    $mask = (0xff << (8 - $remaining_bits)) & 0xff;
-    return (ord($packed_address[$whole_bytes]) & $mask)
-        === (ord($packed_network[$whole_bytes]) & $mask);
+    return ClientAddress::isAddressInTrustedNetworks(
+        (string) $ip_address,
+        (string) $trusted_network
+    );
 }
 
 function auditLogSchemaAvailable(mysqli $conn) {
-    $result = $conn->query(
-        "SHOW COLUMNS FROM security_audit_log LIKE 'event_category'"
-    );
-    return $result && $result->num_rows === 1;
+    return true;
 }
 
 function requireAuditLogSchema(mysqli $conn) {
-    if (!auditLogSchemaAvailable($conn)) {
-        error_log('DNR audit log migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The audit log database migration is required.');
-    }
+    // Schema readiness is checked by the container health check. Runtime
+    // requests avoid information_schema queries and surface query failures in
+    // the route that needs the unavailable table.
 }
 
 function auditUsernameForId(mysqli $conn, $user_id) {
@@ -850,7 +925,7 @@ function recordAuditEvent(mysqli $conn, array $event) {
          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     if (!$stmt) {
-        error_log('Unable to prepare an audit log event: ' . $conn->error);
+        applicationLog('error', 'Unable to prepare an audit log event', ['error' => $conn->error]);
         return false;
     }
 
@@ -870,7 +945,7 @@ function recordAuditEvent(mysqli $conn, array $event) {
     );
     $success = $stmt->execute();
     if (!$success) {
-        error_log('Unable to record an audit log event: ' . $stmt->error);
+        applicationLog('error', 'Unable to record an audit log event', ['error' => $stmt->error]);
     }
     $stmt->close();
 
@@ -904,71 +979,83 @@ function recordFailedLoginAttempt(mysqli $conn, $attempted_username, $details, $
     );
 }
 
-function loginRateLimitSettings($scope) {
-    if ($scope === 'ip') {
-        return ['limit' => 8, 'window' => 300, 'block' => 900];
+function authenticationRateLimitSettings($scope) {
+    $settings = [
+        'login_ip' => ['limit' => 8, 'window' => 300, 'block' => 900],
+        // Correct credentials bypass account throttles. The account scope only
+        // suppresses further failures, so an attacker cannot lock out a user.
+        'login_account' => ['limit' => 30, 'window' => 900, 'block' => 300],
+        'recovery_ip' => ['limit' => 8, 'window' => 600, 'block' => 1800],
+        'recovery_account' => ['limit' => 15, 'window' => 900, 'block' => 900],
+    ];
+    if (!isset($settings[$scope])) {
+        throw new InvalidArgumentException('Unknown authentication rate-limit scope.');
     }
-    if ($scope === 'global') {
-        return ['limit' => 60, 'window' => 60, 'block' => 300];
-    }
-    throw new InvalidArgumentException('Unknown login rate-limit scope.');
+    return $settings[$scope];
 }
 
-function loginRateLimitKey($scope, $identifier) {
+function loginRateLimitSettings($scope) {
+    $legacy_scopes = ['ip' => 'login_ip', 'account' => 'login_account'];
+    return authenticationRateLimitSettings($legacy_scopes[$scope] ?? $scope);
+}
+
+function authenticationRateLimitKey($scope, $identifier) {
     return hash('sha256', (string) $scope . "\0" . (string) $identifier);
 }
 
-function loginRateLimitIdentifiers() {
-    return [
-        'ip' => requestIpAddress() ?: 'unknown',
-        'global' => 'all-login-traffic',
-    ];
+function authenticationRateLimitAccountIdentifier($username) {
+    return strtolower(substr(trim((string) $username), 0, 255));
 }
 
 function requireLoginRateLimitSchema(mysqli $conn) {
-    $result = $conn->query("SHOW TABLES LIKE 'authentication_rate_limits'");
-    if (!$result || $result->num_rows !== 1) {
-        error_log('DNR login rate-limit migration has not been applied.');
-        http_response_code(503);
-        exit('DNR is being upgraded. The login security migration is required.');
-    }
+    // Schema readiness is checked outside the request path.
 }
 
-function loginRateLimitIsBlocked(mysqli $conn) {
+function authenticationRateLimitIsBlocked(mysqli $conn, $scope, $identifier) {
     $stmt = $conn->prepare(
         'SELECT blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
          FROM authentication_rate_limits
          WHERE key_hash = UNHEX(?)'
     );
     if (!$stmt) {
-        throw new RuntimeException('Unable to check login availability.');
+        throw new RuntimeException('Unable to check authentication availability.');
     }
-    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
-        $key = loginRateLimitKey($scope, $identifier);
-        $stmt->bind_param('s', $key);
-        if (!$stmt->execute()) {
-            $stmt->close();
-            throw new RuntimeException('Unable to check login availability.');
-        }
-        $row = $stmt->get_result()->fetch_assoc();
-        if ($row && !empty($row['is_blocked'])) {
-            $stmt->close();
-            return true;
-        }
+    $key = authenticationRateLimitKey($scope, $identifier);
+    $stmt->bind_param('s', $key);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to check authentication availability.');
     }
+    $row = $stmt->get_result()->fetch_assoc();
     $stmt->close();
-    return false;
+    return $row && !empty($row['is_blocked']);
 }
 
-function recordLoginRateLimitFailure(mysqli $conn) {
-    $ip_attempts = 0;
-    $ip_just_blocked = false;
-    foreach (loginRateLimitIdentifiers() as $scope => $identifier) {
-        $settings = loginRateLimitSettings($scope);
+function authenticationSourceIsBlocked(mysqli $conn, $purpose) {
+    $scope = $purpose . '_ip';
+    return authenticationRateLimitIsBlocked(
+        $conn,
+        $scope,
+        requestIpAddress() ?: 'unknown'
+    );
+}
+
+function recordAuthenticationRateLimitFailure(mysqli $conn, $purpose, $username) {
+    $identifiers = [
+        $purpose . '_ip' => requestIpAddress() ?: 'unknown',
+    ];
+    $account_identifier = authenticationRateLimitAccountIdentifier($username);
+    if ($account_identifier !== '') {
+        $identifiers[$purpose . '_account'] = $account_identifier;
+    }
+
+    $states = [];
+    foreach ($identifiers as $scope => $identifier) {
+        $settings = authenticationRateLimitSettings($scope);
         $window = (int) $settings['window'];
         $limit = (int) $settings['limit'];
         $block = (int) $settings['block'];
-        $key = loginRateLimitKey($scope, $identifier);
+        $key = authenticationRateLimitKey($scope, $identifier);
         $sql = "INSERT INTO authentication_rate_limits
                     (key_hash, scope, attempts, window_started_at, blocked_until, updated_at)
                 VALUES (UNHEX(?), ?, 1, UTC_TIMESTAMP(), NULL, UTC_TIMESTAMP())
@@ -989,43 +1076,49 @@ function recordLoginRateLimitFailure(mysqli $conn) {
                     updated_at = UTC_TIMESTAMP()";
         $stmt = $conn->prepare($sql);
         if (!$stmt) {
-            throw new RuntimeException('Unable to record login availability.');
+            throw new RuntimeException('Unable to record authentication availability.');
         }
         $stmt->bind_param('ss', $key, $scope);
         if (!$stmt->execute()) {
             $stmt->close();
-            throw new RuntimeException('Unable to record login availability.');
+            throw new RuntimeException('Unable to record authentication availability.');
         }
         $stmt->close();
 
-        if ($scope === 'ip') {
-            $status_stmt = $conn->prepare(
-                'SELECT attempts, blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
-                 FROM authentication_rate_limits WHERE key_hash = UNHEX(?)'
-            );
-            $status_stmt->bind_param('s', $key);
-            $status_stmt->execute();
-            $status = $status_stmt->get_result()->fetch_assoc();
-            $status_stmt->close();
-            $ip_attempts = (int) ($status['attempts'] ?? 0);
-            $ip_just_blocked = !empty($status['is_blocked']) && $ip_attempts === $limit;
-        }
+        $status_stmt = $conn->prepare(
+            'SELECT attempts, blocked_until IS NOT NULL AND blocked_until > UTC_TIMESTAMP() AS is_blocked
+             FROM authentication_rate_limits WHERE key_hash = UNHEX(?)'
+        );
+        $status_stmt->bind_param('s', $key);
+        $status_stmt->execute();
+        $status = $status_stmt->get_result()->fetch_assoc();
+        $status_stmt->close();
+        $states[$scope] = [
+            'attempts' => (int) ($status['attempts'] ?? 0),
+            'blocked' => !empty($status['is_blocked']),
+            'just_blocked' => !empty($status['is_blocked'])
+                && (int) ($status['attempts'] ?? 0) === $limit,
+        ];
     }
 
-    return [
-        'blocked' => loginRateLimitIsBlocked($conn),
-        'should_audit' => $ip_attempts <= 3 || $ip_just_blocked,
-    ];
+    return $states;
 }
 
-function clearLoginRateLimitForCurrentIp(mysqli $conn) {
-    $key = loginRateLimitKey('ip', requestIpAddress() ?: 'unknown');
+function clearAuthenticationRateLimits(mysqli $conn, $purpose, $username) {
+    $keys = [authenticationRateLimitKey($purpose . '_ip', requestIpAddress() ?: 'unknown')];
+    $account_identifier = authenticationRateLimitAccountIdentifier($username);
+    if ($account_identifier !== '') {
+        $keys[] = authenticationRateLimitKey($purpose . '_account', $account_identifier);
+    }
     $stmt = $conn->prepare('DELETE FROM authentication_rate_limits WHERE key_hash = UNHEX(?)');
     if (!$stmt) {
         return false;
     }
-    $stmt->bind_param('s', $key);
-    $success = $stmt->execute();
+    $success = true;
+    foreach ($keys as $key) {
+        $stmt->bind_param('s', $key);
+        $success = $stmt->execute() && $success;
+    }
     $stmt->close();
 
     // Successful logins provide a low-cost opportunity to bound stale state.
@@ -1036,10 +1129,28 @@ function clearLoginRateLimitForCurrentIp(mysqli $conn) {
              WHERE updated_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 DAY)'
         );
     } catch (Throwable $exception) {
-        error_log('Unable to prune stale login rate-limit records: ' . $exception->getMessage());
+        applicationLog('error', 'Unable to prune stale login rate-limit records', ['error' => $exception->getMessage()]);
     }
 
     return $success;
+}
+
+function loginRateLimitIsBlocked(mysqli $conn) {
+    return authenticationSourceIsBlocked($conn, 'login');
+}
+
+function recordLoginRateLimitFailure(mysqli $conn, $username = '') {
+    $states = recordAuthenticationRateLimitFailure($conn, 'login', $username);
+    $ip_state = $states['login_ip'] ?? ['attempts' => 0, 'blocked' => false, 'just_blocked' => false];
+    $account_blocked = !empty($states['login_account']['blocked']);
+    return [
+        'blocked' => !empty($ip_state['blocked']) || $account_blocked,
+        'should_audit' => $ip_state['attempts'] <= 3 || !empty($ip_state['just_blocked']),
+    ];
+}
+
+function clearLoginRateLimitForCurrentIp(mysqli $conn, $username = '') {
+    return clearAuthenticationRateLimits($conn, 'login', $username);
 }
 
 // Check if the logged-in user has any of the specified roles
@@ -1097,38 +1208,18 @@ function restoreEntity(mysqli $conn, $entity, $id) {
 }
 
 function organizationActiveDependencyCounts(mysqli $conn, $organization_id) {
-    $organization_id = (int) $organization_id;
-    if ($organization_id < 1) {
+    try {
+        return ArchiveService::organizationActiveDependencyCounts(
+            $conn,
+            (int) $organization_id
+        );
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to count active organization dependencies', [
+            'organization_id' => (int) $organization_id,
+            'error' => $exception->getMessage(),
+        ]);
         return null;
     }
-
-    $stmt = $conn->prepare(
-        'SELECT
-            (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
-              AS active_contacts,
-            (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
-              AS active_engagements'
-    );
-    if (!$stmt) {
-        return null;
-    }
-
-    $stmt->bind_param('ii', $organization_id, $organization_id);
-    if (!$stmt->execute()) {
-        $stmt->close();
-        return null;
-    }
-
-    $dependencies = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
-    if (!$dependencies) {
-        return null;
-    }
-
-    return [
-        'contacts' => (int) ($dependencies['active_contacts'] ?? 0),
-        'engagements' => (int) ($dependencies['active_engagements'] ?? 0),
-    ];
 }
 
 function organizationArchiveDependencyMessage(array $dependencies) {
@@ -1160,61 +1251,19 @@ function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {
         return false;
     }
 
-    $tables = [
-        'contact' => 'contacts',
-        'engagement' => 'engagements',
-        'event' => 'engagements',
-        'organization' => 'organizations',
-    ];
-
-    if (!isset($tables[$entity]) || (int) $id < 1) {
-        return false;
-    }
-
     $id = (int) $id;
-    if (($entity === 'organization') && $is_archived) {
-        $dependencies = organizationActiveDependencyCounts($conn, $id);
-        if ($dependencies === null
-            || $dependencies['contacts'] > 0
-            || $dependencies['engagements'] > 0
-        ) {
-            return false;
-        }
-    }
-
-    if (!$is_archived && in_array($entity, ['contact', 'engagement', 'event'], true)) {
-        $child_table = $entity === 'contact' ? 'contacts' : 'engagements';
-        $organization_stmt = $conn->prepare(
-            "SELECT o.is_deleted
-             FROM {$child_table} child
-             INNER JOIN organizations o ON o.id = child.organization_id
-             WHERE child.id = ?"
-        );
-        if (!$organization_stmt) {
-            return false;
-        }
-        $organization_stmt->bind_param('i', $id);
-        $organization_stmt->execute();
-        $organization = $organization_stmt->get_result()->fetch_assoc();
-        $organization_stmt->close();
-        if (!$organization || !empty($organization['is_deleted'])) {
-            return false;
-        }
-    }
-
     $archive_value = $is_archived ? 1 : 0;
-    $stmt = $conn->prepare(
-        "UPDATE {$tables[$entity]} SET is_deleted = ? WHERE id = ?"
-    );
-    if (!$stmt) {
+    try {
+        return ArchiveService::setArchived($conn, (string) $entity, $id, (bool) $is_archived);
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to change archive state', [
+            'entity' => $entity,
+            'entity_id' => $id,
+            'is_archived' => $archive_value,
+            'error' => $exception->getMessage(),
+        ]);
         return false;
     }
-
-    $stmt->bind_param('ii', $archive_value, $id);
-    $success = $stmt->execute();
-    $stmt->close();
-
-    return $success;
 }
 
 // Permanently remove an entity. Organization deletion explicitly removes its

@@ -1,8 +1,12 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
+include 'map_helpers.php';
+include 'two_factor_helpers.php';
+include 'follow_up_task_helpers.php';
+include 'engagement_contact_helpers.php';
+include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -13,18 +17,18 @@ if (!in_array($user_role, ['admin', 'editor'])) {
     exit();
 }
 
-// Check if ID is provided and valid
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$engagement_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($engagement_id === null) {
     header("Location: engagements.php");
     exit();
 }
 
-$engagement_id = intval($_GET['id']);
-
 // Get engagement data
-$query = "SELECT e.*, o.organization_name
+$query = "SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,
+                 o.organization_name
           FROM engagements e
           LEFT JOIN organizations o ON e.organization_id = o.id
+          LEFT JOIN users caller ON caller.id = e.caller_user_id
           WHERE e.id = ? AND e.is_deleted = 0";
 
 $stmt = $conn->prepare($query);
@@ -39,6 +43,7 @@ if (!$result || $result->num_rows === 0) {
 
 $engagement = $result->fetch_assoc();
 $DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+$submitted_engagement_contacts = null;
 
 // Archive or permanently delete one saved presentation without submitting
 // unrelated edits in the engagement form.
@@ -61,11 +66,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         http_response_code(403);
         exit('Forbidden.');
     }
+    if ($presentation_action === 'delete') {
+        requireRecentAdminElevation('edit_engagement.php?id=' . $engagement_id . '#presentations-container');
+    }
 
     $conn->begin_transaction();
     try {
         $engagement_lock_stmt = $conn->prepare(
-            'SELECT confirmation_status FROM engagements WHERE id = ? FOR UPDATE'
+            'SELECT confirmation_status, lifecycle_status
+             FROM engagements WHERE id = ? FOR UPDATE'
         );
         if (!$engagement_lock_stmt) {
             throw new RuntimeException('Unable to prepare the presentation action.');
@@ -111,7 +120,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $active_count_stmt->close();
             $presentation_removal_requires_review = presentationRemovalRequiresReview(
                 $locked_engagement['confirmation_status'],
-                $active_count
+                $active_count,
+                $locked_engagement['lifecycle_status']
             );
         }
 
@@ -146,9 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         $touch_sql = $presentation_removal_requires_review
             ? "UPDATE engagements
-               SET confirmation_status = 'under_review', updated_at = CURRENT_TIMESTAMP
+               SET confirmation_status = 'under_review', updated_at = CURRENT_TIMESTAMP(6)
                WHERE id = ?"
-            : 'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?';
+            : 'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?';
         $touch_stmt = $conn->prepare($touch_sql);
         if (!$touch_stmt) {
             throw new RuntimeException('Unable to update the engagement calendar timestamp.');
@@ -211,6 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
                 http_response_code(403);
                 exit('Forbidden.');
             }
+            requireRecentAdminElevation('edit_engagement.php?id=' . $engagement_id . '#chron-log');
             $chron_stmt = $conn->prepare(
                 'DELETE FROM engagement_chron_entries
                  WHERE id = ? AND engagement_id = ?'
@@ -245,7 +256,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (isset($_POST['save_engagement']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
-    error_log("Processing form submission for engagement ID: " . $engagement_id);
+    applicationLog('info', 'Processing engagement update', ['engagement_id' => $engagement_id]);
 
     // Start transaction
     $conn->begin_transaction();
@@ -274,61 +285,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         }
         $engagement = array_merge($engagement, $locked_engagement);
 
-        // Get organization data
-        $organization_id = intval($_POST['organization_id'] ?? 0);
+        $event_type_raw = is_scalar($_POST['event_type'] ?? null)
+            ? trim((string) $_POST['event_type'])
+            : '';
+        $submitted_engagement_contacts = normalizeEngagementContactAssignments(
+            $_POST['engagement_contacts'] ?? null
+        );
+        $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
+        foreach ($engagement_input as $field => $value) {
+            ${$field} = $value;
+        }
         requireActiveOrganization($conn, $organization_id, true);
-
-        // Continue with existing engagement update code
-        $event_title = trim($_POST['event_title'] ?? '');
-        $event_description = trim($_POST['event_description'] ?? '');
+        validateEngagementContactAssignments(
+            $conn,
+            $organization_id,
+            $submitted_engagement_contacts
+        );
+        validateEngagementLifecycleStatus($conn, $engagement_id, $lifecycle_status);
+        validateEngagementRescheduleLink(
+            $conn,
+            $organization_id,
+            $lifecycle_status,
+            $rescheduled_to_engagement_id,
+            $engagement_id
+        );
+        $caller = $caller_user_id !== null
+            && $caller_user_id === (int) ($locked_engagement['caller_user_id'] ?? 0)
+            ? [
+                'id' => $caller_user_id,
+                'username' => (string) ($locked_engagement['caller_name'] ?? ''),
+            ]
+            : \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
+        $caller_user_id = $caller['id'];
+        $caller_name = $caller['username'];
+        $engagement_input['caller_user_id'] = $caller_user_id;
+        $engagement_input['caller_name'] = $caller_name;
         $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
-        $event_start_date = $_POST['event_start_date'] ?? null;
-        $event_end_date = $_POST['event_end_date'] ?? null;
-        $event_type_raw = $_POST['event_type'] ?? '';
-        $event_type_other = trim($_POST['event_type_other'] ?? '');
-        [$event_type, $event_type_other] = normalizeEventType($event_type_raw, $event_type_other);
-        $book_table = isset($_POST['book_table']) ? 1 : 0;
-        $brochures = isset($_POST['brochures']) ? 1 : 0;
-        $caller_name = trim($_POST['caller_name'] ?? '');
-        $confirmation_status = $_POST['confirmation_status'] ?? 'work_in_progress';
-
-        // Validate confirmation status
-        $valid_statuses = ['work_in_progress', 'under_review', 'confirmed'];
-        if (!in_array($confirmation_status, $valid_statuses)) {
-            $confirmation_status = 'work_in_progress';
-        }
-
-        // Ensure travel_covered has a valid ENUM value
-        $valid_travel_covered = ['unknown', 'yes', 'no'];
-        $travel_covered = isset($_POST['travel_covered']) ? $_POST['travel_covered'] : $engagement['travel_covered'];
-        if (!in_array($travel_covered, $valid_travel_covered)) {
-            $travel_covered = 'unknown';
-        }
-        error_log("Using travel_covered value: " . $travel_covered);
-
-        $travel_amount = nullableNonNegativeAmount($_POST['travel_amount'] ?? '', 'travel');
-
-        // Strict validation for compensation_type
-        $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
-        $submitted_compensation_type = $_POST['compensation_type'] ?? 'Unknown';
-        $compensation_type = in_array($submitted_compensation_type, $valid_compensation_types, true) ? $submitted_compensation_type : 'Unknown';
-
-        $other_compensation = trim($_POST['other_compensation'] ?? '');
-        $housing_type = $_POST['housing_type'] ?? 'Unknown';
-        $valid_housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
-        if (!in_array($housing_type, $valid_housing_types, true)) {
-            $housing_type = 'Unknown';
-        }
-        $other_housing = trim($_POST['other_housing'] ?? '');
-        $housing_amount = nullableNonNegativeAmount($_POST['housing_amount'] ?? '', 'lodging');
-
-        // Event location fields
-        $event_address_line_1 = trim($_POST['event_address_line_1'] ?? '');
-        $event_address_line_2 = trim($_POST['event_address_line_2'] ?? '');
-        $event_city = trim($_POST['event_city'] ?? '');
-        $event_state = trim($_POST['event_state'] ?? '');
-        $event_zipcode = trim($_POST['event_zipcode'] ?? '');
-        $event_country = trim($_POST['event_country'] ?? '');
 
         $presentations = normalizeEngagementPresentations(
             $_POST['presentations'] ?? null,
@@ -337,8 +329,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $DEFAULT_SPEAKER,
             true
         );
-        requirePresentationForConfirmedEngagement($confirmation_status, $presentations);
-        requireValidDateRange($event_start_date, $event_end_date);
+        requirePresentationForConfirmedEngagement(
+            $confirmation_status,
+            $presentations,
+            $lifecycle_status
+        );
 
         $submitted_chron_entries = [];
         foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
@@ -361,157 +356,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException("Please provide valid required fields, dates, and non-negative amounts.");
         }
 
-        // Update engagement
-        $update_fields = [];
-        $update_values = [];
-        $types = '';
-
-        // Only include fields that have changed
-        if ($organization_id != $engagement['organization_id']) {
-            $update_fields[] = "organization_id = ?";
-            $update_values[] = $organization_id;
-            $types .= "i";
+        $current_user_id = (int) $_SESSION['user_id'];
+        $lifecycle_changed = $lifecycle_status
+            !== (string) ($locked_engagement['lifecycle_status'] ?? 'active');
+        $update_plan = \Dnr\Service\EngagementUpdatePlan::build($engagement, $engagement_input);
+        $update_fields = $update_plan['assignments'];
+        $update_values = $update_plan['values'];
+        $types = $update_plan['types'];
+        if ($lifecycle_changed) {
+            $update_fields[] = 'lifecycle_changed_by = ?, lifecycle_changed_at = UTC_TIMESTAMP(6)';
+            $update_values[] = $current_user_id;
+            $types .= 'i';
         }
 
-        if ($event_title !== ($engagement['event_title'] ?? '')) {
-            $update_fields[] = "event_title = ?";
-            $update_values[] = $event_title;
-            $types .= "s";
-        }
-
-        if ($event_description !== ($engagement['event_description'] ?? '')) {
-            $update_fields[] = "event_description = ?";
-            $update_values[] = $event_description;
-            $types .= "s";
-        }
-
-        if ($event_start_date !== $engagement['event_start_date']) {
-            $update_fields[] = "event_start_date = ?";
-            $update_values[] = $event_start_date;
-            $types .= "s";
-        }
-
-        if ($event_end_date !== $engagement['event_end_date']) {
-            $update_fields[] = "event_end_date = ?";
-            $update_values[] = $event_end_date;
-            $types .= "s";
-        }
-
-        if ($event_type !== $engagement['event_type']) {
-            $update_fields[] = "event_type = ?";
-            $update_values[] = $event_type;
-            $types .= "s";
-        }
-
-        if (($event_type_other ?? '') !== ($engagement['event_type_other'] ?? '')) {
-            $update_fields[] = "event_type_other = ?";
-            $update_values[] = $event_type_other;
-            $types .= "s";
-        }
-
-        if ($book_table != $engagement['book_table']) {
-            $update_fields[] = "book_table = ?";
-            $update_values[] = $book_table;
-            $types .= "i";
-        }
-
-        if ($brochures != $engagement['brochures']) {
-            $update_fields[] = "brochures = ?";
-            $update_values[] = $brochures;
-            $types .= "i";
-        }
-
-        if ($caller_name !== $engagement['caller_name']) {
-            $update_fields[] = "caller_name = ?";
-            $update_values[] = $caller_name;
-            $types .= "s";
-        }
-
-        if ($confirmation_status !== $engagement['confirmation_status']) {
-            $update_fields[] = "confirmation_status = ?";
-            $update_values[] = $confirmation_status;
-            $types .= "s";
-        }
-
-        if ($travel_covered !== $engagement['travel_covered']) {
-            $update_fields[] = "travel_covered = ?";
-            $update_values[] = $travel_covered;
-            $types .= "s";
-        }
-
-        if (!nullableAmountsEqual($travel_amount, $engagement['travel_amount'])) {
-            $update_fields[] = "travel_amount = ?";
-            $update_values[] = $travel_amount;
-            $types .= "d";
-        }
-
-        if ($compensation_type !== $engagement['compensation_type']) {
-            $update_fields[] = "compensation_type = ?";
-            $update_values[] = $compensation_type;
-            $types .= "s";
-        }
-
-        if ($other_compensation !== $engagement['other_compensation']) {
-            $update_fields[] = "other_compensation = ?";
-            $update_values[] = $other_compensation;
-            $types .= "s";
-        }
-
-        if ($housing_type !== $engagement['housing_type']) {
-            $update_fields[] = "housing_type = ?";
-            $update_values[] = $housing_type;
-            $types .= "s";
-        }
-
-        if ($other_housing !== $engagement['other_housing']) {
-            $update_fields[] = "other_housing = ?";
-            $update_values[] = $other_housing;
-            $types .= "s";
-        }
-
-        if (!nullableAmountsEqual($housing_amount, $engagement['housing_amount'])) {
-            $update_fields[] = "housing_amount = ?";
-            $update_values[] = $housing_amount;
-            $types .= "d";
-        }
-
-        if ($event_address_line_1 !== $engagement['event_address_line_1']) {
-            $update_fields[] = "event_address_line_1 = ?";
-            $update_values[] = $event_address_line_1;
-            $types .= "s";
-        }
-
-        if ($event_address_line_2 !== $engagement['event_address_line_2']) {
-            $update_fields[] = "event_address_line_2 = ?";
-            $update_values[] = $event_address_line_2;
-            $types .= "s";
-        }
-
-        if ($event_city !== $engagement['event_city']) {
-            $update_fields[] = "event_city = ?";
-            $update_values[] = $event_city;
-            $types .= "s";
-        }
-
-        if ($event_state !== $engagement['event_state']) {
-            $update_fields[] = "event_state = ?";
-            $update_values[] = $event_state;
-            $types .= "s";
-        }
-
-        if ($event_zipcode !== $engagement['event_zipcode']) {
-            $update_fields[] = "event_zipcode = ?";
-            $update_values[] = $event_zipcode;
-            $types .= "s";
-        }
-
-        if ($event_country !== $engagement['event_country']) {
-            $update_fields[] = "event_country = ?";
-            $update_values[] = $event_country;
-            $types .= "s";
-        }
-
-        // Add engagement_id to the values array
         $update_values[] = $engagement_id;
         $types .= "i";
 
@@ -524,15 +381,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $stmt->bind_param(...$bind_params);
 
             if (!$stmt->execute()) {
-                error_log("SQL Error: " . $stmt->error);
+                applicationLog('error', 'Engagement update query failed', ['error' => $stmt->error]);
                 throw new Exception("Failed to update engagement.");
             }
+        }
+
+        $engagement_dates_changed = $update_plan['date_range_changed'];
+        if ($engagement_dates_changed) {
+            rescheduleGeneratedEngagementTasks(
+                $conn,
+                $engagement_id,
+                $event_start_date,
+                $event_end_date
+            );
+        }
+
+        $canceled_task_count = 0;
+        if ($lifecycle_changed && $lifecycle_status === 'canceled') {
+            $canceled_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id);
         }
 
         $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations);
         if ($presentations_changed) {
             $touch_engagement_stmt = $conn->prepare(
-                'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP WHERE id = ?'
+                'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?'
             );
             if (!$touch_engagement_stmt) {
                 throw new RuntimeException('Unable to update the engagement calendar timestamp.');
@@ -545,7 +417,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $touch_engagement_stmt->close();
         }
 
-        $current_user_id = (int) $_SESSION['user_id'];
+        syncEngagementContacts(
+            $conn,
+            $engagement_id,
+            $submitted_engagement_contacts,
+            $current_user_id
+        );
         if ($submitted_chron_entries) {
             $current_chron_stmt = $conn->prepare(
                 'SELECT id, entry_text
@@ -628,10 +505,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $chron_stmt->close();
         }
 
-        // Commit transaction
+        $map_address = engagementMapAddress([
+            'event_address_line_1' => $event_address_line_1,
+            'event_address_line_2' => $event_address_line_2,
+            'event_city' => $event_city,
+            'event_state' => $event_state,
+            'event_zipcode' => $event_zipcode,
+            'event_country' => $event_country,
+        ]);
+        if ($map_address !== '' && !queueEngagementMapAddress($conn, $map_address)) {
+            throw new RuntimeException('Unable to queue the engagement location.');
+        }
+
+        // Commit the engagement and its background lookup request atomically.
         $conn->commit();
-        $success_message = "Engagement updated successfully.";
-        error_log("Engagement updated successfully for ID: " . $engagement_id);
+        $success_message = 'Engagement updated successfully.';
+        if ($canceled_task_count > 0) {
+            $success_message .= ' ' . $canceled_task_count . ' open task'
+                . ($canceled_task_count === 1 ? ' was' : 's were') . ' canceled.';
+        }
+        $_SESSION['engagement_action_message'] = $success_message;
+        applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 
         // Redirect to engagements listing
         header("Location: engagements.php");
@@ -639,14 +533,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
     } catch (Throwable $e) {
         $conn->rollback();
-        error_log("Error updating engagement: " . $e->getMessage());
+        applicationLog('error', 'Engagement update failed', [
+            'engagement_id' => $engagement_id,
+            'error' => $e->getMessage(),
+        ]);
         $error_message = $e instanceof InvalidArgumentException
             ? $e->getMessage()
             : "Unable to update the engagement. Please try again.";
 
         $rehydrated_fields = [
             'organization_id', 'event_title', 'event_description', 'event_start_date', 'event_end_date',
-            'caller_name', 'confirmation_status', 'travel_covered', 'travel_amount',
+            'caller_user_id', 'confirmation_status', 'lifecycle_status',
+            'cancellation_reason', 'rescheduled_to_engagement_id',
+            'travel_covered', 'travel_amount',
             'compensation_type', 'other_compensation', 'housing_type', 'other_housing',
             'housing_amount', 'event_address_line_1', 'event_address_line_2',
             'event_city', 'event_state', 'event_zipcode', 'event_country',
@@ -656,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 $engagement[$rehydrated_field] = trim((string) $_POST[$rehydrated_field]);
             }
         }
-        $engagement['event_type'] = in_array($event_type_raw ?? '', ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'], true)
+        $engagement['event_type'] = in_array($event_type_raw ?? '', \Dnr\Domain\ReferenceData::eventTypes(), true)
             ? $event_type_raw
             : ($engagement['event_type'] ?? 'conference');
         $engagement['event_type_other'] = trim((string) ($_POST['event_type_other'] ?? ''));
@@ -671,8 +570,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 // Get presentations for this engagement
 $presentations_query = "SELECT * FROM presentations
                         WHERE engagement_id = ? AND is_archived = 0
-                        ORDER BY presentation_date,
-                                 STR_TO_DATE(presentation_time, '%h:%i %p'), id";
+                        ORDER BY presentation_date, presentation_time, id";
 $stmt = $conn->prepare($presentations_query);
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -681,6 +579,43 @@ $presentations = [];
 while ($row = $presentations_result->fetch_assoc()) {
     $presentations[] = $row;
 }
+
+$engagement_contact_role_options = engagementContactRoles();
+$selected_engagement_organization_id = (int) ($engagement['organization_id'] ?? 0);
+try {
+    $organization_contacts = fetchOrganizationContactOptions(
+        $conn,
+        $selected_engagement_organization_id
+    );
+    $displayed_engagement_contact_assignments = $submitted_engagement_contacts !== null
+        && !empty($error_message)
+        ? $submitted_engagement_contacts
+        : fetchEngagementContactAssignments($conn, $engagement_id);
+$engagement_contact_assignment_map = engagementContactAssignmentMap(
+        $displayed_engagement_contact_assignments
+    );
+    $reschedule_candidates = fetchEngagementRescheduleCandidates(
+        $conn,
+        $selected_engagement_organization_id,
+        $engagement_id
+    );
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement contacts are temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+$engagement_lifecycle_options = engagementLifecycleStatuses();
+$engagement_confirmation_statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
+$selected_lifecycle_status = (string) ($engagement['lifecycle_status'] ?? 'active');
+$selected_confirmation_status = (string) (
+    $engagement['confirmation_status'] ?? 'work_in_progress'
+);
+$selected_cancellation_reason = (string) ($engagement['cancellation_reason'] ?? '');
+$selected_rescheduled_to_engagement_id = (int) (
+    $engagement['rescheduled_to_engagement_id'] ?? 0
+);
+$current_engagement_id = $engagement_id;
 
 $chron_action_message = $_SESSION['chron_action_message'] ?? '';
 $chron_action_error = $_SESSION['chron_action_error'] ?? '';
@@ -693,7 +628,20 @@ unset(
     $_SESSION['presentation_action_error']
 );
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $chron_page_size = 20;
+    $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchChronLogEntries(
+        $conn,
+        $engagement_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
     $archived_chron_count = countArchivedChronLogEntries($conn, $engagement_id);
     $archived_presentation_count = countArchivedEngagementPresentations($conn, $engagement_id);
 } catch (Throwable $exception) {
@@ -703,12 +651,16 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Edit Engagement - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/edit_engagement.min.css',
+    3 => 'assets/css/pages/engagement_contacts.min.css',
+    4 => 'assets/css/pages/engagement_lifecycle.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -723,7 +675,7 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" onsubmit="return validateDates();" class="engagement-form" id="engagement-edit-form">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
@@ -762,9 +714,9 @@ try {
 
             <div class="event-group">
                 <div class="label-container">Event Type</div>
-                <select name="event_type" id="event_type" onchange="toggleOtherEventType(this)">
+                <select name="event_type" id="event_type">
                     <?php
-                    $event_types = ['conference', 'service', 'study or teaching', 'Passover Seder', 'other'];
+                    $event_types = \Dnr\Domain\ReferenceData::eventTypes();
                     foreach ($event_types as $type) {
                         $selected = ($engagement['event_type'] === $type) ? 'selected' : '';
                         echo "<option value='" . htmlspecialchars($type) . "' {$selected}>" . htmlspecialchars($type) . "</option>";
@@ -773,7 +725,7 @@ try {
                 </select>
             </div>
 
-            <div class="event-group" id="other_event_type_div" style="display: <?php echo $engagement['event_type'] === 'other' ? 'block' : 'none'; ?>">
+            <div class="event-group" id="other_event_type_div" <?php echo $engagement['event_type'] === 'other' ? '' : 'hidden'; ?>>
                 <label class="label-container" for="event_type_other">Other Event Type<span class="required">*</span></label>
                 <input type="text" name="event_type_other" id="event_type_other" value="<?php echo htmlspecialchars($engagement['event_type_other'] ?? ''); ?>">
             </div>
@@ -782,6 +734,8 @@ try {
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="5"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
         </section>
+
+        <?php include 'templates/engagement_contact_form.php'; ?>
 
         <?php
         $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
@@ -806,7 +760,7 @@ try {
                 <div class="radio-options">
                     <?php
                     $travel_covered = $engagement['travel_covered'] ?? 'unknown';
-                    $options = ['unknown', 'yes', 'no'];
+                    $options = \Dnr\Domain\ReferenceData::travelCoverage();
                     foreach ($options as $option) {
                         $checked = ($travel_covered === $option) ? 'checked' : '';
                         echo "<label><input type='radio' name='travel_covered' value='{$option}' {$checked}> " . ucfirst($option) . "</label>";
@@ -821,9 +775,9 @@ try {
                 <div class="form-field">
                     <div class="field-group">
                         <label for="compensation_type">Type of Compensation</label>
-                        <select name="compensation_type" id="compensation_type" class="narrow-select" onchange="toggleOtherCompensation()">
+                        <select name="compensation_type" id="compensation_type" class="narrow-select">
                             <?php
-                            $valid_compensation_types = ['Unknown', 'Honorarium', 'Offering', 'Honorarium and Offering', 'Other'];
+                            $valid_compensation_types = \Dnr\Domain\ReferenceData::compensationTypes();
                             $selected_comp = $engagement['compensation_type'] ?? 'Unknown';
                             foreach ($valid_compensation_types as $type) {
                                 $selected = ($selected_comp === $type) ? 'selected' : '';
@@ -834,7 +788,7 @@ try {
                     </div>
                 </div>
 
-                <div class="form-field" id="other_compensation_div" style="display: <?php echo $engagement['compensation_type'] === 'Other' ? 'block' : 'none'; ?>">
+                <div class="form-field" id="other_compensation_div" <?php echo $engagement['compensation_type'] === 'Other' ? '' : 'hidden'; ?>>
                     <div class="field-group">
                         <label for="other_compensation">Describe Other Compensation<span class="required">*</span></label>
                         <input type="text" name="other_compensation" id="other_compensation" value="<?php echo htmlspecialchars($engagement['other_compensation'] ?? ''); ?>">
@@ -864,9 +818,9 @@ try {
             <div class="form-field">
                 <div class="field-group">
                     <label for="housing_type">Lodging Type</label>
-                    <select name="housing_type" id="housing_type" class="narrow-select" onchange="toggleOtherHousing()">
+                    <select name="housing_type" id="housing_type" class="narrow-select">
                         <?php
-                        $housing_types = ['Unknown', 'Provided', 'Not Provided', 'Other'];
+                        $housing_types = \Dnr\Domain\ReferenceData::housingTypes();
                         $selected_housing = $engagement['housing_type'] ?? 'Unknown';
                         foreach ($housing_types as $type) {
                             $selected = ($selected_housing === $type) ? 'selected' : '';
@@ -877,7 +831,7 @@ try {
                 </div>
             </div>
 
-            <div class="form-field" id="other_housing_div" style="display: <?php echo $engagement['housing_type'] === 'Other' ? 'block' : 'none'; ?>">
+            <div class="form-field" id="other_housing_div" <?php echo $engagement['housing_type'] === 'Other' ? '' : 'hidden'; ?>>
                 <div class="field-group">
                     <label for="other_housing">Describe Other Lodging<span class="required">*</span></label>
                     <input type="text" name="other_housing" id="other_housing" value="<?php echo htmlspecialchars($engagement['other_housing'] ?? ''); ?>">
@@ -918,35 +872,30 @@ try {
         </div>
         </section>
 
+        <?php include 'templates/engagement_lifecycle_form.php'; ?>
+
         <div class="form-row">
-            <div style="display: flex; gap: 20px;">
+            <div class="engagement-inline-row">
                 <div class="form-field">
-                    <label for="caller_name">Caller</label>
-                    <select name="caller_name" id="caller_name">
-                        <option value="" disabled>select a caller</option>
+                    <label for="caller_user_id">Caller</label>
+                    <select name="caller_user_id" id="caller_user_id">
+                        <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
                         <?php
                         // Fetch and display users in the dropdown
-                        $users = $conn->query("SELECT username FROM users ORDER BY username");
+                        $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
+                        $users = $conn->query(
+                            "SELECT id, username FROM users
+                             WHERE account_status = 'active' OR id = {$current_caller_id}
+                             ORDER BY username"
+                        );
                         while ($row = $users->fetch_assoc()) {
-                            $selected = ($engagement['caller_name'] === $row['username']) ? 'selected' : '';
-                            echo "<option value='" . htmlspecialchars($row['username']) . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
+                            $selected = (int) ($engagement['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
+                            echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
                         }
                         ?>
                     </select>
                 </div>
 
-                <div class="form-field">
-                    <label for="confirmation_status" style="margin-right: 10px;">Status</label>
-                    <select name="confirmation_status" id="confirmation_status" style="width: auto;">
-                        <?php
-                        $statuses = ['work_in_progress', 'under_review', 'confirmed'];
-                        foreach ($statuses as $status) {
-                            $selected = ($engagement['confirmation_status'] === $status) ? 'selected' : '';
-                            echo "<option value='{$status}' {$selected}>" . str_replace('_', ' ', $status) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
             </div>
 
         </div>
@@ -985,8 +934,8 @@ try {
 
         <div class="chron-add-form">
             <label for="new-chron-entry">New Chron entry</label>
-            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders." oninput="this.setCustomValidity('');"><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
-            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" onclick="return validateNewChronEntry();">Add entry</button>
+            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
+            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add entry</button>
         </div>
 
         <div class="chron-entry-list">
@@ -1026,7 +975,7 @@ try {
                             <div class="chron-entry-actions">
                                 <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
                                 <?php if ($user_role === 'admin'): ?>
-                                    <button type="submit" name="chron_action" value="delete" class="delete-button" onclick="return confirm('Permanently delete this Chron entry? This cannot be undone.');">Delete</button>
+                                    <button type="submit" name="chron_action" value="delete" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
                                 <?php endif; ?>
                             </div>
                         </form>
@@ -1037,6 +986,15 @@ try {
                 <p class="chron-empty-state">No Chron entries have been added yet.</p>
             <?php endif; ?>
         </div>
+        <?php if ($chron_total_pages > 1): ?>
+            <nav class="pagination" aria-label="Chron log pages">
+                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
+                <div class="pagination-actions">
+                    <?php if ($chron_page > 1): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page - 1; ?>#chron-log">Newer</a><?php endif; ?>
+                    <?php if ($chron_page < $chron_total_pages): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page + 1; ?>#chron-log">Older</a><?php endif; ?>
+                </div>
+            </nav>
+        <?php endif; ?>
     </section>
 
     <div class="engagement-page-actions" aria-label="Engagement form actions">
@@ -1047,263 +1005,9 @@ try {
 
 <?php include 'templates/footer.php'; ?>
 
-<script src="assets/js/presentation-form.min.js?v=0.1.4"></script>
-<script>
-    // Validate that the event end date is on or after the event start date
-    function validateDates() {
-        const startDate = document.getElementById("event_start_date").value;
-        const endDate = document.getElementById("event_end_date").value;
-
-        if (startDate && endDate && endDate < startDate) {
-            alert("End date must be on or after the start date");
-            return false;
-        }
-        return typeof validateEngagementPresentations !== 'function'
-            || validateEngagementPresentations();
-    }
-
-    function validateNewChronEntry() {
-        const entry = document.getElementById("new-chron-entry");
-        if (!entry.value.trim()) {
-            entry.setCustomValidity("Enter a Chron entry before adding it.");
-            entry.reportValidity();
-            entry.focus();
-            return false;
-        }
-        entry.setCustomValidity("");
-        return true;
-    }
-
-    // Toggle visibility of other event type field
-    function toggleOtherEventType(select) {
-        const otherDiv = document.getElementById("other_event_type_div");
-        const otherInput = document.getElementById("event_type_other");
-
-        if (select.value === "other") {
-            otherDiv.style.display = "block";
-            otherInput.required = true;
-        } else {
-            otherDiv.style.display = "none";
-            otherInput.required = false;
-            otherInput.value = "";
-        }
-    }
-
-    function toggleOtherCompensation() {
-        const select = document.getElementById("compensation_type");
-        const otherDiv = document.getElementById("other_compensation_div");
-        const otherInput = document.getElementById("other_compensation");
-
-        if (select.value === "Other") {
-            otherDiv.style.display = "block";
-            otherInput.required = true;
-        } else {
-            otherDiv.style.display = "none";
-            otherInput.required = false;
-            otherInput.value = "";
-        }
-    }
-
-    function toggleOtherHousing() {
-        const housingType = document.getElementById('housing_type');
-        const otherHousingDiv = document.getElementById('other_housing_div');
-        const otherHousingInput = document.getElementById('other_housing');
-
-        if (housingType.value === 'Other') {
-            otherHousingDiv.style.display = 'block';
-            otherHousingInput.required = true;
-        } else {
-            otherHousingDiv.style.display = 'none';
-            otherHousingInput.required = false;
-            otherHousingInput.value = '';
-        }
-    }
-</script>
-
-<style>
-    .cancel-button {
-        padding: 8px 15px;
-        background-color: var(--button-cancel-color);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        text-decoration: none;
-        margin-left: 10px;
-    }
-    .save-button {
-        background-color: var(--button-save-color);
-    }
-    /* Include all the existing styles from index.php for consistency */
-    .event-row {
-        display: flex;
-        gap: 10px;
-        position: relative;
-        padding-top: 35px;
-        margin-bottom: 8px;
-    }
-    .event-group {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        position: relative;
-    }
-    .event-title-group {
-        flex: 1;
-        min-width: 240px;
-    }
-    .label-container {
-        position: absolute;
-        top: -30px;
-        color: var(--text-color);
-        white-space: nowrap;
-    }
-    .required {
-        color: #f44336;
-        margin-left: 4px;
-    }
-    .event-group select,
-    .event-group input[type="text"] {
-        height: 35px;
-        padding: 0 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-        box-sizing: border-box;
-    }
-    .checkbox-row {
-        display: flex;
-        align-items: center;
-        margin: 15px 0;
-    }
-    .checkbox-group {
-        display: flex;
-        gap: 20px;
-    }
-    .checkbox-label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        color: white;
-    }
-    .date-fields {
-        display: flex;
-        gap: 20px;
-        margin: 15px 0;
-    }
-    .date-field {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .date-field input[type="date"] {
-        padding: 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-    }
-    textarea {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-        padding: 8px;
-        margin: 5px 0 15px;
-    }
-    select {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-        padding: 8px;
-    }
-    .form-field {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    .form-field label {
-        white-space: nowrap;
-        color: white;
-    }
-    .radio-row {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        margin-left: 30px;
-    }
-    .radio-options {
-        display: flex;
-        gap: 20px;
-    }
-    .radio-options label {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-        color: white;
-        cursor: pointer;
-    }
-    .compensation-grid {
-        margin: 20px 0;
-    }
-    .compensation-type-row {
-        display: flex;
-        gap: 20px;
-        margin-bottom: 15px;
-    }
-    .amount-row {
-        display: flex;
-        gap: 30px;
-    }
-    .currency-input {
-        display: flex;
-        align-items: center;
-        gap: 5px;
-    }
-    .currency-input span {
-        color: white;
-    }
-    .currency-input input {
-        width: 100px;
-        padding: 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-    }
-    .address-section {
-        margin: 20px 0;
-    }
-    .address-section h3 {
-        color: white;
-        margin-bottom: 15px;
-    }
-    .address-fields {
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-    .address-row {
-        display: flex;
-        gap: 20px;
-    }
-    .address-row .form-field input {
-        width: 150px;
-    }
-    .narrow-select {
-        width: 200px;
-    }
-    input[type="text"] {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
-        padding: 8px;
-        width: 100%;
-    }
-</style>
+<?php renderScript('assets/js/presentation-form.min.js', false); ?>
+<?php renderScript('assets/js/engagement-contacts.min.js', false); ?>
+<?php renderScript('assets/js/engagement-lifecycle.min.js', false); ?>
 
 </body>
 </html>

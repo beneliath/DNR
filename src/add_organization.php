@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 
 requireLogin();
@@ -15,36 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $error = false;
     $errorMessages = array();
 
-    $organization_name = trim($_POST['organization_name'] ?? '');
-    $notes = trim($_POST['notes'] ?? '');
-    $affiliation = trim($_POST['affiliation'] ?? '');
-    $distinctives = trim($_POST['distinctives'] ?? '');
-    $website_url = trim($_POST['website_url'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $phone_country_code = trim($_POST['phone_country_code'] ?? '+1');
-    $fax = trim($_POST['fax'] ?? '');
-    $fax_country_code = trim($_POST['fax_country_code'] ?? '+1');
-    $mailing_address_line_1 = trim($_POST['mailing_address_line_1'] ?? '');
-    $mailing_address_line_2 = trim($_POST['mailing_address_line_2'] ?? '');
-    $mailing_city = trim($_POST['mailing_city'] ?? '');
-    $mailing_state = trim($_POST['mailing_state'] ?? '');
-    $mailing_zipcode = trim($_POST['mailing_zipcode'] ?? '');
-    $mailing_country = trim($_POST['mailing_country'] ?? '');
-    $physical_address_line_1 = trim($_POST['physical_address_line_1'] ?? '');
-    $physical_address_line_2 = trim($_POST['physical_address_line_2'] ?? '');
-    $physical_city = trim($_POST['physical_city'] ?? '');
-    $physical_state = trim($_POST['physical_state'] ?? '');
-    $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
-    $physical_country = trim($_POST['physical_country'] ?? '');
-    $same_address = ($_POST['same_address'] ?? 'yes') === 'yes';
-    if ($same_address) {
-        $mailing_address_line_1 = $physical_address_line_1;
-        $mailing_address_line_2 = $physical_address_line_2;
-        $mailing_city = $physical_city;
-        $mailing_state = $physical_state;
-        $mailing_zipcode = $physical_zipcode;
-        $mailing_country = $physical_country;
+    $normalized_organization = \Dnr\Domain\OrganizationInput::normalize($_POST);
+    foreach ($normalized_organization['data'] as $field_name => $field_value) {
+        ${$field_name} = $field_value;
     }
+    $errorMessages = $normalized_organization['errors'];
 
     $contact_first_name = trim($_POST['contact_first_name'] ?? '');
     $contact_last_name = trim($_POST['contact_last_name'] ?? '');
@@ -86,35 +60,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         }
     }
 
-    if ($organization_name === '') {
-        $errorMessages[] = "Organization name is required.";
-    }
-    $normalized_website_url = normalizedHttpUrl($website_url);
-    if ($normalized_website_url === null) {
-        $errorMessages[] = "Please provide a valid website URL.";
-    } else {
-        $website_url = $normalized_website_url;
-    }
-    if ($physical_address_line_1 === '' || $physical_city === '' || $physical_state === ''
-        || $physical_zipcode === '' || $physical_country === ''
-    ) {
-        $errorMessages[] = 'A complete physical address is required.';
-    }
-    if (!$same_address && ($mailing_address_line_1 === '' || $mailing_city === ''
-        || $mailing_state === '' || $mailing_zipcode === '' || $mailing_country === '')
-    ) {
-        $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
-    }
-    try {
-        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Organization phone');
-    } catch (InvalidArgumentException $exception) {
-        $errorMessages[] = $exception->getMessage();
-    }
-    try {
-        $fax = normalizePhoneNumber($fax_country_code, $fax, 'Organization fax');
-    } catch (InvalidArgumentException $exception) {
-        $errorMessages[] = $exception->getMessage();
-    }
     $contacts_to_create = [];
     foreach ($contact_candidates as $contact_index => $candidate) {
         $contact_number = $contact_index + 1;
@@ -131,33 +76,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         if (!$has_contact_data) {
             continue;
         }
-        if ($candidate['first_name'] === '') {
-            $errorMessages[] = "Contact {$contact_number} requires a first name.";
+        $normalized_contact = \Dnr\Domain\ContactInput::normalizeEmbedded($candidate);
+        foreach ($normalized_contact['errors'] as $contact_error) {
+            $errorMessages[] = "Contact {$contact_number}: {$contact_error}";
         }
-        if ($candidate['last_name'] === '') {
-            $errorMessages[] = "Contact {$contact_number} requires a last name.";
-        }
-        if (!in_array($candidate['role'], ['pastor', 'admin', 'other'], true)) {
-            $errorMessages[] = "Contact {$contact_number} requires a valid role.";
-        }
-        if ($candidate['role'] === 'other' && $candidate['role_other'] === '') {
-            $errorMessages[] = "Contact {$contact_number} requires an other-role description.";
-        }
-        if (!filter_var($candidate['email'], FILTER_VALIDATE_EMAIL)) {
-            $errorMessages[] = "Contact {$contact_number} requires a valid email address.";
-        } elseif (!hash_equals($candidate['email'], $candidate['email_confirm'])) {
-            $errorMessages[] = "Contact {$contact_number} email addresses do not match.";
-        }
-        try {
-            $candidate['phone'] = normalizePhoneNumber(
-                $candidate['phone_country_code'],
-                $candidate['phone'],
-                "Contact {$contact_number} phone"
-            );
-        } catch (InvalidArgumentException $exception) {
-            $errorMessages[] = $exception->getMessage();
-        }
-        $contacts_to_create[] = $candidate;
+        $contacts_to_create[] = $normalized_contact['data'];
     }
 
     $error = !empty($errorMessages);
@@ -240,7 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 exit();
             } catch (Throwable $exception) {
                 $conn->rollback();
-                error_log($exception->getMessage());
+                applicationLog('error', 'Organization creation failed', ['error' => $exception->getMessage()]);
                 $error = true;
                 $errorMessages[] = "Unable to save the organization.";
             }
@@ -266,255 +189,14 @@ if (isset($_SESSION['success_message'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        /* Add box-sizing to ensure consistent sizing */
-        *, *:before, *:after {
-            box-sizing: border-box;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="url"],
-        .form-group input[type="email"],
-        .form-group input[type="tel"],
-        .form-group textarea,
-        .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-            margin: 0;
-            box-sizing: border-box;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        /* Dark mode styles */
-        .dark-mode .form-group input[type="text"],
-        .dark-mode .form-group input[type="url"],
-        .dark-mode .form-group input[type="email"],
-        .dark-mode .form-group input[type="tel"],
-        .dark-mode .form-group textarea,
-        .dark-mode .form-group select {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-        }
-        
-        .form-group input[type="text"]:focus,
-        .form-group input[type="url"]:focus,
-        .form-group input[type="email"]:focus,
-        .form-group input[type="tel"]:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-            outline: none;
-            border-color: #4a9eff;
-        }
-
-        .address-section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .dark-mode .address-section {
-            border-color: #444;
-        }
-
-        .address-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 10px;
-        }
-        .address-full-width {
-            grid-column: 1 / -1;
-        }
-        .required {
-            color: inherit;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-            display: inline;
-        }
-        #mailing_address_section {
-            display: none;
-        }
-        .radio-group {
-            margin: 15px 0;
-        }
-        .radio-group label {
-            margin-right: 20px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            color: var(--text-color);
-            cursor: pointer;
-        }
-        /* Style for radio buttons */
-        .radio-group input[type="radio"] {
-            appearance: none;
-            -webkit-appearance: none;
-            width: 16px;
-            height: 16px;
-            border: 2px solid #666;
-            border-radius: 50%;
-            margin: 0;
-            cursor: pointer;
-            position: relative;
-        }
-
-        .dark-mode .radio-group input[type="radio"] {
-            border-color: #888;
-        }
-
-        .radio-group input[type="radio"]:checked {
-            border-color: #357abd;
-            background-color: transparent;
-        }
-
-        .radio-group input[type="radio"]:checked::after {
-            content: '';
-            position: absolute;
-            width: 8px;
-            height: 8px;
-            background-color: #357abd;
-            border-radius: 50%;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .radio-group input[type="radio"]:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(53, 122, 189, 0.3);
-        }
-        .contact-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-        }
-        .narrow-select {
-            width: 200px !important;
-        }
-        .role-container {
-            display: flex;
-            align-items: center;
-            gap: 30px;
-            margin-bottom: 15px;
-        }
-        
-        .role-container .form-group {
-            margin-bottom: 0;
-        }
-        
-        .role-container .form-group:first-child {
-            flex: 1;
-        }
-        
-        .role-container .form-group:last-child {
-            flex: 0 0 200px;
-        }
-        .email-container {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-        }
-        .email-container .form-group {
-            flex: 1;
-            margin-bottom: 0;
-        }
-        .form-group select {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-            margin: 0;
-            box-sizing: border-box;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 1em;
-            padding-right: 32px;
-        }
-
-        /* Dark mode styles */
-        .dark-mode .form-group select {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-        }
-
-        .contact-fields {
-            display: grid;
-            gap: 15px;
-        }
-
-        .name-phone-row {
-            display: flex;
-            gap: 30px;
-            align-items: flex-start;
-        }
-
-        .name-phone-row .form-group:first-child {
-            flex: 1;
-        }
-
-        .name-phone-row .form-group:nth-child(2) {
-            flex: 1;
-        }
-
-        .name-phone-row .form-group:last-child {
-            flex: 0 0 320px;
-        }
-
-        .add-contact-btn {
-            background-color: var(--button-add-color);
-            color: white;
-            padding: 5px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
-        .remove-contact-btn {
-            background-color: var(--button-delete-color);
-            color: white;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .contact-entry {
-            margin-bottom: 15px;
-            padding: 15px;
-            border: 1px solid #444;
-            border-radius: 4px;
-        }
-    </style>
-</head>
+<?php renderPageHead('Organizations - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/add_organization.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -529,27 +211,27 @@ if (isset($_SESSION['success_message'])) {
             <label class="required">Organization Name</label>
             <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
         </div>
-        
+
         <div class="form-group">
             <label>Notes</label>
             <textarea name="notes" rows="4"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
         </div>
-        
+
         <div class="form-group">
             <label>Affiliation</label>
             <input type="text" name="affiliation" value="<?php echo htmlspecialchars($_POST['affiliation'] ?? ''); ?>">
         </div>
-        
+
         <div class="form-group">
             <label>Distinctives</label>
             <input type="text" name="distinctives" value="<?php echo htmlspecialchars($_POST['distinctives'] ?? ''); ?>">
         </div>
-        
+
         <div class="form-group">
             <label>Website URL</label>
             <input type="url" name="website_url" value="<?php echo htmlspecialchars($_POST['website_url'] ?? ''); ?>">
         </div>
-        
+
         <div class="contact-grid">
             <div class="form-group">
                 <label>Phone</label>
@@ -558,7 +240,7 @@ if (isset($_SESSION['success_message'])) {
                     <input type="tel" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                 </div>
             </div>
-            
+
             <div class="form-group">
                 <label>Fax</label>
                 <div class="phone-input-group" data-phone-input-group>
@@ -660,15 +342,15 @@ if (isset($_SESSION['success_message'])) {
                         <div class="role-container">
                             <div class="form-group">
                                 <label id="role_label">Role</label>
-                                <select name="contact_role" id="contact_role" class="narrow-select" onchange="toggleOtherRole()">
+                                <select name="contact_role" id="contact_role" class="narrow-select" data-contact-role-id="">
                                     <option value="">Select Role</option>
-                                    <option value="pastor" <?php echo ($_POST['contact_role'] ?? '') === 'pastor' ? 'selected' : ''; ?>>Pastor</option>
-                                    <option value="admin" <?php echo ($_POST['contact_role'] ?? '') === 'admin' ? 'selected' : ''; ?>>Admin</option>
-                                    <option value="other" <?php echo ($_POST['contact_role'] ?? '') === 'other' ? 'selected' : ''; ?>>Other</option>
+                                    <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                                        <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($_POST['contact_role'] ?? '') === $role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
                                 </select>
                             </div>
 
-                            <div class="form-group" id="other_role_group" style="display: <?php echo ($_POST['contact_role'] ?? '') === 'other' ? 'block' : 'none'; ?>;">
+                            <div class="form-group" id="other_role_group" <?php echo ($_POST['contact_role'] ?? '') === 'other' ? '' : 'hidden'; ?>>
                                 <label>Describe Other Role</label>
                                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($_POST['contact_role_other'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
@@ -693,232 +375,75 @@ if (isset($_SESSION['success_message'])) {
                     </div>
                 </div>
             </div>
-            <button type="button" onclick="addContact()" class="add-contact-btn">Add Another Contact</button>
+            <template id="contact-entry-template">
+                <div class="contact-entry" id="contact-__CONTACT_ID__">
+                    <div class="contact-fields">
+                        <div class="name-phone-row">
+                            <div class="form-group">
+                                <label class="required">First Name</label>
+                                <input type="text" name="contacts[__CONTACT_INDEX__][first_name]" autocomplete="given-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Last Name</label>
+                                <input type="text" name="contacts[__CONTACT_INDEX__][last_name]" autocomplete="family-name" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Phone</label>
+                                <div class="phone-input-group" data-phone-input-group>
+                                    <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', '+1', 'Contact phone country code'); ?>
+                                    <input type="tel" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="role-container">
+                            <div class="form-group">
+                                <label class="required">Role</label>
+                                <select name="contacts[__CONTACT_INDEX__][role]" class="narrow-select" required data-contact-role-id="__CONTACT_ID__">
+                                    <option value="">Select Role</option>
+                                    <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
+                                        <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="form-group" hidden data-additional-other-role>
+                                <label class="required">Describe Other Role</label>
+                                <input type="text" name="contacts[__CONTACT_INDEX__][role_other]">
+                            </div>
+                        </div>
+                        <div class="email-container">
+                            <div class="form-group">
+                                <label class="required">Email</label>
+                                <input type="email" name="contacts[__CONTACT_INDEX__][email]" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="required">Confirm Email</label>
+                                <input type="email" name="contacts[__CONTACT_INDEX__][email_confirm]" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Notes</label>
+                            <textarea name="contacts[__CONTACT_INDEX__][notes]" rows="4" placeholder="Add incidental notes about this person."></textarea>
+                        </div>
+                    </div>
+                    <button type="button" data-remove-contact class="remove-contact-btn">Remove</button>
+                </div>
+            </template>
+            <button type="button" data-add-contact class="add-contact-btn">Add Another Contact</button>
         </div>
 
-        <div class="form-group create-form-actions" style="justify-content: flex-end; padding: 0; margin: 0;">
+        <div class="form-group create-form-actions create-form-actions-end">
             <a href="organizations.php" class="cancel-button">Cancel</a>
             <input type="submit" name="save_org" value="Create organization" class="save-button">
         </div>
     </form>
 </div>
 
-<script>
-function toggleOtherRole() {
-    const roleSelect = document.getElementById('contact_role');
-    const otherRoleGroup = document.getElementById('other_role_group');
-    const otherRoleInput = document.getElementById('contact_role_other');
-    
-    if (roleSelect.value === 'other') {
-        otherRoleGroup.style.display = 'block';
-        otherRoleInput.required = true;
-    } else {
-        otherRoleGroup.style.display = 'none';
-        otherRoleInput.required = false;
-    }
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Auto-hide success message after 7 seconds
-    const successMessage = document.querySelector('.success');
-    if (successMessage) {
-        setTimeout(function() {
-            successMessage.style.transition = 'opacity 1s';
-            successMessage.style.opacity = '0';
-            setTimeout(function() {
-                successMessage.remove();
-            }, 1000);
-        }, 7000);
-    }
-
-    const sameAddressRadios = document.querySelectorAll('input[name="same_address"]');
-    const mailingSection = document.getElementById('mailing_address_section');
-    const mailingInputs = mailingSection.querySelectorAll('input, select');
-
-    function toggleMailingAddress(showMailing) {
-        mailingSection.style.display = showMailing ? 'block' : 'none';
-        mailingInputs.forEach(input => {
-            input.required = showMailing;
-        });
-    }
-
-    sameAddressRadios.forEach(radio => {
-        radio.addEventListener('change', function() {
-            toggleMailingAddress(this.value === 'no');
-        });
-    });
-
-    // Initial state, including a failed submission that selected separate addresses.
-    const selectedSameAddress = document.querySelector('input[name="same_address"]:checked');
-    toggleMailingAddress(selectedSameAddress && selectedSameAddress.value === 'no');
-
-    // A partially entered contact still requires both name fields and contact details.
-    const contactFirstNameInput = document.getElementById('contact_first_name');
-    const contactLastNameInput = document.getElementById('contact_last_name');
-    const contactRoleSelect = document.getElementById('contact_role');
-    const contactEmailInput = document.getElementById('contact_email');
-    const contactEmailConfirmInput = document.getElementById('contact_email_confirm');
-    
-    // Get the labels for the required fields
-    const firstNameLabel = document.getElementById('first_name_label');
-    const lastNameLabel = document.getElementById('last_name_label');
-    const roleLabel = document.getElementById('role_label');
-    const emailLabel = document.getElementById('email_label');
-    const emailConfirmLabel = document.getElementById('email_confirm_label');
-
-    function updateContactFieldRequirements() {
-        const hasContactName = contactFirstNameInput.value.trim() !== '' || contactLastNameInput.value.trim() !== '';
-        
-        // Update required attribute
-        contactFirstNameInput.required = hasContactName;
-        contactLastNameInput.required = hasContactName;
-        contactRoleSelect.required = hasContactName;
-        contactEmailInput.required = hasContactName;
-        contactEmailConfirmInput.required = hasContactName;
-        
-        // Update labels with asterisk
-        if (hasContactName) {
-            firstNameLabel.classList.add('required');
-            lastNameLabel.classList.add('required');
-            roleLabel.classList.add('required');
-            emailLabel.classList.add('required');
-            emailConfirmLabel.classList.add('required');
-        } else {
-            firstNameLabel.classList.remove('required');
-            lastNameLabel.classList.remove('required');
-            roleLabel.classList.remove('required');
-            emailLabel.classList.remove('required');
-            emailConfirmLabel.classList.remove('required');
-        }
-    }
-
-    contactFirstNameInput.addEventListener('input', updateContactFieldRequirements);
-    contactLastNameInput.addEventListener('input', updateContactFieldRequirements);
-    // Initial check
-    updateContactFieldRequirements();
-});
-
-let contactCount = 1;
-
-function addContact() {
-    contactCount++;
-    const container = document.getElementById('contacts-container');
-    const newContact = document.createElement('div');
-    newContact.className = 'contact-entry';
-    newContact.id = `contact-${contactCount}`;
-    
-    newContact.innerHTML = `
-        <div class="contact-fields">
-            <div class="name-phone-row">
-                <div class="form-group">
-                    <label class="required">First Name</label>
-                    <input type="text" name="contacts[${contactCount-1}][first_name]" autocomplete="given-name" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="required">Last Name</label>
-                    <input type="text" name="contacts[${contactCount-1}][last_name]" autocomplete="family-name" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="required">Phone</label>
-                    <div class="phone-input-group" data-phone-input-group>
-                        <?php echo phoneCountryPicker('contacts[${contactCount-1}][phone_country_code]', '+1', 'Contact phone country code'); ?>
-                        <input type="tel" name="contacts[${contactCount-1}][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
-                    </div>
-                </div>
-            </div>
-
-            <div class="role-container">
-                <div class="form-group">
-                    <label class="required">Role</label>
-                    <select name="contacts[${contactCount-1}][role]" class="narrow-select" required onchange="toggleOtherRole(${contactCount})">
-                        <option value="">Select Role</option>
-                        <option value="pastor">Pastor</option>
-                        <option value="admin">Admin</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-
-                <div class="form-group" id="other_role_group_${contactCount}" style="display: none;">
-                    <label class="required">Describe Other Role</label>
-                    <input type="text" name="contacts[${contactCount-1}][role_other]">
-                </div>
-            </div>
-
-            <div class="email-container">
-                <div class="form-group">
-                    <label class="required">Email</label>
-                    <input type="email" name="contacts[${contactCount-1}][email]" required>
-                </div>
-
-                <div class="form-group">
-                    <label class="required">Confirm Email</label>
-                    <input type="email" name="contacts[${contactCount-1}][email_confirm]" required>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Notes</label>
-                <textarea name="contacts[${contactCount-1}][notes]" rows="4" placeholder="Add incidental notes about this person."></textarea>
-            </div>
-        </div>
-        <button type="button" onclick="removeContact(${contactCount})" class="remove-contact-btn">Remove</button>
-    `;
-    
-    container.appendChild(newContact);
-}
-
-function removeContact(id) {
-    if (id === 1) return; // Prevent removing the first contact
-    const contact = document.getElementById(`contact-${id}`);
-    if (contact) {
-        contact.remove();
-    }
-}
-
-function toggleOtherRole(id = '') {
-    const suffix = id ? `_${id}` : '';
-    const roleSelect = document.querySelector(`select[name="contacts[${id-1}][role]"]`) || document.getElementById('contact_role');
-    const otherRoleGroup = document.getElementById(`other_role_group${suffix}`);
-    const otherRoleInput = otherRoleGroup.querySelector('input');
-    
-    if (roleSelect.value === 'other') {
-        otherRoleGroup.style.display = 'block';
-        otherRoleInput.required = true;
-    } else {
-        otherRoleGroup.style.display = 'none';
-        otherRoleInput.required = false;
-        otherRoleInput.value = '';
-    }
-}
-
 <?php if (!empty($error) && is_array($_POST['contacts'] ?? null)): ?>
-const submittedAdditionalContacts = <?php echo json_encode(
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="submitted-additional-contacts"><?php echo json_encode(
     array_values($_POST['contacts']),
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
-); ?>;
-submittedAdditionalContacts.forEach(function (contact) {
-    addContact();
-    const formIndex = contactCount - 1;
-    Object.entries({
-        first_name: contact.first_name || '',
-        last_name: contact.last_name || '',
-        phone: contact.phone || '',
-        phone_country_code: contact.phone_country_code || '+1',
-        role: contact.role || '',
-        role_other: contact.role_other || '',
-        email: contact.email || '',
-        email_confirm: contact.email_confirm || '',
-        notes: contact.notes || ''
-    }).forEach(function ([field, value]) {
-        const input = document.querySelector('[name="contacts[' + formIndex + '][' + field + ']"]');
-        if (input) input.value = value;
-    });
-    toggleOtherRole(contactCount);
-});
+); ?></script>
 <?php endif; ?>
-</script>
 
 <?php include 'templates/footer.php'; ?>
 </body>

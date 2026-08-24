@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function calendarStatusLabel($status) {
     $status = trim((string) $status);
     if ($status === '') {
@@ -7,6 +9,51 @@ function calendarStatusLabel($status) {
     }
 
     return ucwords(str_replace('_', ' ', $status));
+}
+
+function calendarLifecycleLabel($status) {
+    return match (trim((string) $status)) {
+        'active' => 'Active',
+        'postponed' => 'Postponed',
+        'canceled' => 'Canceled',
+        'completed' => 'Completed',
+        default => 'Active',
+    };
+}
+
+function calendarOperationalStatus(array $engagement) {
+    $lifecycle = trim((string) ($engagement['lifecycle_status'] ?? 'active'));
+    return $lifecycle === 'active'
+        ? calendarStatusLabel($engagement['confirmation_status'] ?? '')
+        : calendarLifecycleLabel($lifecycle);
+}
+
+function calendarIcsStatus(array $engagement) {
+    if (($engagement['lifecycle_status'] ?? 'active') === 'canceled') {
+        return 'CANCELLED';
+    }
+    return ($engagement['confirmation_status'] ?? '') === 'confirmed'
+        ? 'CONFIRMED'
+        : 'TENTATIVE';
+}
+
+function calendarTransparency(array $engagement) {
+    return in_array(
+        (string) ($engagement['lifecycle_status'] ?? 'active'),
+        ['postponed', 'canceled'],
+        true
+    ) ? 'TRANSPARENT' : 'OPAQUE';
+}
+
+function calendarRescheduledEventLabel(array $engagement) {
+    $title = trim((string) ($engagement['rescheduled_event_title'] ?? ''));
+    $organization = trim((string) ($engagement['rescheduled_organization_name'] ?? ''));
+    $date = trim((string) ($engagement['rescheduled_event_start_date'] ?? ''));
+    $label = $title !== '' ? $title : $organization;
+    if ($label === '') {
+        return '';
+    }
+    return $date !== '' ? $label . ' · ' . $date : $label;
 }
 
 function calendarEscapeText($value) {
@@ -87,7 +134,9 @@ function calendarLocation(array $engagement) {
 }
 
 function calendarEventLines(array $engagement) {
-    $status = calendarStatusLabel($engagement['confirmation_status'] ?? '');
+    $status = calendarOperationalStatus($engagement);
+    $confirmation = calendarStatusLabel($engagement['confirmation_status'] ?? '');
+    $lifecycle = calendarLifecycleLabel($engagement['lifecycle_status'] ?? 'active');
     $organization = trim((string) ($engagement['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($engagement['event_title'] ?? ''));
     $event_type = trim((string) ($engagement['event_type'] ?? ''));
@@ -128,16 +177,25 @@ function calendarEventLines(array $engagement) {
     }
 
     $description_parts = [
-        'Status: ' . $status,
+        'Lifecycle: ' . $lifecycle,
+        'Confirmation: ' . $confirmation,
         'Organization: ' . $organization,
         'Event type: ' . ($event_type !== '' ? $event_type : 'Unspecified'),
     ];
     if ($event_title !== '') {
-        array_splice($description_parts, 1, 0, ['Event title: ' . $event_title]);
+        array_splice($description_parts, 2, 0, ['Event title: ' . $event_title]);
+    }
+    $cancellation_reason = trim((string) ($engagement['cancellation_reason'] ?? ''));
+    if ($cancellation_reason !== '') {
+        $description_parts[] = 'Cancellation reason: ' . $cancellation_reason;
+    }
+    $rescheduled_event = calendarRescheduledEventLabel($engagement);
+    if ($rescheduled_event !== '') {
+        $description_parts[] = 'Rescheduled as: ' . $rescheduled_event;
     }
     $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
-    $lines[] = 'STATUS:' . (($engagement['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
-    $lines[] = 'TRANSP:OPAQUE';
+    $lines[] = 'STATUS:' . calendarIcsStatus($engagement);
+    $lines[] = 'TRANSP:' . calendarTransparency($engagement);
     $lines[] = 'END:VEVENT';
 
     return $lines;
@@ -158,7 +216,7 @@ function calendarPresentationStart(array $presentation, $timezone_name = 'Americ
 
     $formats = str_contains($time, 'AM') || str_contains($time, 'PM')
         ? ['!Y-m-d g:i A', '!Y-m-d h:i A']
-        : ['!Y-m-d H:i'];
+        : ['!Y-m-d H:i:s', '!Y-m-d H:i'];
     foreach ($formats as $format) {
         $start = DateTimeImmutable::createFromFormat($format, $date . ' ' . $time, $timezone);
         $date_errors = DateTimeImmutable::getLastErrors();
@@ -190,7 +248,8 @@ function calendarPresentationEventLines(
     $organization = trim((string) ($presentation['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($presentation['event_title'] ?? ''));
     $engagement_label = $event_title !== '' ? $event_title : $organization;
-    $status = calendarStatusLabel($presentation['confirmation_status'] ?? '');
+    $confirmation = calendarStatusLabel($presentation['confirmation_status'] ?? '');
+    $lifecycle = calendarLifecycleLabel($presentation['lifecycle_status'] ?? 'active');
     $speaker = trim((string) ($presentation['speaker_name'] ?? ''));
     $speaker_label = $speaker !== '' ? $speaker : 'Unknown Speaker';
     $updated_timestamp = $presentation['calendar_updated_at'] ?? null;
@@ -218,14 +277,15 @@ function calendarPresentationEventLines(
         'Presentation: ' . $topic_title,
         'Engagement: ' . $engagement_label,
         'Organization: ' . $organization,
-        'Status: ' . $status,
+        'Lifecycle: ' . $lifecycle,
+        'Confirmation: ' . $confirmation,
     ];
     if ($speaker !== '') {
         $description_parts[] = 'Speaker: ' . $speaker;
     }
     $lines[] = 'DESCRIPTION:' . calendarEscapeText(implode("\n", $description_parts));
-    $lines[] = 'STATUS:' . (($presentation['confirmation_status'] ?? '') === 'confirmed' ? 'CONFIRMED' : 'TENTATIVE');
-    $lines[] = 'TRANSP:OPAQUE';
+    $lines[] = 'STATUS:' . calendarIcsStatus($presentation);
+    $lines[] = 'TRANSP:' . calendarTransparency($presentation);
     $lines[] = 'END:VEVENT';
 
     return $lines;
@@ -263,35 +323,177 @@ function buildCalendar(
     return implode("\r\n", array_map('calendarFoldLine', $lines)) . "\r\n";
 }
 
-function calendarAccessToken() {
-    $token = trim((string) (getenv('DNR_CALENDAR_TOKEN') ?: ''));
-    return strlen($token) >= 32 && strlen($token) <= 255 ? $token : null;
-}
-
-function calendarRequestIsAuthorized(array $server, $submitted_token = null) {
-    $configured_token = calendarAccessToken();
-    if ($configured_token === null || !is_string($submitted_token)) {
-        return false;
+function calendarTokenHash($token) {
+    if (!is_string($token) || strlen($token) < 32 || strlen($token) > 255) {
+        return null;
     }
-    return hash_equals($configured_token, $submitted_token);
+    return hash('sha256', $token, true);
 }
 
-function calendarSubscriptionUrl(array $server) {
+function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar subscription') {
+    $user_id = (int) $user_id;
+    $label = trim(substr((string) $label, 0, 100));
+    if ($user_id < 1 || $label === '') {
+        throw new InvalidArgumentException('A subscription owner and label are required.');
+    }
+
+    $conn->begin_transaction();
+    try {
+        // Serialize subscription creation per owner so the five-token limit
+        // cannot be bypassed by concurrent requests.
+        $user_stmt = $conn->prepare(
+            "SELECT id FROM users WHERE id = ? AND account_status = 'active' FOR UPDATE"
+        );
+        if (!$user_stmt) {
+            throw new RuntimeException('Unable to lock the subscription owner.');
+        }
+        $user_stmt->bind_param('i', $user_id);
+        $user_stmt->execute();
+        $user_exists = $user_stmt->get_result()->num_rows === 1;
+        $user_stmt->close();
+        if (!$user_exists) {
+            throw new InvalidArgumentException('The subscription owner is unavailable.');
+        }
+
+        $count_stmt = $conn->prepare(
+            'SELECT COUNT(*) AS active_count FROM calendar_subscriptions
+             WHERE user_id = ? AND revoked_at IS NULL'
+        );
+        $count_stmt->bind_param('i', $user_id);
+        $count_stmt->execute();
+        $active_count = (int) $count_stmt->get_result()->fetch_assoc()['active_count'];
+        $count_stmt->close();
+        if ($active_count >= 5) {
+            throw new RuntimeException('Revoke an existing subscription before creating another.');
+        }
+
+        $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+        $token_hash = calendarTokenHash($token);
+        $stmt = $conn->prepare(
+            'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
+             VALUES (?, ?, ?)'
+        );
+        $stmt->bind_param('iss', $user_id, $label, $token_hash);
+        if (!$stmt->execute()) {
+            $stmt->close();
+            throw new RuntimeException('Unable to create the calendar subscription.');
+        }
+        $subscription_id = (int) $conn->insert_id;
+        $stmt->close();
+        $conn->commit();
+        return ['id' => $subscription_id, 'token' => $token, 'label' => $label];
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
+function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
+    $token_hash = calendarTokenHash($submitted_token);
+    if ($token_hash === null) {
+        return null;
+    }
+    $stmt = $conn->prepare(
+        'SELECT subscription.id, subscription.user_id, subscription.label,
+                subscription.created_at, subscription.last_used_at
+         FROM calendar_subscriptions subscription
+         INNER JOIN users user ON user.id = subscription.user_id
+         WHERE subscription.token_hash = ? AND subscription.revoked_at IS NULL
+           AND user.account_status = \'active\'
+         LIMIT 1'
+    );
+    $stmt->bind_param('s', $token_hash);
+    $stmt->execute();
+    $subscription = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$subscription) {
+        return null;
+    }
+
+    $subscription_id = (int) $subscription['id'];
+    $touch = $conn->prepare(
+        'UPDATE calendar_subscriptions SET last_used_at = UTC_TIMESTAMP()
+         WHERE id = ? AND (last_used_at IS NULL OR last_used_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1 HOUR))'
+    );
+    $touch->bind_param('i', $subscription_id);
+    $touch->execute();
+    $touch->close();
+    return $subscription;
+}
+
+function calendarSubscriptionsForUser(mysqli $conn, $user_id) {
+    $stmt = $conn->prepare(
+        'SELECT id, label, created_at, last_used_at, revoked_at
+         FROM calendar_subscriptions WHERE user_id = ?
+         ORDER BY created_at DESC, id DESC'
+    );
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+}
+
+function revokeCalendarSubscription(mysqli $conn, $user_id, $subscription_id) {
+    $stmt = $conn->prepare(
+        'UPDATE calendar_subscriptions SET revoked_at = UTC_TIMESTAMP()
+         WHERE id = ? AND user_id = ? AND revoked_at IS NULL'
+    );
+    $stmt->bind_param('ii', $subscription_id, $user_id);
+    $stmt->execute();
+    $revoked = $stmt->affected_rows === 1;
+    $stmt->close();
+    return $revoked;
+}
+
+function purgeRevokedCalendarSubscriptions(mysqli $conn, $user_id) {
+    $user_id = (int) $user_id;
+    if ($user_id < 1) {
+        throw new InvalidArgumentException('A subscription owner is required.');
+    }
+
+    $stmt = $conn->prepare(
+        'DELETE FROM calendar_subscriptions
+         WHERE user_id = ? AND revoked_at IS NOT NULL'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare revoked subscription cleanup.');
+    }
+    $stmt->bind_param('i', $user_id);
+    $stmt->execute();
+    $purged_count = max(0, (int) $stmt->affected_rows);
+    $stmt->close();
+    return $purged_count;
+}
+
+function calendarSubscriptionUrl(array $server, $token = null) {
+    $requires_https = function_exists('applicationRequiresHttps')
+        ? applicationRequiresHttps()
+        : filter_var(getenv('DNR_REQUIRE_HTTPS') ?: '0', FILTER_VALIDATE_BOOL);
     $configured_base_url = trim((string) (getenv('DNR_PUBLIC_BASE_URL') ?: ''));
-    if ($configured_base_url !== ''
-        && filter_var($configured_base_url, FILTER_VALIDATE_URL)
-        && in_array(strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME)), ['http', 'https'], true)
-    ) {
+    if ($configured_base_url !== '') {
+        $configured_scheme = strtolower((string) parse_url($configured_base_url, PHP_URL_SCHEME));
+        if (!filter_var($configured_base_url, FILTER_VALIDATE_URL)
+            || !in_array($configured_scheme, ['http', 'https'], true)
+            || parse_url($configured_base_url, PHP_URL_USER) !== null
+            || parse_url($configured_base_url, PHP_URL_PASS) !== null
+            || parse_url($configured_base_url, PHP_URL_QUERY) !== null
+            || parse_url($configured_base_url, PHP_URL_FRAGMENT) !== null
+            || ($requires_https && $configured_scheme !== 'https')
+        ) {
+            throw new RuntimeException('DNR_PUBLIC_BASE_URL must be a canonical HTTP(S) origin.');
+        }
         $calendar_url = rtrim($configured_base_url, '/') . '/calendar.php';
-        $token = calendarAccessToken();
         return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
     }
 
-    $forwarded_proto = strtolower(trim(explode(',', $server['HTTP_X_FORWARDED_PROTO'] ?? '')[0]));
-    $scheme = $forwarded_proto === 'https'
-        || (!empty($server['HTTPS']) && $server['HTTPS'] !== 'off')
-        ? 'https'
-        : 'http';
+    if ($requires_https) {
+        throw new RuntimeException(
+            'DNR_PUBLIC_BASE_URL is required before a production calendar subscription can be created.'
+        );
+    }
+    $uses_https = function_exists('requestUsesHttps')
+        ? requestUsesHttps($server)
+        : (!empty($server['HTTPS']) && strtolower((string) $server['HTTPS']) !== 'off');
+    $scheme = $uses_https ? 'https' : 'http';
 
     $host = (string) ($server['HTTP_HOST'] ?? 'localhost');
     if (!preg_match('/^[a-z0-9.\-\[\]:]+$/i', $host)) {
@@ -302,6 +504,5 @@ function calendarSubscriptionUrl(array $server) {
     $base_path = rtrim(dirname($script_name), '/.');
 
     $calendar_url = "{$scheme}://{$host}" . ($base_path !== '' ? $base_path : '') . '/calendar.php';
-    $token = calendarAccessToken();
     return $token === null ? $calendar_url : $calendar_url . '?' . http_build_query(['token' => $token]);
 }

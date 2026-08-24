@@ -1,6 +1,6 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
+include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -13,14 +13,13 @@ if ($user_role !== 'admin' && $user_role !== 'editor') {
     exit();
 }
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$org_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($org_id === null) {
     header("Location: organizations.php");
     exit();
 }
 
-$org_id = intval($_GET['id']);
-$from = $_GET['from'] ?? '';
+$from = \Dnr\Http\RequestInput::string($_GET, 'from');
 if ($from === 'view') {
     $cancel_url = "view_organization.php?id=$org_id";
 } else {
@@ -31,9 +30,7 @@ if ($from === 'view') {
 $query = "SELECT * FROM organizations WHERE id = ? AND is_deleted = 0";
 
 $stmt = $conn->prepare($query);
-if ($stmt === false) {
-    die("Error preparing statement: " . $conn->error);
-}
+if ($stmt === false) abortApplication(503, 'The organization is temporarily unavailable.', ['error' => $conn->error]);
 
 $stmt->bind_param("i", $org_id);
 $stmt->execute();
@@ -45,6 +42,45 @@ if ($result->num_rows === 0) {
 }
 
 $organization = $result->fetch_assoc();
+$stmt->close();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
+    requireValidCsrfToken();
+    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
+    $chron_action = is_scalar($_POST['chron_action']) ? (string) $_POST['chron_action'] : '';
+    try {
+        if (!$chron_entry_id) {
+            throw new InvalidArgumentException('Select a valid Chron entry.');
+        }
+        if ($chron_action === 'archive') {
+            archiveEntityChronLogEntry(
+                $conn,
+                'organization',
+                $org_id,
+                $chron_entry_id,
+                (int) $_SESSION['user_id']
+            );
+            $_SESSION['chron_action_message'] = 'Chron entry archived.';
+        } elseif ($chron_action === 'delete') {
+            if ($user_role !== 'admin') {
+                http_response_code(403);
+                exit('Forbidden.');
+            }
+            requireRecentAdminElevation('edit_organization.php?id=' . $org_id . '#chron-log');
+            deleteEntityChronLogEntry($conn, 'organization', $org_id, $chron_entry_id);
+            $_SESSION['chron_action_message'] = 'Chron entry permanently deleted.';
+        } else {
+            throw new InvalidArgumentException('Invalid Chron action.');
+        }
+    } catch (Throwable $exception) {
+        $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage()
+            : 'Unable to update the Chron log. Please try again.';
+    }
+    header('Location: edit_organization.php?id=' . $org_id . '#chron-log');
+    exit();
+}
+
 $address_pairs = [
     ['mailing_address_line_1', 'physical_address_line_1'],
     ['mailing_address_line_2', 'physical_address_line_2'],
@@ -62,85 +98,67 @@ foreach ($address_pairs as [$mailing_field, $physical_field]) {
 }
 
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST'
+    && (isset($_POST['save_organization']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
-
-    $error = false;
-    $errorMessages = array();
-
-    $organization_name = trim($_POST['organization_name'] ?? '');
-    $notes = trim($_POST['notes'] ?? '');
-    $affiliation = trim($_POST['affiliation'] ?? '');
-    $distinctives = trim($_POST['distinctives'] ?? '');
-    $website_url = trim($_POST['website_url'] ?? '');
-    $phone = trim($_POST['phone'] ?? '');
-    $phone_country_code = trim($_POST['phone_country_code'] ?? '+1');
-    $fax = trim($_POST['fax'] ?? '');
-    $fax_country_code = trim($_POST['fax_country_code'] ?? '+1');
-    $mailing_address_line_1 = trim($_POST['mailing_address_line_1'] ?? '');
-    $mailing_address_line_2 = trim($_POST['mailing_address_line_2'] ?? '');
-    $mailing_city = trim($_POST['mailing_city'] ?? '');
-    $mailing_state = trim($_POST['mailing_state'] ?? '');
-    $mailing_zipcode = trim($_POST['mailing_zipcode'] ?? '');
-    $mailing_country = trim($_POST['mailing_country'] ?? '');
-    $physical_address_line_1 = trim($_POST['physical_address_line_1'] ?? '');
-    $physical_address_line_2 = trim($_POST['physical_address_line_2'] ?? '');
-    $physical_city = trim($_POST['physical_city'] ?? '');
-    $physical_state = trim($_POST['physical_state'] ?? '');
-    $physical_zipcode = trim($_POST['physical_zipcode'] ?? '');
-    $physical_country = trim($_POST['physical_country'] ?? '');
-    $same_address = ($_POST['same_address'] ?? 'no') === 'yes';
-    if ($same_address) {
-        $mailing_address_line_1 = $physical_address_line_1;
-        $mailing_address_line_2 = $physical_address_line_2;
-        $mailing_city = $physical_city;
-        $mailing_state = $physical_state;
-        $mailing_zipcode = $physical_zipcode;
-        $mailing_country = $physical_country;
+    $normalized = \Dnr\Domain\OrganizationInput::normalize($_POST);
+    $organization_input = $normalized['data'];
+    $errorMessages = $normalized['errors'];
+    foreach ($organization_input as $field_name => $field_value) {
+        ${$field_name} = $field_value;
     }
-
-    if ($organization_name === '') {
-        $error = true;
-        $errorMessages[] = "Organization name is required.";
-    } elseif (normalizedHttpUrl($website_url) === null) {
-        $error = true;
-        $errorMessages[] = "Please provide a valid website URL.";
-    } elseif ($physical_address_line_1 === '' || $physical_city === '' || $physical_state === ''
-        || $physical_zipcode === '' || $physical_country === ''
-    ) {
-        $error = true;
-        $errorMessages[] = 'A complete physical address is required.';
-    } elseif (!$same_address && ($mailing_address_line_1 === '' || $mailing_city === ''
-        || $mailing_state === '' || $mailing_zipcode === '' || $mailing_country === '')
-    ) {
-        $error = true;
-        $errorMessages[] = 'A complete mailing address is required when it differs from the physical address.';
-    } else {
-        $website_url = normalizedHttpUrl($website_url);
-    }
+    $same_address = (bool) $organization_input['same_address'];
+    $submitted_chron_entries = [];
+    $new_chron_entry = '';
     try {
-        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Organization phone');
+        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
+            $_POST['chron_entries'] ?? null
+        );
+        if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
+            throw new InvalidArgumentException('Enter a valid Chron entry.');
+        }
+        $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
+        if (isset($_POST['save_and_add_chron']) && $new_chron_entry === '') {
+            throw new InvalidArgumentException('Enter a Chron entry before adding it.');
+        }
+        if ($new_chron_entry !== '') {
+            $new_chron_entry = normalizeChronLogEntryText($new_chron_entry);
+        }
     } catch (InvalidArgumentException $exception) {
-        $error = true;
         $errorMessages[] = $exception->getMessage();
     }
-    try {
-        $fax = normalizePhoneNumber($fax_country_code, $fax, 'Organization fax');
-    } catch (InvalidArgumentException $exception) {
-        $error = true;
-        $errorMessages[] = $exception->getMessage();
-    }
+    $submitted_version = is_scalar($_POST['organization_version'] ?? null)
+        ? trim((string) $_POST['organization_version'])
+        : '';
 
-    $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ? AND id != ?");
-    $check_stmt->bind_param("si", $organization_name, $org_id);
-    $check_stmt->execute();
+    if (!$errorMessages) {
+        $conn->begin_transaction();
+        try {
+            $lock_stmt = $conn->prepare(
+                'SELECT updated_at FROM organizations WHERE id = ? AND is_deleted = 0 FOR UPDATE'
+            );
+            if (!$lock_stmt) throw new RuntimeException('Unable to lock the organization.');
+            $lock_stmt->bind_param('i', $org_id);
+            $lock_stmt->execute();
+            $locked_organization = $lock_stmt->get_result()->fetch_assoc();
+            $lock_stmt->close();
+            if (!$locked_organization) throw new InvalidArgumentException('That organization is no longer active.');
+            if ($submitted_version === ''
+                || !hash_equals((string) $locked_organization['updated_at'], $submitted_version)
+            ) {
+                throw new InvalidArgumentException(
+                    'This organization changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
+                );
+            }
 
-    if (!$error && $check_stmt->get_result()->num_rows > 0) {
-        $error = true;
-        $errorMessages[] = "An organization with this name already exists.";
-    }
+            $check_stmt = $conn->prepare('SELECT id FROM organizations WHERE organization_name = ? AND id != ?');
+            if (!$check_stmt) throw new RuntimeException('Unable to check the organization name.');
+            $check_stmt->bind_param('si', $organization_name, $org_id);
+            $check_stmt->execute();
+            $duplicate = $check_stmt->get_result()->num_rows > 0;
+            $check_stmt->close();
+            if ($duplicate) throw new InvalidArgumentException('An organization with this name already exists.');
 
-    if (!$error) {
         $update_stmt = $conn->prepare(
             "UPDATE organizations SET
                 organization_name = ?, notes = ?, affiliation = ?, distinctives = ?, website_url = ?,
@@ -148,8 +166,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 mailing_city = ?, mailing_state = ?, mailing_zipcode = ?, mailing_country = ?,
                 physical_address_line_1 = ?, physical_address_line_2 = ?, physical_city = ?,
                 physical_state = ?, physical_zipcode = ?, physical_country = ?
-             WHERE id = ?"
+             WHERE id = ? AND is_deleted = 0"
         );
+        if (!$update_stmt) throw new RuntimeException('Unable to prepare the organization update.');
         $update_stmt->bind_param(
             "sssssssssssssssssssi",
             $organization_name, $notes, $affiliation, $distinctives, $website_url, $phone, $fax,
@@ -158,17 +177,47 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $physical_city, $physical_state, $physical_zipcode, $physical_country, $org_id
         );
 
-        if ($update_stmt->execute()) {
+        if ($update_stmt->execute() && $update_stmt->affected_rows <= 1) {
+            $update_stmt->close();
+            $current_user_id = (int) $_SESSION['user_id'];
+            updateEntityChronLogEntries(
+                $conn,
+                'organization',
+                $org_id,
+                $submitted_chron_entries,
+                $current_user_id
+            );
+            if ($new_chron_entry !== '') {
+                insertEntityChronLogEntry(
+                    $conn,
+                    'organization',
+                    $org_id,
+                    $new_chron_entry,
+                    $current_user_id,
+                    (string) ($_SESSION['username'] ?? '')
+                );
+            }
+            $conn->commit();
             $_SESSION['success_message'] = "Organization updated successfully.";
             header("Location: view_organization.php?id=$org_id");
             exit();
-        } else {
-            $error = true;
-            $errorMessages[] = "Unable to update the organization.";
+        }
+        throw new RuntimeException('Unable to update the organization.');
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            if (!$exception instanceof InvalidArgumentException) {
+                applicationLog('error', 'Organization update failed', [
+                    'organization_id' => $org_id,
+                    'error' => $exception->getMessage(),
+                ]);
+            }
+            $errorMessages[] = $exception instanceof InvalidArgumentException
+                ? $exception->getMessage()
+                : 'Unable to update the organization.';
         }
     }
 
-    if ($error) {
+    if ($errorMessages) {
         foreach ([
             'organization_name', 'notes', 'affiliation', 'distinctives', 'website_url',
             'phone', 'fax', 'mailing_address_line_1', 'mailing_address_line_2',
@@ -178,6 +227,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ] as $field_name) {
             $organization[$field_name] = ${$field_name};
         }
+        $organization['updated_at'] = $submitted_version;
     }
 }
 
@@ -190,100 +240,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts($organization['phone'] ?? '');
     [$fax_country_code_value, $fax_local_value] = phoneNumberInputParts($organization['fax'] ?? '');
 }
+
+$chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
+$chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
+unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'organization',
+        $org_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'organization', $org_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The organization Chron log is temporarily unavailable.', [
+        'organization_id' => $org_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Edit Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .form-group {
-            margin-bottom: 15px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .form-group input[type="text"],
-        .form-group input[type="url"],
-        .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
-        }
-        .dark-mode .form-group input[type="text"],
-        .dark-mode .form-group input[type="url"],
-        .dark-mode .form-group textarea {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
-        }
-        .address-section {
-            margin: 20px 0;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .dark-mode .address-section {
-            border-color: #444;
-        }
-        .address-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 15px;
-            margin-top: 10px;
-        }
-        .address-full-width {
-            grid-column: 1 / -1;
-        }
-        .required {
-            color: inherit;
-        }
-        .required::after {
-            content: " *";
-            color: red;
-            display: inline;
-        }
-        .action-buttons {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        .action-button, .action-button[type="submit"] {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 12px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            height: 44px;
-            box-sizing: border-box;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-        .save-button {
-            background-color: var(--button-save-color);
-        }
-    </style>
-</head>
+<?php renderPageHead('Edit Organization - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/edit_organization.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
-    <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
+    <?php if (!empty($errorMessages)): ?>
+        <p class="error"><?php echo implode('<br>', array_map(
+            fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'),
+            $errorMessages
+        )); ?></p>
+    <?php endif; ?>
+    <?php if ($chron_action_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($chron_action_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit Organization</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form">
+    <form id="organization-edit-form" method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form" data-chron-form>
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="organization_version" value="<?php echo htmlspecialchars((string) $organization['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
             <label class="required">Organization Name</label>
             <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($organization['organization_name']); ?>">
@@ -389,29 +405,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
 
-        <div class="action-buttons">
-            <a href="<?php echo $cancel_url; ?>" class="action-button back-button cancel-button">Cancel</a>
-            <input type="submit" value="Save Changes" class="action-button save-button">
-        </div>
     </form>
+
+    <?php
+    $chron_entity_label = 'organization';
+    $chron_edit_form_id = 'organization-edit-form';
+    $chron_edit_url = 'edit_organization.php?id=' . $org_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
+    include 'templates/entity_chron_log_edit_section.php';
+    ?>
+
+    <div class="action-buttons">
+        <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button back-button cancel-button">Cancel</a>
+        <button type="submit" name="save_organization" value="1" class="action-button save-button" form="organization-edit-form">Save Changes</button>
+    </div>
 </div>
 <?php include 'templates/footer.php'; ?>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const mailingSection = document.getElementById('mailing_address_section');
-    const sameAddressInputs = document.querySelectorAll('input[name="same_address"]');
-    function updateMailingVisibility() {
-        const sameAddress = document.querySelector('input[name="same_address"]:checked')?.value === 'yes';
-        mailingSection.hidden = sameAddress;
-        mailingSection.querySelectorAll('input, select').forEach(function (input) {
-            input.required = !sameAddress;
-        });
-    }
-    sameAddressInputs.forEach(function (input) {
-        input.addEventListener('change', updateMailingVisibility);
-    });
-    updateMailingVisibility();
-});
-</script>
 </body>
 </html>

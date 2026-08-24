@@ -1,15 +1,22 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
+$conn = applicationDatabaseConnection();
 include 'map_helpers.php';
 startSecureSession();
 requireLogin();
 
 $filters = normalizeEngagementMapFilters($_GET);
 $status_labels = engagementMapStatuses();
+$lifecycle_labels = engagementMapLifecycles();
 $clauses = ['e.is_deleted = 0'];
 $parameters = [];
 $parameter_types = '';
+
+if ($filters['lifecycle'] !== '') {
+    $clauses[] = 'e.lifecycle_status = ?';
+    $parameters[] = $filters['lifecycle'];
+    $parameter_types .= 's';
+}
 
 if ($filters['status'] !== '') {
     $clauses[] = 'e.confirmation_status = ?';
@@ -29,12 +36,22 @@ if ($filters['date_to'] !== '') {
     $parameter_types .= 's';
 }
 
+$map_event_limit = max(50, min(2000, (int) (getenv('DNR_MAP_MAX_EVENTS') ?: 500)));
+$usable_address_clause = "COALESCE(
+    NULLIF(TRIM(e.event_address_line_1), ''),
+    NULLIF(TRIM(e.event_address_line_2), ''),
+    NULLIF(TRIM(e.event_city), ''),
+    NULLIF(TRIM(e.event_state), ''),
+    NULLIF(TRIM(e.event_zipcode), ''),
+    NULLIF(TRIM(e.event_country), '')
+) IS NOT NULL";
 $engagement_sql = "SELECT
         e.id,
         e.event_title,
         e.event_start_date,
         e.event_end_date,
         e.confirmation_status,
+        e.lifecycle_status,
         e.event_address_line_1,
         e.event_address_line_2,
         e.event_city,
@@ -44,12 +61,14 @@ $engagement_sql = "SELECT
         o.organization_name
     FROM engagements e
     LEFT JOIN organizations o ON o.id = e.organization_id
-    WHERE " . implode(' AND ', $clauses) . '
-    ORDER BY e.event_start_date ASC, e.id ASC';
+    WHERE " . implode(' AND ', $clauses) . "
+      AND {$usable_address_clause}
+    ORDER BY e.event_start_date ASC, e.id ASC
+    LIMIT " . ($map_event_limit + 1);
 
 $engagement_stmt = $conn->prepare($engagement_sql);
 if (!$engagement_stmt) {
-    error_log('Unable to prepare the engagement map: ' . $conn->error);
+    applicationLog('error', 'Unable to prepare the engagement map', ['error' => $conn->error]);
     http_response_code(503);
     exit('The engagement map is temporarily unavailable.');
 }
@@ -62,18 +81,23 @@ if ($parameters !== []) {
     $engagement_stmt->bind_param(...$bind_arguments);
 }
 if (!$engagement_stmt->execute()) {
-    error_log('Unable to load map engagements: ' . $engagement_stmt->error);
+    applicationLog('error', 'Unable to load map engagements', ['error' => $engagement_stmt->error]);
     http_response_code(500);
     exit('Unable to load engagement locations.');
 }
 $engagement_result = $engagement_stmt->get_result();
 $engagement_rows = [];
 $address_hashes = [];
-$events_without_addresses = 0;
+$map_results_truncated = false;
 while ($row = $engagement_result->fetch_assoc()) {
+    if (count($engagement_rows) >= $map_event_limit) {
+        $map_results_truncated = true;
+        break;
+    }
     $address = engagementMapAddress($row);
     if ($address === '') {
-        $events_without_addresses++;
+        // The SQL predicate is intentionally permissive; retain this guard in
+        // case address normalization becomes stricter than candidate filtering.
         continue;
     }
     $address_hash = engagementMapAddressHash($address);
@@ -83,6 +107,29 @@ while ($row = $engagement_result->fetch_assoc()) {
     $address_hashes[$address_hash] = true;
 }
 $engagement_stmt->close();
+
+$events_without_addresses = 0;
+$without_address_sql = "SELECT COUNT(*) AS addressless_count
+    FROM engagements e
+    WHERE " . implode(' AND ', $clauses) . "
+      AND NOT ({$usable_address_clause})";
+$without_address_stmt = $conn->prepare($without_address_sql);
+if ($without_address_stmt) {
+    if ($parameters !== []) {
+        $without_address_bind = [$parameter_types];
+        foreach ($parameters as &$without_address_parameter) {
+            $without_address_bind[] = &$without_address_parameter;
+        }
+        unset($without_address_parameter);
+        $without_address_stmt->bind_param(...$without_address_bind);
+    }
+    if ($without_address_stmt->execute()) {
+        $events_without_addresses = (int) (
+            $without_address_stmt->get_result()->fetch_assoc()['addressless_count'] ?? 0
+        );
+    }
+    $without_address_stmt->close();
+}
 
 $geocodes = [];
 if ($address_hashes !== []) {
@@ -94,7 +141,7 @@ if ($address_hashes !== []) {
          WHERE address_hash IN ({$placeholders})"
     );
     if (!$geocode_stmt) {
-        error_log('The engagement map migration is required: ' . $conn->error);
+        applicationLog('error', 'The engagement map migration is required', ['error' => $conn->error]);
         http_response_code(503);
         exit('The engagement map database migration is required before this page can be used.');
     }
@@ -106,7 +153,7 @@ if ($address_hashes !== []) {
     unset($hash_value);
     $geocode_stmt->bind_param(...$hash_bind_arguments);
     if (!$geocode_stmt->execute()) {
-        error_log('Unable to load cached map locations: ' . $geocode_stmt->error);
+        applicationLog('error', 'Unable to load cached map locations', ['error' => $geocode_stmt->error]);
         http_response_code(500);
         exit('Unable to load cached engagement locations.');
     }
@@ -146,40 +193,42 @@ foreach ($engagement_rows as $row) {
         'organization' => $organization_name,
         'status' => (string) $row['confirmation_status'],
         'statusLabel' => $status_labels[$row['confirmation_status']] ?? 'Unknown',
+        'lifecycle' => (string) $row['lifecycle_status'],
+        'lifecycleLabel' => $lifecycle_labels[$row['lifecycle_status']] ?? 'Unknown',
         'dateLabel' => engagementMapDateLabel($row['event_start_date'], $row['event_end_date']),
         'address' => $row['_map_address'],
         'viewUrl' => 'view_engagement.php?id=' . (int) $row['id'],
         'latitude' => $has_coordinates ? (float) $geocode['latitude'] : null,
         'longitude' => $has_coordinates ? (float) $geocode['longitude'] : null,
-        'needsGeocoding' => $needs_geocoding,
     ];
 }
 
 $map_payload = [
     'events' => $map_events,
-    'csrfToken' => generateCsrfToken(),
-    'geocodeUrl' => 'map_geocode.php',
     'cachedPinCount' => $cached_pin_count,
     'pendingGeocodeCount' => $pending_geocode_count,
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
+    'resultsTruncated' => $map_results_truncated,
 ];
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Engagement Map - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Engagement Map - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css?rev=consistent-control-geometry-1',
+    2 => 'assets/css/map.min.css?rev=dark-controls-layout-11',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container map-page">
     <div class="page-heading">
         <div>
             <h1>Map</h1>
-            <p class="page-intro">Explore active engagement locations by status and event date.</p>
+            <p class="page-intro">Explore engagement locations by lifecycle, confirmation, and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
         </div>
     </div>
 
@@ -188,8 +237,17 @@ $map_payload = [
     <?php endforeach; ?>
 
     <form method="get" action="map.php" class="map-filters" aria-label="Map filters">
+        <div class="map-filter-field map-lifecycle-filter">
+            <label for="map-lifecycle">Lifecycle</label>
+            <select name="lifecycle" id="map-lifecycle">
+                <option value="">All lifecycle states</option>
+                <?php foreach ($lifecycle_labels as $lifecycle_value => $lifecycle_label): ?>
+                    <option value="<?php echo htmlspecialchars($lifecycle_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $filters['lifecycle'] === $lifecycle_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
         <div class="map-filter-field map-status-filter">
-            <label for="map-status">Status</label>
+            <label for="map-status">Confirmation</label>
             <select name="status" id="map-status">
                 <option value="">All statuses</option>
                 <?php foreach ($status_labels as $status_value => $status_label): ?>
@@ -211,7 +269,7 @@ $map_payload = [
         </fieldset>
         <div class="map-filter-actions">
             <button type="submit" class="button-add">Apply filters</button>
-            <a href="map.php" class="button-secondary map-clear-button" style="text-decoration: none;">Clear</a>
+            <a href="map.php" class="button-secondary map-clear-button">Clear</a>
         </div>
     </form>
 
@@ -230,15 +288,15 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan."></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <p class="map-attribution-note">Map and location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. New address lookups are rate-limited and cached.</p>
+        <p class="map-attribution-note">Map and location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. New addresses are resolved by a rate-limited background worker and cached.</p>
     </section>
 </main>
 
-<script type="application/json" id="engagement-map-data"><?php echo json_encode(
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-map-data"><?php echo json_encode(
     $map_payload,
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
-<script src="assets/js/map.min.js?v=1.0.2" defer></script>
+<?php renderScript('assets/js/map.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

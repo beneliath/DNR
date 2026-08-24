@@ -15,6 +15,7 @@ $common = [
     'organization_name' => 'Example, Inc.',
     'event_type' => 'conference',
     'confirmation_status' => 'under_review',
+    'lifecycle_status' => 'active',
     'event_address_line_1' => '123 Main St',
     'event_address_line_2' => '',
     'event_city' => 'Chicago',
@@ -30,12 +31,13 @@ $all_day = $common + [
     'event_end_date' => '2026-08-15',
 ];
 $all_day_calendar = buildCalendar([$all_day]);
+$unfolded_all_day_calendar = str_replace("\r\n ", '', $all_day_calendar);
 expectCalendar(
     str_contains($all_day_calendar, "SUMMARY:Under Review-Annual Leadership Summit-conference\r\n"),
     'The calendar summary should use the readable status, event title, and event type.'
 );
 expectCalendar(
-    str_contains($all_day_calendar, 'Event title: Annual Leadership Summit'),
+    str_contains($unfolded_all_day_calendar, 'Event title: Annual Leadership Summit'),
     'The event title should be included in the calendar description.'
 );
 expectCalendar(
@@ -57,6 +59,22 @@ expectCalendar(
 expectCalendar(
     str_contains($all_day_calendar, "LOCATION:123 Main St\\, Chicago\\, IL 60601\\, USA\r\n"),
     'Calendar locations should be assembled and escaped.'
+);
+
+$canceled_calendar = buildCalendar([array_merge($all_day, [
+    'lifecycle_status' => 'canceled',
+    'cancellation_reason' => 'Venue closed unexpectedly',
+    'rescheduled_event_title' => 'Leadership Summit — New Date',
+    'rescheduled_event_start_date' => '2026-09-18',
+])]);
+$unfolded_canceled_calendar = str_replace("\r\n ", '', $canceled_calendar);
+expectCalendar(
+    str_contains($canceled_calendar, "STATUS:CANCELLED\r\n")
+        && str_contains($canceled_calendar, "TRANSP:TRANSPARENT\r\n")
+        && str_contains($unfolded_canceled_calendar, 'SUMMARY:Canceled-Annual Leadership Summit-conference')
+        && str_contains($unfolded_canceled_calendar, 'Cancellation reason: Venue closed unexpectedly')
+        && str_contains($unfolded_canceled_calendar, 'Rescheduled as: Leadership Summit — New Date · 2026-09-18'),
+    'Canceled engagements should publish a transparent cancellation with reason and replacement context.'
 );
 
 $legacy_calendar = buildCalendar([array_merge($all_day, ['event_title' => ''])]);
@@ -119,23 +137,49 @@ foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
 
-putenv('DNR_CALENDAR_TOKEN=' . str_repeat('a', 32));
 putenv('DNR_PUBLIC_BASE_URL=https://calendar.example.org/dnr');
+$calendar_token = str_repeat('a', 32);
 $url = calendarSubscriptionUrl([
     'HTTP_X_FORWARDED_PROTO' => 'https',
     'HTTP_HOST' => 'dnr.example.org',
     'SCRIPT_NAME' => '/calendar_subscription.php',
-]);
+], $calendar_token);
 expectCalendar(
-    $url === 'https://calendar.example.org/dnr/calendar.php?token=' . str_repeat('a', 32),
+    $url === 'https://calendar.example.org/dnr/calendar.php?token=' . $calendar_token,
     'The subscription URL should use the configured public base and revocable token.'
 );
 expectCalendar(
-    calendarRequestIsAuthorized([], str_repeat('a', 32))
-        && !calendarRequestIsAuthorized([], str_repeat('b', 32)),
-    'Calendar access should require the configured token.'
+    is_string(calendarTokenHash($calendar_token))
+        && strlen(calendarTokenHash($calendar_token)) === 32
+        && calendarTokenHash('short') === null
+        && !hash_equals(calendarTokenHash($calendar_token), calendarTokenHash(str_repeat('b', 32))),
+    'Calendar bearer tokens should use fixed-size digests and reject undersized values.'
 );
-putenv('DNR_CALENDAR_TOKEN');
 putenv('DNR_PUBLIC_BASE_URL');
+
+putenv('DNR_REQUIRE_HTTPS=1');
+try {
+    calendarSubscriptionUrl([
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_HOST' => 'attacker.example',
+    ], $calendar_token);
+    $missingOriginRejected = false;
+} catch (RuntimeException $exception) {
+    $missingOriginRejected = true;
+}
+expectCalendar(
+    $missingOriginRejected,
+    'production bearer links should require a configured canonical public origin.'
+);
+putenv('DNR_REQUIRE_HTTPS');
+
+expectCalendar(
+    str_starts_with(calendarSubscriptionUrl([
+        'HTTP_X_FORWARDED_PROTO' => 'https',
+        'HTTP_HOST' => 'localhost:8080',
+        'SCRIPT_NAME' => '/calendar_subscription.php',
+    ], $calendar_token), 'http://localhost:8080/'),
+    'an untrusted forwarded protocol should not change development link schemes.'
+);
 
 echo "Calendar helper tests passed.\n";

@@ -1,0 +1,54 @@
+services:
+  web:
+    environment:
+      DNR_MAIL_TRANSPORT: smtp
+
+  mail-dispatch:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    entrypoint: ["php", "/opt/dnr/bin/process_email_outbox.php", "--loop"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    secrets:
+      - dnr_mysql_mail_dispatch_password
+      - dnr_2fa_encryption_key
+      - dnr_smtp_password
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrmaildispatch
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
+      DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
+      DNR_MAIL_TRANSPORT: smtp
+      DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
+      DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
+      DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
+      DNR_MAIL_FROM: ${DNR_MAIL_FROM:-}
+      DNR_MAIL_FROM_NAME: ${DNR_MAIL_FROM_NAME:-MOED}
+      DNR_SMTP_HOST: ${DNR_SMTP_HOST:-}
+      DNR_SMTP_PORT: ${DNR_SMTP_PORT:-587}
+      DNR_SMTP_ENCRYPTION: ${DNR_SMTP_ENCRYPTION:-starttls}
+      DNR_SMTP_USERNAME: ${DNR_SMTP_USERNAME:-}
+      DNR_SMTP_PASSWORD_FILE: /run/secrets/dnr_smtp_password
+      DNR_EMAIL_OUTBOX_BATCH_SIZE: ${DNR_EMAIL_OUTBOX_BATCH_SIZE:-20}
+      DNR_EMAIL_OUTBOX_IDLE_SECONDS: ${DNR_EMAIL_OUTBOX_IDLE_SECONDS:-15}
+      DNR_NOTIFICATION_OUTBOX_BATCH_SIZE: ${DNR_NOTIFICATION_OUTBOX_BATCH_SIZE:-20}
+      DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS: ${DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS:-300}
+      DNR_TASK_DIGEST_HOUR: ${DNR_TASK_DIGEST_HOUR:-7}
+    networks: [backend, egress]
+
+secrets:
+  dnr_smtp_password:
+    file: ${DNR_SMTP_PASSWORD_SECRET_FILE:-./secrets/smtp_password}

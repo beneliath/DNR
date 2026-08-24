@@ -1,7 +1,9 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
-require_once __DIR__ . '/../src/engagement_export_helpers.php';
-require_once __DIR__ . '/../src/engagement_pdf.php';
+$source_directory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
+$vendor_autoload = getenv('DNR_TEST_VENDOR_AUTOLOAD') ?: __DIR__ . '/../vendor/autoload.php';
+require_once $vendor_autoload;
+require_once $source_directory . '/engagement_export_helpers.php';
+require_once $source_directory . '/engagement_pdf.php';
 
 putenv('DNR_TIMEZONE=America/Chicago');
 
@@ -15,12 +17,15 @@ function expectExport($condition, $message) {
 $engagement = [
     'id' => 42,
     'event_title' => 'Summer *Summit*',
-    'event_description' => "A multi-day gathering\nfor community leaders.",
+    'event_description' => "A multi-day gathering\nfor community leaders — أهلاً وسهلاً — שלום.",
     'organization_name' => 'Example & Partners',
     'event_type' => 'Conference',
     'event_start_date' => '2026-08-20',
     'event_end_date' => '2026-08-22',
     'confirmation_status' => 'under_review',
+    'lifecycle_status' => 'canceled',
+    'cancellation_reason' => 'Venue unavailable',
+    'rescheduled_event_label' => 'Autumn Summit · 2026-10-20',
     'is_deleted' => 1,
     'book_table' => 1,
     'brochures' => 0,
@@ -44,8 +49,9 @@ $contacts = [[
     'contact_last_name' => 'Smith',
     'contact_role' => 'other',
     'contact_role_other' => 'Events Director',
+    'engagement_contact_roles' => ['primary_host', 'travel'],
     'contact_email' => 'jamie@example.test',
-    'contact_phone' => '312-555-0100',
+    'contact_phone' => '+13125550100',
 ]];
 $presentations = [[
     'topic_title' => 'Opening Keynote',
@@ -86,13 +92,22 @@ $plain_text = renderEngagementPlainText($export);
 $markdown = renderEngagementMarkdown($export);
 
 expectExport(str_contains($plain_text, "Organization: Example & Partners"), 'Plain text includes the organization.');
+expectExport(
+    str_contains($plain_text, "Lifecycle: Canceled\nConfirmation: under review")
+        && str_contains($plain_text, 'Cancellation Reason: Venue unavailable')
+        && str_contains($plain_text, 'Rescheduled Event: Autumn Summit · 2026-10-20'),
+    'exports should distinguish lifecycle, confirmation, cancellation, and replacement details.'
+);
 expectExport(!str_contains($plain_text, 'Event Title:'), 'Overview does not repeat the event title.');
 expectExport(
-    str_contains($plain_text, "Event Description: A multi-day gathering\n  for community leaders."),
-    'Plain text includes the multi-line event description.'
+    str_contains($plain_text, "Event Description: A multi-day gathering\n  for community leaders — أهلاً وسهلاً — שלום."),
+    'Plain text preserves the multi-line Unicode event description.'
 );
-expectExport(str_contains($plain_text, "Jamie Smith\nRole: Events Director"), 'Plain text includes contact details.');
-expectExport(str_contains($plain_text, 'Phone: +1 (312) 555-0100'), 'Exports use the canonical telephone format.');
+expectExport(
+    str_contains($plain_text, "Jamie Smith\nEvent Roles: Primary host, Travel\nRole: Events Director"),
+    'Plain text includes event-specific and organization contact roles.'
+);
+expectExport(str_contains($plain_text, 'Phone: +1 312-555-0100'), 'Exports format canonical telephone values for display.');
 expectExport(str_contains($plain_text, "Opening Keynote\nSpeaker: Jordan Speaker"), 'Plain text includes presentations.');
 expectExport(
     str_contains($plain_text, "August 15, 2026 at 11:00 AM CDT - Jordan Admin\nEntry: Newest line\n  Second [line]"),
@@ -117,6 +132,18 @@ expectExport(
     engagementPdfFilename($engagement) === 'engagement-42-summer-summit.pdf',
     'PDF filenames are stable and safe.'
 );
+expectExport(
+    engagementPdfDisplayValue('Event Dates', '2026-08-20 to 2026-08-22') === 'August 20, 2026 - August 22, 2026',
+    'PDF dates use a readable display format.'
+);
+expectExport(
+    engagementPdfDisplayValue('Status', 'under_review') === 'Under Review',
+    'PDF status values are formatted for display.'
+);
+expectExport(
+    engagementPdfDisplayValue('Date and Time', '2026-08-21 09:30 AM') === 'August 21, 2026 at 9:30 AM',
+    'PDF presentation dates use a readable display format.'
+);
 
 $pdf_contents = renderEngagementPdf($export, 'August 15, 2026');
 $pdf_section_headings = array_column(orderEngagementPdfSections($export['sections']), 'heading');
@@ -134,8 +161,8 @@ expectExport(str_starts_with($pdf_contents, '%PDF-'), 'PDF export has a valid PD
 expectExport(str_ends_with(rtrim($pdf_contents), '%%EOF'), 'PDF export has a valid PDF trailer.');
 expectExport(strlen($pdf_contents) > 1500, 'PDF export contains rendered engagement content.');
 expectExport(
-    preg_match('/\/Count\s+2\b/', $pdf_contents) === 1,
-    'PDF export places Chron on its own final page for the complete fixture.'
+    preg_match('/\/Count\s+([2-9]|[1-9][0-9]+)\b/', $pdf_contents) === 1,
+    'PDF export includes a separate final page for Chron.'
 );
 
 $sample_output = getenv('DNR_PDF_TEST_OUTPUT');

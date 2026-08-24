@@ -84,13 +84,13 @@ if (!$presentation_form_rows) {
                             </div>
                         <?php elseif ($show_delete_button): ?>
                             <div class="remove-btn-container">
-                                <button type="button" onclick="removePresentation(<?php echo $presentation_dom_id; ?>)" class="remove-presentation-btn">Remove</button>
+                                <button type="button" data-remove-presentation="<?php echo $presentation_dom_id; ?>" class="remove-presentation-btn">Remove</button>
                             </div>
                         <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>
         </div>
-        <button type="button" onclick="addPresentation()" class="add-presentation-btn">Add Presentation</button>
+        <button type="button" data-add-presentation class="add-presentation-btn">Add Presentation</button>
     </div>
 </section>

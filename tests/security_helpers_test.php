@@ -81,11 +81,27 @@ expectTrue(
 expectTrue(
     requestIpAddress([
         'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.99, 203.0.113.42, 192.168.65.1',
+    ]) === '203.0.113.42',
+    'A client-supplied leftmost forwarding value must not override the nearest untrusted address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
         'HTTP_X_FORWARDED_FOR' => '172.18.0.14',
         'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
         'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
     ]) === '203.0.113.42',
     'A trusted Cloudflare tunnel should supply the original public client IP address.'
+);
+expectTrue(
+    requestIpAddress([
+        'REMOTE_ADDR' => '192.168.65.1',
+        'HTTP_X_FORWARDED_FOR' => '198.51.100.99, 172.18.0.14',
+        'HTTP_CF_CONNECTING_IP' => '203.0.113.42',
+        'HTTP_CF_RAY' => 'a2bb06142d4369b9-DFW',
+    ]) === '203.0.113.42',
+    'A trusted Cloudflare hop must ignore an untrusted value prepended to its forwarding chain.'
 );
 expectTrue(
     requestIpAddress([
@@ -143,6 +159,36 @@ expectTrue(!isLoggedIn(), 'A session without an authentication version must not 
 $_SESSION['auth_version'] = 1;
 expectTrue(isLoggedIn(), 'A completed, versioned session should be recognized as logged in.');
 
+$_SESSION['_two_factor_enrollment'] = [
+    'user_id' => 1,
+    'secret' => 'logged-in-enrollment-secret',
+    'mode' => 'enroll',
+    'issued_at' => time(),
+];
+expectTrue(
+    getPendingAuthentication() === null
+        && isset($_SESSION['_two_factor_enrollment']),
+    'Checking for pending login must preserve a logged-in user\'s active 2FA enrollment.'
+);
+
+$_SESSION['_pending_auth'] = [
+    'user_id' => 1,
+    'username' => 'admin',
+    'role' => 'admin',
+    'auth_version' => 1,
+    'issued_at' => time() - 601,
+];
+expectTrue(
+    getPendingAuthentication() === null
+        && !isset($_SESSION['_pending_auth'], $_SESSION['_two_factor_enrollment']),
+    'An expired pending login should still clear its associated 2FA enrollment.'
+);
+$_SESSION = [
+    'user_id' => 1,
+    'auth_version' => 1,
+    'auth_complete' => true,
+];
+
 expectTrue(
     isApplicationRootRequest([
         'REQUEST_URI' => '/',
@@ -179,22 +225,22 @@ expectTrue(
 );
 expectTrue(
     authenticationDestination(['role' => 'reviewer', 'must_change_password' => 0])
-        === 'engagements.php',
-    'A reviewer without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'A reviewer without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
     authenticationDestination(['role' => 'editor', 'must_change_password' => 0])
-        === 'engagements.php',
-    'An editor without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'An editor without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
     authenticationDestination(['role' => 'admin', 'must_change_password' => 0])
-        === 'engagements.php',
-    'An administrator without a temporary password should land on Engagements.'
+        === 'dashboard.php',
+    'An administrator without a temporary password should land on the daily dashboard.'
 );
 expectTrue(
-    twoFactorRecoveryCodesDestination(true) === 'engagements.php',
-    'Initial two-factor enrollment should continue to Engagements.'
+    twoFactorRecoveryCodesDestination(true) === 'dashboard.php',
+    'Initial two-factor enrollment should continue to the daily dashboard.'
 );
 expectTrue(
     twoFactorRecoveryCodesDestination(false) === 'two_factor_settings.php',
@@ -223,16 +269,20 @@ try {
 expectTrue(normalizedHttpUrl('https://example.org/path') === 'https://example.org/path', 'HTTPS URLs should validate.');
 expectTrue(normalizedHttpUrl('javascript:alert(1)') === null, 'Script URLs must be rejected.');
 expectTrue(
-    normalizePhoneNumber('+1', '3125550199') === '+1 (312) 555-0199',
-    'U.S. telephone numbers should use the canonical country and local format.'
+    normalizePhoneNumber('+1', '3125550199') === '+13125550199',
+    'U.S. telephone numbers should be stored in canonical E.164 format.'
 );
 expectTrue(
-    normalizePhoneNumber('+1', '+1 (312) 555-0199') === '+1 (312) 555-0199',
+    normalizePhoneNumber('+1', '+1 (312) 555-0199') === '+13125550199',
     'A pasted U.S. country code should not be duplicated.'
 );
 expectTrue(
-    normalizePhoneNumber('+44', '20 7946 0958') === '+44 (207) 946-0958',
-    'A selected non-U.S. country code should be preserved with the requested local grouping.'
+    normalizePhoneNumber('+44', '020 7946 0958') === '+442079460958',
+    'A valid international national number should normalize according to its country metadata.'
+);
+expectTrue(
+    normalizePhoneNumber('+972', '02-531-8100') === '+97225318100',
+    'National trunk prefixes and variable-length international numbers should normalize correctly.'
 );
 expectTrue(normalizePhoneNumber('+1', '') === '', 'An optional blank telephone number should remain blank.');
 expectTrue(
@@ -240,7 +290,7 @@ expectTrue(
     'Legacy U.S. values should populate the country and local controls separately.'
 );
 expectTrue(
-    formatPhoneNumberForDisplay('1-312-555-0199') === '+1 (312) 555-0199',
+    formatPhoneNumberForDisplay('1-312-555-0199') === '+1 312-555-0199',
     'Legacy telephone numbers should be normalized when displayed.'
 );
 expectTrue(
@@ -254,6 +304,12 @@ try {
     expectTrue(false, 'An incomplete telephone number should throw.');
 } catch (InvalidArgumentException $exception) {
     expectTrue(true, 'An incomplete telephone number was rejected.');
+}
+try {
+    normalizePhoneNumber('+44', '+1 312-555-0199');
+    expectTrue(false, 'A number from a different selected country should throw.');
+} catch (InvalidArgumentException $exception) {
+    expectTrue(true, 'A mismatched country calling code was rejected.');
 }
 expectTrue(normalizeEventType('other', 'Retreat') === ['other', 'Retreat'], 'Custom event types should use the canonical other fields.');
 try {

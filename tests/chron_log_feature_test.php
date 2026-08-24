@@ -73,8 +73,8 @@ expectChronFeature(
     'editors should archive entries while permanent deletion remains admin-only.'
 );
 expectChronFeature(
-    str_contains($edit_engagement, 'fetchChronLogEntries($conn, $engagement_id)')
-        && !str_contains($edit_engagement, 'fetchChronLogEntries($conn, $engagement_id, true)')
+    str_contains($edit_engagement, 'fetchChronLogEntries(')
+        && str_contains($edit_engagement, '$chron_page_size')
         && !str_contains($edit_engagement, "\$chron_action === 'restore'")
         && str_contains($edit_engagement, 'restore_chron_entries.php?engagement_id=')
         && str_contains($view_engagement, 'restore_chron_entries.php?engagement_id='),
@@ -99,19 +99,16 @@ expectChronFeature(
         && !str_contains($edit_engagement, 'name="chron_q"')
         && str_contains($engagement_list, 'buildEngagementSearchPlan($search)')
         && str_contains($engagement_search_helpers, 'FROM engagement_chron_entries ce')
-        && str_contains($engagement_search_helpers, 'ce.entry_text LIKE ?')
-        && str_contains($engagement_search_helpers, 'ce.created_by_username_snapshot) LIKE ?')
+        && str_contains($engagement_search_helpers, 'MATCH(ce.entry_text, ce.created_by_username_snapshot)')
         && str_contains($engagement_search_helpers, 'ce.is_archived = 0')
-        && str_contains($engagement_search_helpers, 'o.organization_name LIKE ?')
+        && str_contains($engagement_search_helpers, 'o.organization_name, o.notes, o.affiliation')
         && str_contains($engagement_search_helpers, 'FROM contacts c')
         && str_contains($engagement_search_helpers, 'c.organization_id = e.organization_id')
-        && str_contains($engagement_search_helpers, 'c.contact_first_name LIKE ?')
-        && str_contains($engagement_search_helpers, 'c.contact_last_name LIKE ?')
-        && str_contains($engagement_search_helpers, 'c.contact_email LIKE ?')
-        && str_contains($engagement_search_helpers, 'c.contact_phone LIKE ?')
+        && str_contains($engagement_search_helpers, 'c.contact_first_name, c.contact_last_name, c.contact_email')
+        && str_contains($engagement_search_helpers, 'AGAINST (? IN BOOLEAN MODE)')
         && str_contains($engagement_search_helpers, 'c.is_deleted = 0')
-        && !str_contains($engagement_search_helpers, 'e.event_type LIKE ?')
-        && !str_contains($engagement_search_helpers, 'e.confirmation_status LIKE ?')
+        && !str_contains($engagement_search_helpers, 'e.event_type,')
+        && !str_contains($engagement_search_helpers, 'e.confirmation_status,')
         && str_contains(
             $engagement_list,
             'placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user"'

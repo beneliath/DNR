@@ -6,31 +6,11 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/config.php';
-
-function readHiddenPassword($prompt) {
-    fwrite(STDOUT, $prompt);
-    $can_hide = DIRECTORY_SEPARATOR === '/'
-        && function_exists('shell_exec')
-        && function_exists('stream_isatty')
-        && stream_isatty(STDIN);
-
-    if ($can_hide) {
-        shell_exec('stty -echo');
-    }
-
-    $value = fgets(STDIN);
-
-    if ($can_hide) {
-        shell_exec('stty echo');
-        fwrite(STDOUT, PHP_EOL);
-    }
-
-    return is_string($value) ? rtrim($value, "\r\n") : '';
-}
+require_once __DIR__ . '/cli_input.php';
 
 $username = trim($argv[1] ?? '');
 if ($username === '') {
-    fwrite(STDERR, "Usage: php /opt/dnr/bin/set_password.php USERNAME\n");
+    fwrite(STDERR, "Usage: dnr-set-password USERNAME\n");
     exit(1);
 }
 
@@ -43,11 +23,12 @@ if (!$user) {
     exit(1);
 }
 
-$password = readHiddenPassword('New password: ');
-$confirmation = readHiddenPassword('Confirm new password: ');
+$password = readHiddenCliValue('New password: ');
+$confirmation = readHiddenCliValue('Confirm new password: ');
 
-if (strlen($password) < 12) {
-    fwrite(STDERR, "Password must contain at least 12 characters.\n");
+$password_error = \Dnr\Security\PasswordPolicy::validationError($password);
+if ($password_error !== null) {
+    fwrite(STDERR, $password_error . "\n");
     exit(1);
 }
 
@@ -56,7 +37,7 @@ if (!hash_equals($password, $confirmation)) {
     exit(1);
 }
 
-$password_hash = password_hash($password, PASSWORD_DEFAULT);
+$password_hash = \Dnr\Security\PasswordPolicy::hash($password);
 $user_id = (int) $user['id'];
 $stmt = $conn->prepare(
     'UPDATE users

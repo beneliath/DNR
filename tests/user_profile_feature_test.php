@@ -32,12 +32,17 @@ file_put_contents(
     base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true)
 );
 $picture = validatedProfilePictureFile($png_path);
+$thumbnail_dimensions = getimagesizefromstring($picture['thumbnail_data']);
 expectUserProfile(
     $picture['mime_type'] === 'image/png'
         && $picture['width'] === 1
         && $picture['height'] === 1
-        && $picture['size'] > 0,
-    'a real PNG within the upload bounds should be accepted.'
+        && $picture['size'] > 0
+        && in_array($picture['thumbnail_mime_type'], ['image/png', 'image/webp'], true)
+        && ($thumbnail_dimensions[0] ?? 0) === 1
+        && ($thumbnail_dimensions[1] ?? 0) === 1
+        && str_starts_with(uploadedImageDataUrl($picture['thumbnail_mime_type'], $picture['thumbnail_data']), 'data:image/'),
+    'a real PNG should be accepted and accompanied by a decodable embeddable thumbnail.'
 );
 unlink($png_path);
 
@@ -64,11 +69,22 @@ expectUserProfile(
     'the profile form should securely save every requested personal field and the uploaded picture.'
 );
 expectUserProfile(
-    str_contains($profile_page, 'assets/js/profile.min.js?v=1.0.1')
+    str_contains($profile_page, "'path' => 'assets/js/profile.min.js'")
         && str_contains($profile_page, 'data-profile-picture-preview')
         && str_contains($profile_page, 'data-profile-picture-input')
         && str_contains($profile_page, 'aria-live="polite"'),
     'the profile page should load an accessible immediate picture preview.'
+);
+expectUserProfile(
+    str_contains($profile_page, 'form="profile-resend-verification-form"')
+        && str_contains($profile_page, '<form id="profile-resend-verification-form" method="post" action="profile.php" hidden>')
+        && str_contains($profile_page, "require_once __DIR__ . '/two_factor_helpers.php';")
+        && str_contains($profile_page, "logSecurityEvent(\$conn, 'email_verification_queued'")
+        && str_contains($profile_page, 'verification_queued=1')
+        && str_contains($profile_page, 'verification_test_only=1')
+        && str_contains($profile_page, 'No external email was sent because the development test transport is active.')
+        && strpos($profile_page, 'profile-verification-button') < strpos($profile_page, 'profile-save-actions'),
+    'the resend-verification action should load its audit dependency and distinguish queued SMTP mail from test-only acceptance.'
 );
 
 $profile_script = $read('src/assets/js/profile.js');
@@ -95,7 +111,8 @@ expectUserProfile(
 
 $users_page = $read('src/users.php');
 expectUserProfile(
-    str_contains($users_page, 'profile_picture_mime, profile_picture_updated_at')
+    str_contains($users_page, 'profile_picture_thumbnail')
+        && str_contains($users_page, 'uploadedImageDataUrl(')
         && str_contains($users_page, 'class="user-list-avatar"')
         && str_contains($users_page, 'profile_picture.php?id=')
         && str_contains($users_page, 'formatPhoneNumberForDisplay(')
@@ -117,22 +134,22 @@ expectUserProfile(
 );
 
 $migration = $read('migrations/20260818_add_user_profiles.sql');
-$initial_schema = $read('init.sql');
 expectUserProfile(
     str_contains($migration, 'first_name VARCHAR(100)')
         && str_contains($migration, 'last_name VARCHAR(100)')
         && str_contains($migration, 'phone VARCHAR(50)')
         && str_contains($migration, 'email VARCHAR(254)')
-        && str_contains($migration, 'profile_picture MEDIUMBLOB')
-        && str_contains($initial_schema, "'20260818_add_user_profiles.sql'"),
-    'fresh and upgraded databases should both include the user profile fields.'
+        && str_contains($migration, 'profile_picture MEDIUMBLOB'),
+    'the forward migration should include the user profile fields.'
 );
 
 $styles = $read('src/assets/css/modern.css');
 expectUserProfile(
     str_contains($styles, '.sidebar-account-link')
         && str_contains($styles, '.profile-picture-preview')
-        && str_contains($styles, '.profile-field-grid'),
+        && str_contains($styles, '.profile-field-grid')
+        && str_contains($styles, '.profile-save-actions')
+        && preg_match('/\.profile-actions\s*\{[^}]*justify-content:\s*space-between;/s', $styles) === 1,
     'the clickable sidebar account and responsive profile form should use shared application styling.'
 );
 

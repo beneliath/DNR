@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 requireLogin();
 
@@ -19,12 +18,13 @@ $destination = twoFactorRecoveryCodesDestination($initial_login);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Two-Factor Recovery Codes - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('Two-Factor Recovery Codes - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">

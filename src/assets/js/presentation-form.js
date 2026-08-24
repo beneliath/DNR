@@ -47,6 +47,16 @@
         };
     }
 
+    if (typeof module === "object" && module.exports) {
+        module.exports = {
+            compact24HourTime: compact24HourTime,
+            validTime: validTime
+        };
+    }
+    if (typeof document === "undefined") {
+        return;
+    }
+
     function applyCompact24HourTime(id) {
         var timeInput = document.getElementById("presentation_time_" + id);
         if (!timeInput) {
@@ -281,7 +291,7 @@
             '    </div>',
             '  </div>',
             '  <div class="remove-btn-container">',
-            '    <button type="button" onclick="removePresentation(' + id + ')" class="remove-presentation-btn">Remove</button>',
+            '    <button type="button" data-remove-presentation="' + id + '" class="remove-presentation-btn">Remove</button>',
             '  </div>',
             '</div>'
         ].join("");
@@ -363,6 +373,17 @@
         }
         document.querySelectorAll(".engagement-form").forEach(function (form) {
             form.addEventListener("submit", updateAllPresentationTimes);
+        });
+        document.addEventListener("click", function (event) {
+            var addButton = event.target.closest("[data-add-presentation]");
+            if (addButton) {
+                window.addPresentation();
+                return;
+            }
+            var removeButton = event.target.closest("[data-remove-presentation]");
+            if (removeButton) {
+                window.removePresentation(parseInt(removeButton.dataset.removePresentation, 10));
+            }
         });
         applyPresentationDateConstraints();
         updateConfirmedAvailability();

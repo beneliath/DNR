@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
 const DNR_DATABASE_BACKUP_VERSION = 2;
@@ -71,6 +73,9 @@ function encryptDatabaseBackup($plaintext_path, $password, $maximum_plaintext_by
     $maximum_plaintext_bytes = $maximum_plaintext_bytes ?: databaseBackupMaximumBytes();
     if (!is_string($password) || strlen($password) < 12) {
         throw new InvalidArgumentException('The backup encryption password must contain at least 12 characters.');
+    }
+    if (preg_match('/[\x00-\x1F\x7F]/', $password) === 1) {
+        throw new InvalidArgumentException('The backup encryption password cannot contain control characters.');
     }
 
     $plaintext_size = @filesize($plaintext_path);

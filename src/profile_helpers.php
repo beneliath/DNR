@@ -1,7 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
+require_once __DIR__ . '/image_upload_helpers.php';
+
 const PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024;
-const PROFILE_PICTURE_MAX_PIXELS = 40000000;
+const PROFILE_PICTURE_MAX_PIXELS = 16000000;
+const PROFILE_PICTURE_MAX_DIMENSION = 1024;
 
 function profileDisplayName(array $user) {
     $name = trim(implode(' ', array_filter([
@@ -32,49 +37,23 @@ function profileInitials(array $user) {
     return strtoupper($initials !== '' ? $initials : 'A');
 }
 
+function profileInitialsSvg(array $user) {
+    $initials = htmlspecialchars(profileInitials($user), ENT_QUOTES | ENT_XML1, 'UTF-8');
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img">'
+        . '<rect width="128" height="128" rx="64" fill="#1f57e7"/>'
+        . '<text x="64" y="68" fill="#fff" font-family="Arial,Helvetica,sans-serif" font-size="46" font-weight="700" text-anchor="middle" dominant-baseline="middle">'
+        . $initials
+        . '</text></svg>';
+}
+
 function validatedProfilePictureFile($path) {
-    if (!is_string($path) || $path === '' || !is_file($path)) {
-        throw new InvalidArgumentException('Choose a profile picture to upload.');
-    }
-
-    $size = filesize($path);
-    if ($size === false || $size < 1) {
-        throw new InvalidArgumentException('The selected profile picture is empty.');
-    }
-    if ($size > PROFILE_PICTURE_MAX_BYTES) {
-        throw new InvalidArgumentException('Profile pictures must be 5 MB or smaller.');
-    }
-
-    $finfo = new finfo(FILEINFO_MIME_TYPE);
-    $mime_type = (string) $finfo->file($path);
-    $allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!in_array($mime_type, $allowed_mime_types, true)) {
-        throw new InvalidArgumentException('Upload a JPEG, PNG, or WebP profile picture.');
-    }
-
-    $dimensions = @getimagesize($path);
-    $width = (int) ($dimensions[0] ?? 0);
-    $height = (int) ($dimensions[1] ?? 0);
-    $detected_mime_type = (string) ($dimensions['mime'] ?? '');
-    if ($width < 1 || $height < 1 || $detected_mime_type !== $mime_type) {
-        throw new InvalidArgumentException('The selected file is not a valid image.');
-    }
-    if ($width * $height > PROFILE_PICTURE_MAX_PIXELS) {
-        throw new InvalidArgumentException('The selected profile picture has dimensions that are too large.');
-    }
-
-    $contents = file_get_contents($path);
-    if ($contents === false || strlen($contents) !== $size) {
-        throw new RuntimeException('The profile picture could not be read.');
-    }
-
-    return [
-        'mime_type' => $mime_type,
-        'data' => $contents,
-        'size' => $size,
-        'width' => $width,
-        'height' => $height,
-    ];
+    return normalizedUploadedImage(
+        $path,
+        PROFILE_PICTURE_MAX_BYTES,
+        PROFILE_PICTURE_MAX_PIXELS,
+        PROFILE_PICTURE_MAX_DIMENSION,
+        'profile picture'
+    );
 }
 
 function profilePictureFromUpload(array $upload) {

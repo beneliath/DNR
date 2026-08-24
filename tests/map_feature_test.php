@@ -21,9 +21,14 @@ $header = $read('src/templates/header.php');
 $map_page = $read('src/map.php');
 $map_script = $read('src/assets/js/map.js');
 $map_styles = $read('src/assets/css/map.css');
+$modern_styles = $read('src/assets/css/modern.css');
 $geocoder = $read('src/map_geocode.php');
+$geocoder_worker = $read('scripts/process_geocode_queue.php');
+$map_helpers = $read('src/map_helpers.php');
 $migration = $read('migrations/20260817_add_engagement_map.sql');
+$hardening_migration = $read('migrations/20260821_security_performance_hardening.sql');
 $apache = $read('docker/apache-security.conf');
+$security_headers = $read('src/functions.php');
 
 expectMapFeature(
     str_contains($header, "'map' => ['map.php']")
@@ -33,10 +38,13 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($map_page, "e.confirmation_status = ?")
+        && str_contains($map_page, "e.lifecycle_status = ?")
         && str_contains($map_page, 'e.event_end_date >= ?')
         && str_contains($map_page, 'e.event_start_date <= ?')
         && str_contains($map_page, 'All statuses')
-        && str_contains($map_page, 'Date window'),
+        && str_contains($map_page, 'All lifecycle states')
+        && str_contains($map_page, '<fieldset class="map-date-window">')
+        && str_contains($map_page, '<legend>Date window</legend>'),
     'the Map page should filter statuses and events that overlap the selected date window.'
 );
 expectMapFeature(
@@ -60,10 +68,29 @@ expectMapFeature(
     str_contains($map_styles, '.map-zoom-controls')
         && str_contains($map_styles, '.map-zoom-button')
         && str_contains($map_styles, 'gap: 8px;')
-        && str_contains($map_styles, 'background: var(--surface) !important;')
-        && str_contains($map_styles, 'background-color: var(--surface) !important;')
+        && str_contains($map_styles, 'background: transparent !important;')
+        && str_contains($map_styles, 'background-color: transparent !important;')
         && str_contains($map_styles, 'border-color: var(--control-hover-border) !important;'),
-    'zoom controls should be spaced apart and use the project button surface and hover treatment.'
+    'zoom controls should be spaced apart and use a transparent surface with the project hover treatment.'
+);
+expectMapFeature(
+    str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-control-container,')
+        && str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-top,')
+        && str_contains($map_styles, 'html.dark-mode .map-shell .map-zoom-controls {')
+        && str_contains($map_styles, 'background-color: transparent !important;'),
+    'dark-theme Leaflet control containers should not paint a panel over the map tiles.'
+);
+expectMapFeature(
+    str_contains($map_page, 'assets/css/modern.min.css?rev=consistent-control-geometry-1')
+        && str_contains($map_page, 'assets/css/map.min.css?rev=dark-controls-layout-11'),
+    'the Map page should invalidate previously immutable shared and map styles for control geometry fixes.'
+);
+expectMapFeature(
+    preg_match('/\.map-filter-field select,\s*\.map-filter-field input\s*\{[^}]*min-height:\s*42px;[^}]*margin:\s*0;/s', $map_styles) === 1
+        && !str_contains($modern_styles, 'html.dark-mode input[type="date"],')
+        && !str_contains($modern_styles, 'html.dark-mode select,')
+        && !str_contains($map_styles, 'html.dark-mode .map-filter-actions'),
+    'light and dark map controls should share the same geometry cascade and alignment.'
 );
 expectMapFeature(
     preg_match('/\.map-filter-actions \.button-secondary[^{]*\{[^}]*text-decoration:\s*none(?:\s*!important)?;/s', $map_styles) === 1,
@@ -84,14 +111,25 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($geocoder, 'requireValidCsrfToken')
-        && str_contains($geocoder, "flock(\$rate_lock, LOCK_EX)")
-        && str_contains($geocoder, '1.1 - (microtime(true)')
-        && str_contains($geocoder, 'DNR_GEOCODER_BASE_URL')
-        && str_contains($migration, 'engagement_map_geocodes'),
-    'address lookups should be authenticated, rate-limited, configurable, and cached.'
+        && str_contains($geocoder, 'queueEngagementMapAddress')
+        && !str_contains($geocoder, 'file_get_contents($geocoder_url')
+        && str_contains($geocoder_worker, 'usleep(1100000)')
+        && str_contains($geocoder_worker, 'FOR UPDATE SKIP LOCKED')
+        && str_contains($geocoder_worker, 'processing_started_at')
+        && str_contains($geocoder_worker, "? 'failed' : 'retry'")
+        && str_contains($geocoder_worker, 'WHERE attempts < {$maximum_attempts}')
+        && str_contains($geocoder_worker, 'Maximum geocoding attempts reached')
+        && str_contains($map_helpers, 'validatedGeocoderBaseUrl')
+        && str_contains($map_helpers, 'DNR_GEOCODER_ALLOWED_HOSTS')
+        && str_contains($map_helpers, 'http_get_last_response_headers()')
+        && !str_contains($map_helpers, '$http_response_header')
+        && str_contains($map_helpers, 'completeEngagementMapGeocodeJob')
+        && str_contains($migration, 'engagement_map_geocodes')
+        && str_contains($hardening_migration, 'engagement_map_geocode_queue'),
+    'web requests should enqueue lookups while the worker reclaims stale jobs, dead-letters exhausted work, rate-limits, and caches outbound geocoding.'
 );
 expectMapFeature(
-    str_contains($apache, "https://tile.openstreetmap.org")
+    str_contains($security_headers, "https://tile.openstreetmap.org")
         && str_contains($apache, 'Referrer-Policy "strict-origin-when-cross-origin"'),
     'the security policy should allow the tile host and send only the site origin as its required Referer.'
 );

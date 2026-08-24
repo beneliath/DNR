@@ -1,28 +1,25 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
+include 'chron_log_helpers.php';
+require_once __DIR__ . '/financial_report_helpers.php';
 startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$org_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($org_id === null) {
     header("Location: organizations.php");
     exit();
 }
-
-$org_id = intval($_GET['id']);
 
 // Fetch organization details
 $query = "SELECT * FROM organizations WHERE id = ?";
 
 $stmt = $conn->prepare($query);
-if ($stmt === false) {
-    die("Error preparing statement: " . $conn->error);
-}
+if ($stmt === false) abortApplication(503, 'The organization is temporarily unavailable.', ['error' => $conn->error]);
 
 $stmt->bind_param("i", $org_id);
 $stmt->execute();
@@ -36,14 +33,48 @@ if ($result->num_rows === 0) {
 $organization = $result->fetch_assoc();
 $is_archived = !empty($organization['is_deleted']);
 
+try {
+    $financial_summary = fetchOrganizationFinancialSummary($conn, $org_id);
+    $financial_history = fetchOrganizationFinancialHistory($conn, $org_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The organization financial history is temporarily unavailable.', [
+        'organization_id' => $org_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+
+try {
+    $chron_page_size = 20;
+    $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchEntityChronLogEntries(
+        $conn,
+        'organization',
+        $org_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
+    $archived_chron_count = countEntityChronLogEntries($conn, 'organization', $org_id, 1);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The organization Chron log is temporarily unavailable.', [
+        'organization_id' => $org_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+
 // Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts
+    $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
+                             contact_role, contact_role_other, contact_email, contact_phone
+                      FROM contacts
                   WHERE organization_id = ? AND is_deleted = 0
                   ORDER BY contact_last_name, contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
-if ($contact_stmt === false) {
-    die("Error preparing contacts statement: " . $conn->error);
-}
+if ($contact_stmt === false) abortApplication(503, 'The organization contacts are temporarily unavailable.', ['error' => $conn->error]);
 
 $contact_stmt->bind_param("i", $org_id);
 $contact_stmt->execute();
@@ -55,90 +86,92 @@ $contact_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Organization - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .organization-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .dark-mode .organization-details {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .detail-row {
-            margin-bottom: 15px;
-        }
-        .detail-row strong {
-            display: block;
-            margin-bottom: 5px;
-        }
-        .contacts-section {
-            margin-top: 30px;
-        }
-        .contact-card {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 15px;
-        }
-        .dark-mode .contact-card {
-            background-color: #1e1e1e;
-            border-color: #444;
-        }
-        .contact-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .contact-name {
-            font-size: var(--font-size-large);
-            font-weight: var(--font-weight-bold);
-            margin: 0;
-        }
-        .contact-role {
-            font-style: italic;
-            color: #666;
-        }
-        .dark-mode .contact-role {
-            color: #888;
-        }
-        .contact-info {
-            margin-top: 10px;
-        }
-        .action-buttons {
-            margin-top: 20px;
-        }
-        .action-button {
-            padding: 8px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            margin-right: 10px;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-    </style>
-</head>
+<?php renderPageHead('View Organization - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_organization.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
     <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
+
+    <section class="organization-financials" aria-labelledby="organization-financial-heading">
+        <div class="section-heading-row">
+            <div>
+                <h2 id="organization-financial-heading">Financial History</h2>
+                <p>Only finalized event reports are included in these figures.</p>
+            </div>
+            <span><?php echo (int) $financial_summary['closed_event_count']; ?> closed event<?php echo (int) $financial_summary['closed_event_count'] === 1 ? '' : 's'; ?></span>
+        </div>
+        <div class="financial-summary-grid">
+            <article class="financial-summary-card">
+                <small>Lifetime giving</small>
+                <strong><?php echo formatFinancialAmount($financial_summary['lifetime_giving']); ?></strong>
+            </article>
+            <article class="financial-summary-card">
+                <small>Last event giving</small>
+                <strong><?php echo $financial_summary['last_event_giving'] === null ? '—' : formatFinancialAmount($financial_summary['last_event_giving']); ?></strong>
+                <?php if ($financial_summary['last_event_id'] !== null): ?>
+                    <a href="view_engagement.php?id=<?php echo (int) $financial_summary['last_event_id']; ?>#financial-closeout"><?php echo htmlspecialchars((string) ($financial_summary['last_event_title'] ?: 'Most recent event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                <?php endif; ?>
+            </article>
+            <article class="financial-summary-card">
+                <small>Average event giving</small>
+                <strong><?php echo (int) $financial_summary['closed_event_count'] === 0 ? '—' : formatFinancialAmount($financial_summary['average_event_giving']); ?></strong>
+            </article>
+            <article class="financial-summary-card">
+                <small>Lodging received</small>
+                <strong><?php echo formatFinancialAmount($financial_summary['lifetime_lodging']); ?></strong>
+            </article>
+            <article class="financial-summary-card">
+                <small>Travel received</small>
+                <strong><?php echo formatFinancialAmount($financial_summary['lifetime_travel']); ?></strong>
+            </article>
+        </div>
+
+        <?php if ($financial_history !== []): ?>
+            <?php if ((int) $financial_summary['closed_event_count'] > count($financial_history)): ?>
+                <p class="financial-history-empty">Showing the <?php echo count($financial_history); ?> most recent finalized event reports.</p>
+            <?php endif; ?>
+            <div class="financial-history-table-wrap">
+                <table class="financial-history-table">
+                    <thead>
+                        <tr>
+                            <th>Event</th>
+                            <th>Date</th>
+                            <th>Giving / income</th>
+                            <th>Lodging</th>
+                            <th>Travel</th>
+                            <th>Total received</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($financial_history as $history_report): ?>
+                            <tr>
+                                <td>
+                                    <a href="view_engagement.php?id=<?php echo (int) $history_report['engagement_id']; ?>#financial-closeout"><?php echo htmlspecialchars((string) ($history_report['event_title'] ?: 'Untitled event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <?php if (!empty($history_report['is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars((string) $history_report['event_end_date'], ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo formatFinancialAmount($history_report['giving_income_received']); ?></td>
+                                <td><?php echo formatFinancialAmount($history_report['lodging_received']); ?></td>
+                                <td><?php echo formatFinancialAmount($history_report['travel_received']); ?></td>
+                                <td><strong><?php echo formatFinancialAmount(financialReportTotal($history_report)); ?></strong></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php else: ?>
+            <p class="financial-history-empty">No events have a finalized financial report yet.</p>
+        <?php endif; ?>
+    </section>
+
     <div class="organization-details">
         <div class="detail-row">
             <strong>Affiliation</strong>
@@ -205,6 +238,14 @@ $contact_stmt->close();
             <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
         </div>
     </div>
+
+    <?php
+    $chron_entity_label = 'organization';
+    $chron_view_url = 'view_organization.php?id=' . $org_id;
+    $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
+    $chron_can_restore = !$is_archived;
+    include 'templates/entity_chron_log_view_section.php';
+    ?>
 
     <div class="contacts-section">
         <h3>Contacts</h3>

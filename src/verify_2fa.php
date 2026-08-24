@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireTwoFactorSchema($conn);
@@ -14,7 +13,11 @@ if (!$pending) {
 }
 
 $user = fetchAuthenticationUserById($conn, (int) $pending['user_id']);
-if (!$user || empty($user['two_factor_enabled'])) {
+if (!$user
+    || $user['account_status'] !== 'active'
+    || (int) $user['auth_version'] !== (int) $pending['auth_version']
+    || empty($user['two_factor_enabled'])
+) {
     unset($_SESSION['_pending_auth']);
     header('Location: login.php');
     exit();
@@ -26,7 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $code = trim($_POST['authentication_code'] ?? '');
     $user = fetchAuthenticationUserById($conn, (int) $pending['user_id']);
 
-    if (!$user || !empty($user['two_factor_is_locked'])) {
+    if (!$user
+        || $user['account_status'] !== 'active'
+        || (int) $user['auth_version'] !== (int) $pending['auth_version']
+        || !empty($user['two_factor_is_locked'])
+    ) {
         recordFailedLoginAttempt(
             $conn,
             (string) $pending['username'],
@@ -71,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
             $error = 'The code could not be verified. Check the code and try again.';
         } catch (Throwable $exception) {
-            error_log('Two-factor verification error: ' . $exception->getMessage());
+            applicationLog('error', 'Two-factor verification failed unexpectedly', ['error' => $exception->getMessage()]);
             $error = 'Two-factor verification is temporarily unavailable.';
         }
     }
@@ -79,25 +86,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Two-Factor Verification - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-  <link rel="stylesheet" href="assets/css/modern.min.css?v=0.1.58">
-    <script>
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme === 'dark') document.documentElement.classList.add('dark-mode');
-    </script>
-</head>
+<?php renderPageHead('Two-Factor Verification - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css?rev=verification-logo-1',
+  ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/theme-init.min.js',
+      'defer' => false,
+    ),
+  ),
+)); ?>
 <body class="fullscreen-center">
-    <button type="button" class="mobile-theme-button auth-theme-toggle" onclick="toggleTheme()" data-theme-toggle aria-label="Switch to dark theme">
+    <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
         <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
         <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
     </button>
     <div class="login-container">
         <div class="auth-brand">
-            <span class="auth-brand-copy"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></span>
+            <img class="auth-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="DNR" width="320" height="55">
         </div>
         <h1>Verification</h1>
         <?php if (isset($error)): ?>
@@ -130,6 +141,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             Protected with two-factor authentication
         </p>
     </div>
-    <script src="assets/js/theme.min.js"></script>
+    <?php renderScript('assets/js/theme.min.js', false); ?>
 </body>
 </html>

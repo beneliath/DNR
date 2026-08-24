@@ -10,13 +10,10 @@ function expectContactNotesFeature($condition, $message) {
 $root = dirname(__DIR__);
 $read = static fn($path) => file_get_contents($root . '/' . $path);
 
-$init = $read('init.sql');
 $migration = $read('migrations/20260818_add_contact_notes.sql');
 expectContactNotesFeature(
-    str_contains($init, 'contact_notes TEXT NULL')
-        && str_contains($init, "'20260818_add_contact_notes.sql'")
-        && str_contains($migration, 'ADD COLUMN contact_notes TEXT NULL'),
-    'fresh and upgraded databases should include optional contact notes.'
+    str_contains($migration, 'ADD COLUMN contact_notes TEXT NULL'),
+    'the forward migration should include optional contact notes.'
 );
 
 $add_contact = $read('src/add_contact.php');
@@ -30,7 +27,7 @@ expectContactNotesFeature(
         && str_contains($add_organization, "'notes' => \$contact_notes")
         && str_contains($add_organization, 'contact_phone, contact_notes')
         && str_contains($add_organization, '<textarea name="contact_notes"')
-        && str_contains($add_organization, '<textarea name="contacts[${contactCount-1}][notes]"'),
+        && str_contains($add_organization, '<textarea name="contacts[__CONTACT_INDEX__][notes]"'),
     'all contact creation and editing paths should use multiline fields and save optional notes.'
 );
 
@@ -43,7 +40,8 @@ expectContactNotesFeature(
 
 $contacts = $read('src/contacts.php');
 expectContactNotesFeature(
-    str_contains($contacts, 'OR c.contact_notes LIKE ?'),
+    str_contains($contacts, 'c.contact_phone, c.contact_role_other, c.contact_notes')
+        && str_contains($contacts, 'AGAINST (? IN BOOLEAN MODE)'),
     'contact search should include notes.'
 );
 

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 function parseEngagementSearchQuery($search) {
     $search = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', (string) $search) ?? '';
     $search = trim(substr($search, 0, 256));
@@ -7,7 +9,7 @@ function parseEngagementSearchQuery($search) {
     $and_terms = [];
     preg_match_all('/"[^"]*"|\S+/u', trim((string) $search), $matches);
 
-    foreach ($matches[0] ?? [] as $matched_term) {
+    foreach ($matches[0] as $matched_term) {
         if (count($or_terms) + count($and_terms) >= 8) {
             break;
         }
@@ -21,13 +23,15 @@ function parseEngagementSearchQuery($search) {
                 if (count($or_terms) + count($and_terms) >= 8) {
                     break;
                 }
-                $and_terms[] = substr($quoted_term, 0, 64);
+                if (strlen($quoted_term) >= 3) {
+                    $and_terms[] = substr($quoted_term, 0, 64);
+                }
             }
             continue;
         }
 
         $unquoted_term = trim($matched_term, '"');
-        if ($unquoted_term !== '') {
+        if (strlen($unquoted_term) >= 3) {
             $or_terms[] = substr($unquoted_term, 0, 64);
         }
     }
@@ -40,33 +44,38 @@ function parseEngagementSearchQuery($search) {
 
 function engagementSearchTermSql() {
     return "(
-        e.event_title LIKE ?
-        OR o.organization_name LIKE ?
+        MATCH(
+            e.event_title, e.event_description, e.engagement_notes,
+            e.caller_name, e.cancellation_reason
+        )
+            AGAINST (? IN BOOLEAN MODE)
+        OR EXISTS (
+            SELECT 1 FROM users caller
+            WHERE caller.id = e.caller_user_id
+              AND caller.username LIKE CONCAT('%', REPLACE(?, '*', ''), '%')
+        )
+        OR MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
         OR EXISTS (
             SELECT 1
             FROM contacts c
             WHERE c.organization_id = e.organization_id
               AND c.is_deleted = 0
-              AND (
-                  c.contact_first_name LIKE ?
-                  OR c.contact_last_name LIKE ?
-                  OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
-                  OR c.contact_email LIKE ?
-                  OR c.contact_phone LIKE ?
-                  OR c.contact_role LIKE ?
-                  OR c.contact_role_other LIKE ?
-              )
+              AND MATCH(
+                  c.contact_first_name, c.contact_last_name, c.contact_email,
+                  c.contact_phone, c.contact_role_other, c.contact_notes
+              ) AGAINST (? IN BOOLEAN MODE)
         )
         OR EXISTS (
             SELECT 1
             FROM engagement_chron_entries ce
-            LEFT JOIN users chron_creator ON chron_creator.id = ce.created_by
             WHERE ce.engagement_id = e.id
               AND ce.is_archived = 0
-              AND (
-                  ce.entry_text LIKE ?
-                  OR COALESCE(chron_creator.username, ce.created_by_username_snapshot) LIKE ?
-              )
+              AND MATCH(ce.entry_text, ce.created_by_username_snapshot)
+                  AGAINST (? IN BOOLEAN MODE)
         )
     )";
 }
@@ -81,26 +90,24 @@ function buildEngagementSearchPlan($search) {
     $patterns_per_term = substr_count($term_condition, '?');
 
     if ($parsed_search['or_terms']) {
-        $groups[] = '(' . implode(
-            ' OR ',
-            array_fill(0, count($parsed_search['or_terms']), $term_condition)
-        ) . ')';
-        foreach ($parsed_search['or_terms'] as $term) {
-            for ($index = 0; $index < $patterns_per_term; $index++) {
-                $patterns[] = '%' . $term . '%';
-            }
+        $groups[] = $term_condition;
+        $or_query = implode(' ', array_map(
+            'engagementFulltextTerm',
+            $parsed_search['or_terms']
+        ));
+        for ($index = 0; $index < $patterns_per_term; $index++) {
+            $patterns[] = $or_query;
         }
     }
 
     if ($parsed_search['and_terms']) {
-        $groups[] = '(' . implode(
-            ' AND ',
-            array_fill(0, count($parsed_search['and_terms']), $term_condition)
-        ) . ')';
-        foreach ($parsed_search['and_terms'] as $term) {
-            for ($index = 0; $index < $patterns_per_term; $index++) {
-                $patterns[] = '%' . $term . '%';
-            }
+        $groups[] = $term_condition;
+        $and_query = implode(' ', array_map(
+            static fn($term) => '+' . engagementFulltextTerm($term),
+            $parsed_search['and_terms']
+        ));
+        for ($index = 0; $index < $patterns_per_term; $index++) {
+            $patterns[] = $and_query;
         }
     }
 
@@ -111,4 +118,10 @@ function buildEngagementSearchPlan($search) {
         'or_terms' => $parsed_search['or_terms'],
         'and_terms' => $parsed_search['and_terms'],
     ];
+}
+
+function engagementFulltextTerm($term) {
+    $term = preg_replace('/[+\-><()~*"@]+/u', ' ', (string) $term) ?? '';
+    $term = trim(preg_replace('/\s+/u', ' ', $term) ?? '');
+    return $term === '' ? '""' : $term . '*';
 }

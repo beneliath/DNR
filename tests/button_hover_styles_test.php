@@ -10,8 +10,12 @@ function expectHoverStyle($condition, $message) {
 $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 $modern_stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
+$audit_log_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audit_log.css');
 $calendar_subscription_page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
+$calendar_subscription_script = file_get_contents(__DIR__ . '/../src/assets/js/calendar-subscription.js');
 $footer_template = file_get_contents(__DIR__ . '/../src/templates/footer.php');
+$theme_script = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
+$header_template = file_get_contents(__DIR__ . '/../src/templates/header.php');
 
 expectHoverStyle(
     strpos($stylesheet, '--button-hover-color') === false
@@ -22,13 +26,25 @@ expectHoverStyle(
     strpos($stylesheet, '.filter-button,') !== false,
     'Audit filters and pagination controls should use the shared button styles.'
 );
+$shared_button_start = strpos($stylesheet, "/* Buttons */\n:where(");
+$shared_button_end = $shared_button_start === false
+    ? false
+    : strpos($stylesheet, "\n}\n\n.login-button", $shared_button_start);
+$shared_button_styles = $shared_button_start === false || $shared_button_end === false
+    ? ''
+    : substr($stylesheet, $shared_button_start, $shared_button_end - $shared_button_start);
+expectHoverStyle(
+    str_contains($shared_button_styles, '.button-secondary')
+        && str_contains($shared_button_styles, 'text-decoration: none;'),
+    'Secondary links styled as buttons should never retain browser link underlines.'
+);
 expectHoverStyle(
     strpos($modern_stylesheet, '--control-hover-bg: #dbeafe;') !== false
         && strpos($modern_stylesheet, '--control-hover-bg: #243f73;') !== false,
     'List controls should define distinct, visible hover surfaces for both themes.'
 );
 expectHoverStyle(
-    strpos($audit_log_page, "background-color: var(--button-edit-color) !important;") !== false,
+    strpos($audit_log_styles, "background-color: var(--button-edit-color) !important;") !== false,
     'The Audit Log should apply its active selector color without relying on a cached stylesheet.'
 );
 expectHoverStyle(
@@ -108,6 +124,24 @@ expectHoverStyle(
     'Desktop and mobile theme controls should use modern themed hover rules.'
 );
 expectHoverStyle(
+    strpos($theme_script, "button.addEventListener('click', window.toggleTheme)") !== false,
+    'Theme controls should register CSP-compatible click listeners.'
+);
+expectHoverStyle(
+    strpos($header_template, "renderScript('assets/js/theme.min.js'") !== false
+        && strpos($header_template, "renderScript('assets/js/app-shell.min.js'") !== false,
+    'Changed shell scripts should use the centralized versioned asset renderer.'
+);
+foreach (['login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php'] as $theme_page) {
+    expectHoverStyle(
+        strpos(
+            file_get_contents(__DIR__ . '/../src/' . $theme_page),
+            "renderScript('assets/js/theme.min.js'"
+        ) !== false,
+        $theme_page . ' should load the listener-enabled theme script through the versioned asset renderer.'
+    );
+}
+expectHoverStyle(
     strpos($modern_stylesheet, ':is(#copy-calendar-url, #open-calendar-app):hover') !== false
         && strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false,
     'Calendar actions should share the modern theme-aware hover treatment.'
@@ -118,30 +152,27 @@ expectHoverStyle(
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#copy-calendar-url.is-copied') !== false
-        && strpos($calendar_subscription_page, "copyCalendarButton.textContent = 'Copied!';") !== false,
+        && strpos($calendar_subscription_script, "copyButton.textContent = 'Copied!';") !== false,
     'Copy URL should show an in-button success confirmation.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#open-calendar-app.is-opening') !== false
-        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Opening…';") !== false,
+        && strpos($calendar_subscription_script, "openLink.textContent = 'Opening…';") !== false,
     'Open in calendar app should show an in-button activation confirmation.'
 );
 expectHoverStyle(
     strpos($calendar_subscription_page, '>Open in Calendar App</a>') !== false
-        && strpos($calendar_subscription_page, "openCalendarLink.textContent = 'Open in Calendar App';") !== false,
+        && strpos($calendar_subscription_script, "openLink.textContent = 'Open in Calendar App';") !== false,
     'Open in Calendar App should use title case in its initial and restored labels.'
 );
 
-foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
-    $page_source = file_get_contents($page_path);
-    if (strpos($page_source, 'assets/css/style.min.css?v=') === false) {
-        continue;
-    }
-    expectHoverStyle(
-        strpos($page_source, 'assets/css/style.min.css?v=0.0.20') !== false,
-        basename($page_path) . ' should use the current stylesheet cache key.'
-    );
-}
+expectHoverStyle(
+    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "assetUrl((string) \$style)")
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/style.min.css')
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "hash_file('sha256', \$local_path)")
+        && str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), "\$url .= '&h='"),
+    'stylesheets should use application-version and content-fingerprint cache keys.'
+);
 
 expectHoverStyle(
     strpos($audit_log_page, 'class="button-add">Back to Users</a>') !== false
@@ -149,12 +180,10 @@ expectHoverStyle(
     'Audit Log navigation controls should inherit the shared surface button style.'
 );
 
-foreach (['templates/header.php', 'login.php', 'recover_password.php', 'setup_2fa.php', 'verify_2fa.php', 'migrate_passwords.php'] as $page) {
-    expectHoverStyle(
-        strpos(file_get_contents(__DIR__ . '/../src/' . $page), 'assets/css/modern.min.css?v=0.1.58') !== false,
-        $page . ' should use the current modern stylesheet cache key.'
-    );
-}
+expectHoverStyle(
+    str_contains(file_get_contents(__DIR__ . '/../src/functions.php'), 'assets/css/modern.min.css'),
+    'the shared page head should load the modern control system.'
+);
 
 $interactive_markup_pattern = '/<(?:button\b|input\b[^>]*type=["\'](?:button|submit|reset)["\']|a\b[^>]*class=["\'][^"\']*(?:button|btn))/i';
 foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
@@ -166,14 +195,9 @@ foreach (glob(__DIR__ . '/../src/*.php') as $page_path) {
 
     expectHoverStyle(
         strpos($page_source, "templates/header.php") !== false
-            || strpos($page_source, 'assets/css/modern.min.css?v=0.1.58') !== false,
+            || strpos($page_source, 'renderPageHead(') !== false,
         basename($page_path) . ' has interactive controls but does not load the modern button system.'
     );
 }
-
-expectHoverStyle(
-    strpos(file_get_contents(__DIR__ . '/../src/migrate_passwords.php'), 'class="security-button">Run migration</button>') !== false,
-    'The standalone password migration page should classify its action with the shared safe-action style.'
-);
 
 echo "Button hover style tests passed.\n";

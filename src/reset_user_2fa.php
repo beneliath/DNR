@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
@@ -13,6 +12,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 requireValidCsrfToken();
+requireRecentAdminElevation('users.php');
 $target_user_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
 $confirmation = $_POST['reset_confirmation'] ?? '';
 
@@ -27,7 +27,7 @@ if (!$target_user_id || $target_user_id === (int) $_SESSION['user_id']) {
 }
 
 $target_user = fetchAuthenticationUserById($conn, $target_user_id);
-if (!$target_user) {
+if (!$target_user || $target_user['account_status'] !== 'active') {
     header('Location: users.php');
     exit();
 }

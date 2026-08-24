@@ -18,18 +18,15 @@ $read = static function ($path) use ($root) {
 };
 
 $migration = $read('migrations/20260818_add_follow_up_tasks.sql');
-$schema = $read('init.sql');
-foreach ([$migration, $schema] as $task_schema) {
-    expectFollowUpTaskFeature(
-        str_contains($task_schema, 'CREATE TABLE IF NOT EXISTS follow_up_tasks')
-            && str_contains($task_schema, "ENUM('open', 'in_progress', 'waiting', 'completed', 'canceled')")
-            && str_contains($task_schema, 'chk_follow_up_task_subject')
-            && str_contains($task_schema, 'chk_follow_up_task_completion')
-            && str_contains($task_schema, 'uq_follow_up_task_engagement_template')
-            && str_contains($task_schema, 'audit_follow_up_tasks_after_insert'),
-        'fresh and upgraded databases should enforce task subjects, completion state, template idempotence, and auditing.'
-    );
-}
+expectFollowUpTaskFeature(
+    str_contains($migration, 'CREATE TABLE IF NOT EXISTS follow_up_tasks')
+        && str_contains($migration, "ENUM('open', 'in_progress', 'waiting', 'completed', 'canceled')")
+        && str_contains($migration, 'chk_follow_up_task_subject')
+        && str_contains($migration, 'chk_follow_up_task_completion')
+        && str_contains($migration, 'uq_follow_up_task_engagement_template')
+        && str_contains($migration, 'audit_follow_up_tasks_after_insert'),
+    'the forward migration should enforce task subjects, completion state, template idempotence, and auditing.'
+);
 
 $helpers = $read('src/follow_up_task_helpers.php');
 $queue = $read('src/tasks.php');
@@ -100,7 +97,10 @@ expectFollowUpTaskFeature(
     'standard engagement checklist generation should be optional and idempotent.'
 );
 expectFollowUpTaskFeature(
-    str_contains($header, "'tasks' => ['tasks.php', 'add_task.php', 'edit_task.php']")
+    str_contains($header, "'standard_tasks.php'")
+        && str_contains($header, "'add_standard_task.php'")
+        && str_contains($header, "'view_standard_task.php'")
+        && str_contains($header, "'edit_standard_task.php'")
         && str_contains($header, '<span>Work Queue</span>'),
     'the shared application shell should expose the work queue and mark all task pages active.'
 );
@@ -108,7 +108,7 @@ expectFollowUpTaskFeature(
 foreach (['view_engagement.php', 'view_organization.php', 'view_contact.php'] as $record_page) {
     $source = $read('src/' . $record_page);
     expectFollowUpTaskFeature(
-        str_contains($source, "include 'follow_up_task_helpers.php'")
+        str_contains($source, 'follow_up_task_helpers.php')
             && str_contains($source, "include 'templates/follow_up_task_section.php'"),
         "{$record_page} should show contextual follow-up work."
     );

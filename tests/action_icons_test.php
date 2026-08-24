@@ -67,4 +67,20 @@ expectActionIcon(
     'Record-level follow-up cards should use the shared accessible edit icon treatment.'
 );
 
+$users_source = file_get_contents(__DIR__ . '/../src/users.php');
+expectActionIcon(
+    str_contains($users_source, '$admin_actions_unlocked = hasRecentAdminElevation();')
+        && str_contains($users_source, '<?php if ($admin_actions_unlocked): ?>')
+        && str_contains($users_source, '$admin_actions_unlocked && (int) $user[\'id\']')
+        && str_contains($users_source, 'Locked controls remain hidden until elevation succeeds.'),
+    'User creation, editing, password reset, 2FA reset, and deletion controls should remain hidden until fresh administrator elevation.'
+);
+expectActionIcon(
+    str_contains(
+        file_get_contents(__DIR__ . '/../src/reset_user_password.php'),
+        "requireRecentAdminElevation('reset_user_password.php?id=' . \$target_user_id);"
+    ),
+    'The password-reset route should independently enforce fresh administrator elevation.'
+);
+
 echo "Action icon tests passed.\n";

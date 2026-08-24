@@ -1,6 +1,5 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
 include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -13,9 +12,13 @@ if (!canManageFollowUpTasks($user_role)) {
 }
 
 $task_return_to = safeFollowUpTaskReturnUrl(
-    $_POST['return_to'] ?? $_GET['return_to'] ?? 'tasks.php'
+    \Dnr\Http\RequestInput::string(
+        $_POST,
+        'return_to',
+        \Dnr\Http\RequestInput::string($_GET, 'return_to', 'tasks.php')
+    )
 );
-$requested_subject_type = (string) ($_GET['subject_type'] ?? 'general');
+$requested_subject_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type', 'general');
 $requested_subject_id = filter_input(INPUT_GET, 'subject_id', FILTER_VALIDATE_INT);
 $task_selected_subject = $requested_subject_type === 'general'
     ? 'general'
@@ -49,7 +52,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     requireValidCsrfToken();
     $task_form_values = $_POST;
     $task_selected_subject = (string) ($_POST['subject'] ?? 'general');
+    $transaction_started = false;
     try {
+        $conn->begin_transaction();
+        $transaction_started = true;
         $task = normalizeFollowUpTaskInput($conn, $_POST);
         $completed_by = $task['status'] === 'completed' ? (int) $_SESSION['user_id'] : null;
         $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
@@ -85,17 +91,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             throw new RuntimeException('Unable to save the task.');
         }
         $stmt->close();
+        $conn->commit();
+        $transaction_started = false;
         $_SESSION['task_action_message'] = 'Task added.';
         header('Location: ' . $task_return_to);
         exit();
     } catch (Throwable $exception) {
+        if ($transaction_started) {
+            $conn->rollback();
+        }
         $error_message = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
             : 'Unable to save the task. Please try again.';
     }
 }
 
-$task_subject_options = followUpTaskSubjectOptions($conn);
+$task_selected_record = null;
+try {
+    $selected_subject_parts = parseFollowUpTaskSubject($task_selected_subject);
+    $task_selected_record = followUpTaskSubjectRecord(
+        $conn,
+        $selected_subject_parts['subject_type'],
+        $selected_subject_parts['subject_id']
+    );
+} catch (InvalidArgumentException $exception) {
+    $task_selected_subject = 'general';
+}
 $task_users = followUpTaskUsers($conn);
 $task_form_action = 'add_task.php';
 $task_form_submit_label = 'Add task';
@@ -103,12 +124,13 @@ $task_inactive_subject = null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>New Task - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-</head>
+<?php renderPageHead('New Task - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

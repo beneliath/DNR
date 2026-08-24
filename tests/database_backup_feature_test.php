@@ -13,24 +13,27 @@ $helpers = file_get_contents($root . '/src/database_backup_helpers.php');
 $header = file_get_contents($root . '/src/templates/header.php');
 $login = file_get_contents($root . '/src/login.php');
 $compose = file_get_contents($root . '/docker-compose.yaml');
+$restore_command = file_get_contents($root . '/scripts/restore_database.php');
+$readme = file_get_contents($root . '/README.md');
 
 expectDatabaseBackupFeature(
     str_contains($page, 'requireAdmin();')
         && str_contains($page, 'requireValidCsrfToken();')
-        && str_contains($page, 'password_verify')
+        && str_contains($page, 'PasswordPolicy::verify')
         && str_contains($page, 'verifyAndConsumeTotp')
         && str_contains($page, 'consumeRecoveryCode'),
     'backup and restore must require admin authorization, CSRF validation, password re-entry, and a fresh second factor.'
 );
 expectDatabaseBackupFeature(
-    str_contains($page, "'RESTORE DATABASE'")
-        && str_contains($page, 'is_uploaded_file')
-        && str_contains($page, 'databaseBackupMaximumBytes')
+    !str_contains($page, 'is_uploaded_file')
         && str_contains($page, 'name="backup_password"')
         && str_contains($page, 'encryptDatabaseBackup')
-        && str_contains($page, 'decryptDatabaseBackup')
-        && str_contains($page, 'session_unset()'),
-    'restore must require explicit confirmation and an encryption password, validate the upload, enforce a size limit, and sign out the current session.'
+        && str_contains($restore_command, "PHP_SAPI !== 'cli'")
+        && str_contains($restore_command, "\$confirmation !== 'RESTORE'")
+        && str_contains($restore_command, 'DNR_BACKUP_PASSWORD_FILE')
+        && str_contains($restore_command, 'decryptDatabaseBackup')
+        && str_contains($restore_command, 'restoreDatabaseBackup'),
+    'the web process should export only, while restore requires an explicit one-shot CLI confirmation and password secret.'
 );
 expectDatabaseBackupFeature(
     str_contains($helpers, 'SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13')
@@ -53,8 +56,20 @@ expectDatabaseBackupFeature(
 );
 expectDatabaseBackupFeature(
     str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES')
-        && !str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE=/run/secrets'),
-    'the feature should be size-configurable without exposing database-administrator credentials to the web service.'
+        && str_contains($compose, 'profiles: [maintenance]')
+        && str_contains($compose, 'MYSQL_USER: dnrmaintenance')
+        && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password')
+        && str_contains($readme, '### Exact database restore runbook')
+        && str_contains($readme, 'pre-restore-safety.sql')
+        && str_contains($readme, '/backups/restore.dnrbackup RESTORE'),
+    'restore should use an isolated maintenance credential and document the complete safety-dump workflow.'
+);
+expectDatabaseBackupFeature(
+    str_contains($compose, 'migrator:')
+        && str_contains($compose, 'condition: service_completed_successfully')
+        && str_contains($compose, 'DNR_PRIVILEGE_SCRIPT: /opt/dnr/bin/configure_database_privileges')
+        && !str_contains($compose, 'docker-entrypoint-initdb.d/00-init.sql'),
+    'fresh databases should run the same ordered migrations and grants as upgrades.'
 );
 
 echo "Database backup feature tests passed.\n";

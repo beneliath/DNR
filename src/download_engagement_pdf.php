@@ -1,8 +1,9 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 startSecureSession();
 requireLogin();
@@ -16,9 +17,11 @@ if (!$engagement_id) {
 }
 
 $engagement_stmt = $conn->prepare(
-    'SELECT e.*, o.organization_name
+    'SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,
+            o.organization_name
      FROM engagements e
      LEFT JOIN organizations o ON e.organization_id = o.id
+     LEFT JOIN users caller ON caller.id = e.caller_user_id
      WHERE e.id = ?'
 );
 if (!$engagement_stmt) {
@@ -35,28 +38,36 @@ if (!$engagement) {
     exit('Engagement not found.');
 }
 
-$contact_stmt = $conn->prepare(
-    'SELECT contact_first_name, contact_last_name, contact_role, contact_role_other,
-            contact_email, contact_phone
-     FROM contacts
-     WHERE organization_id = ? AND is_deleted = 0
-     ORDER BY contact_last_name, contact_first_name'
-);
-if (!$contact_stmt) {
+try {
+    $rescheduled_target = fetchEngagementRescheduleTarget($conn, (int) $engagement_id);
+    if ($rescheduled_target !== null) {
+        $engagement['rescheduled_event_label'] = engagementReferenceLabel($rescheduled_target);
+    }
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load the rescheduled-event PDF link', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+    http_response_code(500);
+    exit('Unable to prepare the engagement lifecycle export.');
+}
+
+try {
+    $contacts = fetchEngagementContacts($conn, $engagement_id);
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load engagement contacts for PDF export', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
     http_response_code(500);
     exit('Unable to prepare the engagement contacts export.');
 }
-$contact_stmt->bind_param('i', $engagement['organization_id']);
-$contact_stmt->execute();
-$contacts = $contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$contact_stmt->close();
 
 $presentation_stmt = $conn->prepare(
     'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date,
-              STR_TO_DATE(presentation_time, \'%h:%i %p\'), id'
+     ORDER BY presentation_date, presentation_time, id'
 );
 if (!$presentation_stmt) {
     http_response_code(500);
@@ -68,9 +79,10 @@ $presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt->close();
 
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $pdf_chron_limit = max(50, min(1000, (int) (getenv('DNR_PDF_MAX_CHRON_ENTRIES') ?: 500)));
+    $chron_entries = fetchChronLogEntries($conn, $engagement_id, false, $pdf_chron_limit, 0);
 } catch (Throwable $exception) {
-    error_log($exception->getMessage());
+    applicationLog('error', 'Unable to generate engagement PDF', ['error' => $exception->getMessage()]);
     http_response_code(500);
     exit('Unable to prepare the engagement Chron export.');
 }
@@ -85,8 +97,8 @@ foreach ($autoload_paths as $autoload_path) {
         break;
     }
 }
-if (!class_exists('FPDF')) {
-    error_log('FPDF is unavailable. Rebuild the DNR web container after installing Composer dependencies.');
+if (!class_exists('TCPDF')) {
+    applicationLog('critical', 'TCPDF is unavailable; Composer dependencies are incomplete');
     http_response_code(503);
     exit('PDF downloads are temporarily unavailable.');
 }

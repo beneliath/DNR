@@ -1,7 +1,9 @@
 <?php
 
-if (getenv('DNR_INTEGRATION_TEST') !== '1') {
-    echo "Follow-up task integration tests skipped (set DNR_INTEGRATION_TEST=1).\n";
+if (getenv('DNR_INTEGRATION_TEST') !== '1'
+    || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
+) {
+    echo "Follow-up task integration tests skipped (requires an explicitly disposable database).\n";
     exit(0);
 }
 
@@ -52,16 +54,122 @@ $engagement_stmt->execute();
 $engagement_id = $conn->insert_id;
 $engagement_stmt->close();
 
-$inserted = generateEngagementFollowUpChecklist(
+$custom_template_title = 'Custom automatic task ' . $suffix;
+$custom_template_details = 'Copied from the configurable standard-task list.';
+$custom_template_id = createStandardEventTask(
     $conn,
-    $engagement_id,
-    $user_id,
+    [
+        'title' => $custom_template_title,
+        'details' => $custom_template_details,
+        'priority' => 'normal',
+        'due_anchor' => 'event_start',
+        'due_offset_days' => '-5',
+        'sort_order' => '100',
+    ],
     $user_id
 );
-expectFollowUpTaskIntegration($inserted === 9, 'the first checklist generation should add all nine tasks.');
+$template_key_stmt = $conn->prepare(
+    'SELECT template_key FROM standard_event_tasks WHERE id = ?'
+);
+$template_key_stmt->bind_param('i', $custom_template_id);
+$template_key_stmt->execute();
+$custom_template_key = (string) $template_key_stmt->get_result()->fetch_assoc()['template_key'];
+$template_key_stmt->close();
+
+$conn->begin_transaction();
+try {
+    $inserted = generateEngagementFollowUpChecklist(
+        $conn,
+        $engagement_id,
+        $user_id,
+        $user_id,
+        false
+    );
+    $conn->commit();
+} catch (Throwable $exception) {
+    $conn->rollback();
+    throw $exception;
+}
+expectFollowUpTaskIntegration(
+    $inserted === 10,
+    'automatic generation should add the nine seeded tasks and a newly configured standard task.'
+);
+$custom_task_stmt = $conn->prepare(
+    'SELECT title, details, due_date, assigned_to
+     FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$custom_task_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$custom_task_stmt->execute();
+$custom_task = $custom_task_stmt->get_result()->fetch_assoc();
+$custom_task_stmt->close();
+expectFollowUpTaskIntegration(
+    $custom_task
+        && $custom_task['title'] === $custom_template_title
+        && $custom_task['details'] === $custom_template_details
+        && $custom_task['due_date'] === '2026-09-05'
+        && (int) $custom_task['assigned_to'] === $user_id,
+    'new standard definitions should be copied, dated, and assigned during event creation.'
+);
+$financial_closeout_stmt = $conn->prepare(
+    "SELECT title, details, due_date, priority
+     FROM follow_up_tasks
+     WHERE engagement_id = ? AND template_key = 'standard.financial_closeout'"
+);
+$financial_closeout_stmt->bind_param('i', $engagement_id);
+$financial_closeout_stmt->execute();
+$financial_closeout_task = $financial_closeout_stmt->get_result()->fetch_assoc();
+$financial_closeout_stmt->close();
+expectFollowUpTaskIntegration(
+    $financial_closeout_task
+        && $financial_closeout_task['title'] === 'Complete the event financial closeout'
+        && $financial_closeout_task['details']
+            === 'Finalize the event financial report with all giving/income, lodging, and travel received.'
+        && $financial_closeout_task['due_date'] === '2026-09-19'
+        && $financial_closeout_task['priority'] === 'high',
+    'every new event should receive the required financial closeout task one week after its end date.'
+);
 expectFollowUpTaskIntegration(
     generateEngagementFollowUpChecklist($conn, $engagement_id, $user_id, $user_id) === 0,
     'repeated checklist generation should not duplicate standard tasks.'
+);
+
+rescheduleGeneratedEngagementTasks($conn, $engagement_id, '2026-09-20', '2026-09-22');
+$rescheduled_stmt = $conn->prepare(
+    'SELECT due_date, due_date_overridden
+     FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$rescheduled_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$rescheduled_stmt->execute();
+$rescheduled = $rescheduled_stmt->get_result()->fetch_assoc();
+$rescheduled_stmt->close();
+expectFollowUpTaskIntegration(
+    $rescheduled
+        && $rescheduled['due_date'] === '2026-09-15'
+        && (int) $rescheduled['due_date_overridden'] === 0,
+    'generated open task dates should follow a changed engagement date range.'
+);
+
+$override_stmt = $conn->prepare(
+    'UPDATE follow_up_tasks
+     SET due_date = ?, due_date_overridden = 1
+     WHERE engagement_id = ? AND template_key = ?'
+);
+$overridden_due_date = '2026-12-31';
+$override_stmt->bind_param('sis', $overridden_due_date, $engagement_id, $custom_template_key);
+$override_stmt->execute();
+$override_stmt->close();
+rescheduleGeneratedEngagementTasks($conn, $engagement_id, '2026-10-01', '2026-10-03');
+
+$preserved_stmt = $conn->prepare(
+    'SELECT due_date FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'
+);
+$preserved_stmt->bind_param('is', $engagement_id, $custom_template_key);
+$preserved_stmt->execute();
+$preserved_due_date = $preserved_stmt->get_result()->fetch_assoc()['due_date'] ?? null;
+$preserved_stmt->close();
+expectFollowUpTaskIntegration(
+    $preserved_due_date === $overridden_due_date,
+    'a manually overridden generated due date should survive later engagement rescheduling.'
 );
 
 $task_stmt = $conn->prepare(
@@ -123,6 +231,11 @@ $delete_org_stmt = $conn->prepare('DELETE FROM organizations WHERE id = ?');
 $delete_org_stmt->bind_param('i', $organization_id);
 $delete_org_stmt->execute();
 $delete_org_stmt->close();
+
+$delete_template_stmt = $conn->prepare('DELETE FROM standard_event_tasks WHERE id = ?');
+$delete_template_stmt->bind_param('i', $custom_template_id);
+$delete_template_stmt->execute();
+$delete_template_stmt->close();
 
 $delete_user_stmt = $conn->prepare('DELETE FROM users WHERE id = ?');
 $delete_user_stmt->bind_param('i', $user_id);

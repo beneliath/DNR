@@ -1,13 +1,20 @@
 <?php
-include 'config.php';
-include 'functions.php';
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/financial_report_helpers.php';
+$conn = applicationDatabaseConnection();
+include 'two_factor_helpers.php';
 startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
+$allowed_page_sizes = [20, 50, 100];
 
-$list_status = ($_POST['list_status'] ?? $_GET['status'] ?? '') === 'archived'
+$list_status = \Dnr\Http\RequestInput::string(
+    $_POST,
+    'list_status',
+    \Dnr\Http\RequestInput::string($_GET, 'status')
+) === 'archived'
     ? 'archived'
     : 'active';
 $show_archived = $list_status === 'archived';
@@ -27,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'delete' && !canDeleteEntries($user_role)) {
         http_response_code(403);
         exit('Forbidden.');
+    }
+    if ($action === 'delete') {
+        requireRecentAdminElevation('organizations.php?' . http_build_query(['status' => $list_status]));
     }
 
     if ($org_id && $action === 'archive') {
@@ -68,79 +78,149 @@ $action_error = $_SESSION['organization_action_error'] ?? '';
 unset($_SESSION['organization_action_message'], $_SESSION['organization_action_error']);
 
 // Retrieve organizations using an allowlisted name-sort direction.
-$name_sort = strtolower($_GET['name_sort'] ?? '') === 'desc' ? 'desc' : 'asc';
+$name_sort = strtolower(\Dnr\Http\RequestInput::string($_GET, 'name_sort')) === 'desc'
+    ? 'desc'
+    : 'asc';
 $order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
-$search = trim($_GET['q'] ?? '');
+$search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
+$fulltext_query = fulltextSearchQuery($search);
+if ($fulltext_query === '') {
+    $search = '';
+}
+$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
+$page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
+$cursor = decodePaginationCursor(
+    \Dnr\Http\RequestInput::string($_GET, 'cursor'),
+    ['name', 'id']
+);
 
 // Prepare and execute the query
 $archive_value = $show_archived ? 1 : 0;
-$query = "SELECT o.* FROM organizations o
-          WHERE o.is_deleted = {$archive_value}";
-$query_stmt = null;
-if ($search !== '') {
-    $query .= " AND (
-        o.organization_name LIKE ?
-        OR o.affiliation LIKE ?
-        OR o.email LIKE ?
-        OR o.phone LIKE ?
-        OR o.physical_city LIKE ?
-        OR o.physical_state LIKE ?
-        OR o.mailing_city LIKE ?
-        OR o.mailing_state LIKE ?
+$search_filter = $fulltext_query === '' ? '' : " AND (
+        MATCH(
+            o.organization_name, o.notes, o.affiliation, o.distinctives,
+            o.email, o.phone, o.physical_city, o.physical_state,
+            o.mailing_city, o.mailing_state
+        ) AGAINST (? IN BOOLEAN MODE)
         OR EXISTS (
-            SELECT 1 FROM contacts c
-            WHERE c.organization_id = o.id
-              AND c.is_deleted = 0
-              AND (
-                  c.contact_first_name LIKE ?
-                  OR c.contact_last_name LIKE ?
-                  OR CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ?
-                  OR c.contact_email LIKE ?
-                  OR c.contact_phone LIKE ?
-              )
+            SELECT 1 FROM contacts searched_contact
+            WHERE searched_contact.organization_id = o.id
+              AND searched_contact.is_deleted = 0
+              AND MATCH(
+                  searched_contact.contact_first_name, searched_contact.contact_last_name,
+                  searched_contact.contact_email, searched_contact.contact_phone,
+                  searched_contact.contact_role_other, searched_contact.contact_notes
+              ) AGAINST (? IN BOOLEAN MODE)
         )
     )";
-}
-$query .= " ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}";
-
-$result = null;
-if ($search !== '') {
-    $query_stmt = $conn->prepare($query);
-    if (!$query_stmt) {
-        die('Unable to search organizations.');
-    }
-    $search_pattern = '%' . $search . '%';
-    $query_stmt->bind_param(
-        'sssssssssssss',
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern,
-        $search_pattern
-    );
-    $query_stmt->execute();
-    $result = $query_stmt->get_result();
+$cursor_filter = '';
+$cursor_values = [];
+$cursor_types = '';
+if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+    $comparison = $order_direction === 'ASC' ? '>' : '<';
+    $cursor_filter = " AND (o.organization_name, o.id) {$comparison} (?, ?)";
+    $cursor_values = [(string) $cursor['name'], (int) $cursor['id']];
+    $cursor_types = 'si';
 } else {
-    $result = $conn->query($query);
+    $cursor = null;
 }
-if (!$result) {
-    die("Database error: " . $conn->error);
+$query_limit = $page_size + 1;
+
+$query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
+                 '' AS contact_names
+          FROM organizations o
+          WHERE o.is_deleted = {$archive_value}{$search_filter}{$cursor_filter}
+          ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
+          LIMIT ?";
+$query_stmt = $conn->prepare($query);
+if (!$query_stmt) abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
+$query_types = ($fulltext_query !== '' ? 'ss' : '') . $cursor_types . 'i';
+$query_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
+$query_values = array_merge($query_values, $cursor_values, [$query_limit]);
+$query_bind = [$query_types];
+foreach ($query_values as &$query_value) $query_bind[] = &$query_value;
+unset($query_value);
+$query_stmt->bind_param(...$query_bind);
+$query_stmt->execute();
+$organizations = $query_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$has_more_organizations = count($organizations) > $page_size;
+if ($has_more_organizations) array_pop($organizations);
+$next_cursor = null;
+if ($has_more_organizations && $organizations !== []) {
+    $last_organization = $organizations[array_key_last($organizations)];
+    $next_cursor = encodePaginationCursor([
+        'name' => (string) $last_organization['organization_name'],
+        'id' => (int) $last_organization['id'],
+    ]);
 }
 
-function organizationsPageUrl($status, $name_sort, $search = '')
+if ($organizations !== []) {
+    $organization_ids = array_map(static fn($row) => (int) $row['id'], $organizations);
+    $placeholders = implode(', ', array_fill(0, count($organization_ids), '?'));
+    $contacts_stmt = $conn->prepare(
+        "SELECT organization_id, contact_name, contact_count
+         FROM (
+             SELECT c.organization_id,
+                    CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) AS contact_name,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY c.organization_id
+                        ORDER BY c.contact_last_name, c.contact_first_name, c.id
+                    ) AS contact_position,
+                    COUNT(*) OVER (PARTITION BY c.organization_id) AS contact_count
+             FROM contacts c
+             WHERE c.is_deleted = 0 AND c.organization_id IN ({$placeholders})
+         ) ranked_contacts
+         WHERE contact_position <= 3
+         ORDER BY organization_id, contact_position"
+    );
+    if ($contacts_stmt) {
+        $contact_types = str_repeat('i', count($organization_ids));
+        $contact_bind = [$contact_types];
+        foreach ($organization_ids as &$organization_id) $contact_bind[] = &$organization_id;
+        unset($organization_id);
+        $contacts_stmt->bind_param(...$contact_bind);
+        $contacts_stmt->execute();
+        $contact_previews = [];
+        foreach ($contacts_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $contact_preview) {
+            $organization_id = (int) $contact_preview['organization_id'];
+            $contact_previews[$organization_id]['names'][] = $contact_preview['contact_name'];
+            $contact_previews[$organization_id]['count'] = (int) $contact_preview['contact_count'];
+        }
+        $contacts_stmt->close();
+        foreach ($organizations as &$organization) {
+            $preview = $contact_previews[(int) $organization['id']] ?? ['names' => [], 'count' => 0];
+            $organization['contact_names'] = implode(', ', $preview['names']);
+            if ($preview['count'] > count($preview['names'])) {
+                $organization['contact_names'] .= ' (+'
+                    . ($preview['count'] - count($preview['names'])) . ' more)';
+            }
+        }
+        unset($organization);
+    }
+
+    try {
+        $financial_summaries = fetchOrganizationFinancialSummaries($conn, $organization_ids);
+    } catch (Throwable $exception) {
+        abortApplication(503, 'Organization financial summaries are temporarily unavailable.', [
+            'error' => $exception->getMessage(),
+        ]);
+    }
+    foreach ($organizations as &$organization) {
+        $financial_summary = $financial_summaries[(int) $organization['id']];
+        $organization['lifetime_giving'] = $financial_summary['lifetime_giving'];
+        $organization['last_event_giving'] = $financial_summary['last_event_giving'];
+    }
+    unset($organization);
+}
+
+function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null, $page_size = 20)
 {
     $parameters = [
         'status' => $status,
         'name_sort' => $name_sort,
+        'per_page' => $page_size,
     ];
+    if (is_string($cursor) && $cursor !== '') $parameters['cursor'] = $cursor;
     if ($search !== '') {
         $parameters['q'] = $search;
     }
@@ -149,106 +229,14 @@ function organizationsPageUrl($status, $name_sort, $search = '')
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Organizations - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .organization-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        .page-heading {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 15px;
-        }
-        .list-controls {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 15px;
-            margin: 15px 0 20px;
-        }
-        .control-group {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .organization-table th,
-        .organization-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .dark-mode .organization-table th,
-        .dark-mode .organization-table td {
-            border-bottom-color: #444;
-        }
-        .organization-table th {
-            background-color: #f5f5f5;
-            font-weight: var(--font-weight-bold);
-        }
-        .dark-mode .organization-table th {
-            background-color: #2d2d2d;
-        }
-        .organization-table tr:hover {
-            background-color: #f9f9f9;
-        }
-        .dark-mode .organization-table tr:hover {
-            background-color: #333;
-        }
-        .action-buttons {
-            display: inline-flex;
-            gap: 5px;
-            background-color: transparent !important;
-        }
-        .action-buttons form {
-            margin: 0;
-        }
-        .action-button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            box-sizing: border-box;
-            padding: 5px 10px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-            white-space: nowrap;
-        }
-        .view-button {
-            background-color: var(--button-view-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .delete-button {
-            background-color: var(--button-delete-color);
-        }
-        .sort-buttons {
-            margin: 15px 0;
-            display: flex;
-            gap: 10px;
-        }
-        .sort-button {
-            padding: 8px 15px;
-            background-color: var(--button-neutral-color);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            display: inline-block;
-        }
-    </style>
-</head>
+<?php renderPageHead('Organizations - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/organizations.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
@@ -273,17 +261,17 @@ function organizationsPageUrl($status, $name_sort, $search = '')
             <label class="visually-hidden" for="organization-search">Search organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, '', null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Organization archive status">
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Organization sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
+                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
@@ -291,7 +279,7 @@ function organizationsPageUrl($status, $name_sort, $search = '')
     </div>
 
     <?php if ($search !== ''): ?>
-        <p class="result-context"><?php echo $result->num_rows; ?> result<?php echo $result->num_rows === 1 ? '' : 's'; ?> for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
+        <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
     <table class="organization-table">
@@ -300,14 +288,16 @@ function organizationsPageUrl($status, $name_sort, $search = '')
                 <th>Organization</th>
                 <th>Location</th>
                 <th>Contact(s)</th>
+                <th>Last Giving</th>
+                <th>Lifetime Giving</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <?php if ($result->num_rows === 0): ?>
-                <tr><td colspan="4" class="empty-state">No organizations match the current view.</td></tr>
+            <?php if ($organizations === []): ?>
+                <tr><td colspan="6" class="empty-state">No organizations match the current view.</td></tr>
             <?php endif; ?>
-            <?php while ($org = $result->fetch_assoc()): ?>
+            <?php foreach ($organizations as $org): ?>
                 <tr>
                     <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
                     <td>
@@ -319,28 +309,10 @@ function organizationsPageUrl($status, $name_sort, $search = '')
                         ?>
                     </td>
                     <td>
-                        <?php
-                        // Fetch contacts for this organization
-                        $contact_query = "SELECT contact_first_name, contact_last_name
-                                          FROM contacts
-                                          WHERE organization_id = ? AND is_deleted = 0
-                                          ORDER BY contact_last_name, contact_first_name";
-                        $contact_stmt = $conn->prepare($contact_query);
-                        $contact_stmt->bind_param("i", $org['id']);
-                        $contact_stmt->execute();
-                        $contacts_result = $contact_stmt->get_result();
-
-                        $contact_names = [];
-                        while ($contact = $contacts_result->fetch_assoc()) {
-                            $contact_names[] = htmlspecialchars(
-                                trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
-                                ENT_QUOTES,
-                                'UTF-8'
-                            );
-                        }
-                        echo implode(', ', $contact_names);
-                        ?>
+                        <?php echo htmlspecialchars($org['contact_names'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                     </td>
+                    <td class="money-column"><?php echo $org['last_event_giving'] === null ? '—' : formatFinancialAmount($org['last_event_giving']); ?></td>
+                    <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_giving']); ?></strong></td>
                     <td>
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
@@ -380,9 +352,18 @@ function organizationsPageUrl($status, $name_sort, $search = '')
                         </div>
                     </td>
                 </tr>
-            <?php endwhile; ?>
+            <?php endforeach; ?>
         </tbody>
     </table>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
+        <nav class="pagination" aria-label="Organization pages">
+            <span class="pagination-status">Showing up to <?php echo $page_size; ?> organizations</span>
+            <div class="pagination-actions">
+                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $next_cursor, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+            </div>
+        </nav>
+    <?php endif; ?>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

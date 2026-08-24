@@ -1,6 +1,5 @@
 <?php
-require_once __DIR__ . '/config.php';
-require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/bootstrap.php';
 startSecureSession();
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

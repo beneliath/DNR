@@ -62,19 +62,88 @@ expectFollowUpTaskHelper(
     'due dates should map to stable queue states.'
 );
 
-$templates = engagementFollowUpChecklistTemplates('2026-09-10', '2026-09-12');
+$template_definitions = [
+    [
+        'template_key' => 'standard.confirm_location',
+        'title' => 'Confirm location',
+        'details' => null,
+        'priority' => 'high',
+        'due_anchor' => 'event_start',
+        'due_offset_days' => -30,
+    ],
+    [
+        'template_key' => 'standard.host_reconfirmation',
+        'title' => 'Reconfirm with host',
+        'details' => null,
+        'priority' => 'high',
+        'due_anchor' => 'event_start',
+        'due_offset_days' => -7,
+    ],
+    [
+        'template_key' => 'standard.send_thanks',
+        'title' => 'Send thanks',
+        'details' => 'Use the event notes.',
+        'priority' => 'normal',
+        'due_anchor' => 'event_end',
+        'due_offset_days' => 1,
+    ],
+    [
+        'template_key' => 'standard.financial_closeout',
+        'title' => 'Financial closeout',
+        'details' => null,
+        'priority' => 'high',
+        'due_anchor' => 'event_end',
+        'due_offset_days' => 7,
+    ],
+];
+$templates = engagementFollowUpChecklistTemplates(
+    '2026-09-10',
+    '2026-09-12',
+    $template_definitions
+);
 $templates_by_key = [];
 foreach ($templates as $template) {
     $templates_by_key[$template['key']] = $template;
 }
 expectFollowUpTaskHelper(
-    count($templates) === 9
-        && count($templates_by_key) === 9
+    count($templates) === 4
+        && count($templates_by_key) === 4
         && $templates_by_key['standard.confirm_location']['due_date'] === '2026-08-11'
         && $templates_by_key['standard.host_reconfirmation']['due_date'] === '2026-09-03'
         && $templates_by_key['standard.send_thanks']['due_date'] === '2026-09-13'
+        && $templates_by_key['standard.send_thanks']['details'] === 'Use the event notes.'
         && $templates_by_key['standard.financial_closeout']['due_date'] === '2026-09-19',
-    'the standard checklist should provide unique, date-relative preparation and closeout work.'
+    'stored standard tasks should become date-relative preparation and closeout work.'
+);
+
+expectFollowUpTaskHelper(
+    standardEventTaskScheduleLabel('event_start', -1) === '1 day before event start'
+        && standardEventTaskScheduleLabel('event_end', 0) === 'On event end'
+        && standardEventTaskScheduleLabel('event_end', 2) === '2 days after event end',
+    'standard task schedules should be described in plain language.'
+);
+
+expectFollowUpTaskHelper(
+    isRequiredStandardEventTask('standard.financial_closeout')
+        && !isRequiredStandardEventTask('standard.send_thanks')
+        && !isRequiredStandardEventTask('custom.example'),
+    'the financial closeout reminder should be the required hard-coded standard task.'
+);
+
+$normalized_standard_task = normalizeStandardEventTaskInput([
+    'title' => '  Prepare follow-up  ',
+    'details' => ' Notes ',
+    'priority' => 'urgent',
+    'due_anchor' => 'event_end',
+    'due_offset_days' => '3',
+    'sort_order' => '25',
+]);
+expectFollowUpTaskHelper(
+    $normalized_standard_task['title'] === 'Prepare follow-up'
+        && $normalized_standard_task['details'] === 'Notes'
+        && $normalized_standard_task['due_offset_days'] === 3
+        && $normalized_standard_task['sort_order'] === 25,
+    'standard task edits should normalize persisted content and scheduling values.'
 );
 
 expectFollowUpTaskHelper(

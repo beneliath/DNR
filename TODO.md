@@ -22,7 +22,7 @@
 - [x] Engagements: add role-based edit/delete functionality; with attendant change to db schema
 - [x] !!! if contact name on add_organizations.php, then Role is required and Email/Email-confirm is required (w/ red asterisks re same)
 - [x] view Organizations rebuild
-- [ ] view Organizations supplement: add columns for last and lifetime giving
+- [x] view Organizations supplement: add columns for last and lifetime giving
 - [ ] view/add contact for selected Organization
 - [x] view/add presentation for selected Event
 - [x] code Mailing Address / Physical Address
@@ -31,15 +31,16 @@
 - [ ] TEST 'Add Organization'; on pass, tag restore point
 - [ ] TEST 'Add Contact'; on pass, tag restore point
 - [ ] TEST 'Add Presentation'; on pass, tag restore point
-- [ ] header navigation bar redesign (only after base functionality complete)
+- [x] header navigation bar redesign
 - [ ] doublecheck password entry for new user creation
 - [x] allow users to change their own password with confirmation and session revocation
-- [ ] build out profiles for users (including email sub-system for initialization and password reset)
-- [ ] add functionality to activate/deactivate users
-- [ ] build out for Contact(s): Admin, Pastor
-- [ ] build out Anticipated Compensation
+- [x] build out profiles for users
+- [x] build email subsystem for invitations, verified addresses, and password reset
+- [x] add functionality to activate/deactivate users with coordinated access revocation
+- [x] build out for Contact(s): Admin, Pastor, and Other
+- [x] build out Anticipated Compensation
 - [ ] build out complete financial sub-system
-- [ ] 'Caller' in Engagement/Event to be listed system user
+- [x] 'Caller' in Engagement/Event is a linked system user with a historical username snapshot
 - [x] convert from plaintext to hashed passwords
 - [x] add TOTP MFA, recovery codes, throttling, encrypted secrets, and administrator enforcement
 - [x] build out multiple Presentation functionality

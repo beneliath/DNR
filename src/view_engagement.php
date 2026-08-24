@@ -1,34 +1,34 @@
 <?php
-include 'config.php';
-include 'functions.php';
-include 'chron_log_helpers.php';
-include 'engagement_export_helpers.php';
-include 'presentation_helpers.php';
-include 'follow_up_task_helpers.php';
+require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_lifecycle_helpers.php';
+require_once __DIR__ . '/financial_report_helpers.php';
+require_once __DIR__ . '/presentation_helpers.php';
+require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 
 // Get user role from session
 $user_role = $_SESSION['role'] ?? '';
 
-// Check if ID is provided and is numeric
-if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
+$engagement_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($engagement_id === null) {
     header("Location: engagements.php");
     exit();
 }
 
-$engagement_id = intval($_GET['id']);
-
 // Fetch engagement details with organization name and contacts
-$query = "SELECT e.*, o.organization_name, o.id as org_id
+$query = "SELECT e.*, COALESCE(caller.username, e.caller_name) AS caller_name,
+                 o.organization_name, o.id as org_id
           FROM engagements e
           LEFT JOIN organizations o ON e.organization_id = o.id
+          LEFT JOIN users caller ON caller.id = e.caller_user_id
           WHERE e.id = ?";
 
 $stmt = $conn->prepare($query);
-if ($stmt === false) {
-    die("Error preparing statement: " . $conn->error);
-}
+if ($stmt === false) abortApplication(503, 'The engagement details are temporarily unavailable.', ['error' => $conn->error]);
 
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
@@ -42,38 +42,71 @@ if ($result->num_rows === 0) {
 $engagement = $result->fetch_assoc();
 $is_archived = !empty($engagement['is_deleted']);
 
-// Fetch contacts for the organization
-$contact_query = "SELECT * FROM contacts
-                  WHERE organization_id = ? AND is_deleted = 0
-                  ORDER BY contact_last_name, contact_first_name";
-$contact_stmt = $conn->prepare($contact_query);
-if ($contact_stmt === false) {
-    die("Error preparing contacts statement: " . $conn->error);
+try {
+    $financial_report = fetchEngagementFinancialReport($conn, $engagement_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement financial report is temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
 }
+$financial_report_message = (string) ($_SESSION['financial_report_message'] ?? '');
+unset($_SESSION['financial_report_message']);
 
-$contact_stmt->bind_param("i", $engagement['org_id']);
-$contact_stmt->execute();
-$contacts_result = $contact_stmt->get_result();
-$contacts = $contacts_result->fetch_all(MYSQLI_ASSOC);
+try {
+    $contacts = fetchEngagementContacts($conn, $engagement_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement contacts are temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+try {
+    $rescheduled_target = fetchEngagementRescheduleTarget($conn, $engagement_id);
+    $rescheduled_sources = fetchEngagementRescheduleSources($conn, $engagement_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement lifecycle links are temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+if ($rescheduled_target !== null) {
+    $engagement['rescheduled_event_label'] = engagementReferenceLabel($rescheduled_target);
+}
+$financial_closeout_applicable = !in_array(
+    (string) ($engagement['lifecycle_status'] ?? 'active'),
+    ['postponed', 'canceled'],
+    true
+);
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
     "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date,
-              STR_TO_DATE(presentation_time, '%h:%i %p'), id"
+     ORDER BY presentation_date, presentation_time, id"
 );
-if ($presentation_stmt === false) {
-    die("Error preparing presentations statement: " . $conn->error);
-}
+if ($presentation_stmt === false) abortApplication(503, 'The engagement presentations are temporarily unavailable.', ['error' => $conn->error]);
 $presentation_stmt->bind_param("i", $engagement_id);
 $presentation_stmt->execute();
 $presentations_result = $presentation_stmt->get_result();
 $presentations = $presentations_result->fetch_all(MYSQLI_ASSOC);
 
 try {
-    $chron_entries = fetchChronLogEntries($conn, $engagement_id);
+    $chron_page_size = 50;
+    $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
+    $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
+    $chron_page = min(
+        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        $chron_total_pages
+    );
+    $chron_entries = fetchChronLogEntries(
+        $conn,
+        $engagement_id,
+        false,
+        $chron_page_size,
+        ($chron_page - 1) * $chron_page_size
+    );
     $archived_chron_count = (!$is_archived && canArchiveEntries($user_role))
         ? countArchivedChronLogEntries($conn, $engagement_id)
         : 0;
@@ -111,141 +144,45 @@ $engagement_markdown = renderEngagementMarkdown($engagement_export);
 
 // Close statements
 $stmt->close();
-$contact_stmt->close();
 $presentation_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>View Engagement - DNR</title>
-    <link rel="stylesheet" href="assets/css/style.min.css?v=0.0.20">
-    <style>
-        .view-container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .detail-group {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 15px;
-        }
-        .detail-group:last-child {
-            border-bottom: none;
-        }
-        .detail-label {
-            font-weight: var(--font-weight-bold);
-            margin-bottom: 5px;
-            color: var(--text-color);
-        }
-        .detail-value {
-            margin-bottom: 10px;
-            color: var(--text-color);
-        }
-        .action-buttons {
-            margin-top: 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .primary-actions,
-        .export-actions {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .export-actions {
-            margin-left: auto;
-        }
-        .action-button {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            text-decoration: none;
-            color: white;
-        }
-        .back-button {
-            background-color: var(--button-neutral-color);
-        }
-        .edit-button {
-            background-color: var(--button-edit-color);
-        }
-        .visually-hidden {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            padding: 0;
-            margin: -1px;
-            overflow: hidden;
-            clip: rect(0, 0, 0, 0);
-            white-space: nowrap;
-            border: 0;
-        }
-        /* Contact styles */
-        .contacts-list {
-            margin-top: 10px;
-            margin-bottom: 20px;
-        }
-        .contact-item {
-            background-color: var(--light-bg-color);
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 15px;
-            margin-bottom: 10px;
-        }
-        .presentation-item {
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            padding: 12px;
-            margin-bottom: 10px;
-        }
-        .dark-mode .presentation-item {
-            border-color: #444;
-        }
-        .dark-mode .contact-item {
-            background-color: var(--dark-input-bg);
-            border-color: #333;
-        }
-        .contact-title {
-            color: #666;
-            font-style: italic;
-            margin: 5px 0;
-        }
-        .dark-mode .contact-title {
-            color: #aaa;
-        }
-        .contact-notes {
-            margin-top: 8px;
-            padding-top: 8px;
-            border-top: 1px solid #eee;
-            font-size: var(--font-size-small);
-        }
-        .dark-mode .contact-notes {
-            border-top-color: #333;
-        }
-    </style>
-</head>
+<?php renderPageHead('View Engagement - DNR', array (
+  'styles' =>
+  array (
+    0 => 'assets/css/style.min.css',
+    1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/view_engagement.min.css',
+    3 => 'assets/css/pages/engagement_contacts.min.css',
+    4 => 'assets/css/pages/engagement_lifecycle.min.css',
+  ),
+)); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="view-container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement Details</span></nav>
     <div class="page-heading record-page-heading">
         <?php $event_type_label = $engagement['event_type'] === 'other' && !empty($engagement['event_type_other']) ? $engagement['event_type_other'] : $engagement['event_type']; ?>
-        <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
+        <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?> <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
         <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
     </div>
+
+    <?php if ($financial_report_message !== ''): ?>
+        <p class="success" role="status"><?php echo htmlspecialchars($financial_report_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <div class="detail-group">
         <?php if (!empty($engagement['event_title'])): ?>
         <div class="detail-label">Event Title</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['event_title']); ?></div>
         <?php endif; ?>
+
+        <div class="detail-label">Email Subject Marker</div>
+        <div class="detail-value engagement-email-marker">
+            <code>[MOED#<?php echo $engagement_id; ?>]</code>
+            <span>Keep this marker in an email subject to route the message to this Engagement’s Chron log.</span>
+        </div>
 
         <?php if (!empty($engagement['event_description'])): ?>
         <div class="detail-label">Event Description</div>
@@ -255,25 +192,24 @@ $presentation_stmt->close();
         <div class="detail-label">Organization</div>
         <div class="detail-value"><?php echo htmlspecialchars($engagement['organization_name']); ?></div>
 
-        <?php if ($contacts): ?>
-        <div class="detail-label">Contacts</div>
+        <div class="detail-label">Event Contacts</div>
         <div class="detail-value contacts-list">
-            <?php foreach ($contacts as $contact): ?>
+            <?php if ($contacts): ?>
+                <?php foreach ($contacts as $contact): ?>
             <div class="contact-item">
-                <div><strong><?php echo htmlspecialchars(
+                <div><strong><a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>"><?php echo htmlspecialchars(
                     trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
                     ENT_QUOTES,
                     'UTF-8'
-                ); ?></strong></div>
+                ); ?></a></strong></div>
+                <div class="event-contact-roles" aria-label="Event roles">
+                    <?php foreach ((array) ($contact['engagement_contact_roles'] ?? []) as $event_contact_role): ?>
+                        <span><?php echo htmlspecialchars(engagementContactRoleLabel($event_contact_role), ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endforeach; ?>
+                </div>
                 <?php if (!empty($contact['contact_role'])): ?>
                 <div class="contact-title">
-                    <?php
-                    echo htmlspecialchars(
-                        $contact['contact_role'] === 'other' && !empty($contact['contact_role_other'])
-                        ? $contact['contact_role_other']
-                        : ucfirst($contact['contact_role'])
-                    );
-                    ?>
+                    Organization role: <?php echo htmlspecialchars(organizationContactRoleLabel($contact), ENT_QUOTES, 'UTF-8'); ?>
                 </div>
                 <?php endif; ?>
                 <?php if (!empty($contact['contact_email'])): ?>
@@ -283,9 +219,11 @@ $presentation_stmt->close();
                 <div>Phone: <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?></div>
                 <?php endif; ?>
             </div>
-            <?php endforeach; ?>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <p class="engagement-contacts-empty">No event contacts have been assigned.</p>
+            <?php endif; ?>
         </div>
-        <?php endif; ?>
 
         <div class="detail-label">Event Type</div>
         <div class="detail-value"><?php echo htmlspecialchars($event_type_label); ?></div>
@@ -297,7 +235,25 @@ $presentation_stmt->close();
     </div>
 
     <div class="detail-group">
-        <div class="detail-label">Status</div>
+        <div class="detail-label">Lifecycle</div>
+        <div class="detail-value">
+            <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php if (!empty($engagement['cancellation_reason'])): ?>
+                <p class="lifecycle-reason"><strong>Cancellation reason:</strong> <?php echo htmlspecialchars((string) $engagement['cancellation_reason'], ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php endif; ?>
+            <?php if ($rescheduled_target !== null || $rescheduled_sources !== []): ?>
+                <div class="lifecycle-links">
+                    <?php if ($rescheduled_target !== null): ?>
+                        <span><strong>Rescheduled as:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_target['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_target), ENT_QUOTES, 'UTF-8'); ?></a></span>
+                    <?php endif; ?>
+                    <?php foreach ($rescheduled_sources as $rescheduled_source): ?>
+                        <span><strong>Rescheduled from:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_source['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_source), ENT_QUOTES, 'UTF-8'); ?></a></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <div class="detail-label">Confirmation</div>
         <div class="detail-value">
             <?php
             $status = $engagement['confirmation_status'];
@@ -332,7 +288,7 @@ $presentation_stmt->close();
                 <?php endif; ?>
                 <?php if (!empty($presentation['presentation_date']) || !empty($presentation['presentation_time'])): ?>
                 <div>
-                    <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . ($presentation['presentation_time'] ?? ''))); ?>
+                    <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . formatPresentationTime($presentation['presentation_time'] ?? ''))); ?>
                 </div>
                 <?php endif; ?>
                 <?php if ($presentation['expected_attendance'] !== null): ?>
@@ -375,6 +331,56 @@ $presentation_stmt->close();
         </div>
     </div>
     <?php endif; ?>
+
+    <div class="detail-group financial-closeout" id="financial-closeout">
+        <div class="financial-closeout-heading">
+            <div>
+                <div class="detail-label">Financial Closeout</div>
+                <p>Actual receipts recorded after the event; planning estimates above remain unchanged.</p>
+            </div>
+            <span class="financial-status <?php echo $financial_report ? 'is-finalized' : ($financial_closeout_applicable ? 'is-open' : 'is-not-applicable'); ?>">
+                <?php echo $financial_report ? 'Finalized' : ($financial_closeout_applicable ? 'Open' : 'Not applicable'); ?>
+            </span>
+        </div>
+
+        <?php if ($financial_report): ?>
+            <div class="financial-amount-grid">
+                <div><small>Giving / income</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
+                <div><small>Lodging received</small><strong><?php echo formatFinancialAmount($financial_report['lodging_received']); ?></strong></div>
+                <div><small>Travel received</small><strong><?php echo formatFinancialAmount($financial_report['travel_received']); ?></strong></div>
+                <div class="financial-total"><small>Total received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
+            </div>
+            <?php
+            $closed_timestamp = chronLogTimestampDetails($financial_report['closed_at']);
+            $was_corrected = (string) $financial_report['updated_at'] !== (string) $financial_report['closed_at'];
+            $updated_timestamp = $was_corrected
+                ? chronLogTimestampDetails($financial_report['updated_at'])
+                : null;
+            ?>
+            <p class="financial-meta">
+                Finalized <time datetime="<?php echo htmlspecialchars($closed_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($closed_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time>
+                <?php if (!empty($financial_report['closed_by_username'])): ?>
+                    by <?php echo htmlspecialchars((string) $financial_report['closed_by_username'], ENT_QUOTES, 'UTF-8'); ?>
+                <?php endif; ?>.
+                <?php if ($updated_timestamp !== null): ?>
+                    Last corrected <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($updated_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time><?php if (!empty($financial_report['updated_by_username'])): ?> by <?php echo htmlspecialchars((string) $financial_report['updated_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>.
+                <?php endif; ?>
+            </p>
+            <?php if (!empty($financial_report['notes'])): ?>
+                <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo nl2br(htmlspecialchars((string) $financial_report['notes'], ENT_QUOTES, 'UTF-8')); ?></p></div>
+            <?php endif; ?>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct final report</a>
+            <?php endif; ?>
+        <?php elseif ($financial_closeout_applicable): ?>
+            <p class="financial-empty">No actual received amounts have been finalized for this event.</p>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button save-button">Close out event</a>
+            <?php endif; ?>
+        <?php else: ?>
+            <p class="financial-empty">Financial closeout is unavailable while this engagement is <?php echo htmlspecialchars(strtolower(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active')), ENT_QUOTES, 'UTF-8'); ?>.</p>
+        <?php endif; ?>
+    </div>
 
     <?php if (!empty($event_address_parts)): ?>
     <div class="detail-group">
@@ -422,6 +428,15 @@ $presentation_stmt->close();
                 <p class="chron-empty-state">No Chron entries have been added yet.</p>
             <?php endif; ?>
         </div>
+        <?php if ($chron_total_pages > 1): ?>
+            <nav class="pagination" aria-label="Chron log pages">
+                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
+                <div class="pagination-actions">
+                    <?php if ($chron_page > 1): ?><a href="view_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page - 1; ?>#chron-log">Newer</a><?php endif; ?>
+                    <?php if ($chron_page < $chron_total_pages): ?><a href="view_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page + 1; ?>#chron-log">Older</a><?php endif; ?>
+                </div>
+            </nav>
+        <?php endif; ?>
     </div>
 
     <div class="action-buttons">
@@ -439,64 +454,18 @@ $presentation_stmt->close();
     <?php
     $context_task_subject_type = 'engagement';
     $context_task_subject_id = $engagement_id;
-    $context_task_subject_active = !$is_archived;
+    $context_task_subject_active = !$is_archived
+        && (string) ($engagement['lifecycle_status'] ?? 'active') !== 'canceled';
+    $context_task_allow_checklist = !$is_archived
+        && (string) ($engagement['lifecycle_status'] ?? 'active') === 'active';
     $context_task_return_to = 'view_engagement.php?id=' . $engagement_id . '#follow-up-work';
     include 'templates/follow_up_task_section.php';
     ?>
 </div>
-<script>
-(function () {
-    const engagementExports = <?php echo json_encode([
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-export-data"><?php echo json_encode([
         'text' => $engagement_plain_text,
         'markdown' => $engagement_markdown,
-    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-    const status = document.getElementById('copy-status');
-
-    function copyWithFallback(value) {
-        const textarea = document.createElement('textarea');
-        textarea.value = value;
-        textarea.setAttribute('readonly', '');
-        textarea.style.position = 'fixed';
-        textarea.style.opacity = '0';
-        document.body.appendChild(textarea);
-        textarea.select();
-        const copied = document.execCommand('copy');
-        textarea.remove();
-        if (!copied) {
-            throw new Error('The browser declined the copy command.');
-        }
-    }
-
-    async function copyEngagement(button) {
-        const format = button.dataset.copyFormat;
-        const value = engagementExports[format];
-        const originalLabel = button.textContent;
-
-        try {
-            if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(value);
-            } else {
-                copyWithFallback(value);
-            }
-            button.textContent = 'Copied!';
-            status.textContent = originalLabel + ' copied to the clipboard.';
-        } catch (error) {
-            button.textContent = 'Copy failed';
-            status.textContent = originalLabel + ' could not be copied.';
-        }
-
-        window.setTimeout(function () {
-            button.textContent = originalLabel;
-        }, 1800);
-    }
-
-    document.querySelectorAll('[data-copy-format]').forEach(function (button) {
-        button.addEventListener('click', function () {
-            copyEngagement(button);
-        });
-    });
-}());
-</script>
+    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

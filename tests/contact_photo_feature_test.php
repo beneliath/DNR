@@ -25,14 +25,35 @@ file_put_contents(
     base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=', true)
 );
 $photo = validatedContactPhotoFile($png_path);
+$thumbnail_dimensions = getimagesizefromstring($photo['thumbnail_data']);
 expectContactPhoto(
     $photo['mime_type'] === 'image/png'
         && $photo['width'] === 1
         && $photo['height'] === 1
-        && $photo['size'] > 0,
-    'a valid PNG within the upload bounds should be accepted.'
+        && $photo['size'] > 0
+        && in_array($photo['thumbnail_mime_type'], ['image/png', 'image/webp'], true)
+        && ($thumbnail_dimensions[0] ?? 0) === 1
+        && ($thumbnail_dimensions[1] ?? 0) === 1,
+    'a valid PNG should be accepted and accompanied by a decodable thumbnail.'
 );
 unlink($png_path);
+
+$noise_path = tempnam(sys_get_temp_dir(), 'dnr-contact-photo-noise-');
+$noise_image = imagecreatetruecolor(320, 320);
+$noise_seed = 1234567;
+for ($noise_y = 0; $noise_y < 320; $noise_y++) {
+    for ($noise_x = 0; $noise_x < 320; $noise_x++) {
+        $noise_seed = (int) (($noise_seed * 1103515245 + 12345) & 0x7fffffff);
+        imagesetpixel($noise_image, $noise_x, $noise_y, $noise_seed & 0xffffff);
+    }
+}
+imagepng($noise_image, $noise_path, 0);
+$noisy_photo = validatedContactPhotoFile($noise_path);
+unlink($noise_path);
+expectContactPhoto(
+    strlen($noisy_photo['thumbnail_data']) <= UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES,
+    'high-entropy thumbnails should stay within the database and list-payload byte cap.'
+);
 
 $invalid_path = tempnam(sys_get_temp_dir(), 'dnr-contact-photo-invalid-');
 file_put_contents($invalid_path, 'not an image');
@@ -57,7 +78,7 @@ expectContactPhoto(
 );
 
 expectContactPhoto(
-    str_contains($add_contact, 'assets/js/contact-photo.min.js?v=1.0.0')
+    str_contains($add_contact, "'path' => 'assets/js/contact-photo.min.js'")
         && str_contains($add_contact, 'data-contact-photo-preview')
         && str_contains($add_contact, 'data-contact-photo-input')
         && str_contains($edit_contact, 'data-remove-contact-photo')
@@ -91,20 +112,20 @@ $contacts_page = $read('src/contacts.php');
 $view_contact = $read('src/view_contact.php');
 expectContactPhoto(
     str_contains($contacts_page, 'class="contact-list-avatar"')
+        && str_contains($contacts_page, 'contact_photo_thumbnail')
+        && str_contains($contacts_page, 'uploadedImageDataUrl(')
         && str_contains($contacts_page, 'contact_photo.php?id=')
         && str_contains($view_contact, 'class="contact-details-photo"')
-        && str_contains($view_contact, 'contact_photo.php?id='),
-    'contact photos should appear on contact list and detail entries.'
+        && str_contains($view_contact, 'contact_photo.php?id=')
+        && str_contains($view_contact, 'size=full'),
+    'list avatars should use embedded thumbnails while detail entries request the full image.'
 );
 
 $migration = $read('migrations/20260818_add_contact_photos.sql');
-$initial_schema = $read('init.sql');
 expectContactPhoto(
     str_contains($migration, 'contact_photo MEDIUMBLOB')
-        && str_contains($migration, 'contact_photo_mime VARCHAR(32)')
-        && str_contains($initial_schema, 'contact_photo MEDIUMBLOB')
-        && str_contains($initial_schema, "'20260818_add_contact_photos.sql'"),
-    'fresh and upgraded databases should both include contact photo storage.'
+        && str_contains($migration, 'contact_photo_mime VARCHAR(32)'),
+    'the forward migration should include contact photo storage.'
 );
 
 $styles = $read('src/assets/css/modern.css');

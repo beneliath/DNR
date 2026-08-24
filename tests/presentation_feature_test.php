@@ -23,13 +23,14 @@ $presentations = normalizeEngagementPresentations(
 );
 
 expectPresentationFeature(count($presentations) === 1, 'a complete presentation should be normalized.');
-expectPresentationFeature($presentations[0]['presentation_time'] === '09:30 PM', 'time should be normalized.');
+expectPresentationFeature($presentations[0]['presentation_time'] === '21:30:00', 'time should be normalized for the SQL TIME column.');
 expectPresentationFeature($presentations[0]['speaker_name'] === 'Default Speaker', 'blank speaker should use the default.');
 expectPresentationFeature($presentations[0]['expected_attendance'] === 125, 'attendance should be an integer.');
-expectPresentationFeature(normalizePresentationTime('0800') === '08:00 AM', '0800 should convert to 08:00 AM.');
-expectPresentationFeature(normalizePresentationTime('1530') === '03:30 PM', '1530 should convert to 03:30 PM.');
-expectPresentationFeature(normalizePresentationTime('0000') === '12:00 AM', '0000 should convert to 12:00 AM.');
-expectPresentationFeature(normalizePresentationTime('1200') === '12:00 PM', '1200 should convert to 12:00 PM.');
+expectPresentationFeature(normalizePresentationTime('0800') === '08:00:00', '0800 should convert to 08:00:00.');
+expectPresentationFeature(normalizePresentationTime('1530') === '15:30:00', '1530 should convert to 15:30:00.');
+expectPresentationFeature(normalizePresentationTime('0000') === '00:00:00', '0000 should convert to 00:00:00.');
+expectPresentationFeature(normalizePresentationTime('1200') === '12:00:00', '1200 should convert to 12:00:00.');
+expectPresentationFeature(formatPresentationTime('21:30:00') === '09:30 PM', 'stored times should be formatted for people.');
 
 $blank_presentations = normalizeEngagementPresentations(
     [['topic_title' => '', 'speaker_name' => 'Default Speaker']],
@@ -51,13 +52,15 @@ try {
 
 requirePresentationForConfirmedEngagement('under_review', []);
 requirePresentationForConfirmedEngagement('confirmed', $presentations);
+requirePresentationForConfirmedEngagement('confirmed', [], 'canceled');
 expectPresentationFeature(
     presentationRemovalRequiresReview('confirmed', 1),
     'removing the last presentation from a confirmed engagement should require review.'
 );
 expectPresentationFeature(
     !presentationRemovalRequiresReview('confirmed', 2)
-        && !presentationRemovalRequiresReview('under_review', 1),
+        && !presentationRemovalRequiresReview('under_review', 1)
+        && !presentationRemovalRequiresReview('confirmed', 1, 'completed'),
     'presentation removal should preserve status when the confirmed invariant remains satisfied.'
 );
 
@@ -100,7 +103,7 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     expectPresentationFeature(
         str_contains($engagement_source, "include 'templates/presentation_form.php'")
             && str_contains($engagement_source, 'requirePresentationForConfirmedEngagement')
-            && str_contains($engagement_source, 'presentation-form.min.js?v=0.1.4'),
+            && str_contains($engagement_source, "renderScript('assets/js/presentation-form.min.js'"),
         'new and edit engagement flows should share the form and enforce the confirmation rule.'
     );
 }
@@ -108,6 +111,12 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
 expectPresentationFeature(
     str_contains($edit_engagement_source, 'syncEngagementPresentations'),
     'editing should transactionally synchronize added and changed presentations.'
+);
+expectPresentationFeature(
+    str_contains($view_source, "require_once __DIR__ . '/engagement_export_helpers.php';")
+        && str_contains($view_source, "require_once __DIR__ . '/presentation_helpers.php';")
+        && !str_contains($view_source, "include 'presentation_helpers.php';"),
+    'the engagement detail route should load overlapping export and presentation helpers idempotently.'
 );
 expectPresentationFeature(
     str_contains($presentation_template, '>Add Presentation</button>')
@@ -141,6 +150,7 @@ expectPresentationFeature(
         && str_contains($edit_engagement_source, 'data-delete-confirmation="Permanently delete this presentation?"')
         && str_contains($restore_presentations, "SET is_archived = 0, archived_by = NULL, archived_at = NULL")
         && str_contains($restore_presentations, 'falls outside the current engagement dates')
+        && str_contains($restore_presentations, 'requireRecentAdminElevation(')
         && str_contains($restore_presentations, 'name="presentation_dates[')
         && str_contains($restore_presentations, 'data-archive-button-label="Keep Archived"'),
     'saved presentations should support archive, restore, and confirmed permanent deletion.'

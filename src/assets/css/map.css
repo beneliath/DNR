@@ -279,6 +279,20 @@
   background: transparent;
 }
 
+/*
+ * The legacy dark-theme stylesheet assigns a background to every div. Leaflet's
+ * corner containers are divs positioned over the tiles, so that rule otherwise
+ * creates an opaque rectangle behind custom controls.
+ */
+html.dark-mode .map-shell .leaflet-control-container,
+html.dark-mode .map-shell .leaflet-top,
+html.dark-mode .map-shell .leaflet-bottom,
+html.dark-mode .map-shell .leaflet-left,
+html.dark-mode .map-shell .leaflet-right,
+html.dark-mode .map-shell .map-zoom-controls {
+  background-color: transparent !important;
+}
+
 .map-zoom-controls .map-zoom-button {
   display: flex;
   width: 42px !important;
@@ -289,8 +303,8 @@
   padding: 0 !important;
   border: 1px solid var(--border-strong) !important;
   border-radius: var(--radius-sm) !important;
-  background: var(--surface) !important;
-  background-color: var(--surface) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: var(--shadow-sm);
   color: var(--text) !important;
   font-family: inherit;
@@ -316,7 +330,8 @@
 
 .map-zoom-controls .map-zoom-button:disabled {
   border-color: var(--border) !important;
-  background: var(--surface-subtle) !important;
+  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: none;
   color: var(--text-subtle) !important;
   cursor: not-allowed;
@@ -442,4 +457,7 @@
     height: min(66vh, 600px);
     min-height: 430px;
   }
+}
+.map-clear-button {
+    text-decoration: none;
 }

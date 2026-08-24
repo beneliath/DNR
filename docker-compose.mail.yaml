@@ -1,0 +1,44 @@
+services:
+  mail-ingest:
+    build:
+      context: .
+      args:
+        DNR_BUILD_COMMIT: ${DNR_BUILD_COMMIT:-}
+        DNR_BUILD_TIMESTAMP: ${DNR_BUILD_TIMESTAMP:-}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    entrypoint: ["php", "/opt/dnr/bin/process_inbound_mail.php", "--loop"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    secrets:
+      - dnr_mysql_mail_ingest_password
+      - dnr_imap_password
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrmailingest
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
+      DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-moed@beneliath.com}
+      DNR_INBOUND_MAX_BYTES: ${DNR_INBOUND_MAX_BYTES:-10485760}
+      DNR_INBOUND_BATCH_SIZE: ${DNR_INBOUND_BATCH_SIZE:-20}
+      DNR_INBOUND_IDLE_SECONDS: ${DNR_INBOUND_IDLE_SECONDS:-30}
+      DNR_IMAP_HOST: ${DNR_IMAP_HOST:-}
+      DNR_IMAP_PORT: ${DNR_IMAP_PORT:-1143}
+      DNR_IMAP_SECURITY: ${DNR_IMAP_SECURITY:-starttls}
+      DNR_IMAP_VERIFY_PEER: ${DNR_IMAP_VERIFY_PEER:-1}
+      DNR_IMAP_USERNAME: ${DNR_IMAP_USERNAME:-}
+      DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password
+      DNR_IMAP_MAILBOX: ${DNR_IMAP_MAILBOX:-INBOX}
+      DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
+    networks: [backend, egress]
+
+secrets:
+  dnr_imap_password:
+    file: ${DNR_IMAP_PASSWORD_FILE:-./secrets/imap_password}
