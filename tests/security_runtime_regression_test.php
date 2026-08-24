@@ -114,10 +114,29 @@ expectSecurityRuntime(
     is_string($apacheSecurity)
         && !str_contains($apacheSecurity, 'disable_functions')
         && is_string($dockerfile)
-        && str_contains($dockerfile, 'COPY scripts/cli_input.php /opt/dnr/bin/cli_input.php')
+        && str_contains($dockerfile, 'COPY --chmod=0644 scripts/cli_input.php /opt/dnr/bin/cli_input.php')
         && str_contains($dockerfile, 'scripts/password_cli_entrypoint.sh'),
     'the password helper and its narrowly scoped production entry point should ship in the image.'
 );
+foreach ([
+    'create_admin.php',
+    'set_password.php',
+    'cli_input.php',
+    'migrate_passwords.php',
+    'check_schema.php',
+    'process_geocode_queue.php',
+    'process_inbound_mail.php',
+    'process_email_outbox.php',
+    'restore_database.php',
+] as $runtimeScript) {
+    expectSecurityRuntime(
+        str_contains(
+            $dockerfile,
+            "COPY --chmod=0644 scripts/{$runtimeScript} /opt/dnr/bin/{$runtimeScript}"
+        ),
+        "{$runtimeScript} should be readable by the unprivileged runtime user."
+    );
+}
 
 $passwordEntrypoint = file_get_contents($root . '/scripts/password_cli_entrypoint.sh');
 expectSecurityRuntime(

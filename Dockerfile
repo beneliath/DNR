@@ -34,18 +34,18 @@ RUN a2enconf zz-dnr-security \
 # bind mount cannot hide or expose them.
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
-COPY scripts/create_admin.php /opt/dnr/bin/create_admin.php
-COPY scripts/set_password.php /opt/dnr/bin/set_password.php
-COPY scripts/cli_input.php /opt/dnr/bin/cli_input.php
+COPY --chmod=0644 scripts/create_admin.php /opt/dnr/bin/create_admin.php
+COPY --chmod=0644 scripts/set_password.php /opt/dnr/bin/set_password.php
+COPY --chmod=0644 scripts/cli_input.php /opt/dnr/bin/cli_input.php
 COPY --chmod=0755 scripts/password_cli_entrypoint.sh /usr/local/bin/dnr-password-cli
 RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
     && ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-set-password
-COPY scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
-COPY scripts/check_schema.php /opt/dnr/bin/check_schema.php
-COPY scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
-COPY scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
-COPY scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
-COPY scripts/restore_database.php /opt/dnr/bin/restore_database.php
+COPY --chmod=0644 scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
+COPY --chmod=0644 scripts/check_schema.php /opt/dnr/bin/check_schema.php
+COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
+COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
+COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
+COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
 COPY migrations/ /opt/dnr/migrations/
 
 # Copy the PHP source code into Apache’s document root
