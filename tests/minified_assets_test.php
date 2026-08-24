@@ -24,6 +24,7 @@ $asset_pairs = [
     'assets/js/engagement-contacts.js' => 'assets/js/engagement-contacts.min.js',
     'assets/js/engagement-lifecycle.js' => 'assets/js/engagement-lifecycle.min.js',
     'assets/js/inbound-mail.js' => 'assets/js/inbound-mail.min.js',
+    'assets/js/user-manual.js' => 'assets/js/user-manual.min.js',
 ];
 $bundled_assets = [
     'assets/css/map.min.css',

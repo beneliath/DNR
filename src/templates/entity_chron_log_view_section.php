@@ -2,7 +2,12 @@
     <div class="chron-log-heading">
         <div>
             <h2>Chron Log</h2>
-            <p>Communication history for this <?php echo htmlspecialchars($chron_entity_label, ENT_QUOTES, 'UTF-8'); ?> only. Entries are shown newest first.</p>
+            <p><?php echo htmlspecialchars(
+                $chron_log_description
+                    ?? "Communication history for this {$chron_entity_label} only. Entries are shown newest first.",
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?></p>
         </div>
         <?php if ($archived_chron_count > 0 && canArchiveEntries($user_role) && ($chron_can_restore ?? true)): ?>
             <a href="<?php echo htmlspecialchars($chron_restore_url, ENT_QUOTES, 'UTF-8'); ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>

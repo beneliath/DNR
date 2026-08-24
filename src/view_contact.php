@@ -145,6 +145,7 @@ try {
 
     <?php
     $chron_entity_label = 'contact';
+    $chron_log_description = "Communication history for this contact only. Entries are shown newest first. Select 'Edit Contact' to add/edit Chron Log entry.";
     $chron_view_url = 'view_contact.php?id=' . $contact_id;
     $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
     $chron_can_restore = !$is_archived && empty($contact['organization_is_archived']);

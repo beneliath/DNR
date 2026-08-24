@@ -9,9 +9,9 @@
         });
         document.querySelectorAll('[data-theme-toggle]').forEach(function (button) {
             button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
-            button.setAttribute('aria-label', isDark ? 'Switch to light theme' : 'Switch to dark theme');
+            button.setAttribute('aria-label', isDark ? 'Switch to Light Theme' : 'Switch to Dark Theme');
             const label = button.querySelector('.theme-label');
-            if (label) label.textContent = isDark ? 'Light theme' : 'Dark theme';
+            if (label) label.textContent = isDark ? 'Light Theme' : 'Dark Theme';
         });
     }
 

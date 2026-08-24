@@ -69,6 +69,22 @@ expectDashboardFeature(
 );
 
 expectDashboardFeature(
+    str_contains(
+        $dashboard,
+        '<a class="summary-card dashboard-summary-card" href="engagements.php?sort_by=date&amp;date_sort=asc">'
+    ),
+    'the upcoming-events summary card should open the date-sorted engagements list.'
+);
+
+expectDashboardFeature(
+    str_contains($dashboard, '<?php if ($financial_closeout_count > 0): ?>')
+        && str_contains($dashboard, 'href="#financial-closeouts"')
+        && str_contains($dashboard, 'dashboard-summary-card-disabled" aria-disabled="true"')
+        && preg_match('/\.dashboard-summary-card-disabled:hover\s*\{[^}]*transform:\s*none;/s', $styles) === 1,
+    'the financial-closeout card should only be interactive when closeouts are due.'
+);
+
+expectDashboardFeature(
     str_contains($dashboard, 'assets/css/pages/dashboard.min.css')
         && str_contains($styles, '.dashboard-primary-grid')
         && preg_match('/\.dashboard-summary-card small\s*\{[^}]*text-overflow:\s*clip;[^}]*white-space:\s*normal;/s', $styles) === 1

@@ -10,7 +10,7 @@
         body.classList.toggle('navigation-open', open);
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
         const label = toggle.querySelector('.visually-hidden');
-        if (label) label.textContent = open ? 'Close navigation' : 'Open navigation';
+        if (label) label.textContent = open ? 'Close Navigation' : 'Open Navigation';
     }
 
     toggle.addEventListener('click', function () {

@@ -20,6 +20,7 @@ $nav_groups = [
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
     'profile' => ['profile.php'],
+    'help' => ['help.php'],
 ];
 $active_nav = '';
 foreach ($nav_groups as $group => $pages) {
@@ -54,20 +55,20 @@ if (!empty($_SESSION['user_id'])) {
 <header class="app-shell-header">
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
-            <span class="visually-hidden">Open navigation</span>
+            <span class="visually-hidden">Open Navigation</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
         <a href="dashboard.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
             <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
         </a>
-        <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to dark theme">
+        <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to Dark Theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
         </button>
     </div>
 
     <div class="app-sidebar" id="app-sidebar">
-        <a class="app-brand" href="dashboard.php" aria-label="DNR home">
+        <a class="app-brand" href="dashboard.php" aria-label="DNR Home">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
@@ -113,11 +114,14 @@ if (!empty($_SESSION['user_id'])) {
                 <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendar</span>
             </a>
             <a href="two_factor_settings.php" class="nav-link<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' active' : ''; ?>"<?php echo in_array($shell_current_page, ['two_factor_settings.php', 'setup_2fa.php', 'two_factor_recovery_codes.php'], true) ? ' aria-current="page"' : ''; ?>>
-                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Account security</span>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg><span>Account Security</span>
             </a>
-            <button type="button" class="nav-link theme-toggle-button" data-theme-toggle aria-label="Switch to dark theme">
+            <a href="help.php" class="nav-link<?php echo $active_nav === 'help' ? ' active' : ''; ?>"<?php echo $active_nav === 'help' ? ' aria-current="page"' : ''; ?>>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H11a3 3 0 0 1 3 3v15a3 3 0 0 0-3-3H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M20 5.5A2.5 2.5 0 0 0 17.5 3H14v18a3 3 0 0 1 3-3h.5a2.5 2.5 0 0 1 2.5 2.5v-15Z"/></svg><span>User Manual</span>
+            </a>
+            <button type="button" class="nav-link theme-toggle-button" data-theme-toggle aria-label="Switch to Dark Theme">
                 <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
-                <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg><span class="theme-label">Dark theme</span>
+                <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg><span class="theme-label">Dark Theme</span>
             </button>
         </nav>
 
@@ -128,13 +132,13 @@ if (!empty($_SESSION['user_id'])) {
             </a>
             <form method="post" action="logout.php" id="logout-form" class="sidebar-logout-form">
                 <?php echo csrfInput(); ?>
-                <button type="submit" class="sidebar-logout-button" aria-label="Log out <?php echo htmlspecialchars($username); ?>" title="Log out">
+                <button type="submit" class="sidebar-logout-button" aria-label="Log Out <?php echo htmlspecialchars($username); ?>" title="Log Out">
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 17l5-5-5-5M15 12H3M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></svg>
                 </button>
             </form>
         </div>
     </div>
-    <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close navigation"></button>
+    <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close Navigation"></button>
 </header>
 <?php renderScript('assets/js/theme.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>

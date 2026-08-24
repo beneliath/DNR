@@ -49,6 +49,16 @@
     transform: translateY(-2px);
 }
 
+.dashboard-summary-card-disabled {
+    cursor: default;
+}
+
+.dashboard-summary-card-disabled:hover {
+    border-color: var(--border);
+    box-shadow: var(--shadow-sm);
+    transform: none;
+}
+
 .dashboard-summary-card.summary-danger .summary-icon {
     background: var(--danger-subtle);
     color: var(--danger);

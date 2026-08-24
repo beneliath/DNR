@@ -73,6 +73,18 @@ expectHeaderScope(
         && str_contains($header_markup, '<span>Database</span>'),
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
+expectHeaderScope(
+    str_contains($header_markup, 'href="help.php"')
+        && str_contains($header_markup, '<span>User Manual</span>'),
+    'The in-app user manual should be available from the shared utility navigation.'
+);
+expectHeaderScope(
+    preg_match(
+        '/<span>Calendar<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        $header_markup
+    ) === 1,
+    'The utility navigation should place the user manual between account security and the theme selector using Title Case labels.'
+);
 
 foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);

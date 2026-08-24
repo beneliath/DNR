@@ -77,7 +77,7 @@ $task_status_labels = followUpTaskStatuses();
     <div class="page-heading dashboard-heading">
         <div>
             <h1>Good day, <?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?></h1>
-            <p class="page-intro">Your operations view for <?php echo htmlspecialchars($business_date_label, ENT_QUOTES, 'UTF-8'); ?>.</p>
+            <p class="page-intro">Your operations view for <?php echo htmlspecialchars($business_date_label, ENT_QUOTES, 'UTF-8'); ?>:</p>
         </div>
         <div class="page-heading-actions">
             <a href="tasks.php?view=my" class="button-secondary">Open my work</a>
@@ -89,7 +89,7 @@ $task_status_labels = followUpTaskStatuses();
     </div>
 
     <div class="summary-grid dashboard-summary-grid" aria-label="Daily operations summary">
-        <a class="summary-card dashboard-summary-card" href="#upcoming-engagements">
+        <a class="summary-card dashboard-summary-card" href="engagements.php?sort_by=date&amp;date_sort=asc">
             <span class="summary-icon" aria-hidden="true">◇</span>
             <span><small>Events, next 30 days</small><strong><?php echo $upcoming_count; ?></strong></span>
         </a>
@@ -101,10 +101,17 @@ $task_status_labels = followUpTaskStatuses();
             <span class="summary-icon" aria-hidden="true">!</span>
             <span><small>My overdue work</small><strong><?php echo $task_summary['overdue']; ?></strong></span>
         </a>
-        <a class="summary-card dashboard-summary-card summary-review" href="#financial-closeouts">
-            <span class="summary-icon" aria-hidden="true">$</span>
-            <span><small>Financial closeouts due</small><strong><?php echo $financial_closeout_count; ?></strong></span>
-        </a>
+        <?php if ($financial_closeout_count > 0): ?>
+            <a class="summary-card dashboard-summary-card summary-review" href="#financial-closeouts">
+                <span class="summary-icon" aria-hidden="true">$</span>
+                <span><small>Financial closeouts due</small><strong><?php echo $financial_closeout_count; ?></strong></span>
+            </a>
+        <?php else: ?>
+            <div class="summary-card dashboard-summary-card summary-review dashboard-summary-card-disabled" aria-disabled="true">
+                <span class="summary-icon" aria-hidden="true">$</span>
+                <span><small>Financial closeouts due</small><strong>0</strong></span>
+            </div>
+        <?php endif; ?>
         <?php if ($can_manage): ?>
             <a class="summary-card dashboard-summary-card<?php echo $inbound_review_count > 0 ? ' summary-review' : ''; ?>" href="inbound_mail.php?status=review">
                 <span class="summary-icon" aria-hidden="true">@</span>
