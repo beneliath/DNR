@@ -180,7 +180,7 @@ services:
       - ./scripts/configure_database_privileges.sh:/opt/dnr/bin/configure_database_privileges:ro
     networks: [backend]
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "--silent"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
       interval: 5s
       timeout: 5s
       retries: 20

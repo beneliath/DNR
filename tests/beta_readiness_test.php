@@ -90,6 +90,7 @@ expectBetaReadiness(
     str_contains($compose, 'DNR_BIND_ADDRESS:-127.0.0.1')
         && str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password')
         && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password')
+        && str_contains($compose, 'test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]')
         && str_contains($web_service, 'networks: [backend]')
         && !str_contains($web_service, "\n    ports:")
         && str_contains($ingress_service, "\n    ports:")
