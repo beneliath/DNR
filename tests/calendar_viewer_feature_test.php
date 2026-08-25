@@ -53,6 +53,9 @@ expectCalendarViewerFeature(
         && preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $styles) === 1
         && str_contains($styles, 'min-width: 900px;')
         && str_contains($styles, '.calendar-month-control')
+        && preg_match('/\.calendar-month-navigation\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1
+        && preg_match('/\.calendar-view-filters\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1
+        && preg_match('/\.calendar-subscriptions-section\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1
         && str_contains($styles, '.calendar-view-filter-events')
         && str_contains($styles, '.calendar-filter-swatch-my-task')
         && str_contains($styles, '.calendar-task-mine')
@@ -63,7 +66,7 @@ expectCalendarViewerFeature(
         && preg_match('/\.calendar-month-table td\.is-today\s*\{[^}]*background:\s*var\(--calendar-today-bg\) !important;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--calendar-today\);/s', $styles) === 1
         && preg_match('/\.calendar-today-label\s*\{[^}]*background:\s*var\(--calendar-today\);[^}]*color:\s*var\(--surface\);/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 760px)'),
-    'the month view should use responsive, color-coded event and task styles plus a distinct current-day treatment.'
+    'the month view should use transparent navigation surfaces, responsive color-coded items, and a distinct current-day treatment.'
 );
 
 echo "Calendar viewer feature tests passed.\n";

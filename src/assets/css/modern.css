@@ -1016,6 +1016,7 @@ span.contact-list-avatar {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  background: transparent !important;
 }
 
 .calendar-view-filters {
@@ -1024,6 +1025,7 @@ span.contact-list-avatar {
   gap: 8px;
   flex-wrap: wrap;
   margin: -4px 0 18px;
+  background: transparent !important;
 }
 
 html body .calendar-view-filter {
@@ -1324,6 +1326,7 @@ html body .calendar-task-other {
 
 .calendar-subscriptions-section {
   margin-top: 34px;
+  background: transparent !important;
 }
 
 .calendar-section-heading {
