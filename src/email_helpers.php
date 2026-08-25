@@ -505,6 +505,12 @@ function smtpCommand($stream, $command, array $accepted_codes)
     return smtpReadResponse($stream, $accepted_codes);
 }
 
+function smtpNormalizeLineEndings($value)
+{
+    $value = str_replace(["\r\n", "\r"], "\n", (string) $value);
+    return str_replace("\n", "\r\n", $value);
+}
+
 function smtpTlsStreamContext($host)
 {
     $host = trim((string) $host);
@@ -592,7 +598,7 @@ function sendSmtpMessage($recipient, $subject, $body)
         smtpCommand($stream, 'DATA', [354]);
         $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
         $encoded_name = '=?UTF-8?B?' . base64_encode($from_name) . '?=';
-        $message = implode("\r\n", [
+        $message = smtpNormalizeLineEndings(implode("\n", [
             'From: ' . $encoded_name . ' <' . $from . '>',
             'To: <' . $recipient . '>',
             'Subject: ' . $encoded_subject,
@@ -601,9 +607,8 @@ function sendSmtpMessage($recipient, $subject, $body)
             'Content-Transfer-Encoding: 8bit',
             'Date: ' . gmdate(DATE_RFC2822),
             '',
-            str_replace(["\r\n", "\r"], "\n", (string) $body),
-        ]);
-        $message = str_replace("\n", "\r\n", $message);
+            (string) $body,
+        ]));
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
         if (fwrite($stream, $message . "\r\n.\r\n") === false) {
             throw new RuntimeException('Unable to send the SMTP message body.');
