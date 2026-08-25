@@ -8,6 +8,28 @@ const DNR_DATABASE_BACKUP_VERSION = 2;
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
 
+function databaseBackupConnection() {
+    $host = (string) (getenv('DB_HOST') ?: 'db');
+    $user = (string) (getenv('MYSQL_BACKUP_USER') ?: 'dnrbackup');
+    $password = configurationSecret('MYSQL_BACKUP_PASSWORD');
+    $database = (string) (getenv('MYSQL_DATABASE') ?: 'dnr');
+    if ($password === '') {
+        throw new RuntimeException('Database backup credentials are not configured.');
+    }
+
+    try {
+        $connection = new mysqli($host, $user, $password, $database);
+        $connection->set_charset('utf8mb4');
+        return $connection;
+    } catch (mysqli_sql_exception $exception) {
+        throw new RuntimeException(
+            'Database backup connection failed: ' . $exception->getMessage(),
+            0,
+            $exception
+        );
+    }
+}
+
 function databaseBackupMaximumBytes() {
     $configured = filter_var(
         getenv('DNR_DATABASE_BACKUP_MAX_BYTES') ?: null,
