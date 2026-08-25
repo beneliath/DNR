@@ -161,8 +161,8 @@ expectHeaderScope(
     'The responsive mobile application bar should override the desktop hidden state with a solid theme surface.'
 );
 expectHeaderScope(
-    preg_match('/html\.dark-mode body div[^\{]*:not\(\.app-sidebar\)\s*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
-    'The dark-theme transparency reset should preserve the mobile sidebar surface.'
+    preg_match('/html\.dark-mode body div[^\{]*:not\(\.app-sidebar\):not\(\.mobile-app-bar\)\s*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
+    'The dark-theme transparency reset should preserve the mobile sidebar and masthead surfaces.'
 );
 expectHeaderScope(
     preg_match('/\.app-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*100%;[^}]*height:\s*auto;/s', $modern_styles) === 1
