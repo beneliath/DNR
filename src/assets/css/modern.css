@@ -184,7 +184,7 @@ html body main.view-container {
   background-color: transparent !important;
 }
 
-html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.app-sidebar) {
+html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.app-sidebar):not(.mobile-app-bar) {
   background-color: transparent !important;
   color: inherit !important;
 }
