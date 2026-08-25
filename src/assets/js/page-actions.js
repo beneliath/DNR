@@ -33,6 +33,309 @@
         update();
     }
 
+    function initializeAddressRegions() {
+        const dataElement = document.getElementById('address-region-data');
+        const controls = Array.from(document.querySelectorAll('[data-address-region-control]'));
+        if (!dataElement || controls.length === 0) return;
+
+        let regionData;
+        try {
+            regionData = JSON.parse(dataElement.textContent || '{}');
+        } catch (error) {
+            return;
+        }
+
+        const states = [];
+
+        function requiredFor(state) {
+            const section = state.control.closest('.address-section');
+            return state.control.dataset.regionRequired === 'true'
+                && !(section && section.hidden);
+        }
+
+        function synchronizeRequired(state) {
+            const required = requiredFor(state);
+            const custom = !state.picker.hidden;
+            state.textInput.required = required && !custom;
+            state.select.required = required && custom;
+            state.trigger.setAttribute('aria-required', String(required));
+            if (!required) clearRegionError(state);
+        }
+
+        function clearRegionError(state) {
+            state.error.hidden = true;
+            state.trigger.removeAttribute('aria-invalid');
+            state.select.setCustomValidity('');
+        }
+
+        function closePicker(state, focusTrigger) {
+            state.menu.hidden = true;
+            state.trigger.setAttribute('aria-expanded', 'false');
+            if (focusTrigger) state.trigger.focus();
+        }
+
+        function closeOtherPickers(activeState) {
+            states.forEach(function (state) {
+                if (state !== activeState) closePicker(state, false);
+            });
+        }
+
+        function selectedOptionButton(state) {
+            return Array.from(state.menu.querySelectorAll('[data-address-region-option]')).find(function (option) {
+                return option.dataset.regionCode === state.select.value;
+            }) || state.menu.querySelector('[data-address-region-option]');
+        }
+
+        function openPicker(state, focusOption) {
+            closeOtherPickers(state);
+            state.menu.hidden = false;
+            state.trigger.setAttribute('aria-expanded', 'true');
+            const selected = selectedOptionButton(state);
+            if (selected) {
+                selected.scrollIntoView({ block: 'nearest' });
+                if (focusOption) selected.focus();
+            }
+        }
+
+        function choiceForValue(configuration, value) {
+            const normalized = String(value || '').trim();
+            const upper = normalized.toUpperCase();
+            const lower = normalized.toLocaleLowerCase();
+            return configuration.choices.find(function (choice) {
+                return choice.code === upper || choice.name.toLocaleLowerCase() === lower;
+            }) || null;
+        }
+
+        function updatePickerLabel(state, configuration, choice) {
+            state.label.textContent = choice ? choice.name : configuration.label;
+            state.trigger.setAttribute(
+                'aria-label',
+                choice ? `${configuration.label}: ${choice.name}` : `Select ${configuration.label.toLowerCase()}`
+            );
+            state.menu.querySelectorAll('[data-address-region-option]').forEach(function (option) {
+                option.setAttribute('aria-selected', String(choice && option.dataset.regionCode === choice.code));
+            });
+        }
+
+        function selectRegion(state, code, focusTrigger) {
+            const configuration = regionData[state.currentCountry];
+            if (!configuration) return;
+            const choice = configuration.choices.find(function (candidate) {
+                return candidate.code === code;
+            }) || null;
+            state.select.value = choice ? choice.code : '';
+            state.values[state.currentCountry] = state.select.value;
+            updatePickerLabel(state, configuration, choice);
+            clearRegionError(state);
+            closePicker(state, focusTrigger);
+        }
+
+        function populatePicker(state, configuration, value) {
+            state.select.replaceChildren();
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = configuration.label;
+            state.select.appendChild(placeholder);
+            state.menu.replaceChildren();
+
+            configuration.choices.forEach(function (choice) {
+                const nativeOption = document.createElement('option');
+                nativeOption.value = choice.code;
+                nativeOption.textContent = choice.name;
+                state.select.appendChild(nativeOption);
+
+                const option = document.createElement('button');
+                option.type = 'button';
+                option.className = 'address-region-option';
+                option.dataset.addressRegionOption = '';
+                option.dataset.regionCode = choice.code;
+                option.setAttribute('role', 'option');
+                option.setAttribute('aria-selected', 'false');
+                option.tabIndex = -1;
+
+                const name = document.createElement('span');
+                name.textContent = choice.name;
+                option.appendChild(name);
+                state.menu.appendChild(option);
+            });
+
+            const selected = choiceForValue(configuration, value);
+            state.select.value = selected ? selected.code : '';
+            state.values[state.currentCountry] = state.select.value;
+            state.select.setAttribute('aria-label', configuration.label);
+            state.menu.setAttribute('aria-label', `${configuration.label} options`);
+            updatePickerLabel(state, configuration, selected);
+        }
+
+        function currentValue(state) {
+            return state.picker.hidden ? state.textInput.value : state.select.value;
+        }
+
+        function configureForCountry(state, countryCode, initial) {
+            if (state.currentCountry !== null) {
+                state.values[state.currentCountry] = currentValue(state);
+            }
+            const value = initial ? state.textInput.value : (state.values[countryCode] || '');
+            state.currentCountry = countryCode;
+            const configuration = regionData[countryCode];
+
+            if (configuration) {
+                state.textInput.hidden = true;
+                state.textInput.disabled = true;
+                state.textInput.required = false;
+                state.picker.hidden = false;
+                state.select.disabled = false;
+                populatePicker(state, configuration, value);
+            } else {
+                state.picker.hidden = true;
+                state.select.disabled = true;
+                state.select.required = false;
+                state.textInput.hidden = false;
+                state.textInput.disabled = false;
+                state.textInput.placeholder = 'State/Province';
+                state.textInput.value = value;
+                closePicker(state, false);
+            }
+            clearRegionError(state);
+            synchronizeRequired(state);
+        }
+
+        controls.forEach(function (control, index) {
+            const prefix = control.dataset.addressRegionFor;
+            const countrySelect = document.querySelector(`[data-address-country="${prefix}"]`);
+            const textInput = control.querySelector('[data-address-region-input]');
+            if (!prefix || !countrySelect || !textInput) return;
+
+            const picker = document.createElement('div');
+            picker.className = 'address-region-picker';
+            picker.hidden = true;
+
+            const select = document.createElement('select');
+            select.name = textInput.name;
+            select.className = 'address-region-native-select';
+            select.disabled = true;
+            select.tabIndex = -1;
+            select.setAttribute('aria-hidden', 'true');
+            picker.appendChild(select);
+
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'address-region-trigger';
+            trigger.dataset.addressRegionToggle = '';
+            trigger.setAttribute('aria-haspopup', 'listbox');
+            trigger.setAttribute('aria-expanded', 'false');
+
+            const triggerLabel = document.createElement('span');
+            triggerLabel.className = 'address-region-label';
+            trigger.appendChild(triggerLabel);
+
+            const chevron = document.createElement('span');
+            chevron.className = 'address-region-chevron';
+            chevron.setAttribute('aria-hidden', 'true');
+            trigger.appendChild(chevron);
+            picker.appendChild(trigger);
+
+            const menu = document.createElement('div');
+            menu.className = 'address-region-menu';
+            menu.id = `address-region-menu-${prefix}-${index}`;
+            menu.dataset.addressRegionMenu = '';
+            menu.setAttribute('role', 'listbox');
+            menu.hidden = true;
+            trigger.setAttribute('aria-controls', menu.id);
+            picker.appendChild(menu);
+
+            const error = document.createElement('span');
+            error.className = 'address-region-error';
+            error.id = `address-region-error-${prefix}-${index}`;
+            error.textContent = 'Select a valid region.';
+            error.hidden = true;
+            error.setAttribute('role', 'alert');
+            trigger.setAttribute('aria-describedby', error.id);
+            picker.appendChild(error);
+            control.appendChild(picker);
+
+            const state = {
+                control,
+                countrySelect,
+                textInput,
+                picker,
+                select,
+                trigger,
+                label: triggerLabel,
+                menu,
+                error,
+                currentCountry: null,
+                values: {}
+            };
+            states.push(state);
+
+            trigger.addEventListener('click', function () {
+                if (menu.hidden) openPicker(state, false);
+                else closePicker(state, false);
+            });
+            trigger.addEventListener('keydown', function (event) {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    openPicker(state, true);
+                } else if (event.key === 'Escape') {
+                    closePicker(state, false);
+                }
+            });
+            menu.addEventListener('click', function (event) {
+                const option = event.target.closest('[data-address-region-option]');
+                if (option) selectRegion(state, option.dataset.regionCode || '', true);
+            });
+            menu.addEventListener('keydown', function (event) {
+                const option = event.target.closest('[data-address-region-option]');
+                if (!option) return;
+                const options = Array.from(menu.querySelectorAll('[data-address-region-option]'));
+                const currentIndex = options.indexOf(option);
+                let targetIndex = null;
+                if (event.key === 'ArrowDown') targetIndex = Math.min(options.length - 1, currentIndex + 1);
+                else if (event.key === 'ArrowUp') targetIndex = Math.max(0, currentIndex - 1);
+                else if (event.key === 'Home') targetIndex = 0;
+                else if (event.key === 'End') targetIndex = options.length - 1;
+                else if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectRegion(state, option.dataset.regionCode || '', true);
+                    return;
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closePicker(state, true);
+                    return;
+                }
+                if (targetIndex !== null) {
+                    event.preventDefault();
+                    options[targetIndex].focus();
+                }
+            });
+            select.addEventListener('invalid', function (event) {
+                event.preventDefault();
+                const configuration = regionData[state.currentCountry];
+                const label = configuration ? configuration.label.toLowerCase() : 'region';
+                error.textContent = `Select a ${label}.`;
+                error.hidden = false;
+                trigger.setAttribute('aria-invalid', 'true');
+                trigger.focus();
+            });
+            countrySelect.addEventListener('change', function () {
+                configureForCountry(state, countrySelect.value, false);
+            });
+            configureForCountry(state, countrySelect.value, true);
+        });
+
+        document.addEventListener('click', function (event) {
+            states.forEach(function (state) {
+                if (!state.picker.contains(event.target)) closePicker(state, false);
+            });
+        });
+        document.querySelectorAll('input[name="same_address"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                states.forEach(synchronizeRequired);
+            });
+        });
+    }
+
     function updatePrimaryOrganizationContactRequirements() {
         const firstName = document.getElementById('contact_first_name');
         const lastName = document.getElementById('contact_last_name');
@@ -294,6 +597,7 @@
     function initialize() {
         initializeContactRole();
         initializeMailingAddress();
+        initializeAddressRegions();
         updatePrimaryOrganizationContactRequirements();
         initializeAdditionalOrganizationContacts();
         initializeEngagementForm();

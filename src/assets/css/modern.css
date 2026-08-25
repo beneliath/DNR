@@ -1982,7 +1982,7 @@ html body .task-action-button:focus-visible {
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,
@@ -3561,6 +3561,138 @@ html.dark-mode .login-secondary-link a {
   border-radius: 0;
   background: transparent !important;
   box-shadow: none !important;
+}
+
+.address-region-picker {
+  position: relative;
+  width: 100%;
+}
+
+.address-region-native-select {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+html body .address-region-trigger {
+  display: flex !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: flex-start;
+  margin: 0 !important;
+  padding: 10px 38px 10px 13px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-size: .95rem !important;
+  font-weight: 520;
+  text-align: left;
+  transform: none !important;
+}
+
+html body .address-region-trigger:hover,
+html body .address-region-trigger[aria-expanded="true"] {
+  border-color: var(--control-hover-border) !important;
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+html body .address-region-trigger:focus-visible,
+html body .address-region-trigger[aria-invalid="true"] {
+  border-color: var(--primary) !important;
+  outline: 0 !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.address-region-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.address-region-chevron {
+  position: absolute;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  opacity: .7;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform .15s ease;
+}
+
+.address-region-trigger[aria-expanded="true"] .address-region-chevron {
+  transform: translateY(2px) rotate(225deg);
+}
+
+.address-region-menu[hidden] {
+  display: none !important;
+}
+
+html body .address-region-menu {
+  position: absolute;
+  z-index: 150;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 100%;
+  max-height: 20rem;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-md);
+}
+
+html body .address-region-option {
+  display: grid !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-size: .9rem !important;
+  font-weight: 520;
+  text-align: left;
+  transform: none !important;
+}
+
+html body .address-region-option:hover,
+html body .address-region-option:focus-visible,
+html body .address-region-option[aria-selected="true"] {
+  outline: 0 !important;
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+.address-region-error {
+  display: block;
+  margin-top: 7px;
+  color: var(--danger);
+  font-size: .8rem;
+  font-weight: 650;
+}
+
+.address-region-error[hidden] {
+  display: none !important;
 }
 
 .phone-country-picker {

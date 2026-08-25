@@ -210,9 +210,9 @@ $contact_stmt->close();
             if (!empty($organization['physical_address_line_1'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_1']);
             if (!empty($organization['physical_address_line_2'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_2']);
             if (!empty($organization['physical_city'])) $address_parts[] = htmlspecialchars($organization['physical_city']);
-            if (!empty($organization['physical_state'])) $address_parts[] = htmlspecialchars($organization['physical_state']);
+            if (!empty($organization['physical_state'])) $address_parts[] = htmlspecialchars(addressRegionName($organization['physical_country'], $organization['physical_state']));
             if (!empty($organization['physical_zipcode'])) $address_parts[] = htmlspecialchars($organization['physical_zipcode']);
-            if (!empty($organization['physical_country'])) $address_parts[] = htmlspecialchars($organization['physical_country']);
+            if (!empty($organization['physical_country'])) $address_parts[] = htmlspecialchars(addressCountryName($organization['physical_country']));
 
             echo !empty($address_parts) ? implode(', ', $address_parts) : 'Not specified';
             ?>
@@ -225,9 +225,9 @@ $contact_stmt->close();
             if (!empty($organization['mailing_address_line_1'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_1']);
             if (!empty($organization['mailing_address_line_2'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_2']);
             if (!empty($organization['mailing_city'])) $mailing_parts[] = htmlspecialchars($organization['mailing_city']);
-            if (!empty($organization['mailing_state'])) $mailing_parts[] = htmlspecialchars($organization['mailing_state']);
+            if (!empty($organization['mailing_state'])) $mailing_parts[] = htmlspecialchars(addressRegionName($organization['mailing_country'], $organization['mailing_state']));
             if (!empty($organization['mailing_zipcode'])) $mailing_parts[] = htmlspecialchars($organization['mailing_zipcode']);
-            if (!empty($organization['mailing_country'])) $mailing_parts[] = htmlspecialchars($organization['mailing_country']);
+            if (!empty($organization['mailing_country'])) $mailing_parts[] = htmlspecialchars(addressCountryName($organization['mailing_country']));
 
             echo !empty($mailing_parts) ? implode(', ', $mailing_parts) : 'Not specified';
             ?>
