@@ -13,6 +13,7 @@ $helpers = file_get_contents($root . '/src/database_backup_helpers.php');
 $header = file_get_contents($root . '/src/templates/header.php');
 $login = file_get_contents($root . '/src/login.php');
 $compose = file_get_contents($root . '/docker-compose.yaml');
+$workflow = file_get_contents($root . '/.github/workflows/ci.yml');
 $privileges = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $restore_command = file_get_contents($root . '/scripts/restore_database.php');
 $readme = file_get_contents($root . '/README.md');
@@ -57,6 +58,7 @@ expectDatabaseBackupFeature(
         && str_contains($compose, 'MYSQL_BACKUP_USER: dnrbackup')
         && str_contains($compose, 'MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password')
         && str_contains($compose, '- dnr_mysql_backup_password')
+        && str_contains($workflow, 'secrets/mysql_backup_password')
         && str_contains($privileges, "CREATE USER IF NOT EXISTS '\${backup_user}'@'%'")
         && str_contains($privileges, "GRANT SELECT ON \`\${MYSQL_DATABASE}\`.* TO '\${backup_user}'@'%';")
         && !str_contains($privileges, "GRANT SELECT, INSERT, UPDATE, DELETE ON \`\${MYSQL_DATABASE}\`.* TO '\${backup_user}'@'%';"),

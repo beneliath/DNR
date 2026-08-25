@@ -44,6 +44,7 @@ jobs:
           mkdir -p secrets backups
           openssl rand -hex 32 > secrets/mysql_root_password
           openssl rand -hex 32 > secrets/mysql_app_password
+          openssl rand -hex 32 > secrets/mysql_backup_password
           openssl rand -hex 32 > secrets/mysql_maintenance_password
           openssl rand -hex 32 > secrets/mysql_geocoder_password
           openssl rand -hex 32 > secrets/mysql_mail_ingest_password
