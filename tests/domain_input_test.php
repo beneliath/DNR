@@ -47,8 +47,73 @@ expectDomainInput($organization['errors'] === [], 'a valid organization should n
 expectDomainInput(
     $organization['data']['website_url'] === 'https://example.org'
         && $organization['data']['mailing_city'] === 'Chicago'
+        && $organization['data']['physical_country'] === 'US'
+        && $organization['data']['mailing_country'] === 'US'
+        && $organization['data']['physical_state'] === 'IL'
+        && $organization['data']['mailing_state'] === 'IL'
         && $organization['data']['phone'] === '+13125550100',
-    'organization URLs, same-address fields, and telephone numbers should be canonicalized.'
+    'organization URLs, countries, regions, same-address fields, and telephone numbers should be canonicalized.'
+);
+
+$country_choices = addressCountryChoices();
+expectDomainInput(
+    count($country_choices) >= 249
+        && $country_choices['US']['name'] === 'United States of America'
+        && $country_choices['US']['flag'] === '🇺🇸'
+        && $country_choices['CA']['flag'] === '🇨🇦'
+        && $country_choices['DE']['name'] === 'Germany',
+    'organization address selectors should offer the full country list with flag icons.'
+);
+expectDomainInput(
+    str_contains(addressCountrySelectOptions(), '<option value="US" selected>🇺🇸 United States of America</option>')
+        && normalizeAddressCountryCode('CAN') === 'CA'
+        && addressCountryName('USA') === 'United States of America',
+    'organization country controls should default to the United States and support legacy country codes.'
+);
+
+$invalid_country_organization = OrganizationInput::normalize([
+    'organization_name' => 'Invalid Country Organization',
+    'same_address' => 'yes',
+    'physical_address_line_1' => '1 Main Street',
+    'physical_city' => 'Chicago',
+    'physical_state' => 'IL',
+    'physical_zipcode' => '60601',
+    'physical_country' => 'NOT-A-COUNTRY',
+]);
+expectDomainInput(
+    in_array('Select a valid physical country.', $invalid_country_organization['errors'], true),
+    'organization addresses should reject unsupported country values.'
+);
+
+$canadian_organization = OrganizationInput::normalize([
+    'organization_name' => 'Canadian Organization',
+    'same_address' => 'yes',
+    'physical_address_line_1' => '100 Queen Street',
+    'physical_city' => 'Ottawa',
+    'physical_state' => 'Ontario',
+    'physical_zipcode' => 'K1A 0A9',
+    'physical_country' => 'CA',
+]);
+expectDomainInput(
+    $canadian_organization['errors'] === []
+        && $canadian_organization['data']['physical_state'] === 'ON'
+        && $canadian_organization['data']['mailing_state'] === 'ON',
+    'Canadian province names should normalize to their standard abbreviations.'
+);
+
+$invalid_region_organization = OrganizationInput::normalize([
+    'organization_name' => 'Invalid Region Organization',
+    'same_address' => 'yes',
+    'physical_address_line_1' => '1 Main Street',
+    'physical_city' => 'Chicago',
+    'physical_state' => 'Atlantis',
+    'physical_zipcode' => '60601',
+    'physical_country' => 'US',
+]);
+expectDomainInput(
+    in_array('Select a valid physical state.', $invalid_region_organization['errors'], true)
+        && normalizeAddressRegion('DE', 'Bavaria') === 'Bavaria',
+    'U.S. and Canadian regions should use supported choices while other countries retain free text.'
 );
 
 $embeddedContact = ContactInput::normalizeEmbedded([

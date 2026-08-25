@@ -361,17 +361,15 @@ try {
                 <div>
                     <input type="text" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city']); ?>">
                 </div>
-                <div>
-                    <input type="text" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state']); ?>">
+                <div data-address-region-control data-address-region-for="physical" data-region-required="true">
+                    <input type="text" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state']); ?>" data-address-region-input>
                 </div>
                 <div>
                     <input type="text" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode']); ?>">
                 </div>
-                <div class="address-full-width">
-                    <select name="physical_country">
-                        <option value="">Select Country</option>
-                        <option value="USA" <?php echo $organization['physical_country'] === 'USA' ? 'selected' : ''; ?>>United States</option>
-                        <option value="CAN" <?php echo $organization['physical_country'] === 'CAN' ? 'selected' : ''; ?>>Canada</option>
+                <div>
+                    <select name="physical_country" data-address-country="physical">
+                        <?php echo addressCountrySelectOptions($organization['physical_country'] ?: 'US'); ?>
                     </select>
                 </div>
             </div>
@@ -389,17 +387,15 @@ try {
                 <div>
                     <input type="text" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city']); ?>">
                 </div>
-                <div>
-                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state']); ?>">
+                <div data-address-region-control data-address-region-for="mailing" data-region-required="true">
+                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state']); ?>" data-address-region-input>
                 </div>
                 <div>
                     <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode']); ?>">
                 </div>
-                <div class="address-full-width">
-                    <select name="mailing_country">
-                        <option value="">Select Country</option>
-                        <option value="USA" <?php echo $organization['mailing_country'] === 'USA' ? 'selected' : ''; ?>>United States</option>
-                        <option value="CAN" <?php echo $organization['mailing_country'] === 'CAN' ? 'selected' : ''; ?>>Canada</option>
+                <div>
+                    <select name="mailing_country" data-address-country="mailing">
+                        <?php echo addressCountrySelectOptions($organization['mailing_country'] ?: 'US'); ?>
                     </select>
                 </div>
             </div>
@@ -420,6 +416,10 @@ try {
         <button type="submit" name="save_organization" value="1" class="action-button save-button" form="organization-edit-form">Save Changes</button>
     </div>
 </div>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(
+    addressRegionClientData(),
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
+); ?></script>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

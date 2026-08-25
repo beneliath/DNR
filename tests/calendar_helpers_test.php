@@ -137,6 +137,129 @@ foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
 
+$month_context = calendarMonthContext('2026-08', '2026-08-25');
+expectCalendar(
+    $month_context['label'] === 'August 2026'
+        && $month_context['previous_month'] === '2026-07'
+        && $month_context['next_month'] === '2026-09'
+        && $month_context['grid_start'] === '2026-07-26'
+        && $month_context['grid_end'] === '2026-09-05'
+        && count($month_context['days']) === 42,
+    'The graphical calendar should build complete Sunday-through-Saturday month grids.'
+);
+expectCalendar(
+    calendarMonthContext('not-a-month', '2026-08-25')['month'] === '2026-08',
+    'Invalid month navigation values should fall back to the current business month.'
+);
+expectCalendar(
+    array_keys(calendarViewerModes()) === ['events', 'my_tasks', 'all_tasks', 'everything']
+        && normalizeCalendarViewerMode('my_tasks') === 'my_tasks'
+        && normalizeCalendarViewerMode('invalid') === 'events',
+    'Calendar content selectors should use a fixed allowlist and default to events.'
+);
+expectCalendar(
+    calendarViewerPageUrl('2026-09', 'everything')
+        === 'calendar_subscription.php?month=2026-09&show=everything#event-calendar'
+        && calendarViewerPageUrl(null, 'my_tasks')
+        === 'calendar_subscription.php?show=my_tasks#event-calendar'
+        && calendarViewerPageUrl('invalid', 'events')
+        === 'calendar_subscription.php#event-calendar',
+    'Month navigation should preserve the selected calendar content without accepting invalid values.'
+);
+
+$viewer_events = [
+    [
+        'id' => 1,
+        'event_title' => 'Cross-month event',
+        'organization_name' => 'Example Org',
+        'event_start_date' => '2026-07-31',
+        'event_end_date' => '2026-08-02',
+        'confirmation_status' => 'confirmed',
+        'lifecycle_status' => 'active',
+    ],
+    [
+        'id' => 2,
+        'event_title' => '',
+        'organization_name' => 'Single Day Org',
+        'event_start_date' => '2026-08-15',
+        'event_end_date' => null,
+        'confirmation_status' => 'under_review',
+        'lifecycle_status' => 'active',
+    ],
+    [
+        'id' => 3,
+        'event_title' => 'Invalid event',
+        'event_start_date' => 'invalid',
+        'event_end_date' => '2026-08-20',
+    ],
+];
+$viewer_events_by_date = calendarEventsByDate(
+    $viewer_events,
+    $month_context['grid_start'],
+    $month_context['grid_end']
+);
+expectCalendar(
+    count($viewer_events_by_date['2026-07-31']) === 1
+        && count($viewer_events_by_date['2026-08-01']) === 1
+        && count($viewer_events_by_date['2026-08-02']) === 1
+        && count($viewer_events_by_date['2026-08-15']) === 1
+        && !isset($viewer_events_by_date['invalid']),
+    'Multi-day events should appear on every visible date while invalid dates are ignored.'
+);
+expectCalendar(
+    calendarViewerEventLabel($viewer_events[1]) === 'Single Day Org'
+        && calendarViewerEventTone($viewer_events[0]) === 'confirmed'
+        && calendarViewerEventTone($viewer_events[1]) === 'tentative'
+        && calendarViewerEventTone(['lifecycle_status' => 'canceled']) === 'canceled',
+    'Calendar event labels and visual status tones should remain stable.'
+);
+
+$viewer_tasks = [
+    [
+        'id' => 11,
+        'title' => 'Send itinerary',
+        'due_date' => '2026-08-15',
+        'assigned_to' => 7,
+    ],
+    [
+        'id' => 12,
+        'title' => '',
+        'due_date' => '2026-08-16',
+        'assigned_to' => 9,
+    ],
+    [
+        'id' => 13,
+        'title' => 'Outside the grid',
+        'due_date' => '2026-09-20',
+        'assigned_to' => null,
+    ],
+    [
+        'id' => 14,
+        'title' => 'Invalid date',
+        'due_date' => 'invalid',
+        'assigned_to' => 7,
+    ],
+];
+$viewer_tasks_by_date = calendarTasksByDate(
+    $viewer_tasks,
+    $month_context['grid_start'],
+    $month_context['grid_end']
+);
+expectCalendar(
+    count($viewer_tasks_by_date['2026-08-15']) === 1
+        && count($viewer_tasks_by_date['2026-08-16']) === 1
+        && !isset($viewer_tasks_by_date['2026-09-20'])
+        && !isset($viewer_tasks_by_date['invalid']),
+    'Calendar tasks should appear on their valid due dates inside the visible grid.'
+);
+expectCalendar(
+    calendarViewerTaskLabel($viewer_tasks[0]) === 'Send itinerary'
+        && calendarViewerTaskLabel($viewer_tasks[1]) === 'Untitled task'
+        && calendarViewerTaskTone($viewer_tasks[0], 7) === 'mine'
+        && calendarViewerTaskTone($viewer_tasks[1], 7) === 'other',
+    'Calendar task labels and ownership color tones should remain stable.'
+);
+
 putenv('DNR_PUBLIC_BASE_URL=https://calendar.example.org/dnr');
 $calendar_token = str_repeat('a', 32);
 $url = calendarSubscriptionUrl([

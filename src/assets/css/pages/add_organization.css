@@ -140,8 +140,8 @@
         }
         .role-container {
             display: flex;
-            align-items: center;
-            gap: 30px;
+            align-items: flex-start;
+            gap: 20px;
             margin-bottom: 15px;
         }
 
@@ -149,12 +149,10 @@
             margin-bottom: 0;
         }
 
-        .role-container .form-group:first-child {
-            flex: 1;
-        }
-
+        .role-container .form-group:first-child,
         .role-container .form-group:last-child {
-            flex: 0 0 200px;
+            width: 200px;
+            flex: 0 1 200px;
         }
         .email-container {
             display: flex;

@@ -31,13 +31,48 @@ final class OrganizationInput
             ? trim((string) $input['fax_country_code'])
             : '+1';
 
+        $errors = [];
+        if ($data['physical_country'] !== '') {
+            $physical_country = \normalizeAddressCountryCode($data['physical_country']);
+            if ($physical_country === null) {
+                $errors[] = 'Select a valid physical country.';
+            } else {
+                $data['physical_country'] = $physical_country;
+            }
+        }
+        if ($data['physical_state'] !== '') {
+            $physical_state = \normalizeAddressRegion($data['physical_country'], $data['physical_state']);
+            if ($physical_state === null) {
+                $errors[] = $data['physical_country'] === 'CA'
+                    ? 'Select a valid physical province.'
+                    : 'Select a valid physical state.';
+            } else {
+                $data['physical_state'] = $physical_state;
+            }
+        }
         if ($data['same_address']) {
             foreach (['address_line_1', 'address_line_2', 'city', 'state', 'zipcode', 'country'] as $part) {
                 $data['mailing_' . $part] = $data['physical_' . $part];
             }
+        } elseif ($data['mailing_country'] !== '') {
+            $mailing_country = \normalizeAddressCountryCode($data['mailing_country']);
+            if ($mailing_country === null) {
+                $errors[] = 'Select a valid mailing country.';
+            } else {
+                $data['mailing_country'] = $mailing_country;
+            }
+        }
+        if (!$data['same_address'] && $data['mailing_state'] !== '') {
+            $mailing_state = \normalizeAddressRegion($data['mailing_country'], $data['mailing_state']);
+            if ($mailing_state === null) {
+                $errors[] = $data['mailing_country'] === 'CA'
+                    ? 'Select a valid mailing province.'
+                    : 'Select a valid mailing state.';
+            } else {
+                $data['mailing_state'] = $mailing_state;
+            }
         }
 
-        $errors = [];
         if ($data['organization_name'] === '') {
             $errors[] = 'Organization name is required.';
         }

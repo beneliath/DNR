@@ -81,7 +81,11 @@ $financial_closeout_applicable = !in_array(
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
-    "SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
+    "SELECT id, topic_title, presentation_date, presentation_time, speaker_name, expected_attendance,
+            slide_deck_pdf IS NOT NULL AS has_slide_deck, slide_deck_filename,
+            speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
+            speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
+            speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
      ORDER BY presentation_date, presentation_time, id"
@@ -180,8 +184,23 @@ $presentation_stmt->close();
 
         <div class="detail-label">Email Subject Marker</div>
         <div class="detail-value engagement-email-marker">
-            <code>[MOED#<?php echo $engagement_id; ?>]</code>
-            <span>Keep this marker in an email subject to route the message to this Engagement’s Chron log.</span>
+            <span class="engagement-email-marker-control">
+                <code>[MOED#<?php echo $engagement_id; ?>]</code>
+                <button
+                    type="button"
+                    class="action-icon-button engagement-marker-copy"
+                    data-copy-text="[MOED#<?php echo $engagement_id; ?>]"
+                    data-copy-status="engagement-marker-copy-status"
+                    data-tooltip="Copy marker"
+                    aria-label="Copy email subject marker"
+                    title="Copy email subject marker"
+                >
+                    <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                </button>
+            </span>
+            <span class="engagement-email-marker-help">Keep this marker in an email subject to route the message to this Engagement’s Chron log.</span>
+            <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
         </div>
 
         <?php if (!empty($engagement['event_description'])): ?>
@@ -293,6 +312,54 @@ $presentation_stmt->close();
                 <?php endif; ?>
                 <?php if ($presentation['expected_attendance'] !== null): ?>
                 <div>Expected attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
+                <?php endif; ?>
+                <?php
+                $presentation_has_qr = !empty($presentation['has_speaker_notes_qr'])
+                    || !empty($presentation['has_speaker_website_qr'])
+                    || !empty($presentation['has_speaker_donation_qr']);
+                ?>
+                <?php if (!empty($presentation['has_slide_deck']) || $presentation_has_qr): ?>
+                    <div class="presentation-view-assets">
+                        <?php if (!empty($presentation['has_slide_deck'])): ?>
+                            <?php $slide_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slides'; ?>
+                            <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>"
+                               target="_blank"
+                               rel="noopener"
+                               class="presentation-view-pdf">
+                                View PDF slide deck<?php if (!empty($presentation['slide_deck_filename'])): ?>:
+                                    <?php echo htmlspecialchars((string) $presentation['slide_deck_filename'], ENT_QUOTES, 'UTF-8'); ?>
+                                <?php endif; ?>
+                            </a>
+                        <?php endif; ?>
+                        <?php if ($presentation_has_qr): ?>
+                            <div class="presentation-view-qr-grid">
+                                <?php
+                                $view_qr_codes = [
+                                    ['has_speaker_notes_qr', 'notes_qr', 'Speaker Notes'],
+                                    ['has_speaker_website_qr', 'website_qr', 'Speaker Website'],
+                                    ['has_speaker_donation_qr', 'donation_qr', 'Speaker Donations'],
+                                ];
+                                ?>
+                                <?php foreach ($view_qr_codes as [$has_key, $query_type, $label]): ?>
+                                    <?php if (!empty($presentation[$has_key])): ?>
+                                        <?php $qr_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=' . $query_type; ?>
+                                        <div class="presentation-qr-display">
+                                            <div class="presentation-view-asset-label"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <button type="button"
+                                                    class="presentation-view-qr-button"
+                                                    data-copy-qr-url="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                                    aria-label="Copy <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR code">
+                                                <img src="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"
+                                                     alt="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR code">
+                                                <span>Click to copy</span>
+                                            </button>
+                                            <span class="presentation-qr-status" data-copy-status role="status" aria-live="polite"></span>
+                                        </div>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 <?php endif; ?>
             </div>
             <?php endforeach; ?>

@@ -452,6 +452,7 @@ function safeFollowUpTaskReturnUrl($value, $fallback = 'tasks.php')
         'view_engagement.php',
         'view_organization.php',
         'view_contact.php',
+        'calendar_subscription.php',
     ];
     if (!in_array($path, $allowed_pages, true)) {
         return $fallback;

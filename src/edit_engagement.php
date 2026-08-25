@@ -322,12 +322,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $engagement_input['caller_name'] = $caller_name;
         $new_chron_entry = trim((string) ($_POST['new_chron_entry'] ?? ''));
 
+        $presentation_files = is_array($_FILES['presentations'] ?? null)
+            ? $_FILES['presentations']
+            : [];
+        $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
         $presentations = normalizeEngagementPresentations(
             $_POST['presentations'] ?? null,
             $event_start_date,
             $event_end_date,
             $DEFAULT_SPEAKER,
-            true
+            true,
+            array_fill_keys(array_keys($presentation_asset_uploads), true)
+        );
+        $presentations = attachPresentationAssetChanges(
+            $presentations,
+            $_POST['presentations'] ?? null,
+            $presentation_files
         );
         requirePresentationForConfirmedEngagement(
             $confirmation_status,
@@ -568,7 +578,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 }
 
 // Get presentations for this engagement
-$presentations_query = "SELECT * FROM presentations
+$presentations_query = "SELECT id, engagement_id, topic_title, presentation_date,
+                               presentation_time, speaker_name, expected_attendance,
+                               slide_deck_pdf IS NOT NULL AS has_slide_deck,
+                               slide_deck_filename, slide_deck_size, slide_deck_updated_at,
+                               speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
+                               speaker_notes_qr_updated_at,
+                               speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
+                               speaker_website_qr_updated_at,
+                               speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr,
+                               speaker_donation_qr_updated_at
+                        FROM presentations
                         WHERE engagement_id = ? AND is_archived = 0
                         ORDER BY presentation_date, presentation_time, id";
 $stmt = $conn->prepare($presentations_query);
@@ -675,7 +695,7 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
@@ -739,7 +759,7 @@ try {
 
         <?php
         $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
-            ? $_POST['presentations']
+            ? mergeStoredPresentationAssetMetadata($_POST['presentations'], $presentations)
             : $presentations;
         include 'templates/presentation_form.php';
         ?>
@@ -839,7 +859,7 @@ try {
             </div>
         </div>
 
-        <div class="address-section">
+        <div class="address-section is-saved-address-section">
             <h3>Event Location</h3>
             <div class="address-fields">
                 <div class="form-field">

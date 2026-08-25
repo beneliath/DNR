@@ -270,17 +270,15 @@ if (isset($_SESSION['success_message'])) {
                 <div>
                     <input type="text" name="physical_city" placeholder="City" required value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
                 </div>
-                <div>
-                    <input type="text" name="physical_state" placeholder="State/Province" required value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>">
+                <div data-address-region-control data-address-region-for="physical" data-region-required="true">
+                    <input type="text" name="physical_state" placeholder="State/Province" required value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
                     <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
-                <div class="address-full-width">
-                    <select name="physical_country" required>
-                        <option value="">Select Country</option>
-                        <option value="USA" <?php echo (isset($_POST['physical_country']) && $_POST['physical_country'] === 'USA') ? 'selected' : ''; ?>>United States</option>
-                        <option value="CAN" <?php echo (isset($_POST['physical_country']) && $_POST['physical_country'] === 'CAN') ? 'selected' : ''; ?>>Canada</option>
+                <div>
+                    <select name="physical_country" required data-address-country="physical">
+                        <?php echo addressCountrySelectOptions($_POST['physical_country'] ?? 'US'); ?>
                     </select>
                 </div>
             </div>
@@ -298,17 +296,15 @@ if (isset($_SESSION['success_message'])) {
                 <div>
                     <input type="text" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
                 </div>
-                <div>
-                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>">
+                <div data-address-region-control data-address-region-for="mailing" data-region-required="true">
+                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
                     <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
-                <div class="address-full-width">
-                    <select name="mailing_country">
-                        <option value="">Select Country</option>
-                        <option value="USA" <?php echo (isset($_POST['mailing_country']) && $_POST['mailing_country'] === 'USA') ? 'selected' : ''; ?>>United States</option>
-                        <option value="CAN" <?php echo (isset($_POST['mailing_country']) && $_POST['mailing_country'] === 'CAN') ? 'selected' : ''; ?>>Canada</option>
+                <div>
+                    <select name="mailing_country" data-address-country="mailing">
+                        <?php echo addressCountrySelectOptions($_POST['mailing_country'] ?? 'US'); ?>
                     </select>
                 </div>
             </div>
@@ -444,6 +440,11 @@ if (isset($_SESSION['success_message'])) {
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
 ); ?></script>
 <?php endif; ?>
+
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(
+    addressRegionClientData(),
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
+); ?></script>
 
 <?php include 'templates/footer.php'; ?>
 </body>

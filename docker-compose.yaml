@@ -30,7 +30,7 @@ services:
     restart: unless-stopped
     read_only: true
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=64m
+      - /tmp:rw,noexec,nosuid,size=160m
       - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
       - /var/lock/apache2:rw,noexec,nosuid,size=1m
       - /var/run/apache2:rw,noexec,nosuid,size=1m
@@ -149,6 +149,7 @@ services:
 
   db:
     image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    command: ["--max-allowed-packet=128M"]
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true

@@ -15,6 +15,7 @@ $login = file_get_contents($root . '/src/login.php');
 $compose = file_get_contents($root . '/docker-compose.yaml');
 $restore_command = file_get_contents($root . '/scripts/restore_database.php');
 $readme = file_get_contents($root . '/README.md');
+$styles = file_get_contents($root . '/src/assets/css/pages/database_maintenance.css');
 
 expectDatabaseBackupFeature(
     str_contains($page, 'requireAdmin();')
@@ -70,6 +71,10 @@ expectDatabaseBackupFeature(
         && str_contains($compose, 'DNR_PRIVILEGE_SCRIPT: /opt/dnr/bin/configure_database_privileges')
         && !str_contains($compose, 'docker-entrypoint-initdb.d/00-init.sql'),
     'fresh databases should run the same ordered migrations and grants as upgrades.'
+);
+expectDatabaseBackupFeature(
+    preg_match('/\.database-maintenance-card\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1,
+    'database-maintenance cards should reveal the shared page background instead of a legacy black fill.'
 );
 
 echo "Database backup feature tests passed.\n";

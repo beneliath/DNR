@@ -1,0 +1,18 @@
+ALTER TABLE presentations
+    ADD COLUMN slide_deck_pdf LONGBLOB NULL AFTER expected_attendance,
+    ADD COLUMN slide_deck_filename VARCHAR(255) NULL AFTER slide_deck_pdf,
+    ADD COLUMN slide_deck_size INT UNSIGNED NULL AFTER slide_deck_filename,
+    ADD COLUMN slide_deck_sha256 BINARY(32) NULL AFTER slide_deck_size,
+    ADD COLUMN slide_deck_updated_at DATETIME(6) NULL AFTER slide_deck_sha256,
+    ADD COLUMN speaker_notes_qr_image MEDIUMBLOB NULL AFTER slide_deck_updated_at,
+    ADD COLUMN speaker_notes_qr_mime VARCHAR(32) NULL AFTER speaker_notes_qr_image,
+    ADD COLUMN speaker_notes_qr_sha256 BINARY(32) NULL AFTER speaker_notes_qr_mime,
+    ADD COLUMN speaker_notes_qr_updated_at DATETIME(6) NULL AFTER speaker_notes_qr_sha256,
+    ADD COLUMN speaker_website_qr_image MEDIUMBLOB NULL AFTER speaker_notes_qr_updated_at,
+    ADD COLUMN speaker_website_qr_mime VARCHAR(32) NULL AFTER speaker_website_qr_image,
+    ADD COLUMN speaker_website_qr_sha256 BINARY(32) NULL AFTER speaker_website_qr_mime,
+    ADD COLUMN speaker_website_qr_updated_at DATETIME(6) NULL AFTER speaker_website_qr_sha256,
+    ADD COLUMN speaker_donation_qr_image MEDIUMBLOB NULL AFTER speaker_website_qr_updated_at,
+    ADD COLUMN speaker_donation_qr_mime VARCHAR(32) NULL AFTER speaker_donation_qr_image,
+    ADD COLUMN speaker_donation_qr_sha256 BINARY(32) NULL AFTER speaker_donation_qr_mime,
+    ADD COLUMN speaker_donation_qr_updated_at DATETIME(6) NULL AFTER speaker_donation_qr_sha256;

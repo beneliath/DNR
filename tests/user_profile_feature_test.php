@@ -144,6 +144,7 @@ expectUserProfile(
 );
 
 $styles = $read('src/assets/css/modern.css');
+$account_security_page = $read('src/two_factor_settings.php');
 expectUserProfile(
     str_contains($styles, '.sidebar-account-link')
         && str_contains($styles, '.profile-picture-preview')
@@ -151,6 +152,12 @@ expectUserProfile(
         && str_contains($styles, '.profile-save-actions')
         && preg_match('/\.profile-actions\s*\{[^}]*justify-content:\s*space-between;/s', $styles) === 1,
     'the clickable sidebar account and responsive profile form should use shared application styling.'
+);
+expectUserProfile(
+    str_contains($account_security_page, '<main class="container security-container">')
+        && preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $styles) === 1
+        && preg_match('/\.security-card,[^{]*\{[^}]*background:\s*var\(--surface\)\s*!important;/s', $styles) === 1,
+    'Account Security should use a transparent page root while preserving intentional security-card surfaces.'
 );
 
 echo "User profile feature tests passed.\n";
