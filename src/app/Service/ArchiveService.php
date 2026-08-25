@@ -79,10 +79,11 @@ final class ArchiveService
                 );
             } elseif (!$isArchived) {
                 $childTable = $entity === 'contact' ? 'contacts' : 'engagements';
+                $organizationJoin = $entity === 'contact' ? 'LEFT JOIN' : 'INNER JOIN';
                 $lockStatement = $connection->prepare(
                     "SELECT child.is_deleted, o.is_deleted AS organization_is_deleted
                      FROM {$childTable} child
-                     INNER JOIN organizations o ON o.id = child.organization_id
+                     {$organizationJoin} organizations o ON o.id = child.organization_id
                      WHERE child.id = ? FOR UPDATE"
                 );
             } else {

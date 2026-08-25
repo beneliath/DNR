@@ -23,8 +23,9 @@ $contact_stmt = $conn->prepare(
             c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
             c.contact_photo_updated_at, c.created_at, c.updated_at, c.is_deleted
      FROM contacts c
-     INNER JOIN organizations o ON o.id = c.organization_id
-     WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0"
+     LEFT JOIN organizations o ON o.id = c.organization_id
+     WHERE c.id = ? AND c.is_deleted = 0
+       AND (o.id IS NULL OR o.is_deleted = 0)"
 );
 if (!$contact_stmt) {
     abortApplication(503, 'The contact is temporarily unavailable.', ['error' => $conn->error]);
@@ -86,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     requireValidCsrfToken();
 
     $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
-    $organization_id = (int) $normalized_contact['data']['organization_id'];
+    $organization_id = $normalized_contact['data']['organization_id'];
     $contact_first_name = (string) $normalized_contact['data']['contact_first_name'];
     $contact_last_name = (string) $normalized_contact['data']['contact_last_name'];
     $contact_role = (string) $normalized_contact['data']['contact_role'];
@@ -159,8 +160,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                     'This contact changed after you opened it. Reload the page before saving so newer changes are not overwritten.'
                 );
             }
-            requireActiveOrganization($conn, $organization_id, true);
-            if ((int) $locked_contact['organization_id'] !== $organization_id) {
+            if ($organization_id !== null) {
+                requireActiveOrganization($conn, $organization_id, true);
+            }
+            $locked_organization_id = $locked_contact['organization_id'] !== null
+                ? (int) $locked_contact['organization_id']
+                : null;
+            if ($locked_organization_id !== $organization_id) {
                 $touch_engagements_stmt = $conn->prepare(
                     'UPDATE engagements engagement
                      INNER JOIN engagement_contacts event_contact
@@ -428,8 +434,9 @@ try {
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
-            <label for="organization_id" class="required">Organization</label>
-            <select name="organization_id" id="organization_id" required>
+            <label for="organization_id">Organization</label>
+            <select name="organization_id" id="organization_id">
+                <option value="" <?php echo $contact['organization_id'] === null ? 'selected' : ''; ?>>No organization</option>
                 <?php while ($organization = $organizations_result->fetch_assoc()): ?>
                     <option value="<?php echo (int) $organization['id']; ?>" <?php echo (int) $contact['organization_id'] === (int) $organization['id'] ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($organization['organization_name'], ENT_QUOTES, 'UTF-8'); ?>

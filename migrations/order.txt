@@ -38,3 +38,4 @@
 20260823_add_task_notifications.sql
 20260823_add_engagement_aware_inbound_mail.sql
 20260824_optimize_task_reminders.sql
+20260825_allow_contacts_without_organizations.sql

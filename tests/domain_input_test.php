@@ -81,6 +81,20 @@ expectDomainInput(
     'contact role and telephone normalization should be shared across create and edit flows.'
 );
 
+$contactWithoutOrganization = ContactInput::normalize([
+    'organization_id' => '',
+    'contact_first_name' => 'Avery',
+    'contact_last_name' => 'Morgan',
+    'contact_role' => 'admin',
+    'contact_email' => 'avery@example.org',
+    'contact_email_confirm' => 'avery@example.org',
+]);
+expectDomainInput(
+    $contactWithoutOrganization['errors'] === []
+        && $contactWithoutOrganization['data']['organization_id'] === null,
+    'contacts should allow a blank organization and persist it as NULL.'
+);
+
 $engagement = EngagementInput::normalize([
     'organization_id' => 10,
     'event_title' => 'Conference',
