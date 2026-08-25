@@ -1,0 +1,11 @@
+services:
+  mail-dispatch:
+    secrets:
+      - dnr_smtp_ca
+    environment:
+      DNR_SMTP_CA_FILE: /run/secrets/dnr_smtp_ca
+      DNR_SMTP_PEER_NAME: ${DNR_SMTP_PEER_NAME:-}
+
+secrets:
+  dnr_smtp_ca:
+    file: ${DNR_SMTP_CA_SECRET_FILE:-./secrets/smtp_ca.pem}

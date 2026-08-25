@@ -14,6 +14,7 @@ $root = dirname(__DIR__);
 $compose = file_get_contents($root . '/docker-compose.yaml');
 $mail = file_get_contents($root . '/docker-compose.mail.yaml');
 $smtp = file_get_contents($root . '/docker-compose.smtp.yaml');
+$smtpCa = file_get_contents($root . '/docker-compose.smtp-ca.yaml');
 $grants = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $emailHelpers = file_get_contents($root . '/src/email_helpers.php');
 $notificationHelpers = file_get_contents($root . '/src/notification_helpers.php');
@@ -43,6 +44,14 @@ expectServiceDatabaseIsolation(
         && str_contains($mail, 'MYSQL_USER: dnrmailingest')
         && str_contains($smtp, 'MYSQL_USER: dnrmaildispatch'),
     'the web, geocoder, inbound-mail, and outbound-mail services should use distinct identities.'
+);
+expectServiceDatabaseIsolation(
+    str_contains($smtpCa, 'DNR_SMTP_CA_FILE: /run/secrets/dnr_smtp_ca')
+        && str_contains($smtpCa, 'DNR_SMTP_PEER_NAME: ${DNR_SMTP_PEER_NAME:-}')
+        && substr_count($smtpCa, '- dnr_smtp_ca') === 1
+        && !str_contains($smtpWebSection, 'dnr_smtp_ca')
+        && !str_contains($baseWebSection, 'DNR_SMTP_CA_FILE'),
+    'only the outbound-mail worker should receive an optional custom SMTP trust anchor.'
 );
 expectServiceDatabaseIsolation(
     str_contains($grants, '.engagement_map_geocodes')

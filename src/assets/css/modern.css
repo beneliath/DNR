@@ -167,8 +167,7 @@ html.dark-mode body {
   line-height: 1.5;
 }
 
-.auth-brand-copy strong,
-.mobile-brand-name {
+.auth-brand-copy strong {
   font-family: "Rubik", Inter, ui-sans-serif, sans-serif;
   font-weight: 700;
 }
@@ -3718,21 +3717,20 @@ html.dark-mode .login-secondary-link a {
 
   .mobile-brand {
     display: flex;
+    flex: 1;
     min-width: 0;
     align-items: center;
-    gap: 8px;
+    justify-content: center;
+    margin: 0 12px;
     color: var(--text);
-    font-size: 1rem !important;
-    font-weight: 800;
-    letter-spacing: -0.02em;
     text-decoration: none;
   }
 
-  .mobile-brand-name {
-    overflow: hidden;
-    font-size: 1.875rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .mobile-brand-logo {
+    display: block;
+    width: min(100%, 180px);
+    height: auto;
+    max-height: 38px;
   }
 
   .app-sidebar {
