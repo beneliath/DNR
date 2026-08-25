@@ -13,7 +13,10 @@
             flex-direction: column;
             justify-content: flex-start;
             gap: 15px;
-            margin: 15px 0 20px;
+            margin: 0 0 20px;
+        }
+        .audit-retention-note {
+            margin-bottom: 24px;
         }
         .page-heading {
             justify-content: space-between;

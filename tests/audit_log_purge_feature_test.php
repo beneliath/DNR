@@ -21,12 +21,14 @@ expectAuditLogPurgeFeature(
 );
 expectAuditLogPurgeFeature(
     str_contains($page, 'class="list-search-form audit-filter-form"')
+        && str_contains($page, 'class="page-intro audit-retention-note"')
         && str_contains($page, 'class="audit-search-field"')
         && str_contains($styles, 'align-self: flex-end;')
         && str_contains($styles, 'flex: 0 0 auto !important;')
         && str_contains($styles, 'height: 44px !important;')
-        && str_contains($styles, 'margin: 0 !important;'),
-    'audit controls must size to their content, align vertically, and anchor category selectors at the bottom right.'
+        && str_contains($styles, 'margin: 0 !important;')
+        && preg_match('/\\.audit-retention-note\\s*\\{[^}]*margin-bottom:\\s*24px;/s', $styles) === 1,
+    'audit controls must size to their content, preserve spacing below the retention note, and anchor category selectors at the bottom right.'
 );
 expectAuditLogPurgeFeature(
     str_contains($purge, '"${1:-}" != "PURGE"')

@@ -121,6 +121,12 @@
     border-top: 1px solid var(--border-color, #ddd);
 }
 
+.inbound-message-detail > .inbound-routing-summary,
+.inbound-message-detail > .inbound-review-form,
+.inbound-message-detail > .inbound-message-body {
+    background: transparent !important;
+}
+
 .inbound-engagement-route {
     display: flex;
     align-items: center;

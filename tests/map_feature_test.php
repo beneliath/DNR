@@ -78,6 +78,14 @@ expectMapFeature(
     'the Map page root should reveal the shared app background instead of the legacy black container surface.'
 );
 expectMapFeature(
+    preg_match('/\\.map-shell\\s*\\{[^}]*background:\\s*transparent\\s*!important;[^}]*background-color:\\s*transparent\\s*!important;/s', $map_styles) === 1
+        && preg_match('/\\.map-toolbar\\s*\\{[^}]*background:\\s*transparent\\s*!important;/s', $map_styles) === 1
+        && preg_match('/\\.map-toolbar > div\\s*\\{[^}]*background:\\s*transparent\\s*!important;[^}]*background-color:\\s*transparent\\s*!important;/s', $map_styles) === 1
+        && preg_match('/\\.map-legend\\s*\\{[^}]*background:\\s*transparent\\s*!important;/s', $map_styles) === 1
+        && preg_match('/\\.map-attribution-note,[^{]*\\{[^}]*background:\\s*transparent\\s*!important;/s', $map_styles) === 1,
+    'the map header, legend, and attribution footer should reveal the surrounding page background.'
+);
+expectMapFeature(
     str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-control-container,')
         && str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-top,')
         && str_contains($map_styles, 'html.dark-mode .map-shell .map-zoom-controls {')

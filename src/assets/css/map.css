@@ -100,7 +100,8 @@
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  background: var(--surface);
+  background: transparent !important;
+  background-color: transparent !important;
   box-shadow: var(--shadow-sm);
 }
 
@@ -110,6 +111,12 @@
   justify-content: space-between;
   gap: 20px;
   padding: 18px 20px 12px;
+  background: transparent !important;
+}
+
+.map-toolbar > div {
+  background: transparent !important;
+  background-color: transparent !important;
 }
 
 .map-toolbar h2 {
@@ -129,6 +136,7 @@
   flex-wrap: wrap;
   gap: 10px 18px;
   padding: 0 20px 14px;
+  background: transparent !important;
   color: var(--text-muted);
   font-size: 0.8rem;
 }
@@ -260,6 +268,7 @@
 .map-unavailable {
   margin: 0;
   padding: 11px 20px;
+  background: transparent !important;
   color: var(--text-subtle);
   font-size: 0.74rem;
 }
