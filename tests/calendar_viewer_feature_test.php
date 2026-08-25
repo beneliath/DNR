@@ -20,9 +20,12 @@ expectCalendarViewerFeature(
         && str_contains($page, "include 'templates/calendar_month_viewer.php'")
         && str_contains($viewer, 'id="event-calendar"')
         && str_contains($viewer, 'class="calendar-month-table"')
+        && str_contains($viewer, 'class="calendar-daily-agenda"')
         && str_contains($viewer, 'calendarViewerPageUrl($calendar_month[\'previous_month\'], $calendar_view_mode)')
+        && str_contains($viewer, '$calendar_day[\'previous_day\']')
+        && str_contains($viewer, '$calendar_day[\'next_day\']')
         && str_contains($viewer, 'view_engagement.php?id='),
-    'the Calendar page should render a graphical month grid with month navigation and event links.'
+    'the Calendar page should render a desktop month grid and a mobile day agenda with event links.'
 );
 
 expectCalendarViewerFeature(
@@ -40,6 +43,7 @@ expectCalendarViewerFeature(
 
 expectCalendarViewerFeature(
     str_contains($helpers, 'function calendarMonthContext(')
+        && str_contains($helpers, 'function calendarDayContext(')
         && str_contains($helpers, 'function fetchCalendarViewerEngagements(')
         && str_contains($helpers, 'function fetchCalendarViewerTasks(')
         && str_contains($helpers, 'function calendarEventsByDate(')
@@ -61,12 +65,15 @@ expectCalendarViewerFeature(
         && str_contains($styles, '.calendar-task-mine')
         && str_contains($styles, '.calendar-task-other')
         && str_contains($styles, '.calendar-event-canceled')
+        && str_contains($styles, '.calendar-daily-agenda')
+        && str_contains($styles, '.calendar-agenda-navigation')
+        && preg_match('/@media \(max-width: 860px\)[\s\S]*?\.calendar-month-scroll\s*\{[^}]*display:\s*none !important;/s', $styles) === 1
         && str_contains($styles, '--calendar-today: #be185d;')
         && str_contains($styles, '--calendar-today: #f9a8d4;')
         && preg_match('/\.calendar-month-table td\.is-today\s*\{[^}]*background:\s*var\(--calendar-today-bg\) !important;[^}]*box-shadow:\s*inset 0 0 0 3px var\(--calendar-today\);/s', $styles) === 1
         && preg_match('/\.calendar-today-label\s*\{[^}]*background:\s*var\(--calendar-today\);[^}]*color:\s*var\(--surface\);/s', $styles) === 1
-        && str_contains($styles, '@media (max-width: 760px)'),
-    'the month view should use transparent navigation surfaces, responsive color-coded items, and a distinct current-day treatment.'
+        && str_contains($styles, '@media (max-width: 860px)'),
+    'the calendar should use responsive color-coded items, a mobile daily agenda, and a distinct current-day treatment.'
 );
 
 echo "Calendar viewer feature tests passed.\n";

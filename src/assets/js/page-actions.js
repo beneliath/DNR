@@ -481,14 +481,6 @@
         });
     }
 
-    function initializeConfirmations() {
-        document.querySelectorAll('[data-confirm]').forEach(function (button) {
-            button.addEventListener('click', function (event) {
-                if (!window.confirm(button.dataset.confirm)) event.preventDefault();
-            });
-        });
-    }
-
     function initializeSelectAll(selectAllId, inputName) {
         const selectAll = document.getElementById(selectAllId);
         const checkboxes = Array.from(document.querySelectorAll('input[name="' + inputName + '"]'));
@@ -717,7 +709,6 @@
         updatePrimaryOrganizationContactRequirements();
         initializeAdditionalOrganizationContacts();
         initializeEngagementForm();
-        initializeConfirmations();
         initializeSelectAll('select-all-chron-entries', 'chron_entry_ids[]');
         initializeSelectAll('select-all-presentations', 'presentation_ids[]');
         initializeSensitiveUserActions();

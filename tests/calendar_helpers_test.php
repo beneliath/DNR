@@ -157,14 +157,27 @@ expectCalendar(
         && normalizeCalendarViewerMode('invalid') === 'events',
     'Calendar content selectors should use a fixed allowlist and default to events.'
 );
+$day_context = calendarDayContext('2026-08-25', '2026-08-25');
+expectCalendar(
+    $day_context['label'] === 'Tuesday, August 25, 2026'
+        && $day_context['previous_day'] === '2026-08-24'
+        && $day_context['next_day'] === '2026-08-26'
+        && $day_context['is_today'] === true
+        && calendarDayContext('invalid', '2026-08-25')['date'] === '2026-08-25',
+    'The daily agenda should move one date at a time and safely fall back to today.'
+);
 expectCalendar(
     calendarViewerPageUrl('2026-09', 'everything')
         === 'calendar_subscription.php?month=2026-09&show=everything#event-calendar'
         && calendarViewerPageUrl(null, 'my_tasks')
         === 'calendar_subscription.php?show=my_tasks#event-calendar'
+        && calendarViewerPageUrl(null, 'everything', '2026-08-26')
+        === 'calendar_subscription.php?show=everything&day=2026-08-26#event-calendar'
+        && calendarViewerPageUrl(null, 'events', 'invalid')
+        === 'calendar_subscription.php#event-calendar'
         && calendarViewerPageUrl('invalid', 'events')
         === 'calendar_subscription.php#event-calendar',
-    'Month navigation should preserve the selected calendar content without accepting invalid values.'
+    'Calendar navigation should preserve selected content without accepting invalid month or day values.'
 );
 
 $viewer_events = [

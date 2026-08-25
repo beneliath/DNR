@@ -94,7 +94,40 @@ function normalizeCalendarViewerMode($mode) {
     return array_key_exists($mode, calendarViewerModes()) ? $mode : 'events';
 }
 
-function calendarViewerPageUrl($month = null, $mode = 'events') {
+/**
+ * @return array{
+ *   date: string,
+ *   label: string,
+ *   previous_day: string,
+ *   next_day: string,
+ *   today: string,
+ *   is_today: bool
+ * }
+ */
+function calendarDayContext($requested_day = null, $today_date = null) {
+    $today_value = trim((string) $today_date);
+    $today = DateTimeImmutable::createFromFormat('!Y-m-d', $today_value);
+    if (!$today instanceof DateTimeImmutable || $today->format('Y-m-d') !== $today_value) {
+        $today = new DateTimeImmutable('today');
+    }
+
+    $day_value = trim((string) $requested_day);
+    $day = DateTimeImmutable::createFromFormat('!Y-m-d', $day_value);
+    if (!$day instanceof DateTimeImmutable || $day->format('Y-m-d') !== $day_value) {
+        $day = $today;
+    }
+
+    return [
+        'date' => $day->format('Y-m-d'),
+        'label' => $day->format('l, F j, Y'),
+        'previous_day' => $day->modify('-1 day')->format('Y-m-d'),
+        'next_day' => $day->modify('+1 day')->format('Y-m-d'),
+        'today' => $today->format('Y-m-d'),
+        'is_today' => $day->format('Y-m-d') === $today->format('Y-m-d'),
+    ];
+}
+
+function calendarViewerPageUrl($month = null, $mode = 'events', $day = null) {
     $parameters = [];
     $month = trim((string) $month);
     if (preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1) {
@@ -103,6 +136,11 @@ function calendarViewerPageUrl($month = null, $mode = 'events') {
     $mode = normalizeCalendarViewerMode($mode);
     if ($mode !== 'events') {
         $parameters['show'] = $mode;
+    }
+    $day = trim((string) $day);
+    $parsed_day = DateTimeImmutable::createFromFormat('!Y-m-d', $day);
+    if ($parsed_day instanceof DateTimeImmutable && $parsed_day->format('Y-m-d') === $day) {
+        $parameters['day'] = $day;
     }
 
     return 'calendar_subscription.php'

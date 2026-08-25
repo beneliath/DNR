@@ -28,7 +28,9 @@
 (function () {
     document.addEventListener('submit', function (event) {
         const form = event.target.closest('form[data-confirm]');
-        if (form && !window.confirm(String(form.dataset.confirm || 'Continue?'))) {
+        const submitter = event.submitter?.closest('[data-confirm]');
+        const confirmationTarget = submitter || form;
+        if (confirmationTarget && !window.confirm(String(confirmationTarget.dataset.confirm || 'Continue?'))) {
             event.preventDefault();
         }
     });
