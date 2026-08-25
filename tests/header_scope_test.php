@@ -46,8 +46,12 @@ expectHeaderScope(
     'The desktop sidebar should render one logo element with versioned light- and dark-theme sources.'
 );
 expectHeaderScope(
-    str_contains($header_markup, 'class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
-    'The complete MOED brand should render in the mobile application bar.'
+    substr_count($header_markup, 'class="mobile-brand-logo"') === 1
+        && str_contains($header_markup, 'src="assets/dnr-logo.svg?rev=mobile-crop-1&amp;v=test"')
+        && str_contains($header_markup, 'data-light-src="assets/dnr-logo.svg?rev=mobile-crop-1&amp;v=test"')
+        && str_contains($header_markup, 'data-dark-src="assets/dnr-logo-dark.svg?rev=mobile-dark-1&amp;v=test"')
+        && str_contains($header_markup, 'width="180" height="31"'),
+    'The current theme-aware DNR logo should render in the mobile application bar.'
 );
 expectHeaderScope(!str_contains($header_markup, 'app-brand-copy'), 'The desktop sidebar should not retain the previous text-only brand.');
 expectHeaderScope(
@@ -163,10 +167,10 @@ expectHeaderScope(
 expectHeaderScope(
     preg_match('/\.app-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*100%;[^}]*height:\s*auto;/s', $modern_styles) === 1
         && preg_match('/\.auth-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*320px;[^}]*height:\s*auto;/s', $modern_styles) === 1
+        && preg_match('/\.mobile-brand-logo\s*\{[^}]*width:\s*min\(100%, 180px\);[^}]*height:\s*auto;[^}]*max-height:\s*38px;/s', $modern_styles) === 1
         && preg_match('/html\.dark-mode \.app-sidebar nav\s*\{[^}]*background:\s*transparent\s*!important;/s', $modern_styles) === 1
-        && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1
-        && preg_match('/\.mobile-brand-name\s*\{[^}]*font-size:\s*1\.875rem;/s', $modern_styles) === 1,
-    'The sidebar logo should scale to its container and adapt cleanly to dark mode.'
+        && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-size:\s*2\.53125rem;/s', $modern_styles) === 1,
+    'The desktop, mobile, and authentication logos should scale cleanly and adapt to dark mode.'
 );
 expectHeaderScope(
     str_contains($modern_styles, '--admin-nav: #9a3f00;')
@@ -183,8 +187,8 @@ expectHeaderScope(
 expectHeaderScope(
     str_contains($modern_styles, 'url("../fonts/rubik-latin-700.woff2")')
         && str_contains($modern_styles, 'url("../fonts/rubik-hebrew-700.woff2")')
-        && preg_match('/\.auth-brand-copy strong,\s*\.mobile-brand-name\s*\{[^}]*font-family:\s*"Rubik"[^;}]*;[^}]*font-weight:\s*700;/s', $modern_styles) === 1,
-    'The Latin and Hebrew text branding should use the self-hosted Rubik font at weight 700.'
+        && preg_match('/\.auth-brand-copy strong\s*\{[^}]*font-family:\s*"Rubik"[^;}]*;[^}]*font-weight:\s*700;/s', $modern_styles) === 1,
+    'Authentication text branding should use the self-hosted Rubik font at weight 700.'
 );
 
 echo "Header scope tests passed.\n";

@@ -22,6 +22,14 @@ expectBuildProvenanceScript(
     'the wrapper should derive and validate immutable commit metadata.'
 );
 expectBuildProvenanceScript(
+    str_contains($script, 'development-smtp-ca|dev-smtp-ca)')
+        && str_contains($script, 'development-mail-smtp-ca|dev-mail-smtp-ca)')
+        && str_contains($script, 'production-smtp-ca|prod-smtp-ca)')
+        && str_contains($script, 'production-mail-smtp-ca|prod-mail-smtp-ca)')
+        && substr_count($script, '-f docker-compose.smtp-ca.yaml') === 4,
+    'custom-CA SMTP modes should add the trust-anchor overlay without changing ordinary SMTP modes.'
+);
+expectBuildProvenanceScript(
     str_contains($script, 'status --porcelain --untracked-files=normal')
         && str_contains($script, 'Refusing to build with uncommitted files')
         && str_contains($script, 'DNR_BUILD_COMMIT and DNR_BUILD_TIMESTAMP must be supplied together.'),
@@ -37,7 +45,7 @@ expectBuildProvenanceScript(
 expectBuildProvenanceScript(
     str_contains($script, 'development-mail|dev-mail)')
         && str_contains($script, 'production-mail|prod-mail)')
-        && substr_count($script, '-f docker-compose.mail.yaml') === 4
+        && substr_count($script, '-f docker-compose.mail.yaml') === 6
         && str_contains($readme, 'compose_with_provenance.sh production-mail'),
     'mail-enabled modes should add the inbound worker Compose overlay.'
 );
@@ -46,7 +54,7 @@ expectBuildProvenanceScript(
         && str_contains($script, 'production-smtp|prod-smtp)')
         && str_contains($script, 'development-mail-smtp|dev-mail-smtp)')
         && str_contains($script, 'production-mail-smtp|prod-mail-smtp)')
-        && substr_count($script, '-f docker-compose.smtp.yaml') === 4,
+        && substr_count($script, '-f docker-compose.smtp.yaml') === 8,
     'SMTP modes should add durable outbound delivery alone or alongside inbound mail.'
 );
 expectBuildProvenanceScript(

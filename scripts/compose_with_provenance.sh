@@ -9,11 +9,15 @@ Usage:
   scripts/compose_with_provenance.sh development [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh development-mail [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh development-smtp [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh development-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh development-mail-smtp [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh development-mail-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-mail [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-smtp [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-mail-smtp [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-mail-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh --print-metadata
 
 With no Compose arguments, development and production run: up -d --build
@@ -106,12 +110,29 @@ case "$mode" in
             -f docker-compose.smtp.yaml \
             "$@"
         ;;
+    development-smtp-ca|dev-smtp-ca)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            -f docker-compose.smtp.yaml \
+            -f docker-compose.smtp-ca.yaml \
+            "$@"
+        ;;
     development-mail-smtp|dev-mail-smtp)
         exec docker compose \
             -f docker-compose.yaml \
             -f docker-compose.dev.yaml \
             -f docker-compose.mail.yaml \
             -f docker-compose.smtp.yaml \
+            "$@"
+        ;;
+    development-mail-smtp-ca|dev-mail-smtp-ca)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            -f docker-compose.mail.yaml \
+            -f docker-compose.smtp.yaml \
+            -f docker-compose.smtp-ca.yaml \
             "$@"
         ;;
     production|prod)
@@ -129,11 +150,26 @@ case "$mode" in
             -f docker-compose.smtp.yaml \
             "$@"
         ;;
+    production-smtp-ca|prod-smtp-ca)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.smtp.yaml \
+            -f docker-compose.smtp-ca.yaml \
+            "$@"
+        ;;
     production-mail-smtp|prod-mail-smtp)
         exec docker compose \
             -f docker-compose.yaml \
             -f docker-compose.mail.yaml \
             -f docker-compose.smtp.yaml \
+            "$@"
+        ;;
+    production-mail-smtp-ca|prod-mail-smtp-ca)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.mail.yaml \
+            -f docker-compose.smtp.yaml \
+            -f docker-compose.smtp-ca.yaml \
             "$@"
         ;;
     *)

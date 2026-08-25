@@ -179,6 +179,31 @@ Create `secrets/smtp_password`, configure the sender and relay in `.env`, and us
 `production-smtp` or `development-smtp`. Combine inbound and outbound mail with
 `production-mail-smtp` or `development-mail-smtp`.
 
+SMTP relays with a private or self-signed certificate can be pinned without disabling TLS
+verification. Put only the relay's public certificate in `secrets/smtp_ca.pem`, set
+`DNR_SMTP_PEER_NAME` to a name or IP address covered by that certificate, and use the matching
+`*-smtp-ca` Compose mode. The trust anchor is mounted only into `mail-dispatch`; the web and other
+workers cannot read it. If the relay rotates its certificate, delivery fails closed until the
+pinned certificate is replaced.
+
+For Proton Mail Bridge on Docker Desktop, use the Bridge-generated username and password—not the
+Proton account password—and keep Bridge bound to the host loopback interface. Bridge's exported
+public TLS certificate covers `127.0.0.1`, while the container reaches the same-Mac listener through
+`host.docker.internal`, so a typical combined configuration is:
+
+```dotenv
+DNR_SMTP_HOST=host.docker.internal
+DNR_SMTP_PORT=1025
+DNR_SMTP_ENCRYPTION=starttls
+DNR_SMTP_PEER_NAME=127.0.0.1
+DNR_SMTP_CA_SECRET_FILE=./secrets/smtp_ca.pem
+```
+
+Export Bridge's TLS files under **Settings → Advanced → Export TLS certificates**, retain the
+private key outside DNR, and copy only the public certificate to `secrets/smtp_ca.pem`. Start both
+mail workers with `./scripts/compose_with_provenance.sh production-mail-smtp-ca`. Do not publish the
+Bridge IMAP or SMTP ports to the LAN or Internet.
+
 ### Inbound email to Chron
 
 DNR can poll a dedicated IMAP mailbox and turn messages copied to it into Contact, Organization, and
@@ -270,6 +295,7 @@ Configure these values as needed:
 - `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for outbound email.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
 - `DNR_SMTP_USERNAME` and `DNR_SMTP_PASSWORD_SECRET_FILE`: optional SMTP authentication and the host path mounted by the SMTP overlay. The dedicated `mail-dispatch` service receives it as `DNR_SMTP_PASSWORD_FILE`; the web service remains backend-only and cannot reach the relay.
+- `DNR_SMTP_CA_SECRET_FILE` and `DNR_SMTP_PEER_NAME`: optional pinned SMTP trust anchor and expected certificate name. The certificate is mounted as `DNR_SMTP_CA_FILE` only by an `*-smtp-ca` mode; peer and chain verification remain enabled.
 - `DNR_EMAIL_OUTBOX_BATCH_SIZE` and `DNR_EMAIL_OUTBOX_IDLE_SECONDS`: bounded outbound messages per worker cycle and idle polling interval. Defaults are 20 messages and 15 seconds.
 - `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
@@ -317,12 +343,20 @@ accurately identify uncommitted source files.
 # Production with encrypted queued SMTP delivery
 ./scripts/compose_with_provenance.sh production-smtp
 
+# Production SMTP with a private pinned trust anchor
+./scripts/compose_with_provenance.sh production-smtp-ca
+
 # Production with both inbound IMAP and outbound SMTP workers
 ./scripts/compose_with_provenance.sh production-mail-smtp
 
+# Production IMAP and SMTP with a private pinned SMTP trust anchor
+./scripts/compose_with_provenance.sh production-mail-smtp-ca
+
 # Local equivalents
 ./scripts/compose_with_provenance.sh development-smtp
+./scripts/compose_with_provenance.sh development-smtp-ca
 ./scripts/compose_with_provenance.sh development-mail-smtp
+./scripts/compose_with_provenance.sh development-mail-smtp-ca
 
 # Forward a specific Compose command or service selection
 ./scripts/compose_with_provenance.sh development up -d --build web ingress

@@ -59,7 +59,7 @@ if (!empty($_SESSION['user_id'])) {
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
         <a href="dashboard.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
-            <span class="mobile-brand-name">MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></span>
+            <img class="mobile-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=mobile-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="180" height="31">
         </a>
         <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to Dark Theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>

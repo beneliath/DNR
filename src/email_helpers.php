@@ -505,6 +505,35 @@ function smtpCommand($stream, $command, array $accepted_codes)
     return smtpReadResponse($stream, $accepted_codes);
 }
 
+function smtpTlsStreamContext($host)
+{
+    $host = trim((string) $host);
+    $peer_name = trim((string) (getenv('DNR_SMTP_PEER_NAME') ?: $host));
+    if (
+        $peer_name === ''
+        || strlen($peer_name) > 253
+        || preg_match('/\A[A-Za-z0-9._:-]+\z/', $peer_name) !== 1
+    ) {
+        throw new RuntimeException('The configured SMTP TLS peer name is invalid.');
+    }
+
+    $ssl_options = [
+        'verify_peer' => true,
+        'verify_peer_name' => true,
+        'allow_self_signed' => false,
+        'peer_name' => $peer_name,
+    ];
+    $ca_file = trim((string) (getenv('DNR_SMTP_CA_FILE') ?: ''));
+    if ($ca_file !== '') {
+        if (!is_file($ca_file) || !is_readable($ca_file)) {
+            throw new RuntimeException('The configured SMTP CA file is unavailable.');
+        }
+        $ssl_options['cafile'] = $ca_file;
+    }
+
+    return stream_context_create(['ssl' => $ssl_options]);
+}
+
 function sendSmtpMessage($recipient, $subject, $body)
 {
     $recipient = normalizeAccountEmail($recipient);
@@ -521,7 +550,15 @@ function sendSmtpMessage($recipient, $subject, $body)
     }
 
     $remote = ($encryption === 'tls' ? 'tls://' : 'tcp://') . $host . ':' . $port;
-    $stream = @stream_socket_client($remote, $error_number, $error_message, 10, STREAM_CLIENT_CONNECT);
+    $stream_context = smtpTlsStreamContext($host);
+    $stream = @stream_socket_client(
+        $remote,
+        $error_number,
+        $error_message,
+        10,
+        STREAM_CLIENT_CONNECT,
+        $stream_context
+    );
     if (!is_resource($stream)) {
         throw new RuntimeException('Unable to connect to the configured SMTP server.');
     }
