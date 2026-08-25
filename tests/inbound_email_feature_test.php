@@ -92,6 +92,10 @@ expectInboundFeature(
     'the Inbound Mail page and its layout sections should not paint a legacy black surface over the app background.'
 );
 expectInboundFeature(
+    preg_match('/\\.inbound-message-detail > \\.inbound-routing-summary,[^{]*\\.inbound-message-detail > \\.inbound-message-body\\s*\\{[^}]*background:\\s*transparent\\s*!important;/s', $reviewStyles) === 1,
+    'nested Routing, review, and Plain-Text Content sections should inherit the surrounding Inbound Mail detail pane background.'
+);
+expectInboundFeature(
     str_contains($grants, '.inbound_email_messages')
         && str_contains($grants, '.engagement_chron_entries')
         && str_contains($grants, '.engagements')

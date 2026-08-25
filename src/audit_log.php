@@ -220,7 +220,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <a href="users.php" class="button-add">Back to Users</a>
         </div>
     </div>
-    <p class="page-intro">Audit records are append-only to the web application. Retention or emergency purge operations require the database-container maintenance command.</p>
+    <p class="page-intro audit-retention-note">Audit records are append-only to the web application. Retention or emergency purge operations require the database-container maintenance command.</p>
 
     <div class="audit-controls">
         <form method="get" action="audit_log.php" class="list-search-form audit-filter-form" role="search">
