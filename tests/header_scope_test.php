@@ -157,8 +157,8 @@ expectHeaderScope(
     'Footer links should not be underlined.'
 );
 expectHeaderScope(
-    preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{[^}]*display:\s*flex\s*!important;/s', $modern_styles) === 1,
-    'The responsive mobile application bar should override the desktop hidden state.'
+    preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{(?=[^}]*display:\s*flex\s*!important)(?=[^}]*background:\s*var\(--surface\)\s*!important)(?![^}]*backdrop-filter)[^}]*\}/s', $modern_styles) === 1,
+    'The responsive mobile application bar should override the desktop hidden state with a solid theme surface.'
 );
 expectHeaderScope(
     preg_match('/html\.dark-mode body div[^\{]*:not\(\.app-sidebar\)\s*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
