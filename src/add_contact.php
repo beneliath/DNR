@@ -39,7 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     } else {
         $conn->begin_transaction();
         try {
-            requireActiveOrganization($conn, $organization_id, true);
+            if ($organization_id !== null) {
+                requireActiveOrganization($conn, $organization_id, true);
+            }
             if ($contact_photo !== null) {
                 $stmt = $conn->prepare(
                     "INSERT INTO contacts (
@@ -160,9 +162,9 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
             <div class="form-group form-flex-one">
-                <label for="organization_id" class="required">Organization</label>
-                <select name="organization_id" id="organization_id" required>
-                    <option value="" disabled selected>Select an organization</option>
+                <label for="organization_id">Organization</label>
+                <select name="organization_id" id="organization_id">
+                    <option value="" <?php echo empty($_POST['organization_id']) ? 'selected' : ''; ?>>No organization</option>
                     <?php
                     $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
                     while ($row = $orgs->fetch_assoc()) {

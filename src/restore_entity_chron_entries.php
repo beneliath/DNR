@@ -23,8 +23,9 @@ if ($entity_type === 'contact') {
     $entity_stmt = $conn->prepare(
         'SELECT c.id, c.contact_first_name, c.contact_last_name
          FROM contacts c
-         INNER JOIN organizations o ON o.id = c.organization_id
-         WHERE c.id = ? AND c.is_deleted = 0 AND o.is_deleted = 0'
+         LEFT JOIN organizations o ON o.id = c.organization_id
+         WHERE c.id = ? AND c.is_deleted = 0
+           AND (o.id IS NULL OR o.is_deleted = 0)'
     );
     $entity_label = 'Contact';
     $list_url = 'contacts.php';

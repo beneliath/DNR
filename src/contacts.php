@@ -94,7 +94,7 @@ if ($fulltext_query === '') {
 
 if ($sort_column === 'organization') {
     $order_direction = $organization_sort === 'desc' ? 'DESC' : 'ASC';
-    $order_clause = "o.organization_name {$order_direction},
+    $order_clause = "COALESCE(o.organization_name, '') {$order_direction},
                      c.contact_last_name {$order_direction},
                      c.contact_first_name {$order_direction},
                      c.id {$order_direction}";
@@ -134,7 +134,7 @@ $cursor_values = [];
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
     if ($sort_column === 'organization') {
-        $cursor_filter = " AND (o.organization_name, c.contact_last_name,
+        $cursor_filter = " AND (COALESCE(o.organization_name, ''), c.contact_last_name,
             c.contact_first_name, c.id) {$comparison} (?, ?, ?, ?)";
         $cursor_types = 'sssi';
         $cursor_values = [
@@ -172,7 +172,7 @@ $contact_query = "SELECT
                     o.organization_name,
                     o.is_deleted AS organization_is_archived
                   FROM contacts c
-                  INNER JOIN organizations o ON c.organization_id = o.id
+                  LEFT JOIN organizations o ON c.organization_id = o.id
                   WHERE c.is_deleted = {$archive_value}{$active_organization_filter}{$search_filter}{$cursor_filter}
                   ORDER BY {$order_clause}
                   LIMIT ?";
@@ -347,9 +347,11 @@ function contactsPageUrl(
                                 </span>
                             </td>
                             <td>
-                                <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
-                                    <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                </a>
+                                <?php if ($contact['organization_id'] !== null): ?>
+                                    <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
+                                        <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </a>
+                                <?php endif; ?>
                                 <?php if (!empty($contact['organization_is_archived'])): ?>
                                     <span class="archive-status">Archived</span>
                                 <?php endif; ?>

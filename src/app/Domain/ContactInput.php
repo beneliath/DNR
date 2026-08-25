@@ -8,12 +8,20 @@ final class ContactInput
 {
     /**
      * @param array<string, mixed> $input
-     * @return array{data: array<string, int|string>, errors: list<string>}
+     * @return array{data: array<string, int|string|null>, errors: list<string>}
      */
     public static function normalize(array $input): array
     {
+        $organization_id_value = is_scalar($input['organization_id'] ?? null)
+            ? trim((string) $input['organization_id'])
+            : '';
+        $organization_id_is_invalid = $organization_id_value !== ''
+            && (!ctype_digit($organization_id_value) || (int) $organization_id_value < 1);
+        $organization_id = !$organization_id_is_invalid && $organization_id_value !== ''
+            ? (int) $organization_id_value
+            : null;
         $data = [
-            'organization_id' => max(0, (int) ($input['organization_id'] ?? 0)),
+            'organization_id' => $organization_id > 0 ? $organization_id : null,
             'contact_first_name' => InputText::value($input, 'contact_first_name'),
             'contact_last_name' => InputText::value($input, 'contact_last_name'),
             'contact_role' => strtolower(InputText::value($input, 'contact_role')),
@@ -25,8 +33,8 @@ final class ContactInput
             'contact_phone_country_code' => InputText::value($input, 'contact_phone_country_code') ?: '+1',
         ];
         $errors = [];
-        if ($data['organization_id'] < 1) {
-            $errors[] = 'Organization is required.';
+        if ($organization_id_is_invalid) {
+            $errors[] = 'Select a valid organization.';
         }
         if ($data['contact_first_name'] === '') {
             $errors[] = 'First name is required.';
