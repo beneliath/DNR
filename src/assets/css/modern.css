@@ -1004,6 +1004,12 @@ span.contact-list-avatar {
   margin: 0;
 }
 
+.calendar-agenda-heading-copy,
+.calendar-agenda-navigation,
+.calendar-daily-agenda {
+  display: none;
+}
+
 .calendar-month-summary {
   margin: 5px 0 0;
   color: var(--text-muted);
@@ -1461,14 +1467,103 @@ html body #open-calendar-app.is-opening:focus-visible {
   transform: none;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 860px) {
   .calendar-viewer-heading {
     align-items: stretch;
     flex-direction: column;
   }
 
-  .calendar-month-navigation {
+  .calendar-month-heading-copy,
+  .calendar-desktop-navigation,
+  .calendar-month-scroll {
+    display: none !important;
+  }
+
+  .calendar-agenda-heading-copy {
+    display: block;
+  }
+
+  .calendar-agenda-navigation {
+    display: grid;
     width: 100%;
+    grid-template-columns: 48px minmax(0, 1fr) 48px;
+    align-items: center;
+    gap: 8px;
+    background: transparent !important;
+  }
+
+  html body .calendar-agenda-navigation .calendar-month-control {
+    width: 100%;
+  }
+
+  html body .calendar-agenda-arrow {
+    padding-inline: 0;
+    font-size: 1.12rem;
+  }
+
+  .calendar-daily-agenda {
+    display: grid;
+    gap: 18px;
+  }
+
+  .calendar-agenda-group {
+    display: grid;
+    gap: 9px;
+  }
+
+  .calendar-agenda-group h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: .92rem;
+  }
+
+  .calendar-agenda-group h3 span {
+    min-width: 1.55rem;
+    padding: 2px 6px;
+    border-radius: 999px;
+    background: var(--surface-hover);
+    color: var(--text-muted);
+    font-size: .7rem;
+    text-align: center;
+  }
+
+  .calendar-agenda-items {
+    display: grid;
+    gap: 9px;
+  }
+
+  html body .calendar-daily-agenda .calendar-item {
+    padding: 12px 13px 12px 15px;
+    border-left-width: 4px;
+    border-radius: var(--radius-sm);
+  }
+
+  .calendar-daily-agenda .calendar-item-title,
+  .calendar-daily-agenda .calendar-item-meta {
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+  }
+
+  .calendar-daily-agenda .calendar-item-title {
+    font-size: .9rem;
+  }
+
+  .calendar-daily-agenda .calendar-item-meta {
+    margin-top: 4px;
+    font-size: .76rem;
+  }
+
+  .calendar-agenda-empty {
+    margin: 0;
+    padding: 24px 18px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+    color: var(--text-muted);
+    text-align: center;
   }
 
   .calendar-view-filter {
@@ -1479,17 +1574,6 @@ html body #open-calendar-app.is-opening:focus-visible {
     flex: 1 1 0;
   }
 
-  .calendar-month-table {
-    min-width: 760px;
-  }
-
-  .calendar-weekday-full {
-    display: none;
-  }
-
-  .calendar-weekday-short {
-    display: inline;
-  }
 }
 
 .engagement-form > label,

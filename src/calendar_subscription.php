@@ -86,11 +86,18 @@ unset(
     $_SESSION['_calendar_subscription_message'],
     $_SESSION['_calendar_subscription_error']
 );
+$business_date = applicationBusinessDate();
+$requested_day = is_string($_GET['day'] ?? null) ? $_GET['day'] : null;
+$has_requested_day = is_string($requested_day) && validIsoDate($requested_day);
+$calendar_day = calendarDayContext($has_requested_day ? $requested_day : null, $business_date);
 $requested_month = is_string($_GET['month'] ?? null) ? $_GET['month'] : null;
+$effective_month = $has_requested_day
+    ? substr($calendar_day['date'], 0, 7)
+    : $requested_month;
 $calendar_view_mode = normalizeCalendarViewerMode(
     is_string($_GET['show'] ?? null) ? $_GET['show'] : null
 );
-$calendar_month = calendarMonthContext($requested_month, applicationBusinessDate());
+$calendar_month = calendarMonthContext($effective_month, $business_date);
 $calendar_show_events = in_array($calendar_view_mode, ['events', 'everything'], true);
 $calendar_show_tasks = in_array($calendar_view_mode, ['my_tasks', 'all_tasks', 'everything'], true);
 $calendar_viewer_error = '';
