@@ -135,6 +135,10 @@
             || (attendanceInput && attendanceInput.value)
             || (speakerInput && speakerInput.value.trim()
                 && speakerInput.value.trim() !== defaultSpeaker())
+            || Array.from(entry.querySelectorAll('input[type="file"]')).some(function (input) {
+                return input.files && input.files.length > 0;
+            })
+            || entry.querySelector('input[name*="[remove_"]:checked')
         );
     }
 
@@ -254,6 +258,188 @@
                 updateConfirmedAvailability();
             });
         }
+        entry.querySelectorAll("[data-qr-uploader]").forEach(wireQrUploader);
+        entry.querySelectorAll("[data-presentation-file-name]").forEach(function (input) {
+            input.addEventListener("change", function () {
+                var display = input.parentElement.querySelector("[data-selected-file-name]");
+                if (display) {
+                    display.textContent = input.files && input.files[0]
+                        ? input.files[0].name
+                        : "No PDF selected";
+                }
+                updateConfirmedAvailability();
+            });
+        });
+    }
+
+    function qrUploadMarkup(id, key, label, description) {
+        var inputId = key + "_" + id;
+        var statusId = inputId + "_status";
+        return [
+            '<div class="presentation-qr-card" data-qr-uploader>',
+            '  <div class="presentation-asset-label">' + label + '</div>',
+            '  <p>' + description + '</p>',
+            '  <button type="button" class="presentation-qr-preview" data-qr-preview-button data-copy-qr-url="" aria-label="Copy ' + label + '" hidden>',
+            '    <img data-qr-preview alt="' + label + '">',
+            '    <span>Click QR code to copy</span>',
+            '  </button>',
+            '  <div class="presentation-qr-actions">',
+            '    <button type="button" class="presentation-paste-button" data-paste-qr aria-describedby="' + statusId + '">Paste QR code</button>',
+            '    <label class="presentation-file-picker" for="' + inputId + '">Choose image</label>',
+            '  </div>',
+            '  <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="image/jpeg,image/png,image/webp" data-qr-file>',
+            '  <span class="presentation-qr-status" id="' + statusId + '" data-copy-status role="status" aria-live="polite"></span>',
+            '</div>'
+        ].join("");
+    }
+
+    function presentationAssetsMarkup(id) {
+        return [
+            '<div class="presentation-assets">',
+            '  <div class="presentation-assets-heading">',
+            '    <h3>Presentation Files &amp; QR Codes</h3>',
+            '    <p>PDF slide decks may be up to 100 MB. QR codes may be pasted or selected as JPEG, PNG, or WebP images.</p>',
+            '  </div>',
+            '  <div class="presentation-slide-deck-card">',
+            '    <div class="presentation-asset-label">PDF Slide Deck</div>',
+            '    <label class="presentation-file-picker" for="slide_deck_' + id + '">Choose PDF</label>',
+            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][slide_deck]" id="slide_deck_' + id + '" accept="application/pdf,.pdf" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
+            '  </div>',
+            '  <div class="presentation-qr-grid">',
+                 qrUploadMarkup(id, "speaker_notes_qr", "Speaker Notes QR Code", "Links attendees to the speaker notes download."),
+                 qrUploadMarkup(id, "speaker_website_qr", "Speaker Website QR Code", "Links attendees to the speaker website."),
+                 qrUploadMarkup(id, "speaker_donation_qr", "Speaker Donation QR Code", "Links attendees to the speaker donation page."),
+            '  </div>',
+            '</div>'
+        ].join("");
+    }
+
+    function qrImageFromClipboardItems(items) {
+        for (var item of Array.from(items || [])) {
+            if (item.kind === "file" && /^image\/(jpeg|png|webp)$/.test(item.type)) {
+                return item.getAsFile();
+            }
+        }
+        return null;
+    }
+
+    function showQrStatus(uploader, message, isError) {
+        var status = uploader.querySelector("[data-copy-status]");
+        if (!status) return;
+        status.textContent = message;
+        status.classList.toggle("is-error", Boolean(isError));
+    }
+
+    function setQrImage(uploader, file) {
+        if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
+            showQrStatus(uploader, "Paste or choose a JPEG, PNG, or WebP image.", true);
+            return false;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            showQrStatus(uploader, "QR code images must be 5 MB or smaller.", true);
+            return false;
+        }
+
+        var input = uploader.querySelector("[data-qr-file]");
+        var preview = uploader.querySelector("[data-qr-preview]");
+        var previewButton = uploader.querySelector("[data-qr-preview-button]");
+        if (!input || !preview || !previewButton || typeof DataTransfer === "undefined") {
+            showQrStatus(uploader, "This browser cannot attach the pasted image. Choose the image file instead.", true);
+            return false;
+        }
+        var transfer = new DataTransfer();
+        transfer.items.add(new File([file], file.name || "pasted-qr.png", { type: file.type }));
+        input.files = transfer.files;
+
+        var removal = uploader.querySelector('input[name*="[remove_"]');
+        if (removal) removal.checked = false;
+        showQrStatus(uploader, "Preparing QR code preview…", false);
+        var reader = new FileReader();
+        reader.addEventListener("load", function () {
+            if (typeof reader.result !== "string" || !reader.result.startsWith("data:image/")) {
+                showQrStatus(uploader, "The QR code preview could not be prepared.", true);
+                return;
+            }
+            preview.src = reader.result;
+            previewButton.dataset.copyQrUrl = reader.result;
+            previewButton.hidden = false;
+            showQrStatus(uploader, "QR code ready to save. Click the preview to copy it.", false);
+        });
+        reader.addEventListener("error", function () {
+            showQrStatus(uploader, "The QR code preview could not be prepared.", true);
+        });
+        reader.readAsDataURL(input.files[0]);
+        updateConfirmedAvailability();
+        return true;
+    }
+
+    function wireQrUploader(uploader) {
+        var input = uploader.querySelector("[data-qr-file]");
+        var pasteButton = uploader.querySelector("[data-paste-qr]");
+        if (input) {
+            input.addEventListener("change", function () {
+                if (input.files && input.files[0]) setQrImage(uploader, input.files[0]);
+            });
+        }
+
+        function pasteImageFromEvent(event) {
+            if (document.activeElement !== pasteButton) return;
+            var image = qrImageFromClipboardItems(event.clipboardData && event.clipboardData.items);
+            if (!image) {
+                showQrStatus(uploader, "The clipboard does not contain a supported image.", true);
+                return;
+            }
+            event.preventDefault();
+            setQrImage(uploader, image);
+        }
+
+        async function clipboardReadIsGranted() {
+            if (!navigator.permissions || typeof navigator.permissions.query !== "function") return false;
+            try {
+                var permission = await navigator.permissions.query({ name: "clipboard-read" });
+                return permission.state === "granted";
+            } catch (error) {
+                return false;
+            }
+        }
+
+        if (pasteButton) {
+            document.addEventListener("paste", pasteImageFromEvent);
+            pasteButton.addEventListener("click", async function () {
+                pasteButton.focus();
+                if (!navigator.clipboard
+                    || typeof navigator.clipboard.read !== "function"
+                    || !(await clipboardReadIsGranted())
+                ) {
+                    showQrStatus(uploader, "Press Ctrl/⌘ + V to paste the QR code.", false);
+                    return;
+                }
+                try {
+                    var clipboardItems = await navigator.clipboard.read();
+                    for (var clipboardItem of clipboardItems) {
+                        var imageType = clipboardItem.types.find(function (type) {
+                            return /^image\/(jpeg|png|webp)$/.test(type);
+                        });
+                        if (imageType) {
+                            var imageBlob = await clipboardItem.getType(imageType);
+                            setQrImage(
+                                uploader,
+                                new File([imageBlob], "pasted-qr." + imageType.split("/")[1], { type: imageType })
+                            );
+                            return;
+                        }
+                    }
+                    showQrStatus(uploader, "The clipboard does not contain a supported image.", true);
+                } catch (error) {
+                    showQrStatus(
+                        uploader,
+                        "Clipboard access was unavailable. Press Ctrl/⌘ + V while this button is focused.",
+                        true
+                    );
+                }
+            });
+        }
     }
 
     function presentationMarkup(id) {
@@ -290,6 +476,7 @@
             '      <input type="number" name="presentations[' + id + '][expected_attendance]" id="expected_attendance_' + id + '" min="1" step="1">',
             '    </div>',
             '  </div>',
+                 presentationAssetsMarkup(id),
             '  <div class="remove-btn-container">',
             '    <button type="button" data-remove-presentation="' + id + '" class="remove-presentation-btn">Remove</button>',
             '  </div>',

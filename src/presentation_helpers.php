@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/presentation_asset_helpers.php';
+
 function presentationScalarValue(array $presentation, $key)
 {
     $value = $presentation[$key] ?? '';
@@ -108,7 +110,8 @@ function normalizeEngagementPresentations(
     $event_start_date,
     $event_end_date,
     $default_speaker,
-    $allow_existing_ids = false
+    $allow_existing_ids = false,
+    array $asset_form_keys = []
 ) {
     if ($submitted_presentations === null) {
         return [];
@@ -118,7 +121,7 @@ function normalizeEngagementPresentations(
     }
 
     $normalized_presentations = [];
-    foreach ($submitted_presentations as $submitted_presentation) {
+    foreach ($submitted_presentations as $presentation_form_key => $submitted_presentation) {
         if (!is_array($submitted_presentation)) {
             throw new InvalidArgumentException('Invalid presentation submission.');
         }
@@ -134,7 +137,8 @@ function normalizeEngagementPresentations(
             || $presentation_date !== ''
             || $presentation_time !== ''
             || $expected_attendance_raw !== ''
-            || $has_nondefault_speaker;
+            || $has_nondefault_speaker
+            || isset($asset_form_keys[(string) $presentation_form_key]);
 
         if (!$has_presentation_content) {
             continue;
@@ -188,6 +192,7 @@ function normalizeEngagementPresentations(
         }
 
         $normalized_presentations[] = [
+            '_form_key' => (string) $presentation_form_key,
             'id' => $presentation_id,
             'topic_title' => $topic_title,
             'presentation_date' => $presentation_date,
@@ -341,34 +346,48 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
     foreach ($presentations as $presentation) {
         if ($presentation['id'] !== null) {
             $presentation_id = (int) $presentation['id'];
-            if (engagementPresentationMatches($current_presentations[$presentation_id], $presentation)) {
-                continue;
-            }
-            if (!$update_stmt) {
-                $update_stmt = $conn->prepare(
-                    'UPDATE presentations
-                     SET topic_title = ?, presentation_date = ?, presentation_time = ?,
-                         speaker_name = ?, expected_attendance = ?
-                     WHERE id = ? AND engagement_id = ?'
-                );
-                if (!$update_stmt) {
-                    throw new RuntimeException('Unable to prepare presentation updates.');
-                }
-            }
-            $update_stmt->bind_param(
-                'ssssiii',
-                $presentation['topic_title'],
-                $presentation['presentation_date'],
-                $presentation['presentation_time'],
-                $presentation['speaker_name'],
-                $presentation['expected_attendance'],
-                $presentation_id,
-                $engagement_id
+            $core_changed = !engagementPresentationMatches(
+                $current_presentations[$presentation_id],
+                $presentation
             );
-            if (!$update_stmt->execute() || $update_stmt->affected_rows !== 1) {
-                throw new RuntimeException('Unable to update a presentation.');
+            $asset_changes = is_array($presentation['asset_changes'] ?? null)
+                ? $presentation['asset_changes']
+                : [];
+            if ($core_changed) {
+                if (!$update_stmt) {
+                    $update_stmt = $conn->prepare(
+                        'UPDATE presentations
+                         SET topic_title = ?, presentation_date = ?, presentation_time = ?,
+                             speaker_name = ?, expected_attendance = ?
+                         WHERE id = ? AND engagement_id = ?'
+                    );
+                    if (!$update_stmt) {
+                        throw new RuntimeException('Unable to prepare presentation updates.');
+                    }
+                }
+                $update_stmt->bind_param(
+                    'ssssiii',
+                    $presentation['topic_title'],
+                    $presentation['presentation_date'],
+                    $presentation['presentation_time'],
+                    $presentation['speaker_name'],
+                    $presentation['expected_attendance'],
+                    $presentation_id,
+                    $engagement_id
+                );
+                if (!$update_stmt->execute() || $update_stmt->affected_rows !== 1) {
+                    throw new RuntimeException('Unable to update a presentation.');
+                }
+                $presentations_changed = true;
             }
-            $presentations_changed = true;
+            if (applyPresentationAssetChanges(
+                $conn,
+                (int) $engagement_id,
+                $presentation_id,
+                $asset_changes
+            )) {
+                $presentations_changed = true;
+            }
             continue;
         }
 
@@ -395,6 +414,13 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
         if (!$insert_stmt->execute()) {
             throw new RuntimeException('Unable to add a presentation.');
         }
+        $presentation_id = (int) $conn->insert_id;
+        applyPresentationAssetChanges(
+            $conn,
+            (int) $engagement_id,
+            $presentation_id,
+            is_array($presentation['asset_changes'] ?? null) ? $presentation['asset_changes'] : []
+        );
         $presentations_changed = true;
     }
 

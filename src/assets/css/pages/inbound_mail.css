@@ -1,3 +1,10 @@
+.inbound-mail-page,
+.inbound-mail-page > .inbound-status-filters,
+.inbound-mail-page > .inbound-mail-layout,
+.inbound-mail-page > .inbound-mail-layout > section {
+    background: transparent !important;
+}
+
 .inbound-status-filters,
 .inbound-review-actions,
 .inbound-detail-heading,

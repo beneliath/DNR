@@ -87,6 +87,40 @@ expectUserManual(
 );
 
 expectUserManual(
+    str_contains($manual, 'PDF Slide Deck')
+        && str_contains($manual, 'PDF up to 100 MB')
+        && str_contains($manual, 'Speaker QR Codes')
+        && str_contains($manual, 'speaker’s notes download, website, and donation page')
+        && str_contains($manual, 'Paste QR code')
+        && str_contains($manual, 'Save Changes')
+        && str_contains($manual, 'copy icon immediately beside the marker'),
+    'the manual should explain presentation assets, nearby saving, and subject-marker copying.'
+);
+
+expectUserManual(
+    str_contains($manual, 'Enter Organization Addresses')
+        && str_contains($manual, 'countries worldwide')
+        && str_contains($manual, 'United States of America')
+        && str_contains($manual, 'Canadian address')
+        && str_contains($manual, 'State/Province')
+        && str_contains($manual, 'A contact can be saved without an organization.'),
+    'the manual should explain international organization addresses and optional contact organizations.'
+);
+
+expectUserManual(
+    str_contains($manual, 'Monthly Calendar')
+        && str_contains($manual, '<strong>Previous</strong>')
+        && str_contains($manual, '<strong>Next</strong>')
+        && str_contains($manual, '<strong>Events</strong>')
+        && str_contains($manual, '<strong>My Tasks</strong>')
+        && str_contains($manual, '<strong>All Tasks</strong>')
+        && str_contains($manual, '<strong>Everything</strong>')
+        && str_contains($manual, 'Your task accent color.')
+        && str_contains($manual, 'rose-colored cell'),
+    'the manual should explain month navigation, calendar content filters, color coding, and the current-day highlight.'
+);
+
+expectUserManual(
     str_contains($header, "'help' => ['help.php']")
         && str_contains($header, 'href="help.php"')
         && str_contains($header, '<span>User Manual</span>'),

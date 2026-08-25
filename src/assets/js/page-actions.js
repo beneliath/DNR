@@ -526,30 +526,146 @@
         });
     }
 
+    function copyWithFallback(value) {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.readOnly = true;
+        textarea.className = 'clipboard-fallback';
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand('copy');
+        textarea.remove();
+        if (!copied) throw new Error('The browser declined the copy command.');
+    }
+
+    async function copyText(value) {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(value);
+            return;
+        }
+        copyWithFallback(value);
+    }
+
+    function initializeCopyTextButtons() {
+        document.querySelectorAll('[data-copy-text]').forEach(function (button) {
+            const status = document.getElementById(button.dataset.copyStatus || '');
+            const idleLabel = button.getAttribute('aria-label') || 'Copy';
+            const idleTitle = button.getAttribute('title') || idleLabel;
+            const idleTooltip = button.dataset.tooltip || idleTitle;
+            let feedbackTimer;
+
+            button.addEventListener('click', async function () {
+                window.clearTimeout(feedbackTimer);
+                button.classList.remove('is-copied', 'is-copy-failed');
+                try {
+                    await copyText(button.dataset.copyText || '');
+                    button.classList.add('is-copied');
+                    button.setAttribute('aria-label', 'Email subject marker copied');
+                    button.setAttribute('title', 'Copied');
+                    button.dataset.tooltip = 'Copied';
+                    if (status) status.textContent = 'Email subject marker copied to the clipboard.';
+                } catch (error) {
+                    button.classList.add('is-copy-failed');
+                    button.setAttribute('aria-label', 'Email subject marker could not be copied');
+                    button.setAttribute('title', 'Copy failed');
+                    button.dataset.tooltip = 'Copy failed';
+                    if (status) status.textContent = 'The email subject marker could not be copied.';
+                }
+
+                feedbackTimer = window.setTimeout(function () {
+                    button.classList.remove('is-copied', 'is-copy-failed');
+                    button.setAttribute('aria-label', idleLabel);
+                    button.setAttribute('title', idleTitle);
+                    button.dataset.tooltip = idleTooltip;
+                }, 2000);
+            });
+        });
+    }
+
+    async function qrImageAsPng(url) {
+        const response = await fetch(url, { credentials: 'same-origin' });
+        if (!response.ok) throw new Error('The QR code image could not be loaded.');
+        const source = await response.blob();
+        if (!source.type.startsWith('image/')) throw new Error('The QR code response is not an image.');
+        if (source.type === 'image/png') return source;
+        if (typeof createImageBitmap !== 'function') throw new Error('Image conversion is unavailable.');
+
+        const bitmap = await createImageBitmap(source);
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Image conversion is unavailable.');
+        context.drawImage(bitmap, 0, 0);
+        if (typeof bitmap.close === 'function') bitmap.close();
+        return await new Promise(function (resolve, reject) {
+            canvas.toBlob(function (blob) {
+                if (blob) resolve(blob);
+                else reject(new Error('The QR code could not be converted.'));
+            }, 'image/png');
+        });
+    }
+
+    function qrCopyStatus(button, message, failed) {
+        const container = button.closest('.presentation-qr-card, .presentation-qr-display');
+        const status = container ? container.querySelector('[data-copy-status]') : null;
+        if (status) {
+            status.textContent = message;
+            status.classList.toggle('is-error', Boolean(failed));
+        }
+        button.classList.toggle('is-copied', !failed);
+        button.classList.toggle('is-copy-failed', Boolean(failed));
+        window.setTimeout(function () {
+            button.classList.remove('is-copied', 'is-copy-failed');
+        }, 2200);
+    }
+
+    function openQrFallback(button, url) {
+        window.open(url, '_blank', 'noopener');
+        qrCopyStatus(button, 'QR code opened in a new tab.', false);
+    }
+
+    function initializeQrCopy() {
+        document.addEventListener('click', async function (event) {
+            const button = event.target.closest('[data-copy-qr-url]');
+            if (!button || button.hidden) return;
+            const url = button.dataset.copyQrUrl || '';
+            if (!url) return;
+
+            if (!navigator.clipboard
+                || typeof navigator.clipboard.write !== 'function'
+                || typeof ClipboardItem !== 'function'
+                || !window.isSecureContext
+            ) {
+                openQrFallback(button, url);
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const png = await qrImageAsPng(url);
+                await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+                qrCopyStatus(button, 'QR code copied to the clipboard.', false);
+            } catch (error) {
+                openQrFallback(button, url);
+            } finally {
+                button.disabled = false;
+            }
+        });
+    }
+
     function initializeEngagementCopy() {
         const data = document.getElementById('engagement-export-data');
         const status = document.getElementById('copy-status');
         if (!data || !status) return;
         let exports;
         try { exports = JSON.parse(data.textContent || '{}'); } catch (error) { return; }
-        function copyWithFallback(value) {
-            const textarea = document.createElement('textarea');
-            textarea.value = value;
-            textarea.readOnly = true;
-            textarea.className = 'clipboard-fallback';
-            document.body.appendChild(textarea);
-            textarea.select();
-            const copied = document.execCommand('copy');
-            textarea.remove();
-            if (!copied) throw new Error('The browser declined the copy command.');
-        }
         document.querySelectorAll('[data-copy-format]').forEach(function (button) {
             button.addEventListener('click', async function () {
                 const originalLabel = button.textContent;
                 try {
                     const value = exports[button.dataset.copyFormat] || '';
-                    if (navigator.clipboard && window.isSecureContext) await navigator.clipboard.writeText(value);
-                    else copyWithFallback(value);
+                    await copyText(value);
                     button.textContent = 'Copied!';
                     status.textContent = originalLabel + ' copied to the clipboard.';
                 } catch (error) {
@@ -605,6 +721,8 @@
         initializeSelectAll('select-all-chron-entries', 'chron_entry_ids[]');
         initializeSelectAll('select-all-presentations', 'presentation_ids[]');
         initializeSensitiveUserActions();
+        initializeCopyTextButtons();
+        initializeQrCopy();
         initializeEngagementCopy();
         initializeInvitationSubmission();
         const success = document.querySelector('.success');

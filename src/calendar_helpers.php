@@ -28,6 +28,244 @@ function calendarOperationalStatus(array $engagement) {
         : calendarLifecycleLabel($lifecycle);
 }
 
+/**
+ * @return array{
+ *   month: string,
+ *   label: string,
+ *   previous_month: string,
+ *   next_month: string,
+ *   month_start: string,
+ *   month_end: string,
+ *   grid_start: string,
+ *   grid_end: string,
+ *   today: string,
+ *   days: list<string>
+ * }
+ */
+function calendarMonthContext($requested_month = null, $today_date = null) {
+    $today_value = trim((string) $today_date);
+    $today = DateTimeImmutable::createFromFormat('!Y-m-d', $today_value);
+    if (!$today instanceof DateTimeImmutable || $today->format('Y-m-d') !== $today_value) {
+        $today = new DateTimeImmutable('today');
+    }
+
+    $month_value = trim((string) $requested_month);
+    $month_start = preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month_value) === 1
+        ? DateTimeImmutable::createFromFormat('!Y-m', $month_value)
+        : false;
+    if (!$month_start instanceof DateTimeImmutable || $month_start->format('Y-m') !== $month_value) {
+        $month_start = $today->modify('first day of this month');
+    }
+
+    $month_end = $month_start->modify('last day of this month');
+    $grid_start = $month_start->modify('-' . $month_start->format('w') . ' days');
+    $grid_end = $month_end->modify('+' . (6 - (int) $month_end->format('w')) . ' days');
+    $days = [];
+    for ($day = $grid_start; $day <= $grid_end; $day = $day->modify('+1 day')) {
+        $days[] = $day->format('Y-m-d');
+    }
+
+    return [
+        'month' => $month_start->format('Y-m'),
+        'label' => $month_start->format('F Y'),
+        'previous_month' => $month_start->modify('-1 month')->format('Y-m'),
+        'next_month' => $month_start->modify('+1 month')->format('Y-m'),
+        'month_start' => $month_start->format('Y-m-d'),
+        'month_end' => $month_end->format('Y-m-d'),
+        'grid_start' => $grid_start->format('Y-m-d'),
+        'grid_end' => $grid_end->format('Y-m-d'),
+        'today' => $today->format('Y-m-d'),
+        'days' => $days,
+    ];
+}
+
+/** @return array<string, string> */
+function calendarViewerModes() {
+    return [
+        'events' => 'Events',
+        'my_tasks' => 'My Tasks',
+        'all_tasks' => 'All Tasks',
+        'everything' => 'Everything',
+    ];
+}
+
+function normalizeCalendarViewerMode($mode) {
+    $mode = trim((string) $mode);
+    return array_key_exists($mode, calendarViewerModes()) ? $mode : 'events';
+}
+
+function calendarViewerPageUrl($month = null, $mode = 'events') {
+    $parameters = [];
+    $month = trim((string) $month);
+    if (preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1) {
+        $parameters['month'] = $month;
+    }
+    $mode = normalizeCalendarViewerMode($mode);
+    if ($mode !== 'events') {
+        $parameters['show'] = $mode;
+    }
+
+    return 'calendar_subscription.php'
+        . ($parameters === [] ? '' : '?' . http_build_query($parameters))
+        . '#event-calendar';
+}
+
+/** @return list<array<string, mixed>> */
+function fetchCalendarViewerEngagements(mysqli $conn, $window_start, $window_end) {
+    $stmt = $conn->prepare(
+        "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
+                e.confirmation_status, e.lifecycle_status,
+                o.organization_name
+         FROM engagements e
+         INNER JOIN organizations o ON o.id = e.organization_id
+         WHERE e.is_deleted = 0
+           AND COALESCE(e.event_end_date, e.event_start_date) >= ?
+           AND e.event_start_date <= ?
+         ORDER BY e.event_start_date, e.id"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the calendar month view.');
+    }
+    $stmt->bind_param('ss', $window_start, $window_end);
+    $stmt->execute();
+    $engagements = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $engagements;
+}
+
+/** @return list<array<string, mixed>> */
+function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $assigned_user_id = null) {
+    $assigned_user_id = $assigned_user_id === null ? null : (int) $assigned_user_id;
+    $assigned_filter = $assigned_user_id !== null ? ' AND t.assigned_to = ?' : '';
+    $stmt = $conn->prepare(
+        "SELECT t.id, t.title, t.due_date, t.status, t.priority, t.assigned_to,
+                assignee.username AS assignee_username
+         FROM follow_up_tasks t
+         LEFT JOIN users assignee ON assignee.id = t.assigned_to
+         WHERE t.due_date BETWEEN ? AND ?
+           AND t.status IN ('open', 'in_progress', 'waiting')"
+        . $assigned_filter .
+        " ORDER BY t.due_date,
+                   FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
+                   t.id"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare tasks for the calendar month view.');
+    }
+    if ($assigned_user_id !== null) {
+        $stmt->bind_param('ssi', $window_start, $window_end, $assigned_user_id);
+    } else {
+        $stmt->bind_param('ss', $window_start, $window_end);
+    }
+    $stmt->execute();
+    $tasks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $tasks;
+}
+
+/**
+ * @param list<array<string, mixed>> $engagements
+ * @return array<string, list<array<string, mixed>>>
+ */
+function calendarEventsByDate(array $engagements, $window_start, $window_end) {
+    $window_start_value = trim((string) $window_start);
+    $window_end_value = trim((string) $window_end);
+    $range_start = DateTimeImmutable::createFromFormat('!Y-m-d', $window_start_value);
+    $range_end = DateTimeImmutable::createFromFormat('!Y-m-d', $window_end_value);
+    if (!$range_start instanceof DateTimeImmutable
+        || !$range_end instanceof DateTimeImmutable
+        || $range_start->format('Y-m-d') !== $window_start_value
+        || $range_end->format('Y-m-d') !== $window_end_value
+        || $range_end < $range_start
+    ) {
+        throw new InvalidArgumentException('A valid calendar date window is required.');
+    }
+
+    $events_by_date = [];
+    foreach ($engagements as $engagement) {
+        $start_value = trim((string) ($engagement['event_start_date'] ?? ''));
+        $end_value = trim((string) ($engagement['event_end_date'] ?? '')) ?: $start_value;
+        $event_start = DateTimeImmutable::createFromFormat('!Y-m-d', $start_value);
+        $event_end = DateTimeImmutable::createFromFormat('!Y-m-d', $end_value);
+        if (!$event_start instanceof DateTimeImmutable
+            || !$event_end instanceof DateTimeImmutable
+            || $event_start->format('Y-m-d') !== $start_value
+            || $event_end->format('Y-m-d') !== $end_value
+        ) {
+            continue;
+        }
+        if ($event_end < $event_start) {
+            $event_end = $event_start;
+        }
+        $event_start = $event_start < $range_start ? $range_start : $event_start;
+        $event_end = $event_end > $range_end ? $range_end : $event_end;
+        if ($event_start > $event_end) {
+            continue;
+        }
+
+        for ($day = $event_start; $day <= $event_end; $day = $day->modify('+1 day')) {
+            $date = $day->format('Y-m-d');
+            $events_by_date[$date] ??= [];
+            $events_by_date[$date][] = $engagement;
+        }
+    }
+    return $events_by_date;
+}
+
+/**
+ * @param list<array<string, mixed>> $tasks
+ * @return array<string, list<array<string, mixed>>>
+ */
+function calendarTasksByDate(array $tasks, $window_start, $window_end) {
+    $window_start = trim((string) $window_start);
+    $window_end = trim((string) $window_end);
+    $tasks_by_date = [];
+    foreach ($tasks as $task) {
+        $due_date = trim((string) ($task['due_date'] ?? ''));
+        $due = DateTimeImmutable::createFromFormat('!Y-m-d', $due_date);
+        if (!$due instanceof DateTimeImmutable
+            || $due->format('Y-m-d') !== $due_date
+            || $due_date < $window_start
+            || $due_date > $window_end
+        ) {
+            continue;
+        }
+        $tasks_by_date[$due_date] ??= [];
+        $tasks_by_date[$due_date][] = $task;
+    }
+    return $tasks_by_date;
+}
+
+function calendarViewerEventLabel(array $engagement) {
+    $event_title = trim((string) ($engagement['event_title'] ?? ''));
+    if ($event_title !== '') {
+        return $event_title;
+    }
+    $organization = trim((string) ($engagement['organization_name'] ?? ''));
+    return $organization !== '' ? $organization : 'Untitled event';
+}
+
+function calendarViewerEventTone(array $engagement) {
+    $lifecycle = trim((string) ($engagement['lifecycle_status'] ?? 'active'));
+    if (in_array($lifecycle, ['canceled', 'postponed', 'completed'], true)) {
+        return $lifecycle;
+    }
+    return ($engagement['confirmation_status'] ?? '') === 'confirmed'
+        ? 'confirmed'
+        : 'tentative';
+}
+
+function calendarViewerTaskLabel(array $task) {
+    $title = trim((string) ($task['title'] ?? ''));
+    return $title !== '' ? $title : 'Untitled task';
+}
+
+function calendarViewerTaskTone(array $task, $current_user_id) {
+    return (int) ($task['assigned_to'] ?? 0) === (int) $current_user_id
+        ? 'mine'
+        : 'other';
+}
+
 function calendarIcsStatus(array $engagement) {
     if (($engagement['lifecycle_status'] ?? 'active') === 'canceled') {
         return 'CANCELLED';

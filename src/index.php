@@ -49,11 +49,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         $caller = \Dnr\Domain\EngagementInput::resolveCaller($conn, $caller_user_id);
         $caller_user_id = $caller['id'];
         $caller_name = $caller['username'];
+        $presentation_files = is_array($_FILES['presentations'] ?? null)
+            ? $_FILES['presentations']
+            : [];
+        $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
         $presentations = normalizeEngagementPresentations(
             $_POST['presentations'] ?? null,
             $event_start_date,
             $event_end_date,
-            $DEFAULT_SPEAKER
+            $DEFAULT_SPEAKER,
+            false,
+            array_fill_keys(array_keys($presentation_asset_uploads), true)
+        );
+        $presentations = attachPresentationAssetChanges(
+            $presentations,
+            $_POST['presentations'] ?? null,
+            $presentation_files
         );
         requirePresentationForConfirmedEngagement(
             $confirmation_status,
@@ -147,34 +158,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         false
                     );
 
-                    // Insert presentations
-                    if (!empty($presentations)) {
-                        $presentation_stmt = $conn->prepare("INSERT INTO presentations (
-                            engagement_id, topic_title, presentation_date, presentation_time,
-                            speaker_name, expected_attendance
-                        ) VALUES (?, ?, ?, ?, ?, ?)");
-
-                        if (!$presentation_stmt) {
-                            throw new Exception("Unable to prepare presentations: " . $conn->error);
-                        }
-
-                        foreach ($presentations as $presentation) {
-                            $presentation_stmt->bind_param(
-                                "issssi",
-                                $engagement_id,
-                                $presentation['topic_title'],
-                                $presentation['presentation_date'],
-                                $presentation['presentation_time'],
-                                $presentation['speaker_name'],
-                                $presentation['expected_attendance']
-                            );
-
-                            if (!$presentation_stmt->execute()) {
-                                throw new Exception("Unable to save presentation: " . $presentation_stmt->error);
-                            }
-                        }
-                        $presentation_stmt->close();
-                    }
+                    syncEngagementPresentations($conn, $engagement_id, $presentations);
 
                     if ($chron_entry !== '') {
                         $chron_stmt = $conn->prepare(
@@ -333,7 +317,7 @@ try {
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <form method="post" action="index.php" class="engagement-form">
+    <form method="post" action="index.php" class="engagement-form" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">

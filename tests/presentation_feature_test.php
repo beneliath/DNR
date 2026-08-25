@@ -177,6 +177,18 @@ expectPresentationFeature(
     'saved presentation archive and delete buttons should have visible separation.'
 );
 expectPresentationFeature(
+    str_contains($presentation_template, 'class="save-button presentation-pane-save-button"')
+        && str_contains($presentation_template, 'form="engagement-edit-form">Save Changes</button>')
+        && preg_match('/\.presentation-pane-save-button\s*\{[^}]*margin-right:\s*auto;/s', $modern_styles) === 1,
+    'saved presentation panes should provide a lower-left Save Changes button for the engagement edit form.'
+);
+expectPresentationFeature(
+    str_contains($presentation_template, "' has-saved-presentations'")
+        && str_contains($presentation_template, "' is-saved-presentation'")
+        && preg_match('/\.presentations-outer-box\.has-saved-presentations,\s*\.presentation-entry\.is-saved-presentation,[^{]*\{[^}]*background:\s*transparent\s*!important;/s', $modern_styles) === 1,
+    'saved presentation panes and their surrounding margin should use a transparent background.'
+);
+expectPresentationFeature(
     preg_match('/\.time-input-container\s*>\s*input\[type="text"\]\s*\{[^}]*width:\s*150px\s*!important;[^}]*flex:\s*0\s+0\s+150px;/s', $modern_styles) === 1,
     'the presentation time field should be wide enough to show its full placeholder.'
 );

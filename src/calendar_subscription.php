@@ -3,6 +3,7 @@
 require_once __DIR__ . '/bootstrap.php';
 $conn = applicationDatabaseConnection();
 require_once __DIR__ . '/calendar_helpers.php';
+require_once __DIR__ . '/follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
 header('Cache-Control: no-store, max-age=0');
@@ -85,6 +86,69 @@ unset(
     $_SESSION['_calendar_subscription_message'],
     $_SESSION['_calendar_subscription_error']
 );
+$requested_month = is_string($_GET['month'] ?? null) ? $_GET['month'] : null;
+$calendar_view_mode = normalizeCalendarViewerMode(
+    is_string($_GET['show'] ?? null) ? $_GET['show'] : null
+);
+$calendar_month = calendarMonthContext($requested_month, applicationBusinessDate());
+$calendar_show_events = in_array($calendar_view_mode, ['events', 'everything'], true);
+$calendar_show_tasks = in_array($calendar_view_mode, ['my_tasks', 'all_tasks', 'everything'], true);
+$calendar_viewer_error = '';
+try {
+    $calendar_events = $calendar_show_events
+        ? fetchCalendarViewerEngagements(
+            $conn,
+            $calendar_month['grid_start'],
+            $calendar_month['grid_end']
+        )
+        : [];
+    $calendar_tasks = $calendar_show_tasks
+        ? fetchCalendarViewerTasks(
+            $conn,
+            $calendar_month['grid_start'],
+            $calendar_month['grid_end'],
+            $calendar_view_mode === 'my_tasks' ? $user_id : null
+        )
+        : [];
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load the calendar month view', [
+        'error' => $exception->getMessage(),
+        'month' => $calendar_month['month'],
+    ]);
+    $calendar_events = [];
+    $calendar_tasks = [];
+    $calendar_viewer_error = 'The calendar is temporarily unavailable.';
+}
+$calendar_events_by_date = calendarEventsByDate(
+    $calendar_events,
+    $calendar_month['grid_start'],
+    $calendar_month['grid_end']
+);
+$calendar_tasks_by_date = calendarTasksByDate(
+    $calendar_tasks,
+    $calendar_month['grid_start'],
+    $calendar_month['grid_end']
+);
+$calendar_month_event_count = count(array_filter(
+    $calendar_events,
+    static function (array $engagement) use ($calendar_month): bool {
+        $event_start = trim((string) ($engagement['event_start_date'] ?? ''));
+        $event_end = trim((string) ($engagement['event_end_date'] ?? '')) ?: $event_start;
+        return $event_start <= $calendar_month['month_end']
+            && $event_end >= $calendar_month['month_start'];
+    }
+));
+$calendar_month_task_count = count(array_filter(
+    $calendar_tasks,
+    static function (array $task) use ($calendar_month): bool {
+        $due_date = trim((string) ($task['due_date'] ?? ''));
+        return $due_date >= $calendar_month['month_start']
+            && $due_date <= $calendar_month['month_end'];
+    }
+));
+$calendar_task_status_labels = followUpTaskStatuses();
+$calendar_task_priority_labels = followUpTaskPriorities();
+$can_manage_calendar_tasks = canManageFollowUpTasks($_SESSION['role'] ?? '');
 $subscriptions = calendarSubscriptionsForUser($conn, $user_id);
 $revoked_subscription_count = count(array_filter(
     $subscriptions,
@@ -99,7 +163,7 @@ $webcal_url = $calendar_url === null
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Calendar Subscriptions - DNR', array (
+<?php renderPageHead('Calendar - DNR', array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -116,14 +180,22 @@ $webcal_url = $calendar_url === null
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container calendar-subscription">
-    <div class="page-heading"><div><h1>Calendar Subscriptions</h1><p class="page-intro">Create independently revocable private calendar links.</p></div></div>
+    <div class="page-heading"><div><h1>Calendar</h1><p class="page-intro">View scheduled events and tasks by month, and manage private calendar links.</p></div></div>
 
     <?php if ($message !== ''): ?><p class="success"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
+    <?php include 'templates/calendar_month_viewer.php'; ?>
+
+    <section class="calendar-subscriptions-section" aria-labelledby="calendar-subscriptions-title">
+        <div class="calendar-section-heading">
+            <h2 id="calendar-subscriptions-title">Calendar Subscriptions</h2>
+            <p>Create independently revocable private calendar links.</p>
+        </div>
+
     <?php if ($calendar_url !== null): ?>
         <section class="security-card calendar-card" aria-labelledby="new-calendar-title">
-            <h2 id="new-calendar-title">Save This New Link</h2>
+            <h3 id="new-calendar-title">Save This New Link</h3>
             <p>This token is shown only once. Add it to your calendar now or copy it to an approved password manager.</p>
             <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
             <div class="calendar-url-row">
@@ -136,7 +208,7 @@ $webcal_url = $calendar_url === null
     <?php endif; ?>
 
     <section class="security-card calendar-card" aria-labelledby="create-calendar-title">
-        <h2 id="create-calendar-title">Create Subscription</h2>
+        <h3 id="create-calendar-title">Create Subscription</h3>
         <p>Use a separate link for each device or calendar service so a single subscriber can be revoked without disrupting the others.</p>
         <form method="post" action="calendar_subscription.php" class="security-form">
             <?php echo csrfInput(); ?>
@@ -151,7 +223,7 @@ $webcal_url = $calendar_url === null
 
     <section class="security-card calendar-card" aria-labelledby="existing-calendar-title">
         <div class="calendar-card-heading">
-            <h2 id="existing-calendar-title">Existing Subscriptions</h2>
+            <h3 id="existing-calendar-title">Existing Subscriptions</h3>
             <?php if ($revoked_subscription_count > 0): ?>
                 <form method="post" action="calendar_subscription.php" class="calendar-purge-form" data-confirm="Permanently delete all revoked calendar token records? Active subscriptions will not be affected. This cannot be undone.">
                     <?php echo csrfInput(); ?>
@@ -201,6 +273,7 @@ $webcal_url = $calendar_url === null
             </div>
         <?php endif; ?>
         <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to event and presentation schedule data, but not contacts, notes, travel, lodging, or compensation.</p>
+    </section>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

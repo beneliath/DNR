@@ -74,6 +74,10 @@ expectMapFeature(
     'zoom controls should be spaced apart and use a transparent surface with the project hover treatment.'
 );
 expectMapFeature(
+    preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
+    'the Map page root should reveal the shared app background instead of the legacy black container surface.'
+);
+expectMapFeature(
     str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-control-container,')
         && str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-top,')
         && str_contains($map_styles, 'html.dark-mode .map-shell .map-zoom-controls {')

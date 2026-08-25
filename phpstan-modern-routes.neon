@@ -36,6 +36,7 @@ parameters:
         - src/notification_helpers.php
         - src/pagination_helpers.php
         - src/presentation_helpers.php
+        - src/presentation_asset_helpers.php
         - src/image_upload_helpers.php
         - src/inbound_email_helpers.php
         - src/two_factor_helpers.php

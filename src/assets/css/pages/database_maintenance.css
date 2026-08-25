@@ -8,7 +8,7 @@
             border: 1px solid var(--border-color, #ddd);
             border-radius: 8px;
             padding: 20px;
-            background: var(--surface-color, #fff);
+            background: transparent !important;
         }
         .database-maintenance-card h2 { margin-top: 0; }
         .database-maintenance-card form { display: grid; gap: 10px; }

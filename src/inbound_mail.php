@@ -196,7 +196,7 @@ $statusLabels = [
 ]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<main class="container">
+<main class="container inbound-mail-page">
     <div class="page-heading">
         <div>
             <h1>Inbound Mail</h1>

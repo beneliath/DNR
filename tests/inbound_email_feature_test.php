@@ -19,6 +19,7 @@ $quarantineMigration = file_get_contents($root . '/migrations/20260823_add_inbou
 $helper = file_get_contents($root . '/src/inbound_email_helpers.php');
 $worker = file_get_contents($root . '/scripts/process_inbound_mail.php');
 $review = file_get_contents($root . '/src/inbound_mail.php');
+$reviewStyles = file_get_contents($root . '/src/assets/css/pages/inbound_mail.css');
 $engagementView = file_get_contents($root . '/src/view_engagement.php');
 $header = file_get_contents($root . '/src/templates/header.php');
 $compose = file_get_contents($root . '/docker-compose.mail.yaml');
@@ -84,6 +85,11 @@ expectInboundFeature(
         && str_contains($engagementView, '[MOED#<?php echo $engagement_id; ?>]')
         && str_contains($header, '<span>Inbound Mail</span>'),
     'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
+);
+expectInboundFeature(
+    str_contains($review, '<main class="container inbound-mail-page">')
+        && preg_match('/\.inbound-mail-page,[^{]*\.inbound-mail-page > \.inbound-mail-layout > section\s*\{[^}]*background:\s*transparent\s*!important;/s', $reviewStyles) === 1,
+    'the Inbound Mail page and its layout sections should not paint a legacy black surface over the app background.'
 );
 expectInboundFeature(
     str_contains($grants, '.inbound_email_messages')

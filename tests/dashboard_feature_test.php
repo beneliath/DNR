@@ -26,6 +26,7 @@ $index = $read('src/index.php');
 $functions = $read('src/functions.php');
 $task_helpers = $read('src/follow_up_task_helpers.php');
 $styles = $read('src/assets/css/pages/dashboard.css');
+$modern_styles = $read('src/assets/css/modern.css');
 
 expectDashboardFeature(
     str_contains($index, "header('Location: dashboard.php')")
@@ -87,12 +88,13 @@ expectDashboardFeature(
 expectDashboardFeature(
     str_contains($dashboard, 'assets/css/pages/dashboard.min.css')
         && str_contains($styles, '.dashboard-primary-grid')
+        && preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1
         && preg_match('/\.dashboard-summary-card small\s*\{[^}]*text-overflow:\s*clip;[^}]*white-space:\s*normal;/s', $styles) === 1
         && preg_match('/\.dashboard-page a,[^{]*\{[^}]*text-decoration:\s*none;/s', $styles) === 1
         && preg_match('/\.dashboard-panel-heading > a:hover,[^{]*\{[^}]*background:\s*var\(--primary-subtle\);[^}]*transform:\s*translateY\(-1px\);/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 760px)')
         && str_contains($styles, 'grid-template-columns: 1fr;'),
-    'the dashboard should load a responsive stylesheet with multiline summary labels and underline-free interactive links.'
+    'the dashboard should use a transparent page root and responsive styles with multiline summary labels and underline-free interactive links.'
 );
 
 echo "Dashboard feature tests passed.\n";

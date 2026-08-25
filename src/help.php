@@ -213,7 +213,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF copy markdown archive restore">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes">
                 <header class="manual-chapter-heading">
                     <span>Chapter 04</span>
                     <h2>Engagements</h2>
@@ -242,7 +242,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
                         <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Add an optional event title and description, required start and end dates, and an event type. Use Other when the preset types do not fit.</p></section></li>
                         <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select active contacts from the chosen organization and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials.</p></section></li>
-                        <li><span>04</span><section><strong>Add presentations.</strong><p>Every presentation needs a topic/title, a date within the event range, and a time. Speaker and expected attendance are optional. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
+                        <li><span>04</span><section><strong>Add presentations.</strong><p>Every presentation needs a topic/title, a date within the event range, and a time. Speaker and expected attendance are optional. You can also attach a PDF slide deck and speaker QR codes. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
                         <li><span>06</span><section><strong>Set planning states.</strong><p>Choose both lifecycle and confirmation, identify the caller if useful, and add an initial Chron entry when there is context worth preserving.</p></section></li>
                     </ol>
@@ -273,13 +273,25 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-note"><strong>Lifecycle and confirmation are independent.</strong> A postponed event can retain its former confirmation state, while a completed event may reflect the confirmation state it reached during planning.</p>
 
                 <section class="manual-subsection">
-                    <h3>Presentations and History</h3>
-                    <p>Saved presentations can be archived independently from the engagement. Restore archived presentations from the edit or view page; if an archived presentation no longer falls within the event dates, enter a valid date and time during restoration. Administrators can permanently delete presentations after fresh elevation.</p>
+                    <h3>Presentation Files, QR Codes, and History</h3>
+                    <section class="manual-card-grid manual-card-grid-two">
+                        <article class="manual-card">
+                            <h4>PDF Slide Deck</h4>
+                            <p>Choose a PDF up to 100 MB for a presentation. After saving, select the PDF link to view the deck in a separate browser tab. From the edit page, you can replace the file or select <strong>Remove current PDF</strong>, then save the engagement.</p>
+                        </article>
+                        <article class="manual-card">
+                            <h4>Speaker QR Codes</h4>
+                            <p>Add separate QR images for the speaker’s notes download, website, and donation page. Choose or paste a JPEG, PNG, or WebP image up to 5 MB. Select a displayed QR code to copy the image to the clipboard for use in another application.</p>
+                        </article>
+                    </section>
+                    <p>To paste a QR image, copy it in the source application and select <strong>Paste QR code</strong>. When direct clipboard reading is unavailable, leave that button focused and press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>. Save the engagement to store new, replaced, or removed assets.</p>
+                    <p>Each saved presentation has a <strong>Save Changes</strong> button in its lower-left corner, so you can save without scrolling to the page-level button. Saved presentations can also be archived independently from the engagement. Restore archived presentations from the edit or view page; if an archived presentation no longer falls within the event dates, enter a valid date and time during restoration. Administrators can permanently delete presentations after fresh elevation.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. MOED displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
                 <section class="manual-subsection">
                     <h3>View, Share, and Close the Event</h3>
+                    <p>The event detail page shows its unique email subject marker. Select the copy icon immediately beside the marker to place it on the clipboard, then keep the marker in an email subject when that message should route to the engagement’s Chron log.</p>
                     <section class="manual-card-grid manual-card-grid-three">
                         <article class="manual-card"><h4>Copy Text</h4><p>Copies a plain-text event brief for messages or notes.</p></article>
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
@@ -295,7 +307,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="engagements.php">Open Engagements <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact address affiliation distinctives website phone fax financial history giving photo role pastor admin other notes search archive dependencies move active">
+            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact optional address country international flag state province Canada United States affiliation distinctives website phone fax financial history giving photo role pastor admin other describe notes search archive dependencies move active">
                 <header class="manual-chapter-heading">
                     <span>Chapter 05</span>
                     <h2>Organizations and Contacts</h2>
@@ -313,10 +325,21 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-definition-panel">
                         <span class="manual-kicker">Contact</span>
                         <h3>Person Record</h3>
-                        <p>Store first and last name, organization, organization role, confirmed email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB.</p>
-                        <p>The organization role is Pastor, Admin, or a custom Other description. Event-specific roles are assigned separately on each engagement.</p>
+                        <p>Store first and last name, optional organization, organization role, confirmed email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization.</p>
+                        <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Event-specific roles are assigned separately on each engagement.</p>
                         <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a contact</a><?php endif; ?>
                     </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Enter Organization Addresses</h3>
+                    <ul class="manual-check-list">
+                        <li>The Country selector includes countries worldwide, displays each country’s flag and name, and defaults to <strong>United States of America</strong> for a new address.</li>
+                        <li>For a United States address, the region field is labeled <strong>State</strong> and provides a dropdown of state names.</li>
+                        <li>For a Canadian address, the region field is labeled <strong>Province</strong> and provides a dropdown of province and territory names.</li>
+                        <li>For every other country, the field is labeled <strong>State/Province</strong> and accepts typed regional information.</li>
+                        <li>The same behavior applies to both physical and mailing addresses. Select <strong>Same as Physical Address</strong> when the mailing address does not differ.</li>
+                    </ul>
                 </section>
 
                 <section class="manual-subsection">
@@ -417,7 +440,7 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">@</span>
                     <div class="manual-callout-body">
                         <h3>Route Email to an Engagement</h3>
-                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject: <code>[MOED#123]</code>. Replies remain routable while the marker remains. One unique valid marker can route to that active engagement when the sender and participants satisfy the relationship checks.</p>
+                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject: <code>[MOED#123]</code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. Replies remain routable while the marker remains. One unique valid marker can route to that active engagement when the sender and participants satisfy the relationship checks.</p>
                     </div>
                 </article>
 
@@ -449,28 +472,52 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="map-calendar" data-manual-section data-keywords="map location geocode pins lifecycle confirmation filters dates fit visible OpenStreetMap calendar subscription private link webcal device revoke purge events presentations one hour schedule privacy">
+            <section class="manual-chapter" id="map-calendar" data-manual-section data-keywords="map location geocode pins lifecycle confirmation filters dates fit visible OpenStreetMap calendar month previous next today selector Events My Tasks All Tasks Everything color due date subscription private link webcal device revoke purge presentations one hour schedule privacy">
                 <header class="manual-chapter-heading">
                     <span>Chapter 08</span>
                     <h2>Map and Calendar</h2>
-                    <p>Use the map for geographic planning and a private calendar feed for a continuously updated schedule.</p>
+                    <p>Use the map for geographic planning, the graphical month calendar for events and due work, and private subscription links for an external calendar application.</p>
                 </header>
 
-                <section class="manual-split">
-                    <article class="manual-definition-panel">
+                <section class="manual-card-grid manual-card-grid-three">
+                    <article class="manual-card">
                         <span class="manual-kicker">Explore</span>
                         <h3>Engagement Map</h3>
                         <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation; select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
                         <p>Use <strong>Fit visible pins</strong> after filtering. New or changed addresses may not appear immediately because a rate-limited background worker resolves and caches locations.</p>
                         <a href="map.php" class="manual-inline-link">Open the map</a>
                     </article>
-                    <article class="manual-definition-panel">
+                    <article class="manual-card">
+                        <span class="manual-kicker">View</span>
+                        <h3>Monthly Calendar</h3>
+                        <p>The Calendar page opens to the current month. Use <strong>Previous</strong> and <strong>Next</strong> to move one month at a time, or <strong>Today</strong> to return to the current month.</p>
+                        <p>The current day has its own rose-colored cell and <strong>Today</strong> badge, distinct from every event and task color.</p>
+                        <p>Select an event to open its details. Tasks with due dates link to task work; editors and administrators return to the same calendar view after editing.</p>
+                        <a href="calendar_subscription.php#event-calendar" class="manual-inline-link">Open the month view</a>
+                    </article>
+                    <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
                         <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. The feed contains all-day engagement blocks plus timed, one-hour presentation entries.</p>
                         <p>Revoke one link without affecting the others. Revoked token records can be purged. Never share a subscription URL: it grants access to schedule data, though not contacts, Chron, travel, lodging, or compensation.</p>
                         <a href="calendar_subscription.php" class="manual-inline-link">Manage calendar links</a>
                     </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Choose What the Month Calendar Shows</h3>
+                    <section class="manual-table-wrap" tabindex="0" aria-label="Calendar display selector reference">
+                        <table class="manual-table">
+                            <thead><tr><th>Selector</th><th>Calendar Content</th><th>Color Coding</th></tr></thead>
+                            <tbody>
+                                <tr><td><strong>Events</strong></td><td>Engagements that overlap the displayed dates.</td><td>Event color, with distinct border tones for tentative/postponed, canceled, and completed events.</td></tr>
+                                <tr><td><strong>My Tasks</strong></td><td>Your active tasks that have a due date in the displayed calendar grid.</td><td>Your task accent color.</td></tr>
+                                <tr><td><strong>All Tasks</strong></td><td>Every active due-dated task in the grid, including unassigned work.</td><td>Your tasks use the accent color; other or unassigned tasks use a contrasting color.</td></tr>
+                                <tr><td><strong>Everything</strong></td><td>Events plus all active due-dated tasks.</td><td>All event and task colors appear together.</td></tr>
+                            </tbody>
+                        </table>
+                    </section>
+                    <p>The selected filter remains active as you move between months. The summary above the grid reports how many matching events and tasks fall in that month.</p>
                 </section>
             </section>
 
@@ -571,7 +618,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route calendar refresh logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route calendar item filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 11</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -602,6 +649,14 @@ $manual_access_summary = match ($manual_role) {
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>
                         <p>Check whether that device’s subscription is still Active. A revoked URL cannot be recovered; create a new device-specific link and replace the old subscription in the calendar application.</p>
+                    </details>
+                    <details>
+                        <summary><span>An Event or Task Is Missing from the Month Calendar</span><i aria-hidden="true">+</i></summary>
+                        <p>Confirm the displayed month and selector. <strong>Events</strong> does not include tasks, <strong>My Tasks</strong> includes only work assigned to you, and task views include only active tasks with due dates. Use <strong>Everything</strong> when you want events and all due-dated work together.</p>
+                    </details>
+                    <details>
+                        <summary><span>A QR Code Will Not Paste or Copy</span><i aria-hidden="true">+</i></summary>
+                        <p>For paste, copy a supported JPEG, PNG, or WebP image, select <strong>Paste QR code</strong>, and—if prompted by the page—press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> while the button remains focused. For copy, select the QR preview. If the browser cannot write an image directly to the clipboard, MOED opens the image in a separate tab so you can copy it there.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>
