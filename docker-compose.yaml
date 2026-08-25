@@ -4,6 +4,8 @@ x-app-environment: &app-environment
   MYSQL_DATABASE: dnr
   MYSQL_USER: dnruser
   MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+  MYSQL_BACKUP_USER: dnrbackup
+  MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
@@ -44,6 +46,7 @@ services:
     secrets:
       - dnr_2fa_encryption_key
       - dnr_mysql_app_password
+      - dnr_mysql_backup_password
     environment: *app-environment
     networks: [backend]
     healthcheck:
@@ -137,12 +140,15 @@ services:
       - ./backups:/backups:ro
     secrets:
       - dnr_mysql_maintenance_password
+      - dnr_mysql_backup_password
       - dnr_backup_password
     environment:
       DB_HOST: db
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmaintenance
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+      MYSQL_BACKUP_USER: dnrbackup
+      MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       DNR_BACKUP_PASSWORD_FILE: /run/secrets/dnr_backup_password
       DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
     networks: [backend]
@@ -158,6 +164,8 @@ services:
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnruser
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+      MYSQL_BACKUP_USER: dnrbackup
+      MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       MYSQL_MAINTENANCE_USER: dnrmaintenance
       MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
       MYSQL_GEOCODER_USER: dnrgeocoder
@@ -169,6 +177,7 @@ services:
     secrets:
       - dnr_mysql_root_password
       - dnr_mysql_app_password
+      - dnr_mysql_backup_password
       - dnr_mysql_maintenance_password
       - dnr_mysql_geocoder_password
       - dnr_mysql_mail_ingest_password
@@ -203,6 +212,7 @@ services:
     secrets:
       - dnr_mysql_root_password
       - dnr_mysql_app_password
+      - dnr_mysql_backup_password
       - dnr_mysql_maintenance_password
       - dnr_mysql_geocoder_password
       - dnr_mysql_mail_ingest_password
@@ -211,6 +221,8 @@ services:
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnruser
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password
+      MYSQL_BACKUP_USER: dnrbackup
+      MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       MYSQL_MAINTENANCE_USER: dnrmaintenance
       MYSQL_MAINTENANCE_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
       MYSQL_GEOCODER_USER: dnrgeocoder
@@ -251,6 +263,8 @@ secrets:
     file: ${DNR_MYSQL_ROOT_PASSWORD_FILE:-./secrets/mysql_root_password}
   dnr_mysql_app_password:
     file: ${DNR_MYSQL_APP_PASSWORD_FILE:-./secrets/mysql_app_password}
+  dnr_mysql_backup_password:
+    file: ${DNR_MYSQL_BACKUP_PASSWORD_FILE:-./secrets/mysql_backup_password}
   dnr_mysql_maintenance_password:
     file: ${DNR_MYSQL_MAINTENANCE_PASSWORD_FILE:-./secrets/mysql_maintenance_password}
   dnr_mysql_geocoder_password:

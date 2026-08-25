@@ -13,6 +13,7 @@ $helpers = file_get_contents($root . '/src/database_backup_helpers.php');
 $header = file_get_contents($root . '/src/templates/header.php');
 $login = file_get_contents($root . '/src/login.php');
 $compose = file_get_contents($root . '/docker-compose.yaml');
+$privileges = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $restore_command = file_get_contents($root . '/scripts/restore_database.php');
 $readme = file_get_contents($root . '/README.md');
 $styles = file_get_contents($root . '/src/assets/css/pages/database_maintenance.css');
@@ -22,7 +23,9 @@ expectDatabaseBackupFeature(
         && str_contains($page, 'requireValidCsrfToken();')
         && str_contains($page, 'PasswordPolicy::verify')
         && str_contains($page, 'verifyAndConsumeTotp')
-        && str_contains($page, 'consumeRecoveryCode'),
+        && str_contains($page, 'consumeRecoveryCode')
+        && strpos($page, 'databaseBackupConnection()')
+            > strrpos($page, 'databaseMaintenanceAuthenticationAccepted('),
     'backup and restore must require admin authorization, CSRF validation, password re-entry, and a fresh second factor.'
 );
 expectDatabaseBackupFeature(
@@ -48,6 +51,16 @@ expectDatabaseBackupFeature(
         && str_contains($helpers, "'security_audit_log'")
         && str_contains($helpers, 'hash_equals(hash_final($hash)'),
     'backups must use password-based authenticated encryption, and restore must be atomic, invalidate sessions, preserve imported audit history, and verify archive integrity.'
+);
+expectDatabaseBackupFeature(
+    str_contains($helpers, "configurationSecret('MYSQL_BACKUP_PASSWORD')")
+        && str_contains($compose, 'MYSQL_BACKUP_USER: dnrbackup')
+        && str_contains($compose, 'MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password')
+        && str_contains($compose, '- dnr_mysql_backup_password')
+        && str_contains($privileges, "CREATE USER IF NOT EXISTS '\${backup_user}'@'%'")
+        && str_contains($privileges, "GRANT SELECT ON \`\${MYSQL_DATABASE}\`.* TO '\${backup_user}'@'%';")
+        && !str_contains($privileges, "GRANT SELECT, INSERT, UPDATE, DELETE ON \`\${MYSQL_DATABASE}\`.* TO '\${backup_user}'@'%';"),
+    'web exports should use a dedicated full-schema read-only database identity without weakening the application account.'
 );
 expectDatabaseBackupFeature(
     str_contains($header, 'database_maintenance.php')

@@ -42,7 +42,7 @@ if [ -e "$environment_path" ]; then
 fi
 
 for secret_name in \
-    mysql_root_password mysql_app_password mysql_maintenance_password \
+    mysql_root_password mysql_app_password mysql_backup_password mysql_maintenance_password \
     mysql_geocoder_password mysql_mail_ingest_password mysql_mail_dispatch_password \
     backup_password
 do
@@ -78,6 +78,7 @@ chmod 600 "$backup_path"
 
 new_root_password=$(openssl rand -hex 32)
 new_app_password=$(openssl rand -hex 32)
+new_backup_password=$(openssl rand -hex 32)
 new_maintenance_password=$(openssl rand -hex 32)
 new_geocoder_password=$(openssl rand -hex 32)
 new_mail_ingest_password=$(openssl rand -hex 32)
@@ -93,6 +94,8 @@ trap cleanup EXIT HUP INT TERM
 printf "%s\n" \
     "ALTER USER 'root'@'localhost' IDENTIFIED BY '$new_root_password';" \
     "ALTER USER 'dnruser'@'%' IDENTIFIED BY '$new_app_password';" \
+    "CREATE USER IF NOT EXISTS 'dnrbackup'@'%' IDENTIFIED BY '$new_backup_password';" \
+    "ALTER USER 'dnrbackup'@'%' IDENTIFIED BY '$new_backup_password';" \
     "CREATE USER IF NOT EXISTS 'dnrmaintenance'@'%' IDENTIFIED BY '$new_maintenance_password';" \
     "ALTER USER 'dnrmaintenance'@'%' IDENTIFIED BY '$new_maintenance_password';" \
     "CREATE USER IF NOT EXISTS 'dnrgeocoder'@'%' IDENTIFIED BY '$new_geocoder_password';" \
@@ -107,6 +110,7 @@ docker exec -i "$database_container" sh -c \
 
 printf '%s' "$new_root_password" > "$secret_directory/mysql_root_password"
 printf '%s' "$new_app_password" > "$secret_directory/mysql_app_password"
+printf '%s' "$new_backup_password" > "$secret_directory/mysql_backup_password"
 printf '%s' "$new_maintenance_password" > "$secret_directory/mysql_maintenance_password"
 printf '%s' "$new_geocoder_password" > "$secret_directory/mysql_geocoder_password"
 printf '%s' "$new_mail_ingest_password" > "$secret_directory/mysql_mail_ingest_password"
@@ -121,6 +125,7 @@ printf "%s\n" \
     '# Database and application secrets are mounted from ignored files.' \
     'DNR_MYSQL_ROOT_PASSWORD_FILE=./secrets/mysql_root_password' \
     'DNR_MYSQL_APP_PASSWORD_FILE=./secrets/mysql_app_password' \
+    'DNR_MYSQL_BACKUP_PASSWORD_FILE=./secrets/mysql_backup_password' \
     'DNR_MYSQL_MAINTENANCE_PASSWORD_FILE=./secrets/mysql_maintenance_password' \
     'DNR_MYSQL_GEOCODER_PASSWORD_FILE=./secrets/mysql_geocoder_password' \
     'DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE=./secrets/mysql_mail_ingest_password' \

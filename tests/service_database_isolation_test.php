@@ -21,6 +21,11 @@ $inboundEmailHelpers = file_get_contents($root . '/src/inbound_email_helpers.php
 $smtpWebSection = explode("\n  mail-dispatch:", $smtp, 2)[0];
 $baseWebSection = explode("\nservices:", $compose, 2)[0];
 $webGrantSection = explode("CREATE USER IF NOT EXISTS '\${geocoder_user}'", $grants, 2)[0];
+$backupGrantSection = explode(
+    "CREATE USER IF NOT EXISTS '\${geocoder_user}'",
+    explode("CREATE USER IF NOT EXISTS '\${backup_user}'", $grants, 2)[1] ?? '',
+    2
+)[0];
 $mailIngestGrantSection = explode(
     "CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'",
     explode("CREATE USER IF NOT EXISTS '\${mail_ingest_user}'", $grants, 2)[1] ?? '',
@@ -70,6 +75,14 @@ expectServiceDatabaseIsolation(
         && str_contains($grants, '.notification_outbox TO')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%';"),
     'only the outbound-mail identity should schedule and mutate the notification outbox.'
+);
+expectServiceDatabaseIsolation(
+    str_contains($backupGrantSection, "GRANT SELECT ON \`\${MYSQL_DATABASE}\`.*")
+        && !str_contains($backupGrantSection, 'INSERT')
+        && !str_contains($backupGrantSection, 'UPDATE')
+        && !str_contains($backupGrantSection, 'DELETE')
+        && !str_contains($backupGrantSection, 'WITH GRANT OPTION'),
+    'the backup identity should see the complete schema without receiving mutation or delegation privileges.'
 );
 expectServiceDatabaseIsolation(
     str_contains($mailIngestGrantSection, '.engagements')

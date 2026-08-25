@@ -79,7 +79,34 @@ $chron_stmt->execute();
 $chron_entry_id = (int) $conn->insert_id;
 $chron_stmt->close();
 
-$backup = createDatabaseBackup($conn, 'integration-test', 16777216);
+$backup_conn = databaseBackupConnection();
+$expected_table_count = (int) $conn->query(
+    "SELECT COUNT(*) AS table_count
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'"
+)->fetch_assoc()['table_count'];
+$backup_table_count = (int) $backup_conn->query(
+    "SELECT COUNT(*) AS table_count
+     FROM information_schema.TABLES
+     WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'"
+)->fetch_assoc()['table_count'];
+expectDatabaseBackupIntegration(
+    $backup_table_count === $expected_table_count,
+    'the read-only backup identity should see every database table.'
+);
+$backup_is_read_only = false;
+try {
+    $backup_conn->query('DELETE FROM organizations WHERE 1 = 0');
+} catch (mysqli_sql_exception $exception) {
+    $backup_is_read_only = true;
+}
+expectDatabaseBackupIntegration(
+    $backup_is_read_only,
+    'the backup identity should not be able to mutate database data.'
+);
+
+$backup = createDatabaseBackup($backup_conn, 'integration-test', 16777216);
+$backup_conn->close();
 $backup_password = 'integration backup password';
 $encrypted_backup = encryptDatabaseBackup($backup['path'], $backup_password, 16777216);
 $decrypted_backup = decryptDatabaseBackup($encrypted_backup['path'], $backup_password, 16777216);

@@ -30,6 +30,25 @@ if [ -z "$root_password" ]; then
     exit 1
 fi
 
+backup_user=${MYSQL_BACKUP_USER:-dnrbackup}
+case "$backup_user" in
+    ''|*[!A-Za-z0-9_]*) echo "MYSQL_BACKUP_USER contains unsupported characters" >&2; exit 1 ;;
+esac
+backup_password=${MYSQL_BACKUP_PASSWORD:-}
+if [ -n "${MYSQL_BACKUP_PASSWORD_FILE:-}" ]; then
+    backup_password=$(cat "${MYSQL_BACKUP_PASSWORD_FILE}")
+fi
+case "$backup_password" in
+    ''|*[!A-Za-z0-9]*)
+        echo "The backup database password secret must contain only letters and numbers" >&2
+        exit 1
+        ;;
+esac
+if [ "${#backup_password}" -lt 32 ]; then
+    echo "The backup database password secret must be at least 32 characters" >&2
+    exit 1
+fi
+
 maintenance_user=${MYSQL_MAINTENANCE_USER:-dnrmaintenance}
 case "$maintenance_user" in
     ''|*[!A-Za-z0-9_]*) echo "MYSQL_MAINTENANCE_USER contains unsupported characters" >&2; exit 1 ;;
@@ -129,6 +148,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.presentations TO '
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${MYSQL_USER}'@'%';
+
+CREATE USER IF NOT EXISTS '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
+ALTER USER '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${backup_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.* TO '${backup_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_password}';
 ALTER USER '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_password}';

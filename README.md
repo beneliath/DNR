@@ -26,6 +26,7 @@ To set up the project on your local machine, follow these steps:
    umask 077
    openssl rand -hex 32 > secrets/mysql_root_password
    openssl rand -hex 32 > secrets/mysql_app_password
+   openssl rand -hex 32 > secrets/mysql_backup_password
    openssl rand -hex 32 > secrets/mysql_maintenance_password
    openssl rand -hex 32 > secrets/mysql_geocoder_password
    openssl rand -hex 32 > secrets/mysql_mail_ingest_password
@@ -90,7 +91,7 @@ DNR_COMPOSE_MODE=development sh scripts/secure_existing_deployment.sh
 
 The helper makes a timestamped database backup, generates private database
 credentials, writes the ignored `.env` with mode `600`, rotates the root account
-and five service-specific MySQL accounts,
+and six service-specific MySQL accounts,
 applies tracked migrations and grants, and rebuilds the services with
 immutable footer provenance. An existing `.env` is accepted only when it has
 the two recognized legacy MySQL password variables. The file is never sourced:
@@ -262,7 +263,7 @@ Configure these values as needed:
 
 - `PORT`: published HTTP port; defaults to `8080`.
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
-- `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. Web, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance identities receive only their own table-specific privileges.
+- `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The authenticated export path uses the read-only full-schema backup identity; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
 - `DNR_MAIL_TRANSPORT`: `smtp` enables account and task-digest email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
@@ -291,7 +292,7 @@ Configure these values as needed:
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
 - `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: default bounded map window and hard result cap; defaults are 90 days back, 730 days forward, and 500 engagements.
-- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. Compose uses the fixed `dnr` database and restricted `dnruser` account.
+- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the separate read-only export connection. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
 
 ### Build provenance
 
@@ -391,8 +392,9 @@ variables.
 
 1. Check out the exact DNR release that created the backup. Restore the matching
    `secrets/dnr_2fa_encryption_key`; create or restore the independent root, application,
-   maintenance, geocoder, inbound-mail, and outbound-mail database secret files; create an empty
-   mode-`600` `secrets/backup_password`; and confirm `.env` points to those eight secret files.
+   backup-reader, maintenance, geocoder, inbound-mail, and outbound-mail database secret files;
+   create an empty mode-`600` `secrets/backup_password`; and confirm `.env` points to those nine
+   secret files.
    Then build every image used by the procedure:
 
    ```sh

@@ -72,6 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $_POST['backup_password_confirmation']
             : '';
         $backup = null;
+        $backup_connection = null;
         $encrypted_backup = null;
         $backup_started_at = microtime(true);
         try {
@@ -90,7 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )) {
                 $error = 'Your administrator password or authentication code was not accepted.';
             } else {
-                $backup = createDatabaseBackup($conn, APP_VERSION, $maximum_backup_bytes);
+                $backup_connection = databaseBackupConnection();
+                $backup = createDatabaseBackup(
+                    $backup_connection,
+                    APP_VERSION,
+                    $maximum_backup_bytes
+                );
+                $backup_connection->close();
+                $backup_connection = null;
                 $encrypted_backup = encryptDatabaseBackup(
                     $backup['path'],
                     $backup_password,
@@ -126,6 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             }
         } catch (Throwable $exception) {
+            if ($backup_connection instanceof mysqli) {
+                $backup_connection->close();
+            }
             if (is_array($backup) && isset($backup['path'])) {
                 @unlink($backup['path']);
             }
