@@ -1,0 +1,43 @@
+services:
+  proton-bridge:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: docker/proton-bridge.Dockerfile
+      args:
+        PROTON_BRIDGE_VERSION: ${PROTON_BRIDGE_VERSION:-3.25.0-1}
+        PROTON_BRIDGE_SHA256: ${PROTON_BRIDGE_SHA256:-6b0318f4f425ef1a19b63e2bd589bc1036d95f073cb9ac26b42c0fc63a8bc275}
+    restart: unless-stopped
+    read_only: true
+    user: "10001:10001"
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - proton_bridge_data:/home/proton-bridge
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/proton-bridge-healthcheck"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+
+  mail-ingest:
+    network_mode: "service:proton-bridge"
+    networks: !reset []
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      proton-bridge:
+        condition: service_healthy
+    environment:
+      DNR_IMAP_HOST: 127.0.0.1
+      DNR_IMAP_PORT: 1143
+      DNR_IMAP_SECURITY: starttls
+      DNR_IMAP_VERIFY_PEER: "0"
+
+volumes:
+  proton_bridge_data:
