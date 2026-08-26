@@ -277,6 +277,86 @@ an untrusted network. Proton documents the local-only design in its
 [Bridge overview](https://proton.me/support/why-you-need-bridge) and
 [Bridge CLI guide](https://proton.me/support/bridge-cli-guide).
 
+### Ubuntu 24.04 deployment with Proton Mail
+
+The Linux deployment is supported on the existing Ubuntu 24.04 host; it does not require an Ubuntu
+release upgrade. Proton Bridge runs as a non-root, headless sidecar built from Proton's checksum-
+verified official Debian package. Only `mail-ingest` shares its network namespace, so Bridge's IMAP
+listener remains on `127.0.0.1` and is never published to the host, LAN, or Internet. Its account,
+keychain, and generated credentials persist in the `proton_bridge_data` volume.
+
+Outbound mail should use a Proton [SMTP submission token](https://proton.me/support/smtp-submission)
+directly at `smtp.protonmail.ch:587` with STARTTLS. This keeps `mail-dispatch` independent of Bridge
+and leaves Bridge responsible only for inbound IMAP.
+
+The Ubuntu ingress also differs from the Docker Desktop deployment: it publishes no host port.
+Traefik and MOED share a dedicated `/29` network, while Cloudflared receives one stable address on
+the existing proxy network. DNR trusts those exact hops. Do not replace the exact Cloudflared
+address with the entire shared proxy subnet; another container on that subnet could otherwise
+present forged Cloudflare client headers.
+
+Prepare the network and merge the tracked proxy overlay with the existing Traefik stack:
+
+```sh
+docker network create --driver bridge --subnet 172.29.255.0/29 moed_edge
+install -m 600 deploy/traefik-moed-edge.yaml \
+  /home/dgilmore/traefik/docker-compose.moed-edge.yml
+cd /home/dgilmore/traefik
+docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml up -d traefik cloudflared
+```
+
+Use both Traefik Compose files for every future update to that stack. The overlay pins Traefik to
+`172.29.255.2` on `moed_edge` and Cloudflared to `172.18.0.254` on `proxy`; the matching defaults are
+already in `.env.example`. If either subnet conflicts on another host, change all matching values
+together before creating the network.
+
+Create the normal database/application secrets, an empty mode-`600` IMAP password file, and a mode-
+`600` SMTP token file. Copy `.env.example` to `.env`, set the public URL and mail identities, and
+leave `DNR_TRAEFIK_ENABLE=false` during staging. Native Linux Compose mounts local secrets with
+their host ownership, while MOED deliberately drops the capability that would bypass file modes.
+Run `./scripts/prepare_linux_secrets.sh` after creating or replacing any secret. It keeps the host
+directory private and grants read-only ACLs only to the container root and `www-data` identities;
+do not make the secret files world-readable. For Proton SMTP Submission, set:
+
+```dotenv
+DNR_MAIL_FROM=moed@beneliath.com
+DNR_SMTP_HOST=smtp.protonmail.ch
+DNR_SMTP_PORT=587
+DNR_SMTP_ENCRYPTION=starttls
+DNR_SMTP_USERNAME=moed@beneliath.com
+DNR_SMTP_PASSWORD_SECRET_FILE=./secrets/smtp_password
+DNR_IMAP_USERNAME=
+DNR_IMAP_PASSWORD_FILE=./secrets/imap_password
+DNR_TRAEFIK_ENABLE=false
+```
+
+Put the SMTP token—not the Proton account password—in `secrets/smtp_password`. Then initialize the
+Bridge volume and sign in interactively:
+
+```sh
+./scripts/proton_bridge_cli.sh configure
+```
+
+At the Bridge prompt run `login`, complete Proton authentication, run
+`updates autoupdates disable`, and run `info`. Put the generated IMAP username in
+`DNR_IMAP_USERNAME` and its generated password in `secrets/imap_password`; do not use the Proton
+account password. Exit the prompt and start the staged stack:
+
+```sh
+./scripts/compose_with_provenance.sh production-ubuntu-proton up -d --build
+./scripts/proton_bridge_cli.sh status
+./scripts/proton_bridge_cli.sh logs
+```
+
+Before cutover, restore and verify the encrypted DNR backup on Ubuntu and confirm Traefik can reach
+the staged ingress with `docker exec traefik wget -qO- http://172.29.255.3/health.php`. The final
+cutover has two coordinated changes: remove the old `moed-router` and `moed-service` entries from
+Traefik's file-provider configuration, then set `DNR_TRAEFIK_ENABLE=true` and recreate the Ubuntu
+`ingress` service. Keeping the label disabled until that moment prevents the staged router from
+competing with the live Mac route. Rollback is the reverse: disable the label and restore the old
+file-provider route.
+
 Database initialization uses only the ordered files under `migrations/`. The Compose `migrator`
 service applies the minimal baseline and every forward migration, records immutable checksums and
 state, and then applies the single privilege manifest. There is no independent schema snapshot to
@@ -348,6 +428,9 @@ accurately identify uncommitted source files.
 
 # Production with both inbound IMAP and outbound SMTP workers
 ./scripts/compose_with_provenance.sh production-mail-smtp
+
+# Ubuntu production with private Traefik ingress and headless Proton Bridge
+./scripts/compose_with_provenance.sh production-ubuntu-proton
 
 # Production IMAP and SMTP with a private pinned SMTP trust anchor
 ./scripts/compose_with_provenance.sh production-mail-smtp-ca

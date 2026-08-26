@@ -45,7 +45,7 @@ expectBuildProvenanceScript(
 expectBuildProvenanceScript(
     str_contains($script, 'development-mail|dev-mail)')
         && str_contains($script, 'production-mail|prod-mail)')
-        && substr_count($script, '-f docker-compose.mail.yaml') === 6
+        && substr_count($script, '-f docker-compose.mail.yaml') === 7
         && str_contains($readme, 'compose_with_provenance.sh production-mail'),
     'mail-enabled modes should add the inbound worker Compose overlay.'
 );
@@ -54,8 +54,15 @@ expectBuildProvenanceScript(
         && str_contains($script, 'production-smtp|prod-smtp)')
         && str_contains($script, 'development-mail-smtp|dev-mail-smtp)')
         && str_contains($script, 'production-mail-smtp|prod-mail-smtp)')
-        && substr_count($script, '-f docker-compose.smtp.yaml') === 8,
+        && substr_count($script, '-f docker-compose.smtp.yaml') === 9,
     'SMTP modes should add durable outbound delivery alone or alongside inbound mail.'
+);
+expectBuildProvenanceScript(
+    str_contains($script, 'production-ubuntu|prod-ubuntu)')
+        && str_contains($script, 'production-ubuntu-proton|prod-ubuntu-proton)')
+        && substr_count($script, '-f docker-compose.ubuntu.yaml') === 2
+        && substr_count($script, '-f docker-compose.proton-bridge.yaml') === 1,
+    'Ubuntu modes should use the private Traefik edge and optionally the colocated Proton Bridge.'
 );
 expectBuildProvenanceScript(
     substr_count($readme, 'compose_with_provenance.sh') >= 6

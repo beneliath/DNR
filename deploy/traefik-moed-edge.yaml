@@ -1,0 +1,20 @@
+# Merge this file with the existing /home/dgilmore/traefik/docker-compose.yml.
+# The shared proxy network remains in place for existing services. MOED gets a
+# separate edge network, and Cloudflared receives an exact stable address so
+# the application never has to trust every container on the shared network.
+services:
+  traefik:
+    networks:
+      proxy: {}
+      moed_edge:
+        ipv4_address: ${DNR_EDGE_TRAEFIK_IP:-172.29.255.2}
+
+  cloudflared:
+    networks:
+      proxy:
+        ipv4_address: ${DNR_CLOUDFLARED_PROXY_IP:-172.18.0.254}
+
+networks:
+  moed_edge:
+    name: ${DNR_EDGE_NETWORK:-moed_edge}
+    external: true

@@ -64,6 +64,8 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.smtp.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.ubuntu.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.proton-bridge.yaml -f docker-compose.ubuntu.yaml config --quiet
       - name: Exercise the documented fresh-install path
         run: |
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build --wait
