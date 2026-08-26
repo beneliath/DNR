@@ -82,9 +82,27 @@ expectSecurityRuntime(
 
 $root = dirname(__DIR__);
 $productionIni = $root . '/docker/php-production.ini';
+$productionIniContents = file_get_contents($productionIni);
 $apacheSecurity = file_get_contents($root . '/docker/apache-security.conf');
 $dockerfile = file_get_contents($root . '/Dockerfile');
 $cliHelper = $root . '/scripts/cli_input.php';
+
+expectSecurityRuntime(
+    is_string($productionIniContents)
+        && str_contains($productionIniContents, 'zend.exception_ignore_args=On'),
+    'the production configuration should omit function arguments from exception traces.'
+);
+$exceptionConfiguration = runSecurityRuntimeProcess([
+    PHP_BINARY,
+    '-c',
+    $productionIni,
+    '-r',
+    'exit(ini_get("zend.exception_ignore_args") === "1" ? 0 : 1);',
+]);
+expectSecurityRuntime(
+    $exceptionConfiguration['status'] === 0,
+    'the production runtime should enable exception argument redaction.'
+);
 
 $cliConfiguration = runSecurityRuntimeProcess([
     PHP_BINARY,
