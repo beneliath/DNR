@@ -13,7 +13,7 @@ if (!$standard_task) {
     exit();
 }
 $is_archived = !empty($standard_task['is_archived']);
-$is_required_standard_task = isRequiredStandardEventTask($standard_task['template_key']);
+$is_required_standard_task = isRequiredStandardEventTask($standard_task);
 $priority_labels = followUpTaskPriorities();
 $action_message = $_SESSION['standard_task_action_message'] ?? '';
 $action_error = $_SESSION['standard_task_action_error'] ?? '';
@@ -21,7 +21,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Standard Task Details - DNR', array (
+<?php renderPageHead(applicationPageTitle('Standard Task Details'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -35,7 +35,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
     <div class="page-heading record-page-heading">
         <div>
             <h1><?php echo htmlspecialchars($standard_task['title'], ENT_QUOTES, 'UTF-8'); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
-            <p class="page-intro"><?php echo $is_required_standard_task ? 'Required built-in work for every event checklist.' : 'Reusable work definition for event checklists.'; ?></p>
+            <p class="page-intro"><?php echo $is_required_standard_task ? 'Required work for every event checklist.' : 'Reusable work definition for event checklists.'; ?></p>
         </div>
         <?php if (!$is_archived && !$is_required_standard_task && canManageFollowUpTasks($user_role)): ?><a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="button-add">Edit standard task</a><?php endif; ?>
     </div>
@@ -48,7 +48,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
         <div class="standard-task-detail"><strong>Priority</strong><span class="task-due task-priority-<?php echo htmlspecialchars($standard_task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($priority_labels[$standard_task['priority']], ENT_QUOTES, 'UTF-8'); ?></span></div>
         <div class="standard-task-detail"><strong>Display order</strong><span><?php echo (int) $standard_task['sort_order']; ?></span></div>
         <div class="standard-task-detail"><strong>Generated work</strong><span><?php echo (int) $standard_task['generated_count']; ?> event task<?php echo (int) $standard_task['generated_count'] === 1 ? '' : 's'; ?></span></div>
-        <div class="standard-task-detail"><strong>Definition</strong><span><?php echo $is_required_standard_task ? 'Required built-in task' : 'Configurable task'; ?></span></div>
+        <div class="standard-task-detail"><strong>Definition</strong><span><?php echo $is_required_standard_task ? 'Required task' : 'Configurable task'; ?></span></div>
         <div class="standard-task-detail standard-task-detail-wide"><strong>Notes</strong><span><?php echo !empty($standard_task['details']) ? nl2br(htmlspecialchars($standard_task['details'], ENT_QUOTES, 'UTF-8')) : 'No notes'; ?></span></div>
         <div class="standard-task-detail standard-task-detail-wide"><strong>Internal key</strong><code><?php echo htmlspecialchars($standard_task['template_key'], ENT_QUOTES, 'UTF-8'); ?></code></div>
         <?php if ($is_archived): ?>
@@ -57,7 +57,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
     </div>
 
     <p class="result-context"><?php echo $is_required_standard_task
-        ? 'This reminder is fixed at one week after the event ends and cannot be edited, archived, or deleted. Existing event tasks remain independent.'
+        ? 'This required definition cannot be edited, archived, or deleted. Existing event tasks remain independent.'
         : 'Active definitions are copied automatically when new events are created. Edits affect future copies only; existing event tasks are independent.'; ?></p>
 
     <div class="engagement-page-actions standard-task-page-actions">

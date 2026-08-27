@@ -122,7 +122,7 @@ $restore_query = http_build_query([
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Restore Chron Entries - DNR'); ?>
+<?php renderPageHead(applicationPageTitle('Restore Chron Entries')); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">

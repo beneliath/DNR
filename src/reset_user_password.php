@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Reset User Password - DNR', array (
+<?php renderPageHead(applicationPageTitle('Reset User Password'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

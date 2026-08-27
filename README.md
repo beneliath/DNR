@@ -217,7 +217,8 @@ The routing policy is deliberately conservative:
 - DNR considers the message's `From`, `To`, and `Cc` addresses, excluding the configured gateway
   address and recognized internal users. A unique Contact match adds the message to that Contact and
   the Contact's Organization. A direct Organization email match adds it to the Organization.
-- Put the exact marker `[MOED#123]` in the subject to route the message to Engagement 123. A reply
+- Put the exact marker shown on the Engagement page in the subject to route the message. In the
+  tracked MOED deployment profile this is `[MOED#123]` for Engagement 123. A reply
   remains routable while that marker stays in its subject. One unique valid marker may be processed
   automatically when the sender is recognized. For an external Contact or Organization sender, the
   Engagement must belong to an Organization identified by the message participants. Invalid markers,
@@ -236,7 +237,7 @@ Exact address matching is a routing decision, not independent proof of sender id
 provider should enforce its normal spam and SPF/DKIM/DMARC checks, and suspicious messages should be
 left for manual review rather than approved solely because the visible `From` address is familiar.
 
-Both `Cc: moed@beneliath.com` and `Bcc: moed@beneliath.com` work. A Bcc delivery normally omits the
+Both `Cc` and `Bcc` delivery to the configured `DNR_INBOUND_ADDRESS` work. A Bcc delivery normally omits the
 gateway address from the stored message headers, which is expected; DNR routes using the remaining
 participants. For example, mail from a verified DNR user to a unique Contact routes to the Contact
 and its Organization, while a reply from that Contact is recognized from `From`.
@@ -311,6 +312,10 @@ Use both Traefik Compose files for every future update to that stack. The overla
 already in `.env.example`. If either subnet conflicts on another host, change all matching values
 together before creating the network.
 
+Those commands preserve the current MOED host layout. For a separate deployment, merge
+`deploy/traefik-edge.yaml` instead and set the same `DNR_EDGE_NETWORK`, Traefik address, and
+Cloudflared address in both Compose projects; its defaults match the generalized Ubuntu overlay.
+
 Create the normal database/application secrets, an empty mode-`600` IMAP password file, and a mode-
 `600` SMTP token file. Copy `.env.example` to `.env`, set the public URL and mail identities, and
 leave `DNR_TRAEFIK_ENABLE=false` during staging. Native Linux Compose mounts local secrets with
@@ -362,7 +367,50 @@ service applies the minimal baseline and every forward migration, records immuta
 state, and then applies the single privilege manifest. There is no independent schema snapshot to
 drift from the upgrade path.
 
-Environment Variables:
+### Deployment configuration profiles
+
+Non-secret deployment identity and business defaults live in a validated YAML profile. Compose
+mounts `DNR_CONFIG_FILE_HOST` read-only and exposes it inside PHP as `DNR_CONFIG_FILE`. The tracked
+MOED profile is [`deployments/moed/application.yaml`](deployments/moed/application.yaml); copy
+[`deployments/example/application.yaml`](deployments/example/application.yaml) when preparing an
+independent deployment. Do not put passwords, encryption keys, SMTP tokens, or other secrets in
+these files.
+
+The profile controls:
+
+- display, native, mail, calendar, and authenticator names plus light/dark logo assets;
+- default speaker, country, telephone country code, and business timezone;
+- emitted and accepted inbound-email marker prefixes, allowing old replies to remain routable after
+  a deployment rename;
+- tile provider URL/attribution and bounded dashboard, task, map, calendar, and PDF windows;
+- an explicit initial standard-task seed list.
+
+Logo paths are relative to the public application directory and must name files included under
+`src/assets/` before the image is built.
+
+Configuration precedence is built-in safe defaults, then deployment YAML, then a small set of
+documented environment overrides. Unknown YAML keys and invalid types, URLs, asset paths, marker
+prefixes, ranges, and timezones fail application startup. Validate a profile without connecting to
+the database:
+
+```sh
+DNR_CONFIG_FILE=deployments/example/application.yaml php scripts/check_config.php
+```
+
+Standard tasks are database-managed after import. Migrations never re-read YAML, and normal
+container startup never reconciles administrator edits. After migrations, explicitly insert missing
+profile tasks and apply only required-task policy with:
+
+```sh
+docker compose exec web php /opt/dnr/bin/seed_standard_tasks.php
+```
+
+Existing titles, notes, priorities, schedules, and sort order are not overwritten. Tasks absent from
+the profile are not deleted or archived. Historical product-default tasks came from immutable
+migrations, so a new deployment should archive any unwanted baseline definitions in **Standard
+event tasks** after running its profile seed.
+
+### Environment variables
 
 Configure these values as needed:
 
@@ -372,7 +420,7 @@ Configure these values as needed:
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
 - `DNR_MAIL_TRANSPORT`: `smtp` enables account and task-digest email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
-- `DNR_MAIL_FROM` and `DNR_MAIL_FROM_NAME`: validated sender address and display name for outbound email.
+- `DNR_MAIL_FROM`: validated sender address for outbound email. The sender display name comes from `brand.mail_name`; `DNR_MAIL_FROM_NAME` remains an optional highest-precedence override.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
 - `DNR_SMTP_USERNAME` and `DNR_SMTP_PASSWORD_SECRET_FILE`: optional SMTP authentication and the host path mounted by the SMTP overlay. The dedicated `mail-dispatch` service receives it as `DNR_SMTP_PASSWORD_FILE`; the web service remains backend-only and cannot reach the relay.
 - `DNR_SMTP_CA_SECRET_FILE` and `DNR_SMTP_PEER_NAME`: optional pinned SMTP trust anchor and expected certificate name. The certificate is mounted as `DNR_SMTP_CA_FILE` only by an `*-smtp-ca` mode; peer and chain verification remain enabled.
@@ -380,24 +428,29 @@ Configure these values as needed:
 - `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
 - `DNR_TASK_DIGEST_HOUR`: local hour from 0–23 after which opted-in users may receive that business day's digest; defaults to 7 and uses `DNR_TIMEZONE`.
-- `DNR_INBOUND_ADDRESS`: dedicated mailbox address copied on messages for Chron capture; defaults to `moed@beneliath.com` in the mail Compose overlay.
+- `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
 - `DNR_IMAP_USERNAME`, `DNR_IMAP_PASSWORD_FILE`, and `DNR_IMAP_MAILBOX`: mailbox credentials and selected folder. The mail Compose overlay mounts the password as a Docker secret; `DNR_IMAP_PASSWORD` is accepted only for simple non-Compose or development execution.
 - `DNR_IMAP_VERIFY_PEER`: verifies the IMAP server certificate by default. Disable it only for a local Proton Bridge endpoint using Bridge's self-signed certificate.
-- `DEFAULT_SPEAKER`: speaker name pre-filled on new presentations; defaults to `Olivier Melnick`. Set it in `.env` to customize it without editing `docker-compose.yaml`.
+- `DNR_CONFIG_FILE_HOST`: host path to the selected non-secret deployment YAML; defaults to the tracked MOED profile for backward compatibility.
+- `DNR_BRAND_DISPLAY_NAME`, `DNR_TOTP_ISSUER`, `DNR_CALENDAR_NAME`, `DNR_INBOUND_MARKER_PREFIX`, and `DNR_INBOUND_ACCEPTED_MARKER_PREFIXES`: optional highest-precedence identity overrides. The accepted marker value is a comma-separated list and must include the emitted prefix.
+- `DNR_DEFAULT_SPEAKER`: optional override for the profile's pre-filled presentation speaker. The legacy `DEFAULT_SPEAKER` name remains accepted during migration.
+- `DNR_DEFAULT_COUNTRY`, `DNR_DEFAULT_PHONE_COUNTRY_CODE`, and `DNR_TIMEZONE`: optional overrides for the corresponding profile defaults. Invalid values fail startup.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
 - `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
 - `DNR_SESSION_IDLE_SECONDS`, `DNR_SESSION_ABSOLUTE_SECONDS`, and `DNR_SESSION_ROTATION_SECONDS`: authenticated-session idle lifetime, absolute lifetime, and identifier-rotation interval. Defaults are 30 minutes, 12 hours, and 15 minutes.
 - `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` hops DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. DNR walks the forwarding chain from the nearest hop outward, skips only configured proxies, and uses the first untrusted address so a client-controlled leftmost value cannot override audit or throttling attribution. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers, including `X-Forwarded-Proto`.
 - `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.254`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
-- `DNR_TIMEZONE`: business timezone used for task due dates, rolling map/calendar windows, and displayed timestamps; defaults to `America/Chicago`. UTC is also shown beneath each audit timestamp.
+- `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, and `DNR_PDF_MAX_CHRON_ENTRIES`: optional overrides for validated workflow windows normally read from YAML.
 - `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `67108864` bytes (64 MB). Restore plaintext exists only in the maintenance container's memory-backed `/tmp`.
 - `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
-- `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: default bounded map window and hard result cap; defaults are 90 days back, 730 days forward, and 500 engagements.
+- `DNR_GEOCODER_BATCH_SIZE`, `DNR_GEOCODER_IDLE_SECONDS`, `DNR_GEOCODER_LEASE_SECONDS`, and `DNR_GEOCODER_MAX_ATTEMPTS`: bounded worker throughput, polling, stale-job lease, and retry policy.
+- `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: optional overrides for the bounded map window and result cap normally read from YAML.
+- `DNR_MAP_TILE_URL`, `DNR_MAP_ATTRIBUTION_TEXT`, `DNR_MAP_ATTRIBUTION_URL`, and `DNR_MAP_MAXIMUM_ZOOM`: optional overrides for the validated map provider. The tile origin is also used to construct the page's Content Security Policy.
 - `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the separate read-only export connection. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
 
 ### Build provenance
@@ -649,7 +702,7 @@ encrypted-storage and media-disposal policy.
 ## Daily operations dashboard
 
 The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
-view. It combines active engagements in the next 30 days, the signed-in user's active and overdue
+view. It combines active engagements in the configured upcoming window, the signed-in user's active and overdue
 work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
 identify unconfirmed events, missing venue addresses, missing presentations, and organizations
 without an assigned event contact. The greeting uses the signed-in user's first name when it is
@@ -731,7 +784,7 @@ postponed, canceled, and completed pins display their lifecycle state. Selecting
 event summary and a link to the full engagement. Events without an address are counted but cannot
 be placed.
 
-The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. Map tiles and location results are attributed to OpenStreetMap contributors. For a larger or commercial deployment, configure an allowlisted provider appropriate for that workload instead of relying on the public default.
+The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. The tile URL and attribution are supplied by the selected deployment profile; geocoding uses its separately allowlisted worker endpoint.
 
 Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
 private subscription URLs per device. The feed includes non-archived engagements in the configured

@@ -1,0 +1,38 @@
+# Copy this deployment profile and select it with DNR_CONFIG_FILE_HOST.
+brand:
+  display_name: Example Ministry
+  native_name: ''
+  mail_name: Example Ministry
+  totp_issuer: Example Ministry
+  calendar_name: Example Ministry Events
+  logo_light: assets/dnr-logo.svg
+  logo_dark: assets/dnr-logo-dark.svg
+
+defaults:
+  speaker: Default Speaker
+  country: US
+  phone_country_code: '+1'
+  timezone: America/New_York
+
+inbound_email:
+  emitted_marker_prefix: EXAMPLE
+  # Retain old prefixes here after renaming a deployment.
+  accepted_marker_prefixes: [EXAMPLE]
+
+map:
+  tile_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  attribution_text: OpenStreetMap contributors
+  attribution_url: https://www.openstreetmap.org/copyright
+  maximum_zoom: 19
+
+workflow:
+  dashboard_upcoming_days: 30
+  task_upcoming_days: 7
+  calendar_past_days: 365
+  calendar_future_days: 1095
+  map_past_days: 90
+  map_future_days: 730
+  map_max_events: 500
+  pdf_max_chron_entries: 500
+
+standard_event_tasks: []

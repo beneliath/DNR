@@ -40,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Invite User - DNR', array (
+<?php renderPageHead(applicationPageTitle('Invite User'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/github_version_helpers.php';
+
 function engagementMapStatuses()
 {
     return [
@@ -60,8 +63,8 @@ function normalizeEngagementMapFilters(array $query)
     // Keep the initial map query bounded. Callers may narrow this window, but
     // an empty filter never means "load the entire engagement history".
     if ($date_from === '' && $date_to === '') {
-        $past_days = max(0, min(3650, (int) (getenv('DNR_MAP_PAST_DAYS') ?: 90)));
-        $future_days = max(1, min(3650, (int) (getenv('DNR_MAP_FUTURE_DAYS') ?: 730)));
+        $past_days = applicationWorkflowSetting('map_past_days');
+        $future_days = applicationWorkflowSetting('map_future_days');
         $date_from = applicationBusinessDateOffset(-$past_days);
         $date_to = applicationBusinessDateOffset($future_days);
     }
@@ -267,7 +270,7 @@ function geocodeEngagementMapAddress($address)
         'q' => $address,
     ], '', '&', PHP_QUERY_RFC3986);
     $user_agent = preg_replace('/[\r\n]+/', ' ', trim((string) (getenv('DNR_GEOCODER_USER_AGENT')
-        ?: 'MOED/' . $application_version . ' (https://github.com/beneliath/DNR)')));
+        ?: applicationBrandName() . '/' . $application_version . ' (' . githubRepositoryUrl() . ')')));
     $context = stream_context_create(['http' => [
         'method' => 'GET',
         'header' => "Accept: application/json\r\nUser-Agent: {$user_agent}\r\n",

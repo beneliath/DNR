@@ -114,7 +114,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Account Security - DNR', array (
+<?php renderPageHead(applicationPageTitle('Account Security'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

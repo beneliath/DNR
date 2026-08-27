@@ -79,7 +79,7 @@ $presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt->close();
 
 try {
-    $pdf_chron_limit = max(50, min(1000, (int) (getenv('DNR_PDF_MAX_CHRON_ENTRIES') ?: 500)));
+    $pdf_chron_limit = applicationWorkflowSetting('pdf_max_chron_entries');
     $chron_entries = fetchChronLogEntries($conn, $engagement_id, false, $pdf_chron_limit, 0);
 } catch (Throwable $exception) {
     applicationLog('error', 'Unable to generate engagement PDF', ['error' => $exception->getMessage()]);

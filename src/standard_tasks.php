@@ -44,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!$target_standard_task) {
             throw new InvalidArgumentException('That standard task is no longer available.');
         }
-        if (isRequiredStandardEventTask($target_standard_task['template_key'])
+        if (isRequiredStandardEventTask($target_standard_task)
             && $action !== 'restore'
         ) {
             throw new InvalidArgumentException(
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare(
                 'UPDATE standard_event_tasks
                  SET is_archived = 1, archived_by = ?, archived_at = UTC_TIMESTAMP()
-                 WHERE id = ? AND is_archived = 0'
+                 WHERE id = ? AND is_archived = 0 AND is_required = 0'
             );
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the standard-task archive.');
@@ -75,7 +75,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = 'Standard task restored. It can be added to future event checklists.';
         } elseif ($action === 'delete') {
             $stmt = $conn->prepare(
-                'DELETE FROM standard_event_tasks WHERE id = ? AND is_archived = 1'
+                'DELETE FROM standard_event_tasks WHERE id = ? AND is_archived = 1 AND is_required = 0'
             );
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the standard-task deletion.');
@@ -129,7 +129,7 @@ $priority_labels = followUpTaskPriorities();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Standard Event Tasks - DNR', array (
+<?php renderPageHead(applicationPageTitle('Standard Event Tasks'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -168,12 +168,12 @@ $priority_labels = followUpTaskPriorities();
         <tbody>
         <?php if (!$standard_tasks): ?><tr><td colspan="6" class="empty-state">No <?php echo $show_archived ? 'archived' : 'active'; ?> standard event tasks.</td></tr><?php endif; ?>
         <?php foreach ($standard_tasks as $standard_task): ?>
-            <?php $is_required_standard_task = isRequiredStandardEventTask($standard_task['template_key']); ?>
+            <?php $is_required_standard_task = isRequiredStandardEventTask($standard_task); ?>
             <tr>
                 <td><?php echo (int) $standard_task['sort_order']; ?></td>
                 <td>
                     <a class="record-link" href="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>"><?php echo htmlspecialchars($standard_task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                    <?php if ($is_required_standard_task): ?><small class="task-notes-preview">Required built-in task</small><?php endif; ?>
+                    <?php if ($is_required_standard_task): ?><small class="task-notes-preview">Required task</small><?php endif; ?>
                     <?php if (!empty($standard_task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($standard_task['details']) > 160 ? substr($standard_task['details'], 0, 157) . '…' : $standard_task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
                 <td><?php echo htmlspecialchars(standardEventTaskScheduleLabel($standard_task['due_anchor'], $standard_task['due_offset_days']), ENT_QUOTES, 'UTF-8'); ?></td>

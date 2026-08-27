@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 function loadDnrComposerAutoloader() {
     static $loaded = false;
 
@@ -22,7 +24,7 @@ function loadDnrComposerAutoloader() {
         }
     }
 
-    throw new RuntimeException('Application dependencies are unavailable. Rebuild the DNR container.');
+    throw new RuntimeException('Application dependencies are unavailable. Rebuild the application container.');
 }
 
 loadDnrComposerAutoloader();
@@ -76,7 +78,7 @@ function decryptTwoFactorSecret($encrypted) {
 function createTotp($secret, $username) {
     return \OTPHP\TOTP::createFromSecret($secret, new DnrSystemClock())
         ->withLabel((string) $username)
-        ->withIssuer('DNR');
+        ->withIssuer(deploymentConfig()->string('brand.totp_issuer'));
 }
 
 function generateTotpSecret() {

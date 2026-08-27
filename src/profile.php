@@ -20,7 +20,7 @@ function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     if (!$stmt) {
         applicationLog('error', 'User profile schema is unavailable', ['error' => $conn->error]);
         http_response_code(503);
-        exit('DNR is being upgraded. The user profile database migration is required.');
+        exit(applicationBrandName() . ' is being upgraded. The user profile database migration is required.');
     }
     $stmt->bind_param('i', $user_id);
     if (!$stmt->execute()) {
@@ -69,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $first_name = trim((string) ($_POST['first_name'] ?? ''));
     $last_name = trim((string) ($_POST['last_name'] ?? ''));
     $email = trim((string) ($_POST['email'] ?? ''));
-    $phone_country_code = trim((string) ($_POST['phone_country_code'] ?? '+1'));
+    $phone_country_code = trim((string) ($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode()));
     $phone = trim((string) ($_POST['phone'] ?? ''));
     $task_digest_enabled_requested = ($_POST['task_digest_enabled'] ?? '') === '1';
     $remove_profile_picture = isset($_POST['remove_profile_picture']);
@@ -253,14 +253,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts(
     $user['phone'] ?? '',
-    $_POST['phone_country_code'] ?? '+1'
+    $_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode()
 );
 $stored_picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
 $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $stored_picture_version);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('My Profile - DNR', array (
+<?php renderPageHead(applicationPageTitle('My Profile'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

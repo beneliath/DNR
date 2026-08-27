@@ -1,5 +1,14 @@
 x-app-environment: &app-environment
-  DEFAULT_SPEAKER: ${DEFAULT_SPEAKER:-Olivier Melnick}
+  DNR_CONFIG_FILE: /run/dnr/config/application.yaml
+  DNR_BRAND_DISPLAY_NAME: ${DNR_BRAND_DISPLAY_NAME:-}
+  DNR_TOTP_ISSUER: ${DNR_TOTP_ISSUER:-}
+  DNR_CALENDAR_NAME: ${DNR_CALENDAR_NAME:-}
+  DNR_DEFAULT_SPEAKER: ${DNR_DEFAULT_SPEAKER:-}
+  DEFAULT_SPEAKER: ${DEFAULT_SPEAKER:-}
+  DNR_DEFAULT_COUNTRY: ${DNR_DEFAULT_COUNTRY:-}
+  DNR_DEFAULT_PHONE_COUNTRY_CODE: ${DNR_DEFAULT_PHONE_COUNTRY_CODE:-}
+  DNR_INBOUND_MARKER_PREFIX: ${DNR_INBOUND_MARKER_PREFIX:-}
+  DNR_INBOUND_ACCEPTED_MARKER_PREFIXES: ${DNR_INBOUND_ACCEPTED_MARKER_PREFIXES:-}
   DB_HOST: db
   MYSQL_DATABASE: dnr
   MYSQL_USER: dnruser
@@ -10,16 +19,25 @@ x-app-environment: &app-environment
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
-  DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
+  DNR_TIMEZONE: ${DNR_TIMEZONE:-}
   DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
   DNR_GITHUB_REPOSITORY: ${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
   DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
   DNR_SESSION_IDLE_SECONDS: ${DNR_SESSION_IDLE_SECONDS:-1800}
   DNR_SESSION_ABSOLUTE_SECONDS: ${DNR_SESSION_ABSOLUTE_SECONDS:-43200}
   DNR_SESSION_ROTATION_SECONDS: ${DNR_SESSION_ROTATION_SECONDS:-900}
-  DNR_MAP_PAST_DAYS: ${DNR_MAP_PAST_DAYS:-90}
-  DNR_MAP_FUTURE_DAYS: ${DNR_MAP_FUTURE_DAYS:-730}
-  DNR_MAP_MAX_EVENTS: ${DNR_MAP_MAX_EVENTS:-500}
+  DNR_MAP_PAST_DAYS: ${DNR_MAP_PAST_DAYS:-}
+  DNR_MAP_FUTURE_DAYS: ${DNR_MAP_FUTURE_DAYS:-}
+  DNR_MAP_MAX_EVENTS: ${DNR_MAP_MAX_EVENTS:-}
+  DNR_CALENDAR_PAST_DAYS: ${DNR_CALENDAR_PAST_DAYS:-}
+  DNR_CALENDAR_FUTURE_DAYS: ${DNR_CALENDAR_FUTURE_DAYS:-}
+  DNR_DASHBOARD_UPCOMING_DAYS: ${DNR_DASHBOARD_UPCOMING_DAYS:-}
+  DNR_TASK_UPCOMING_DAYS: ${DNR_TASK_UPCOMING_DAYS:-}
+  DNR_PDF_MAX_CHRON_ENTRIES: ${DNR_PDF_MAX_CHRON_ENTRIES:-}
+  DNR_MAP_TILE_URL: ${DNR_MAP_TILE_URL:-}
+  DNR_MAP_ATTRIBUTION_TEXT: ${DNR_MAP_ATTRIBUTION_TEXT:-}
+  DNR_MAP_ATTRIBUTION_URL: ${DNR_MAP_ATTRIBUTION_URL:-}
+  DNR_MAP_MAXIMUM_ZOOM: ${DNR_MAP_MAXIMUM_ZOOM:-}
   DNR_MAIL_TRANSPORT: ${DNR_MAIL_TRANSPORT:-disabled}
 
 services:
@@ -48,6 +66,8 @@ services:
       - dnr_mysql_app_password
       - dnr_mysql_backup_password
     environment: *app-environment
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend]
     healthcheck:
       test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
@@ -116,6 +136,12 @@ services:
       DNR_GEOCODER_USER_AGENT: ${DNR_GEOCODER_USER_AGENT:-}
       DNR_GEOCODER_BATCH_SIZE: ${DNR_GEOCODER_BATCH_SIZE:-10}
       DNR_GEOCODER_IDLE_SECONDS: ${DNR_GEOCODER_IDLE_SECONDS:-30}
+      DNR_GEOCODER_LEASE_SECONDS: ${DNR_GEOCODER_LEASE_SECONDS:-600}
+      DNR_GEOCODER_MAX_ATTEMPTS: ${DNR_GEOCODER_MAX_ATTEMPTS:-8}
+      DNR_CONFIG_FILE: /run/dnr/config/application.yaml
+      DNR_BRAND_DISPLAY_NAME: ${DNR_BRAND_DISPLAY_NAME:-}
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend, egress]
 
   maintenance:
@@ -138,6 +164,7 @@ services:
         condition: service_completed_successfully
     volumes:
       - ./backups:/backups:ro
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     secrets:
       - dnr_mysql_maintenance_password
       - dnr_mysql_backup_password
@@ -151,6 +178,7 @@ services:
       MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       DNR_BACKUP_PASSWORD_FILE: /run/secrets/dnr_backup_password
       DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
+      DNR_CONFIG_FILE: /run/dnr/config/application.yaml
     networks: [backend]
 
   db:

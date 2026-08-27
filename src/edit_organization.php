@@ -232,9 +232,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $phone_country_code_value = trim($_POST['phone_country_code'] ?? '+1');
+    $phone_country_code_value = trim($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode());
     [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
-    $fax_country_code_value = trim($_POST['fax_country_code'] ?? '+1');
+    $fax_country_code_value = trim($_POST['fax_country_code'] ?? applicationDefaultPhoneCountryCode());
     [, $fax_local_value] = phoneNumberInputParts($_POST['fax'] ?? '', $fax_country_code_value);
 } else {
     [$phone_country_code_value, $phone_local_value] = phoneNumberInputParts($organization['phone'] ?? '');
@@ -271,7 +271,7 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit Organization - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit Organization'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -369,7 +369,7 @@ try {
                 </div>
                 <div>
                     <select name="physical_country" data-address-country="physical">
-                        <?php echo addressCountrySelectOptions($organization['physical_country'] ?: 'US'); ?>
+                        <?php echo addressCountrySelectOptions($organization['physical_country'] ?: applicationDefaultCountry()); ?>
                     </select>
                 </div>
             </div>
@@ -395,7 +395,7 @@ try {
                 </div>
                 <div>
                     <select name="mailing_country" data-address-country="mailing">
-                        <?php echo addressCountrySelectOptions($organization['mailing_country'] ?: 'US'); ?>
+                        <?php echo addressCountrySelectOptions($organization['mailing_country'] ?: applicationDefaultCountry()); ?>
                     </select>
                 </div>
             </div>

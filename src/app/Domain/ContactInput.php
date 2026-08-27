@@ -30,7 +30,8 @@ final class ContactInput
             'contact_email_confirm' => InputText::value($input, 'contact_email_confirm'),
             'contact_phone' => InputText::value($input, 'contact_phone'),
             'contact_notes' => InputText::value($input, 'contact_notes'),
-            'contact_phone_country_code' => InputText::value($input, 'contact_phone_country_code') ?: '+1',
+            'contact_phone_country_code' => InputText::value($input, 'contact_phone_country_code')
+                ?: \applicationDefaultPhoneCountryCode(),
         ];
         $errors = [];
         if ($organization_id_is_invalid) {
@@ -105,7 +106,8 @@ final class ContactInput
             'contact_email_confirm' => $input['email_confirm'] ?? '',
             'contact_phone' => $input['phone'] ?? '',
             'contact_notes' => $input['notes'] ?? '',
-            'contact_phone_country_code' => $input['phone_country_code'] ?? '+1',
+            'contact_phone_country_code' => $input['phone_country_code']
+                ?? \applicationDefaultPhoneCountryCode(),
         ]);
         $data = $normalized['data'];
         return [

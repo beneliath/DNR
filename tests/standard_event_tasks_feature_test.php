@@ -19,6 +19,9 @@ $read = static function ($path) use ($root) {
 
 $migration = $read('migrations/20260821_add_standard_event_tasks.sql');
 $closeout_migration = $read('migrations/20260823_add_financial_closeout_standard_task.sql');
+$generalization_migration = $read('migrations/20260827_generalize_standard_event_tasks.sql');
+$seed_command = $read('scripts/seed_standard_tasks.php');
+$deployment_profile = $read('deployments/moed/application.yaml');
 $migration_order = $read('migrations/order.txt');
 expectStandardEventTaskFeature(
     str_contains($migration, 'CREATE TABLE IF NOT EXISTS standard_event_tasks')
@@ -29,6 +32,16 @@ expectStandardEventTaskFeature(
         && str_contains($migration, 'audit_standard_event_tasks_after_insert')
         && substr_count($migration, "('standard.") >= 9,
     'the forward migration should seed, constrain, and audit configurable standard event tasks.'
+);
+expectStandardEventTaskFeature(
+    str_contains($generalization_migration, 'ADD COLUMN is_required')
+        && str_contains($generalization_migration, 'chk_standard_event_task_required_active')
+        && str_contains($migration_order, '20260827_generalize_standard_event_tasks.sql')
+        && str_contains($seed_command, "deploymentConfig()->list('standard_event_tasks')")
+        && str_contains($seed_command, 'ON DUPLICATE KEY UPDATE')
+        && !str_contains($seed_command, 'title = VALUES(title)')
+        && str_contains($deployment_profile, 'required: true'),
+    'required policy should be persisted and deployment seeds should never overwrite task content.'
 );
 expectStandardEventTaskFeature(
     str_contains($closeout_migration, "'standard.financial_closeout'")
@@ -60,7 +73,7 @@ $engagement_commit_position = strpos($new_engagement, '$conn->commit()', $map_qu
 expectStandardEventTaskFeature(
     str_contains($helpers, "FROM standard_event_tasks template")
         && str_contains($helpers, "fetchStandardEventTaskTemplates(\$conn, 'active')")
-        && str_contains($helpers, "return ['standard.financial_closeout']")
+        && str_contains($helpers, "return !empty(\$template['is_required'])")
         && str_contains($helpers, 'function isRequiredStandardEventTask')
         && str_contains($helpers, "\$template['details']")
         && str_contains($helpers, "INSERT IGNORE INTO follow_up_tasks"),
@@ -72,7 +85,7 @@ expectStandardEventTaskFeature(
         && str_contains($list, "['archive', 'restore']")
         && str_contains($list, "requireRecentAdminElevation('standard_tasks.php?status=archived')")
         && str_contains($list, 'isRequiredStandardEventTask')
-        && str_contains($list, 'Required built-in task')
+        && str_contains($list, 'Required task')
         && str_contains($list, 'DELETE FROM standard_event_tasks WHERE id = ? AND is_archived = 1')
         && str_contains($list, 'Existing event tasks were not changed'),
     'the Work Queue should expose archive, restore, and guarded permanent deletion workflows.'
@@ -98,10 +111,10 @@ expectStandardEventTaskFeature(
 );
 expectStandardEventTaskFeature(
     str_contains($view, 'standardEventTaskScheduleLabel')
-        && str_contains($view, 'fixed at one week after the event ends')
+        && str_contains($view, 'This required definition cannot be edited, archived, or deleted')
         && str_contains($view, 'Generated work')
         && str_contains($edit, 'normalizeStandardEventTaskInput')
-        && str_contains($edit, 'required built-in standard task and cannot be edited')
+        && str_contains($edit, 'required standard task cannot be edited')
         && str_contains($edit, 'task_version')
         && str_contains($edit, 'hash_equals')
         && str_contains($form, 'name="due_anchor"')

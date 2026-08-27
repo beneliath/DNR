@@ -86,7 +86,7 @@ $contact_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('View Organization - DNR', array (
+<?php renderPageHead(applicationPageTitle('View Organization'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

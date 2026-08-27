@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 function normalizeAccountEmail($email)
 {
     $email = strtolower(trim((string) $email));
@@ -223,11 +225,12 @@ function accountMailTransport(): string
 function accountTokenEmailMessage(string $purpose, string $email, string $username, string $token): array
 {
     $email = normalizeAccountEmail($email);
+    $brandName = applicationBrandName();
     if ($purpose === 'invitation') {
         return [
             'recipient' => $email,
-            'subject' => 'Your MOED account invitation',
-            'body' => "You have been invited to MOED as {$username}.\n\n"
+            'subject' => 'Your ' . $brandName . ' account invitation',
+            'body' => "You have been invited to {$brandName} as {$username}.\n\n"
                 . "Accept the invitation and choose your password:\n"
                 . applicationPublicUrl('accept_invitation.php', ['token' => $token]) . "\n\n"
                 . 'This single-use link expires in seven days.',
@@ -236,8 +239,8 @@ function accountTokenEmailMessage(string $purpose, string $email, string $userna
     if ($purpose === 'verification') {
         return [
             'recipient' => $email,
-            'subject' => 'Verify your MOED email address',
-            'body' => "Hello {$username},\n\nVerify this email address for your MOED account:\n"
+            'subject' => 'Verify your ' . $brandName . ' email address',
+            'body' => "Hello {$username},\n\nVerify this email address for your {$brandName} account:\n"
                 . applicationPublicUrl('verify_email.php', ['token' => $token]) . "\n\n"
                 . 'This single-use link expires in 24 hours.',
         ];
@@ -245,8 +248,8 @@ function accountTokenEmailMessage(string $purpose, string $email, string $userna
     if ($purpose === 'recovery') {
         return [
             'recipient' => $email,
-            'subject' => 'Reset your MOED password',
-            'body' => "Hello {$username},\n\nUse this link to choose a new MOED password:\n"
+            'subject' => 'Reset your ' . $brandName . ' password',
+            'body' => "Hello {$username},\n\nUse this link to choose a new {$brandName} password:\n"
                 . applicationPublicUrl('recover_password.php', ['token' => $token]) . "\n\n"
                 . 'This single-use link expires in one hour. If you did not request it, ignore this email.',
         ];
@@ -544,7 +547,7 @@ function sendSmtpMessage($recipient, $subject, $body)
 {
     $recipient = normalizeAccountEmail($recipient);
     $from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
-    $from_name = trim((string) (getenv('DNR_MAIL_FROM_NAME') ?: 'MOED'));
+    $from_name = deploymentConfig()->string('brand.mail_name');
     if (preg_match('/[\r\n]/', $from_name . (string) $subject) === 1) {
         throw new InvalidArgumentException('Mail headers contain invalid characters.');
     }
@@ -637,10 +640,11 @@ function deliverAccountEmail($recipient, $subject, $body)
 function sendInvitationEmail($email, $username, $token)
 {
     $url = applicationPublicUrl('accept_invitation.php', ['token' => $token]);
+    $brandName = applicationBrandName();
     return deliverAccountEmail(
         $email,
-        'Your MOED account invitation',
-        "You have been invited to MOED as {$username}.\n\n"
+        'Your ' . $brandName . ' account invitation',
+        "You have been invited to {$brandName} as {$username}.\n\n"
         . "Accept the invitation and choose your password:\n{$url}\n\n"
         . "This single-use link expires in seven days."
     );
@@ -649,10 +653,11 @@ function sendInvitationEmail($email, $username, $token)
 function sendVerificationEmail($email, $username, $token)
 {
     $url = applicationPublicUrl('verify_email.php', ['token' => $token]);
+    $brandName = applicationBrandName();
     return deliverAccountEmail(
         $email,
-        'Verify your MOED email address',
-        "Hello {$username},\n\nVerify this email address for your MOED account:\n{$url}\n\n"
+        'Verify your ' . $brandName . ' email address',
+        "Hello {$username},\n\nVerify this email address for your {$brandName} account:\n{$url}\n\n"
         . "This single-use link expires in 24 hours."
     );
 }
@@ -660,10 +665,11 @@ function sendVerificationEmail($email, $username, $token)
 function sendPasswordRecoveryEmail($email, $username, $token)
 {
     $url = applicationPublicUrl('recover_password.php', ['token' => $token]);
+    $brandName = applicationBrandName();
     return deliverAccountEmail(
         $email,
-        'Reset your MOED password',
-        "Hello {$username},\n\nUse this link to choose a new MOED password:\n{$url}\n\n"
+        'Reset your ' . $brandName . ' password',
+        "Hello {$username},\n\nUse this link to choose a new {$brandName} password:\n{$url}\n\n"
         . "This single-use link expires in one hour. If you did not request it, ignore this email."
     );
 }

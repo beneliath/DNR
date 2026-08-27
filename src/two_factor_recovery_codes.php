@@ -18,7 +18,7 @@ $destination = twoFactorRecoveryCodesDestination($initial_login);
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Two-Factor Recovery Codes - DNR', array (
+<?php renderPageHead(applicationPageTitle('Two-Factor Recovery Codes'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

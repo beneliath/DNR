@@ -74,7 +74,7 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('View Contact - DNR', array (
+<?php renderPageHead(applicationPageTitle('View Contact'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

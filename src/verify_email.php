@@ -76,13 +76,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $verification) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Verify Email - DNR', [
+<?php renderPageHead(applicationPageTitle('Verify Email'), [
     'styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css'],
     'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]],
 ]); ?>
 <body class="fullscreen-center">
 <div class="login-container recovery-container">
-    <div class="auth-brand"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></div>
+    <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Verify Email</h1>
     <?php if (isset($verified)): ?>
         <p class="success">Your email address is verified and can now be used for password recovery.</p>

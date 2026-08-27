@@ -2,7 +2,7 @@ services:
   web:
     environment:
       # The inner ingress adds its fixed backend address automatically. The
-      # only other trusted hop is Traefik on MOED's private edge network.
+      # only other trusted hop is Traefik on the deployment's private edge network.
       DNR_TRUSTED_PROXY_IPS: ${DNR_EDGE_TRAEFIK_IP:-172.29.255.2},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
       # Cloudflared must be assigned this exact address in the host Traefik
       # stack. Trusting the whole shared proxy subnet would let an unrelated
@@ -17,18 +17,18 @@ services:
       ingress: {}
       backend:
         ipv4_address: ${DNR_INGRESS_PROXY_IP:-172.30.255.254}
-      moed_edge:
+      edge:
         ipv4_address: ${DNR_EDGE_INGRESS_IP:-172.29.255.3}
     labels:
-      traefik.enable: ${DNR_TRAEFIK_ENABLE:-false}
-      traefik.docker.network: ${DNR_EDGE_NETWORK:-moed_edge}
-      traefik.http.routers.moed.rule: Host(`${DNR_PUBLIC_HOSTNAME:-moed.beneliath.com}`)
-      traefik.http.routers.moed.entrypoints: https
-      traefik.http.routers.moed.tls: "true"
-      traefik.http.routers.moed.tls.certresolver: cloudflare
-      traefik.http.services.moed.loadbalancer.server.port: "80"
+      - traefik.enable=${DNR_TRAEFIK_ENABLE:-false}
+      - traefik.docker.network=${DNR_EDGE_NETWORK:-dnr_edge}
+      - traefik.http.routers.${DNR_TRAEFIK_ROUTER:-dnr}.rule=Host(`${DNR_PUBLIC_HOSTNAME:-dnr.example.org}`)
+      - traefik.http.routers.${DNR_TRAEFIK_ROUTER:-dnr}.entrypoints=${DNR_TRAEFIK_ENTRYPOINT:-https}
+      - traefik.http.routers.${DNR_TRAEFIK_ROUTER:-dnr}.tls=true
+      - traefik.http.routers.${DNR_TRAEFIK_ROUTER:-dnr}.tls.certresolver=${DNR_TRAEFIK_CERT_RESOLVER:-cloudflare}
+      - traefik.http.services.${DNR_TRAEFIK_SERVICE:-dnr}.loadbalancer.server.port=80
 
 networks:
-  moed_edge:
-    name: ${DNR_EDGE_NETWORK:-moed_edge}
+  edge:
+    name: ${DNR_EDGE_NETWORK:-dnr_edge}
     external: true

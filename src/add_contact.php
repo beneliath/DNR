@@ -117,7 +117,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     }
 }
 
-$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $contact_phone_local_value] = phoneNumberInputParts(
     $_POST['contact_phone'] ?? '',
     $contact_phone_country_code_value
@@ -130,7 +130,7 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
 
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Add Contact - DNR', array (
+<?php renderPageHead(applicationPageTitle('Add Contact'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

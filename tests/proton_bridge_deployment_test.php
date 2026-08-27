@@ -17,6 +17,7 @@ $healthcheck = file_get_contents($root . '/docker/proton-bridge-healthcheck.sh')
 $bridge = file_get_contents($root . '/docker-compose.proton-bridge.yaml');
 $ubuntu = file_get_contents($root . '/docker-compose.ubuntu.yaml');
 $traefik = file_get_contents($root . '/deploy/traefik-moed-edge.yaml');
+$genericTraefik = file_get_contents($root . '/deploy/traefik-edge.yaml');
 $cli = file_get_contents($root . '/scripts/proton_bridge_cli.sh');
 $linuxSecrets = file_get_contents($root . '/scripts/prepare_linux_secrets.sh');
 $example = file_get_contents($root . '/.env.example');
@@ -53,7 +54,8 @@ expectProtonBridgeDeployment(
         && str_contains($ubuntu, '172.29.255.2')
         && str_contains($ubuntu, '172.29.255.3')
         && str_contains($ubuntu, '172.18.0.254')
-        && str_contains($ubuntu, 'traefik.http.services.moed.loadbalancer.server.port'),
+        && str_contains($ubuntu, 'traefik.http.services.${DNR_TRAEFIK_SERVICE:-dnr}.loadbalancer.server.port')
+        && str_contains($ubuntu, 'traefik.http.routers.${DNR_TRAEFIK_ROUTER:-dnr}.rule'),
     'Ubuntu ingress should use a disabled-by-default private Traefik edge and exact trusted hops.'
 );
 expectProtonBridgeDeployment(
@@ -61,6 +63,13 @@ expectProtonBridgeDeployment(
         && str_contains($traefik, 'ipv4_address: ${DNR_CLOUDFLARED_PROXY_IP:-172.18.0.254}')
         && str_contains($traefik, 'external: true'),
     'the host proxy overlay should make both trusted addresses stable across container restarts.'
+);
+expectProtonBridgeDeployment(
+    str_contains($genericTraefik, 'edge:')
+        && str_contains($genericTraefik, 'name: ${DNR_EDGE_NETWORK:-dnr_edge}')
+        && str_contains($genericTraefik, 'ipv4_address: ${DNR_EDGE_TRAEFIK_IP:-172.29.255.2}')
+        && !str_contains($genericTraefik, 'MOED'),
+    'a generic host proxy overlay should match the generalized Ubuntu edge defaults.'
 );
 expectProtonBridgeDeployment(
     is_executable($root . '/scripts/proton_bridge_cli.sh')

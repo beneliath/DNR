@@ -3,7 +3,7 @@ FROM ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a
 ARG PROTON_BRIDGE_VERSION=3.25.0-1
 ARG PROTON_BRIDGE_SHA256=6b0318f4f425ef1a19b63e2bd589bc1036d95f073cb9ac26b42c0fc63a8bc275
 
-LABEL org.opencontainers.image.title="MOED Proton Mail Bridge sidecar" \
+LABEL org.opencontainers.image.title="DNR Proton Mail Bridge sidecar" \
       org.opencontainers.image.source="https://github.com/ProtonMail/proton-bridge" \
       org.opencontainers.image.version="${PROTON_BRIDGE_VERSION}"
 

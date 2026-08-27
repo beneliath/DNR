@@ -2,7 +2,12 @@
 
 declare(strict_types=1);
 
+$original_timezone = getenv('DNR_TIMEZONE');
+putenv('DNR_TIMEZONE=America/Chicago');
+
 require_once __DIR__ . '/../src/application_runtime.php';
+
+use Dnr\Config\DeploymentConfig;
 
 function expectApplicationClock(bool $condition, string $message): void
 {
@@ -12,9 +17,6 @@ function expectApplicationClock(bool $condition, string $message): void
     }
 }
 
-$original_timezone = getenv('DNR_TIMEZONE');
-
-putenv('DNR_TIMEZONE=America/Chicago');
 $near_midnight_utc = new DateTimeImmutable('2026-08-23 01:30:00', new DateTimeZone('UTC'));
 expectApplicationClock(
     applicationTimezoneName() === 'America/Chicago'
@@ -28,11 +30,17 @@ expectApplicationClock(
     'database UTC timestamps should display in the configured timezone.'
 );
 
-putenv('DNR_TIMEZONE=not/a-timezone');
+$invalid_timezone_rejected = false;
+try {
+    DeploymentConfig::load(dirname(__DIR__) . '/deployments/example/application.yaml', [
+        'DNR_TIMEZONE' => 'not/a-timezone',
+    ]);
+} catch (InvalidArgumentException $exception) {
+    $invalid_timezone_rejected = str_contains($exception->getMessage(), 'not/a-timezone');
+}
 expectApplicationClock(
-    applicationTimezoneName() === 'UTC'
-        && applicationBusinessDate($near_midnight_utc) === '2026-08-23',
-    'an invalid timezone should fail closed to UTC.'
+    $invalid_timezone_rejected,
+    'an invalid timezone should fail fast instead of silently changing the business date.'
 );
 
 if ($original_timezone === false) {

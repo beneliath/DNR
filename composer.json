@@ -1,6 +1,6 @@
 {
     "name": "beneliath/dnr",
-    "description": "DNR - MOED מוֹעֵד",
+    "description": "DNR engagement management application",
     "type": "project",
     "license": "MIT",
     "autoload": {
@@ -9,16 +9,17 @@
         }
     },
     "require": {
+        "php": "^8.4",
         "ext-fileinfo": "*",
         "ext-gd": "*",
         "ext-mbstring": "*",
         "ext-mysqli": "*",
         "ext-openssl": "*",
         "ext-sodium": "*",
-        "php": "^8.4",
         "endroid/qr-code": "^6.0",
         "giggsey/libphonenumber-for-php": "^9.0",
         "spomky-labs/otphp": "^11.4",
+        "symfony/yaml": "^7.3",
         "tecnickcom/tcpdf": "^6.11",
         "zbateson/mail-mime-parser": "^4.0.3"
     },

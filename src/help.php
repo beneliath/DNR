@@ -10,6 +10,11 @@ $manual_role = (string) ($_SESSION['role'] ?? 'reviewer');
 $manual_role_label = ucfirst($manual_role);
 $manual_can_manage = in_array($manual_role, ['admin', 'editor'], true);
 $manual_is_admin = $manual_role === 'admin';
+$manual_brand = applicationBrandName();
+$manual_marker_example = applicationInboundMarker(123);
+$manual_marker_template = str_replace('123', 'ID', $manual_marker_example);
+$manual_dashboard_days = applicationWorkflowSetting('dashboard_upcoming_days');
+$manual_task_days = applicationWorkflowSetting('task_upcoming_days');
 $manual_access_summary = match ($manual_role) {
     'admin' => 'You can manage every record and use the administrator, audit, and backup tools.',
     'editor' => 'You can create and maintain records, tasks, financial closeouts, and inbound mail.',
@@ -18,7 +23,7 @@ $manual_access_summary = match ($manual_role) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('User Manual - MOED', [
+<?php renderPageHead(applicationPageTitle('User Manual'), [
     'styles' => [
         'assets/css/style.min.css',
         'assets/css/modern.min.css',
@@ -30,10 +35,10 @@ $manual_access_summary = match ($manual_role) {
 <?php include 'templates/header.php'; ?>
 <main class="container manual-container">
     <section class="manual-hero" aria-labelledby="manual-title">
-        <span class="manual-eyebrow">MOED Reference Guide</span>
+        <span class="manual-eyebrow"><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> Reference Guide</span>
         <section class="manual-hero-copy">
             <h1 id="manual-title">User Manual</h1>
-            <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to MOED.</p>
+            <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
         </section>
         <section class="manual-role-summary" aria-label="Your access">
             <span>Your Access</span>
@@ -80,7 +85,7 @@ $manual_access_summary = match ($manual_role) {
                 <header class="manual-chapter-heading">
                     <span>Chapter 01</span>
                     <h2>Getting Oriented</h2>
-                    <p>MOED keeps event planning, people, communication history, and next actions connected instead of scattering them across separate systems.</p>
+                    <p><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> keeps event planning, people, communication history, and next actions connected instead of scattering them across separate systems.</p>
                 </header>
 
                 <article class="manual-callout manual-callout-accent">
@@ -100,7 +105,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-card-number">2</span>
                         <h3>Switch the Theme</h3>
-                        <p>Select <strong>Dark Theme</strong> or <strong>Light Theme</strong> near the bottom of the sidebar. MOED remembers the choice in this browser.</p>
+                        <p>Select <strong>Dark Theme</strong> or <strong>Light Theme</strong> near the bottom of the sidebar. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> remembers the choice in this browser.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-card-number">3</span>
@@ -192,7 +197,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Scan</span>
                         <h3>Daily Summary</h3>
-                        <p>The top cards link to engagements in the next 30 days, your active and overdue work, open financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
+                        <p>The top cards link to engagements in the next <?php echo $manual_dashboard_days; ?> days, your active and overdue work, open financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Act</span>
@@ -286,7 +291,7 @@ $manual_access_summary = match ($manual_role) {
                     </section>
                     <p>To paste a QR image, copy it in the source application and select <strong>Paste QR code</strong>. When direct clipboard reading is unavailable, leave that button focused and press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>. Save the engagement to store new, replaced, or removed assets.</p>
                     <p>Each saved presentation has a <strong>Save Changes</strong> button in its lower-left corner, so you can save without scrolling to the page-level button. Saved presentations can also be archived independently from the engagement. Restore archived presentations from the edit or view page; if an archived presentation no longer falls within the event dates, enter a valid date and time during restoration. Administrators can permanently delete presentations after fresh elevation.</p>
-                    <p>When postponing or canceling an event, link it to a replacement from the same organization. MOED displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
+                        <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -378,7 +383,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                     <article class="manual-card">
                         <h3>Queue Views</h3>
-                        <p>Use My work, Overdue, Due today, Next 7 days, Waiting, Unassigned, Completed, or All active. Search matches task content, related records, and assignees.</p>
+                        <p>Use My work, Overdue, Due today, Next <?php echo $manual_task_days; ?> days, Waiting, Unassigned, Completed, or All active. Search matches task content, related records, and assignees.</p>
                     </article>
                 </section>
 
@@ -386,7 +391,7 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Create a Useful Task</h3>
                     <ol class="manual-steps manual-steps-compact">
                         <li><span>01</span><section><strong>Write a concrete title.</strong><p>Use notes for supporting detail, not as a substitute for the next action.</p></section></li>
-                        <li><span>02</span><section><strong>Link the right record.</strong><p>Search for an engagement, organization, or contact; choose General DNR work when no record applies.</p></section></li>
+                        <li><span>02</span><section><strong>Link the right record.</strong><p>Search for an engagement, organization, or contact; choose <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.</p></section></li>
                         <li><span>03</span><section><strong>Name an owner and due date.</strong><p>Tasks may be unassigned or have no date, but explicit ownership keeps them out of limbo.</p></section></li>
                         <li><span>04</span><section><strong>Set priority and status.</strong><p>Choose Low, Normal, High, or Urgent and one of the workflow states below.</p></section></li>
                     </ol>
@@ -418,7 +423,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="tasks.php">Open the Work Queue <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="chron-mail" data-manual-section data-keywords="chron log communication call email meeting history archive restore inbound mail mailbox marker MOED routing retry approve reject processed source email purge Bcc Cc sender review attachment">
+            <section class="manual-chapter" id="chron-mail" data-manual-section data-keywords="chron log communication call email meeting history archive restore inbound mail mailbox marker <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> routing retry approve reject processed source email purge Bcc Cc sender review attachment">
                 <header class="manual-chapter-heading">
                     <span>Chapter 07</span>
                     <h2>Chron and Inbound Mail</h2>
@@ -440,14 +445,14 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">@</span>
                     <div class="manual-callout-body">
                         <h3>Route Email to an Engagement</h3>
-                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject: <code>[MOED#123]</code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. Replies remain routable while the marker remains. One unique valid marker can route to that active engagement when the sender and participants satisfy the relationship checks.</p>
+                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject: <code><?php echo htmlspecialchars($manual_marker_example, ENT_QUOTES, 'UTF-8'); ?></code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. Replies remain routable while the marker remains. One unique valid marker can route to that active engagement when the sender and participants satisfy the relationship checks.</p>
                     </div>
                 </article>
 
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>Automatic Routing</h3>
-                        <p>MOED matches exact email addresses for active verified users, contacts, and organizations. A unique contact participant routes to the Contact and its Organization. A direct organization address routes there. <strong>Cc</strong> and <strong>Bcc</strong> delivery both work.</p>
+                        <p><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> matches exact email addresses for active verified users, contacts, and organizations. A unique contact participant routes to the Contact and its Organization. A direct organization address routes there. <strong>Cc</strong> and <strong>Bcc</strong> delivery both work.</p>
                     </article>
                     <article class="manual-card">
                         <h3>What Is Retained</h3>
@@ -468,7 +473,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Treat Address Matching as a Routing Aid</h3><p>An exact visible From address is not independent proof of identity. Respect the mailbox provider’s spam and SPF/DKIM/DMARC signals. Leave suspicious messages for review. Administrator purge removes the retained MOED mail card and source links, but preserves Chron entries and never deletes the original IMAP message.</p></div>
+                    <div class="manual-callout-body"><h3>Treat Address Matching as a Routing Aid</h3><p>An exact visible From address is not independent proof of identity. Respect the mailbox provider’s spam and SPF/DKIM/DMARC signals. Leave suspicious messages for review. Administrator purge removes the retained <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> mail card and source links, but preserves Chron entries and never deletes the original IMAP message.</p></div>
                 </article>
             </section>
 
@@ -574,7 +579,7 @@ $manual_access_summary = match ($manual_role) {
                 <?php if (!$manual_is_admin): ?>
                     <article class="manual-callout manual-callout-neutral">
                         <span class="manual-callout-icon" aria-hidden="true">i</span>
-                        <div class="manual-callout-body"><h3>Administrator Access Required</h3><p>This chapter explains how MOED is governed, but its linked controls appear only to administrators.</p></div>
+                        <div class="manual-callout-body"><h3>Administrator Access Required</h3><p>This chapter explains how <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> is governed, but its linked controls appear only to administrators.</p></div>
                     </article>
                 <?php endif; ?>
 
@@ -600,7 +605,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Continuity</span>
                         <h3>Encrypted Backup</h3>
-                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a backup password of at least 12 characters. MOED downloads a <code>.dnrbackup</code> snapshot encrypted with Argon2id and XChaCha20-Poly1305.</p>
+                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a backup password of at least 12 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads a <code>.dnrbackup</code> snapshot encrypted with Argon2id and XChaCha20-Poly1305.</p>
                         <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Database restore is intentionally a deployment-host procedure, not a web action.</p>
                         <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
                     </article>
@@ -632,7 +637,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Organization Will Not Archive</span><i aria-hidden="true">+</i></summary>
-                        <p>Archive or move every active contact and engagement belonging to it first. MOED prevents archiving the parent while active child records would become stranded.</p>
+                        <p>Archive or move every active contact and engagement belonging to it first. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> prevents archiving the parent while active child records would become stranded.</p>
                     </details>
                     <details>
                         <summary><span>Search Did Not Find an Engagement</span><i aria-hidden="true">+</i></summary>
@@ -644,7 +649,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Email Still Needs Review</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code>[MOED#ID]</code> subject marker where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
+                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> subject marker where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
                     </details>
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>
@@ -656,11 +661,11 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A QR Code Will Not Paste or Copy</span><i aria-hidden="true">+</i></summary>
-                        <p>For paste, copy a supported JPEG, PNG, or WebP image, select <strong>Paste QR code</strong>, and—if prompted by the page—press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> while the button remains focused. For copy, select the QR preview. If the browser cannot write an image directly to the clipboard, MOED opens the image in a separate tab so you can copy it there.</p>
+                        <p>For paste, copy a supported JPEG, PNG, or WebP image, select <strong>Paste QR code</strong>, and—if prompted by the page—press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> while the button remains focused. For copy, select the QR preview. If the browser cannot write an image directly to the clipboard, <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> opens the image in a separate tab so you can copy it there.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>
-                        <p>Reload the page and repeat the change. MOED rejects stale or missing request tokens, and concurrent edits may require you to reopen the newest record before saving.</p>
+                        <p>Reload the page and repeat the change. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> rejects stale or missing request tokens, and concurrent edits may require you to reopen the newest record before saving.</p>
                     </details>
                     <details>
                         <summary><span>I Was Signed Out Unexpectedly</span><i aria-hidden="true">+</i></summary>

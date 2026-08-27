@@ -42,7 +42,8 @@ expectFollowUpTaskFeature(
         && str_contains($helpers, "'my' => 'My work'")
         && str_contains($helpers, "'overdue' => 'Overdue'")
         && str_contains($helpers, "'today' => 'Due today'")
-        && str_contains($helpers, "'upcoming' => 'Next 7 days'")
+        && str_contains($helpers, "'upcoming' => 'Next ' . \$upcomingDays . ' days'")
+        && str_contains($helpers, "applicationWorkflowSetting('task_upcoming_days')")
         && str_contains($queue, 'assigned_to IS NULL')
         && str_contains($queue, "t.status = 'waiting'"),
     'the queue should expose personal, due-date, waiting, and unassigned work views from one allowlist.'

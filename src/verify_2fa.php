@@ -86,7 +86,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Two-Factor Verification - DNR', array (
+<?php renderPageHead(applicationPageTitle('Two-Factor Verification'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -108,7 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </button>
     <div class="login-container">
         <div class="auth-brand">
-            <img class="auth-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="DNR" width="320" height="55">
+            <img class="auth-brand-logo" src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('dark') . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(applicationBrandLabel(), ENT_QUOTES, 'UTF-8'); ?>" width="320" height="55">
         </div>
         <h1>Verification</h1>
         <?php if (isset($error)): ?>

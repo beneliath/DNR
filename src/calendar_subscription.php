@@ -170,7 +170,7 @@ $webcal_url = $calendar_url === null
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Calendar - DNR', array (
+<?php renderPageHead(applicationPageTitle('Calendar'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

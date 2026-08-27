@@ -200,7 +200,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Audit Log - DNR', array (
+<?php renderPageHead(applicationPageTitle('Audit Log'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

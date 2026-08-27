@@ -93,8 +93,9 @@ expectHeaderScope(
 foreach (['recover_password.php'] as $authentication_page) {
     $authentication_markup = file_get_contents(__DIR__ . '/../src/' . $authentication_page);
     expectHeaderScope(
-        str_contains($authentication_markup, 'MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi>'),
-        $authentication_page . ' should render the MOED brand.'
+        str_contains($authentication_markup, 'applicationBrandName()')
+            && str_contains($authentication_markup, 'applicationBrandNativeName()'),
+        $authentication_page . ' should render the configured deployment brand.'
     );
     expectHeaderScope(!str_contains($authentication_markup, 'app-brand-mark'), $authentication_page . ' should not render a separate logo mark.');
 }
@@ -103,8 +104,8 @@ $login_markup = file_get_contents(__DIR__ . '/../src/login.php');
 expectHeaderScope(
     substr_count($login_markup, 'class="auth-brand-logo"') === 1
         && str_contains($login_markup, 'data-theme-logo')
-        && str_contains($login_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
-        && str_contains($login_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($login_markup, "assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1')")
+        && str_contains($login_markup, "assetUrl(applicationBrandLogo('dark') . '?rev=sidebar-dark-1')")
         && str_contains($login_markup, 'width="320" height="55"'),
     'The login page should render one responsive DNR logo with light- and dark-theme sources.'
 );
@@ -113,8 +114,8 @@ $verification_markup = file_get_contents(__DIR__ . '/../src/verify_2fa.php');
 expectHeaderScope(
     substr_count($verification_markup, 'class="auth-brand-logo"') === 1
         && str_contains($verification_markup, 'data-theme-logo')
-        && str_contains($verification_markup, "assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1')")
-        && str_contains($verification_markup, "assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1')")
+        && str_contains($verification_markup, "assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1')")
+        && str_contains($verification_markup, "assetUrl(applicationBrandLogo('dark') . '?rev=sidebar-dark-1')")
         && str_contains($verification_markup, 'width="320" height="55"'),
     'The verification page should render one responsive DNR logo with light- and dark-theme sources.'
 );

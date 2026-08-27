@@ -81,7 +81,7 @@ expectUserManual(
         && str_contains($manual, 'Editor')
         && str_contains($manual, 'Administrator')
         && str_contains($manual, 'Lifecycle and confirmation are independent.')
-        && str_contains($manual, '[MOED#123]')
+        && str_contains($manual, 'applicationInboundMarker(123)')
         && str_contains($manual, 'Permanent Means Permanent'),
     'the manual should explain role boundaries, event state, email routing, and destructive actions.'
 );

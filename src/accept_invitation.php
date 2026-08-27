@@ -119,13 +119,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Accept Invitation - DNR', [
+<?php renderPageHead(applicationPageTitle('Accept Invitation'), [
     'styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css'],
     'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]],
 ]); ?>
 <body class="fullscreen-center">
 <div class="login-container recovery-container">
-    <div class="auth-brand"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></div>
+    <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Accept Invitation</h1>
     <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($invitation): ?>

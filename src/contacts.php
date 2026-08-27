@@ -237,7 +237,7 @@ function contactsPageUrl(
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Contacts - DNR', array (
+<?php renderPageHead(applicationPageTitle('Contacts'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

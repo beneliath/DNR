@@ -40,3 +40,4 @@
 20260824_optimize_task_reminders.sql
 20260825_allow_contacts_without_organizations.sql
 20260825_add_presentation_assets.sql
+20260827_generalize_standard_event_tasks.sql

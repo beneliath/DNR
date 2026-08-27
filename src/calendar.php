@@ -16,8 +16,8 @@ if ($subscription === null) {
     exit('Calendar feed not found.');
 }
 
-$past_days = max(0, min(3650, (int) (getenv('DNR_CALENDAR_PAST_DAYS') ?: 365)));
-$future_days = max(30, min(3650, (int) (getenv('DNR_CALENDAR_FUTURE_DAYS') ?: 1095)));
+$past_days = applicationWorkflowSetting('calendar_past_days');
+$future_days = applicationWorkflowSetting('calendar_future_days');
 $window_start = applicationBusinessDateOffset(-$past_days);
 $window_end = applicationBusinessDateOffset($future_days);
 $engagement_window = 'e.event_end_date >= ? AND e.event_start_date <= ?';
@@ -32,14 +32,14 @@ if (!$revision_result) {
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: private, no-store');
-    exit('The DNR calendar is temporarily unavailable.');
+    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
 $calendar_revision = $revision_result->fetch_assoc();
 if (!$calendar_revision) {
     http_response_code(503);
     header('Content-Type: text/plain; charset=utf-8');
     header('Cache-Control: private, no-store');
-    exit('The DNR calendar is temporarily unavailable.');
+    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
 $etag = '"calendar-' . hash('sha256', implode('|', [
     $calendar_revision['revision'] ?? 0,
@@ -97,7 +97,7 @@ $engagement_statement = $conn->prepare($query);
 if (!$engagement_statement) {
     applicationLog('error', 'Unable to build the private calendar', ['error' => $conn->error]);
     http_response_code(503);
-    exit('The DNR calendar is temporarily unavailable.');
+    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
 $engagement_statement->bind_param('ss', $window_start, $window_end);
 $engagement_statement->execute();
@@ -151,7 +151,7 @@ $presentation_statement = $conn->prepare($presentation_query);
 if (!$presentation_statement) {
     applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);
     http_response_code(503);
-    exit('The DNR calendar is temporarily unavailable.');
+    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
 $presentation_statement->bind_param('ss', $window_start, $window_end);
 $presentation_statement->execute();
@@ -160,4 +160,4 @@ $presentations = $presentation_result->fetch_all(MYSQLI_ASSOC);
 $presentation_statement->close();
 
 $calendar_timezone = applicationTimezoneName();
-echo buildCalendar($engagements, 'DNR Events', $presentations, $calendar_timezone);
+echo buildCalendar($engagements, applicationCalendarName(), $presentations, $calendar_timezone);

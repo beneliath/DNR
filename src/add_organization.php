@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
     $contact_notes = trim($_POST['contact_notes'] ?? '');
-    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? '+1');
+    $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 
     $contact_candidates = [[
         'first_name' => $contact_first_name,
@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
                 'phone' => trim($submitted_contact['phone'] ?? ''),
                 'notes' => trim($submitted_contact['notes'] ?? ''),
-                'phone_country_code' => trim($submitted_contact['phone_country_code'] ?? '+1')
+                'phone_country_code' => trim($submitted_contact['phone_country_code'] ?? applicationDefaultPhoneCountryCode())
             ];
         }
     }
@@ -171,11 +171,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     }
 }
 
-$phone_country_code_value = trim($_POST['phone_country_code'] ?? '+1');
+$phone_country_code_value = trim($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
-$fax_country_code_value = trim($_POST['fax_country_code'] ?? '+1');
+$fax_country_code_value = trim($_POST['fax_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $fax_local_value] = phoneNumberInputParts($_POST['fax'] ?? '', $fax_country_code_value);
-$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+$contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $contact_phone_local_value] = phoneNumberInputParts(
     $_POST['contact_phone'] ?? '',
     $contact_phone_country_code_value
@@ -189,7 +189,7 @@ if (isset($_SESSION['success_message'])) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Organizations - DNR', array (
+<?php renderPageHead(applicationPageTitle('Organizations'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -278,7 +278,7 @@ if (isset($_SESSION['success_message'])) {
                 </div>
                 <div>
                     <select name="physical_country" required data-address-country="physical">
-                        <?php echo addressCountrySelectOptions($_POST['physical_country'] ?? 'US'); ?>
+                        <?php echo addressCountrySelectOptions($_POST['physical_country'] ?? applicationDefaultCountry()); ?>
                     </select>
                 </div>
             </div>
@@ -304,7 +304,7 @@ if (isset($_SESSION['success_message'])) {
                 </div>
                 <div>
                     <select name="mailing_country" data-address-country="mailing">
-                        <?php echo addressCountrySelectOptions($_POST['mailing_country'] ?? 'US'); ?>
+                        <?php echo addressCountrySelectOptions($_POST['mailing_country'] ?? applicationDefaultCountry()); ?>
                     </select>
                 </div>
             </div>
@@ -386,7 +386,7 @@ if (isset($_SESSION['success_message'])) {
                             <div class="form-group">
                                 <label class="required">Phone</label>
                                 <div class="phone-input-group" data-phone-input-group>
-                                    <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', '+1', 'Contact phone country code'); ?>
+                                    <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', applicationDefaultPhoneCountryCode(), 'Contact phone country code'); ?>
                                     <input type="tel" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
                                 </div>
                             </div>

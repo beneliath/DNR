@@ -36,7 +36,7 @@ if ($filters['date_to'] !== '') {
     $parameter_types .= 's';
 }
 
-$map_event_limit = max(50, min(2000, (int) (getenv('DNR_MAP_MAX_EVENTS') ?: 500)));
+$map_event_limit = applicationWorkflowSetting('map_max_events');
 $usable_address_clause = "COALESCE(
     NULLIF(TRIM(e.event_address_line_1), ''),
     NULLIF(TRIM(e.event_address_line_2), ''),
@@ -210,11 +210,17 @@ $map_payload = [
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
     'resultsTruncated' => $map_results_truncated,
+    'tileProvider' => [
+        'url' => deploymentConfig()->string('map.tile_url'),
+        'attributionText' => deploymentConfig()->string('map.attribution_text'),
+        'attributionUrl' => deploymentConfig()->string('map.attribution_url'),
+        'maximumZoom' => deploymentConfig()->integer('map.maximum_zoom'),
+    ],
 ];
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Engagement Map - DNR', array (
+<?php renderPageHead(applicationPageTitle('Engagement Map'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -288,7 +294,7 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan."></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <p class="map-attribution-note">Map and location data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap contributors</a>. New addresses are resolved by a rate-limited background worker and cached.</p>
+        <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a rate-limited background worker and cached.</p>
     </section>
 </main>
 

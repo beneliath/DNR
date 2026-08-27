@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $admin_count = $admins_stmt->get_result()->num_rows;
                 $admins_stmt->close();
                 if ($admin_count <= 1) {
-                    throw new InvalidArgumentException('DNR must retain at least one administrator.');
+                    throw new InvalidArgumentException(applicationBrandName() . ' must retain at least one administrator.');
                 }
             }
 
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit User - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit User'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

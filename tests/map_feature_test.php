@@ -141,9 +141,11 @@ expectMapFeature(
     'web requests should enqueue lookups while the worker reclaims stale jobs, dead-letters exhausted work, rate-limits, and caches outbound geocoding.'
 );
 expectMapFeature(
-    str_contains($security_headers, "https://tile.openstreetmap.org")
+    str_contains($security_headers, 'deploymentConfig()->tileCspSource()')
+        && str_contains($map_page, "'tileProvider' => [")
+        && str_contains($map_script, 'L.tileLayer(tileUrl')
         && str_contains($apache, 'Referrer-Policy "strict-origin-when-cross-origin"'),
-    'the security policy should allow the tile host and send only the site origin as its required Referer.'
+    'the security policy should allow the configured tile host and send only the site origin as its required Referer.'
 );
 
 echo "Map feature tests passed.\n";

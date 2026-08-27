@@ -43,7 +43,7 @@ function assetUrl($path) {
 function renderPageHead($title, array $options = []) {
     $full_title = trim((string) $title);
     if ($full_title === '') {
-        $full_title = 'MOED';
+        $full_title = applicationBrandName();
     }
     $styles = $options['styles'] ?? ['assets/css/style.min.css', 'assets/css/modern.min.css'];
     $scripts = $options['scripts'] ?? [];
@@ -110,7 +110,8 @@ function sendApplicationSecurityHeaders() {
     $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
     $style_source = $page === 'map.php' ? "'self' 'unsafe-inline'" : "'self'";
     $style_attribute_source = $page === 'map.php' ? "'unsafe-inline'" : "'none'";
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: https://tile.openstreetmap.org; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
+    $map_tile_source = deploymentConfig()->tileCspSource();
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: {$map_tile_source}; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');
@@ -310,7 +311,8 @@ function addressCountryName($country) {
     return is_scalar($country) ? trim((string) $country) : '';
 }
 
-function addressCountrySelectOptions($selected_country = 'US') {
+function addressCountrySelectOptions($selected_country = null) {
+    $selected_country = $selected_country ?? applicationDefaultCountry();
     $selected_code = normalizeAddressCountryCode($selected_country);
     $escape = static fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
     $html = '';
@@ -510,7 +512,8 @@ function normalizePhoneNumber($country_code, $national_number, $label = 'Phone n
     return $phone_util->format($phone_number, \libphonenumber\PhoneNumberFormat::E164);
 }
 
-function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
+function phoneNumberInputParts($stored_phone, $default_country_code = null) {
+    $default_country_code = $default_country_code ?? applicationDefaultPhoneCountryCode();
     $stored_phone = trim((string) $stored_phone);
     try {
         $country_code = normalizePhoneCountryCode($default_country_code);
@@ -542,7 +545,8 @@ function phoneNumberInputParts($stored_phone, $default_country_code = '+1') {
     }
 }
 
-function formatPhoneNumberForDisplay($stored_phone, $default_country_code = '+1') {
+function formatPhoneNumberForDisplay($stored_phone, $default_country_code = null) {
+    $default_country_code = $default_country_code ?? applicationDefaultPhoneCountryCode();
     $stored_phone = trim((string) $stored_phone);
     if ($stored_phone === '') {
         return '';
@@ -631,7 +635,8 @@ function phoneCountryCallingCodeChoices() {
     ];
 }
 
-function phoneCountryPicker($field_name, $selected_code = '+1', $aria_label = 'Phone country code') {
+function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'Phone country code') {
+    $selected_code = $selected_code ?? applicationDefaultPhoneCountryCode();
     try {
         $selected_code = normalizePhoneCountryCode($selected_code);
     } catch (InvalidArgumentException $exception) {
@@ -765,7 +770,7 @@ function requireLogin() {
     if (!$stmt) {
         applicationLog('error', 'Authentication schema is unavailable', ['error' => $conn->error]);
         http_response_code(503);
-        exit('DNR is being upgraded. The authentication database migration is required.');
+        exit(applicationBrandName() . ' is being upgraded. The authentication database migration is required.');
     }
     $stmt->bind_param('i', $user_id);
     $stmt->execute();
