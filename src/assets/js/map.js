@@ -16,6 +16,18 @@ import * as L from 'leaflet';
     }
 
     const events = Array.isArray(payload.events) ? payload.events : [];
+    const tileProvider = payload.tileProvider && typeof payload.tileProvider === 'object'
+        ? payload.tileProvider
+        : {};
+    const tileUrl = String(tileProvider.url || '');
+    const attributionText = String(tileProvider.attributionText || 'Map contributors');
+    const attributionUrl = String(tileProvider.attributionUrl || '');
+    const maximumZoom = Number(tileProvider.maximumZoom) || 19;
+    const escapeHtml = function (value) {
+        return String(value).replace(/[&<>"']/g, function (character) {
+            return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
+        });
+    };
     const map = L.map(mapElement, {
         center: [20, 0],
         zoom: 2,
@@ -26,9 +38,9 @@ import * as L from 'leaflet';
         touchZoom: true,
         worldCopyJump: true
     });
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    L.tileLayer(tileUrl, {
+        maxZoom: maximumZoom,
+        attribution: '&copy; <a href="' + escapeHtml(attributionUrl) + '">' + escapeHtml(attributionText) + '</a>'
     }).addTo(map);
 
     const zoomControl = L.control({position: 'topleft'});

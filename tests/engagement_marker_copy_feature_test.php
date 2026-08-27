@@ -17,7 +17,8 @@ $styles = file_get_contents($root . '/src/assets/css/pages/view_engagement.css')
 
 expectEngagementMarkerCopy(
     str_contains($page, 'class="action-icon-button engagement-marker-copy"')
-        && str_contains($page, 'data-copy-text="[MOED#<?php echo $engagement_id; ?>]"')
+        && str_contains($page, '$engagement_marker = applicationInboundMarker($engagement_id)')
+        && str_contains($page, 'data-copy-text="<?php echo htmlspecialchars($engagement_marker')
         && str_contains($page, 'aria-label="Copy email subject marker"')
         && str_contains($page, 'id="engagement-marker-copy-status"')
         && str_contains($page, 'engagement-marker-copy-icon')

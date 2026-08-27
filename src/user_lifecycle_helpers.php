@@ -198,7 +198,7 @@ function deactivateUserAccount(mysqli $conn, $user_id, $actor_user_id)
                  WHERE role = 'admin' AND account_status = 'active' FOR UPDATE"
             );
             if (!$admins || $admins->num_rows <= 1) {
-                throw new InvalidArgumentException('DNR must retain at least one active administrator.');
+                throw new InvalidArgumentException(applicationBrandName() . ' must retain at least one active administrator.');
             }
         }
 

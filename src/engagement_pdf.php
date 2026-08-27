@@ -30,7 +30,9 @@ class DnrEngagementPdf extends TCPDF {
         $this->SetY(9);
         $this->SetFont('dejavusans', 'B', 8.5);
         $this->SetTextColor(36, 87, 214);
-        $this->Cell(11, 5, engagementPdfText('DNR'), 0, 0, 'L');
+        $brand = engagementPdfText(applicationBrandName());
+        $brandWidth = min(80.0, max(11.0, $this->GetStringWidth($brand) + 3.0));
+        $this->Cell($brandWidth, 5, $brand, 0, 0, 'L');
         $this->SetFont('dejavusans', '', 7.5);
         $this->SetTextColor(102, 112, 133);
         $this->Cell(0, 5, engagementPdfText('ENGAGEMENT BRIEF'), 0, 1, 'L');
@@ -439,8 +441,8 @@ function renderEngagementPdf(array $export, $generated_date = null) {
     $generated_date = $generated_date ?: date('F j, Y');
     $pdf = new DnrEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
     $pdf->SetTitle(engagementPdfText($title));
-    $pdf->SetAuthor('DNR');
-    $pdf->SetCreator('DNR');
+    $pdf->SetAuthor(applicationBrandName());
+    $pdf->SetCreator(applicationBrandName());
     $pdf->setEngagementTitle($title);
     $pdf->setGeneratedDate($generated_date);
     $pdf->SetMargins(18, 21, 18);

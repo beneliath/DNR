@@ -42,7 +42,7 @@ if (!$result || $result->num_rows === 0) {
 }
 
 $engagement = $result->fetch_assoc();
-$DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+$DEFAULT_SPEAKER = applicationDefaultSpeaker();
 $submitted_engagement_contacts = null;
 
 // Archive or permanently delete one saved presentation without submitting
@@ -666,12 +666,12 @@ try {
     $archived_presentation_count = countArchivedEngagementPresentations($conn, $engagement_id);
 } catch (Throwable $exception) {
     http_response_code(503);
-    exit('The engagement details are temporarily unavailable while DNR is being upgraded.');
+    exit('The engagement details are temporarily unavailable while ' . applicationBrandName() . ' is being upgraded.');
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit Engagement - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit Engagement'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

@@ -1,0 +1,105 @@
+# Non-secret MOED deployment identity and business defaults.
+# Secrets, network topology, and service credentials remain in Docker secrets
+# and deployment-specific Compose environment files.
+brand:
+  display_name: MOED
+  native_name: מוֹעֵד
+  mail_name: MOED
+  totp_issuer: DNR
+  calendar_name: DNR Events
+  logo_light: assets/dnr-logo.svg
+  logo_dark: assets/dnr-logo-dark.svg
+
+defaults:
+  speaker: Olivier Melnick
+  country: US
+  phone_country_code: '+1'
+  timezone: America/Chicago
+
+inbound_email:
+  emitted_marker_prefix: MOED
+  accepted_marker_prefixes: [MOED]
+
+map:
+  tile_url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+  attribution_text: OpenStreetMap contributors
+  attribution_url: https://www.openstreetmap.org/copyright
+  maximum_zoom: 19
+
+workflow:
+  dashboard_upcoming_days: 30
+  task_upcoming_days: 7
+  calendar_past_days: 365
+  calendar_future_days: 1095
+  map_past_days: 90
+  map_future_days: 730
+  map_max_events: 500
+  pdf_max_chron_entries: 500
+
+# These definitions are imported only by the explicit seed command. They are
+# not reconciled on application startup, so administrator edits remain intact.
+standard_event_tasks:
+  - key: standard.confirm_location
+    title: Confirm the venue address and on-site contact
+    priority: high
+    due_anchor: event_start
+    due_offset_days: -30
+    sort_order: 10
+    required: false
+  - key: standard.confirm_travel_lodging
+    title: Confirm travel and lodging arrangements
+    priority: high
+    due_anchor: event_start
+    due_offset_days: -30
+    sort_order: 20
+    required: false
+  - key: standard.confirm_presentations
+    title: Confirm presentation topics, dates, and times
+    priority: high
+    due_anchor: event_start
+    due_offset_days: -21
+    sort_order: 30
+    required: false
+  - key: standard.confirm_materials
+    title: Confirm book table, brochures, and event materials
+    priority: normal
+    due_anchor: event_start
+    due_offset_days: -14
+    sort_order: 40
+    required: false
+  - key: standard.host_reconfirmation
+    title: Reconfirm final details with the host
+    priority: high
+    due_anchor: event_start
+    due_offset_days: -7
+    sort_order: 50
+    required: false
+  - key: standard.prepare_materials
+    title: Prepare presentations, handouts, books, and supplies
+    priority: high
+    due_anchor: event_start
+    due_offset_days: -3
+    sort_order: 60
+    required: false
+  - key: standard.send_thanks
+    title: Send a post-event thank-you
+    priority: normal
+    due_anchor: event_end
+    due_offset_days: 1
+    sort_order: 70
+    required: false
+  - key: standard.record_outcomes
+    title: Record attendance, feedback, and notable outcomes
+    priority: normal
+    due_anchor: event_end
+    due_offset_days: 2
+    sort_order: 80
+    required: false
+  - key: standard.financial_closeout
+    title: Complete the event financial closeout
+    details: Record the final honorarium or offering, travel reimbursement, and other reimbursable expenses.
+    priority: high
+    due_anchor: event_end
+    due_offset_days: 7
+    sort_order: 90
+    required: true

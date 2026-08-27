@@ -82,7 +82,7 @@ expectInboundFeature(
         && str_contains($review, 'No engagement selected')
         && str_contains($review, 'Associated Contact, Organization, and Engagement Chron Log entries will be preserved')
         && str_contains($engagementView, 'Email Subject Marker')
-        && str_contains($engagementView, '[MOED#<?php echo $engagement_id; ?>]')
+        && str_contains($engagementView, 'applicationInboundMarker($engagement_id)')
         && str_contains($header, '<span>Inbound Mail</span>'),
     'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
 );
@@ -104,7 +104,7 @@ expectInboundFeature(
     'fresh and upgraded databases should apply the single least-privilege manifest for inbound mail.'
 );
 expectInboundFeature(
-    str_contains($environment, 'DNR_INBOUND_ADDRESS=moed@beneliath.com')
+    str_contains($environment, 'DNR_INBOUND_ADDRESS=dnr@example.org')
         && str_contains($environment, 'DNR_IMAP_PASSWORD_FILE=./secrets/imap_password')
         && str_contains($readme, '### Inbound email to Chron')
         && str_contains($readme, '[MOED#123]')

@@ -43,11 +43,15 @@ RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
     && ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-set-password
 COPY --chmod=0644 scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
 COPY --chmod=0644 scripts/check_schema.php /opt/dnr/bin/check_schema.php
+COPY --chmod=0644 scripts/check_config.php /opt/dnr/bin/check_config.php
 COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
 COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
 COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
+COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php
 COPY migrations/ /opt/dnr/migrations/
+RUN install -d -m 0755 /opt/dnr/config
+COPY --chmod=0644 deployments/moed/application.yaml /opt/dnr/config/application.yaml
 
 # Copy the PHP source code into Apache’s document root
 COPY src/ /var/www/html/

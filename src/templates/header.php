@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../application_runtime.php';
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
@@ -33,6 +34,9 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
+$shell_brand_label = applicationBrandLabel();
+$shell_logo_light = applicationBrandLogo('light');
+$shell_logo_dark = applicationBrandLogo('dark');
 $nav_reminder_count = 0;
 if (!empty($_SESSION['user_id'])) {
     try {
@@ -58,8 +62,8 @@ if (!empty($_SESSION['user_id'])) {
             <span class="visually-hidden">Open Navigation</span>
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
         </button>
-        <a href="dashboard.php" class="mobile-brand" aria-label="DNR — MOED מוֹעֵד home">
-            <img class="mobile-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=mobile-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="180" height="31">
+        <a href="dashboard.php" class="mobile-brand" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
+            <img class="mobile-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=mobile-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="180" height="31">
         </a>
         <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to Dark Theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
@@ -68,8 +72,8 @@ if (!empty($_SESSION['user_id'])) {
     </div>
 
     <div class="app-sidebar" id="app-sidebar">
-        <a class="app-brand" href="dashboard.php" aria-label="DNR Home">
-            <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo.svg?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl('assets/dnr-logo-dark.svg?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
+        <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
+            <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
         <nav class="site-navigation" aria-label="Primary">

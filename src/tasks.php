@@ -11,6 +11,7 @@ requireFollowUpTaskSchema($conn);
 $user_role = $_SESSION['role'] ?? '';
 $current_user_id = (int) $_SESSION['user_id'];
 $can_manage_tasks = canManageFollowUpTasks($user_role);
+$task_upcoming_days = applicationWorkflowSetting('task_upcoming_days');
 
 $requested_view = \Dnr\Http\RequestInput::string($_GET, 'view');
 $subject_filter_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type');
@@ -154,7 +155,7 @@ $summary_stmt = $conn->prepare(
         SUM(status IN ('open', 'in_progress', 'waiting') AND due_date = ?) AS today_count,
         SUM(status IN ('open', 'in_progress', 'waiting')
             AND due_date > ?
-            AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)) AS upcoming_count,
+            AND due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)) AS upcoming_count,
         SUM(status = 'waiting') AS waiting_count,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned_count
      FROM follow_up_tasks"
@@ -202,7 +203,7 @@ if ($view === 'my') {
     $bind_values[] = $business_date;
 } elseif ($view === 'upcoming') {
     $where[] = $active_status_sql
-        . ' AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL 7 DAY)';
+        . " AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)";
     $bind_types .= 'ss';
     $bind_values[] = $business_date;
     $bind_values[] = $business_date;
@@ -355,7 +356,7 @@ $priority_labels = followUpTaskPriorities();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Work Queue - DNR', array (
+<?php renderPageHead(applicationPageTitle('Work Queue'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -392,7 +393,7 @@ $priority_labels = followUpTaskPriorities();
         <div class="task-reminder-badges">
             <a href="tasks.php?view=overdue&amp;owner=me" class="task-reminder-badge reminder-overdue"><span>Overdue</span><strong><?php echo $personal_reminders['overdue']; ?></strong></a>
             <a href="tasks.php?view=today&amp;owner=me" class="task-reminder-badge reminder-today"><span>Due today</span><strong><?php echo $personal_reminders['today']; ?></strong></a>
-            <a href="tasks.php?view=upcoming&amp;owner=me" class="task-reminder-badge reminder-upcoming"><span>Next 7 days</span><strong><?php echo $personal_reminders['upcoming']; ?></strong></a>
+            <a href="tasks.php?view=upcoming&amp;owner=me" class="task-reminder-badge reminder-upcoming"><span>Next <?php echo $task_upcoming_days; ?> days</span><strong><?php echo $personal_reminders['upcoming']; ?></strong></a>
             <a href="tasks.php?view=waiting&amp;owner=me" class="task-reminder-badge reminder-waiting"><span>Waiting</span><strong><?php echo $personal_reminders['waiting']; ?></strong></a>
             <?php if (in_array((string) $user_role, ['admin', 'editor'], true)): ?>
                 <a href="dashboard.php#financial-closeouts" class="task-reminder-badge reminder-closeout"><span>Closeouts</span><strong><?php echo $personal_reminders['closeouts']; ?></strong></a>
@@ -404,7 +405,7 @@ $priority_labels = followUpTaskPriorities();
         <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
         <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
         <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
-        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next 7 days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
+        <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next <?php echo $task_upcoming_days; ?> days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
         <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
         <a class="summary-card<?php echo $view === 'unassigned' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'unassigned']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Unassigned</small><strong><?php echo $summary['unassigned']; ?></strong></span></a>
     </div>

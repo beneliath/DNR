@@ -146,7 +146,7 @@ $task_form_submit_label = 'Save changes';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit Task - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit Task'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

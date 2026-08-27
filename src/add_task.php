@@ -124,7 +124,7 @@ $task_inactive_subject = null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('New Task - DNR', array (
+<?php renderPageHead(applicationPageTitle('New Task'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

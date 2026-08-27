@@ -250,7 +250,7 @@ $closed_timestamp = $is_correction
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(($is_correction ? 'Correct' : 'Close') . ' Event - DNR', [
+<?php renderPageHead(applicationPageTitle(($is_correction ? 'Correct' : 'Close') . ' Event'), [
     'styles' => [
         'assets/css/style.min.css',
         'assets/css/modern.min.css',

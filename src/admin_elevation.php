@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Confirm Administrator Access - DNR', array (
+<?php renderPageHead(applicationPageTitle('Confirm Administrator Access'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

@@ -12,7 +12,7 @@
             if (!Number.isInteger(id) || id < 1) return;
             options.set(id, {
                 id,
-                label: String(result.marker || '[MOED#' + id + ']')
+                label: String(result.marker || '#' + id)
                     + ' · ' + String(result.label || ''),
             });
         });

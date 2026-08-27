@@ -123,7 +123,7 @@ if ($engagement_title === '') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Restore Chron Entries - DNR', array (
+<?php renderPageHead(applicationPageTitle('Restore Chron Entries'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

@@ -271,7 +271,7 @@ $format_date_range = static function ($start, $end) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Engagements - DNR', array (
+<?php renderPageHead(applicationPageTitle('Engagements'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

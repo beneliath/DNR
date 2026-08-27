@@ -251,7 +251,7 @@ if ($engagement_title === '') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Restore Presentations - DNR', array (
+<?php renderPageHead(applicationPageTitle('Restore Presentations'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

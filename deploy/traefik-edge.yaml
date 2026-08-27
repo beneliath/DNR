@@ -1,0 +1,19 @@
+# Merge this overlay with the deployment host's existing Traefik Compose file.
+# The dedicated edge network limits trust to the configured Traefik address;
+# Cloudflared keeps an exact stable address on the existing proxy network.
+services:
+  traefik:
+    networks:
+      proxy: {}
+      edge:
+        ipv4_address: ${DNR_EDGE_TRAEFIK_IP:-172.29.255.2}
+
+  cloudflared:
+    networks:
+      proxy:
+        ipv4_address: ${DNR_CLOUDFLARED_PROXY_IP:-172.18.0.254}
+
+networks:
+  edge:
+    name: ${DNR_EDGE_NETWORK:-dnr_edge}
+    external: true

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 /**
  * @return array{overdue: int, today: int, upcoming: int, waiting: int,
  *   closeouts: int, total: int}
@@ -25,13 +27,14 @@ function fetchTaskReminderCounts(
     }
 
     $businessDate ??= applicationBusinessDate();
+    $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
     $taskStatement = $conn->prepare(
         "SELECT
             SUM(status IN ('open', 'in_progress') AND due_date < ?) AS overdue_count,
             SUM(status IN ('open', 'in_progress') AND due_date = ?) AS today_count,
             SUM(status IN ('open', 'in_progress')
                 AND due_date > ?
-                AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)) AS upcoming_count,
+                AND due_date <= DATE_ADD(?, INTERVAL {$upcomingDays} DAY)) AS upcoming_count,
             SUM(status = 'waiting') AS waiting_count
          FROM follow_up_tasks
          WHERE assigned_to = ?
@@ -129,6 +132,7 @@ function fetchDailyTaskDigestData(
         'waiting' => [],
         'closeouts' => [],
     ];
+    $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
 
     $taskStatement = $conn->prepare(
         "SELECT id, title, status, priority, due_date, waiting_on
@@ -139,7 +143,7 @@ function fetchDailyTaskDigestData(
                 OR (
                     status IN ('open', 'in_progress')
                     AND due_date IS NOT NULL
-                    AND due_date <= DATE_ADD(?, INTERVAL 7 DAY)
+                    AND due_date <= DATE_ADD(?, INTERVAL {$upcomingDays} DAY)
                 )
            )
          ORDER BY
@@ -256,11 +260,13 @@ function dailyTaskDigestMessage(array $user, array $digest, string $businessDate
         $name = trim((string) ($user['username'] ?? 'there')) ?: 'there';
     }
     $displayDate = digestDisplayDate($businessDate);
+    $brandName = applicationBrandName();
+    $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
     $counts = is_array($digest['counts'] ?? null) ? $digest['counts'] : [];
     $lines = [
         'Good day, ' . $name . '.',
         '',
-        'Here is your MOED work digest for ' . $displayDate . '.',
+        'Here is your ' . $brandName . ' work digest for ' . $displayDate . '.',
     ];
 
     appendTaskDigestSection(
@@ -277,7 +283,7 @@ function dailyTaskDigestMessage(array $user, array $digest, string $businessDate
     );
     appendTaskDigestSection(
         $lines,
-        'Next 7 days',
+        'Next ' . $upcomingDays . ' days',
         is_array($digest['upcoming'] ?? null) ? $digest['upcoming'] : [],
         (int) ($counts['upcoming'] ?? 0)
     );
@@ -326,7 +332,7 @@ function dailyTaskDigestMessage(array $user, array $digest, string $businessDate
 
     return [
         'recipient' => $recipient,
-        'subject' => 'MOED daily work digest · ' . $businessDate,
+        'subject' => $brandName . ' daily work digest · ' . $businessDate,
         'body' => implode("\n", $lines),
     ];
 }

@@ -51,7 +51,7 @@ $standard_task_form_submit_label = 'Add standard task';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('New Standard Event Task - DNR', array (
+<?php renderPageHead(applicationPageTitle('New Standard Event Task'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

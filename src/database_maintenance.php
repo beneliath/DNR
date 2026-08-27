@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Database Backup - DNR', array (
+<?php renderPageHead(applicationPageTitle('Database Backup'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

@@ -35,12 +35,12 @@ $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
             <label for="task-subject" class="required">Related record</label>
             <input type="search" id="task-subject-search" autocomplete="off" placeholder="Search engagements, organizations, or contacts" data-subject-search-url="task_subject_search.php">
             <select id="task-subject" name="subject" required>
-                <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>>General DNR work</option>
+                <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php if ($task_selected_record && $task_selected_subject !== 'general'): ?>
                     <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
                 <?php endif; ?>
             </select>
-            <small id="task-subject-status" class="field-help" aria-live="polite">Type at least three characters to load a bounded result set. Use General DNR work when no record applies.</small>
+            <small id="task-subject-status" class="field-help" aria-live="polite">Type at least three characters to load a bounded result set. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.</small>
         </div>
     </section>
 

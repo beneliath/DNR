@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? '+1');
+    $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
     [, $contact_phone_local_value] = phoneNumberInputParts(
         $_POST['contact_phone'] ?? '',
         $contact_phone_country_code_value
@@ -395,7 +395,7 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit Contact - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit Contact'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

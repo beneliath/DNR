@@ -48,7 +48,7 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
 
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Users - DNR', array (
+<?php renderPageHead(applicationPageTitle('Users'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

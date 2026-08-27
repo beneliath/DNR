@@ -25,7 +25,7 @@ services:
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmailingest
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_ingest_password
-      DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-moed@beneliath.com}
+      DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-}
       DNR_INBOUND_MAX_BYTES: ${DNR_INBOUND_MAX_BYTES:-10485760}
       DNR_INBOUND_BATCH_SIZE: ${DNR_INBOUND_BATCH_SIZE:-20}
       DNR_INBOUND_IDLE_SECONDS: ${DNR_INBOUND_IDLE_SECONDS:-30}
@@ -36,7 +36,13 @@ services:
       DNR_IMAP_USERNAME: ${DNR_IMAP_USERNAME:-}
       DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password
       DNR_IMAP_MAILBOX: ${DNR_IMAP_MAILBOX:-INBOX}
-      DNR_TIMEZONE: ${DNR_TIMEZONE:-America/Chicago}
+      DNR_TIMEZONE: ${DNR_TIMEZONE:-}
+      DNR_CONFIG_FILE: /run/dnr/config/application.yaml
+      DNR_BRAND_DISPLAY_NAME: ${DNR_BRAND_DISPLAY_NAME:-}
+      DNR_INBOUND_MARKER_PREFIX: ${DNR_INBOUND_MARKER_PREFIX:-}
+      DNR_INBOUND_ACCEPTED_MARKER_PREFIXES: ${DNR_INBOUND_ACCEPTED_MARKER_PREFIXES:-}
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend, egress]
 
 secrets:

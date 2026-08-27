@@ -10,7 +10,7 @@ mkdir -p "$GNUPGHOME" "$PASSWORD_STORE_DIR"
 chmod 700 "$GNUPGHOME" "$PASSWORD_STORE_DIR"
 
 if [ ! -s "$PASSWORD_STORE_DIR/.gpg-id" ]; then
-    key_identity='MOED Proton Bridge <bridge@localhost>'
+    key_identity='DNR Proton Bridge <bridge@localhost>'
     gpg --batch --pinentry-mode loopback --passphrase '' \
         --quick-generate-key "$key_identity" default default never
     key_fingerprint=$(

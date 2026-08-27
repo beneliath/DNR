@@ -26,10 +26,10 @@ final class OrganizationInput
         $data['same_address'] = ($input['same_address'] ?? 'no') === 'yes';
         $data['phone_country_code'] = is_scalar($input['phone_country_code'] ?? null)
             ? trim((string) $input['phone_country_code'])
-            : '+1';
+            : \applicationDefaultPhoneCountryCode();
         $data['fax_country_code'] = is_scalar($input['fax_country_code'] ?? null)
             ? trim((string) $input['fax_country_code'])
-            : '+1';
+            : \applicationDefaultPhoneCountryCode();
 
         $errors = [];
         if ($data['physical_country'] !== '') {

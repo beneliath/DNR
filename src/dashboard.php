@@ -13,7 +13,8 @@ $user_id = (int) ($_SESSION['user_id'] ?? 0);
 $user_role = (string) ($_SESSION['role'] ?? '');
 $can_manage = in_array($user_role, ['admin', 'editor'], true);
 $business_date = applicationBusinessDate();
-$upcoming_window_end = applicationBusinessDateOffset(30);
+$dashboard_upcoming_days = applicationWorkflowSetting('dashboard_upcoming_days');
+$upcoming_window_end = applicationBusinessDateOffset($dashboard_upcoming_days);
 
 try {
     $upcoming_engagements = fetchDashboardUpcomingEngagements(
@@ -64,7 +65,7 @@ $task_status_labels = followUpTaskStatuses();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Dashboard - MOED', [
+<?php renderPageHead(applicationPageTitle('Dashboard'), [
     'styles' => [
         'assets/css/style.min.css',
         'assets/css/modern.min.css',
@@ -91,7 +92,7 @@ $task_status_labels = followUpTaskStatuses();
     <div class="summary-grid dashboard-summary-grid" aria-label="Daily operations summary">
         <a class="summary-card dashboard-summary-card" href="engagements.php?sort_by=date&amp;date_sort=asc">
             <span class="summary-icon" aria-hidden="true">◇</span>
-            <span><small>Events, next 30 days</small><strong><?php echo $upcoming_count; ?></strong></span>
+            <span><small>Events, next <?php echo $dashboard_upcoming_days; ?> days</small><strong><?php echo $upcoming_count; ?></strong></span>
         </a>
         <a class="summary-card dashboard-summary-card" href="tasks.php?view=my">
             <span class="summary-icon" aria-hidden="true">✓</span>
@@ -125,12 +126,12 @@ $task_status_labels = followUpTaskStatuses();
             <div class="dashboard-panel-heading">
                 <div>
                     <h2 id="upcoming-engagements-heading">Upcoming Engagements</h2>
-                    <p>Active events beginning or continuing during the next 30 days.</p>
+                    <p>Active events beginning or continuing during the next <?php echo $dashboard_upcoming_days; ?> days.</p>
                 </div>
                 <a href="engagements.php?sort_by=date&amp;date_sort=asc">View all</a>
             </div>
             <?php if ($displayed_upcoming_engagements === []): ?>
-                <div class="dashboard-empty-state"><strong>No upcoming engagements</strong><span>The next 30 days are clear.</span></div>
+                <div class="dashboard-empty-state"><strong>No upcoming engagements</strong><span>The next <?php echo $dashboard_upcoming_days; ?> days are clear.</span></div>
             <?php else: ?>
                 <ul class="dashboard-record-list">
                     <?php foreach ($displayed_upcoming_engagements as $engagement): ?>
@@ -204,7 +205,7 @@ $task_status_labels = followUpTaskStatuses();
             <div class="dashboard-panel-heading">
                 <div>
                     <h3 id="event-readiness-heading">Event Readiness</h3>
-                    <p>Missing essentials for events in the next 30 days.</p>
+                    <p>Missing essentials for events in the next <?php echo $dashboard_upcoming_days; ?> days.</p>
                 </div>
             </div>
             <?php if ($readiness_items === []): ?>

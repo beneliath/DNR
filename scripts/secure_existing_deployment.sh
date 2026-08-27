@@ -140,6 +140,12 @@ if [ -e "$environment_path" ]; then
     awk '
         BEGIN {
             allowed["DEFAULT_SPEAKER"] = 1
+            allowed["DNR_DEFAULT_SPEAKER"] = 1
+            allowed["DNR_CONFIG_FILE_HOST"] = 1
+            allowed["DNR_BRAND_DISPLAY_NAME"] = 1
+            allowed["DNR_MAIL_FROM_NAME"] = 1
+            allowed["DNR_TOTP_ISSUER"] = 1
+            allowed["DNR_CALENDAR_NAME"] = 1
             allowed["DNR_REQUIRE_HTTPS"] = 1
             allowed["DNR_BIND_ADDRESS"] = 1
             allowed["PORT"] = 1
@@ -157,11 +163,26 @@ if [ -e "$environment_path" ]; then
             allowed["DNR_MAP_PAST_DAYS"] = 1
             allowed["DNR_MAP_FUTURE_DAYS"] = 1
             allowed["DNR_MAP_MAX_EVENTS"] = 1
+            allowed["DNR_CALENDAR_PAST_DAYS"] = 1
+            allowed["DNR_CALENDAR_FUTURE_DAYS"] = 1
+            allowed["DNR_DASHBOARD_UPCOMING_DAYS"] = 1
+            allowed["DNR_TASK_UPCOMING_DAYS"] = 1
+            allowed["DNR_PDF_MAX_CHRON_ENTRIES"] = 1
+            allowed["DNR_MAP_TILE_URL"] = 1
+            allowed["DNR_MAP_ATTRIBUTION_TEXT"] = 1
+            allowed["DNR_MAP_ATTRIBUTION_URL"] = 1
+            allowed["DNR_MAP_MAXIMUM_ZOOM"] = 1
+            allowed["DNR_DEFAULT_COUNTRY"] = 1
+            allowed["DNR_DEFAULT_PHONE_COUNTRY_CODE"] = 1
+            allowed["DNR_INBOUND_MARKER_PREFIX"] = 1
+            allowed["DNR_INBOUND_ACCEPTED_MARKER_PREFIXES"] = 1
             allowed["DNR_GEOCODER_BASE_URL"] = 1
             allowed["DNR_GEOCODER_ALLOWED_HOSTS"] = 1
             allowed["DNR_GEOCODER_USER_AGENT"] = 1
             allowed["DNR_GEOCODER_BATCH_SIZE"] = 1
             allowed["DNR_GEOCODER_IDLE_SECONDS"] = 1
+            allowed["DNR_GEOCODER_LEASE_SECONDS"] = 1
+            allowed["DNR_GEOCODER_MAX_ATTEMPTS"] = 1
         }
         {
             separator = index($0, "=")

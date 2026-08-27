@@ -16,8 +16,8 @@ if (!$standard_task) {
     header('Location: standard_tasks.php');
     exit();
 }
-if (isRequiredStandardEventTask($standard_task['template_key'])) {
-    $_SESSION['standard_task_action_error'] = 'The financial closeout reminder is a required built-in standard task and cannot be edited.';
+if (isRequiredStandardEventTask($standard_task)) {
+    $_SESSION['standard_task_action_error'] = 'That required standard task cannot be edited.';
     header('Location: view_standard_task.php?id=' . (int) $standard_task['id']);
     exit();
 }
@@ -39,6 +39,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
         $locked_task = fetchStandardEventTask($conn, $template_id, true);
         if (!$locked_task || !empty($locked_task['is_archived'])) {
             throw new InvalidArgumentException('That active standard task is no longer available.');
+        }
+        if (isRequiredStandardEventTask($locked_task)) {
+            throw new InvalidArgumentException('That required standard task cannot be edited.');
         }
         if ($submitted_version === ''
             || !hash_equals((string) $locked_task['updated_at'], $submitted_version)
@@ -90,7 +93,7 @@ $standard_task_form_submit_label = 'Save changes';
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Edit Standard Event Task - DNR', array (
+<?php renderPageHead(applicationPageTitle('Edit Standard Event Task'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

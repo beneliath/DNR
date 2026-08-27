@@ -78,6 +78,7 @@ $financial_closeout_applicable = !in_array(
     ['postponed', 'canceled'],
     true
 );
+$engagement_marker = applicationInboundMarker($engagement_id);
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
@@ -119,7 +120,7 @@ try {
         : 0;
 } catch (Throwable $exception) {
     http_response_code(503);
-    exit('The engagement details are temporarily unavailable while DNR is being upgraded.');
+    exit('The engagement details are temporarily unavailable while ' . applicationBrandName() . ' is being upgraded.');
 }
 
 $event_address_parts = [];
@@ -152,7 +153,7 @@ $presentation_stmt->close();
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('View Engagement - DNR', array (
+<?php renderPageHead(applicationPageTitle('View Engagement'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -185,11 +186,11 @@ $presentation_stmt->close();
         <div class="detail-label">Email Subject Marker</div>
         <div class="detail-value engagement-email-marker">
             <span class="engagement-email-marker-control">
-                <code>[MOED#<?php echo $engagement_id; ?>]</code>
+                <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
                 <button
                     type="button"
                     class="action-icon-button engagement-marker-copy"
-                    data-copy-text="[MOED#<?php echo $engagement_id; ?>]"
+                    data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
                     data-copy-status="engagement-marker-copy-status"
                     data-tooltip="Copy marker"
                     aria-label="Copy email subject marker"

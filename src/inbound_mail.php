@@ -186,7 +186,7 @@ $statusLabels = [
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Inbound Mail - DNR', [
+<?php renderPageHead(applicationPageTitle('Inbound Mail'), [
     'styles' => [
         'assets/css/style.min.css',
         'assets/css/modern.min.css',
@@ -200,7 +200,7 @@ $statusLabels = [
     <div class="page-heading">
         <div>
             <h1>Inbound Mail</h1>
-            <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured MOED mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact, Organization, and Engagement Chron logs.</p>
+            <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured ' . applicationBrandName() . ' mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact, Organization, and Engagement Chron logs.</p>
         </div>
     </div>
 

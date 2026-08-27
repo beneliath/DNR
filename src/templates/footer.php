@@ -18,7 +18,7 @@ $footer_repository_url = githubRepositoryUrl();
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
     <h2 id="logout-confirmation-title">Log Out?</h2>
-    <p>You’ll need to sign in again to manage DNR records.</p>
+    <p>You’ll need to sign in again to manage <?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?> records.</p>
     <div class="confirmation-dialog-actions">
         <button type="button" id="cancel-logout" class="button-secondary">Cancel</button>
         <button type="button" id="confirm-logout" class="danger-button">Log out</button>

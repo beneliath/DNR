@@ -25,11 +25,12 @@ function followUpTaskPriorities()
 
 function followUpTaskQueueViews()
 {
+    $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
     return [
         'my' => 'My work',
         'overdue' => 'Overdue',
         'today' => 'Due today',
-        'upcoming' => 'Next 7 days',
+        'upcoming' => 'Next ' . $upcomingDays . ' days',
         'waiting' => 'Waiting',
         'unassigned' => 'Unassigned',
         'completed' => 'Completed',
@@ -105,7 +106,7 @@ function followUpTaskSubjectRecord(mysqli $conn, $subject_type, $subject_id = nu
         return [
             'type' => 'general',
             'id' => null,
-            'label' => 'General DNR work',
+            'label' => applicationGeneralWorkLabel(),
             'url' => 'tasks.php',
             'active' => true,
         ];
@@ -179,7 +180,7 @@ function followUpTaskSubjectOptions(mysqli $conn)
 
     $options['general'][] = [
         'value' => 'general',
-        'label' => 'General DNR work',
+        'label' => applicationGeneralWorkLabel(),
     ];
 
     $engagements = $conn->query(
@@ -240,7 +241,7 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
     $limit = max(1, min(50, (int) $limit));
     $options = [[
         'value' => 'general',
-        'label' => 'General DNR work',
+        'label' => applicationGeneralWorkLabel(),
         'type' => 'general',
     ]];
     if (strlen($search) < 2) {
@@ -479,7 +480,7 @@ function followUpTaskSubjectFromRow(array $task)
     } else {
         return [
             'type' => 'general',
-            'label' => 'General DNR work',
+            'label' => applicationGeneralWorkLabel(),
             'url' => 'tasks.php',
         ];
     }
@@ -704,14 +705,9 @@ function standardEventTaskDueAnchors()
     ];
 }
 
-function requiredStandardEventTaskKeys()
+function isRequiredStandardEventTask(array $template)
 {
-    return ['standard.financial_closeout'];
-}
-
-function isRequiredStandardEventTask($template_key)
-{
-    return in_array((string) $template_key, requiredStandardEventTaskKeys(), true);
+    return !empty($template['is_required']);
 }
 
 function standardEventTaskScheduleLabel($due_anchor, $due_offset_days)

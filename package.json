@@ -1,5 +1,5 @@
 {
-  "name": "moed-frontend-assets",
+  "name": "dnr-frontend-assets",
   "private": true,
   "scripts": {
     "build:css": "esbuild src/assets/css/style.css --minify --legal-comments=none --outfile=src/assets/css/style.min.css && esbuild src/assets/css/modern.css --minify --legal-comments=none --outfile=src/assets/css/modern.min.css && esbuild src/assets/css/map.css --bundle --minify --legal-comments=none --loader:.png=dataurl --outfile=src/assets/css/map.min.css && node scripts/build-page-css.mjs",

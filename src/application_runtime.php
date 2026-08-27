@@ -2,6 +2,13 @@
 
 declare(strict_types=1);
 
+foreach ([dirname(__DIR__) . '/vendor/autoload.php', '/opt/dnr/vendor/autoload.php'] as $autoload) {
+    if (is_file($autoload)) {
+        require_once $autoload;
+        break;
+    }
+}
+
 spl_autoload_register(static function (string $class): void {
     $prefix = 'Dnr\\';
     if (!str_starts_with($class, $prefix)) {
@@ -17,13 +24,78 @@ spl_autoload_register(static function (string $class): void {
 
 function applicationTimezoneName(): string
 {
-    $timezone_name = trim((string) (getenv('DNR_TIMEZONE') ?: 'America/Chicago'));
-    try {
-        new DateTimeZone($timezone_name);
-        return $timezone_name;
-    } catch (Throwable $exception) {
-        return 'UTC';
+    return deploymentConfig()->string('defaults.timezone');
+}
+
+function deploymentConfig(): \Dnr\Config\DeploymentConfig
+{
+    static $configuration = null;
+    if (!$configuration instanceof \Dnr\Config\DeploymentConfig) {
+        $configuration = \Dnr\Config\DeploymentConfig::load();
     }
+    return $configuration;
+}
+
+function applicationBrandName(): string
+{
+    return deploymentConfig()->string('brand.display_name');
+}
+
+function applicationBrandNativeName(): string
+{
+    return deploymentConfig()->string('brand.native_name');
+}
+
+function applicationBrandLabel(): string
+{
+    return trim(applicationBrandName() . ' ' . applicationBrandNativeName());
+}
+
+function applicationPageTitle(string $section = ''): string
+{
+    $section = trim($section);
+    return $section === '' ? applicationBrandName() : $section . ' - ' . applicationBrandName();
+}
+
+function applicationBrandLogo(string $theme = 'light'): string
+{
+    return deploymentConfig()->string($theme === 'dark' ? 'brand.logo_dark' : 'brand.logo_light');
+}
+
+function applicationCalendarName(): string
+{
+    return deploymentConfig()->string('brand.calendar_name');
+}
+
+function applicationWorkflowSetting(string $name): int
+{
+    return deploymentConfig()->integer('workflow.' . $name);
+}
+
+function applicationDefaultSpeaker(): string
+{
+    return deploymentConfig()->string('defaults.speaker');
+}
+
+function applicationDefaultCountry(): string
+{
+    return deploymentConfig()->string('defaults.country');
+}
+
+function applicationDefaultPhoneCountryCode(): string
+{
+    return deploymentConfig()->string('defaults.phone_country_code');
+}
+
+function applicationGeneralWorkLabel(): string
+{
+    return 'General ' . applicationBrandName() . ' work';
+}
+
+function applicationInboundMarker(int $engagementId): string
+{
+    return '[' . deploymentConfig()->string('inbound_email.emitted_marker_prefix')
+        . '#' . $engagementId . ']';
 }
 
 function applicationTimezone(): DateTimeZone
@@ -183,3 +255,6 @@ function registerApplicationErrorHandling(): void
 }
 
 registerApplicationErrorHandling();
+
+// Parse and validate the non-secret deployment profile before serving work.
+deploymentConfig();

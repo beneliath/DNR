@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 function calendarStatusLabel($status) {
     $status = trim((string) $status);
     if ($status === '') {
@@ -477,11 +479,12 @@ function calendarEventLines(array $engagement) {
     return $lines;
 }
 
-function calendarPresentationStart(array $presentation, $timezone_name = 'America/Chicago') {
+function calendarPresentationStart(array $presentation, $timezone_name = null) {
+    $timezone_name = trim((string) ($timezone_name ?? applicationTimezoneName()));
     try {
         $timezone = new DateTimeZone($timezone_name);
     } catch (Throwable $exception) {
-        $timezone = new DateTimeZone('America/Chicago');
+        $timezone = applicationTimezone();
     }
 
     $date = trim((string) ($presentation['presentation_date'] ?? ''));
@@ -509,7 +512,7 @@ function calendarPresentationStart(array $presentation, $timezone_name = 'Americ
 
 function calendarPresentationEventLines(
     array $presentation,
-    $timezone_name = 'America/Chicago',
+    $timezone_name = null,
     $duration_minutes = 60
 ) {
     $start = calendarPresentationStart($presentation, $timezone_name);
@@ -569,14 +572,16 @@ function calendarPresentationEventLines(
 
 function buildCalendar(
     array $engagements,
-    $calendar_name = 'DNR Events',
+    $calendar_name = null,
     array $presentations = [],
-    $timezone_name = 'America/Chicago'
+    $timezone_name = null
 ) {
+    $calendar_name = $calendar_name ?? applicationCalendarName();
+    $productName = preg_replace('/[^A-Za-z0-9 ._-]+/u', '', applicationBrandName()) ?: 'DNR';
     $lines = [
         'BEGIN:VCALENDAR',
         'VERSION:2.0',
-        'PRODID:-//DNR//Shared Engagement Calendar//EN',
+        'PRODID:-//' . $productName . '//Shared Engagement Calendar//EN',
         'CALSCALE:GREGORIAN',
         'METHOD:PUBLISH',
         'X-WR-CALNAME:' . calendarEscapeText($calendar_name),

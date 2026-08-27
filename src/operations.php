@@ -55,7 +55,7 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Operations - MOED'); ?>
+<?php renderPageHead(applicationPageTitle('Operations')); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container">

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/application_runtime.php';
+
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\HeaderConsts;
 use ZBateson\MailMimeParser\IMessage;
@@ -9,6 +11,23 @@ use ZBateson\MailMimeParser\Message;
 
 const INBOUND_EMAIL_MAX_RAW_BYTES = 10485760;
 const INBOUND_EMAIL_MAX_CHRON_CHARACTERS = 100000;
+
+/** @return list<string> */
+function inboundEmailAcceptedMarkerPrefixes(): array
+{
+    return array_map(
+        static fn(mixed $prefix): string => (string) $prefix,
+        deploymentConfig()->list('inbound_email.accepted_marker_prefixes')
+    );
+}
+
+function inboundEmailMarkerPrefixPattern(): string
+{
+    return implode('|', array_map(
+        static fn(string $prefix): string => preg_quote($prefix, '/'),
+        inboundEmailAcceptedMarkerPrefixes()
+    ));
+}
 
 function inboundEmailGatewayAddress(): string
 {
@@ -423,7 +442,8 @@ function inboundEmailOrganizationMatches(mysqli $conn, string $address): array
 function parseInboundEmailEngagementMarkers(string $subject): array
 {
     $matches = [];
-    preg_match_all('/\[MOED#([^\]\r\n]*)\]/i', $subject, $matches, PREG_SET_ORDER);
+    $prefixPattern = inboundEmailMarkerPrefixPattern();
+    preg_match_all('/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $subject, $matches, PREG_SET_ORDER);
     $ids = [];
     $invalid = [];
     foreach ($matches as $match) {
@@ -476,7 +496,7 @@ function inboundEmailEngagementRoute(array $row): array
         'organization_label' => $organization,
         'date_label' => $dateLabel,
         'lifecycle_status' => (string) ($row['lifecycle_status'] ?? 'active'),
-        'marker' => '[MOED#' . $id . ']',
+        'marker' => applicationInboundMarker($id),
     ];
 }
 
@@ -532,8 +552,9 @@ function searchInboundEmailEngagements(
 
     $exactId = 0;
     $idMatch = [];
+    $prefixPattern = inboundEmailMarkerPrefixPattern();
     if (preg_match(
-        '/\A(?:\[MOED#([1-9][0-9]{0,9})\]|([1-9][0-9]{0,9}))\z/i',
+        '/\A(?:\[(?:' . $prefixPattern . ')#([1-9][0-9]{0,9})\]|([1-9][0-9]{0,9}))\z/i',
         $search,
         $idMatch
     ) === 1) {
@@ -634,15 +655,16 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     $engagements = [];
     $markers = parseInboundEmailEngagementMarkers((string) ($message['subject'] ?? ''));
     if ($markers['invalid'] !== []) {
-        $reasons[] = 'The subject contains an invalid Engagement marker. Use the exact format [MOED#123].';
+        $reasons[] = 'The subject contains an invalid Engagement marker. Use the exact format '
+            . applicationInboundMarker(123) . '.';
     }
     if (count($markers['ids']) > 1) {
         $reasons[] = 'The subject contains more than one Engagement marker.';
     } elseif (count($markers['ids']) === 1) {
         $engagement = inboundEmailEngagementMatch($conn, $markers['ids'][0]);
         if ($engagement === null) {
-            $reasons[] = '[MOED#' . $markers['ids'][0]
-                . '] does not identify an active Engagement.';
+            $reasons[] = applicationInboundMarker($markers['ids'][0])
+                . ' does not identify an active Engagement.';
         } else {
             $engagements[$engagement['id']] = $engagement;
         }
@@ -743,7 +765,8 @@ function formatInboundEmailChronEntry(array $message): string
     $cc = implode(', ', inboundEmailDecodeAddressList($message['cc_addresses'] ?? '[]'));
     $attachments = inboundEmailDecodeStringList($message['attachment_names'] ?? '[]');
 
-    $lines = ['Email captured by MOED', '', 'From: ' . $from];
+    $brandName = applicationBrandName();
+    $lines = ['Email captured by ' . $brandName, '', 'From: ' . $from];
     if ($to !== '') {
         $lines[] = 'To: ' . $to;
     }
@@ -754,7 +777,7 @@ function formatInboundEmailChronEntry(array $message): string
     if (!empty($message['sent_at'])) {
         $lines[] = 'Sent: ' . (string) $message['sent_at'] . ' UTC';
     }
-    $lines[] = 'Received by MOED: ' . (string) ($message['received_at'] ?? '') . ' UTC';
+    $lines[] = 'Received by ' . $brandName . ': ' . (string) ($message['received_at'] ?? '') . ' UTC';
     if ($attachments) {
         $lines[] = 'Attachments: ' . implode(', ', $attachments);
     }

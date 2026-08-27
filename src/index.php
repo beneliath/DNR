@@ -26,7 +26,7 @@ if (!hasRole(['admin', 'editor'])) {
 }
 
 // Get default speaker name from environment variable
-$DEFAULT_SPEAKER = getenv('DEFAULT_SPEAKER') ? getenv('DEFAULT_SPEAKER') : 'Unknown Speaker';
+$DEFAULT_SPEAKER = applicationDefaultSpeaker();
 
 // Handle form submission for adding a new engagement
 $success_message = '';
@@ -281,7 +281,7 @@ try {
 <!DOCTYPE html>
 <!-- HTML structure for the dashboard interface -->
 <html lang="en">
-<?php renderPageHead('DNR dashboard', array (
+<?php renderPageHead(applicationPageTitle('New Engagement'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

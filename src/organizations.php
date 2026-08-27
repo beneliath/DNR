@@ -229,7 +229,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Organizations - DNR', array (
+<?php renderPageHead(applicationPageTitle('Organizations'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',

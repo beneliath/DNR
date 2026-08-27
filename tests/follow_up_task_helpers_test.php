@@ -129,10 +129,10 @@ expectFollowUpTaskHelper(
 );
 
 expectFollowUpTaskHelper(
-    isRequiredStandardEventTask('standard.financial_closeout')
-        && !isRequiredStandardEventTask('standard.send_thanks')
-        && !isRequiredStandardEventTask('custom.example'),
-    'the financial closeout reminder should be the required hard-coded standard task.'
+    isRequiredStandardEventTask(['is_required' => 1])
+        && !isRequiredStandardEventTask(['is_required' => 0])
+        && !isRequiredStandardEventTask([]),
+    'required standard-task policy should come from persisted template data.'
 );
 
 $normalized_standard_task = normalizeStandardEventTaskInput([

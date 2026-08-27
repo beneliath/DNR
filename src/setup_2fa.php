@@ -194,7 +194,7 @@ if ($enrollment) {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Set Up Two-Factor Authentication - DNR', array (
+<?php renderPageHead(applicationPageTitle('Set Up Two-Factor Authentication'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -246,7 +246,7 @@ if ($enrollment) {
 
         <?php if ($qr_data_uri): ?>
             <div class="qr-code-card">
-                <img src="<?php echo htmlspecialchars($qr_data_uri, ENT_QUOTES, 'UTF-8'); ?>" alt="DNR authenticator QR code" width="280" height="280">
+                <img src="<?php echo htmlspecialchars($qr_data_uri, ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?> authenticator QR code" width="280" height="280">
             </div>
         <?php endif; ?>
 

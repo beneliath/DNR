@@ -159,7 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead('Recover Password - DNR', [
+<?php renderPageHead(applicationPageTitle('Recover Password'), [
     'styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css'],
     'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]],
 ]); ?>
@@ -169,7 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
 </button>
 <div class="login-container recovery-container">
-    <div class="auth-brand"><strong>MOED <bdi lang="he" dir="rtl">מוֹעֵד</bdi></strong></div>
+    <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Recover Password</h1>
     <?php if (isset($requested)): ?>
         <p class="success">If an active account has that verified email address, a single-use recovery link has been sent.</p>
