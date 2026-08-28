@@ -18,6 +18,8 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
     depends_on:
       migrator:
         condition: service_completed_successfully
