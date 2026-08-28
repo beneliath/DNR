@@ -94,7 +94,7 @@ expectUserManual(
         && str_contains($manual, 'Paste QR code')
         && str_contains($manual, 'Save Changes')
         && str_contains($manual, 'copy icon immediately beside the marker'),
-    'the manual should explain presentation assets, nearby saving, and subject-marker copying.'
+    'the manual should explain presentation assets, nearby saving, and routing-marker copying.'
 );
 
 expectUserManual(

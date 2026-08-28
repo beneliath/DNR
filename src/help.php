@@ -296,7 +296,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>View, Share, and Close the Event</h3>
-                    <p>The event detail page shows its unique email subject marker. Select the copy icon immediately beside the marker to place it on the clipboard, then keep the marker in an email subject when that message should route to the engagement’s Chron log.</p>
+                    <p>The event detail page shows its unique email routing marker. Select the copy icon immediately beside the marker to place it on the clipboard, then keep the marker in the email subject or plain-text body when that message should route to the engagement’s Chron log.</p>
                     <section class="manual-card-grid manual-card-grid-three">
                         <article class="manual-card"><h4>Copy Text</h4><p>Copies a plain-text event brief for messages or notes.</p></article>
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
@@ -445,7 +445,7 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">@</span>
                     <div class="manual-callout-body">
                         <h3>Route Email to an Engagement</h3>
-                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject: <code><?php echo htmlspecialchars($manual_marker_example, ENT_QUOTES, 'UTF-8'); ?></code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. Replies remain routable while the marker remains. One unique valid marker can route to that active engagement when the sender and participants satisfy the relationship checks.</p>
+                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject or plain-text body: <code><?php echo htmlspecialchars($manual_marker_example, ENT_QUOTES, 'UTF-8'); ?></code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. One unique valid marker is authoritative and routes automatically to that active engagement. When participant matching is unsafe or ambiguous, only the marked engagement receives the Chron entry.</p>
                     </div>
                 </article>
 
@@ -462,7 +462,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Review the Inbound Queue</h3>
-                    <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Unknown or ambiguous senders, shared addresses, invalid/multiple markers, unrelated events, and messages with no unique target require review.</p>
+                    <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Without an authoritative marker, unknown or ambiguous senders, shared addresses, and messages with no unique target require review. Invalid, conflicting, unknown, or archived engagement markers also require review.</p>
                     <ol class="manual-steps manual-steps-compact">
                         <li><span>01</span><section><strong>Inspect the source.</strong><p>Read the From, To, Cc, dates, attachment names, plain-text body, sender classification, suggested routes, and review reasons.</p></section></li>
                         <li><span>02</span><section><strong>Correct the targets.</strong><p>Select suggested Contact and Organization routes. Search any active engagement by marker, ID, title, or organization.</p></section></li>
@@ -649,7 +649,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Email Still Needs Review</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> subject marker where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
+                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> marker in the subject or plain-text body where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
                     </details>
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>

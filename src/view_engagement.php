@@ -183,7 +183,7 @@ $presentation_stmt->close();
         <div class="detail-value"><?php echo htmlspecialchars($engagement['event_title']); ?></div>
         <?php endif; ?>
 
-        <div class="detail-label">Email Subject Marker</div>
+        <div class="detail-label">Email Routing Marker</div>
         <div class="detail-value engagement-email-marker">
             <span class="engagement-email-marker-control">
                 <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
@@ -193,14 +193,14 @@ $presentation_stmt->close();
                     data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
                     data-copy-status="engagement-marker-copy-status"
                     data-tooltip="Copy marker"
-                    aria-label="Copy email subject marker"
-                    title="Copy email subject marker"
+                    aria-label="Copy email routing marker"
+                    title="Copy email routing marker"
                 >
                     <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
                     <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
                 </button>
             </span>
-            <span class="engagement-email-marker-help">Keep this marker in an email subject to route the message to this Engagement’s Chron log.</span>
+            <span class="engagement-email-marker-help">Keep this marker in the email subject or plain-text body to route the message to this Engagement’s Chron log.</span>
             <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
         </div>
 

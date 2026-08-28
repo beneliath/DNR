@@ -72,7 +72,25 @@ expectInboundEmail(
     $markers === ['ids' => [123], 'invalid' => []]
         && $invalidMarkers['ids'] === []
         && count($invalidMarkers['invalid']) === 3,
-    'Engagement subject markers should be exact, bounded, case-insensitive, and deduplicated.'
+    'Engagement markers should be exact, bounded, case-insensitive, and deduplicated.'
+);
+$bodyMarkers = inboundEmailMessageEngagementMarkers([
+    'subject' => 'Schedule update',
+    'body_text' => 'Please attach this message to [MOED#456].',
+]);
+$repeatedMessageMarkers = inboundEmailMessageEngagementMarkers([
+    'subject' => 'Re: Schedule [MOED#123]',
+    'body_text' => 'Quoted thread marker [moed#123]',
+]);
+$conflictingMessageMarkers = inboundEmailMessageEngagementMarkers([
+    'subject' => 'First route [MOED#123]',
+    'body_text' => 'Second route [MOED#456]',
+]);
+expectInboundEmail(
+    $bodyMarkers === ['ids' => [456], 'invalid' => []]
+        && $repeatedMessageMarkers === ['ids' => [123], 'invalid' => []]
+        && $conflictingMessageMarkers['ids'] === [123, 456],
+    'message routing should find markers in the subject or body and reject conflicting targets.'
 );
 $engagementRoute = inboundEmailEngagementRoute([
     'id' => 123,

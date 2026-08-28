@@ -47,7 +47,9 @@ expectInboundFeature(
 );
 expectInboundFeature(
     str_contains($helper, 'routeInboundEmailMessage')
-        && str_contains($helper, "'automatic' => \$reasons === []")
+        && str_contains($helper, "'automatic' => \$authoritativeEngagement || \$reasons === []")
+        && str_contains($helper, 'inboundEmailMessageEngagementMarkers')
+        && str_contains($helper, "'authoritative_engagement' => \$authoritativeEngagement")
         && str_contains($helper, 'parseInboundEmailEngagementMarkers')
         && str_contains($helper, "'engagements' => array_values(\$engagements)")
         && str_contains($helper, 'INSERT INTO engagement_chron_entries')
@@ -56,7 +58,7 @@ expectInboundFeature(
         && str_contains($helper, 'ON DUPLICATE KEY UPDATE id = id')
         && str_contains($helper, 'function purgeInboundEmailMessage')
         && str_contains($helper, 'DELETE FROM inbound_email_messages WHERE id = ?'),
-    'routing should distinguish automatic matches, gateway attribution, and duplicate delivery.'
+    'routing should honor authoritative message markers, gateway attribution, and duplicate delivery.'
 );
 expectInboundFeature(
     str_contains($worker, 'unseenUids')
@@ -81,7 +83,7 @@ expectInboundFeature(
         && str_contains($review, 'name="engagement_ids[]"')
         && str_contains($review, 'No engagement selected')
         && str_contains($review, 'Associated Contact, Organization, and Engagement Chron Log entries will be preserved')
-        && str_contains($engagementView, 'Email Subject Marker')
+        && str_contains($engagementView, 'Email Routing Marker')
         && str_contains($engagementView, 'applicationInboundMarker($engagement_id)')
         && str_contains($header, '<span>Inbound Mail</span>'),
     'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
