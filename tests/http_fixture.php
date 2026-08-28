@@ -151,6 +151,7 @@ if ($action === 'setup') {
 if ($action === 'user-exists'
     || $action === 'user-status'
     || $action === 'digest-enabled'
+    || $action === 'digest-schedule'
 ) {
     $fixture = $argv[3] ?? '';
     if (!isset($usernames[$fixture])) {
@@ -158,7 +159,8 @@ if ($action === 'user-exists'
         exit(1);
     }
     $statement = $conn->prepare(
-        'SELECT account_status, task_digest_enabled FROM users WHERE username = ?'
+        'SELECT account_status, task_digest_enabled, task_digest_time, task_digest_days
+         FROM users WHERE username = ?'
     );
     $statement->bind_param('s', $usernames[$fixture]);
     $statement->execute();
@@ -167,6 +169,10 @@ if ($action === 'user-exists'
         echo $user ? "1\n" : "0\n";
     } elseif ($action === 'digest-enabled') {
         echo $user ? (string) (int) $user['task_digest_enabled'] . "\n" : "missing\n";
+    } elseif ($action === 'digest-schedule') {
+        echo $user
+            ? (string) $user['task_digest_time'] . '|' . (string) (int) $user['task_digest_days'] . "\n"
+            : "missing\n";
     } else {
         echo $user ? (string) $user['account_status'] . "\n" : "missing\n";
     }

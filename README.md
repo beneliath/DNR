@@ -167,13 +167,14 @@ single-use link remains valid while its replacement is pending and is invalidate
 relay accepts the new message. Failed deliveries retry with bounded exponential backoff, and the
 encrypted payload is erased after success or terminal failure.
 
-Verified users may also opt into a daily work digest under **My Profile → Notifications**. After the
-configured local digest hour, the same worker queues at most one message per user and business date
-with their overdue, due-today, next-seven-days, and waiting tasks. Administrators and editors also
-receive incomplete financial closeouts. Digests use a separate encrypted `notification_outbox` so
-account-token delivery remains isolated; messages are discarded if the recipient opts out, changes
-their email, becomes inactive, or no longer has a verified address. Sent and terminal payloads are
-erased.
+Verified users may also opt into a daily work digest under **My Profile → Notifications**. Each user
+chooses a local delivery time and any combination of weekdays; weekday, weekend, and every-day
+presets are available. After that time on a selected day, the same worker queues at most one message
+per user and business date with their overdue, due-today, next-seven-days, and waiting tasks.
+Administrators and editors also receive incomplete financial closeouts. Digests use a separate
+encrypted `notification_outbox` so account-token delivery remains isolated; messages are discarded
+if the recipient opts out, changes their email, becomes inactive, no longer has a verified address,
+or removes the queued day from their schedule. Sent and terminal payloads are erased.
 
 Create `secrets/smtp_password`, configure the sender and relay in `.env`, and use
 `production-smtp` or `development-smtp`. Combine inbound and outbound mail with
@@ -427,7 +428,6 @@ Configure these values as needed:
 - `DNR_EMAIL_OUTBOX_BATCH_SIZE` and `DNR_EMAIL_OUTBOX_IDLE_SECONDS`: bounded outbound messages per worker cycle and idle polling interval. Defaults are 20 messages and 15 seconds.
 - `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
-- `DNR_TASK_DIGEST_HOUR`: local hour from 0–23 after which opted-in users may receive that business day's digest; defaults to 7 and uses `DNR_TIMEZONE`.
 - `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.

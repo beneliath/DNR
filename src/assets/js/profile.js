@@ -1,4 +1,51 @@
 (function () {
+    const digestSchedule = document.querySelector('[data-task-digest-schedule]');
+    if (digestSchedule) {
+        const dayInputs = Array.from(
+            digestSchedule.querySelectorAll('input[name="task_digest_days[]"]')
+        );
+        const presetButtons = Array.from(
+            digestSchedule.querySelectorAll('[data-task-digest-days]')
+        );
+
+        function selectedDaysMask() {
+            return dayInputs.reduce(function (mask, dayInput) {
+                return dayInput.checked ? mask | Number(dayInput.value) : mask;
+            }, 0);
+        }
+
+        function updateDigestDayControls() {
+            const selectedMask = selectedDaysMask();
+            dayInputs.forEach(function (dayInput, index) {
+                dayInput.setCustomValidity(
+                    index === 0 && selectedMask === 0
+                        ? 'Choose at least one daily work digest delivery day.'
+                        : ''
+                );
+            });
+            presetButtons.forEach(function (button) {
+                button.setAttribute(
+                    'aria-pressed',
+                    Number(button.dataset.taskDigestDays) === selectedMask ? 'true' : 'false'
+                );
+            });
+        }
+
+        dayInputs.forEach(function (dayInput) {
+            dayInput.addEventListener('change', updateDigestDayControls);
+        });
+        presetButtons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                const requestedMask = Number(button.dataset.taskDigestDays);
+                dayInputs.forEach(function (dayInput) {
+                    dayInput.checked = (requestedMask & Number(dayInput.value)) !== 0;
+                });
+                updateDigestDayControls();
+            });
+        });
+        updateDigestDayControls();
+    }
+
     const input = document.querySelector('[data-profile-picture-input]');
     const preview = document.querySelector('[data-profile-picture-preview]');
     const status = document.querySelector('[data-profile-picture-preview-status]');

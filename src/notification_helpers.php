@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
 
+const TASK_DIGEST_WEEKDAYS = 31;
+const TASK_DIGEST_WEEKENDS = 96;
+const TASK_DIGEST_EVERY_DAY = 127;
+
 /**
  * @return array{overdue: int, today: int, upcoming: int, waiting: int,
  *   closeouts: int, total: int}
@@ -87,19 +91,62 @@ function fetchTaskReminderCounts(
     return $counts;
 }
 
-function taskDigestHour(): int
+function taskDigestDeliveryTimeFromInput(mixed $value): string
 {
-    $value = trim((string) (getenv('DNR_TASK_DIGEST_HOUR') ?: '7'));
-    if (preg_match('/\A(?:[0-9]|1[0-9]|2[0-3])\z/', $value) !== 1) {
-        return 7;
+    $value = is_string($value) ? trim($value) : '';
+    if (preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]\z/', $value) !== 1) {
+        throw new InvalidArgumentException('Choose a valid daily work digest delivery time.');
     }
-    return (int) $value;
+    return $value . ':00';
 }
 
-function taskDigestIsDue(?DateTimeImmutable $instant = null): bool
+function taskDigestDeliveryTimeInputValue(mixed $value): string
 {
+    $value = is_string($value) ? trim($value) : '';
+    if (preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?\z/', $value) !== 1) {
+        return '07:00';
+    }
+    return substr($value, 0, 5);
+}
+
+function taskDigestDaysFromInput(mixed $values): int
+{
+    if (!is_array($values)) {
+        throw new InvalidArgumentException('Choose at least one daily work digest delivery day.');
+    }
+
+    $mask = 0;
+    foreach ($values as $value) {
+        if (!is_string($value)
+            || !in_array($value, ['1', '2', '4', '8', '16', '32', '64'], true)
+        ) {
+            throw new InvalidArgumentException('Choose valid daily work digest delivery days.');
+        }
+        $mask |= (int) $value;
+    }
+    if ($mask < 1) {
+        throw new InvalidArgumentException('Choose at least one daily work digest delivery day.');
+    }
+    return $mask;
+}
+
+function taskDigestScheduleIsDue(
+    string $deliveryTime,
+    int $deliveryDays,
+    ?DateTimeImmutable $instant = null
+): bool {
+    if (preg_match('/\A(?:[01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]\z/', $deliveryTime) !== 1
+        || $deliveryDays < 1
+        || $deliveryDays > TASK_DIGEST_EVERY_DAY
+    ) {
+        return false;
+    }
+
     $instant ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
-    return (int) $instant->setTimezone(applicationTimezone())->format('G') >= taskDigestHour();
+    $localInstant = $instant->setTimezone(applicationTimezone());
+    $dayMask = 1 << ((int) $localInstant->format('N') - 1);
+    return ($deliveryDays & $dayMask) !== 0
+        && $localInstant->format('H:i:s') >= $deliveryTime;
 }
 
 /**
@@ -380,12 +427,10 @@ function queueDueDailyTaskDigests(
     ?DateTimeImmutable $instant = null
 ): int {
     $instant ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
-    if (!taskDigestIsDue($instant)) {
-        return 0;
-    }
     $businessDate = applicationBusinessDate($instant);
     $userStatement = $conn->prepare(
-        "SELECT user.id, user.username, user.first_name, user.email, user.role
+        "SELECT user.id, user.username, user.first_name, user.email, user.role,
+                user.task_digest_time, user.task_digest_days
          FROM users user
          LEFT JOIN notification_outbox outbox
             ON outbox.user_id = user.id
@@ -408,6 +453,13 @@ function queueDueDailyTaskDigests(
 
     $queued = 0;
     while ($user = $users->fetch_assoc()) {
+        if (!taskDigestScheduleIsDue(
+            (string) $user['task_digest_time'],
+            (int) $user['task_digest_days'],
+            $instant
+        )) {
+            continue;
+        }
         $userId = (int) $user['id'];
         $digest = fetchDailyTaskDigestData(
             $conn,
@@ -462,6 +514,7 @@ function claimQueuedNotificationEmail(
                     outbox.digest_date < ?
                     OR user.account_status <> 'active'
                     OR user.task_digest_enabled <> 1
+                    OR (user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))) = 0
                     OR user.email_verified_at IS NULL
                     OR user.email IS NULL
                     OR outbox.recipient_hash <> UNHEX(SHA2(LOWER(TRIM(user.email)), 256))
@@ -484,6 +537,7 @@ function claimQueuedNotificationEmail(
                AND outbox.digest_date = ?
                AND user.account_status = 'active'
                AND user.task_digest_enabled = 1
+               AND (user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))) <> 0
                AND user.email_verified_at IS NOT NULL
                AND user.email IS NOT NULL
                AND outbox.recipient_hash = UNHEX(SHA2(LOWER(TRIM(user.email)), 256))

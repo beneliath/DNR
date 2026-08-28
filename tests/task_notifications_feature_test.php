@@ -20,6 +20,7 @@ $read = static function (string $path) use ($root): string {
 };
 
 $migration = $read('migrations/20260823_add_task_notifications.sql');
+$scheduleMigration = $read('migrations/20260828_customize_task_digest_schedule.sql');
 $reminderIndexMigration = $read('migrations/20260824_optimize_task_reminders.sql');
 $order = $read('migrations/order.txt');
 $helpers = $read('src/notification_helpers.php');
@@ -28,6 +29,7 @@ $profile = $read('src/profile.php');
 $header = $read('src/templates/header.php');
 $tasks = $read('src/tasks.php');
 $styles = $read('src/assets/css/modern.css');
+$profileScript = $read('src/assets/js/profile.js');
 $grants = $read('scripts/configure_database_privileges.sh');
 $smtp = $read('docker-compose.smtp.yaml');
 
@@ -40,6 +42,13 @@ expectTaskNotificationsFeature(
         && str_contains($migration, 'ON DELETE CASCADE')
         && str_contains($order, '20260823_add_task_notifications.sql'),
     'the schema should provide opt-in preferences and a separate idempotent encrypted notification outbox.'
+);
+expectTaskNotificationsFeature(
+    str_contains($scheduleMigration, "task_digest_time TIME NOT NULL DEFAULT '07:00:00'")
+        && str_contains($scheduleMigration, 'task_digest_days TINYINT UNSIGNED NOT NULL DEFAULT 127')
+        && str_contains($scheduleMigration, 'CHECK (task_digest_days BETWEEN 1 AND 127)')
+        && str_contains($order, '20260828_customize_task_digest_schedule.sql'),
+    'a forward migration should persist a bounded per-user delivery time and weekday mask.'
 );
 expectTaskNotificationsFeature(
     str_contains(
@@ -59,6 +68,9 @@ expectTaskNotificationsFeature(
         && str_contains($helpers, 'function claimQueuedNotificationEmail(')
         && str_contains($helpers, "payload_ciphertext = NULL")
         && str_contains($helpers, "user.task_digest_enabled <> 1")
+        && str_contains($helpers, 'function taskDigestScheduleIsDue(')
+        && str_contains($helpers, 'user.task_digest_time, user.task_digest_days')
+        && str_contains($helpers, 'user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))')
         && str_contains($helpers, 'outbox.digest_date < ?')
         && str_contains($helpers, 'FOR UPDATE OF outbox SKIP LOCKED')
         && str_contains($helpers, 'ApplicationKey::seal')
@@ -69,14 +81,19 @@ expectTaskNotificationsFeature(
     str_contains($worker, 'queueDueDailyTaskDigests($conn)')
         && str_contains($worker, 'claimQueuedNotificationEmail(')
         && str_contains($worker, 'deliverAccountEmail(')
-        && str_contains($smtp, 'DNR_TASK_DIGEST_HOUR:')
         && str_contains($smtp, 'DNR_NOTIFICATION_OUTBOX_BATCH_SIZE:'),
     'the existing outbound-mail service should schedule and deliver the separate digest queue.'
 );
 expectTaskNotificationsFeature(
     str_contains($profile, 'name="task_digest_enabled"')
+        && str_contains($profile, 'name="task_digest_time"')
+        && str_contains($profile, 'name="task_digest_days[]"')
+        && str_contains($profile, 'data-task-digest-days="31"')
+        && str_contains($profile, 'data-task-digest-days="96"')
+        && str_contains($profileScript, 'updateDigestDayControls')
         && str_contains($profile, 'Verify your email address to enable daily digests.')
         && str_contains($profile, 'task_digest_enabled = ?')
+        && str_contains($profile, 'task_digest_time = ?, task_digest_days = ?')
         && str_contains($header, 'nav-notification-badge')
         && str_contains($tasks, 'task-reminder-badges')
         && str_contains($tasks, "owner_filter === 'me'"),
@@ -92,6 +109,7 @@ expectTaskNotificationsFeature(
     str_contains($grants, '.notification_outbox')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%'")
         && str_contains($grants, 'task_digest_enabled')
+        && str_contains($grants, 'task_digest_time, task_digest_days')
         && !str_contains($grants, "GRANT ALL PRIVILEGES"),
     'the outbound-mail worker should receive only table- and column-scoped notification access.'
 );

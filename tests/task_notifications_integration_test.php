@@ -25,7 +25,6 @@ putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('N', 32)));
 putenv('DNR_PUBLIC_BASE_URL=https://moed.example.test');
 putenv('DNR_REQUIRE_HTTPS=1');
 putenv('DNR_TIMEZONE=America/Chicago');
-putenv('DNR_TASK_DIGEST_HOUR=7');
 
 $suffix = bin2hex(random_bytes(5));
 $instant = new DateTimeImmutable('2026-08-23 13:00:00', new DateTimeZone('UTC'));
@@ -41,8 +40,9 @@ try {
     $userStatement = $conn->prepare(
         "INSERT INTO users
             (username, email, email_verified_at, task_digest_enabled,
+             task_digest_time, task_digest_days,
              password, role, account_status)
-         VALUES (?, ?, UTC_TIMESTAMP(), 1, ?, ?, 'active')"
+         VALUES (?, ?, UTC_TIMESTAMP(), 1, '08:00:00', 96, ?, ?, 'active')"
     );
     $userStatement->bind_param('ssss', $username, $email, $password, $role);
     $userStatement->execute();
@@ -97,9 +97,13 @@ try {
     $taskStatement->close();
 
     expectTaskNotificationIntegration(
+        queueDueDailyTaskDigests($conn, $instant->modify('-1 minute')) === 0,
+        'a digest should remain pending until the user-selected local delivery time.'
+    );
+    expectTaskNotificationIntegration(
         queueDueDailyTaskDigests($conn, $instant) === 1
             && queueDueDailyTaskDigests($conn, $instant) === 0,
-        'one idempotent digest should be queued for an opted-in verified user each day.'
+        'one idempotent digest should be queued on a selected day after its delivery time.'
     );
 
     $queued = $conn->query(
@@ -142,8 +146,13 @@ try {
     $nextInstant = $instant->modify('+1 day');
     $nextDate = applicationBusinessDate($nextInstant);
     expectTaskNotificationIntegration(
+        queueDueDailyTaskDigests($conn, $nextInstant) === 0,
+        'an unselected weekday should not receive a digest.'
+    );
+    $conn->query("UPDATE users SET task_digest_days = 31 WHERE id = {$userId}");
+    expectTaskNotificationIntegration(
         queueDueDailyTaskDigests($conn, $nextInstant) === 1,
-        'the next business day should receive its own digest record.'
+        'a newly selected weekday should receive its own digest record.'
     );
     $conn->query("UPDATE users SET task_digest_enabled = 0 WHERE id = {$userId}");
     expectTaskNotificationIntegration(
@@ -174,7 +183,6 @@ try {
     putenv('DNR_PUBLIC_BASE_URL');
     putenv('DNR_REQUIRE_HTTPS');
     putenv('DNR_TIMEZONE');
-    putenv('DNR_TASK_DIGEST_HOUR');
 }
 
 echo "Task notifications integration tests passed.\n";
