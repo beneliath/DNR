@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/profile_helpers.php';
 require_once __DIR__ . '/email_helpers.php';
+require_once __DIR__ . '/notification_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/user_lifecycle_helpers.php';
 startSecureSession();
@@ -12,7 +13,7 @@ $user_id = (int) $_SESSION['user_id'];
 function fetchCurrentUserProfile(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
         'SELECT id, username, role, first_name, last_name, phone, email, email_verified_at,
-                task_digest_enabled,
+                task_digest_enabled, task_digest_time, task_digest_days,
                 profile_picture_mime, profile_picture_sha256, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -72,6 +73,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $phone_country_code = trim((string) ($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode()));
     $phone = trim((string) ($_POST['phone'] ?? ''));
     $task_digest_enabled_requested = ($_POST['task_digest_enabled'] ?? '') === '1';
+    $task_digest_time = taskDigestDeliveryTimeFromInput(
+        taskDigestDeliveryTimeInputValue($user['task_digest_time'] ?? null)
+    );
+    $task_digest_days = (int) ($user['task_digest_days'] ?? TASK_DIGEST_EVERY_DAY);
+    if ($task_digest_days < 1 || $task_digest_days > TASK_DIGEST_EVERY_DAY) {
+        $task_digest_days = TASK_DIGEST_EVERY_DAY;
+    }
     $remove_profile_picture = isset($_POST['remove_profile_picture']);
     $picture = null;
 
@@ -97,6 +105,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
         }
         $task_digest_enabled = $task_digest_enabled_requested && !$email_changed ? 1 : 0;
+        if (isset($_POST['task_digest_schedule_present'])) {
+            $task_digest_time = taskDigestDeliveryTimeFromInput(
+                $_POST['task_digest_time'] ?? null
+            );
+            $task_digest_days = taskDigestDaysFromInput(
+                $_POST['task_digest_days'] ?? null
+            );
+        }
 
         $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone number');
         $picture = profilePictureFromUpload($_FILES['profile_picture'] ?? []);
@@ -110,6 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
                      task_digest_enabled = ?,
+                     task_digest_time = ?, task_digest_days = ?,
                      profile_picture = ?, profile_picture_thumbnail = ?,
                      profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                      profile_picture_sha256 = ?,
@@ -125,12 +142,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $picture_mime = $picture['mime_type'];
             $picture_sha256 = $picture['sha256'];
             $stmt->bind_param(
-                'ssssisssssi',
+                'ssssisisssssi',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
                 $task_digest_enabled,
+                $task_digest_time,
+                $task_digest_days,
                 $picture_data,
                 $picture_thumbnail,
                 $picture_thumbnail_mime,
@@ -144,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
                      task_digest_enabled = ?,
+                     task_digest_time = ?, task_digest_days = ?,
                      profile_picture = NULL, profile_picture_thumbnail = NULL,
                      profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                      profile_picture_sha256 = NULL,
@@ -154,12 +174,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
             $stmt->bind_param(
-                'ssssii',
+                'ssssisii',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
                 $task_digest_enabled,
+                $task_digest_time,
+                $task_digest_days,
                 $user_id
             );
         } else {
@@ -168,6 +190,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  SET first_name = ?, last_name = ?, phone = ?, email = ?,
                      ' . $email_verification_update . '
                      task_digest_enabled = ?,
+                     task_digest_time = ?, task_digest_days = ?,
                      last_updated_at = last_updated_at
                  WHERE id = ?'
             );
@@ -175,12 +198,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
             $stmt->bind_param(
-                'ssssii',
+                'ssssisii',
                 $first_name,
                 $last_name,
                 $phone,
                 $email,
                 $task_digest_enabled,
+                $task_digest_time,
+                $task_digest_days,
                 $user_id
             );
         }
@@ -245,6 +270,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user['phone'] = $phone;
     $user['email'] = $email;
     $user['task_digest_enabled'] = $task_digest_enabled_requested ? 1 : 0;
+    $user['task_digest_time'] = $task_digest_time;
+    $user['task_digest_days'] = $task_digest_days;
     if (isset($email_changed) && $email_changed) {
         $user['email_verified_at'] = null;
     }
@@ -257,6 +284,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 );
 $stored_picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
 $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $stored_picture_version);
+$task_digest_time_value = taskDigestDeliveryTimeInputValue($user['task_digest_time'] ?? null);
+$task_digest_days_value = (int) ($user['task_digest_days'] ?? TASK_DIGEST_EVERY_DAY);
+if ($task_digest_days_value < 1 || $task_digest_days_value > TASK_DIGEST_EVERY_DAY) {
+    $task_digest_days_value = TASK_DIGEST_EVERY_DAY;
+}
+$task_digest_day_options = [
+    1 => ['short' => 'M', 'label' => 'Monday'],
+    2 => ['short' => 'T', 'label' => 'Tuesday'],
+    4 => ['short' => 'W', 'label' => 'Wednesday'],
+    8 => ['short' => 'Th', 'label' => 'Thursday'],
+    16 => ['short' => 'F', 'label' => 'Friday'],
+    32 => ['short' => 'Sa', 'label' => 'Saturday'],
+    64 => ['short' => 'Su', 'label' => 'Sunday'],
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -348,18 +389,49 @@ $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $st
         <section class="profile-card" aria-labelledby="notification-preferences-heading">
             <h2 id="notification-preferences-heading">Notifications</h2>
             <label class="profile-notification-option">
-                <input type="checkbox" name="task_digest_enabled" value="1"
+                <input type="checkbox" name="task_digest_enabled" value="1" data-task-digest-enabled
                     <?php echo !empty($user['task_digest_enabled']) ? 'checked' : ''; ?>
                     <?php echo empty($user['email_verified_at']) ? 'disabled' : ''; ?>>
                 <span>
                     <strong>Daily work digest</strong>
-                    <small>Email me each morning with my overdue, due-today, upcoming, and waiting tasks<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus financial closeouts' : ''; ?>.</small>
+                    <small>Email me on the selected days with my overdue, due-today, upcoming, and waiting tasks<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus financial closeouts' : ''; ?>.</small>
                 </span>
             </label>
+            <div class="profile-notification-schedule" data-task-digest-schedule>
+                <?php if (!empty($user['email_verified_at'])): ?>
+                    <input type="hidden" name="task_digest_schedule_present" value="1">
+                <?php endif; ?>
+                <div class="profile-notification-time">
+                    <label for="task_digest_time">Delivery time</label>
+                    <input type="time" id="task_digest_time" name="task_digest_time"
+                        value="<?php echo htmlspecialchars($task_digest_time_value, ENT_QUOTES, 'UTF-8'); ?>"
+                        step="60" required
+                        <?php echo empty($user['email_verified_at']) ? 'disabled' : ''; ?>>
+                    <small>Uses <?php echo htmlspecialchars(applicationTimezoneName(), ENT_QUOTES, 'UTF-8'); ?> time.</small>
+                </div>
+                <fieldset class="profile-notification-days" <?php echo empty($user['email_verified_at']) ? 'disabled' : ''; ?>>
+                    <legend>Delivery days</legend>
+                    <div class="profile-notification-presets" aria-label="Delivery day presets">
+                        <button type="button" class="button-secondary" data-task-digest-days="31">Weekdays</button>
+                        <button type="button" class="button-secondary" data-task-digest-days="96">Weekends</button>
+                        <button type="button" class="button-secondary" data-task-digest-days="127">Every day</button>
+                    </div>
+                    <div class="profile-notification-day-options">
+                        <?php foreach ($task_digest_day_options as $day_value => $day_option): ?>
+                            <label title="<?php echo htmlspecialchars($day_option['label'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="checkbox" name="task_digest_days[]"
+                                    value="<?php echo $day_value; ?>"
+                                    <?php echo ($task_digest_days_value & $day_value) !== 0 ? 'checked' : ''; ?>>
+                                <span><?php echo htmlspecialchars($day_option['short'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            </div>
             <?php if (empty($user['email_verified_at'])): ?>
                 <p class="field-help">Verify your email address to enable daily digests.</p>
             <?php else: ?>
-                <p class="field-help">Digests are sent once per business day after the configured morning delivery time.</p>
+                <p class="field-help">Delivery begins at the selected time. The mail worker may send a few minutes later.</p>
             <?php endif; ?>
         </section>
 

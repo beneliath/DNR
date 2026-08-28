@@ -15,17 +15,43 @@ function expectTaskNotificationHelper(bool $condition, string $message): void
 }
 
 putenv('DNR_TIMEZONE=America/Chicago');
-putenv('DNR_TASK_DIGEST_HOUR=7');
 putenv('DNR_PUBLIC_BASE_URL=https://moed.example.test');
 putenv('DNR_REQUIRE_HTTPS=1');
 
 expectTaskNotificationHelper(
-    !taskDigestIsDue(new DateTimeImmutable('2026-08-23 11:59:00', new DateTimeZone('UTC')))
-        && taskDigestIsDue(new DateTimeImmutable('2026-08-23 12:00:00', new DateTimeZone('UTC'))),
-    'daily digest scheduling should follow the configured business timezone and hour.'
+    !taskDigestScheduleIsDue(
+        '07:30:00',
+        TASK_DIGEST_WEEKENDS,
+        new DateTimeImmutable('2026-08-23 12:29:00', new DateTimeZone('UTC'))
+    )
+        && taskDigestScheduleIsDue(
+            '07:30:00',
+            TASK_DIGEST_WEEKENDS,
+            new DateTimeImmutable('2026-08-23 12:30:00', new DateTimeZone('UTC'))
+        )
+        && !taskDigestScheduleIsDue(
+            '07:30:00',
+            TASK_DIGEST_WEEKDAYS,
+            new DateTimeImmutable('2026-08-23 13:00:00', new DateTimeZone('UTC'))
+        ),
+    'digest scheduling should follow each user time, selected days, and the business timezone.'
 );
-putenv('DNR_TASK_DIGEST_HOUR=invalid');
-expectTaskNotificationHelper(taskDigestHour() === 7, 'invalid digest hours should use the safe morning default.');
+expectTaskNotificationHelper(
+    taskDigestDeliveryTimeFromInput('16:45') === '16:45:00'
+        && taskDigestDeliveryTimeInputValue('16:45:00') === '16:45'
+        && taskDigestDaysFromInput(['1', '4', '64']) === 69,
+    'profile schedule values should normalize to database time and a bounded weekday bit mask.'
+);
+$invalidScheduleRejected = false;
+try {
+    taskDigestDaysFromInput([]);
+} catch (InvalidArgumentException $exception) {
+    $invalidScheduleRejected = true;
+}
+expectTaskNotificationHelper(
+    $invalidScheduleRejected,
+    'a digest schedule should require at least one delivery day.'
+);
 
 $digest = [
     'counts' => [
@@ -85,7 +111,6 @@ expectTaskNotificationHelper(
 );
 
 putenv('DNR_TIMEZONE');
-putenv('DNR_TASK_DIGEST_HOUR');
 putenv('DNR_PUBLIC_BASE_URL');
 putenv('DNR_REQUIRE_HTTPS');
 

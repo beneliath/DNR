@@ -181,7 +181,8 @@ GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${mail_dispa
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, username, first_name, email, email_verified_at, role,
-    auth_version, account_status, task_digest_enabled
+    auth_version, account_status, task_digest_enabled,
+    task_digest_time, task_digest_days
 ) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, title, status, priority, due_date, waiting_on, assigned_to

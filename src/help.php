@@ -526,7 +526,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="profile-security" data-manual-section data-keywords="profile picture name email verified password recovery notification digest phone security two factor 2FA authenticator QR setup key recovery codes change password disable login invitation reset theme">
+            <section class="manual-chapter" id="profile-security" data-manual-section data-keywords="profile picture name email verified password recovery notification digest delivery time weekdays weekends phone security two factor 2FA authenticator QR setup key recovery codes change password disable login invitation reset theme">
                 <header class="manual-chapter-heading">
                     <span>Chapter 09</span>
                     <h2>Profile and Security</h2>
@@ -537,7 +537,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <h3>Profile and Notifications</h3>
                         <p>Add your name, phone, email, and optional profile picture. Changing email clears its verified state and pauses the daily digest until the new address is verified.</p>
-                        <p>A verified email enables password recovery and the optional morning digest of overdue, due-today, upcoming, and waiting tasks. Editor/admin digests also include financial closeouts.</p>
+                        <p>A verified email enables password recovery and the optional work digest of overdue, due-today, upcoming, and waiting tasks. Choose its delivery time and individual days, or quickly select weekdays, weekends, or every day. Editor/admin digests also include financial closeouts.</p>
                         <a href="profile.php" class="manual-inline-link">Open My Profile</a>
                     </article>
                     <article class="manual-card">

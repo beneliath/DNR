@@ -157,6 +157,8 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-profile.html" \
     "$base_url/profile.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-profile.html")
 grep -q 'name="task_digest_enabled"' "$temporary_directory/editor-profile.html"
+grep -q 'name="task_digest_time"' "$temporary_directory/editor-profile.html"
+grep -Fq 'name="task_digest_days[]"' "$temporary_directory/editor-profile.html"
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-profile.headers" \
     -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \
@@ -167,10 +169,16 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-profile.h
     --data-urlencode 'phone_country_code=+1' \
     --data-urlencode 'phone=' \
     --data-urlencode 'task_digest_enabled=1' \
+    --data-urlencode 'task_digest_schedule_present=1' \
+    --data-urlencode 'task_digest_time=16:45' \
+    --data-urlencode 'task_digest_days[]=1' \
+    --data-urlencode 'task_digest_days[]=4' \
+    --data-urlencode 'task_digest_days[]=16' \
     "$base_url/profile.php")
 expect_status "$status" '302' 'editor digest preference update'
 expect_location "$temporary_directory/editor-profile.headers" 'profile.php?updated=1' 'editor digest preference update'
 test "$(fixture digest-enabled "$fixture_suffix" editor)" = '1'
+test "$(fixture digest-schedule "$fixture_suffix" editor)" = '16:45:00|21'
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
     "$base_url/tasks.php"
