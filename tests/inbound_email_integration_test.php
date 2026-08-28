@@ -38,7 +38,8 @@ $rawMessage = static function (
     string $from,
     string $to,
     string $messageId,
-    string $subject
+    string $subject,
+    ?string $body = null
 ): string {
     return implode("\r\n", [
         'From: ' . $from,
@@ -50,7 +51,7 @@ $rawMessage = static function (
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=UTF-8',
         '',
-        'Integration test body for ' . $messageId,
+        $body ?? 'Integration test body for ' . $messageId,
     ]);
 };
 
@@ -303,18 +304,20 @@ try {
         'Inbound Contact <' . $contactEmail . '>',
         'Staff <' . $userEmail . '>',
         'cross-organization-' . $suffix . '@example.org',
-        'Unrelated marker [MOED#' . $unrelatedEngagementId . ']'
+        'Unrelated body marker routing',
+        'Route this message to [MOED#' . $unrelatedEngagementId . '].'
     ));
     $crossOrganizationRouting = routeInboundEmailMessage($conn, $crossOrganization);
     expectInboundIntegration(
-        !$crossOrganizationRouting['automatic']
+        $crossOrganizationRouting['automatic']
+            && $crossOrganizationRouting['authoritative_engagement']
             && in_array(
                 '[MOED#' . $unrelatedEngagementId
                     . '] belongs to an Organization not identified by the message participants.',
                 $crossOrganizationRouting['reasons'],
                 true
             ),
-        'an external sender should not automatically route a marker owned by an unrelated Organization.'
+        'a valid body marker should authoritatively select its active Engagement.'
     );
     $crossOrganizationStored = storeInboundEmailMessage(
         $conn,
@@ -324,8 +327,38 @@ try {
     );
     $createdIds['messages'][] = $crossOrganizationStored['id'];
     expectInboundIntegration(
-        processInboundEmailMessage($conn, $crossOrganizationStored['id']) === 'review',
-        'an unrelated external Engagement marker should be held for explicit review.'
+        processInboundEmailMessage($conn, $crossOrganizationStored['id']) === 'processed',
+        'an authoritative Engagement marker should route automatically despite participant mismatch.'
+    );
+    $crossOrganizationEngagementChron = $conn->prepare(
+        'SELECT COUNT(*) AS total FROM engagement_chron_entries
+         WHERE engagement_id = ? AND inbound_email_message_id = ?'
+    );
+    $crossOrganizationEngagementChron->bind_param(
+        'ii',
+        $unrelatedEngagementId,
+        $crossOrganizationStored['id']
+    );
+    $crossOrganizationEngagementChron->execute();
+    $crossOrganizationEngagementTotal = (int) $crossOrganizationEngagementChron
+        ->get_result()->fetch_assoc()['total'];
+    $crossOrganizationEngagementChron->close();
+    $crossOrganizationContactChron = $conn->prepare(
+        'SELECT COUNT(*) AS total FROM contact_chron_entries
+         WHERE contact_id = ? AND inbound_email_message_id = ?'
+    );
+    $crossOrganizationContactChron->bind_param(
+        'ii',
+        $contactId,
+        $crossOrganizationStored['id']
+    );
+    $crossOrganizationContactChron->execute();
+    $crossOrganizationContactTotal = (int) $crossOrganizationContactChron
+        ->get_result()->fetch_assoc()['total'];
+    $crossOrganizationContactChron->close();
+    expectInboundIntegration(
+        $crossOrganizationEngagementTotal === 1 && $crossOrganizationContactTotal === 0,
+        'participant mismatches should write only to the authoritatively marked Engagement.'
     );
 
     $duplicateContactStmt = $conn->prepare(

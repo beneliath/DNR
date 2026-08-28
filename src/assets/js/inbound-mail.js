@@ -60,7 +60,7 @@
         request?.abort();
         const query = search.value.trim();
         if (query.length < 2 && !/^\d+$/.test(query)) {
-            status.textContent = 'Type at least two characters, an engagement ID, or a subject marker.';
+            status.textContent = 'Type at least two characters, an engagement ID, or an email marker.';
             return;
         }
 

@@ -552,16 +552,16 @@
                 try {
                     await copyText(button.dataset.copyText || '');
                     button.classList.add('is-copied');
-                    button.setAttribute('aria-label', 'Email subject marker copied');
+                    button.setAttribute('aria-label', 'Email routing marker copied');
                     button.setAttribute('title', 'Copied');
                     button.dataset.tooltip = 'Copied';
-                    if (status) status.textContent = 'Email subject marker copied to the clipboard.';
+                    if (status) status.textContent = 'Email routing marker copied to the clipboard.';
                 } catch (error) {
                     button.classList.add('is-copy-failed');
-                    button.setAttribute('aria-label', 'Email subject marker could not be copied');
+                    button.setAttribute('aria-label', 'Email routing marker could not be copied');
                     button.setAttribute('title', 'Copy failed');
                     button.dataset.tooltip = 'Copy failed';
-                    if (status) status.textContent = 'The email subject marker could not be copied.';
+                    if (status) status.textContent = 'The email routing marker could not be copied.';
                 }
 
                 feedbackTimer = window.setTimeout(function () {

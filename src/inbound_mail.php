@@ -322,7 +322,7 @@ $statusLabels = [
                             <?php $markerEngagements = $selectedRouting['engagements']; ?>
                             <label for="inbound-engagement-search">Find an active engagement</label>
                             <input type="search" id="inbound-engagement-search" class="inbound-engagement-search" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by marker, ID, title, or organization">
-                            <p id="inbound-engagement-search-status" class="field-help" role="status" aria-live="polite">Type at least two characters, an engagement ID, or a subject marker.</p>
+                            <p id="inbound-engagement-search-status" class="field-help" role="status" aria-live="polite">Type at least two characters, an engagement ID, or an email marker.</p>
                             <label for="inbound-engagement-id">Engagement</label>
                             <select id="inbound-engagement-id" name="engagement_ids[]" class="inbound-engagement-select">
                                 <option value="">No engagement selected</option>
@@ -330,8 +330,8 @@ $statusLabels = [
                                     <option value="<?php echo (int) $engagement['id']; ?>" selected><?php echo htmlspecialchars((string) $engagement['marker'] . ' · ' . (string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
                             </select>
-                            <p class="field-help">A valid subject marker is selected automatically. Search for any active engagement when reviewing an unmarked or incorrect message.</p>
-                            <noscript><p class="error">JavaScript is required to search for an engagement that was not selected by a valid subject marker.</p></noscript>
+                            <p class="field-help">A valid subject or body marker is selected automatically. Search for any active engagement when reviewing an unmarked or incorrect message.</p>
+                            <noscript><p class="error">JavaScript is required to search for an engagement that was not selected by a valid email marker.</p></noscript>
                         </fieldset>
                         <div class="inbound-review-actions">
                             <button type="submit" name="action" value="approve" class="save-button">Approve selected routes</button>

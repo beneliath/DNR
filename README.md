@@ -224,25 +224,25 @@ The routing policy is deliberately conservative:
 - DNR considers the message's `From`, `To`, and `Cc` addresses, excluding the configured gateway
   address and recognized internal users. A unique Contact match adds the message to that Contact and
   the Contact's Organization. A direct Organization email match adds it to the Organization.
-- Put the exact marker shown on the Engagement page in the subject to route the message. In the
-  tracked MOED deployment profile this is `[MOED#123]` for Engagement 123. A reply
-  remains routable while that marker stays in its subject. One unique valid marker may be processed
-  automatically when the sender is recognized. For an external Contact or Organization sender, the
-  Engagement must belong to an Organization identified by the message participants. Invalid markers,
-  unrelated, unknown, or archived Engagements, and subjects containing multiple different markers
-  require review.
-- Duplicate delivery of the same RFC Message-ID is idempotent. Ambiguous senders, shared email
-  addresses, unknown senders, and messages with no matched target go to **Inbound Mail** for an
-  administrator or editor to review. Reviewers may choose any active Engagement from the searchable
-  selector, in addition to approving matched Contact and Organization routes. If an address is
-  missing from DNR, update the record and use **Retry routing**.
+- Put the exact marker shown on the Engagement page in the subject or plain-text body to route the
+  message. In the tracked MOED deployment profile this is `[MOED#123]` for Engagement 123. One unique
+  valid marker for an active Engagement is authoritative and routes automatically even when the
+  sender or participant addresses are unknown, ambiguous, or associated with another Organization.
+  When address issues exist, only the marked Engagement receives the Chron entry; clean exact-address
+  matches retain the usual Contact and Organization routes too. Invalid markers, unknown or archived
+  Engagements, and messages containing multiple different markers require review.
+- Duplicate delivery of the same RFC Message-ID is idempotent. Without an authoritative marker,
+  ambiguous senders, shared email addresses, unknown senders, and messages with no matched target go
+  to **Inbound Mail** for an administrator or editor to review. Reviewers may choose any active
+  Engagement from the searchable selector, in addition to approving matched Contact and Organization
+  routes. If an address is missing from DNR, update the record and use **Retry routing**.
 - The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
   names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
   mail is converted to inert plain text.
 
-Exact address matching is a routing decision, not independent proof of sender identity. The mailbox
-provider should enforce its normal spam and SPF/DKIM/DMARC checks, and suspicious messages should be
-left for manual review rather than approved solely because the visible `From` address is familiar.
+An Engagement marker is an authoritative routing instruction, so do not expose markers outside the
+intended correspondence. Exact address matching is a routing aid, not independent proof of sender
+identity. The mailbox provider should enforce its normal spam and SPF/DKIM/DMARC checks.
 
 Both `Cc` and `Bcc` delivery to the configured `DNR_INBOUND_ADDRESS` work. A Bcc delivery normally omits the
 gateway address from the stored message headers, which is expected; DNR routes using the remaining

@@ -439,11 +439,11 @@ function inboundEmailOrganizationMatches(mysqli $conn, string $address): array
 /**
  * @return array{ids: list<int>, invalid: list<string>}
  */
-function parseInboundEmailEngagementMarkers(string $subject): array
+function parseInboundEmailEngagementMarkers(string $text): array
 {
     $matches = [];
     $prefixPattern = inboundEmailMarkerPrefixPattern();
-    preg_match_all('/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $subject, $matches, PREG_SET_ORDER);
+    preg_match_all('/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);
     $ids = [];
     $invalid = [];
     foreach ($matches as $match) {
@@ -464,6 +464,17 @@ function parseInboundEmailEngagementMarkers(string $subject): array
         'ids' => array_map('intval', array_keys($ids)),
         'invalid' => array_map('strval', array_keys($invalid)),
     ];
+}
+
+/**
+ * @param array<string, mixed> $message
+ * @return array{ids: list<int>, invalid: list<string>}
+ */
+function inboundEmailMessageEngagementMarkers(array $message): array
+{
+    return parseInboundEmailEngagementMarkers(
+        (string) ($message['subject'] ?? '') . "\n" . (string) ($message['body_text'] ?? '')
+    );
 }
 
 /**
@@ -607,7 +618,8 @@ function searchInboundEmailEngagements(
 /**
  * @param array<string, mixed> $message
  * @return array{
- *   automatic: bool, reasons: list<string>, sender: array<string, mixed>,
+ *   automatic: bool, authoritative_engagement: bool,
+ *   reasons: list<string>, sender: array<string, mixed>,
  *   participants: list<array<string, mixed>>,
  *   contacts: list<array{id: int, label: string}>,
  *   organizations: list<array{id: int, label: string}>,
@@ -653,13 +665,14 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     }
 
     $engagements = [];
-    $markers = parseInboundEmailEngagementMarkers((string) ($message['subject'] ?? ''));
+    $markers = inboundEmailMessageEngagementMarkers($message);
+    $authoritativeEngagement = false;
     if ($markers['invalid'] !== []) {
-        $reasons[] = 'The subject contains an invalid Engagement marker. Use the exact format '
+        $reasons[] = 'The message contains an invalid Engagement marker. Use the exact format '
             . applicationInboundMarker(123) . '.';
     }
     if (count($markers['ids']) > 1) {
-        $reasons[] = 'The subject contains more than one Engagement marker.';
+        $reasons[] = 'The message contains more than one Engagement marker.';
     } elseif (count($markers['ids']) === 1) {
         $engagement = inboundEmailEngagementMatch($conn, $markers['ids'][0]);
         if ($engagement === null) {
@@ -667,6 +680,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
                 . ' does not identify an active Engagement.';
         } else {
             $engagements[$engagement['id']] = $engagement;
+            $authoritativeEngagement = $markers['invalid'] === [];
         }
     }
 
@@ -745,7 +759,8 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     ksort($engagements);
 
     return [
-        'automatic' => $reasons === [],
+        'automatic' => $authoritativeEngagement || $reasons === [],
+        'authoritative_engagement' => $authoritativeEngagement,
         'reasons' => $reasons,
         'sender' => $sender,
         'participants' => $participants,
@@ -928,6 +943,10 @@ function processInboundEmailMessage(
             if (count($engagementIds) > 1) {
                 throw new InvalidArgumentException('Select no more than one Engagement.');
             }
+        } elseif ($routing['authoritative_engagement'] && $routing['reasons'] !== []) {
+            $contactIds = [];
+            $organizationIds = [];
+            $engagementIds = array_map('intval', array_column($routing['engagements'], 'id'));
         } else {
             $contactIds = array_map('intval', array_column($routing['contacts'], 'id'));
             $organizationIds = array_map('intval', array_column($routing['organizations'], 'id'));
