@@ -40,6 +40,9 @@ x-app-environment: &app-environment
   DNR_MAP_MAXIMUM_ZOOM: ${DNR_MAP_MAXIMUM_ZOOM:-}
   DNR_MAIL_TRANSPORT: ${DNR_MAIL_TRANSPORT:-disabled}
 
+x-watchtower-disabled-labels: &watchtower-disabled-labels
+  com.centurylinklabs.watchtower.enable: "false"
+
 services:
   web:
     build:
@@ -58,6 +61,7 @@ services:
     cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -92,6 +96,7 @@ services:
     cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     depends_on:
       web:
         condition: service_healthy
@@ -121,6 +126,7 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -159,6 +165,7 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     depends_on:
       migrator:
         condition: service_completed_successfully
@@ -187,6 +194,7 @@ services:
     restart: unless-stopped
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     environment:
       MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password
       MYSQL_DATABASE: dnr
@@ -233,6 +241,7 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    labels: *watchtower-disabled-labels
     depends_on:
       db:
         condition: service_healthy

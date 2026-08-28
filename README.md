@@ -158,6 +158,12 @@ Database integration suites are discovered automatically from `tests/*_integrati
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
 
+Every DNR Compose service opts out of host-wide Watchtower polling. The application and worker
+images are built from the checked-out source tree, and third-party images are digest-pinned, so
+deploy updates with `git pull` followed by the appropriate `compose_with_provenance.sh` mode.
+The opt-out prevents Watchtower from treating Compose's local `project-service:latest` image names
+as Docker Hub repositories or trying to update dependencies outside the reviewed deployment path.
+
 ### Outbound email and task digests
 
 Invitation, verification, and recovery messages use an encrypted transactional outbox. Creating a
