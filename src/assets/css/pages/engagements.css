@@ -22,6 +22,12 @@
             gap: 15px;
             margin: 15px 0 20px;
         }
+        @media (min-width: 1001px) {
+            .engagement-controls .list-search-form {
+                min-width: min(100%, 38rem);
+                flex-basis: 38rem;
+            }
+        }
         .control-group {
             display: flex;
             align-items: center;
