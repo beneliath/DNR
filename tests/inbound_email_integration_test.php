@@ -20,9 +20,9 @@ function expectInboundIntegration(bool $condition, string $message): void
     }
 }
 
-putenv('DNR_INBOUND_ADDRESS=moed@beneliath.com');
+putenv('DNR_INBOUND_ADDRESS=dnr@example.org');
 $suffix = bin2hex(random_bytes(5));
-$userEmail = 'staff-' . $suffix . '@beneliath.com';
+$userEmail = 'staff-' . $suffix . '@example.net';
 $contactEmail = 'contact-' . $suffix . '@example.org';
 $organizationName = 'Inbound Mail Organization ' . $suffix;
 $username = 'mail-test-' . $suffix;
@@ -43,7 +43,7 @@ $rawMessage = static function (
     return implode("\r\n", [
         'From: ' . $from,
         'To: ' . $to,
-        'Cc: MOED <moed@beneliath.com>',
+        'Cc: DNR <dnr@example.org>',
         'Subject: ' . $subject,
         'Date: Sun, 23 Aug 2026 10:00:00 -0500',
         'Message-ID: <' . $messageId . '>',
@@ -160,7 +160,7 @@ try {
     $outgoing = parseInboundEmail($rawMessage(
         'Staff <' . $userEmail . '>',
         'Inbound Contact <' . $contactEmail . '>',
-        'outgoing-' . $suffix . '@beneliath.com',
+        'outgoing-' . $suffix . '@example.net',
         'Outgoing routing test [MOED#' . $engagementId . ']'
     ), '2026-08-23T15:01:00Z');
     $stored = storeInboundEmailMessage($conn, 'file', 'outgoing-' . $suffix, $outgoing);
@@ -218,7 +218,7 @@ try {
         parseInboundEmail(str_replace('Integration test body', 'Changed retry body', $rawMessage(
             'Staff <' . $userEmail . '>',
             'Inbound Contact <' . $contactEmail . '>',
-            'outgoing-' . $suffix . '@beneliath.com',
+            'outgoing-' . $suffix . '@example.net',
             'Outgoing routing test [MOED#' . $engagementId . ']'
         )))
     );
@@ -343,7 +343,7 @@ try {
     $ambiguous = parseInboundEmail($rawMessage(
         'Staff <' . $userEmail . '>',
         'Shared address <' . $contactEmail . '>',
-        'ambiguous-' . $suffix . '@beneliath.com',
+        'ambiguous-' . $suffix . '@example.net',
         'Ambiguous routing test'
     ));
     $ambiguousStored = storeInboundEmailMessage(

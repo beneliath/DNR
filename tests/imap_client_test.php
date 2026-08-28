@@ -35,8 +35,8 @@ expectImapClient($port > 0, 'the fixture port should be valid.');
 
 $rawMessage = implode("\r\n", [
     'From: Contact <contact@example.org>',
-    'To: Staff <staff@beneliath.com>',
-    'Cc: MOED <moed@beneliath.com>',
+    'To: Staff <staff@example.net>',
+    'Cc: DNR <dnr@example.org>',
     'Subject: Fixture message',
     'Message-ID: <imap-fixture@example.org>',
     '',

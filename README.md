@@ -332,11 +332,11 @@ directory private and grants read-only ACLs only to the container root and `www-
 do not make the secret files world-readable. For Proton SMTP Submission, set:
 
 ```dotenv
-DNR_MAIL_FROM=moed@beneliath.com
+DNR_MAIL_FROM=dnr@example.org
 DNR_SMTP_HOST=smtp.protonmail.ch
 DNR_SMTP_PORT=587
 DNR_SMTP_ENCRYPTION=starttls
-DNR_SMTP_USERNAME=moed@beneliath.com
+DNR_SMTP_USERNAME=dnr@example.org
 DNR_SMTP_PASSWORD_SECRET_FILE=./secrets/smtp_password
 DNR_IMAP_USERNAME=
 DNR_IMAP_PASSWORD_FILE=./secrets/imap_password

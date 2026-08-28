@@ -13,14 +13,14 @@ function expectInboundEmail(bool $condition, string $message): void
     }
 }
 
-putenv('DNR_INBOUND_ADDRESS=moed@beneliath.com');
+putenv('DNR_INBOUND_ADDRESS=dnr@example.org');
 $raw = implode("\r\n", [
-    'From: =?UTF-8?B?' . base64_encode('David Gilmore') . '?= <david@beneliath.com>',
+    'From: =?UTF-8?B?' . base64_encode('David Gilmore') . '?= <david@example.net>',
     'To: Jane Example <jane@example.org>, Pastor Example <pastor@example.org>',
-    'Cc: MOED <moed@beneliath.com>',
+    'Cc: DNR <dnr@example.org>',
     'Subject: =?UTF-8?B?' . base64_encode('Schedule – updated') . '?=',
     'Date: Sun, 23 Aug 2026 10:00:00 -0500',
-    'Message-ID: <route-test-1@beneliath.com>',
+    'Message-ID: <route-test-1@example.net>',
     'MIME-Version: 1.0',
     'Content-Type: multipart/mixed; boundary="dnr-test-boundary"',
     '',
@@ -41,13 +41,13 @@ $raw = implode("\r\n", [
 
 $parsed = parseInboundEmail($raw, '2026-08-23T15:01:00Z');
 expectInboundEmail(
-    $parsed['sender_address'] === 'david@beneliath.com'
+    $parsed['sender_address'] === 'david@example.net'
         && $parsed['sender_name'] === 'David Gilmore',
     'encoded sender names and addresses should be parsed.'
 );
 expectInboundEmail(
     $parsed['to_addresses'] === ['jane@example.org', 'pastor@example.org']
-        && $parsed['cc_addresses'] === ['moed@beneliath.com'],
+        && $parsed['cc_addresses'] === ['dnr@example.org'],
     'To and Cc participants should be normalized without losing recipients.'
 );
 expectInboundEmail(
@@ -125,8 +125,8 @@ expectInboundEmail(
 
 $htmlOnly = implode("\r\n", [
     'From: Jane <jane@example.org>',
-    'To: David <david@beneliath.com>',
-    'Cc: MOED <moed@beneliath.com>',
+    'To: David <david@example.net>',
+    'Cc: DNR <dnr@example.org>',
     'Subject: HTML only',
     'Message-ID: <route-test-2@example.org>',
     'MIME-Version: 1.0',
