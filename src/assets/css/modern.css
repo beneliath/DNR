@@ -184,7 +184,7 @@ html body main.view-container {
   background-color: transparent !important;
 }
 
-html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.app-sidebar):not(.mobile-app-bar) {
+html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.address-region-menu):not(.phone-country-menu):not(.app-sidebar):not(.mobile-app-bar) {
   background-color: transparent !important;
   color: inherit !important;
 }
@@ -4672,5 +4672,47 @@ html body .phone-country-option[aria-selected="true"] {
 
   html body .phone-country-menu {
     width: min(21rem, calc(100vw - 48px));
+  }
+}
+
+/* Page-specific form styles load after this stylesheet and some retain desktop
+   field widths. Keep every mobile form field inside its card regardless of
+   those later declarations. */
+@media (max-width: 760px) {
+  html body :is(.container, .view-container) form:not(.footer-logout-form):not(.sidebar-logout-form) :is(
+    fieldset,
+    .form-section,
+    .form-group,
+    .form-field,
+    .field-group,
+    .event-group,
+    .date-field,
+    .money-field,
+    .currency-input,
+    .phone-input-group,
+    .address-section,
+    .address-grid,
+    .presentation-entry,
+    .presentation-fields,
+    [data-address-region-control]
+  ) {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  html body :is(.container, .view-container) form:not(.footer-logout-form):not(.sidebar-logout-form) .form-field {
+    width: 100% !important;
+    align-items: stretch !important;
+    flex-direction: column !important;
+  }
+
+  html body :is(.container, .view-container) form:not(.footer-logout-form):not(.sidebar-logout-form) :is(
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+    select,
+    textarea
+  ) {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
 }
