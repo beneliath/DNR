@@ -892,6 +892,16 @@ function engagementFollowUpChecklistTemplates(
     return $scheduled;
 }
 
+function initialEngagementChecklistAssigneeId($caller_user_id, $creator_user_id)
+{
+    $caller_user_id = $caller_user_id === null ? null : (int) $caller_user_id;
+    $creator_user_id = (int) $creator_user_id;
+    if ($creator_user_id < 1 || ($caller_user_id !== null && $caller_user_id < 1)) {
+        throw new InvalidArgumentException('Unable to select the initial checklist owner.');
+    }
+    return $caller_user_id ?? $creator_user_id;
+}
+
 function rescheduleGeneratedEngagementTasks(
     mysqli $conn,
     $engagement_id,

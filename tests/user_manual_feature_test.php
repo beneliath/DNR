@@ -60,6 +60,7 @@ foreach ([
     'organizations.php',
     'contacts.php',
     'tasks.php',
+    'standard_tasks.php',
     'inbound_mail.php',
     'map.php',
     'calendar_subscription.php',
@@ -100,11 +101,29 @@ expectUserManual(
 expectUserManual(
     str_contains($manual, 'Enter Organization Addresses')
         && str_contains($manual, 'countries worldwide')
+        && str_contains($manual, 'Choose the country before the region')
         && str_contains($manual, 'United States of America')
         && str_contains($manual, 'Canadian address')
         && str_contains($manual, 'State/Province')
         && str_contains($manual, 'A contact can be saved without an organization.'),
     'the manual should explain international organization addresses and optional contact organizations.'
+);
+
+expectUserManual(
+    str_contains($manual, 'Enter a required event title')
+        && str_contains($manual, 'a valid start and end date')
+        && str_contains($manual, 'every initial standard task is assigned to that Caller')
+        && str_contains($manual, 'changing the engagement’s Caller later does not reassign')
+        && str_contains($manual, 'reassign those tasks in the Work Queue')
+        && str_contains($manual, 'tasks added this way are assigned to the user performing the action')
+        && str_contains($manual, 'reschedules its active generated tasks')
+        && str_contains($manual, 'due date was manually overridden keeps that date')
+        && str_contains($manual, 'next <?php echo $manual_task_days; ?> days')
+        && str_contains($manual, 'Confirm that the amounts are final')
+        && str_contains($manual, 'all event-specific information')
+        && str_contains($manual, 'Deleting a contact removes')
+        && str_contains($manual, 'pending invitations can be deleted directly'),
+    'the manual should prioritize accurate scheduling, ownership, reminders, and data-safety guidance.'
 );
 
 expectUserManual(

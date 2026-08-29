@@ -122,6 +122,12 @@ expectFollowUpTaskHelper(
 );
 
 expectFollowUpTaskHelper(
+    initialEngagementChecklistAssigneeId(23, 11) === 23
+        && initialEngagementChecklistAssigneeId(null, 11) === 11,
+    'initial engagement checklists should prefer the selected caller and otherwise use the creator.'
+);
+
+expectFollowUpTaskHelper(
     standardEventTaskScheduleLabel('event_start', -1) === '1 day before event start'
         && standardEventTaskScheduleLabel('event_end', 0) === 'On event end'
         && standardEventTaskScheduleLabel('event_end', 2) === '2 days after event end',
