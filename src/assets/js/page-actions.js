@@ -33,6 +33,134 @@
         update();
     }
 
+    function initializeAddressCountries() {
+        const selects = Array.from(document.querySelectorAll('[data-address-country-native]'));
+        if (selects.length === 0) return;
+        const states = [];
+
+        function closePicker(state, focusTrigger) {
+            state.menu.hidden = true;
+            state.trigger.setAttribute('aria-expanded', 'false');
+            if (focusTrigger) state.trigger.focus();
+        }
+
+        function closeOtherPickers(activeState) {
+            states.forEach(function (state) {
+                if (state !== activeState) closePicker(state, false);
+            });
+        }
+
+        function optionForValue(state) {
+            return Array.from(state.menu.querySelectorAll('[data-address-country-option]')).find(function (option) {
+                return option.dataset.countryCode === state.select.value;
+            }) || state.menu.querySelector('[data-address-country-option]');
+        }
+
+        function openPicker(state, focusOption) {
+            closeOtherPickers(state);
+            state.menu.hidden = false;
+            state.trigger.setAttribute('aria-expanded', 'true');
+            const selected = optionForValue(state);
+            if (selected) {
+                selected.scrollIntoView({ block: 'nearest' });
+                if (focusOption) selected.focus();
+            }
+        }
+
+        function updatePicker(state) {
+            const option = optionForValue(state);
+            if (!option) return;
+            const countryCode = option.dataset.countryCode || '';
+            const countryFlag = option.dataset.countryFlag || '🌐';
+            const countryName = option.dataset.countryName || countryCode;
+            state.flag.textContent = countryFlag;
+            state.label.textContent = countryName;
+            state.trigger.setAttribute('aria-label', `Country: ${countryName} (${countryCode})`);
+            state.trigger.setAttribute('aria-required', String(state.select.required));
+            state.menu.querySelectorAll('[data-address-country-option]').forEach(function (candidate) {
+                candidate.setAttribute('aria-selected', String(candidate === option));
+            });
+        }
+
+        function selectOption(state, option) {
+            const countryCode = option.dataset.countryCode || '';
+            if (!countryCode) return;
+            state.select.value = countryCode;
+            updatePicker(state);
+            closePicker(state, true);
+            state.select.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+
+        selects.forEach(function (select) {
+            const picker = select.closest('[data-address-country-picker]');
+            const trigger = picker ? picker.querySelector('[data-address-country-toggle]') : null;
+            const menu = picker ? picker.querySelector('[data-address-country-menu]') : null;
+            const flag = picker ? picker.querySelector('[data-address-country-flag]') : null;
+            const label = picker ? picker.querySelector('[data-address-country-label]') : null;
+            if (!picker || !trigger || !menu || !flag || !label) return;
+
+            const state = { select, picker, trigger, menu, flag, label };
+            states.push(state);
+            updatePicker(state);
+
+            trigger.addEventListener('click', function () {
+                if (menu.hidden) openPicker(state, false);
+                else closePicker(state, false);
+            });
+            trigger.addEventListener('keydown', function (event) {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    openPicker(state, true);
+                } else if (event.key === 'Escape') {
+                    closePicker(state, false);
+                }
+            });
+            menu.addEventListener('click', function (event) {
+                const option = event.target.closest('[data-address-country-option]');
+                if (option) selectOption(state, option);
+            });
+            menu.addEventListener('keydown', function (event) {
+                const option = event.target.closest('[data-address-country-option]');
+                if (!option) return;
+                const options = Array.from(menu.querySelectorAll('[data-address-country-option]'));
+                const currentIndex = options.indexOf(option);
+                let targetIndex = null;
+                if (event.key === 'ArrowDown') targetIndex = Math.min(options.length - 1, currentIndex + 1);
+                else if (event.key === 'ArrowUp') targetIndex = Math.max(0, currentIndex - 1);
+                else if (event.key === 'Home') targetIndex = 0;
+                else if (event.key === 'End') targetIndex = options.length - 1;
+                else if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    selectOption(state, option);
+                    return;
+                } else if (event.key === 'Escape') {
+                    event.preventDefault();
+                    closePicker(state, true);
+                    return;
+                }
+                if (targetIndex !== null) {
+                    event.preventDefault();
+                    options[targetIndex].focus();
+                }
+            });
+            select.addEventListener('change', function () { updatePicker(state); });
+        });
+
+        document.addEventListener('click', function (event) {
+            states.forEach(function (state) {
+                if (!state.picker.contains(event.target)) closePicker(state, false);
+            });
+        });
+        document.querySelectorAll('input[name="same_address"]').forEach(function (radio) {
+            radio.addEventListener('change', function () {
+                states.forEach(function (state) {
+                    state.trigger.setAttribute('aria-required', String(state.select.required));
+                    closePicker(state, false);
+                });
+            });
+        });
+    }
+
     function initializeAddressRegions() {
         const dataElement = document.getElementById('address-region-data');
         const controls = Array.from(document.querySelectorAll('[data-address-region-control]'));
@@ -705,6 +833,7 @@
     function initialize() {
         initializeContactRole();
         initializeMailingAddress();
+        initializeAddressCountries();
         initializeAddressRegions();
         updatePrimaryOrganizationContactRequirements();
         initializeAdditionalOrganizationContacts();

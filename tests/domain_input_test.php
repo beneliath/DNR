@@ -65,6 +65,14 @@ expectDomainInput(
     'organization address selectors should offer the full country list with flag icons.'
 );
 expectDomainInput(
+    str_contains(addressCountryPicker('physical_country', 'CA', 'physical', true), 'class="address-country-trigger"')
+        && str_contains(addressCountryPicker('physical_country', 'CA', 'physical', true), 'data-country-code="CA"')
+        && str_contains(addressCountryPicker('physical_country', 'CA', 'physical', true), '>🇨🇦</span>')
+        && str_contains(addressCountryPicker('physical_country', 'CA', 'physical', true), 'name="physical_country" required')
+        && str_contains(addressCountryPicker('physical_country', 'CA', 'physical', true), 'data-address-country="physical"'),
+    'organization address country controls should mirror the telephone picker while preserving their native form value.'
+);
+expectDomainInput(
     str_contains(addressCountrySelectOptions(), '<option value="US" selected>🇺🇸 United States of America</option>')
         && normalizeAddressCountryCode('CAN') === 'CA'
         && addressCountryName('USA') === 'United States of America',

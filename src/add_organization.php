@@ -277,9 +277,12 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
-                    <select name="physical_country" required data-address-country="physical">
-                        <?php echo addressCountrySelectOptions($_POST['physical_country'] ?? applicationDefaultCountry()); ?>
-                    </select>
+                    <?php echo addressCountryPicker(
+                        'physical_country',
+                        $_POST['physical_country'] ?? applicationDefaultCountry(),
+                        'physical',
+                        true
+                    ); ?>
                 </div>
             </div>
         </div>
@@ -303,9 +306,11 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
-                    <select name="mailing_country" data-address-country="mailing">
-                        <?php echo addressCountrySelectOptions($_POST['mailing_country'] ?? applicationDefaultCountry()); ?>
-                    </select>
+                    <?php echo addressCountryPicker(
+                        'mailing_country',
+                        $_POST['mailing_country'] ?? applicationDefaultCountry(),
+                        'mailing'
+                    ); ?>
                 </div>
             </div>
         </div>

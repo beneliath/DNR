@@ -324,6 +324,57 @@ function addressCountrySelectOptions($selected_country = null) {
     return $html;
 }
 
+function addressCountryPicker(
+    $field_name,
+    $selected_country = null,
+    $address_prefix = '',
+    $required = false
+) {
+    $selected_country = $selected_country ?? applicationDefaultCountry();
+    $selected_code = normalizeAddressCountryCode($selected_country) ?? applicationDefaultCountry();
+    $choices = addressCountryChoices();
+    if (!isset($choices[$selected_code])) {
+        $selected_code = 'US';
+    }
+    $selected_choice = $choices[$selected_code];
+    $escape = static fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    $id_token = preg_replace('/[^a-zA-Z0-9_-]+/', '-', (string) $address_prefix);
+    $id_token = trim((string) $id_token, '-') ?: 'address';
+    $menu_id = $id_token . '-country-menu';
+
+    $html = '<div class="address-country-picker" data-address-country-picker>';
+    $html .= '<select class="address-country-native-select" name="' . $escape($field_name) . '"'
+        . ($required ? ' required' : '') . ' tabindex="-1" aria-hidden="true" data-address-country="'
+        . $escape($address_prefix) . '" data-address-country-native>';
+    $html .= addressCountrySelectOptions($selected_code);
+    $html .= '</select>';
+    $html .= '<button type="button" class="address-country-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="'
+        . $escape($menu_id) . '" aria-label="' . $escape('Country: ' . $selected_choice['name'] . ' (' . $selected_code . ')')
+        . '" data-address-country-toggle>';
+    $html .= '<span class="address-country-flag" aria-hidden="true" data-address-country-flag>'
+        . $escape($selected_choice['flag']) . '</span>';
+    $html .= '<span class="address-country-label" data-address-country-label>'
+        . $escape($selected_choice['name']) . '</span>';
+    $html .= '<span class="address-country-chevron" aria-hidden="true"></span></button>';
+    $html .= '<div class="address-country-menu" id="' . $escape($menu_id)
+        . '" role="listbox" aria-label="Country options" hidden data-address-country-menu>';
+    foreach ($choices as $code => $choice) {
+        $is_selected = $code === $selected_code;
+        $html .= '<button type="button" class="address-country-option" role="option" tabindex="-1" aria-selected="'
+            . ($is_selected ? 'true' : 'false') . '" data-address-country-option data-country-code="'
+            . $escape($code) . '" data-country-flag="' . $escape($choice['flag'])
+            . '" data-country-name="' . $escape($choice['name']) . '">';
+        $html .= '<span class="address-country-option-flag" aria-hidden="true">'
+            . $escape($choice['flag']) . '</span>';
+        $html .= '<span class="address-country-option-name">' . $escape($choice['name']) . '</span>';
+        $html .= '<span class="address-country-option-code">' . $escape($code) . '</span>';
+        $html .= '</button>';
+    }
+    $html .= '</div></div>';
+
+    return $html;
+}
+
 /**
  * @return array<string, array{code: string, name: string}>
  */
