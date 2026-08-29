@@ -368,9 +368,11 @@ try {
                     <input type="text" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode']); ?>">
                 </div>
                 <div>
-                    <select name="physical_country" data-address-country="physical">
-                        <?php echo addressCountrySelectOptions($organization['physical_country'] ?: applicationDefaultCountry()); ?>
-                    </select>
+                    <?php echo addressCountryPicker(
+                        'physical_country',
+                        $organization['physical_country'] ?: applicationDefaultCountry(),
+                        'physical'
+                    ); ?>
                 </div>
             </div>
         </div>
@@ -394,9 +396,11 @@ try {
                     <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode']); ?>">
                 </div>
                 <div>
-                    <select name="mailing_country" data-address-country="mailing">
-                        <?php echo addressCountrySelectOptions($organization['mailing_country'] ?: applicationDefaultCountry()); ?>
-                    </select>
+                    <?php echo addressCountryPicker(
+                        'mailing_country',
+                        $organization['mailing_country'] ?: applicationDefaultCountry(),
+                        'mailing'
+                    ); ?>
                 </div>
             </div>
         </div>

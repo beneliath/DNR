@@ -184,7 +184,7 @@ html body main.view-container {
   background-color: transparent !important;
 }
 
-html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.address-region-menu):not(.phone-country-menu):not(.app-sidebar):not(.mobile-app-bar) {
+html.dark-mode body div:not(.error):not(.success):not(.login-container):not(.login-container *):not(.map-shell):not(.map-shell *):not(.address-country-menu):not(.address-region-menu):not(.phone-country-menu):not(.app-sidebar):not(.mobile-app-bar) {
   background-color: transparent !important;
   color: inherit !important;
 }
@@ -2914,6 +2914,23 @@ textarea {
   box-shadow: none;
 }
 
+/* Keep native select popups in the active application theme. Some mobile
+   browsers do not carry the root color scheme or the closed control colors
+   into the option window unless both are declared on the select itself. */
+html body select {
+  color-scheme: light;
+}
+
+html.dark-mode body select {
+  color-scheme: dark;
+}
+
+html body select option,
+html body select optgroup {
+  background-color: var(--surface) !important;
+  color: var(--text) !important;
+}
+
 textarea {
   min-height: 118px;
   resize: vertical;
@@ -4385,6 +4402,7 @@ html.dark-mode .login-secondary-link a {
   width: 100%;
 }
 
+.address-country-native-select,
 .address-region-native-select {
   position: absolute !important;
   width: 1px !important;
@@ -4397,6 +4415,132 @@ html.dark-mode .login-secondary-link a {
   border: 0 !important;
   opacity: 0 !important;
   pointer-events: none !important;
+}
+
+.address-country-picker {
+  position: relative;
+  width: 100%;
+}
+
+html body .address-country-trigger {
+  display: flex !important;
+  width: 100% !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 9px;
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  font-size: .95rem !important;
+  font-weight: 520;
+  text-align: left;
+  transform: none !important;
+}
+
+html body .address-country-trigger:hover,
+html body .address-country-trigger[aria-expanded="true"] {
+  border-color: var(--control-hover-border) !important;
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+html body .address-country-trigger:focus-visible {
+  border-color: var(--primary) !important;
+  outline: 0 !important;
+  background: var(--surface) !important;
+  box-shadow: var(--focus-ring) !important;
+}
+
+.address-country-flag,
+.address-country-option-flag {
+  flex: 0 0 auto;
+  font-family: "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.address-country-label,
+.address-country-option-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.address-country-label {
+  flex: 1 1 auto;
+}
+
+.address-country-chevron {
+  width: 0;
+  height: 0;
+  flex: 0 0 auto;
+  border-top: 5px solid currentColor;
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+  opacity: .62;
+  transition: transform 150ms ease;
+}
+
+.address-country-trigger[aria-expanded="true"] .address-country-chevron {
+  transform: rotate(180deg);
+}
+
+.address-country-menu[hidden] {
+  display: none !important;
+}
+
+html body .address-country-menu {
+  position: absolute;
+  z-index: 150;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(24rem, calc(100vw - 48px));
+  max-height: 20rem;
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-md);
+}
+
+html body .address-country-option {
+  display: grid !important;
+  width: 100% !important;
+  min-height: 42px !important;
+  grid-template-columns: 1.75rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  background: transparent !important;
+  color: var(--text) !important;
+  font-size: .9rem !important;
+  font-weight: 520;
+  text-align: left;
+  transform: none !important;
+}
+
+html body .address-country-option:hover,
+html body .address-country-option:focus-visible,
+html body .address-country-option[aria-selected="true"] {
+  outline: 0 !important;
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+}
+
+.address-country-option-code {
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 650;
 }
 
 html body .address-region-trigger {
@@ -4671,6 +4815,10 @@ html body .phone-country-option[aria-selected="true"] {
   }
 
   html body .phone-country-menu {
+    width: min(21rem, calc(100vw - 48px));
+  }
+
+  html body .address-country-menu {
     width: min(21rem, calc(100vw - 48px));
   }
 }

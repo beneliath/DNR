@@ -37,19 +37,24 @@ expectOrganizationRegionFeature(
 foreach ([$add_organization, $edit_organization] as $page) {
     expectOrganizationRegionFeature(
         substr_count($page, 'data-address-region-control') === 2
-            && substr_count($page, 'data-address-country=') === 2
+            && substr_count($page, 'addressCountryPicker(') === 2
             && str_contains($page, 'id="address-region-data"'),
         'organization create and edit pages should expose both address pairs to the shared region control.'
     );
 }
 
 expectOrganizationRegionFeature(
-    str_contains($page_actions, 'function initializeAddressRegions()')
+    str_contains($page_actions, 'function initializeAddressCountries()')
+        && str_contains($page_actions, '[data-address-country-option]')
+        && str_contains($page_actions, 'function initializeAddressRegions()')
         && str_contains($page_actions, "state.textInput.placeholder = 'State/Province'")
+        && str_contains($page_actions, 'initializeAddressCountries();')
         && str_contains($page_actions, 'initializeAddressRegions();')
+        && str_contains($modern_styles, '.address-country-trigger')
+        && str_contains($modern_styles, '.address-country-option')
         && str_contains($modern_styles, '.address-region-trigger')
         && str_contains($modern_styles, '.address-region-option'),
-    'the shared client behavior should switch between region dropdowns and a State/Province text input.'
+    'the shared client behavior should theme country choices and switch between region dropdowns and a State/Province text input.'
 );
 
 expectOrganizationRegionFeature(
