@@ -63,6 +63,7 @@ $add = $read('src/add_standard_task.php');
 $view = $read('src/view_standard_task.php');
 $edit = $read('src/edit_standard_task.php');
 $new_engagement = $read('src/index.php');
+$edit_engagement = $read('src/edit_engagement.php');
 $form = $read('src/templates/standard_event_task_form.php');
 $header = $read('src/templates/header.php');
 $privileges = $read('scripts/configure_database_privileges.sh');
@@ -101,6 +102,9 @@ expectStandardEventTaskFeature(
 expectStandardEventTaskFeature(
     str_contains($new_engagement, "include 'follow_up_task_helpers.php'")
         && str_contains($new_engagement, 'generateEngagementFollowUpChecklist(')
+        && str_contains($new_engagement, 'initialEngagementChecklistAssigneeId(')
+        && str_contains($new_engagement, '$standard_task_assignee_id')
+        && str_contains($new_engagement, '$caller_user_id === null')
         && str_contains($new_engagement, '$standard_task_count')
         && $checklist_position !== false
         && $map_queue_position !== false
@@ -108,6 +112,11 @@ expectStandardEventTaskFeature(
         && $checklist_position < $map_queue_position
         && $map_queue_position < $engagement_commit_position,
     'new engagement creation should atomically generate standard tasks and queue its map lookup before commit.'
+);
+expectStandardEventTaskFeature(
+    !str_contains($edit_engagement, 'generateEngagementFollowUpChecklist(')
+        && !str_contains($edit_engagement, 'assigned_to'),
+    'editing an engagement, including its Caller, must not regenerate or reassign its initial standard tasks.'
 );
 expectStandardEventTaskFeature(
     str_contains($view, 'standardEventTaskScheduleLabel')

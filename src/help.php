@@ -120,7 +120,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>01</span><section><strong>Complete your profile.</strong><p>Add your name, verified email, phone, and picture in <a href="profile.php">My Profile</a>.</p></section></li>
                         <li><span>02</span><section><strong>Protect the account.</strong><p>Enroll an authenticator and store the one-time recovery codes from <a href="two_factor_settings.php">Account Security</a>.</p></section></li>
                         <li><span>03</span><section><strong>Check the daily view.</strong><p>Use the <a href="dashboard.php">Dashboard</a> to scan upcoming engagements, assigned work, and missing details.</p></section></li>
-                        <li><span>04</span><section><strong>Find the relationship.</strong><p>Open an organization or contact before an event to review its details, Chron history, financial history, and open work.</p></section></li>
+                        <li><span>04</span><section><strong>Find the relationship.</strong><p>Open the organization and relevant contacts before an event to review relationship details, financial history, Chron, and open work.</p></section></li>
                         <li><span>05</span><section><strong>Leave a clear next action.</strong><p>When a conversation creates a commitment, record the communication in Chron and create an owned, dated task.</p></section></li>
                     </ol>
                 </section>
@@ -207,7 +207,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Prepare</span>
                         <h3>Event Readiness</h3>
-                        <p>Readiness flags essentials such as the event title, organization contact assignments, presentations, location, and confirmation state. Open the event to complete the missing details.</p>
+                        <p>Readiness flags an unconfirmed event, missing venue address, missing presentation, or missing event contact assignment. Open the event to complete the missing details.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Close</span>
@@ -218,7 +218,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes">
                 <header class="manual-chapter-heading">
                     <span>Chapter 04</span>
                     <h2>Engagements</h2>
@@ -245,11 +245,11 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Create or Edit an Engagement</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
-                        <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Add an optional event title and description, required start and end dates, and an event type. Use Other when the preset types do not fit.</p></section></li>
+                        <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Enter a required event title, an optional description, a valid start and end date, and an event type. Use Other when the preset types do not fit.</p></section></li>
                         <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select active contacts from the chosen organization and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials.</p></section></li>
                         <li><span>04</span><section><strong>Add presentations.</strong><p>Every presentation needs a topic/title, a date within the event range, and a time. Speaker and expected attendance are optional. You can also attach a PDF slide deck and speaker QR codes. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
-                        <li><span>06</span><section><strong>Set planning states.</strong><p>Choose both lifecycle and confirmation, identify the caller if useful, and add an initial Chron entry when there is context worth preserving.</p></section></li>
+                        <li><span>06</span><section><strong>Set planning states and ownership.</strong><p>Choose lifecycle and confirmation, then select the Caller when that person should own the initial standard checklist. If no Caller is selected, the checklist belongs to the user creating the engagement. Add an initial Chron entry when there is context worth preserving.</p></section></li>
                     </ol>
                     <?php if ($manual_can_manage): ?><p class="manual-open-area"><a href="index.php">Create a New Engagement <span aria-hidden="true">→</span></a></p><?php endif; ?>
                 </section>
@@ -291,7 +291,7 @@ $manual_access_summary = match ($manual_role) {
                     </section>
                     <p>To paste a QR image, copy it in the source application and select <strong>Paste QR code</strong>. When direct clipboard reading is unavailable, leave that button focused and press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd>. Save the engagement to store new, replaced, or removed assets.</p>
                     <p>Each saved presentation has a <strong>Save Changes</strong> button in its lower-left corner, so you can save without scrolling to the page-level button. Saved presentations can also be archived independently from the engagement. Restore archived presentations from the edit or view page; if an archived presentation no longer falls within the event dates, enter a valid date and time during restoration. Administrators can permanently delete presentations after fresh elevation.</p>
-                        <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
+                    <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -302,17 +302,17 @@ $manual_access_summary = match ($manual_role) {
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
                         <article class="manual-card"><h4>Download PDF</h4><p>Downloads a formatted event summary for sharing or offline reference.</p></article>
                     </section>
-                    <p>After the event, editors and administrators can open <strong>Financial Closeout</strong> and enter the actual giving/income, lodging, and travel received. Enter zero where nothing was received. The original planning estimates remain unchanged. Finalization requires confirmation and makes the engagement Completed; later corrections retain the original close date and record the update.</p>
+                    <p>After the event, editors and administrators can open <strong>Financial Closeout</strong> and enter the actual giving/income, lodging, and travel received. Enter zero where nothing was received. The original planning estimates remain unchanged. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Archive and Delete Carefully</h3><p>Archive removes the engagement from current views but keeps presentations, Chron, tasks, and reporting history available for restoration. Permanent deletion removes the event, its presentations, and its engagement Chron entries. Prefer archive unless removal is explicitly required.</p></div>
+                    <div class="manual-callout-body"><h3>Archive and Delete Carefully</h3><p>Archive removes the engagement from current views but keeps its history available for restoration. Permanent deletion removes the event and all event-specific information, including presentations, Chron, tasks, contact role assignments, and its financial report. Prefer archive unless removal is explicitly required.</p></div>
                 </article>
                 <p class="manual-open-area"><a href="engagements.php">Open Engagements <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact optional address country international flag state province Canada United States affiliation distinctives website phone fax financial history giving photo role pastor admin other describe notes search archive dependencies move active">
+            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact optional address country international flag state province Canada United States affiliation distinctives website phone fax email financial history giving photo role pastor admin other describe notes search archive dependencies move active">
                 <header class="manual-chapter-heading">
                     <span>Chapter 05</span>
                     <h2>Organizations and Contacts</h2>
@@ -330,7 +330,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-definition-panel">
                         <span class="manual-kicker">Contact</span>
                         <h3>Person Record</h3>
-                        <p>Store first and last name, optional organization, organization role, confirmed email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization.</p>
+                        <p>Store first and last name, optional organization, organization role, email entered twice to prevent mistyping, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization.</p>
                         <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Event-specific roles are assigned separately on each engagement.</p>
                         <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a contact</a><?php endif; ?>
                     </article>
@@ -339,7 +339,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Enter Organization Addresses</h3>
                     <ul class="manual-check-list">
-                        <li>The Country selector includes countries worldwide, displays each country’s flag and name, and defaults to <strong>United States of America</strong> for a new address.</li>
+                        <li>Choose the country before the region. The Country picker includes countries worldwide and defaults to <strong>United States of America</strong> for a new address.</li>
                         <li>For a United States address, the region field is labeled <strong>State</strong> and provides a dropdown of state names.</li>
                         <li>For a Canadian address, the region field is labeled <strong>Province</strong> and provides a dropdown of province and territory names.</li>
                         <li>For every other country, the field is labeled <strong>State/Province</strong> and accepts typed regional information.</li>
@@ -369,7 +369,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen">
+            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen">
                 <header class="manual-chapter-heading">
                     <span>Chapter 06</span>
                     <h2>Work Queue</h2>
@@ -379,7 +379,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>My Reminders</h3>
-                        <p>The reminder strip counts your overdue, due-today, next-seven-days, and waiting tasks. Editors and administrators also see financial closeouts. The sidebar badge is the combined reminder count.</p>
+                        <p>The reminder strip counts your overdue, due-today, next <?php echo $manual_task_days; ?> days, and waiting tasks. Editors and administrators also see financial closeouts. The sidebar badge is the combined reminder count.</p>
                     </article>
                     <article class="manual-card">
                         <h3>Queue Views</h3>
@@ -417,8 +417,11 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Standard Event Tasks</h3>
-                    <p>Standard tasks are reusable definitions copied into each new engagement. Each has content, priority, display order, and a due date offset from event start or end. Editing a definition affects future copies only; tasks already generated are independent.</p>
-                    <p>Use <strong>Add missing checklist tasks</strong> on an active engagement to generate any standard items that are absent. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
+                    <p>Standard tasks are reusable definitions copied when a new active engagement is first saved. Each has content, priority, display order, and a due date offset from event start or end.</p>
+                    <p>If the new engagement has a selected <strong>Caller</strong>, every initial standard task is assigned to that Caller. If no Caller is selected, the tasks are assigned to the user creating the engagement. This ownership decision happens only once: changing the engagement’s Caller later does not reassign its initial tasks, which remain independently editable.</p>
+                    <p>Changing an engagement’s dates reschedules its active generated tasks from the standard schedule. A task whose due date was manually overridden keeps that date. Editing a standard definition does not rewrite an existing task’s title, notes, priority, or current due date.</p>
+                    <p>Editors and administrators manage reusable definitions from <strong>Standard Event Tasks</strong>. Use <strong>Add missing checklist tasks</strong> on an active engagement to generate any standard items that are absent; tasks added this way are assigned to the user performing the action. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
+                    <?php if ($manual_can_manage): ?><p><a href="standard_tasks.php" class="manual-inline-link">Manage Standard Event Tasks</a></p><?php endif; ?>
                 </section>
                 <p class="manual-open-area"><a href="tasks.php">Open the Work Queue <span aria-hidden="true">→</span></a></p>
             </section>
@@ -489,7 +492,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Explore</span>
                         <h3>Engagement Map</h3>
                         <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation; select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
-                        <p>Use <strong>Fit visible pins</strong> after filtering. New or changed addresses may not appear immediately because a rate-limited background worker resolves and caches locations.</p>
+                        <p>Use <strong>Fit visible pins</strong> after filtering. A new or changed location may take time to appear; if it is missing, verify the address and current filters, then revisit the map.</p>
                         <a href="map.php" class="manual-inline-link">Open the map</a>
                     </article>
                     <article class="manual-card">
@@ -593,7 +596,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Identity</span>
                         <h3>Users</h3>
                         <p>Invite a username, verified-on-acceptance email, and Reviewer, Editor, or Admin role. Review account status, profile, email verification, 2FA, password-change requirement, and activity timestamps.</p>
-                        <p>Elevated actions can resend invitations, edit username/role, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
+                        <p>Elevated actions can resend invitations, edit username/role, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
                         <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage users</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
@@ -605,25 +608,25 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Continuity</span>
                         <h3>Encrypted Backup</h3>
-                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a backup password of at least 12 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads a <code>.dnrbackup</code> snapshot encrypted with Argon2id and XChaCha20-Poly1305.</p>
+                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 12 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
                         <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Database restore is intentionally a deployment-host procedure, not a web action.</p>
                         <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Health</span>
                         <h3>Operations</h3>
-                        <p>The internal operations view summarizes task backlog, geocoding retries, inbound mail review/failures, recent authentication failures, migration state, and the last encrypted backup. The readiness response verifies the database and migration checksums.</p>
+                        <p>The internal operations view summarizes task backlog, geocoding retries, inbound mail review/failures, recent authentication failures, migration readiness, and the last encrypted backup. Use it to identify operational work that needs attention before it becomes a user-facing problem.</p>
                         <?php if ($manual_is_admin): ?><a href="operations.php" class="manual-inline-link">Open operations</a><?php endif; ?>
                     </article>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization also removes its contacts, engagements, presentations, and engagement Chron. Deleting an engagement removes its presentations and engagement Chron. Delete users only after deactivation. Use archive for ordinary record retirement.</p></div>
+                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization removes its contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p></div>
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route calendar item filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 11</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -658,6 +661,10 @@ $manual_access_summary = match ($manual_role) {
                     <details>
                         <summary><span>An Event or Task Is Missing from the Month Calendar</span><i aria-hidden="true">+</i></summary>
                         <p>Confirm the displayed month and selector. <strong>Events</strong> does not include tasks, <strong>My Tasks</strong> includes only work assigned to you, and task views include only active tasks with due dates. Use <strong>Everything</strong> when you want events and all due-dated work together.</p>
+                    </details>
+                    <details>
+                        <summary><span>Changing the Caller Did Not Move Existing Tasks</span><i aria-hidden="true">+</i></summary>
+                        <p>The Caller is used only to choose the owner of the initial standard checklist when the engagement is created. Later Caller changes do not alter existing task ownership. If responsibility changes, reassign those tasks in the Work Queue.</p>
                     </details>
                     <details>
                         <summary><span>A QR Code Will Not Paste or Copy</span><i aria-hidden="true">+</i></summary>

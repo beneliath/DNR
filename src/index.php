@@ -101,6 +101,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 $rescheduled_to_engagement_id
             );
             $current_user_id = (int) $_SESSION['user_id'];
+            $standard_task_assignee_id = initialEngagementChecklistAssigneeId(
+                $caller_user_id,
+                $current_user_id
+            );
+            $standard_task_assignee_label = $caller_user_id === null
+                ? 'you'
+                : $caller_name;
             // Insert engagement data
             $stmt = $conn->prepare("INSERT INTO engagements (
                 organization_id, event_title, event_description, event_start_date, event_end_date,
@@ -189,7 +196,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         ? generateEngagementFollowUpChecklist(
                             $conn,
                             $engagement_id,
-                            $current_user_id,
+                            $standard_task_assignee_id,
                             $current_user_id,
                             false
                         )
@@ -212,7 +219,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         . ($standard_task_count > 0
                             ? ' ' . $standard_task_count . ' standard task'
                                 . ($standard_task_count === 1 ? ' was' : 's were')
-                                . ' added and assigned to you.'
+                                . ' added and assigned to ' . $standard_task_assignee_label . '.'
                             : '');
                     header('Location: engagements.php');
                     exit();
