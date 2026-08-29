@@ -565,6 +565,17 @@
     function initializeEngagementForm() {
         const form = document.querySelector('.engagement-form, #engagement-edit-form, [data-chron-form]');
         if (!form) return;
+        const startDate = document.getElementById('event_start_date');
+        const endDate = document.getElementById('event_end_date');
+        if (form.id === 'new-engagement-form' && startDate && endDate) {
+            const synchronizeEndDateCalendar = function () {
+                endDate.min = startDate.value;
+                endDate.setCustomValidity('');
+            };
+            startDate.addEventListener('input', synchronizeEndDateCalendar);
+            endDate.addEventListener('input', function () { endDate.setCustomValidity(''); });
+            synchronizeEndDateCalendar();
+        }
         const eventType = document.getElementById('event_type');
         const compensation = document.getElementById('compensation_type');
         const housing = document.getElementById('housing_type');
@@ -594,8 +605,6 @@
                 chronEntry.focus();
                 return;
             }
-            const startDate = document.getElementById('event_start_date');
-            const endDate = document.getElementById('event_end_date');
             if (startDate && endDate && startDate.value && endDate.value && endDate.value < startDate.value) {
                 event.preventDefault();
                 endDate.setCustomValidity('End date must be on or after the start date.');
