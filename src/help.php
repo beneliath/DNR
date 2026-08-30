@@ -247,7 +247,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
                         <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Enter a required event title, an optional description, a valid start and end date, and an event type. Use Other when the preset types do not fit.</p></section></li>
                         <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select active contacts from the chosen organization and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials.</p></section></li>
-                        <li><span>04</span><section><strong>Add presentations.</strong><p>Every presentation needs a topic/title, a date within the event range, and a time. Speaker and expected attendance are optional. You can also attach a PDF slide deck and speaker QR codes. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
+                        <li><span>04</span><section><strong>Add presentations.</strong><p>Every presentation needs a topic/title, a date within the event range, a time, and a duration in minutes. Speaker and expected attendance are optional; record actual attendance after the presentation, including zero when applicable. You can also attach a PDF slide deck and speaker QR codes. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
                         <li><span>06</span><section><strong>Set planning states and ownership.</strong><p>Choose lifecycle and confirmation, then select the Caller when that person should own the initial standard checklist. If no Caller is selected, the checklist belongs to the user creating the engagement. Add an initial Chron entry when there is context worth preserving.</p></section></li>
                     </ol>
@@ -506,7 +506,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
-                        <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. The feed contains all-day engagement blocks plus timed, one-hour presentation entries.</p>
+                        <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. The feed contains all-day engagement blocks plus timed presentation entries using each presentation’s recorded duration.</p>
                         <p>Revoke one link without affecting the others. Revoked token records can be purged. Never share a subscription URL: it grants access to schedule data, though not contacts, Chron, travel, lodging, or compensation.</p>
                         <a href="calendar_subscription.php" class="manual-inline-link">Manage calendar links</a>
                     </article>

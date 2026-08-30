@@ -3019,7 +3019,8 @@ textarea::placeholder {
 
 .presentation-fields .topic,
 .presentation-fields .datetime-row,
-.presentation-fields .speaker-row {
+.presentation-fields .speaker-row,
+.presentation-fields .attendance-row {
   display: grid !important;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px !important;
@@ -3033,7 +3034,8 @@ textarea::placeholder {
 
 .presentation-fields .form-field,
 .presentation-fields .datetime-row .form-field,
-.presentation-fields .speaker-row .form-field {
+.presentation-fields .speaker-row .form-field,
+.presentation-fields .attendance-row .form-field {
   display: flex !important;
   flex-direction: column !important;
   align-items: stretch !important;
@@ -4053,6 +4055,7 @@ html.dark-mode .login-secondary-link a {
   .address-row,
   .speaker-row,
   .presentation-fields .speaker-row,
+  .presentation-fields .attendance-row,
   .presentation-fields .datetime-row {
     display: flex !important;
     width: 100% !important;

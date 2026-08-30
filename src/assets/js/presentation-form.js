@@ -30,6 +30,14 @@
         return hours >= 1 && hours <= 12 && minutes >= 0 && minutes <= 59;
     }
 
+    function validWholeNumber(value, minimum, maximum) {
+        if (!/^\d+$/.test(value)) {
+            return false;
+        }
+        var number = Number(value);
+        return Number.isSafeInteger(number) && number >= minimum && number <= maximum;
+    }
+
     function compact24HourTime(time) {
         var compactValue = time.trim();
         var match = compactValue.match(/^([01][0-9]|2[0-3])([0-5][0-9])$/);
@@ -50,7 +58,8 @@
     if (typeof module === "object" && module.exports) {
         module.exports = {
             compact24HourTime: compact24HourTime,
-            validTime: validTime
+            validTime: validTime,
+            validWholeNumber: validWholeNumber
         };
     }
     if (typeof document === "undefined") {
@@ -126,13 +135,15 @@
         var dateInput = document.getElementById("presentation_date_" + id);
         var timeInput = document.getElementById("presentation_time_" + id);
         var speakerInput = document.getElementById("speaker_name_" + id);
-        var attendanceInput = document.getElementById("expected_attendance_" + id);
+        var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
+        var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
 
         return Boolean(
             (topicInput && topicInput.value.trim())
             || (dateInput && dateInput.value)
             || (timeInput && timeInput.value)
-            || (attendanceInput && attendanceInput.value)
+            || (expectedAttendanceInput && expectedAttendanceInput.value)
+            || (actualAttendanceInput && actualAttendanceInput.value)
             || (speakerInput && speakerInput.value.trim()
                 && speakerInput.value.trim() !== defaultSpeaker())
             || Array.from(entry.querySelectorAll('input[type="file"]')).some(function (input) {
@@ -147,11 +158,13 @@
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
         var timeInput = document.getElementById("presentation_time_" + id);
+        var durationInput = document.getElementById("duration_minutes_" + id);
 
         return Boolean(
             topicInput && topicInput.value.trim()
             && dateInput && dateInput.value
             && timeInput && validTime(timeInput.value)
+            && durationInput && validWholeNumber(durationInput.value, 1, 1440)
         );
     }
 
@@ -178,9 +191,12 @@
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
         var timeInput = document.getElementById("presentation_time_" + id);
+        var durationInput = document.getElementById("duration_minutes_" + id);
+        var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
+        var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
         var shouldValidate = requireEntry || presentationEntryHasContent(entry);
 
-        [topicInput, dateInput, timeInput].forEach(function (input) {
+        [topicInput, dateInput, timeInput, durationInput, expectedAttendanceInput, actualAttendanceInput].forEach(function (input) {
             if (input) {
                 input.setCustomValidity("");
             }
@@ -220,6 +236,28 @@
             timeInput.focus();
             return false;
         }
+        if (!durationInput || !validWholeNumber(durationInput.value, 1, 1440)) {
+            durationInput.setCustomValidity("Enter a duration between 1 and 1440 minutes.");
+            durationInput.reportValidity();
+            durationInput.focus();
+            return false;
+        }
+        if (expectedAttendanceInput && expectedAttendanceInput.value !== ""
+            && !validWholeNumber(expectedAttendanceInput.value, 1, 2147483647)
+        ) {
+            expectedAttendanceInput.setCustomValidity("Expected attendance must be a whole number of at least 1.");
+            expectedAttendanceInput.reportValidity();
+            expectedAttendanceInput.focus();
+            return false;
+        }
+        if (actualAttendanceInput && actualAttendanceInput.value !== ""
+            && !validWholeNumber(actualAttendanceInput.value, 0, 2147483647)
+        ) {
+            actualAttendanceInput.setCustomValidity("Actual attendance must be zero or a positive whole number.");
+            actualAttendanceInput.reportValidity();
+            actualAttendanceInput.focus();
+            return false;
+        }
         return true;
     }
 
@@ -229,6 +267,9 @@
         var periodInputs = document.querySelectorAll('input[name="presentation_ampm_' + id + '"]');
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
+        var durationInput = document.getElementById("duration_minutes_" + id);
+        var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
+        var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
         if (timeInput) {
             timeInput.addEventListener("input", function () {
                 timeInput.setCustomValidity("");
@@ -258,6 +299,19 @@
                 updateConfirmedAvailability();
             });
         }
+        if (durationInput) {
+            durationInput.addEventListener("input", function () {
+                durationInput.setCustomValidity("");
+                updateConfirmedAvailability();
+            });
+        }
+        [expectedAttendanceInput, actualAttendanceInput].forEach(function (input) {
+            if (input) {
+                input.addEventListener("input", function () {
+                    input.setCustomValidity("");
+                });
+            }
+        });
         entry.querySelectorAll("[data-qr-uploader]").forEach(wireQrUploader);
         entry.querySelectorAll("[data-presentation-file-name]").forEach(function (input) {
             input.addEventListener("change", function () {
@@ -472,8 +526,18 @@
             '      <input type="text" name="presentations[' + id + '][speaker_name]" id="speaker_name_' + id + '" maxlength="255">',
             '    </div>',
             '    <div class="form-field attendance">',
+            '      <label for="duration_minutes_' + id + '">Duration (minutes)<span class="required">*</span></label>',
+            '      <input type="number" name="presentations[' + id + '][duration_minutes]" id="duration_minutes_' + id + '" min="1" max="1440" step="1" value="60">',
+            '    </div>',
+            '  </div>',
+            '  <div class="attendance-row">',
+            '    <div class="form-field attendance">',
             '      <label for="expected_attendance_' + id + '">Expected Attendance</label>',
             '      <input type="number" name="presentations[' + id + '][expected_attendance]" id="expected_attendance_' + id + '" min="1" step="1">',
+            '    </div>',
+            '    <div class="form-field attendance">',
+            '      <label for="actual_attendance_' + id + '">Actual Attendance</label>',
+            '      <input type="number" name="presentations[' + id + '][actual_attendance]" id="actual_attendance_' + id + '" min="0" step="1">',
             '    </div>',
             '  </div>',
                  presentationAssetsMarkup(id),

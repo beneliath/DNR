@@ -82,7 +82,8 @@ $engagement_marker = applicationInboundMarker($engagement_id);
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
-    "SELECT id, topic_title, presentation_date, presentation_time, speaker_name, expected_attendance,
+    "SELECT id, topic_title, presentation_date, presentation_time, speaker_name, duration_minutes,
+            expected_attendance, actual_attendance,
             slide_deck_pdf IS NOT NULL AS has_slide_deck, slide_deck_filename,
             speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
             speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
@@ -311,8 +312,12 @@ $presentation_stmt->close();
                     <?php echo htmlspecialchars(trim(($presentation['presentation_date'] ?? '') . ' ' . formatPresentationTime($presentation['presentation_time'] ?? ''))); ?>
                 </div>
                 <?php endif; ?>
+                <div>Duration: <?php echo (int) ($presentation['duration_minutes'] ?? 60); ?> minutes</div>
                 <?php if ($presentation['expected_attendance'] !== null): ?>
                 <div>Expected attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
+                <?php endif; ?>
+                <?php if ($presentation['actual_attendance'] !== null): ?>
+                <div>Actual attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                 <?php endif; ?>
                 <?php
                 $presentation_has_qr = !empty($presentation['has_speaker_notes_qr'])

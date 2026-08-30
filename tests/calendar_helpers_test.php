@@ -90,6 +90,7 @@ $presentation = array_merge($common, [
     'speaker_name' => 'Jordan Speaker',
     'presentation_date' => '2026-08-21',
     'presentation_time' => '09:30 AM',
+    'duration_minutes' => 90,
 ]);
 $calendar_with_presentation = buildCalendar(
     [$all_day],
@@ -105,8 +106,8 @@ expectCalendar(
 );
 expectCalendar(
     str_contains($calendar_with_presentation, "DTSTART:20260821T143000Z\r\n")
-        && str_contains($calendar_with_presentation, "DTEND:20260821T153000Z\r\n"),
-    'Presentation events should block one hour at their configured local date and time.'
+        && str_contains($calendar_with_presentation, "DTEND:20260821T160000Z\r\n"),
+    'Presentation events should use their configured duration at their local date and time.'
 );
 expectCalendar(
     str_contains($calendar_with_presentation, "UID:presentation-7@dnr-calendar\r\n")

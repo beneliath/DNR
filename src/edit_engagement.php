@@ -579,7 +579,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
 // Get presentations for this engagement
 $presentations_query = "SELECT id, engagement_id, topic_title, presentation_date,
-                               presentation_time, speaker_name, expected_attendance,
+                               presentation_time, speaker_name, duration_minutes,
+                               expected_attendance, actual_attendance,
                                slide_deck_pdf IS NOT NULL AS has_slide_deck,
                                slide_deck_filename, slide_deck_size, slide_deck_updated_at,
                                speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,

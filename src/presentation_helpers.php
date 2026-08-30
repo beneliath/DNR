@@ -130,13 +130,16 @@ function normalizeEngagementPresentations(
         $presentation_date = presentationScalarValue($submitted_presentation, 'presentation_date');
         $presentation_time = presentationScalarValue($submitted_presentation, 'presentation_time');
         $speaker_name = presentationScalarValue($submitted_presentation, 'speaker_name');
+        $duration_minutes_raw = presentationScalarValue($submitted_presentation, 'duration_minutes');
         $expected_attendance_raw = presentationScalarValue($submitted_presentation, 'expected_attendance');
+        $actual_attendance_raw = presentationScalarValue($submitted_presentation, 'actual_attendance');
 
         $has_nondefault_speaker = $speaker_name !== '' && $speaker_name !== (string) $default_speaker;
         $has_presentation_content = $topic_title !== ''
             || $presentation_date !== ''
             || $presentation_time !== ''
             || $expected_attendance_raw !== ''
+            || $actual_attendance_raw !== ''
             || $has_nondefault_speaker
             || isset($asset_form_keys[(string) $presentation_form_key]);
 
@@ -172,11 +175,31 @@ function normalizeEngagementPresentations(
             throw new InvalidArgumentException('Presentation speaker name must be 255 characters or fewer.');
         }
 
+        $duration_minutes = 60;
+        if ($duration_minutes_raw !== '') {
+            $duration_minutes = filter_var($duration_minutes_raw, FILTER_VALIDATE_INT);
+            if ($duration_minutes === false || $duration_minutes < 1 || $duration_minutes > 1440) {
+                throw new InvalidArgumentException(
+                    'Presentation duration must be a whole number between 1 and 1440 minutes.'
+                );
+            }
+        }
+
         $expected_attendance = null;
         if ($expected_attendance_raw !== '') {
             $expected_attendance = filter_var($expected_attendance_raw, FILTER_VALIDATE_INT);
             if ($expected_attendance === false || $expected_attendance < 1) {
                 throw new InvalidArgumentException('Expected presentation attendance must be a whole number of at least 1.');
+            }
+        }
+
+        $actual_attendance = null;
+        if ($actual_attendance_raw !== '') {
+            $actual_attendance = filter_var($actual_attendance_raw, FILTER_VALIDATE_INT);
+            if ($actual_attendance === false || $actual_attendance < 0 || $actual_attendance > 2147483647) {
+                throw new InvalidArgumentException(
+                    'Actual presentation attendance must be zero or a positive whole number.'
+                );
             }
         }
 
@@ -198,7 +221,9 @@ function normalizeEngagementPresentations(
             'presentation_date' => $presentation_date,
             'presentation_time' => $normalized_presentation_time,
             'speaker_name' => $speaker_name,
+            'duration_minutes' => $duration_minutes,
             'expected_attendance' => $expected_attendance,
+            'actual_attendance' => $actual_attendance,
         ];
     }
 
@@ -257,7 +282,8 @@ function fetchArchivedEngagementPresentations(mysqli $conn, $engagement_id)
 {
     $stmt = $conn->prepare(
         'SELECT p.id, p.topic_title, p.presentation_date, p.presentation_time,
-                p.speaker_name, p.expected_attendance, p.archived_at,
+                p.speaker_name, p.duration_minutes, p.expected_attendance,
+                p.actual_attendance, p.archived_at,
                 archiver.username AS archived_by_username
          FROM presentations p
          LEFT JOIN users archiver ON archiver.id = p.archived_by
@@ -280,22 +306,28 @@ function fetchArchivedEngagementPresentations(mysqli $conn, $engagement_id)
 
 function engagementPresentationMatches(array $current, array $submitted)
 {
-    $current_attendance = $current['expected_attendance'] === null
+    $current_expected_attendance = $current['expected_attendance'] === null
         ? null
         : (int) $current['expected_attendance'];
+    $current_actual_attendance = ($current['actual_attendance'] ?? null) === null
+        ? null
+        : (int) $current['actual_attendance'];
 
     return (string) $current['topic_title'] === (string) $submitted['topic_title']
         && ($current['presentation_date'] ?: null) === $submitted['presentation_date']
         && ($current['presentation_time'] ?: null) === $submitted['presentation_time']
         && (string) $current['speaker_name'] === (string) $submitted['speaker_name']
-        && $current_attendance === $submitted['expected_attendance'];
+        && (int) ($current['duration_minutes'] ?? 60) === (int) ($submitted['duration_minutes'] ?? 60)
+        && $current_expected_attendance === $submitted['expected_attendance']
+        && $current_actual_attendance === ($submitted['actual_attendance'] ?? null);
 }
 
 function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presentations)
 {
     $presentations_changed = false;
     $current_stmt = $conn->prepare(
-        'SELECT id, topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
+        'SELECT id, topic_title, presentation_date, presentation_time, speaker_name,
+                duration_minutes, expected_attendance, actual_attendance
          FROM presentations
          WHERE engagement_id = ? AND is_archived = 0
          FOR UPDATE'
@@ -358,7 +390,8 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
                     $update_stmt = $conn->prepare(
                         'UPDATE presentations
                          SET topic_title = ?, presentation_date = ?, presentation_time = ?,
-                             speaker_name = ?, expected_attendance = ?
+                             speaker_name = ?, duration_minutes = ?, expected_attendance = ?,
+                             actual_attendance = ?
                          WHERE id = ? AND engagement_id = ?'
                     );
                     if (!$update_stmt) {
@@ -366,12 +399,14 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
                     }
                 }
                 $update_stmt->bind_param(
-                    'ssssiii',
+                    'ssssiiiii',
                     $presentation['topic_title'],
                     $presentation['presentation_date'],
                     $presentation['presentation_time'],
                     $presentation['speaker_name'],
+                    $presentation['duration_minutes'],
                     $presentation['expected_attendance'],
+                    $presentation['actual_attendance'],
                     $presentation_id,
                     $engagement_id
                 );
@@ -395,21 +430,23 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             $insert_stmt = $conn->prepare(
                 'INSERT INTO presentations
                     (engagement_id, topic_title, presentation_date, presentation_time,
-                     speaker_name, expected_attendance)
-                 VALUES (?, ?, ?, ?, ?, ?)'
+                     speaker_name, duration_minutes, expected_attendance, actual_attendance)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
             );
             if (!$insert_stmt) {
                 throw new RuntimeException('Unable to prepare new presentations.');
             }
         }
         $insert_stmt->bind_param(
-            'issssi',
+            'issssiii',
             $engagement_id,
             $presentation['topic_title'],
             $presentation['presentation_date'],
             $presentation['presentation_time'],
             $presentation['speaker_name'],
-            $presentation['expected_attendance']
+            $presentation['duration_minutes'],
+            $presentation['expected_attendance'],
+            $presentation['actual_attendance']
         );
         if (!$insert_stmt->execute()) {
             throw new RuntimeException('Unable to add a presentation.');

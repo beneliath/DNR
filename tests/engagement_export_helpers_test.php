@@ -58,7 +58,9 @@ $presentations = [[
     'presentation_date' => '2026-08-21',
     'presentation_time' => '09:30',
     'speaker_name' => 'Jordan Speaker',
+    'duration_minutes' => 75,
     'expected_attendance' => 250,
+    'actual_attendance' => 225,
 ]];
 $chron_entries = [
     [
@@ -109,6 +111,10 @@ expectExport(
 );
 expectExport(str_contains($plain_text, 'Phone: +1 312-555-0100'), 'Exports format canonical telephone values for display.');
 expectExport(str_contains($plain_text, "Opening Keynote\nSpeaker: Jordan Speaker"), 'Plain text includes presentations.');
+expectExport(
+    str_contains($plain_text, "Duration: 75 minutes\nExpected Attendance: 250\nActual Attendance: 225"),
+    'presentation exports should include duration and both attendance figures.'
+);
 expectExport(
     str_contains($plain_text, "August 15, 2026 at 11:00 AM CDT - Jordan Admin\nEntry: Newest line\n  Second [line]"),
     'Plain text includes the Chron timestamp, creator, and multiline entry.'

@@ -112,6 +112,7 @@ $presentation_query = "SELECT
             p.presentation_date,
             p.presentation_time,
             p.speaker_name,
+            p.duration_minutes,
             e.event_title,
             e.event_type,
             e.event_type_other,

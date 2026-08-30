@@ -45,9 +45,11 @@ expectBetaReadiness(
 
 $add_contact = $read('src/add_contact.php');
 expectBetaReadiness(
-    str_contains($add_contact, "header('Location: view_contact.php?id=")
+    str_contains($add_contact, "'view_contact.php?id=' . \$contact_id")
+        && str_contains($add_contact, "'view_organization.php?id=' . \$requested_organization_id")
+        && str_contains($add_contact, 'header(')
         && str_contains($add_contact, 'requireActiveOrganization'),
-    'contact creation must use PRG and reject archived organizations.'
+    'contact creation must use contextual PRG and reject archived organizations.'
 );
 
 $add_organization = $read('src/add_organization.php');
