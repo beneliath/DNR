@@ -32,6 +32,8 @@ if ($result->num_rows === 0) {
 
 $organization = $result->fetch_assoc();
 $is_archived = !empty($organization['is_deleted']);
+$success_message = $_SESSION['success_message'] ?? '';
+unset($_SESSION['success_message']);
 
 try {
     $financial_summary = fetchOrganizationFinancialSummary($conn, $org_id);
@@ -97,6 +99,9 @@ $contact_stmt->close();
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
+    <?php if ($success_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
     <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
 
@@ -248,16 +253,21 @@ $contact_stmt->close();
     ?>
 
     <div class="contacts-section">
-        <h3>Contacts</h3>
+        <div class="section-heading-row">
+            <h3>Contacts</h3>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="add_contact.php?organization_id=<?php echo $org_id; ?>" class="button-add">+ New contact</a>
+            <?php endif; ?>
+        </div>
         <?php if ($contacts_result->num_rows > 0): ?>
             <?php while ($contact = $contacts_result->fetch_assoc()): ?>
                 <div class="contact-card">
                     <div class="contact-header">
-                        <h4 class="contact-name"><?php echo htmlspecialchars(
-                            trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
-                            ENT_QUOTES,
-                            'UTF-8'
-                        ); ?></h4>
+                        <h4 class="contact-name"><a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>"><?php echo htmlspecialchars(
+                                trim($contact['contact_first_name'] . ' ' . $contact['contact_last_name']),
+                                ENT_QUOTES,
+                                'UTF-8'
+                            ); ?></a></h4>
                         <span class="contact-role">
                             <?php
                             $role = $contact['contact_role'];
@@ -270,7 +280,7 @@ $contact_stmt->close();
                         </span>
                     </div>
                     <div class="contact-info">
-                        <div><strong>Email:</strong> <?php echo htmlspecialchars($contact['contact_email']); ?></div>
+                        <div><strong>Email:</strong> <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($contact['contact_email']); ?></a></div>
                         <?php if (!empty($contact['contact_phone'])): ?>
                             <div><strong>Phone:</strong> <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?></div>
                         <?php endif; ?>

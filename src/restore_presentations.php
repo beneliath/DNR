@@ -327,8 +327,12 @@ if ($engagement_title === '') {
                         <?php if ($presentation['speaker_name'] !== ''): ?>
                             <div>Speaker: <?php echo htmlspecialchars($presentation['speaker_name']); ?></div>
                         <?php endif; ?>
+                        <div>Duration: <?php echo (int) ($presentation['duration_minutes'] ?? 60); ?> minutes</div>
                         <?php if ($presentation['expected_attendance'] !== null): ?>
                             <div>Expected Attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
+                        <?php endif; ?>
+                        <?php if ($presentation['actual_attendance'] !== null): ?>
+                            <div>Actual Attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                         <?php endif; ?>
                         <?php if (!empty($presentation['archived_at'])): ?>
                             <small>Archived <time datetime="<?php echo htmlspecialchars($archived_timestamp['iso']); ?>"><?php echo htmlspecialchars($archived_timestamp['display']); ?></time><?php if (!empty($presentation['archived_by_username'])): ?> by <?php echo htmlspecialchars($presentation['archived_by_username']); ?><?php endif; ?></small>

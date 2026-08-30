@@ -4,7 +4,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
     compact24HourTime,
-    validTime
+    validTime,
+    validWholeNumber
 } = require("../../src/assets/js/presentation-form.js");
 
 test("validTime accepts complete 12-hour clock values", function () {
@@ -30,4 +31,12 @@ test("compact24HourTime leaves ambiguous or malformed input untouched", function
     assert.equal(compact24HourTime("1260"), null);
     assert.equal(compact24HourTime("2400"), null);
     assert.equal(compact24HourTime("9:30"), null);
+});
+
+test("validWholeNumber applies inclusive presentation field bounds", function () {
+    assert.equal(validWholeNumber("60", 1, 1440), true);
+    assert.equal(validWholeNumber("0", 0, 2147483647), true);
+    assert.equal(validWholeNumber("0", 1, 1440), false);
+    assert.equal(validWholeNumber("1.5", 1, 1440), false);
+    assert.equal(validWholeNumber("1441", 1, 1440), false);
 });

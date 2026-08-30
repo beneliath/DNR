@@ -27,7 +27,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
     <?php if (!empty($presentation_action_error)): ?>
         <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
     <?php endif; ?>
-    <p class="field-help">Topic/title, date, and time are required for each presentation. Add at least one presentation before setting the engagement status to confirmed.</p>
+    <p class="field-help">Topic/title, date, time, and duration are required for each presentation. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
     <div class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>">
         <div class="presentations-inner-container">
             <?php foreach ($presentation_form_rows as $presentation_index => $presentation): ?>
@@ -76,8 +76,18 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_name]" id="speaker_name_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_speaker, ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="form-field attendance">
+                                <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (minutes)<span class="required">*</span></label>
+                                <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][duration_minutes]" id="duration_minutes_<?php echo $presentation_dom_id; ?>" min="1" max="1440" step="1" value="<?php echo htmlspecialchars((string) ($presentation['duration_minutes'] ?? 60), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                        </div>
+                        <div class="attendance-row">
+                            <div class="form-field attendance">
                                 <label for="expected_attendance_<?php echo $presentation_dom_id; ?>">Expected Attendance</label>
                                 <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][expected_attendance]" id="expected_attendance_<?php echo $presentation_dom_id; ?>" min="1" step="1" value="<?php echo htmlspecialchars((string) ($presentation['expected_attendance'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="form-field attendance">
+                                <label for="actual_attendance_<?php echo $presentation_dom_id; ?>">Actual Attendance</label>
+                                <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][actual_attendance]" id="actual_attendance_<?php echo $presentation_dom_id; ?>" min="0" step="1" value="<?php echo htmlspecialchars((string) ($presentation['actual_attendance'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
                         <div class="presentation-assets">

@@ -64,7 +64,8 @@ try {
 }
 
 $presentation_stmt = $conn->prepare(
-    'SELECT topic_title, presentation_date, presentation_time, speaker_name, expected_attendance
+    'SELECT topic_title, presentation_date, presentation_time, speaker_name, duration_minutes,
+            expected_attendance, actual_attendance
      FROM presentations
      WHERE engagement_id = ? AND is_archived = 0
      ORDER BY presentation_date, presentation_time, id'

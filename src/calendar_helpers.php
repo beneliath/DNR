@@ -513,7 +513,7 @@ function calendarPresentationStart(array $presentation, $timezone_name = null) {
 function calendarPresentationEventLines(
     array $presentation,
     $timezone_name = null,
-    $duration_minutes = 60
+    $duration_minutes = null
 ) {
     $start = calendarPresentationStart($presentation, $timezone_name);
     $topic_title = trim((string) ($presentation['topic_title'] ?? ''));
@@ -521,6 +521,9 @@ function calendarPresentationEventLines(
         return [];
     }
 
+    if ($duration_minutes === null) {
+        $duration_minutes = $presentation['duration_minutes'] ?? 60;
+    }
     $duration_minutes = max(1, (int) $duration_minutes);
     $end = $start->modify('+' . $duration_minutes . ' minutes');
     $utc = new DateTimeZone('UTC');

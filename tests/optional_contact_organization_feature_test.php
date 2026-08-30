@@ -13,6 +13,7 @@ $addContact = file_get_contents($root . '/src/add_contact.php');
 $contactInput = file_get_contents($root . '/src/app/Domain/ContactInput.php');
 $contacts = file_get_contents($root . '/src/contacts.php');
 $viewContact = file_get_contents($root . '/src/view_contact.php');
+$viewOrganization = file_get_contents($root . '/src/view_organization.php');
 $migration = file_get_contents(
     $root . '/migrations/20260825_allow_contacts_without_organizations.sql'
 );
@@ -38,6 +39,15 @@ expectOptionalContactOrganization(
         && str_contains($viewContact, 'LEFT JOIN organizations o ON o.id = c.organization_id')
         && str_contains($viewContact, 'Not specified'),
     'organization-less contacts should remain visible in contact lists and detail views.'
+);
+
+expectOptionalContactOrganization(
+    str_contains($viewOrganization, 'add_contact.php?organization_id=<?php echo $org_id; ?>')
+        && str_contains($viewOrganization, 'view_contact.php?id=<?php echo (int) $contact[\'id\']; ?>')
+        && str_contains($addContact, "RequestInput::positiveInt(\$_GET, 'organization_id')")
+        && str_contains($addContact, '$selected_organization_id')
+        && str_contains($addContact, "'view_organization.php?id=' . \$requested_organization_id"),
+    'organization details should link contacts and offer a context-aware contact creation flow.'
 );
 
 echo "Optional contact organization feature tests passed.\n";

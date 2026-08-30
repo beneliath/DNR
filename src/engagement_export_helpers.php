@@ -151,6 +151,12 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         $fields = [];
         addEngagementExportField($fields, 'Speaker', $presentation['speaker_name'] ?? '');
         addEngagementExportField($fields, 'Date and Time', $presentation_date_time);
+        addEngagementExportField(
+            $fields,
+            'Duration',
+            (string) ((int) ($presentation['duration_minutes'] ?? 60)) . ' minutes',
+            true
+        );
         if (array_key_exists('expected_attendance', $presentation)
             && $presentation['expected_attendance'] !== null
         ) {
@@ -158,6 +164,16 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
                 $fields,
                 'Expected Attendance',
                 (string) ((int) $presentation['expected_attendance']),
+                true
+            );
+        }
+        if (array_key_exists('actual_attendance', $presentation)
+            && $presentation['actual_attendance'] !== null
+        ) {
+            addEngagementExportField(
+                $fields,
+                'Actual Attendance',
+                (string) ((int) $presentation['actual_attendance']),
                 true
             );
         }

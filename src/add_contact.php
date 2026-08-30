@@ -12,6 +12,27 @@ if (!hasRole(['admin', 'editor'])) {
 
 $success_message = '';
 $error_message = '';
+$requested_organization_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'organization_id');
+$context_organization = null;
+if ($requested_organization_id !== null) {
+    $context_stmt = $conn->prepare(
+        'SELECT id, organization_name
+         FROM organizations
+         WHERE id = ? AND is_deleted = 0'
+    );
+    if (!$context_stmt) {
+        abortApplication(503, 'The selected organization is temporarily unavailable.', [
+            'error' => $conn->error,
+        ]);
+    }
+    $context_stmt->bind_param('i', $requested_organization_id);
+    $context_stmt->execute();
+    $context_organization = $context_stmt->get_result()->fetch_assoc() ?: null;
+    $context_stmt->close();
+    if ($context_organization === null) {
+        $requested_organization_id = null;
+    }
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     requireValidCsrfToken();
@@ -106,7 +127,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $stmt->close();
             $conn->commit();
             $_SESSION['success_message'] = 'Contact added successfully.';
-            header('Location: view_contact.php?id=' . $contact_id);
+            $return_to_organization = $requested_organization_id !== null
+                && $organization_id === $requested_organization_id;
+            header(
+                'Location: ' . ($return_to_organization
+                    ? 'view_organization.php?id=' . $requested_organization_id
+                    : 'view_contact.php?id=' . $contact_id)
+            );
             exit();
         } catch (Throwable $exception) {
             $conn->rollback();
@@ -126,6 +153,16 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
     'contact_first_name' => $_POST['contact_first_name'] ?? '',
     'contact_last_name' => $_POST['contact_last_name'] ?? '',
 ]));
+$selected_organization_id = $_SERVER['REQUEST_METHOD'] === 'POST'
+    ? filter_input(INPUT_POST, 'organization_id', FILTER_VALIDATE_INT)
+    : $requested_organization_id;
+$add_contact_action = 'add_contact.php'
+    . ($requested_organization_id !== null
+        ? '?' . http_build_query(['organization_id' => $requested_organization_id])
+        : '');
+$cancel_url = $requested_organization_id !== null
+    ? 'view_organization.php?id=' . $requested_organization_id
+    : 'contacts.php';
 ?>
 
 <!DOCTYPE html>
@@ -156,19 +193,21 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New Contact</h1><p class="page-intro">Connect a person with an organization and their role.</p></div></div>
-    <form method="post" action="add_contact.php" enctype="multipart/form-data" class="contact-form">
+    <div class="page-heading form-page-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
+        ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
+        : 'Connect a person with an organization and their role.'; ?></p></div></div>
+    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
             <div class="form-group form-flex-one">
                 <label for="organization_id">Organization</label>
                 <select name="organization_id" id="organization_id">
-                    <option value="" <?php echo empty($_POST['organization_id']) ? 'selected' : ''; ?>>No organization</option>
+                    <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No organization</option>
                     <?php
                     $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
                     while ($row = $orgs->fetch_assoc()) {
-                        $selected = (!empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id']) ? 'selected' : '';
+                        $selected = (int) $selected_organization_id === (int) $row['id'] ? 'selected' : '';
                         echo "<option value='" . htmlspecialchars($row['id']) . "' $selected>" . htmlspecialchars($row['organization_name']) . "</option>";
                     }
                     ?>
@@ -241,7 +280,7 @@ $contact_photo_placeholder = 'data:image/svg+xml;base64,' . base64_encode(contac
         </div>
 <br>
         <div class="form-group create-form-actions create-form-actions-flush">
-            <a href="contacts.php" class="cancel-button">Cancel</a>
+            <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
             <input type="submit" name="save_contact" value="Create contact" class="save-button save-button-flush">
         </div>
     </form>
