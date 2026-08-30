@@ -364,7 +364,52 @@ status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html"
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'
 
+# Audit retention previews are available to administrators, but pruning must
+# reject missing CSRF and redirect to fresh administrator confirmation.
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-preview.html" \
+    "$base_url/audit_log.php?retention_days=36500"
+grep -q 'id="audit-retention"' "$temporary_directory/admin-audit-preview.html"
+grep -q 'Entries to permanently delete' "$temporary_directory/admin-audit-preview.html"
+admin_csrf=$(csrf_from "$temporary_directory/admin-audit-preview.html")
+status=$(curl -sS -b "$admin_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode 'action=prune' \
+    --data-urlencode 'retention_days=36500' \
+    --data-urlencode 'prune_confirmation=PRUNE' \
+    "$base_url/audit_log.php")
+expect_status "$status" '400' 'audit-log prune without CSRF token'
+status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-audit-locked.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode 'action=prune' \
+    --data-urlencode 'retention_days=36500' \
+    --data-urlencode 'prune_confirmation=PRUNE' \
+    "$base_url/audit_log.php")
+expect_status "$status" '302' 'locked audit-log prune'
+expect_location "$temporary_directory/admin-audit-locked.headers" \
+    'admin_elevation.php?return=audit_log.php%3Fretention_days%3D36500%23audit-retention' \
+    'locked audit-log prune'
+
 elevate_admin "$elevation_recovery_code" 'administrator elevation for active-account deletion check'
+
+# A confirmed no-op prune exercises the execution-only routine without
+# deleting fixture data or consuming the administrator elevation.
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-elevated.html" \
+    "$base_url/audit_log.php?retention_days=36500"
+grep -q 'Administrator access unlocked' "$temporary_directory/admin-audit-elevated.html"
+admin_csrf=$(csrf_from "$temporary_directory/admin-audit-elevated.html")
+status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-audit-prune.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode 'action=prune' \
+    --data-urlencode 'retention_days=36500' \
+    --data-urlencode 'prune_confirmation=PRUNE' \
+    "$base_url/audit_log.php")
+expect_status "$status" '302' 'elevated audit-log prune'
+expect_location "$temporary_directory/admin-audit-prune.headers" \
+    'audit_log.php?retention_days=36500#audit-retention' 'elevated audit-log prune'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-result.html" \
+    "$base_url/audit_log.php?retention_days=36500"
+grep -q 'No audit entries were old enough to prune.' "$temporary_directory/admin-audit-result.html"
 
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-elevated.html" "$base_url/users.php"
 admin_csrf=$(csrf_from "$temporary_directory/admin-users-elevated.html")

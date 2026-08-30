@@ -42,3 +42,4 @@
 20260825_add_presentation_assets.sql
 20260827_generalize_standard_event_tasks.sql
 20260828_customize_task_digest_schedule.sql
+20260830_add_audit_log_pruning.sql
