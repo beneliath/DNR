@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 $conn = applicationDatabaseConnection();
 startSecureSession();
 requireAdmin();
@@ -7,11 +8,130 @@ requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
+function auditLogRetentionDays($value) {
+    $value = is_scalar($value) ? trim((string) $value) : '';
+    if (preg_match('/\A[1-9][0-9]{0,4}\z/', $value) !== 1) {
+        return null;
+    }
+    $days = (int) $value;
+    return $days <= 36500 ? $days : null;
+}
+
+function auditLogPrune(mysqli $conn, $retention_days, $actor_user_id, $actor_username, $ip_address) {
+    $statement = $conn->prepare(
+        'CALL prune_security_audit_log(?, ?, ?, ?)'
+    );
+    if (!$statement) {
+        throw new RuntimeException('Unable to prepare the audit-log prune operation.');
+    }
+    $statement->bind_param(
+        'iiss',
+        $retention_days,
+        $actor_user_id,
+        $actor_username,
+        $ip_address
+    );
+    $statement->execute();
+    $result = $statement->get_result();
+    $outcome = $result ? $result->fetch_assoc() : null;
+    if ($result) {
+        $result->free();
+    }
+    while ($statement->more_results() && $statement->next_result()) {
+        $extra_result = $statement->get_result();
+        if ($extra_result) {
+            $extra_result->free();
+        }
+    }
+    $statement->close();
+    if (!is_array($outcome)
+        || !isset($outcome['deleted_count'], $outcome['cutoff_utc'])
+    ) {
+        throw new RuntimeException('The audit-log prune operation returned no result.');
+    }
+    return [
+        'deleted_count' => (int) $outcome['deleted_count'],
+        'cutoff_utc' => (string) $outcome['cutoff_utc'],
+    ];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireValidCsrfToken();
+    $action = \Dnr\Http\RequestInput::string($_POST, 'action');
+    if ($action !== 'prune') {
+        http_response_code(400);
+        exit('Invalid audit-log action.');
+    }
+
+    $retention_days = auditLogRetentionDays($_POST['retention_days'] ?? null);
+    $confirmation = \Dnr\Http\RequestInput::string($_POST, 'prune_confirmation', '', 32);
+    $preview_state = $_SESSION['_audit_log_prune_preview'] ?? null;
+    $previewed_at = is_array($preview_state) ? ($preview_state['previewed_at'] ?? null) : null;
+    $preview_is_current = is_array($preview_state)
+        && (int) ($preview_state['retention_days'] ?? 0) === $retention_days
+        && (string) ($preview_state['previewed_on'] ?? '') === gmdate('Y-m-d')
+        && is_int($previewed_at)
+        && $previewed_at <= time()
+        && (time() - $previewed_at) <= 600;
+    $return_url = 'audit_log.php';
+    if ($retention_days !== null) {
+        $return_url .= '?' . http_build_query(['retention_days' => $retention_days])
+            . '#audit-retention';
+    }
+
+    if ($retention_days === null) {
+        $_SESSION['_audit_log_prune_error'] = 'Choose a retention period from 1 through 36500 days.';
+    } elseif (!$preview_is_current) {
+        $_SESSION['_audit_log_prune_error'] = 'Preview this retention period before pruning.';
+    } elseif (!hash_equals('PRUNE', $confirmation)) {
+        $_SESSION['_audit_log_prune_error'] = 'Type PRUNE exactly to confirm permanent deletion.';
+    } else {
+        requireRecentAdminElevation($return_url);
+        try {
+            $actor_user_id = (int) $_SESSION['user_id'];
+            $actor_username = substr((string) ($_SESSION['username'] ?? ''), 0, 50);
+            $outcome = auditLogPrune(
+                $conn,
+                $retention_days,
+                $actor_user_id,
+                $actor_username,
+                requestIpAddress()
+            );
+            $deleted_count = $outcome['deleted_count'];
+            if ($deleted_count === 0) {
+                $_SESSION['_audit_log_prune_message'] = 'No audit entries were old enough to prune.';
+            } else {
+                $_SESSION['_audit_log_prune_message'] = sprintf(
+                    'Permanently pruned %d audit %s older than %s UTC.',
+                    $deleted_count,
+                    $deleted_count === 1 ? 'entry' : 'entries',
+                    $outcome['cutoff_utc']
+                );
+                unset($_SESSION['_admin_elevated_at']);
+            }
+            unset($_SESSION['_audit_log_prune_preview']);
+        } catch (Throwable $exception) {
+            applicationLog('error', 'Audit-log prune failed', [
+                'retention_days' => $retention_days,
+                'actor_user_id' => (int) $_SESSION['user_id'],
+                'error' => $exception->getMessage(),
+            ]);
+            $_SESSION['_audit_log_prune_error'] = 'The audit log could not be pruned. No entries were deleted.';
+        }
+    }
+    header('Location: ' . $return_url);
+    exit();
+}
+
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     http_response_code(405);
-    header('Allow: GET');
+    header('Allow: GET, POST');
     exit('Method not allowed.');
 }
+
+$prune_message = (string) ($_SESSION['_audit_log_prune_message'] ?? '');
+$prune_error = (string) ($_SESSION['_audit_log_prune_error'] ?? '');
+unset($_SESSION['_audit_log_prune_message'], $_SESSION['_audit_log_prune_error']);
 
 $allowed_categories = ['login', 'database_change', 'security'];
 $allowed_page_sizes = [20, 50, 100];
@@ -162,12 +282,58 @@ $security_event_labels = [
     'database_restored' => 'Database restored',
     'database_restore_auth_failed' => 'Database restore verification failed',
     'audit_log_purged' => 'Audit log purged',
+    'audit_log_pruned' => 'Audit log pruned',
     'calendar_subscription_created' => 'Calendar subscription created',
     'calendar_subscription_revoked' => 'Calendar subscription revoked',
     'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged',
 ];
 $audit_timezone_name = applicationTimezoneName();
 $audit_timezone = applicationTimezone();
+$retention_requested = array_key_exists('retention_days', $_GET);
+$retention_input_value = $retention_requested
+    ? \Dnr\Http\RequestInput::string($_GET, 'retention_days', '', 5)
+    : '365';
+$retention_days = $retention_requested
+    ? auditLogRetentionDays($retention_input_value)
+    : null;
+$retention_preview = null;
+$retention_validation_error = '';
+if ($retention_requested && $retention_days === null) {
+    $retention_validation_error = 'Choose a retention period from 1 through 36500 days.';
+} elseif ($retention_days !== null) {
+    $retention_cutoff = (new DateTimeImmutable('today', new DateTimeZone('UTC')))
+        ->sub(new DateInterval("P{$retention_days}D"))
+        ->format('Y-m-d H:i:s');
+    $retention_statement = $conn->prepare(
+        'SELECT COUNT(*) AS entry_count FROM security_audit_log WHERE created_at < ?'
+    );
+    if (!$retention_statement) {
+        abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
+    }
+    $retention_statement->bind_param('s', $retention_cutoff);
+    $retention_statement->execute();
+    $retention_count = (int) (
+        $retention_statement->get_result()->fetch_assoc()['entry_count'] ?? 0
+    );
+    $retention_statement->close();
+    $retention_preview = [
+        'cutoff_utc' => $retention_cutoff,
+        'entry_count' => $retention_count,
+    ];
+    $_SESSION['_audit_log_prune_preview'] = [
+        'retention_days' => $retention_days,
+        'previewed_on' => gmdate('Y-m-d'),
+        'previewed_at' => time(),
+    ];
+}
+$admin_actions_unlocked = hasRecentAdminElevation();
+$retention_unlock_url = $retention_days === null
+    ? ''
+    : 'admin_elevation.php?' . http_build_query([
+        'return' => 'audit_log.php?' . http_build_query([
+            'retention_days' => $retention_days,
+        ]) . '#audit-retention',
+    ]);
 
 function auditLogPageUrl($cursor, $category, $page_size, $search = '', $from = '', $to = '', $ip = '') {
     $parameters = [
@@ -220,7 +386,87 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <a href="users.php" class="button-add">Back to Users</a>
         </div>
     </div>
-    <p class="page-intro audit-retention-note">Audit records are append-only to the web application. Retention or emergency purge operations require the database-container maintenance command.</p>
+    <?php if ($prune_message !== ''): ?>
+        <p class="success"><?php echo htmlspecialchars($prune_message, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+    <?php if ($prune_error !== ''): ?>
+        <p class="error"><?php echo htmlspecialchars($prune_error, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
+
+    <p class="page-intro audit-retention-note">Audit records remain append-only during normal application use. Administrators can preview and prune expired entries below; deployment operators can use the equivalent terminal command.</p>
+
+    <section class="audit-retention-card" id="audit-retention" aria-labelledby="audit-retention-title">
+        <div class="audit-retention-heading">
+            <div>
+                <span class="audit-retention-kicker">Retention</span>
+                <h2 id="audit-retention-title">Prune Old Entries</h2>
+                <p>Keep the most recent number of days you choose and permanently delete only older entries.</p>
+            </div>
+            <?php if ($admin_actions_unlocked): ?>
+                <span class="audit-retention-unlocked">Administrator access unlocked</span>
+            <?php else: ?>
+                <span class="audit-retention-locked">Fresh confirmation required to prune</span>
+            <?php endif; ?>
+        </div>
+
+        <form method="get" action="audit_log.php#audit-retention" class="audit-retention-preview-form">
+            <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+            <?php if ($search !== ''): ?><input type="hidden" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+            <?php if ($from_date !== ''): ?><input type="hidden" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+            <?php if ($to_date !== ''): ?><input type="hidden" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+            <?php if ($ip_filter !== ''): ?><input type="hidden" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+            <label for="retention-days">Days to keep</label>
+            <input type="number" id="retention-days" name="retention_days"
+                   value="<?php echo htmlspecialchars($retention_input_value, ENT_QUOTES, 'UTF-8'); ?>"
+                   min="1" max="36500" step="1" inputmode="numeric" required>
+            <button type="submit" class="filter-button">Preview Pruning</button>
+        </form>
+
+        <?php if ($retention_validation_error !== ''): ?>
+            <p class="error audit-retention-feedback"><?php echo htmlspecialchars($retention_validation_error, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php elseif (is_array($retention_preview)): ?>
+            <?php $preview_count = (int) $retention_preview['entry_count']; ?>
+            <div class="audit-retention-preview" role="status">
+                <div>
+                    <span>Entries to permanently delete</span>
+                    <strong><?php echo number_format($preview_count); ?></strong>
+                </div>
+                <p>
+                    Entries before
+                    <time datetime="<?php echo htmlspecialchars($retention_preview['cutoff_utc'], ENT_QUOTES, 'UTF-8'); ?>Z">
+                        <?php echo htmlspecialchars($retention_preview['cutoff_utc'], ENT_QUOTES, 'UTF-8'); ?> UTC
+                    </time>
+                    will be deleted. The most recent <?php echo (int) $retention_days; ?> days will remain.
+                </p>
+            </div>
+
+            <?php if ($preview_count > 0): ?>
+                <div class="audit-retention-action">
+                    <?php if (!$admin_actions_unlocked): ?>
+                        <p>Confirm your administrator password and a fresh authenticator or recovery code before continuing.</p>
+                        <a href="<?php echo htmlspecialchars($retention_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Unlock Pruning</a>
+                    <?php else: ?>
+                        <form method="post" action="audit_log.php" class="audit-retention-prune-form" autocomplete="off"
+                              data-confirm="Permanently prune <?php echo $preview_count; ?> audit entries? This cannot be undone.">
+                            <?php echo csrfInput(); ?>
+                            <input type="hidden" name="action" value="prune">
+                            <input type="hidden" name="retention_days" value="<?php echo (int) $retention_days; ?>">
+                            <label for="prune-confirmation">Type <strong>PRUNE</strong> to confirm permanent deletion</label>
+                            <div class="audit-retention-confirm-row">
+                                <input type="text" id="prune-confirmation" name="prune_confirmation"
+                                       pattern="PRUNE" autocomplete="off" autocapitalize="characters"
+                                       spellcheck="false" required>
+                                <button type="submit" class="delete-button">Prune <?php echo number_format($preview_count); ?> Entries</button>
+                            </div>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <p class="audit-retention-empty">Nothing qualifies for pruning with this retention period.</p>
+            <?php endif; ?>
+        <?php endif; ?>
+    </section>
 
     <div class="audit-controls">
         <form method="get" action="audit_log.php" class="list-search-form audit-filter-form" role="search">

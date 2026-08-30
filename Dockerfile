@@ -48,6 +48,7 @@ COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode
 COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
 COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
+COPY --chmod=0644 scripts/prune_audit_log.php /opt/dnr/bin/prune_audit_log.php
 COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php
 COPY migrations/ /opt/dnr/migrations/
 RUN install -d -m 0755 /opt/dnr/config

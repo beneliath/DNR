@@ -148,6 +148,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.presentations TO '
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${MYSQL_USER}'@'%';
+GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${MYSQL_USER}'@'%';
 
 CREATE USER IF NOT EXISTS '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
 ALTER USER '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';

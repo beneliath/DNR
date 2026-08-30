@@ -572,7 +572,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log backup database operations readiness migrations geocoding elevated five minutes">
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes">
                 <header class="manual-chapter-heading">
                     <span>Chapter 10</span>
                     <h2>Administration</h2>
@@ -602,7 +602,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Accountability</span>
                         <h3>Audit Log</h3>
-                        <p>Inspect login, security, and database-change activity with actor, affected record, IP address, and local/UTC time. Filter by category, text, date range, and exact IP. Entries are newest first and append-only to the web application.</p>
+                        <p>Inspect login, security, and database-change activity with actor, affected record, IP address, and local/UTC time. Filter by category, text, date range, and exact IP. Entries are newest first and append-only during normal use; individual records cannot be edited or deleted.</p>
+                        <p>In the Retention panel, administrators choose how many days to keep and preview the exact UTC cutoff and affected count. Pruning requires freshly confirmed administrator access, the literal <code>PRUNE</code> phrase, and a final browser confirmation. Deployment operators can use <code>./scripts/prune_audit_log.sh DAYS</code> for the equivalent preview-first terminal workflow. Either path records the completed operation in the log.</p>
                         <?php if ($manual_is_admin): ?><a href="audit_log.php" class="manual-inline-link">Review the audit log</a><?php endif; ?>
                     </article>
                     <article class="manual-card">

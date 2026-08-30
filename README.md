@@ -559,6 +559,34 @@ separate `DNR_2FA_ENCRYPTION_KEY`, so keep a secure copy of that key with the ba
 disaster recovery, initialize and migrate an empty DNR deployment, restore the `.dnrbackup` from
 the maintenance profile, and restore the same two-factor encryption key.
 
+### Audit-log retention
+
+The application keeps the audit log append-only during normal use. An administrator can open
+**Users → Audit Log**, enter the number of days to keep in the **Retention** panel, and preview the
+exact UTC cutoff and affected row count. Pruning then requires a recent administrator password and
+fresh 2FA confirmation, the literal `PRUNE` phrase, and a final browser confirmation. The web
+database identity still has no direct delete permission; it can invoke only the migration-installed,
+definer-secured retention procedure, which validates the retention range and performs the deletion
+and replacement audit event atomically.
+
+Deployment operators can use the equivalent preview-first terminal workflow. This example keeps
+the most recent 365 days:
+
+```sh
+./scripts/prune_audit_log.sh 365
+```
+
+After reviewing the preview, repeat the command with the literal confirmation word:
+
+```sh
+./scripts/prune_audit_log.sh 365 PRUNE
+```
+
+Both workflows accept retention periods from 1 through 36500 days, delete only entries strictly
+older than the displayed cutoff, and add an `audit_log_pruned` event with the cutoff and deleted
+count. If no entries qualify, they make no change. Take and retain any required backup before
+pruning; deleted audit entries cannot be recovered from the application.
+
 ### Exact database restore runbook
 
 The following procedure is complete for the Docker Compose deployment. Run every step from the
