@@ -17,11 +17,12 @@ $favicon = file_get_contents($favicon_path);
 
 expectFavicon(is_string($favicon), 'the favicon SVG should exist.');
 expectFavicon(
-    str_contains($favicon, 'viewBox="10 0 380 380"')
-        && str_contains($favicon, 'fill="#151a23"')
-        && str_contains($favicon, 'fill="#f3f6fb"')
-        && str_contains($favicon, 'fill="#d6b66f"'),
-    'the favicon should use the square MOED palette and preserve the white M with its gold accent.'
+    str_contains($favicon, 'viewBox="50 30 330 330"')
+        && str_contains($favicon, 'fill="#081e3a"')
+        && str_contains($favicon, 'fill="#b38e47"')
+        && !str_contains($favicon, '<rect')
+        && !str_contains($favicon, 'fill="#151a23"'),
+    'the favicon should use the reverse-field MOED palette on a transparent canvas.'
 );
 
 ob_start();
