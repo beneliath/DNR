@@ -7,6 +7,7 @@ require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
 require_once __DIR__ . '/presentation_helpers.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
+require_once __DIR__ . '/engagement_email_helpers.php';
 startSecureSession();
 requireLogin();
 
@@ -99,6 +100,15 @@ $presentations_result = $presentation_stmt->get_result();
 $presentations = $presentations_result->fetch_all(MYSQLI_ASSOC);
 
 try {
+    $engagement_email_messages = fetchEngagementEmailMessages($conn, $engagement_id, 10);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The engagement correspondence is temporarily unavailable.', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+
+try {
     $chron_page_size = 50;
     $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
@@ -162,6 +172,7 @@ $presentation_stmt->close();
     2 => 'assets/css/pages/view_engagement.min.css',
     3 => 'assets/css/pages/engagement_contacts.min.css',
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
+    5 => 'assets/css/pages/engagement_email.min.css',
   ),
 )); ?>
 <body>
@@ -171,7 +182,12 @@ $presentation_stmt->close();
     <div class="page-heading record-page-heading">
         <?php $event_type_label = $engagement['event_type'] === 'other' && !empty($engagement['event_type_other']) ? $engagement['event_type_other'] : $engagement['event_type']; ?>
         <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?> <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
-        <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a><?php endif; ?>
+        <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
+            <div class="page-heading-actions">
+                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-secondary">Send email</a>
+                <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a>
+            </div>
+        <?php endif; ?>
     </div>
 
     <?php if ($financial_report_message !== ''): ?>
@@ -464,6 +480,38 @@ $presentation_stmt->close();
     </div>
     <?php endif; ?>
 
+    <section class="engagement-correspondence" id="correspondence">
+        <div class="engagement-correspondence-heading">
+            <div>
+                <h2>Correspondence</h2>
+                <p>Tracked outbound email for this engagement.</p>
+            </div>
+            <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
+                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-add">Send message</a>
+            <?php endif; ?>
+        </div>
+        <div class="engagement-email-history">
+            <?php foreach ($engagement_email_messages as $email_message): ?>
+                <?php
+                $email_status = engagementEmailAggregateStatus($email_message);
+                $email_status_labels = [
+                    'sent' => 'Sent',
+                    'failed' => 'Failed',
+                    'partial' => 'Partially sent',
+                    'pending' => 'Pending',
+                ];
+                ?>
+                <article class="engagement-email-history-item">
+                    <a href="outbound_mail.php?id=<?php echo (int) $email_message['id']; ?>"><?php echo htmlspecialchars((string) $email_message['subject'], ENT_QUOTES, 'UTF-8'); ?></a>
+                    <span class="email-status email-status-<?php echo htmlspecialchars($email_status, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($email_status_labels[$email_status], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <span class="engagement-email-history-meta"><?php echo htmlspecialchars(applicationTimestampLabel($email_message['created_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($email_message['created_by_username'])): ?> · <?php echo htmlspecialchars((string) $email_message['created_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span>
+                    <span class="engagement-email-history-recipients"><?php echo htmlspecialchars((string) ($email_message['recipients'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
+                </article>
+            <?php endforeach; ?>
+            <?php if ($engagement_email_messages === []): ?><p class="chron-empty-state">No outbound correspondence has been recorded yet.</p><?php endif; ?>
+        </div>
+    </section>
+
     <div class="detail-group chron-log-section" id="chron-log">
         <div class="chron-log-heading">
             <div>
@@ -492,6 +540,9 @@ $presentation_stmt->close();
                         </div>
                         <?php if ($was_edited): ?>
                             <small>Last updated <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso']); ?>"><?php echo htmlspecialchars($updated_timestamp['display']); ?></time><?php if (!empty($chron_entry['updated_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['updated_by_username']); ?><?php endif; ?></small>
+                        <?php endif; ?>
+                        <?php if (!empty($chron_entry['outbound_email_message_id'])): ?>
+                            <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
                         <?php endif; ?>
                     </div>
                     <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'])); ?></div>

@@ -10,12 +10,17 @@ if (PHP_SAPI !== 'cli') {
 require_once '/var/www/html/bootstrap.php';
 require_once '/var/www/html/email_helpers.php';
 require_once '/var/www/html/notification_helpers.php';
+require_once '/var/www/html/engagement_email_helpers.php';
 
 $loop = in_array('--loop', $argv, true);
 $batchSize = max(1, min(100, (int) (getenv('DNR_EMAIL_OUTBOX_BATCH_SIZE') ?: 20)));
 $notificationBatchSize = max(
     1,
     min(100, (int) (getenv('DNR_NOTIFICATION_OUTBOX_BATCH_SIZE') ?: 20))
+);
+$engagementBatchSize = max(
+    1,
+    min(100, (int) (getenv('DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE') ?: 20))
 );
 $idleSeconds = max(5, min(300, (int) (getenv('DNR_EMAIL_OUTBOX_IDLE_SECONDS') ?: 15)));
 $scheduleInterval = max(
@@ -118,6 +123,44 @@ do {
             applicationLog('error', 'Queued notification delivery failed', [
                 'outbox_id' => $queued['id'],
                 'notification_type' => $queued['notification_type'],
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        $processed++;
+    }
+
+    for ($index = 0; $index < $engagementBatchSize; $index++) {
+        $queued = claimQueuedEngagementEmail($conn);
+        if ($queued === null) {
+            break;
+        }
+        try {
+            $message = decryptQueuedEngagementEmail($queued['payload_ciphertext']);
+            deliverApplicationEmail(
+                $message['recipient'],
+                $message['subject'],
+                $message['body'],
+                $message['reply_to']
+            );
+            completeQueuedEngagementEmail($conn, $queued['id']);
+        } catch (Throwable $exception) {
+            try {
+                failQueuedEngagementEmail(
+                    $conn,
+                    $queued['id'],
+                    $queued['attempts'],
+                    $exception,
+                    $exception instanceof DomainException
+                );
+            } catch (Throwable $recordException) {
+                applicationLog('error', 'Unable to record engagement-email delivery failure', [
+                    'delivery_id' => $queued['id'],
+                    'error' => $recordException->getMessage(),
+                ]);
+            }
+            applicationLog('error', 'Queued engagement-email delivery failed', [
+                'delivery_id' => $queued['id'],
+                'message_id' => $queued['message_id'],
                 'error' => $exception->getMessage(),
             ]);
         }

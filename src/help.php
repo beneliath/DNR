@@ -17,7 +17,7 @@ $manual_dashboard_days = applicationWorkflowSetting('dashboard_upcoming_days');
 $manual_task_days = applicationWorkflowSetting('task_upcoming_days');
 $manual_access_summary = match ($manual_role) {
     'admin' => 'You can manage every record and use the administrator, audit, and backup tools.',
-    'editor' => 'You can create and maintain records, tasks, financial closeouts, and inbound mail.',
+    'editor' => 'You can create and maintain records, tasks, financial closeouts, and engagement correspondence.',
     default => 'You have read-only access to records, exports, maps, calendars, and your own account.',
 };
 ?>
@@ -57,7 +57,7 @@ $manual_access_summary = match ($manual_role) {
         <nav class="manual-quick-links" aria-label="Popular help topics">
             <a href="#engagements"><span>01</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
             <a href="#work-queue"><span>02</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
-            <a href="#chron-mail"><span>03</span><strong>Build the Chron</strong><small>Notes and routed email</small></a>
+            <a href="#chron-mail"><span>03</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
             <a href="#profile-security"><span>04</span><strong>Secure Your Account</strong><small>Profile, password, 2FA</small></a>
         </nav>
     </section>
@@ -72,7 +72,7 @@ $manual_access_summary = match ($manual_role) {
                 <a href="#engagements" data-manual-toc><span>04</span>Engagements</a>
                 <a href="#organizations-contacts" data-manual-toc><span>05</span>Organizations and Contacts</a>
                 <a href="#work-queue" data-manual-toc><span>06</span>Work Queue</a>
-                <a href="#chron-mail" data-manual-toc><span>07</span>Chron and Inbound Mail</a>
+                <a href="#chron-mail" data-manual-toc><span>07</span>Chron and Email</a>
                 <a href="#map-calendar" data-manual-toc><span>08</span>Map and Calendar</a>
                 <a href="#profile-security" data-manual-toc><span>09</span>Profile and Security</a>
                 <a href="#administration" data-manual-toc><span>10</span>Administration</a>
@@ -140,7 +140,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="roles" data-manual-section data-keywords="roles reviewer editor administrator admin permissions access read only manage create edit archive restore delete elevated">
+            <section class="manual-chapter" id="roles" data-manual-section data-keywords="roles reviewer editor administrator admin permissions access read only manage create edit archive restore delete elevated email correspondence">
                 <header class="manual-chapter-heading">
                     <span>Chapter 02</span>
                     <h2>Roles and Access</h2>
@@ -160,7 +160,7 @@ $manual_access_summary = match ($manual_role) {
                             <tr><td>View records, Chron, work, map, and exports</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage own profile, calendar links, and security</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Create and edit engagements, organizations, and contacts</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
-                            <tr><td>Manage tasks, Chron entries, closeouts, and inbound mail</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
+                            <tr><td>Manage tasks, Chron entries, closeouts, and engagement email</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Archive and restore shared records</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage users, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
                         </tbody>
@@ -176,7 +176,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card<?php echo $manual_role === 'editor' ? ' is-current-role' : ''; ?>">
                         <span class="manual-role-badge role-editor">Editor</span>
                         <h3>Coordinate and Maintain</h3>
-                        <p>Editors add reviewer capabilities plus record creation, editing, archive/restore, task management, Chron maintenance, financial closeout, and inbound email review.</p>
+                        <p>Editors add reviewer capabilities plus record creation, editing, archive/restore, task management, Chron maintenance, financial closeout, engagement email, and inbound email review.</p>
                     </article>
                     <article class="manual-card<?php echo $manual_role === 'admin' ? ' is-current-role' : ''; ?>">
                         <span class="manual-role-badge role-admin">Administrator</span>
@@ -218,7 +218,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
                 <header class="manual-chapter-heading">
                     <span>Chapter 04</span>
                     <h2>Engagements</h2>
@@ -295,8 +295,24 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
+                    <h3>Send and Track Event Email</h3>
+                    <p>Editors and administrators can send email from an active engagement. Use <strong>Send email</strong> near the page heading or <strong>Send message</strong> in the Correspondence section. Every message remains easy to find there afterward.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Choose a starting template.</strong><p>Use Booking confirmation, Travel and lodging request, Final-detail reconfirmation, Presentation schedule, Post-event thank-you, or Custom message. Template text is only a starting point; edit the subject and body before sending.</p></section></li>
+                        <li><span>02</span><section><strong>Select event contacts.</strong><p>Use the Primary host, On-site contact, Billing, Travel, or Materials shortcuts, or select individual assigned contacts. Only active assigned contacts with an email address can receive the message. Every unique address receives a separate email, so recipients never see one another.</p></section></li>
+                        <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every built-in subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
+                        <li><span>04</span><section><strong>Optionally append the event brief.</strong><p>The share-safe brief includes the public event schedule, venue, description, and presentations. It deliberately excludes Chron, internal notes, compensation, giving, and financial-closeout information. Preview it before queuing.</p></section></li>
+                        <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry failed deliveries</strong>.</p></section></li>
+                    </ol>
+                    <section class="manual-card-grid manual-card-grid-two">
+                        <article class="manual-card"><h4>One Place to Check</h4><p>Open the outbound message to review what was sent, who it was sent to, and the result for each address.</p></article>
+                        <article class="manual-card"><h4>Automatic Chron History</h4><p>The message is added to the Engagement, Organization, and selected Contact Chron logs. Select <strong>View outbound message</strong> from a Chron entry to return to its delivery record.</p></article>
+                    </section>
+                </section>
+
+                <section class="manual-subsection">
                     <h3>View, Share, and Close the Event</h3>
-                    <p>The event detail page shows its unique email routing marker. Select the copy icon immediately beside the marker to place it on the clipboard, then keep the marker in the email subject or plain-text body when that message should route to the engagement’s Chron log.</p>
+                    <p>The event detail page shows its unique email routing marker. The built-in outbound composer inserts it automatically. When using another mail application, select the copy icon immediately beside the marker and keep it in the email subject or plain-text body when that message should route to the engagement’s Chron log.</p>
                     <section class="manual-card-grid manual-card-grid-three">
                         <article class="manual-card"><h4>Copy Text</h4><p>Copies a plain-text event brief for messages or notes.</p></article>
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
@@ -421,16 +437,17 @@ $manual_access_summary = match ($manual_role) {
                     <p>If the new engagement has a selected <strong>Caller</strong>, every initial standard task is assigned to that Caller. If no Caller is selected, the tasks are assigned to the user creating the engagement. This ownership decision happens only once: changing the engagement’s Caller later does not reassign its initial tasks, which remain independently editable.</p>
                     <p>Changing an engagement’s dates reschedules its active generated tasks from the standard schedule. A task whose due date was manually overridden keeps that date. Editing a standard definition does not rewrite an existing task’s title, notes, priority, or current due date.</p>
                     <p>Editors and administrators manage reusable definitions from <strong>Standard Event Tasks</strong>. Use <strong>Add missing checklist tasks</strong> on an active engagement to generate any standard items that are absent; tasks added this way are assigned to the user performing the action. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
+                    <p>Sending a booking, reconfirmation, or thank-you message from an engagement does not complete its related checklist task automatically. Check the Correspondence result, then complete the task when the follow-up itself is finished.</p>
                     <?php if ($manual_can_manage): ?><p><a href="standard_tasks.php" class="manual-inline-link">Manage Standard Event Tasks</a></p><?php endif; ?>
                 </section>
                 <p class="manual-open-area"><a href="tasks.php">Open the Work Queue <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="chron-mail" data-manual-section data-keywords="chron log communication call email meeting history archive restore inbound mail mailbox marker <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> routing retry approve reject processed source email purge Bcc Cc sender review attachment">
+            <section class="manual-chapter" id="chron-mail" data-manual-section data-keywords="chron log communication call email meeting history archive restore outbound correspondence send template recipient delivery pending processing retry sent failed partial event brief inbound mail mailbox marker <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> routing approve reject processed source email purge Bcc Cc sender review attachment">
                 <header class="manual-chapter-heading">
                     <span>Chapter 07</span>
-                    <h2>Chron and Inbound Mail</h2>
-                    <p>Chron is the durable communication history. Add concise human notes directly, or route copied email into the relevant records.</p>
+                    <h2>Chron and Email</h2>
+                    <p>Chron is the durable communication history. Add concise human notes directly, send tracked engagement correspondence, or route copied inbound email into the relevant records.</p>
                 </header>
 
                 <section class="manual-subsection">
@@ -440,25 +457,35 @@ $manual_access_summary = match ($manual_role) {
                         <li>Entries show created time and author, newest first. Edited entries also show the last update time and editor.</li>
                         <li>Editors and administrators add, edit, and archive entries from the record’s edit page. Administrators can permanently delete them.</li>
                         <li>Restore archived entries in batches from the Restore page. An archived parent record must be active before its Chron can be restored.</li>
-                        <li>Email-generated entries link to the retained source message while it exists.</li>
+                        <li>Email-generated entries link to their retained inbound or outbound source message while it exists.</li>
                     </ul>
                 </section>
 
-                <article class="manual-callout manual-callout-accent">
-                    <span class="manual-callout-icon" aria-hidden="true">@</span>
-                    <div class="manual-callout-body">
-                        <h3>Route Email to an Engagement</h3>
-                        <p>Copy the configured inbound address and keep the exact marker shown on the event detail page in the subject or plain-text body: <code><?php echo htmlspecialchars($manual_marker_example, ENT_QUOTES, 'UTF-8'); ?></code>. Use the copy icon immediately beside the displayed marker to put it on the clipboard. One unique valid marker is authoritative and routes automatically to that active engagement. When participant matching is unsafe or ambiguous, only the marked engagement receives the Chron entry.</p>
-                    </div>
-                </article>
+                <section class="manual-card-grid manual-card-grid-two">
+                    <article class="manual-card">
+                        <span class="manual-kicker">Send</span>
+                        <h3>Start from an Engagement</h3>
+                        <p>Open an active engagement and select <strong>Send message</strong>. Choose assigned contacts, review the message, and send. The engagement marker and related Chron history are handled for you. Check the Correspondence section for the result.</p>
+                    </article>
+                    <article class="manual-card">
+                        <span class="manual-kicker">Receive</span>
+                        <h3>Route Outside Email</h3>
+                        <p>When using another mail application, copy the inbound address and keep the exact engagement marker in the subject or plain-text body: <code><?php echo htmlspecialchars($manual_marker_example, ENT_QUOTES, 'UTF-8'); ?></code>. Use the copy icon beside the marker on the engagement page.</p>
+                    </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>How Inbound Email Finds Its Records</h3>
+                    <p>One unique, valid engagement marker routes directly to that active engagement. When participant matching is uncertain, only the marked engagement receives the Chron entry and the message remains available for review.</p>
+                </section>
 
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
-                        <h3>Automatic Routing</h3>
+                        <h3>Address Matching</h3>
                         <p><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> matches exact email addresses for active verified users, contacts, and organizations. A unique contact participant routes to the Contact and its Organization. A direct organization address routes there. <strong>Cc</strong> and <strong>Bcc</strong> delivery both work.</p>
                     </article>
                     <article class="manual-card">
-                        <h3>What Is Retained</h3>
+                        <h3>What Inbound Mail Retains</h3>
                         <p>The Chron entry includes normalized headers, subject, timestamps, inert plain-text body, attachment names, and a source link. Attachment contents are not stored. Duplicate delivery of the same message ID is ignored.</p>
                     </article>
                 </section>
@@ -627,7 +654,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 11</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -654,6 +681,10 @@ $manual_access_summary = match ($manual_role) {
                     <details>
                         <summary><span>An Email Still Needs Review</span><i aria-hidden="true">+</i></summary>
                         <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> marker in the subject or plain-text body where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
+                    </details>
+                    <details>
+                        <summary><span>An Outbound Email Failed or Cannot Be Queued</span><i aria-hidden="true">+</i></summary>
+                        <p>Confirm that the engagement has at least one assigned contact with a valid email address. Open the outbound message to see which recipient failed. Correct the address if needed, then select <strong>Retry failed deliveries</strong>. If sending is unavailable for every message, ask an administrator to check the mail setup.</p>
                     </details>
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>

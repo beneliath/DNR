@@ -9,6 +9,7 @@ parameters:
         - src/database_backup_helpers.php
         - src/dashboard_helpers.php
         - src/engagement_export_helpers.php
+        - src/engagement_email_helpers.php
         - src/engagement_contact_helpers.php
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php

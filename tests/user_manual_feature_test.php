@@ -99,6 +99,21 @@ expectUserManual(
 );
 
 expectUserManual(
+    str_contains($manual, 'Send and Track Event Email')
+        && str_contains($manual, 'Booking confirmation')
+        && str_contains($manual, 'Select event contacts')
+        && str_contains($manual, 'Every unique address receives a separate email')
+        && str_contains($manual, 'share-safe brief')
+        && str_contains($manual, 'Queue Email')
+        && str_contains($manual, 'Retry failed deliveries')
+        && str_contains($manual, 'Automatic Chron History')
+        && str_contains($manual, 'Sending a booking, reconfirmation, or thank-you message')
+        && str_contains($manual, 'How Inbound Email Finds Its Records')
+        && str_contains($manual, 'An Outbound Email Failed or Cannot Be Queued'),
+    'the manual should explain outbound correspondence as a concise workflow integrated with tasks, Chron, and inbound email.'
+);
+
+expectUserManual(
     str_contains($manual, 'Enter Organization Addresses')
         && str_contains($manual, 'countries worldwide')
         && str_contains($manual, 'Choose the country before the region')
