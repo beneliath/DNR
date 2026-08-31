@@ -57,6 +57,12 @@ expectIntegrationRunner(
     'email outbox state-machine tests should run with the isolated maintenance database identity.'
 );
 expectIntegrationRunner(
+    in_array('engagement_email_integration_test.php', $discovered, true)
+        && str_contains($runner, "'engagement_email_integration_test.php'")
+        && str_contains($runner, 'maintenance "/opt/dnr/${test_file}"'),
+    'engagement correspondence queue and worker tests should use the maintenance test identity.'
+);
+expectIntegrationRunner(
     in_array('task_notifications_integration_test.php', $discovered, true)
         && str_contains($runner, "'task_notifications_integration_test.php'")
         && str_contains($runner, 'maintenance "/opt/dnr/${test_file}"'),
