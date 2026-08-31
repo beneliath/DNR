@@ -543,12 +543,16 @@ function smtpTlsStreamContext($host)
     return stream_context_create(['ssl' => $ssl_options]);
 }
 
-function sendSmtpMessage($recipient, $subject, $body)
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '')
 {
     $recipient = normalizeAccountEmail($recipient);
     $from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
+    $replyTo = trim((string) $replyTo);
+    if ($replyTo !== '') {
+        $replyTo = normalizeAccountEmail($replyTo);
+    }
     $from_name = deploymentConfig()->string('brand.mail_name');
-    if (preg_match('/[\r\n]/', $from_name . (string) $subject) === 1) {
+    if (preg_match('/[\r\n]/', $from_name . (string) $subject . $replyTo) === 1) {
         throw new InvalidArgumentException('Mail headers contain invalid characters.');
     }
     $host = trim((string) (getenv('DNR_SMTP_HOST') ?: ''));
@@ -601,9 +605,11 @@ function sendSmtpMessage($recipient, $subject, $body)
         smtpCommand($stream, 'DATA', [354]);
         $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
         $encoded_name = '=?UTF-8?B?' . base64_encode($from_name) . '?=';
+        $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
         $message = smtpNormalizeLineEndings(implode("\n", [
             'From: ' . $encoded_name . ' <' . $from . '>',
             'To: <' . $recipient . '>',
+            ...($replyToHeader !== '' ? [$replyToHeader] : []),
             'Subject: ' . $encoded_subject,
             'MIME-Version: 1.0',
             'Content-Type: text/plain; charset=UTF-8',
@@ -624,17 +630,22 @@ function sendSmtpMessage($recipient, $subject, $body)
     return true;
 }
 
-function deliverAccountEmail($recipient, $subject, $body)
+function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '')
 {
     $transport = accountMailTransport();
     if ($transport === 'log') {
-        applicationLog('info', 'Account email accepted by development transport', [
+        applicationLog('info', 'Application email accepted by development transport', [
             'recipient' => normalizeAccountEmail($recipient),
             'subject' => (string) $subject,
         ]);
         return true;
     }
-    return sendSmtpMessage($recipient, $subject, $body);
+    return sendSmtpMessage($recipient, $subject, $body, $replyTo);
+}
+
+function deliverAccountEmail($recipient, $subject, $body)
+{
+    return deliverApplicationEmail($recipient, $subject, $body);
 }
 
 function sendInvitationEmail($email, $username, $token)

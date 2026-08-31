@@ -35,8 +35,9 @@ $source = file_get_contents(__DIR__ . '/../src/email_helpers.php');
 expectSmtpMessageFormat(
     is_string($source)
         && str_contains($source, 'smtpNormalizeLineEndings(implode("\\n", [')
+        && str_contains($source, "'Reply-To: <' . \$replyTo . '>'")
         && !str_contains($source, '$message = str_replace("\\n", "\\r\\n", $message);'),
-    'SMTP delivery should build and normalize the message exactly once.'
+    'SMTP delivery should support a validated Reply-To header and normalize the message exactly once.'
 );
 
 echo "SMTP message format tests passed.\n";

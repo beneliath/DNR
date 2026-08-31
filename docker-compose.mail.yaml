@@ -1,4 +1,8 @@
 services:
+  web:
+    environment:
+      DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-}
+
   mail-ingest:
     build:
       context: .

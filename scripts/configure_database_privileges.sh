@@ -139,6 +139,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.organizations TO '
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagements TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
+GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
+GRANT SELECT (
+    id, message_id, contact_id, recipient_name, recipient_email,
+    recipient_roles_json, status, attempts, next_attempt_at,
+    processing_started_at, sent_at, last_error, created_at, updated_at
+) ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_map_geocodes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_chron_entries TO '${MYSQL_USER}'@'%';
@@ -180,6 +187,7 @@ REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, username, first_name, email, email_verified_at, role,
     auth_version, account_status, task_digest_enabled,

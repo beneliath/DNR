@@ -44,6 +44,9 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
                     <?php if (!empty($chron_entry['inbound_email_message_id'])): ?>
                         <small><a href="inbound_mail.php?status=all&amp;id=<?php echo (int) $chron_entry['inbound_email_message_id']; ?>">View source email</a></small>
                     <?php endif; ?>
+                    <?php if (!empty($chron_entry['outbound_email_message_id'])): ?>
+                        <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
+                    <?php endif; ?>
                 </div>
                 <div class="chron-entry-editor">
                     <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></label>

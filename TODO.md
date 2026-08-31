@@ -36,6 +36,7 @@
 - [x] allow users to change their own password with confirmation and session revocation
 - [x] build out profiles for users
 - [x] build email subsystem for invitations, verified addresses, and password reset
+- [x] add role-targeted outbound Engagement correspondence with templates, delivery tracking, and Chron links
 - [x] add functionality to activate/deactivate users with coordinated access revocation
 - [x] build out for Contact(s): Admin, Pastor, and Other
 - [x] build out Anticipated Compensation

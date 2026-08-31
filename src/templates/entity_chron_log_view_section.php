@@ -34,6 +34,9 @@
                     <?php if (!empty($chron_entry['inbound_email_message_id']) && canArchiveEntries($user_role)): ?>
                         <small><a href="inbound_mail.php?status=all&amp;id=<?php echo (int) $chron_entry['inbound_email_message_id']; ?>">View source email</a></small>
                     <?php endif; ?>
+                    <?php if (!empty($chron_entry['outbound_email_message_id'])): ?>
+                        <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
+                    <?php endif; ?>
                 </div>
                 <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'], ENT_QUOTES, 'UTF-8')); ?></div>
             </article>

@@ -182,6 +182,26 @@ encrypted `notification_outbox` so account-token delivery remains isolated; mess
 if the recipient opts out, changes their email, becomes inactive, no longer has a verified address,
 or removes the queued day from their schedule. Sent and terminal payloads are erased.
 
+Editors and administrators can also send tracked plain-text correspondence from an active
+Engagement. The composer provides booking-confirmation, travel/lodging, final-reconfirmation,
+presentation-schedule, post-event thank-you, and custom starting templates. Recipients are selected
+from the Engagement's assigned Primary host, On-site contact, Billing, Travel, and Materials roles.
+Every unique address receives an independent delivery so recipients are never disclosed to one
+another. The authoritative Engagement marker is appended to the subject automatically, allowing a
+reply that preserves the subject to return through the normal inbound-mail routing workflow when
+`DNR_INBOUND_ADDRESS` is configured. In that mode, tracked Engagement messages set the shared
+inbound mailbox as their `Reply-To` address; other application email keeps the ordinary sender.
+
+The optional share-safe event brief contains only the public event schedule, location, description,
+and presentations. It deliberately excludes Chron entries, internal notes, compensation, giving,
+and financial-closeout data. Queuing a message creates linked source entries in the Engagement and
+Organization Chron logs and in each selected Contact's Chron log. The retained correspondence record
+stores the reviewed plain-text subject and body as business history, consistent with Chron and
+retained inbound mail. The separate SMTP delivery payload is sealed with the application key while
+pending and erased after successful or terminal delivery. Each recipient retries independently with
+bounded exponential backoff; editors and administrators can explicitly reconstruct and re-queue a
+terminal failed delivery from the retained source record.
+
 Create `secrets/smtp_password`, configure the sender and relay in `.env`, and use
 `production-smtp` or `development-smtp`. Combine inbound and outbound mail with
 `production-mail-smtp` or `development-mail-smtp`.
@@ -433,6 +453,7 @@ Configure these values as needed:
 - `DNR_SMTP_CA_SECRET_FILE` and `DNR_SMTP_PEER_NAME`: optional pinned SMTP trust anchor and expected certificate name. The certificate is mounted as `DNR_SMTP_CA_FILE` only by an `*-smtp-ca` mode; peer and chain verification remain enabled.
 - `DNR_EMAIL_OUTBOX_BATCH_SIZE` and `DNR_EMAIL_OUTBOX_IDLE_SECONDS`: bounded outbound messages per worker cycle and idle polling interval. Defaults are 20 messages and 15 seconds.
 - `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
+- `DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE`: bounded Engagement-recipient deliveries claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
 - `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
