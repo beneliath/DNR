@@ -51,6 +51,8 @@ function renderPageHead($title, array $options = []) {
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
+    echo '    <link rel="icon" type="image/svg+xml" href="'
+        . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
