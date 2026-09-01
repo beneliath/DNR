@@ -99,10 +99,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
     $submitted_chron_entries = [];
+    $submitted_chron_versions = [];
     $new_chron_entry = '';
     try {
         $submitted_chron_entries = normalizeSubmittedChronLogEntries(
             $_POST['chron_entries'] ?? null
+        );
+        $submitted_chron_versions = normalizeSubmittedChronLogVersions(
+            $_POST['chron_entry_versions'] ?? null
         );
         if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
             throw new InvalidArgumentException('Enter a valid Chron entry.');
@@ -299,6 +303,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 'contact',
                 $contact_id,
                 $submitted_chron_entries,
+                $submitted_chron_versions,
                 $current_user_id
             );
             if ($new_chron_entry !== '') {

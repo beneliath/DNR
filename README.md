@@ -32,6 +32,7 @@ To set up the project on your local machine, follow these steps:
    openssl rand -hex 32 > secrets/mysql_mail_ingest_password
    openssl rand -hex 32 > secrets/mysql_mail_dispatch_password
    openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
+   openssl rand -base64 32 > secrets/dnr_inbound_routing_key
    : > secrets/backup_password
    chmod 600 secrets/*
    ```
@@ -244,15 +245,16 @@ The routing policy is deliberately conservative:
 - DNR considers the message's `From`, `To`, and `Cc` addresses, excluding the configured gateway
   address and recognized internal users. A unique Contact match adds the message to that Contact and
   the Contact's Organization. A direct Organization email match adds it to the Organization.
-- Put the exact marker shown on the Engagement page in the subject or plain-text body to route the
-  message. In the tracked MOED deployment profile this is `[MOED#123]` for Engagement 123. One unique
-  valid marker for an active Engagement is authoritative and routes automatically even when the
-  sender or participant addresses are unknown, ambiguous, or associated with another Organization.
-  When address issues exist, only the marked Engagement receives the Chron entry; clean exact-address
-  matches retain the usual Contact and Organization routes too. Invalid markers, unknown or archived
-  Engagements, and messages containing multiple different markers require review.
-- Duplicate delivery of the same RFC Message-ID is idempotent. Without an authoritative marker,
-  ambiguous senders, shared email addresses, unknown senders, and messages with no matched target go
+- Put the exact signed marker shown on the Engagement page in the subject or plain-text body to route
+  the message. In the tracked MOED deployment profile its shape is
+  `[MOED#123.<signed-token>]` for Engagement 123. A valid signed marker routes automatically only when
+  the visible sender also uniquely matches an active DNR user, Contact, or Organization. Unknown
+  senders, unsigned or altered markers, unknown or archived Engagements, and messages containing
+  multiple different markers require review. Participant mismatches route only to the signed
+  Engagement; clean exact-address matches retain the usual Contact and Organization routes too.
+- Duplicate delivery of the same RFC Message-ID is idempotent. Without a valid signed marker,
+  all messages remain in **Inbound Mail** for review; ambiguous senders, shared email addresses,
+  unknown senders, and messages with no matched target go
   to **Inbound Mail** for an administrator or editor to review. Reviewers may choose any active
   Engagement from the searchable selector, in addition to approving matched Contact and Organization
   routes. If an address is missing from DNR, update the record and use **Retry routing**.
@@ -260,9 +262,11 @@ The routing policy is deliberately conservative:
   names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
   mail is converted to inert plain text.
 
-An Engagement marker is an authoritative routing instruction, so do not expose markers outside the
-intended correspondence. Exact address matching is a routing aid, not independent proof of sender
-identity. The mailbox provider should enforce its normal spam and SPF/DKIM/DMARC checks.
+An Engagement marker is a signed routing capability, so do not expose it outside the intended
+correspondence. Unsigned legacy markers intentionally require review after this upgrade. Exact
+address matching remains a routing aid, not proof of sender identity, and inbound entries are always
+attributed to the Email Gateway rather than the visible `From` identity. The mailbox provider should
+still enforce its normal spam and SPF/DKIM/DMARC checks.
 
 Both `Cc` and `Bcc` delivery to the configured `DNR_INBOUND_ADDRESS` work. A Bcc delivery normally omits the
 gateway address from the stored message headers, which is expected; DNR routes using the remaining
@@ -457,6 +461,7 @@ Configure these values as needed:
 - `DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE`: bounded Engagement-recipient deliveries claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
 - `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
+- `DNR_INBOUND_ROUTING_KEY_FILE`: host path to the independent base64-encoded 32-byte key used to sign Engagement reply-routing markers. Generate it with `scripts/ensure_inbound_routing_key.sh`, back it up securely, and do not rotate it while issued reply markers are still in use.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
 - `DNR_IMAP_USERNAME`, `DNR_IMAP_PASSWORD_FILE`, and `DNR_IMAP_MAILBOX`: mailbox credentials and selected folder. The mail Compose overlay mounts the password as a Docker secret; `DNR_IMAP_PASSWORD` is accepted only for simple non-Compose or development execution.

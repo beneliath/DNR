@@ -2,14 +2,18 @@ package main
 
 import (
 	"regexp"
-	"strconv"
 	"strings"
 	"unicode/utf8"
 
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
-var moedChannelMarkerPrefix = regexp.MustCompile(`^\s*\[MOED#[0-9]+\]\s*`)
+var moedChannelMarkerPrefix = regexp.MustCompile(`^\s*\[MOED#[0-9]+(?:\.[A-Za-z0-9_-]{22})?\]\s*`)
+var signedMOEDChannelMarker = regexp.MustCompile(`^\[MOED#[0-9]+\.[A-Za-z0-9_-]{22}\]$`)
+
+func isSignedMOEDChannelMarker(marker string) bool {
+	return signedMOEDChannelMarker.MatchString(strings.TrimSpace(marker))
+}
 
 func stripMOEDChannelMarker(displayName string) string {
 	return strings.TrimSpace(moedChannelMarkerPrefix.ReplaceAllString(displayName, ""))
@@ -52,6 +56,23 @@ func unlinkedChannelDisplayName(current string, binding *channelBinding) string 
 	return stripMOEDChannelMarker(current)
 }
 
+func (p *Plugin) userCanManageLinkedChannel(userID string, channel *model.Channel) bool {
+	if userID == "" || channel == nil || channel.Id == "" {
+		return false
+	}
+	var managePermission *model.Permission
+	switch channel.Type {
+	case model.ChannelTypeOpen:
+		managePermission = model.PermissionManagePublicChannelProperties
+	case model.ChannelTypePrivate:
+		managePermission = model.PermissionManagePrivateChannelProperties
+	default:
+		return false
+	}
+	return p.API.HasPermissionToChannel(userID, channel.Id, managePermission) &&
+		p.API.HasPermissionToChannel(userID, channel.Id, model.PermissionCreatePost)
+}
+
 func (p *Plugin) updateChannelDisplayName(channelID, displayName string) error {
 	channel, appErr := p.API.GetChannel(channelID)
 	if appErr != nil {
@@ -85,14 +106,14 @@ func (p *Plugin) reconcileChannelBindingMarkers() {
 				p.API.LogWarn("Could not read MOED channel binding during marker reconciliation", "channel_id", channelID)
 				continue
 			}
+			marker := strings.TrimSpace(binding.EmailRoutingMarker)
+			if !isSignedMOEDChannelMarker(marker) {
+				continue
+			}
 			channel, channelErr := p.API.GetChannel(channelID)
 			if channelErr != nil || channel == nil {
 				p.API.LogWarn("Could not read linked Mattermost channel during marker reconciliation", "channel_id", channelID)
 				continue
-			}
-			marker := strings.TrimSpace(binding.EmailRoutingMarker)
-			if marker == "" {
-				marker = "[MOED#" + strconv.Itoa(binding.EngagementID) + "]"
 			}
 			previousDisplayName := channel.DisplayName
 			originalDisplayName, linkedDisplayName := linkedChannelNames(previousDisplayName, binding, marker)

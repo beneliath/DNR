@@ -49,5 +49,14 @@
 - [x] evaluate for SQL injection vulnerabilities
 - [x] minify JS and CSS
 - [ ] when above is complete: build out REPORT functionality
+  - [ ] review a first-class, read-only Reports & Insights module separate from the daily operations dashboard
+  - [ ] provide a global date range with previous-period comparison
+  - [ ] summarize engagements by lifecycle, confirmation, event type, region, and organization
+  - [ ] report presentations delivered, presentation hours, and reported presentation attendance
+  - [ ] report giving/income and lodging/travel receipts, averages per completed engagement, repeat organizations, and outstanding closeouts
+  - [ ] report task completion and overdue rates
+  - [ ] support drill-through from aggregates to source records plus CSV and printable/PDF exports
+  - [ ] calculate reports from authoritative operational tables rather than the purgeable audit log
+  - [ ] label aggregated `actual_attendance` as reported presentation attendance, not unique people reached
 - [x] build initial FOLLOW-UP functionality with assigned tasks, due-date work queues, contextual record tasks, and optional engagement checklists
 - [ ] when above is complete: build out printed document support

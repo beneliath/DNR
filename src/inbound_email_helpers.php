@@ -324,7 +324,7 @@ function quarantineInboundEmailMessage(
 /** @return list<string> */
 function inboundEmailDecodeAddressList(mixed $json): array
 {
-    $decoded = json_decode((string) $json, true);
+    $decoded = is_array($json) ? $json : json_decode((string) $json, true);
     if (!is_array($decoded)) {
         return [];
     }
@@ -341,7 +341,7 @@ function inboundEmailDecodeAddressList(mixed $json): array
 /** @return list<string> */
 function inboundEmailDecodeStringList(mixed $json): array
 {
-    $decoded = json_decode((string) $json, true);
+    $decoded = is_array($json) ? $json : json_decode((string) $json, true);
     if (!is_array($decoded)) {
         return [];
     }
@@ -379,7 +379,7 @@ function inboundEmailUserMatches(mysqli $conn, string $address): array
 }
 
 /**
- * @return list<array{id: int, label: string, organization_id: int, organization_label: string}>
+ * @return list<array{id: int, label: string, organization_id: ?int, organization_label: string}>
  */
 function inboundEmailContactMatches(mysqli $conn, string $address): array
 {
@@ -389,9 +389,10 @@ function inboundEmailContactMatches(mysqli $conn, string $address): array
                 organization.id AS organization_id,
                 organization.organization_name AS organization_label
          FROM contacts contact
-         INNER JOIN organizations organization ON organization.id = contact.organization_id
+         LEFT JOIN organizations organization ON organization.id = contact.organization_id
          WHERE LOWER(TRIM(contact.contact_email)) = ?
-           AND contact.is_deleted = 0 AND organization.is_deleted = 0
+           AND contact.is_deleted = 0
+           AND (organization.id IS NULL OR organization.is_deleted = 0)
          ORDER BY contact.id LIMIT 25"
     );
     if (!$stmt) {
@@ -405,8 +406,10 @@ function inboundEmailContactMatches(mysqli $conn, string $address): array
         static fn(array $row): array => [
             'id' => (int) $row['id'],
             'label' => (string) $row['label'],
-            'organization_id' => (int) $row['organization_id'],
-            'organization_label' => (string) $row['organization_label'],
+            'organization_id' => $row['organization_id'] !== null
+                ? (int) $row['organization_id']
+                : null,
+            'organization_label' => (string) ($row['organization_label'] ?? ''),
         ],
         $matches
     );
@@ -444,18 +447,21 @@ function parseInboundEmailEngagementMarkers(string $text): array
 {
     $matches = [];
     $prefixPattern = inboundEmailMarkerPrefixPattern();
-    preg_match_all('/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);
+    preg_match_all('/\[(' . $prefixPattern . ')#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);
     $ids = [];
     $invalid = [];
     foreach ($matches as $match) {
         $marker = (string) $match[0];
-        $candidate = (string) $match[1];
-        if (!preg_match('/^[1-9][0-9]{0,9}$/D', $candidate)) {
+        $prefix = (string) $match[1];
+        $candidate = (string) $match[2];
+        if (!preg_match('/^([1-9][0-9]{0,9})\.([A-Za-z0-9_-]{22})$/D', $candidate, $parts)) {
             $invalid[$marker] = true;
             continue;
         }
-        $id = (int) $candidate;
-        if ($id < 1 || $id > 2147483647) {
+        $id = (int) $parts[1];
+        if ($id < 1 || $id > 2147483647
+            || !applicationInboundMarkerIsValid($prefix, $id, (string) $parts[2])
+        ) {
             $invalid[$marker] = true;
             continue;
         }
@@ -565,13 +571,20 @@ function searchInboundEmailEngagements(
     $exactId = 0;
     $idMatch = [];
     $prefixPattern = inboundEmailMarkerPrefixPattern();
-    if (preg_match(
-        '/\A(?:\[(?:' . $prefixPattern . ')#([1-9][0-9]{0,9})\]|([1-9][0-9]{0,9}))\z/i',
+    if (preg_match('/\A([1-9][0-9]{0,9})\z/D', $search, $idMatch) === 1) {
+        $candidate = (int) $idMatch[1];
+        if ($candidate <= 2147483647) {
+            $exactId = $candidate;
+        }
+    } elseif (preg_match(
+        '/\A\[(' . $prefixPattern . ')#([1-9][0-9]{0,9})\.([A-Za-z0-9_-]{22})\]\z/iD',
         $search,
         $idMatch
     ) === 1) {
-        $candidate = (int) ($idMatch[1] !== '' ? $idMatch[1] : $idMatch[2]);
-        if ($candidate <= 2147483647) {
+        $candidate = (int) $idMatch[2];
+        if ($candidate <= 2147483647
+            && applicationInboundMarkerIsValid((string) $idMatch[1], $candidate, (string) $idMatch[3])
+        ) {
             $exactId = $candidate;
         }
     }
@@ -670,7 +683,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     $authoritativeEngagement = false;
     if ($markers['invalid'] !== []) {
         $reasons[] = 'The message contains an invalid Engagement marker. Use the exact format '
-            . applicationInboundMarker(123) . '.';
+            . applicationInboundMarkerExample(123) . '.';
     }
     if (count($markers['ids']) > 1) {
         $reasons[] = 'The message contains more than one Engagement marker.';
@@ -710,10 +723,12 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
                 'id' => $contact['id'],
                 'label' => $contact['label'],
             ];
-            $organizations[$contact['organization_id']] = [
-                'id' => $contact['organization_id'],
-                'label' => $contact['organization_label'],
-            ];
+            if ($contact['organization_id'] !== null) {
+                $organizations[$contact['organization_id']] = [
+                    'id' => $contact['organization_id'],
+                    'label' => $contact['organization_label'],
+                ];
+            }
         }
         foreach ($organizationMatches as $organization) {
             $organizations[$organization['id']] = $organization;
@@ -721,7 +736,9 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
 
         $distinctOrganizationIds = [];
         foreach ($contactMatches as $contact) {
-            $distinctOrganizationIds[$contact['organization_id']] = true;
+            if ($contact['organization_id'] !== null) {
+                $distinctOrganizationIds[$contact['organization_id']] = true;
+            }
         }
         foreach ($organizationMatches as $organization) {
             $distinctOrganizationIds[$organization['id']] = true;
@@ -759,8 +776,9 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     ksort($organizations);
     ksort($engagements);
 
+    $recognizedSender = in_array($sender['type'], ['user', 'contact', 'organization'], true);
     return [
-        'automatic' => $authoritativeEngagement || $reasons === [],
+        'automatic' => $authoritativeEngagement && $recognizedSender,
         'authoritative_engagement' => $authoritativeEngagement,
         'reasons' => $reasons,
         'sender' => $sender,
@@ -963,13 +981,9 @@ function processInboundEmailMessage(
         }
 
         $entryText = formatInboundEmailChronEntry($message);
-        $creatorId = $routing['sender']['type'] === 'user'
-            ? (int) ($routing['sender']['id'] ?? 0)
-            : null;
-        $creatorId = $creatorId && $creatorId > 0 ? $creatorId : null;
-        $creatorName = $routing['sender']['type'] === 'user'
-            ? mb_substr((string) $routing['sender']['label'], 0, 50, 'UTF-8')
-            : 'Email Gateway';
+        // Visible From headers are routing hints, not authenticated DNR identities.
+        $creatorId = null;
+        $creatorName = 'Email Gateway';
         $createdAt = (string) $message['received_at'];
 
         $contactInsert = $conn->prepare(

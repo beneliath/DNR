@@ -50,6 +50,7 @@ jobs:
           openssl rand -hex 32 > secrets/mysql_mail_ingest_password
           openssl rand -hex 32 > secrets/mysql_mail_dispatch_password
           openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
+          openssl rand -base64 32 > secrets/dnr_inbound_routing_key
           printf '%s' 'integration backup password' > secrets/backup_password
           printf '%s' 'integration imap password' > secrets/imap_password
           printf '%s' 'integration smtp password' > secrets/smtp_password

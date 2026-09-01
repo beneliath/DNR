@@ -75,6 +75,7 @@ expectEntityChronFeature(
     is_string($editTemplate)
         && str_contains($editTemplate, 'name="save_and_add_chron"')
         && str_contains($editTemplate, 'name="chron_entries[')
+        && str_contains($editTemplate, 'name="chron_entry_versions[')
         && str_contains($editTemplate, 'name="chron_action" value="archive"')
         && str_contains($editTemplate, "\$user_role === 'admin'"),
     'the shared editor should support add, edit, archive, and admin-only deletion.'

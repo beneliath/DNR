@@ -27,6 +27,7 @@ $grants = file_get_contents($root . '/scripts/configure_database_privileges.sh')
 $migrate = file_get_contents($root . '/scripts/migrate.sh');
 $environment = file_get_contents($root . '/.env.example');
 $readme = file_get_contents($root . '/README.md');
+$workflow = file_get_contents($root . '/.github/workflows/ci.yml');
 
 expectInboundFeature(
     str_contains($migration, 'CREATE TABLE inbound_email_messages')
@@ -47,18 +48,22 @@ expectInboundFeature(
 );
 expectInboundFeature(
     str_contains($helper, 'routeInboundEmailMessage')
-        && str_contains($helper, "'automatic' => \$authoritativeEngagement || \$reasons === []")
+        && str_contains($helper, "'automatic' => \$authoritativeEngagement && \$recognizedSender")
         && str_contains($helper, 'inboundEmailMessageEngagementMarkers')
+        && str_contains($helper, 'applicationInboundMarkerIsValid')
         && str_contains($helper, "'authoritative_engagement' => \$authoritativeEngagement")
         && str_contains($helper, 'parseInboundEmailEngagementMarkers')
         && str_contains($helper, "'engagements' => array_values(\$engagements)")
         && str_contains($helper, 'INSERT INTO engagement_chron_entries')
         && str_contains($helper, "\$routing['applied_engagements']")
         && str_contains($helper, "'Email Gateway'")
+        && str_contains($helper, '$creatorId = null')
+        && str_contains($helper, 'LEFT JOIN organizations organization')
+        && str_contains($helper, 'organization.id IS NULL OR organization.is_deleted = 0')
         && str_contains($helper, 'ON DUPLICATE KEY UPDATE id = id')
         && str_contains($helper, 'function purgeInboundEmailMessage')
         && str_contains($helper, 'DELETE FROM inbound_email_messages WHERE id = ?'),
-    'routing should honor authoritative message markers, gateway attribution, and duplicate delivery.'
+    'routing should require signed markers and recognized senders, preserve standalone Contacts, use gateway attribution, and deduplicate delivery.'
 );
 expectInboundFeature(
     str_contains($worker, 'unseenUids')
@@ -68,6 +73,8 @@ expectInboundFeature(
         && str_contains($worker, '$client->abort()')
         && str_contains($worker, 'UIDVALIDITY changed after reconnecting')
         && str_contains($compose, 'DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password')
+        && str_contains($compose, 'DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key')
+        && str_contains($workflow, 'openssl rand -base64 32 > secrets/dnr_inbound_routing_key')
         && str_contains($compose, 'cap_drop: [ALL]'),
     'the least-privilege worker should poll configurable IMAP and use a mounted password secret.'
 );
@@ -109,7 +116,8 @@ expectInboundFeature(
     str_contains($environment, 'DNR_INBOUND_ADDRESS=dnr@example.org')
         && str_contains($environment, 'DNR_IMAP_PASSWORD_FILE=./secrets/imap_password')
         && str_contains($readme, '### Inbound email to Chron')
-        && str_contains($readme, '[MOED#123]')
+        && str_contains($readme, '[MOED#123.<signed-token>]')
+        && str_contains($readme, 'Unsigned legacy markers intentionally require review')
         && str_contains($readme, 'searchable')
         && str_contains($readme, 'production-mail')
         && str_contains($readme, 'Attachment contents are not stored')

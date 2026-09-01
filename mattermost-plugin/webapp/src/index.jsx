@@ -1,5 +1,5 @@
 const React = window.React;
-const {useEffect, useState} = React;
+const {useEffect, useRef, useState} = React;
 
 const PLUGIN_ID = 'org.moed.mattermost';
 const PLUGIN_API = `/plugins/${PLUGIN_ID}/api/v1`;
@@ -71,6 +71,14 @@ function idempotencyKey(prefix) {
         return `${prefix}:${window.crypto.randomUUID()}`;
     }
     return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
+}
+
+function stableIdempotencyKey(prefix, payload, stateRef) {
+    const fingerprint = JSON.stringify(payload);
+    if (stateRef.current.fingerprint !== fingerprint || !stateRef.current.key) {
+        stateRef.current = {fingerprint, key: idempotencyKey(prefix)};
+    }
+    return stateRef.current.key;
 }
 
 function mattermostCSRFToken() {
@@ -406,6 +414,7 @@ function EmailModal({request, onClose}) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [result, setResult] = useState(null);
+    const idempotencyState = useRef({fingerprint: '', key: ''});
     useEffect(() => {
         let active = true;
         pluginRequest('/email-compose', {channel_id: request.channelId, post_id: request.post ? request.post.id : ''}).then((response) => {
@@ -472,7 +481,7 @@ function EmailModal({request, onClose}) {
         setBusy(true);
         setError('');
         try {
-            const response = await pluginRequest('/email-send', {
+            const payload = {
                 channel_id: request.channelId,
                 post_id: request.post ? request.post.id : '',
                 contact_ids: selected,
@@ -482,8 +491,13 @@ function EmailModal({request, onClose}) {
                 include_event_brief: includeBrief,
                 include_post: contextMode === 'post',
                 include_thread: contextMode === 'thread',
-                idempotency_key: idempotencyKey('send-email'),
-            });
+            };
+            payload.idempotency_key = stableIdempotencyKey(
+                'send-email',
+                payload,
+                idempotencyState,
+            );
+            const response = await pluginRequest('/email-send', payload);
             setResult(response);
         } catch (requestError) {
             setError(requestError.message);
@@ -535,6 +549,7 @@ function ActionModal({request, onClose}) {
     const [busy, setBusy] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(null);
+    const idempotencyState = useRef({fingerprint: '', key: ''});
     useEffect(() => {
         const closeOnEscape = (event) => event.key === 'Escape' && onClose();
         window.addEventListener('keydown', closeOnEscape);
@@ -545,7 +560,7 @@ function ActionModal({request, onClose}) {
         setBusy(true);
         setError('');
         try {
-            const response = await pluginRequest('/post-action', {
+            const payload = {
                 post_id: request.post.id,
                 action: request.action,
                 title,
@@ -553,8 +568,13 @@ function ActionModal({request, onClose}) {
                 due_date: dueDate,
                 priority,
                 entry_text: entryText,
-                idempotency_key: idempotencyKey(request.action),
-            });
+            };
+            payload.idempotency_key = stableIdempotencyKey(
+                request.action,
+                payload,
+                idempotencyState,
+            );
+            const response = await pluginRequest('/post-action', payload);
             setSuccess(response);
         } catch (requestError) {
             setError(requestError.message);

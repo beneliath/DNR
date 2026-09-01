@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
+
 $originalEmittedPrefix = getenv('DNR_INBOUND_MARKER_PREFIX');
 $originalAcceptedPrefixes = getenv('DNR_INBOUND_ACCEPTED_MARKER_PREFIXES');
 putenv('DNR_INBOUND_MARKER_PREFIX=NEWNAME');
@@ -102,10 +104,13 @@ try {
 expectDeploymentConfig($unsafeAssetRejected, 'profile logo paths should not escape the public asset directory.');
 unlink($invalidPath);
 
-$legacyMarkers = parseInboundEmailEngagementMarkers('Reply [MOED#41] and new [NEWNAME#42]');
+$legacyMarker = '[' . 'MOED#41.' . applicationInboundMarkerTag(41, 'MOED') . ']';
+$newMarker = applicationInboundMarker(42);
+$legacyMarkers = parseInboundEmailEngagementMarkers('Reply ' . $legacyMarker . ' and new ' . $newMarker);
 expectDeploymentConfig(
     $legacyMarkers['ids'] === [41, 42]
-        && applicationInboundMarker(42) === '[NEWNAME#42]',
+        && str_starts_with(applicationInboundMarker(42), '[NEWNAME#42.')
+        && applicationInboundMarkerIsValid('NEWNAME', 42, applicationInboundMarkerTag(42, 'NEWNAME')),
     'a renamed deployment should emit the new prefix while accepting configured legacy markers.'
 );
 if ($originalEmittedPrefix === false) {

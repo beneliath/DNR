@@ -2,6 +2,9 @@
 $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
     ? $_POST['chron_entries']
     : [];
+$submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
+    ? $_POST['chron_entry_versions']
+    : [];
 ?>
 <section class="form-section chron-log-section" id="chron-log">
     <div class="chron-log-heading">
@@ -31,6 +34,10 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
             $chron_entry_value = is_scalar($submitted_chron_value)
                 ? (string) $submitted_chron_value
                 : (string) $chron_entry['entry_text'];
+            $submitted_chron_version = $submitted_chron_versions[(string) $chron_entry['id']] ?? null;
+            $chron_entry_version = is_scalar($submitted_chron_version)
+                ? (string) $submitted_chron_version
+                : (string) $chron_entry['updated_at'];
             ?>
             <article class="chron-entry-card">
                 <div class="chron-entry-meta">
@@ -50,6 +57,7 @@ $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
                 </div>
                 <div class="chron-entry-editor">
                     <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></label>
+                    <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version, ENT_QUOTES, 'UTF-8'); ?>" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>">
                     <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="5" maxlength="100000" required form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($chron_entry_value, ENT_QUOTES, 'UTF-8'); ?></textarea>
                     <form method="post" action="<?php echo htmlspecialchars($chron_edit_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" class="chron-entry-management">
                         <?php echo csrfInput(); ?>

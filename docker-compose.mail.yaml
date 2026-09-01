@@ -26,6 +26,7 @@ services:
     secrets:
       - dnr_mysql_mail_ingest_password
       - dnr_imap_password
+      - dnr_inbound_routing_key
     environment:
       DB_HOST: db
       MYSQL_DATABASE: dnr
@@ -42,6 +43,7 @@ services:
       DNR_IMAP_USERNAME: ${DNR_IMAP_USERNAME:-}
       DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password
       DNR_IMAP_MAILBOX: ${DNR_IMAP_MAILBOX:-INBOX}
+      DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key
       DNR_TIMEZONE: ${DNR_TIMEZONE:-}
       DNR_CONFIG_FILE: /run/dnr/config/application.yaml
       DNR_BRAND_DISPLAY_NAME: ${DNR_BRAND_DISPLAY_NAME:-}

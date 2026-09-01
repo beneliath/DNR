@@ -57,7 +57,7 @@ $engagement_id = (int) $conn->insert_id;
 $engagement_stmt->close();
 
 $chron_created_at = '2025-03-04 12:34:56';
-$chron_updated_at = '2025-03-05 13:45:01';
+$chron_updated_at = '2025-03-05 13:45:01.123456';
 $chron_text = 'Timestamp preservation ' . $suffix;
 $chron_stmt = $conn->prepare(
     'INSERT INTO engagement_chron_entries

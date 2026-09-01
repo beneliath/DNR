@@ -63,7 +63,9 @@ expectChronFeature(
         && str_contains($edit_engagement, 'name="chron_entries[')
         && str_contains($edit_engagement, 'required form="engagement-edit-form"')
         && str_contains($edit_engagement, 'FOR UPDATE')
-        && str_contains($edit_engagement, 'SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP()'),
+        && str_contains($edit_engagement, 'name="chron_entry_versions[')
+        && str_contains($edit_engagement, 'updated_at = UTC_TIMESTAMP(6)')
+        && str_contains($edit_engagement, 'AND updated_at = ?'),
     'existing Chron text changes should be saved by the bottom Save Changes button.'
 );
 expectChronFeature(
@@ -116,8 +118,10 @@ expectChronFeature(
     'Engagement search should include titles, organizations, active contacts, published Chron text, and Chron creators.'
 );
 expectChronFeature(
-    str_contains($chron_helpers, 'ORDER BY ce.created_at DESC, ce.id DESC'),
-    'Chron entries should load in reverse chronological order.'
+    str_contains($chron_helpers, 'ORDER BY ce.created_at DESC, ce.id DESC')
+        && str_contains($chron_helpers, 'normalizeSubmittedChronLogVersions')
+        && str_contains($chron_helpers, 'changed after you opened this page'),
+    'Chron entries should load newest first and reject stale row-level edits.'
 );
 
 echo "Chron log feature tests passed.\n";

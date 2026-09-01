@@ -84,7 +84,7 @@ expectUserManual(
         && str_contains($manual, 'Editor')
         && str_contains($manual, 'Administrator')
         && str_contains($manual, 'Lifecycle and confirmation are independent.')
-        && str_contains($manual, 'applicationInboundMarker(123)')
+        && str_contains($manual, 'applicationInboundMarkerExample(123)')
         && str_contains($manual, 'Permanent Means Permanent'),
     'the manual should explain role boundaries, event state, email routing, and destructive actions.'
 );
@@ -96,7 +96,7 @@ expectUserManual(
         && str_contains($manual, 'an email routing marker you can copy')
         && str_contains($manual, 'Both cards show the email routing marker')
         && str_contains($manual, '/moed link-event ID')
-        && str_contains($manual, 'linked channel’s name begins with its MOED routing marker')
+        && str_contains($manual, 'linked channel’s name begins with its signed MOED routing marker')
         && str_contains($manual, 'colored chain control')
         && str_contains($manual, '<strong>MOED engagement</strong> from the channel menu')
         && str_contains($manual, 'MOED is authoritative')

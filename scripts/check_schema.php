@@ -6,6 +6,13 @@ if (PHP_SAPI !== 'cli') {
 
 require_once '/var/www/html/config.php';
 
+try {
+    \Dnr\Security\InboundRoutingKey::bytes();
+} catch (Throwable $exception) {
+    fwrite(STDERR, "Inbound routing key is unavailable or invalid.\n");
+    exit(1);
+}
+
 $migrationDirectory = '/opt/dnr/migrations';
 $orderPath = $migrationDirectory . '/order.txt';
 $migrationPaths = glob($migrationDirectory . '/*.sql') ?: [];

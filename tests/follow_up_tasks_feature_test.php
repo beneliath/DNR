@@ -18,13 +18,16 @@ $read = static function ($path) use ($root) {
 };
 
 $migration = $read('migrations/20260818_add_follow_up_tasks.sql');
+$hardeningMigration = $read('migrations/20260901_bugfix_security_patch.sql');
 expectFollowUpTaskFeature(
     str_contains($migration, 'CREATE TABLE IF NOT EXISTS follow_up_tasks')
         && str_contains($migration, "ENUM('open', 'in_progress', 'waiting', 'completed', 'canceled')")
         && str_contains($migration, 'chk_follow_up_task_subject')
         && str_contains($migration, 'chk_follow_up_task_completion')
         && str_contains($migration, 'uq_follow_up_task_engagement_template')
-        && str_contains($migration, 'audit_follow_up_tasks_after_insert'),
+        && str_contains($migration, 'audit_follow_up_tasks_after_insert')
+        && str_contains($hardeningMigration, 'MODIFY updated_at TIMESTAMP(6)')
+        && str_contains($hardeningMigration, 'ALTER TABLE standard_event_tasks'),
     'the forward migration should enforce task subjects, completion state, template idempotence, and auditing.'
 );
 
@@ -89,6 +92,12 @@ expectFollowUpTaskFeature(
         && str_contains($form, 'name="waiting_on"')
         && str_contains($form, 'name="subject"'),
     'create and edit workflows should share validation and expose ownership, timing, waiting, and context fields.'
+);
+expectFollowUpTaskFeature(
+    str_contains($helpers, 'LEFT JOIN organizations o ON o.id = c.organization_id')
+        && str_contains($helpers, '(o.id IS NULL OR o.is_deleted = 0)')
+        && str_contains($helpers, "CONCAT_WS(' · '"),
+    'standalone Contacts should remain available as task subjects without an Organization.'
 );
 expectFollowUpTaskFeature(
     str_contains($helpers, 'generateEngagementFollowUpChecklist')

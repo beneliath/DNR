@@ -10,6 +10,12 @@ header('X-Content-Type-Options: nosniff');
 
 $readiness_reason = 'dependency_failure';
 try {
+    try {
+        \Dnr\Security\InboundRoutingKey::bytes();
+    } catch (Throwable $exception) {
+        $readiness_reason = 'inbound_routing_key_unavailable';
+        throw $exception;
+    }
     define('DNR_DATABASE_FAILURES_THROW', true);
     require_once __DIR__ . '/bootstrap.php';
     $migration_directory = is_dir('/opt/dnr/migrations')
@@ -20,23 +26,29 @@ try {
         $readiness_reason = 'migration_manifest_unavailable';
         throw new RuntimeException('Migration manifest unavailable.');
     }
-    $ledger_result = $conn->query('SELECT migration_name, checksum FROM schema_migrations');
+    $ledger_result = $conn->query('SELECT migration_name, checksum, state FROM schema_migrations');
     if (!$ledger_result) {
         $readiness_reason = 'migration_ledger_unavailable';
         throw new RuntimeException('Migration ledger unavailable.');
     }
     $ledger = [];
     while ($row = $ledger_result->fetch_assoc()) {
-        $ledger[(string) $row['migration_name']] = (string) $row['checksum'];
+        $ledger[(string) $row['migration_name']] = [
+            'checksum' => (string) $row['checksum'],
+            'state' => (string) $row['state'],
+        ];
     }
     $manifest = [];
     foreach ($migration_paths as $migration_path) {
         $name = basename($migration_path);
         $manifest[$name] = true;
         $checksum = hash_file('sha256', $migration_path);
+        $record = $ledger[$name] ?? null;
+        $recorded_checksum = is_array($record) ? ($record['checksum'] ?? null) : null;
         if (!is_string($checksum)
-            || !isset($ledger[$name])
-            || !hash_equals($checksum, $ledger[$name])
+            || !is_string($recorded_checksum)
+            || ($record['state'] ?? null) !== 'applied'
+            || !hash_equals($checksum, $recorded_checksum)
         ) {
             $readiness_reason = 'migration_checksum_mismatch';
             throw new RuntimeException('Migration ledger mismatch.');

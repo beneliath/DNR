@@ -47,3 +47,4 @@
 20260831_add_engagement_email_correspondence.sql
 20260831_add_mattermost_integration.sql
 20260901_add_mattermost_email_workflow.sql
+20260901_bugfix_security_patch.sql

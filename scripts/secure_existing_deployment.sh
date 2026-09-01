@@ -119,6 +119,9 @@ printf '%s' "$new_mail_dispatch_password" > "$secret_directory/mysql_mail_dispat
 if [ ! -s "$secret_directory/dnr_2fa_encryption_key" ]; then
     openssl rand -base64 32 > "$secret_directory/dnr_2fa_encryption_key"
 fi
+if [ ! -s "$secret_directory/dnr_inbound_routing_key" ]; then
+    openssl rand -base64 32 > "$secret_directory/dnr_inbound_routing_key"
+fi
 chmod 600 "$secret_directory"/*
 
 printf "%s\n" \
@@ -131,6 +134,7 @@ printf "%s\n" \
     'DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE=./secrets/mysql_mail_ingest_password' \
     'DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE=./secrets/mysql_mail_dispatch_password' \
     'DNR_2FA_KEY_FILE=./secrets/dnr_2fa_encryption_key' \
+    'DNR_INBOUND_ROUTING_KEY_FILE=./secrets/dnr_inbound_routing_key' \
     'DNR_BACKUP_PASSWORD_FILE=./secrets/backup_password' \
     > "$environment_temp"
 
