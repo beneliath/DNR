@@ -79,7 +79,7 @@ func (c *moedClient) do(
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.4.0")
+	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.4.1")
 	request.Header.Set("X-Mattermost-Instance-ID", c.instanceID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")

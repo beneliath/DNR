@@ -231,7 +231,10 @@ type channelBindingResponse struct {
 }
 
 type channelBinding struct {
-	EngagementID int    `json:"engagement_id"`
-	LinkedBy     string `json:"linked_by"`
-	LinkedAt     int64  `json:"linked_at"`
+	EngagementID               int    `json:"engagement_id"`
+	LinkedBy                   string `json:"linked_by"`
+	LinkedAt                   int64  `json:"linked_at"`
+	EmailRoutingMarker         string `json:"email_routing_marker,omitempty"`
+	OriginalChannelDisplayName string `json:"original_channel_display_name,omitempty"`
+	AppliedChannelDisplayName  string `json:"applied_channel_display_name,omitempty"`
 }

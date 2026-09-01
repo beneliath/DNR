@@ -9,7 +9,8 @@ const STYLES = `
 `;
 
 const EMAIL_STYLES = `
-.moed-channel-header-icon{position:relative;display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;color:rgba(var(--center-channel-color-rgb,61,60,64),.55)}
+.moed-channel-header-button{display:inline-flex;width:30px;height:30px;align-items:center;justify-content:center;margin-left:2px;padding:0;border:0;border-radius:4px;background:transparent;color:rgba(var(--center-channel-color-rgb,61,60,64),.55);cursor:pointer}.moed-channel-header-button:hover,.moed-channel-header-button:focus-visible{background:rgba(var(--center-channel-color-rgb,61,60,64),.08);color:var(--center-channel-color)}
+.moed-channel-header-icon{position:relative;display:inline-flex;width:20px;height:20px;align-items:center;justify-content:center;color:inherit}
 .moed-channel-header-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}
 .moed-channel-header-icon--linked{color:#0f8f87}
 .moed-channel-header-icon__dot{position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;border:1.5px solid var(--center-channel-bg,#fff);border-radius:50%;background:#21a179}
@@ -304,28 +305,28 @@ function currentChannelId(store) {
     return state && state.entities && state.entities.channels ? state.entities.channels.currentChannelId || '' : '';
 }
 
-function ChannelHeaderIcon({store}) {
-    const [channelId, setChannelId] = useState(() => currentChannelId(store));
-    const [linked, setLinked] = useState(false);
+function useChannelBinding(store, channel) {
+    const [channelId, setChannelId] = useState(() => channel && channel.id ? channel.id : currentChannelId(store));
+    const [binding, setBinding] = useState(null);
     useEffect(() => store.subscribe(() => {
-        const next = currentChannelId(store);
+        const next = channel && channel.id ? channel.id : currentChannelId(store);
         setChannelId((current) => current === next ? current : next);
-    }), [store]);
+    }), [store, channel && channel.id]);
     useEffect(() => {
         let active = true;
         const refresh = async () => {
             if (!channelId) {
-                setLinked(false);
+                setBinding(null);
                 return;
             }
             try {
                 const response = await pluginGet(`/channel-binding?channel_id=${encodeURIComponent(channelId)}`);
                 if (active) {
-                    setLinked(Boolean(response.linked));
+                    setBinding(response);
                 }
             } catch (_) {
                 if (active) {
-                    setLinked(false);
+                    setBinding(null);
                 }
             }
         };
@@ -345,7 +346,28 @@ function ChannelHeaderIcon({store}) {
             window.removeEventListener('moed-refresh-channel-link', refreshRequested);
         };
     }, [channelId]);
+    return {channelId, binding};
+}
+
+function ChannelLinkGlyph({linked}) {
     return <span className={`moed-channel-header-icon${linked ? ' moed-channel-header-icon--linked' : ''}`} aria-label={linked ? 'Channel linked to a MOED engagement' : 'Channel not linked to MOED'}><svg aria-hidden='true' viewBox='0 0 24 24'><path d='M10 13a5 5 0 0 0 7.5.5l2-2a5 5 0 0 0-7-7l-1.1 1.1'/><path d='M14 11a5 5 0 0 0-7.5-.5l-2 2a5 5 0 0 0 7 7l1.1-1.1'/></svg>{linked && <span className='moed-channel-header-icon__dot'/>}</span>;
+}
+
+function openChannelLink(store, channelId) {
+    window.dispatchEvent(new CustomEvent('moed-open-post-action', {detail: {action: 'channel_link', channelId: channelId || currentChannelId(store)}}));
+}
+
+function ChannelHeaderControl({store, channel}) {
+    const {channelId, binding} = useChannelBinding(store, channel);
+    const linked = Boolean(binding && binding.linked);
+    const engagement = linked && binding.engagement ? binding.engagement : null;
+    const title = engagement ? `Linked to MOED engagement #${engagement.id}: ${engagement.title}` : 'MOED channel link';
+    return <button className='moed-channel-header-button' type='button' title={title} aria-label={title} onClick={() => openChannelLink(store, channelId)}><ChannelLinkGlyph linked={linked}/></button>;
+}
+
+function LegacyChannelHeaderIcon({store}) {
+    const {binding} = useChannelBinding(store, null);
+    return <ChannelLinkGlyph linked={Boolean(binding && binding.linked)}/>;
 }
 
 function ChannelModal({request, onClose, onCompose}) {
@@ -605,12 +627,20 @@ class MOEDPlugin {
         registry.registerPostDropdownMenuAction('Add MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
         registry.registerPostDropdownMenuAction('Add to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
         registry.registerPostDropdownMenuAction('Send via MOED email', (postOrID) => openPostAction(store, 'send_email', postOrID));
-        registry.registerChannelHeaderButtonAction(
-            <ChannelHeaderIcon store={store}/>,
-            (channel) => window.dispatchEvent(new CustomEvent('moed-open-post-action', {detail: {action: 'channel_link', channelId: channel && channel.id ? channel.id : currentChannelId(store)}})),
-            'MOED engagement',
-            'MOED channel link',
-        );
+        if (typeof registry.registerChannelHeaderIcon === 'function') {
+            const MOEDChannelHeaderControl = (props) => <ChannelHeaderControl {...props} store={store}/>;
+            registry.registerChannelHeaderIcon(MOEDChannelHeaderControl);
+        } else {
+            registry.registerChannelHeaderButtonAction(
+                <LegacyChannelHeaderIcon store={store}/>,
+                (channel) => openChannelLink(store, channel && channel.id ? channel.id : currentChannelId(store)),
+                'MOED engagement',
+                'MOED channel link',
+            );
+        }
+        if (typeof registry.registerChannelHeaderMenuAction === 'function') {
+            registry.registerChannelHeaderMenuAction('MOED engagement', (channelId) => openChannelLink(store, channelId));
+        }
     }
 
     uninitialize() {

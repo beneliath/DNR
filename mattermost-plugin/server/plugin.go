@@ -46,6 +46,7 @@ func (p *Plugin) OnActivate() error {
 	}); appErr != nil {
 		return fmt.Errorf("register /moed command: %s", appErr.Error())
 	}
+	p.reconcileChannelBindingMarkers()
 
 	router := http.NewServeMux()
 	router.HandleFunc("/api/v1/task-action", p.handleTaskAction)

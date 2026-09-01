@@ -3,4 +3,5 @@
 /.env
 /secrets/
 /backups/
+/tmp/
 .DS_Store

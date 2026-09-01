@@ -628,8 +628,8 @@ $manual_access_summary = match ($manual_role) {
                                 <tr><td><code>/moed tasks</code></td><td>Shows the same task dashboard with up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event show ID</code></td><td>Shows a private engagement card with dates, status, location, work counts, and an email routing marker you can copy.</td><td>Linked users</td></tr>
-                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement and posts its card with a copyable email routing marker.</td><td>Editors and administrators</td></tr>
-                                <tr><td><code>/moed unlink-event</code></td><td>Removes the current channel’s engagement binding.</td><td>Editors and administrators</td></tr>
+                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement, adds its routing marker to the channel name, and posts its card.</td><td>Editors and administrators</td></tr>
+                                <tr><td><code>/moed unlink-event</code></td><td>Removes the channel’s engagement binding and its channel-name marker.</td><td>Editors and administrators</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -650,7 +650,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Recognize the Engagement Linked to a Channel</h3>
-                    <p>Look for the MOED chain icon in the channel header. A colored icon with a small dot means the current channel is linked. Select it to see the engagement number and name, open the full engagement in MOED, copy its routing marker, or begin an email. A muted icon means the channel has not been linked yet.</p>
+                    <p>A linked channel’s name begins with its MOED routing marker, such as <code>[MOED#17]</code>, so the connection remains visible in the sidebar and channel header. The colored chain control provides the same signal; select it, or choose <strong>MOED engagement</strong> from the channel menu, to see the engagement, open it in MOED, copy its routing marker, or begin an email. Unlinking removes the marker from the channel name.</p>
                 </section>
 
                 <section class="manual-subsection">

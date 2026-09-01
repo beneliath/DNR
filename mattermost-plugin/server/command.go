@@ -79,7 +79,7 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 		"- `/moed event show ID` — show a share-safe engagement card\n" +
 		"- `/moed link-event ID` — bind this channel (Editor/Admin)\n" +
 		"- `/moed unlink-event` — remove the channel binding (Editor/Admin)\n\n" +
-		"The MOED chain icon in the channel header shows whether this channel is linked and opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
+		"A linked channel's name begins with its `[MOED#n]` routing marker. The MOED chain control in the channel header—or **MOED engagement** in the channel menu—opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
 	return ephemeral(text)
 }
 
@@ -285,11 +285,33 @@ func (p *Plugin) executeLinkEvent(
 	if response.User.Role != "editor" && response.User.Role != "admin" {
 		return ephemeral("Your MOED role cannot bind a channel to an engagement.")
 	}
-	if err := p.setChannelBinding(channelID, &channelBinding{
-		EngagementID: id,
-		LinkedBy:     user.Id,
-		LinkedAt:     time.Now().Unix(),
-	}); err != nil {
+	existingBinding, bindingErr := p.channelBinding(channelID)
+	if bindingErr != nil {
+		return ephemeral(":warning: The existing channel binding could not be read.")
+	}
+	channel, appErr := p.API.GetChannel(channelID)
+	if appErr != nil || channel == nil {
+		return ephemeral(":warning: Mattermost could not read this channel, so it was not linked.")
+	}
+	marker := strings.TrimSpace(response.Engagement.EmailRoutingMarker)
+	if marker == "" {
+		marker = "[MOED#" + strconv.Itoa(id) + "]"
+	}
+	previousDisplayName := channel.DisplayName
+	originalDisplayName, linkedDisplayName := linkedChannelNames(previousDisplayName, existingBinding, marker)
+	nextBinding := &channelBinding{
+		EngagementID:               id,
+		LinkedBy:                   user.Id,
+		LinkedAt:                   time.Now().Unix(),
+		EmailRoutingMarker:         marker,
+		OriginalChannelDisplayName: originalDisplayName,
+		AppliedChannelDisplayName:  linkedDisplayName,
+	}
+	if err := p.updateChannelDisplayName(channelID, linkedDisplayName); err != nil {
+		return ephemeral(":warning: Mattermost could not add the MOED marker to this channel, so it was not linked.")
+	}
+	if err := p.setChannelBinding(channelID, nextBinding); err != nil {
+		_ = p.updateChannelDisplayName(channelID, previousDisplayName)
 		return ephemeral(":warning: The channel binding could not be saved.")
 	}
 	postResponse := customCommandResponse(
@@ -305,10 +327,11 @@ func (p *Plugin) executeLinkEvent(
 		Type:      postResponse.Type,
 		Props:     postResponse.Props,
 	}); appErr != nil {
-		_ = p.setChannelBinding(channelID, nil)
+		_ = p.setChannelBinding(channelID, existingBinding)
+		_ = p.updateChannelDisplayName(channelID, previousDisplayName)
 		return ephemeral(":warning: The channel link could not be announced, so it was not saved.")
 	}
-	return ephemeral(":white_check_mark: Linked this channel to MOED engagement **#" + strconv.Itoa(id) + "**.")
+	return ephemeral(":white_check_mark: Linked this channel to MOED engagement **#" + strconv.Itoa(id) + "**. The channel name now begins with `" + marker + "`.")
 }
 
 func (p *Plugin) executeUnlinkEvent(
@@ -335,8 +358,18 @@ func (p *Plugin) executeUnlinkEvent(
 	if binding == nil {
 		return ephemeral("This channel is not linked to a MOED engagement.")
 	}
+	channel, appErr := p.API.GetChannel(channelID)
+	if appErr != nil || channel == nil {
+		return ephemeral(":warning: Mattermost could not read this channel, so the link was not removed.")
+	}
+	previousDisplayName := channel.DisplayName
+	unlinkedDisplayName := unlinkedChannelDisplayName(previousDisplayName, binding)
+	if err := p.updateChannelDisplayName(channelID, unlinkedDisplayName); err != nil {
+		return ephemeral(":warning: Mattermost could not remove the MOED marker from this channel, so the link was not removed.")
+	}
 	if err := p.setChannelBinding(channelID, nil); err != nil {
+		_ = p.updateChannelDisplayName(channelID, previousDisplayName)
 		return ephemeral(":warning: The channel binding could not be removed.")
 	}
-	return ephemeral(":white_check_mark: Removed the link to MOED engagement **#" + strconv.Itoa(binding.EngagementID) + "**.")
+	return ephemeral(":white_check_mark: Removed the link to MOED engagement **#" + strconv.Itoa(binding.EngagementID) + "** and removed its marker from the channel name.")
 }

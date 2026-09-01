@@ -31,12 +31,13 @@ $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
 $webapp = file_get_contents($root . '/mattermost-plugin/webapp/src/index.jsx');
 $pluginServer = file_get_contents($root . '/mattermost-plugin/server/http.go');
 $pluginCommand = file_get_contents($root . '/mattermost-plugin/server/command.go');
+$pluginChannelMarker = file_get_contents($root . '/mattermost-plugin/server/channel_marker.go');
 $pluginRender = file_get_contents($root . '/mattermost-plugin/server/render.go');
 $pluginLifecycle = file_get_contents($root . '/mattermost-plugin/server/plugin.go');
 $pluginNotifications = file_get_contents($root . '/mattermost-plugin/server/notifications.go');
 $pluginReadme = file_get_contents($root . '/mattermost-plugin/README.md');
 
-foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
+foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginChannelMarker, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -110,7 +111,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.0'
+        && ($manifest['version'] ?? null) === '0.4.1'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -123,8 +124,15 @@ expectMattermost(
         && str_contains($webapp, "registerPostDropdownMenuAction('Add MOED task'")
         && str_contains($webapp, "registerPostDropdownMenuAction('Add to MOED Chron'")
         && str_contains($webapp, "registerPostDropdownMenuAction('Send via MOED email'")
+        && str_contains($webapp, 'registerChannelHeaderIcon')
         && str_contains($webapp, 'registerChannelHeaderButtonAction')
+        && str_contains($webapp, 'registerChannelHeaderMenuAction')
         && str_contains($webapp, 'moed-channel-header-icon--linked')
+        && str_contains($pluginChannelMarker, 'channelDisplayNameWithMarker')
+        && str_contains($pluginChannelMarker, 'unlinkedChannelDisplayName')
+        && str_contains($pluginChannelMarker, 'ChannelDisplayNameMaxRunes')
+        && str_contains($pluginChannelMarker, 'reconcileChannelBindingMarkers')
+        && str_contains($pluginLifecycle, 'p.reconcileChannelBindingMarkers()')
         && str_contains($webapp, "pluginRequest('/email-send'")
         && str_contains($webapp, 'Send and add to Chron')
         && str_contains($webapp, 'include_thread')
