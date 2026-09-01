@@ -79,7 +79,7 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 		"- `/moed event show ID` — show a share-safe engagement card\n" +
 		"- `/moed link-event ID` — bind this channel (Editor/Admin with native channel-management permission)\n" +
 		"- `/moed unlink-event` — remove the channel binding (Editor/Admin with native channel-management permission)\n\n" +
-		"A linked channel's name begins with its signed `[MOED#n.token]` routing marker. The MOED chain control in the channel header—or **MOED engagement** in the channel menu—opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
+		"A linked channel's sidebar label begins with a compact `[MOED#n]` marker; the full signed `[MOED#n.token]` routing marker remains available in MOED engagement cards and email tools. The MOED chain control in the channel header—or **MOED engagement** in the channel menu—opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
 	return ephemeral(text)
 }
 
