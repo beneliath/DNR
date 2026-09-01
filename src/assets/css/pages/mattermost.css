@@ -1,0 +1,39 @@
+.mattermost-links-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.mattermost-links-table {
+  width: 100%;
+  min-width: 760px;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.mattermost-links-table :is(th, td) {
+  padding: 12px 16px;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.mattermost-links-table :is(th, td):nth-child(1) {
+  width: 18%;
+}
+
+.mattermost-links-table :is(th, td):nth-child(2) {
+  width: 14%;
+}
+
+.mattermost-links-table :is(th, td):nth-child(3),
+.mattermost-links-table :is(th, td):nth-child(4) {
+  width: 28%;
+  white-space: nowrap;
+}
+
+.mattermost-links-table :is(th, td):nth-child(5) {
+  width: 12%;
+}
+
+.mattermost-links-table form {
+  margin: 0;
+}

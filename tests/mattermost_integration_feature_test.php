@@ -16,6 +16,7 @@ $root = dirname(__DIR__);
 $migration = file_get_contents($root . '/migrations/20260831_add_mattermost_integration.sql');
 $api = file_get_contents($root . '/src/api/v1/mattermost.php');
 $accountPage = file_get_contents($root . '/src/mattermost.php');
+$accountPageStyles = file_get_contents($root . '/src/assets/css/pages/mattermost.css');
 $helpers = file_get_contents($root . '/src/mattermost_integration_helpers.php');
 $manifestRaw = file_get_contents($root . '/mattermost-plugin/plugin.json');
 $compose = file_get_contents($root . '/docker-compose.mattermost.yaml');
@@ -23,7 +24,7 @@ $secretEntrypoint = file_get_contents($root . '/docker/mattermost-secret-entrypo
 $apacheSecurity = file_get_contents($root . '/docker/apache-security.conf');
 $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
 
-foreach ([$migration, $api, $accountPage, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation] as $source) {
+foreach ([$migration, $api, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -66,8 +67,13 @@ expectMattermost(
     str_contains($accountPage, 'requireValidCsrfToken();')
         && str_contains($accountPage, 'Generate One-Time Code')
         && str_contains($accountPage, 'revokeMattermostLink')
-        && str_contains($accountPage, '/moed connect'),
-    'the authenticated account page should protect generation and revocation and explain the private linking command.'
+        && str_contains($accountPage, '/moed connect')
+        && str_contains($accountPage, 'assets/css/pages/mattermost.min.css?rev=linked-columns-1')
+        && str_contains($accountPage, 'mattermost-links-table')
+        && str_contains($accountPageStyles, 'width: 100%')
+        && str_contains($accountPageStyles, 'table-layout: fixed')
+        && str_contains($accountPageStyles, 'overflow-x: auto'),
+    'the authenticated account page should protect generation and revocation, explain the private linking command, and spread linked-account columns across the card responsively.'
 );
 
 $manifest = json_decode((string) $manifestRaw, true);

@@ -67,7 +67,13 @@ try {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle('Mattermost')); ?>
+<?php renderPageHead(applicationPageTitle('Mattermost'), [
+    'styles' => [
+        'assets/css/style.min.css',
+        'assets/css/modern.min.css',
+        'assets/css/pages/mattermost.min.css?rev=linked-columns-1',
+    ],
+]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container">
@@ -116,8 +122,8 @@ try {
         <?php if ($links === []): ?>
             <p>No Mattermost account is linked.</p>
         <?php else: ?>
-            <div class="responsive-table-wrapper">
-                <table>
+            <div class="responsive-table-wrapper mattermost-links-table-wrapper">
+                <table class="mattermost-links-table">
                     <thead><tr><th>Account</th><th>Instance</th><th>Linked</th><th>Last Used</th><th>Action</th></tr></thead>
                     <tbody>
                     <?php foreach ($links as $link): ?>
