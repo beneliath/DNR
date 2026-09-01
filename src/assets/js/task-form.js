@@ -8,8 +8,14 @@
         };
     }
 
+    function matchingSubjectResultCount(results) {
+        return results.filter(function (result) {
+            return result.type !== 'general';
+        }).length;
+    }
+
     if (typeof module === 'object' && module.exports) {
-        module.exports = { waitingFieldState };
+        module.exports = { waitingFieldState, matchingSubjectResultCount };
     }
     if (typeof document === 'undefined') return;
 
@@ -66,7 +72,7 @@
                     option.selected = option.value === selectedValue;
                     select.appendChild(option);
                 });
-                feedback.textContent = (payload.results.length - 1) + ' matching records loaded.';
+                feedback.textContent = matchingSubjectResultCount(payload.results) + ' matching records loaded.';
             } catch (error) {
                 if (error.name !== 'AbortError') feedback.textContent = 'Search is temporarily unavailable.';
             }

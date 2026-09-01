@@ -2414,6 +2414,17 @@ html body .task-action-button:focus-visible {
   gap: 0 18px;
 }
 
+.follow-up-task-form #task-subject-search {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-bottom: 10px;
+}
+
+.task-duplicate-button {
+  margin-right: auto;
+}
+
 .field-help {
   display: block;
   margin-top: 6px;
@@ -2900,6 +2911,7 @@ input[type="url"],
 input[type="date"],
 input[type="time"],
 input[type="number"],
+input[type="search"],
 select,
 textarea {
   width: 100%;
@@ -4011,6 +4023,10 @@ html.dark-mode .login-secondary-link a {
   .engagement-page-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .task-duplicate-button {
+    margin-right: 0;
   }
 
   .page-heading,

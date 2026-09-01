@@ -37,6 +37,49 @@ try {
 }
 expectFollowUpTaskHelper($invalid_subject_rejected, 'crafted subject identifiers must be rejected.');
 
+$duplicate_values = followUpTaskDuplicateFormValues([
+    'title' => 'Confirm travel',
+    'details' => 'Use the latest itinerary.',
+    'status' => 'completed',
+    'priority' => 'high',
+    'due_date' => '2026-09-10',
+    'waiting_on' => 'Host reply',
+    'assigned_to' => 17,
+]);
+expectFollowUpTaskHelper(
+    $duplicate_values['title'] === 'Confirm travel'
+        && $duplicate_values['details'] === 'Use the latest itinerary.'
+        && $duplicate_values['status'] === 'open'
+        && $duplicate_values['priority'] === 'high'
+        && $duplicate_values['due_date'] === '2026-09-10'
+        && $duplicate_values['waiting_on'] === ''
+        && $duplicate_values['assigned_to'] === 17,
+    'duplicated tasks should preserve reusable details while starting as open work.'
+);
+
+requireDifferentEngagementForTaskDuplicate(
+    ['engagement_id' => 12],
+    ['subject_type' => 'engagement', 'engagement_id' => 13]
+);
+foreach ([
+    ['subject_type' => 'general', 'engagement_id' => null],
+    ['subject_type' => 'engagement', 'engagement_id' => 12],
+] as $invalid_duplicate_destination) {
+    $invalid_destination_rejected = false;
+    try {
+        requireDifferentEngagementForTaskDuplicate(
+            ['engagement_id' => 12],
+            $invalid_duplicate_destination
+        );
+    } catch (InvalidArgumentException $exception) {
+        $invalid_destination_rejected = true;
+    }
+    expectFollowUpTaskHelper(
+        $invalid_destination_rejected,
+        'task duplicates must target a different event.'
+    );
+}
+
 expectFollowUpTaskHelper(
     safeFollowUpTaskReturnUrl('view_engagement.php?id=12#follow-up-work')
         === 'view_engagement.php?id=12#follow-up-work',

@@ -20,7 +20,8 @@ try {
         'results' => searchFollowUpTaskSubjects(
             $conn,
             \Dnr\Http\RequestInput::string($_GET, 'q', '', 100),
-            24
+            24,
+            \Dnr\Http\RequestInput::string($_GET, 'type', '')
         ),
     ], JSON_THROW_ON_ERROR);
 } catch (Throwable $exception) {
