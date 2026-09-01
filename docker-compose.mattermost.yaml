@@ -1,0 +1,11 @@
+services:
+  web:
+    environment:
+      DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token
+      DNR_MATTERMOST_INSTANCE_ID: ${DNR_MATTERMOST_INSTANCE_ID:-primary}
+    secrets:
+      - dnr_mattermost_token
+
+secrets:
+  dnr_mattermost_token:
+    file: ${DNR_MATTERMOST_TOKEN_SECRET_FILE:-./secrets/mattermost_plugin_token}

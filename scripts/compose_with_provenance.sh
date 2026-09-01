@@ -12,14 +12,18 @@ Usage:
   scripts/compose_with_provenance.sh development-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh development-mail-smtp [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh development-mail-smtp-ca [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh development-mattermost [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-mail [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-smtp [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-smtp-ca [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-mail-smtp [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-mail-smtp-ca [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-mattermost [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-ubuntu [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-ubuntu-mattermost [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh production-ubuntu-proton [COMPOSE_ARGUMENTS...]
+  scripts/compose_with_provenance.sh production-ubuntu-proton-mattermost [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh --print-metadata
 
 With no Compose arguments, development and production run: up -d --build
@@ -137,6 +141,13 @@ case "$mode" in
             -f docker-compose.smtp-ca.yaml \
             "$@"
         ;;
+    development-mattermost|dev-mattermost)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.dev.yaml \
+            -f docker-compose.mattermost.yaml \
+            "$@"
+        ;;
     production|prod)
         exec docker compose -f docker-compose.yaml "$@"
         ;;
@@ -174,10 +185,23 @@ case "$mode" in
             -f docker-compose.smtp-ca.yaml \
             "$@"
         ;;
+    production-mattermost|prod-mattermost)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.mattermost.yaml \
+            "$@"
+        ;;
     production-ubuntu|prod-ubuntu)
         exec docker compose \
             -f docker-compose.yaml \
             -f docker-compose.ubuntu.yaml \
+            "$@"
+        ;;
+    production-ubuntu-mattermost|prod-ubuntu-mattermost)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.ubuntu.yaml \
+            -f docker-compose.mattermost.yaml \
             "$@"
         ;;
     production-ubuntu-proton|prod-ubuntu-proton)
@@ -187,6 +211,16 @@ case "$mode" in
             -f docker-compose.smtp.yaml \
             -f docker-compose.proton-bridge.yaml \
             -f docker-compose.ubuntu.yaml \
+            "$@"
+        ;;
+    production-ubuntu-proton-mattermost|prod-ubuntu-proton-mattermost)
+        exec docker compose \
+            -f docker-compose.yaml \
+            -f docker-compose.mail.yaml \
+            -f docker-compose.smtp.yaml \
+            -f docker-compose.proton-bridge.yaml \
+            -f docker-compose.ubuntu.yaml \
+            -f docker-compose.mattermost.yaml \
             "$@"
         ;;
     *)

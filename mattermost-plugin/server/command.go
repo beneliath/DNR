@@ -1,0 +1,295 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/mattermost/mattermost/server/public/model"
+	"github.com/mattermost/mattermost/server/public/plugin"
+)
+
+func ephemeral(text string) *model.CommandResponse {
+	return &model.CommandResponse{ResponseType: model.CommandResponseTypeEphemeral, Text: text}
+}
+
+func commandError(err error, linkURL string) *model.CommandResponse {
+	var apiErr *moedAPIError
+	if errors.As(err, &apiErr) {
+		if apiErr.Payload.Code == "account_not_linked" {
+			return ephemeral("Your Mattermost account is not linked to Moed. [Generate a one-time code](" + linkURL + ") and run `/moed connect CODE`.")
+		}
+		return ephemeral(":warning: " + escapeMarkdown(apiErr.Error()))
+	}
+	return ephemeral(":warning: Moed is temporarily unavailable. Ask an administrator to check the plugin connection.")
+}
+
+func (p *Plugin) helpResponse() *model.CommandResponse {
+	config := p.getConfiguration()
+	linkURL := ""
+	if config != nil {
+		linkURL = config.MoedURL + "/mattermost.php"
+	}
+	text := "### Moed commands\n" +
+		"- `/moed status` — check the connection and linked account\n" +
+		"- `/moed connect CODE` — link using a one-time code from [Moed](" + linkURL + ")\n" +
+		"- `/moed today` — your tasks and upcoming engagements\n" +
+		"- `/moed tasks` — your active assigned tasks\n" +
+		"- `/moed event search TEXT` — find an engagement\n" +
+		"- `/moed event show ID` — show a share-safe engagement card\n" +
+		"- `/moed link-event ID` — bind this channel (Editor/Admin)\n" +
+		"- `/moed unlink-event` — remove the channel binding (Editor/Admin)"
+	return ephemeral(text)
+}
+
+func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
+	config := p.getConfiguration()
+	if config == nil {
+		return ephemeral(":warning: The Moed plugin is not configured."), nil
+	}
+	client, err := p.apiClient()
+	if err != nil {
+		return ephemeral(":warning: " + escapeMarkdown(err.Error())), nil
+	}
+	user, err := p.mattermostUser(args.UserId)
+	if err != nil {
+		return ephemeral(":warning: Mattermost could not resolve your user account."), nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), config.timeout())
+	defer cancel()
+
+	input := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(args.Command), "/moed"))
+	if input == "" {
+		binding, bindingErr := p.channelBinding(args.ChannelId)
+		if bindingErr != nil || binding == nil {
+			return p.helpResponse(), nil
+		}
+		response, apiErr := client.event(ctx, user.Id, user.Username, binding.EngagementID)
+		if apiErr != nil {
+			return commandError(apiErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		return &model.CommandResponse{
+			ResponseType: model.CommandResponseTypeEphemeral,
+			Text:         "This channel is linked to Moed engagement **#" + strconv.Itoa(binding.EngagementID) + "**.",
+			Props:        attachmentsProps(eventAttachment(response.Engagement)),
+		}, nil
+	}
+
+	parts := strings.Fields(input)
+	switch parts[0] {
+	case "help":
+		return p.helpResponse(), nil
+	case "status":
+		status, statusErr := client.status(ctx)
+		if statusErr != nil {
+			return commandError(statusErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		me, meErr := client.me(ctx, user.Id, user.Username)
+		if meErr != nil {
+			var apiErr *moedAPIError
+			if errors.As(meErr, &apiErr) && apiErr.Payload.Code == "account_not_linked" {
+				return ephemeral(":white_check_mark: Connected to **" + escapeMarkdown(status.Application) + "**. Your account is not linked yet. [Generate a code](" + config.MoedURL + "/mattermost.php)."), nil
+			}
+			return commandError(meErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		return ephemeral(fmt.Sprintf(
+			":white_check_mark: Connected to **%s** as **%s** (`%s`).",
+			escapeMarkdown(status.Application),
+			escapeMarkdown(me.User.DisplayName),
+			escapeMarkdown(me.User.Role),
+		)), nil
+	case "connect":
+		if len(parts) != 2 {
+			return ephemeral("Usage: `/moed connect CODE`"), nil
+		}
+		response, connectErr := client.connect(ctx, user.Id, user.Username, parts[1])
+		if connectErr != nil {
+			return commandError(connectErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		return ephemeral(":white_check_mark: " + escapeMarkdown(response.Message) + " Signed in as **" + escapeMarkdown(response.User.Username) + "**."), nil
+	case "today":
+		response, todayErr := client.today(ctx, user.Id, user.Username)
+		if todayErr != nil {
+			return commandError(todayErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		return todayCommandResponse(response), nil
+	case "tasks":
+		response, tasksErr := client.tasks(ctx, user.Id, user.Username)
+		if tasksErr != nil {
+			return commandError(tasksErr, config.MoedURL+"/mattermost.php"), nil
+		}
+		return tasksCommandResponse(response), nil
+	case "event":
+		return p.executeEventCommand(ctx, client, user, config, input), nil
+	case "link-event":
+		return p.executeLinkEvent(ctx, client, user, config, args.ChannelId, input), nil
+	case "unlink-event":
+		return p.executeUnlinkEvent(ctx, client, user, config, args.ChannelId), nil
+	default:
+		return p.helpResponse(), nil
+	}
+}
+
+func todayCommandResponse(response *todayResponse) *model.CommandResponse {
+	lines := []string{"### Today in Moed · " + escapeMarkdown(response.BusinessDate)}
+	if len(response.Engagements) == 0 {
+		lines = append(lines, "No upcoming engagements.")
+	} else {
+		lines = append(lines, "**Upcoming engagements**")
+		for _, event := range response.Engagements {
+			lines = append(lines, fmt.Sprintf(
+				"- [%s](%s) · %s",
+				escapeMarkdown(event.Title),
+				event.URL,
+				formatDateRange(event.EventStartDate, event.EventEndDate),
+			))
+		}
+	}
+	if len(response.Tasks) == 0 {
+		lines = append(lines, "\n:white_check_mark: You have no active assigned tasks.")
+	} else {
+		lines = append(lines, fmt.Sprintf("\n**Your active tasks (%d)**", len(response.Tasks)))
+	}
+	attachments := make([]*model.SlackAttachment, 0, len(response.Tasks))
+	for _, task := range response.Tasks {
+		attachments = append(attachments, taskAttachment(task))
+	}
+	return &model.CommandResponse{
+		ResponseType: model.CommandResponseTypeEphemeral,
+		Text:         strings.Join(lines, "\n"),
+		Props:        attachmentsProps(attachments...),
+	}
+}
+
+func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
+	text := "### My Moed tasks"
+	if len(response.Tasks) == 0 {
+		text += "\n:white_check_mark: You have no active assigned tasks."
+	}
+	attachments := make([]*model.SlackAttachment, 0, len(response.Tasks))
+	for _, task := range response.Tasks {
+		attachments = append(attachments, taskAttachment(task))
+	}
+	return &model.CommandResponse{
+		ResponseType: model.CommandResponseTypeEphemeral,
+		Text:         text,
+		Props:        attachmentsProps(attachments...),
+	}
+}
+
+func (p *Plugin) executeEventCommand(
+	ctx context.Context,
+	client *moedClient,
+	user *model.User,
+	config *configuration,
+	input string,
+) *model.CommandResponse {
+	if strings.HasPrefix(input, "event search ") {
+		query := strings.TrimSpace(strings.TrimPrefix(input, "event search "))
+		response, err := client.searchEvents(ctx, user.Id, user.Username, query)
+		if err != nil {
+			return commandError(err, config.MoedURL+"/mattermost.php")
+		}
+		if len(response.Engagements) == 0 {
+			return ephemeral("No Moed engagements matched **" + escapeMarkdown(query) + "**.")
+		}
+		lines := []string{"### Engagement search · " + escapeMarkdown(query)}
+		for _, event := range response.Engagements {
+			lines = append(lines, fmt.Sprintf(
+				"- **#%d** [%s](%s) · %s · %s",
+				event.ID,
+				escapeMarkdown(event.Title),
+				event.URL,
+				formatDateRange(event.EventStartDate, event.EventEndDate),
+				formatStatus(event.LifecycleStatus),
+			))
+		}
+		lines = append(lines, "Use `/moed event show ID` for a card.")
+		return ephemeral(strings.Join(lines, "\n"))
+	}
+	if strings.HasPrefix(input, "event show ") {
+		id, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(input, "event show ")))
+		if err != nil || id < 1 {
+			return ephemeral("Usage: `/moed event show ID`")
+		}
+		response, apiErr := client.event(ctx, user.Id, user.Username, id)
+		if apiErr != nil {
+			return commandError(apiErr, config.MoedURL+"/mattermost.php")
+		}
+		return &model.CommandResponse{
+			ResponseType: model.CommandResponseTypeEphemeral,
+			Text:         "Moed engagement **#" + strconv.Itoa(id) + "**",
+			Props:        attachmentsProps(eventAttachment(response.Engagement)),
+		}
+	}
+	return ephemeral("Usage: `/moed event search TEXT` or `/moed event show ID`")
+}
+
+func (p *Plugin) executeLinkEvent(
+	ctx context.Context,
+	client *moedClient,
+	user *model.User,
+	config *configuration,
+	channelID string,
+	input string,
+) *model.CommandResponse {
+	if !config.EnableChannelLinks {
+		return ephemeral("Channel-to-engagement links are disabled by the Mattermost administrator.")
+	}
+	id, err := strconv.Atoi(strings.TrimSpace(strings.TrimPrefix(input, "link-event")))
+	if err != nil || id < 1 {
+		return ephemeral("Usage: `/moed link-event ID`")
+	}
+	response, apiErr := client.event(ctx, user.Id, user.Username, id)
+	if apiErr != nil {
+		return commandError(apiErr, config.MoedURL+"/mattermost.php")
+	}
+	if response.User.Role != "editor" && response.User.Role != "admin" {
+		return ephemeral("Your Moed role cannot bind a channel to an engagement.")
+	}
+	if err := p.setChannelBinding(channelID, &channelBinding{
+		EngagementID: id,
+		LinkedBy:     user.Id,
+		LinkedAt:     time.Now().Unix(),
+	}); err != nil {
+		return ephemeral(":warning: The channel binding could not be saved.")
+	}
+	return &model.CommandResponse{
+		ResponseType: model.CommandResponseTypeInChannel,
+		Text:         "This channel is now linked to Moed engagement **#" + strconv.Itoa(id) + "**.",
+		Props:        attachmentsProps(eventAttachment(response.Engagement)),
+	}
+}
+
+func (p *Plugin) executeUnlinkEvent(
+	ctx context.Context,
+	client *moedClient,
+	user *model.User,
+	config *configuration,
+	channelID string,
+) *model.CommandResponse {
+	if !config.EnableChannelLinks {
+		return ephemeral("Channel-to-engagement links are disabled by the Mattermost administrator.")
+	}
+	response, err := client.me(ctx, user.Id, user.Username)
+	if err != nil {
+		return commandError(err, config.MoedURL+"/mattermost.php")
+	}
+	if response.User.Role != "editor" && response.User.Role != "admin" {
+		return ephemeral("Your Moed role cannot remove a channel binding.")
+	}
+	binding, bindingErr := p.channelBinding(channelID)
+	if bindingErr != nil {
+		return ephemeral(":warning: The channel binding could not be read.")
+	}
+	if binding == nil {
+		return ephemeral("This channel is not linked to a Moed engagement.")
+	}
+	if err := p.setChannelBinding(channelID, nil); err != nil {
+		return ephemeral(":warning: The channel binding could not be removed.")
+	}
+	return ephemeral(":white_check_mark: Removed the link to Moed engagement **#" + strconv.Itoa(binding.EngagementID) + "**.")
+}

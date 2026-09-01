@@ -52,13 +52,13 @@ $manual_access_summary = match ($manual_role) {
                 <input type="search" id="manual-search-input" placeholder="Try “financial closeout”, “recovery codes”, or “archive”" autocomplete="off" data-manual-search>
                 <button type="button" data-manual-clear hidden>Clear</button>
             </section>
-            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 11 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
+            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 12 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
         </form>
         <nav class="manual-quick-links" aria-label="Popular help topics">
             <a href="#engagements"><span>01</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
             <a href="#work-queue"><span>02</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
             <a href="#chron-mail"><span>03</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
-            <a href="#profile-security"><span>04</span><strong>Secure Your Account</strong><small>Profile, password, 2FA</small></a>
+            <a href="#mattermost"><span>04</span><strong>Use Mattermost</strong><small>Summaries, cards, task actions</small></a>
         </nav>
     </section>
 
@@ -75,8 +75,9 @@ $manual_access_summary = match ($manual_role) {
                 <a href="#chron-mail" data-manual-toc><span>07</span>Chron and Email</a>
                 <a href="#map-calendar" data-manual-toc><span>08</span>Map and Calendar</a>
                 <a href="#profile-security" data-manual-toc><span>09</span>Profile and Security</a>
-                <a href="#administration" data-manual-toc><span>10</span>Administration</a>
-                <a href="#troubleshooting" data-manual-toc><span>11</span>Troubleshooting</a>
+                <a href="#mattermost" data-manual-toc><span>10</span>Mattermost</a>
+                <a href="#administration" data-manual-toc><span>11</span>Administration</a>
+                <a href="#troubleshooting" data-manual-toc><span>12</span>Troubleshooting</a>
             </nav>
         </aside>
 
@@ -599,9 +600,68 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes">
+            <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks event search show link-event unlink-event channel engagement card button assign start complete reopen permission reviewer editor administrator open in moed privacy">
                 <header class="manual-chapter-heading">
                     <span>Chapter 10</span>
+                    <h2>Mattermost</h2>
+                    <p>The Moed plugin brings safe daily summaries, engagement context, and small follow-up actions into Mattermost while Moed remains the system of record.</p>
+                </header>
+
+                <article class="manual-callout manual-callout-accent">
+                    <span class="manual-callout-icon" aria-hidden="true">◇</span>
+                    <div class="manual-callout-body">
+                        <h3>Link Your Account First</h3>
+                        <p>Open <a href="mattermost.php">Mattermost</a> in Moed and generate a one-time code. The code is shown once, expires after 10 minutes, and becomes invalid after use. In Mattermost, run <code>/moed connect CODE</code>. Command responses are private to you. Never paste the code into an ordinary channel message.</p>
+                    </div>
+                </article>
+
+                <section class="manual-subsection">
+                    <h3>Commands</h3>
+                    <div class="responsive-table-wrapper">
+                        <table>
+                            <thead><tr><th>Command</th><th>What It Does</th><th>Who Can Use It</th></tr></thead>
+                            <tbody>
+                                <tr><td><code>/moed help</code></td><td>Shows the command reference and account-linking reminder.</td><td>Everyone</td></tr>
+                                <tr><td><code>/moed status</code></td><td>Checks the plugin connection and reports which Moed account is linked.</td><td>Everyone</td></tr>
+                                <tr><td><code>/moed connect CODE</code></td><td>Consumes a one-time code from the Moed Mattermost page and links your identities.</td><td>Everyone</td></tr>
+                                <tr><td><code>/moed today</code></td><td>Shows your active assigned tasks and the next scheduled engagements, with links back to Moed.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed tasks</code></td><td>Shows up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed event show ID</code></td><td>Shows a share-safe card with dates, status, location, presentation schedule, and work counts.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement and posts its canonical card.</td><td>Editors and administrators</td></tr>
+                                <tr><td><code>/moed unlink-event</code></td><td>Removes the current channel’s engagement binding.</td><td>Editors and administrators</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section class="manual-card-grid manual-card-grid-two">
+                    <article class="manual-card">
+                        <span class="manual-kicker">Channel Context</span>
+                        <h3>Engagement Cards</h3>
+                        <p>A bound channel has one canonical Moed engagement. The card intentionally excludes private notes, Chron history, contact details, compensation, travel amounts, financial reports, and uploaded files. Use <strong>Open in Moed</strong> for the complete record under ordinary Moed permissions.</p>
+                    </article>
+                    <article class="manual-card">
+                        <span class="manual-kicker">Follow-Up</span>
+                        <h3>Task Buttons</h3>
+                        <p>Editors and administrators can assign an unowned task to themselves, start it, complete it, or reopen it. Each button checks the task version before changing Moed; if someone already changed the task, refresh with <code>/moed tasks</code>. Waiting details, reassignment to someone else, editing, cancellation, and deletion remain in Moed.</p>
+                    </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Permissions, Privacy, and Unlinking</h3>
+                    <ul class="manual-check-list">
+                        <li><strong>Moed decides access:</strong> linking does not grant a new role. Reviewers stay read only; editors and administrators receive only the task actions their Moed role permits.</li>
+                        <li><strong>Private by default:</strong> personal summaries, searches, errors, and action confirmations are ephemeral Mattermost responses visible only to the requesting user. Only <code>link-event</code> deliberately posts a channel-visible card.</li>
+                        <li><strong>Moed is authoritative:</strong> task buttons write through the authenticated Moed API. The plugin does not connect to the Moed database and does not keep a second copy of engagement records.</li>
+                        <li><strong>Remove access:</strong> open <a href="mattermost.php">Mattermost</a> in Moed and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
+                    </ul>
+                </section>
+            </section>
+
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes">
+                <header class="manual-chapter-heading">
+                    <span>Chapter 11</span>
                     <h2>Administration</h2>
                     <p>Administrator tools control identity, accountability, continuity, and deployment health. Use them deliberately and keep a second administrator available.</p>
                 </header>
@@ -656,7 +716,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 11</span>
+                    <span>Chapter 12</span>
                     <h2>Troubleshooting and Good Practice</h2>
                     <p>Most surprises come from role limits, archived parent records, delayed background work, or intentionally strict safety checks.</p>
                 </header>

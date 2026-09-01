@@ -1,0 +1,66 @@
+{
+  "id": "org.moed.mattermost",
+  "name": "Moed",
+  "description": "Bring Moed engagement context and follow-up actions into Mattermost.",
+  "homepage_url": "https://github.com/beneliath/DNR",
+  "support_url": "https://github.com/beneliath/DNR/issues",
+  "icon_path": "assets/moed-icon.svg",
+  "version": "0.2.0",
+  "min_server_version": "9.0.0",
+  "server": {
+    "executables": {
+      "linux-amd64": "server/dist/plugin-linux-amd64",
+      "linux-arm64": "server/dist/plugin-linux-arm64",
+      "darwin-amd64": "server/dist/plugin-darwin-amd64",
+      "darwin-arm64": "server/dist/plugin-darwin-arm64",
+      "windows-amd64": "server/dist/plugin-windows-amd64.exe"
+    }
+  },
+  "settings_schema": {
+    "header": "Connect this Mattermost server to the authenticated Moed integration API.",
+    "footer": "The Service Token and Instance ID must exactly match the Moed deployment settings. Restarting Mattermost is not required after saving.",
+    "settings": [
+      {
+        "key": "MoedURL",
+        "display_name": "Moed URL:",
+        "type": "text",
+        "help_text": "Canonical external URL of the Moed application, without a trailing slash.",
+        "placeholder": "https://moed.example.org",
+        "default": ""
+      },
+      {
+        "key": "ServiceToken",
+        "display_name": "Service Token:",
+        "type": "text",
+        "help_text": "A random secret of at least 32 characters. Use the same value as DNR_MATTERMOST_TOKEN_FILE in Moed.",
+        "placeholder": "Paste the shared secret",
+        "default": "",
+        "secret": true
+      },
+      {
+        "key": "InstanceID",
+        "display_name": "Instance ID:",
+        "type": "text",
+        "help_text": "Stable identifier for this Mattermost server. Use the same value as DNR_MATTERMOST_INSTANCE_ID in Moed.",
+        "placeholder": "primary",
+        "default": "primary"
+      },
+      {
+        "key": "RequestTimeoutSeconds",
+        "display_name": "Request Timeout (seconds):",
+        "type": "number",
+        "help_text": "Maximum time to wait for Moed. Allowed range: 2–30 seconds.",
+        "placeholder": "10",
+        "default": 10
+      },
+      {
+        "key": "EnableChannelLinks",
+        "display_name": "Enable Channel-to-Engagement Links:",
+        "type": "bool",
+        "help_text": "Allow editors and administrators to bind a channel to one Moed engagement.",
+        "placeholder": "",
+        "default": true
+      }
+    ]
+  }
+}

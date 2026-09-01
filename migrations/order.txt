@@ -45,3 +45,4 @@
 20260830_add_audit_log_pruning.sql
 20260830_add_presentation_duration_attendance.sql
 20260831_add_engagement_email_correspondence.sql
+20260831_add_mattermost_integration.sql

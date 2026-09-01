@@ -36,6 +36,7 @@ $chapters = [
     'chron-mail',
     'map-calendar',
     'profile-security',
+    'mattermost',
     'administration',
     'troubleshooting',
 ];
@@ -66,6 +67,7 @@ foreach ([
     'calendar_subscription.php',
     'profile.php',
     'two_factor_settings.php',
+    'mattermost.php',
     'users.php',
     'audit_log.php',
     'database_maintenance.php',
@@ -85,6 +87,19 @@ expectUserManual(
         && str_contains($manual, 'applicationInboundMarker(123)')
         && str_contains($manual, 'Permanent Means Permanent'),
     'the manual should explain role boundaries, event state, email routing, and destructive actions.'
+);
+
+expectUserManual(
+    str_contains($manual, '/moed connect CODE')
+        && str_contains($manual, '/moed today')
+        && str_contains($manual, '/moed event search TEXT')
+        && str_contains($manual, '/moed link-event ID')
+        && str_contains($manual, 'Moed is authoritative')
+        && str_contains($manual, 'Reviewers stay read only')
+        && str_contains($manual, 'Private by default')
+        && str_contains($header, "'mattermost' => ['mattermost.php']")
+        && str_contains($header, 'href="mattermost.php"'),
+    'the manual and utility navigation should explain the Mattermost plugin workflow, privacy, and role boundaries.'
 );
 
 expectUserManual(

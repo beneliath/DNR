@@ -446,6 +446,7 @@ Configure these values as needed:
 - `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The authenticated export path uses the read-only full-schema backup identity; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
+- `DNR_MATTERMOST_TOKEN_SECRET_FILE` and `DNR_MATTERMOST_INSTANCE_ID`: host path to the shared Mattermost plugin token and stable identifier for the authorized Mattermost server. They are mounted only when a `*-mattermost` Compose mode is selected. See `docs/mattermost-plugin.md`.
 - `DNR_MAIL_TRANSPORT`: `smtp` enables account and task-digest email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
 - `DNR_MAIL_FROM`: validated sender address for outbound email. The sender display name comes from `brand.mail_name`; `DNR_MAIL_FROM_NAME` remains an optional highest-precedence override.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
@@ -753,6 +754,17 @@ rollback, using the safety-dump data for the representative-record checks. Once 
 retention period ends, remove the plaintext rollback dump with
 `rm -f backups/pre-restore-safety.sql`; filesystem-level secure erasure must follow the host's
 encrypted-storage and media-disposal policy.
+
+## Mattermost plugin
+
+The installable server plugin under `mattermost-plugin/` exposes private daily
+summaries, engagement search/cards, editor/admin channel bindings, and
+role-checked follow-up buttons while keeping Moed authoritative. It uses
+single-use account-link codes and a deployment secret; it never connects to the
+database directly. Build it with `make -C mattermost-plugin dist` and follow
+the complete deployment, installation, verification, and rotation guide in
+[`docs/mattermost-plugin.md`](docs/mattermost-plugin.md). End-user behavior is
+documented in the in-app **User Manual → Mattermost** chapter.
 
 ## Daily operations dashboard
 

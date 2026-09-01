@@ -45,7 +45,7 @@ expectBuildProvenanceScript(
 expectBuildProvenanceScript(
     str_contains($script, 'development-mail|dev-mail)')
         && str_contains($script, 'production-mail|prod-mail)')
-        && substr_count($script, '-f docker-compose.mail.yaml') === 7
+        && substr_count($script, '-f docker-compose.mail.yaml') === 8
         && str_contains($readme, 'compose_with_provenance.sh production-mail'),
     'mail-enabled modes should add the inbound worker Compose overlay.'
 );
@@ -54,15 +54,23 @@ expectBuildProvenanceScript(
         && str_contains($script, 'production-smtp|prod-smtp)')
         && str_contains($script, 'development-mail-smtp|dev-mail-smtp)')
         && str_contains($script, 'production-mail-smtp|prod-mail-smtp)')
-        && substr_count($script, '-f docker-compose.smtp.yaml') === 9,
+        && substr_count($script, '-f docker-compose.smtp.yaml') === 10,
     'SMTP modes should add durable outbound delivery alone or alongside inbound mail.'
 );
 expectBuildProvenanceScript(
     str_contains($script, 'production-ubuntu|prod-ubuntu)')
         && str_contains($script, 'production-ubuntu-proton|prod-ubuntu-proton)')
-        && substr_count($script, '-f docker-compose.ubuntu.yaml') === 2
-        && substr_count($script, '-f docker-compose.proton-bridge.yaml') === 1,
+        && substr_count($script, '-f docker-compose.ubuntu.yaml') === 4
+        && substr_count($script, '-f docker-compose.proton-bridge.yaml') === 2,
     'Ubuntu modes should use the private Traefik edge and optionally the colocated Proton Bridge.'
+);
+expectBuildProvenanceScript(
+    str_contains($script, 'development-mattermost|dev-mattermost)')
+        && str_contains($script, 'production-mattermost|prod-mattermost)')
+        && str_contains($script, 'production-ubuntu-mattermost|prod-ubuntu-mattermost)')
+        && str_contains($script, 'production-ubuntu-proton-mattermost|prod-ubuntu-proton-mattermost)')
+        && substr_count($script, '-f docker-compose.mattermost.yaml') === 4,
+    'Mattermost modes should mount the integration secret in development and supported production layouts.'
 );
 expectBuildProvenanceScript(
     substr_count($readme, 'compose_with_provenance.sh') >= 6
