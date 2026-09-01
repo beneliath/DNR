@@ -78,7 +78,8 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 		"- `/moed event search TEXT` — find an engagement\n" +
 		"- `/moed event show ID` — show a share-safe engagement card\n" +
 		"- `/moed link-event ID` — bind this channel (Editor/Admin)\n" +
-		"- `/moed unlink-event` — remove the channel binding (Editor/Admin)"
+		"- `/moed unlink-event` — remove the channel binding (Editor/Admin)\n\n" +
+		"To add a message to MOED, hover over the post and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task** or **Add to MOED Chron**."
 	return ephemeral(text)
 }
 

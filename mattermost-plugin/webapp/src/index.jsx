@@ -242,7 +242,7 @@ function ActionModal({request, onClose}) {
         }
     };
     return <div className='moed-modal-backdrop' role='presentation' onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className='moed-modal' role='dialog' aria-modal='true' aria-labelledby='moed-modal-title' onSubmit={submit}>
-        <header className='moed-modal__header'><h2 id='moed-modal-title'>{createTask ? 'Create MOED task' : 'Save to MOED Chron'}</h2><button className='moed-modal__close' type='button' aria-label='Close' onClick={onClose}>×</button></header>
+        <header className='moed-modal__header'><h2 id='moed-modal-title'>{createTask ? 'Add MOED task' : 'Add to MOED Chron'}</h2><button className='moed-modal__close' type='button' aria-label='Close' onClick={onClose}>×</button></header>
         <div className='moed-modal__body'>
             {success ? <p className='moed-feedback' role='status'><strong>{success.message || (createTask ? 'MOED task created.' : 'Post saved to the MOED Chron.')}</strong>{(success.url || (success.task && success.task.url)) && <> <a className='moed-open-link' href={success.url || success.task.url} target='_blank' rel='noreferrer'>Open in MOED ↗</a></>}</p> : <>
             <p className='moed-modal__hint'>This will save the selected post to the engagement linked to this channel. MOED checks your linked account and role before writing.</p>
@@ -294,14 +294,8 @@ class MOEDPlugin {
         registry.registerPostTypeComponent('custom_moed_today', TodayPost);
         registry.registerPostTypeComponent('custom_moed_tasks', TasksPost);
         registry.registerPostTypeComponent('custom_moed_event', EventPost);
-        if (registry.registerPostDropdownSubMenuAction) {
-            const {rootRegisterMenuItem} = registry.registerPostDropdownSubMenuAction('MOED');
-            rootRegisterMenuItem('Create MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
-            rootRegisterMenuItem('Save to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
-        } else {
-            registry.registerPostDropdownMenuAction('Create MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
-            registry.registerPostDropdownMenuAction('Save to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
-        }
+        registry.registerPostDropdownMenuAction('Add MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
+        registry.registerPostDropdownMenuAction('Add to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
     }
 
     uninitialize() {

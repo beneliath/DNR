@@ -3,14 +3,14 @@
 This server plugin keeps MOED as the system of record while exposing a small,
 auditable workflow surface inside Mattermost.
 
-Version 0.3.2 provides:
+Version 0.3.3 provides:
 
 - short-lived, single-use account linking;
 - `/moed status` plus polished `/moed today` and `/moed tasks` dashboards;
 - responsive, theme-aware share-safe engagement cards;
 - editor/admin channel-to-engagement binding;
 - role-checked Assign to me, Start, Complete, and Reopen task buttons;
-- post-menu actions to create a linked-engagement task or save a post to its Chron;
+- top-level **Message actions** entries to add a linked-engagement task or save a post to its Chron;
 - optimistic task concurrency and idempotency protection;
 - private slash-command responses except for deliberate channel binding.
 
@@ -31,7 +31,7 @@ make dist
 ```
 
 The installable bundle is written to
-`dist/org.moed.mattermost-0.3.2.tar.gz` with its SHA-256 digest printed at the
+`dist/org.moed.mattermost-0.3.3.tar.gz` with its SHA-256 digest printed at the
 end of the build.
 
 ## Install

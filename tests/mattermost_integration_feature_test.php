@@ -91,7 +91,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.3.2'
+        && ($manifest['version'] ?? null) === '0.3.3'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -101,16 +101,18 @@ expectMattermost(
 expectMattermost(
     str_contains($webapp, "registerPostTypeComponent('custom_moed_today'")
         && str_contains($webapp, "registerPostTypeComponent('custom_moed_event'")
-        && str_contains($webapp, "registerPostDropdownSubMenuAction('MOED'")
-        && str_contains($webapp, "rootRegisterMenuItem('Create MOED task'")
-        && str_contains($webapp, "rootRegisterMenuItem('Save to MOED Chron'")
+        && str_contains($webapp, "registerPostDropdownMenuAction('Add MOED task'")
+        && str_contains($webapp, "registerPostDropdownMenuAction('Add to MOED Chron'")
+        && !str_contains($webapp, 'registerPostDropdownSubMenuAction')
+        && str_contains($pluginCommand, '**Message actions** (the grid icon, not the three-dot menu)')
         && str_contains($webapp, "pluginRequest('/post-action'")
         && str_contains($pluginServer, 'HasPermissionToChannel')
         && str_contains($pluginServer, 'p.channelBinding(post.ChannelId)')
         && str_contains($api, "if (\$action === 'create_task')")
         && str_contains($api, "if (\$action === 'save_chron')")
-        && str_contains($documentation, '**Create MOED task**')
-        && str_contains($documentation, '**Save to MOED Chron**'),
+        && str_contains($documentation, '**Message actions**')
+        && str_contains($documentation, '**Add MOED')
+        && str_contains($documentation, '**Add to MOED Chron**'),
     'the bundle should render native dashboards/cards and expose server-authorized task and Chron post actions.'
 );
 

@@ -652,7 +652,7 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Turn a Mattermost Post Into MOED Work</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Link the channel.</strong><p>An editor or administrator runs <code>/moed link-event ID</code>. The link establishes which engagement receives work from that channel.</p></section></li>
-                        <li><span>02</span><section><strong>Open the post menu.</strong><p>Choose <strong>More actions</strong> on a channel post, open the <strong>MOED</strong> submenu, then choose <strong>Create MOED task</strong> or <strong>Save to MOED Chron</strong>.</p></section></li>
+                        <li><span>02</span><section><strong>Open Message actions.</strong><p>Hover over a channel post and choose <strong>Message actions</strong> using the grid/apps icon—not the three-dot menu. Then choose <strong>Add MOED task</strong> or <strong>Add to MOED Chron</strong>.</p></section></li>
                         <li><span>03</span><section><strong>Review before saving.</strong><p>For a task, confirm the title, notes, due date, and priority. For Chron, edit the entry text. Nothing is written until you submit the form.</p></section></li>
                         <li><span>04</span><section><strong>Continue in MOED.</strong><p>The task or Chron entry is stored on the linked engagement with the source author, channel, Mattermost post ID, and permalink. MOED remains the authoritative record.</p></section></li>
                     </ol>

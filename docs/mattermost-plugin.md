@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by MOED.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.2.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.3.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.3.2.tar.gz`;
+3. select `org.moed.mattermost-0.3.3.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -128,8 +128,9 @@ from **MOED → Mattermost**.
 - Reviewers receive read-only cards and links.
 - Editors and administrators can bind/unbind channels and receive permitted
   task action buttons.
-- In a bound channel, open a post's **More actions** menu, open the **MOED**
-  submenu, and choose **Create MOED task** or **Save to MOED Chron**. The confirmation form lets
+- In a bound channel, hover over a post and open **Message actions** using the
+  grid/apps icon. This is separate from the three-dot menu. Choose **Add MOED
+  task** or **Add to MOED Chron**. The confirmation form lets
   editors and administrators review the text before writing it to the channel's
   linked engagement. MOED records the source author, channel, post ID, and
   permalink with the new item.
