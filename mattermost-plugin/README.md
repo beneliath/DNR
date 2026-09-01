@@ -3,13 +3,14 @@
 This server plugin keeps Moed as the system of record while exposing a small,
 auditable workflow surface inside Mattermost.
 
-Version 0.2.0 provides:
+Version 0.3.0 provides:
 
 - short-lived, single-use account linking;
-- `/moed status`, `/moed today`, and `/moed tasks`;
-- engagement search and share-safe engagement cards;
+- `/moed status` plus polished `/moed today` and `/moed tasks` dashboards;
+- responsive, theme-aware share-safe engagement cards;
 - editor/admin channel-to-engagement binding;
 - role-checked Assign to me, Start, Complete, and Reopen task buttons;
+- post-menu actions to create a linked-engagement task or save a post to its Chron;
 - optimistic task concurrency and idempotency protection;
 - private slash-command responses except for deliberate channel binding.
 
@@ -20,7 +21,9 @@ and performs all reads and writes.
 
 ## Build
 
-Go 1.25 or newer is required.
+Go 1.25 or newer and Node.js with the repository's root dependencies are
+required. Run `npm install` from the repository root once before building the
+plugin webapp.
 
 ```sh
 cd mattermost-plugin
@@ -28,7 +31,7 @@ make dist
 ```
 
 The installable bundle is written to
-`dist/org.moed.mattermost-0.2.0.tar.gz` with its SHA-256 digest printed at the
+`dist/org.moed.mattermost-0.3.0.tar.gz` with its SHA-256 digest printed at the
 end of the build.
 
 ## Install

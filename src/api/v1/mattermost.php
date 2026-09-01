@@ -132,7 +132,7 @@ try {
         mattermostApiRequireMethod('GET');
         mattermostApiRespond([
             'ok' => true,
-            'integration_version' => '1',
+            'integration_version' => '2',
             'application' => applicationBrandName(),
             'instance_id' => $instanceId,
         ]);
@@ -174,6 +174,7 @@ try {
             'ok' => true,
             'user' => $publicUser,
             'business_date' => applicationBusinessDate(),
+            'task_summary' => mattermostTaskSummaryForUser($conn, (int) $user['id']),
             'tasks' => mattermostTasksForUser($conn, $user, 8),
             'engagements' => mattermostUpcomingEngagements($conn, 5),
             'dashboard_url' => mattermostPublicUrl('dashboard.php'),
@@ -185,6 +186,8 @@ try {
         mattermostApiRespond([
             'ok' => true,
             'user' => $publicUser,
+            'business_date' => applicationBusinessDate(),
+            'task_summary' => mattermostTaskSummaryForUser($conn, (int) $user['id']),
             'tasks' => mattermostTasksForUser($conn, $user, 15),
             'work_queue_url' => mattermostPublicUrl('tasks.php', ['view' => 'my']),
         ]);
@@ -219,6 +222,128 @@ try {
             'user' => $publicUser,
             'engagement' => $engagement,
         ]);
+    }
+
+    if ($action === 'create_task') {
+        mattermostApiRequireMethod('POST');
+        if (!canManageFollowUpTasks((string) $user['role'])) {
+            mattermostApiRespond([
+                'error' => 'Your Moed role cannot create follow-up work.',
+                'code' => 'insufficient_role',
+            ], 403);
+        }
+        $body = mattermostApiBody();
+        $engagementId = filter_var($body['engagement_id'] ?? null, FILTER_VALIDATE_INT);
+        $idempotencyKey = mattermostApiHeader('Idempotency-Key');
+        if (!$engagementId) {
+            throw new InvalidArgumentException('A valid linked engagement is required.');
+        }
+        $existingResponse = mattermostIdempotentResponse(
+            $conn,
+            $instanceId,
+            $idempotencyKey,
+            (int) $user['id'],
+            'create_task'
+        );
+        if ($existingResponse !== null) {
+            mattermostApiRespond($existingResponse);
+        }
+
+        $conn->begin_transaction();
+        try {
+            $task = normalizeFollowUpTaskInput($conn, [
+                'title' => (string) ($body['title'] ?? ''),
+                'details' => (string) ($body['details'] ?? ''),
+                'status' => 'open',
+                'priority' => (string) ($body['priority'] ?? 'normal'),
+                'due_date' => (string) ($body['due_date'] ?? ''),
+                'waiting_on' => '',
+                'assigned_to' => (string) $user['id'],
+                'subject' => 'engagement:' . (int) $engagementId,
+            ]);
+            $taskId = insertFollowUpTask($conn, $task, (int) $user['id']);
+            $createdTask = fetchFollowUpTask($conn, $taskId);
+            if (!$createdTask) {
+                throw new RuntimeException('The created task is not available.');
+            }
+            $response = [
+                'ok' => true,
+                'message' => 'Moed task created.',
+                'user' => $publicUser,
+                'task' => mattermostTaskPayload($createdTask, (string) $user['role']),
+            ];
+            storeMattermostIdempotentResponse(
+                $conn,
+                $instanceId,
+                $idempotencyKey,
+                (int) $user['id'],
+                'create_task',
+                $response
+            );
+            $conn->commit();
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            throw $exception;
+        }
+        mattermostApiRespond($response);
+    }
+
+    if ($action === 'save_chron') {
+        mattermostApiRequireMethod('POST');
+        if (!canManageFollowUpTasks((string) $user['role'])) {
+            mattermostApiRespond([
+                'error' => 'Your Moed role cannot add engagement Chron entries.',
+                'code' => 'insufficient_role',
+            ], 403);
+        }
+        $body = mattermostApiBody();
+        $engagementId = filter_var($body['engagement_id'] ?? null, FILTER_VALIDATE_INT);
+        $entryText = (string) ($body['entry_text'] ?? '');
+        $idempotencyKey = mattermostApiHeader('Idempotency-Key');
+        if (!$engagementId || mattermostEngagement($conn, (int) $engagementId) === null) {
+            throw new InvalidArgumentException('The linked engagement is no longer available.');
+        }
+        $existingResponse = mattermostIdempotentResponse(
+            $conn,
+            $instanceId,
+            $idempotencyKey,
+            (int) $user['id'],
+            'save_chron'
+        );
+        if ($existingResponse !== null) {
+            mattermostApiRespond($existingResponse);
+        }
+
+        $conn->begin_transaction();
+        try {
+            insertEntityChronLogEntry(
+                $conn,
+                'engagement',
+                (int) $engagementId,
+                $entryText,
+                (int) $user['id'],
+                (string) $user['username']
+            );
+            $response = [
+                'ok' => true,
+                'message' => 'Post saved to the Moed Chron.',
+                'user' => $publicUser,
+                'url' => mattermostPublicUrl('view_engagement.php', ['id' => (int) $engagementId]),
+            ];
+            storeMattermostIdempotentResponse(
+                $conn,
+                $instanceId,
+                $idempotencyKey,
+                (int) $user['id'],
+                'save_chron',
+                $response
+            );
+            $conn->commit();
+        } catch (Throwable $exception) {
+            $conn->rollback();
+            throw $exception;
+        }
+        mattermostApiRespond($response);
     }
 
     if ($action === 'task_action') {

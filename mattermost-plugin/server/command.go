@@ -16,6 +16,38 @@ func ephemeral(text string) *model.CommandResponse {
 	return &model.CommandResponse{ResponseType: model.CommandResponseTypeEphemeral, Text: text}
 }
 
+const (
+	postTypeToday = "custom_moed_today"
+	postTypeTasks = "custom_moed_tasks"
+	postTypeEvent = "custom_moed_event"
+)
+
+func customCommandResponse(responseType, postType, text string, payload any) *model.CommandResponse {
+	return &model.CommandResponse{
+		ResponseType: responseType,
+		Text:         text,
+		Type:         postType,
+		Props: model.StringInterface{
+			"moed": payload,
+			"type": postType,
+		},
+	}
+}
+
+func (p *Plugin) sendCustomEphemeral(userID, channelID string, response *model.CommandResponse) *model.CommandResponse {
+	post := p.API.SendEphemeralPost(userID, &model.Post{
+		UserId:    p.botID,
+		ChannelId: channelID,
+		Message:   response.Text,
+		Type:      response.Type,
+		Props:     response.Props,
+	})
+	if post == nil {
+		return response
+	}
+	return &model.CommandResponse{}
+}
+
 func commandError(err error, linkURL string) *model.CommandResponse {
 	var apiErr *moedAPIError
 	if errors.As(err, &apiErr) {
@@ -71,11 +103,12 @@ func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*mo
 		if apiErr != nil {
 			return commandError(apiErr, config.MoedURL+"/mattermost.php"), nil
 		}
-		return &model.CommandResponse{
-			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         "This channel is linked to Moed engagement **#" + strconv.Itoa(binding.EngagementID) + "**.",
-			Props:        attachmentsProps(eventAttachment(response.Engagement)),
-		}, nil
+		return p.sendCustomEphemeral(args.UserId, args.ChannelId, customCommandResponse(
+			model.CommandResponseTypeEphemeral,
+			postTypeEvent,
+			"This channel is linked to Moed engagement **#"+strconv.Itoa(binding.EngagementID)+"**.",
+			response.Engagement,
+		)), nil
 	}
 
 	parts := strings.Fields(input)
@@ -115,15 +148,15 @@ func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*mo
 		if todayErr != nil {
 			return commandError(todayErr, config.MoedURL+"/mattermost.php"), nil
 		}
-		return todayCommandResponse(response), nil
+		return p.sendCustomEphemeral(args.UserId, args.ChannelId, todayCommandResponse(response)), nil
 	case "tasks":
 		response, tasksErr := client.tasks(ctx, user.Id, user.Username)
 		if tasksErr != nil {
 			return commandError(tasksErr, config.MoedURL+"/mattermost.php"), nil
 		}
-		return tasksCommandResponse(response), nil
+		return p.sendCustomEphemeral(args.UserId, args.ChannelId, tasksCommandResponse(response)), nil
 	case "event":
-		return p.executeEventCommand(ctx, client, user, config, input), nil
+		return p.executeEventCommand(ctx, client, user, config, args.ChannelId, input), nil
 	case "link-event":
 		return p.executeLinkEvent(ctx, client, user, config, args.ChannelId, input), nil
 	case "unlink-event":
@@ -153,15 +186,12 @@ func todayCommandResponse(response *todayResponse) *model.CommandResponse {
 	} else {
 		lines = append(lines, fmt.Sprintf("\n**Your active tasks (%d)**", len(response.Tasks)))
 	}
-	attachments := make([]*model.SlackAttachment, 0, len(response.Tasks))
-	for _, task := range response.Tasks {
-		attachments = append(attachments, taskAttachment(task))
-	}
-	return &model.CommandResponse{
-		ResponseType: model.CommandResponseTypeEphemeral,
-		Text:         strings.Join(lines, "\n"),
-		Props:        attachmentsProps(attachments...),
-	}
+	return customCommandResponse(
+		model.CommandResponseTypeEphemeral,
+		postTypeToday,
+		strings.Join(lines, "\n"),
+		response,
+	)
 }
 
 func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
@@ -169,15 +199,12 @@ func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
 	if len(response.Tasks) == 0 {
 		text += "\n:white_check_mark: You have no active assigned tasks."
 	}
-	attachments := make([]*model.SlackAttachment, 0, len(response.Tasks))
-	for _, task := range response.Tasks {
-		attachments = append(attachments, taskAttachment(task))
-	}
-	return &model.CommandResponse{
-		ResponseType: model.CommandResponseTypeEphemeral,
-		Text:         text,
-		Props:        attachmentsProps(attachments...),
-	}
+	return customCommandResponse(
+		model.CommandResponseTypeEphemeral,
+		postTypeTasks,
+		text,
+		response,
+	)
 }
 
 func (p *Plugin) executeEventCommand(
@@ -185,6 +212,7 @@ func (p *Plugin) executeEventCommand(
 	client *moedClient,
 	user *model.User,
 	config *configuration,
+	channelID string,
 	input string,
 ) *model.CommandResponse {
 	if strings.HasPrefix(input, "event search ") {
@@ -219,11 +247,12 @@ func (p *Plugin) executeEventCommand(
 		if apiErr != nil {
 			return commandError(apiErr, config.MoedURL+"/mattermost.php")
 		}
-		return &model.CommandResponse{
-			ResponseType: model.CommandResponseTypeEphemeral,
-			Text:         "Moed engagement **#" + strconv.Itoa(id) + "**",
-			Props:        attachmentsProps(eventAttachment(response.Engagement)),
-		}
+		return p.sendCustomEphemeral(user.Id, channelID, customCommandResponse(
+			model.CommandResponseTypeEphemeral,
+			postTypeEvent,
+			"Moed engagement **#"+strconv.Itoa(id)+"**",
+			response.Engagement,
+		))
 	}
 	return ephemeral("Usage: `/moed event search TEXT` or `/moed event show ID`")
 }
@@ -257,11 +286,23 @@ func (p *Plugin) executeLinkEvent(
 	}); err != nil {
 		return ephemeral(":warning: The channel binding could not be saved.")
 	}
-	return &model.CommandResponse{
-		ResponseType: model.CommandResponseTypeInChannel,
-		Text:         "This channel is now linked to Moed engagement **#" + strconv.Itoa(id) + "**.",
-		Props:        attachmentsProps(eventAttachment(response.Engagement)),
+	postResponse := customCommandResponse(
+		model.CommandResponseTypeInChannel,
+		postTypeEvent,
+		"This channel is now linked to Moed engagement **#"+strconv.Itoa(id)+"**.",
+		response.Engagement,
+	)
+	if _, appErr := p.API.CreatePost(&model.Post{
+		UserId:    p.botID,
+		ChannelId: channelID,
+		Message:   postResponse.Text,
+		Type:      postResponse.Type,
+		Props:     postResponse.Props,
+	}); appErr != nil {
+		_ = p.setChannelBinding(channelID, nil)
+		return ephemeral(":warning: The channel link could not be announced, so it was not saved.")
 	}
+	return ephemeral(":white_check_mark: Linked this channel to Moed engagement **#" + strconv.Itoa(id) + "**.")
 }
 
 func (p *Plugin) executeUnlinkEvent(

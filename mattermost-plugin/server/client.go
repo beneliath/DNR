@@ -79,7 +79,7 @@ func (c *moedClient) do(
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "Moed-Mattermost-Plugin/0.2.0")
+	request.Header.Set("User-Agent", "Moed-Mattermost-Plugin/0.3.0")
 	request.Header.Set("X-Mattermost-Instance-ID", c.instanceID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -176,5 +176,29 @@ func (c *moedClient) taskAction(
 		"task_action":      action,
 		"expected_version": expectedVersion,
 	}, idempotencyKey, &response)
+	return &response, err
+}
+
+func (c *moedClient) createTask(
+	ctx context.Context,
+	userID string,
+	username string,
+	request createTaskRequest,
+	idempotencyKey string,
+) (*postActionResponse, error) {
+	var response postActionResponse
+	err := c.do(ctx, http.MethodPost, "create_task", nil, userID, username, request, idempotencyKey, &response)
+	return &response, err
+}
+
+func (c *moedClient) saveChron(
+	ctx context.Context,
+	userID string,
+	username string,
+	request saveChronRequest,
+	idempotencyKey string,
+) (*postActionResponse, error) {
+	var response postActionResponse
+	err := c.do(ctx, http.MethodPost, "save_chron", nil, userID, username, request, idempotencyKey, &response)
 	return &response, err
 }

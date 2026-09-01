@@ -35,6 +35,13 @@ type apiTaskSummary struct {
 	Unassigned int `json:"unassigned"`
 }
 
+type apiTaskDashboardSummary struct {
+	Overdue       int `json:"overdue"`
+	DueToday      int `json:"due_today"`
+	NextSevenDays int `json:"next_seven_days"`
+	Waiting       int `json:"waiting"`
+}
+
 type apiEngagement struct {
 	ID                 int               `json:"id"`
 	Title              string            `json:"title"`
@@ -84,13 +91,14 @@ type userResponse struct {
 }
 
 type todayResponse struct {
-	OK           bool            `json:"ok"`
-	User         apiUser         `json:"user"`
-	BusinessDate string          `json:"business_date"`
-	Tasks        []apiTask       `json:"tasks"`
-	Engagements  []apiEngagement `json:"engagements"`
-	DashboardURL string          `json:"dashboard_url"`
-	WorkQueueURL string          `json:"work_queue_url"`
+	OK           bool                    `json:"ok"`
+	User         apiUser                 `json:"user"`
+	BusinessDate string                  `json:"business_date"`
+	TaskSummary  apiTaskDashboardSummary `json:"task_summary"`
+	Tasks        []apiTask               `json:"tasks"`
+	Engagements  []apiEngagement         `json:"engagements"`
+	DashboardURL string                  `json:"dashboard_url"`
+	WorkQueueURL string                  `json:"work_queue_url"`
 }
 
 type eventSearchResponse struct {
@@ -111,6 +119,27 @@ type taskActionResponse struct {
 	Message string  `json:"message"`
 	User    apiUser `json:"user"`
 	Task    apiTask `json:"task"`
+}
+
+type createTaskRequest struct {
+	EngagementID int    `json:"engagement_id"`
+	Title        string `json:"title"`
+	Details      string `json:"details"`
+	DueDate      string `json:"due_date"`
+	Priority     string `json:"priority"`
+}
+
+type saveChronRequest struct {
+	EngagementID int    `json:"engagement_id"`
+	EntryText    string `json:"entry_text"`
+}
+
+type postActionResponse struct {
+	OK      bool     `json:"ok"`
+	Message string   `json:"message"`
+	User    apiUser  `json:"user"`
+	Task    *apiTask `json:"task,omitempty"`
+	URL     string   `json:"url,omitempty"`
 }
 
 type channelBinding struct {

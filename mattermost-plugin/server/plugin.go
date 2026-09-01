@@ -46,6 +46,8 @@ func (p *Plugin) OnActivate() error {
 
 	router := http.NewServeMux()
 	router.HandleFunc("/api/v1/task-action", p.handleTaskAction)
+	router.HandleFunc("/api/v1/web/task-action", p.handleWebTaskAction)
+	router.HandleFunc("/api/v1/post-action", p.handlePostAction)
 	p.router = router
 	return nil
 }

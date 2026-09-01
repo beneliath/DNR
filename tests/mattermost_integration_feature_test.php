@@ -23,8 +23,10 @@ $compose = file_get_contents($root . '/docker-compose.mattermost.yaml');
 $secretEntrypoint = file_get_contents($root . '/docker/mattermost-secret-entrypoint.sh');
 $apacheSecurity = file_get_contents($root . '/docker/apache-security.conf');
 $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
+$webapp = file_get_contents($root . '/mattermost-plugin/webapp/src/index.jsx');
+$pluginServer = file_get_contents($root . '/mattermost-plugin/server/http.go');
 
-foreach ([$migration, $api, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation] as $source) {
+foreach ([$migration, $api, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -80,10 +82,26 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.2.0'
+        && ($manifest['version'] ?? null) === '0.3.0'
         && isset($manifest['server']['executables']['linux-amd64'])
+        && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
     'the Mattermost manifest should be installable, versioned, cross-platform, and mask the service token.'
+);
+
+expectMattermost(
+    str_contains($webapp, "registerPostTypeComponent('custom_moed_today'")
+        && str_contains($webapp, "registerPostTypeComponent('custom_moed_event'")
+        && str_contains($webapp, "registerPostDropdownMenuAction('Create Moed task'")
+        && str_contains($webapp, "registerPostDropdownMenuAction('Save to Moed Chron'")
+        && str_contains($webapp, "pluginRequest('/post-action'")
+        && str_contains($pluginServer, 'HasPermissionToChannel')
+        && str_contains($pluginServer, 'p.channelBinding(post.ChannelId)')
+        && str_contains($api, "if (\$action === 'create_task')")
+        && str_contains($api, "if (\$action === 'save_chron')")
+        && str_contains($documentation, '**Create Moed task**')
+        && str_contains($documentation, '**Save to Moed Chron**'),
+    'the bundle should render native dashboards/cards and expose server-authorized task and Chron post actions.'
 );
 
 expectMattermost(

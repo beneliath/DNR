@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by Moed.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical Moed HTTPS URL.
 - A deployed Moed version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.2.0.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.0.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -65,9 +65,10 @@ ready and that signed-in users can open **Mattermost** in the utility navigation
 ## 3. Build the plugin bundle
 
 Prebuilt releases can skip this step. To rebuild from source with Go 1.25 or
-newer:
+newer and Node.js, install the root web dependencies once and then build:
 
 ```sh
+npm install
 cd mattermost-plugin
 make dist
 ```
@@ -83,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.2.0.tar.gz`;
+3. select `org.moed.mattermost-0.3.0.tar.gz`;
 4. open the **Moed** plugin settings;
 5. enter the canonical **Moed URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -111,6 +112,11 @@ linked. Each user then:
 3. immediately runs `/moed connect CODE` in Mattermost;
 4. confirms `/moed today` and `/moed tasks` work.
 
+The two commands render a theme-aware Moed dashboard inside Mattermost. It
+shows Overdue, Due today, Next 7 days, and Waiting counts, followed by the
+user's active tasks and only the actions that Moed permits. Engagement cards
+use the same webapp bundle and adapt to the available message width.
+
 The code expires in 10 minutes, is stored only as a SHA-256 digest, is consumed
 once, and is never placed in a channel-visible message. Users revoke a link
 from **Moed → Mattermost**.
@@ -122,11 +128,20 @@ from **Moed → Mattermost**.
 - Reviewers receive read-only cards and links.
 - Editors and administrators can bind/unbind channels and receive permitted
   task action buttons.
+- In a bound channel, open a normal post's **More actions** menu to choose
+  **Create Moed task** or **Save to Moed Chron**. The confirmation form lets
+  editors and administrators review the text before writing it to the channel's
+  linked engagement. Moed records the source author, channel, post ID, and
+  permalink with the new item.
 - Destructive actions, financial details, private Chron history, contacts,
   travel/compensation, files, waiting reasons, and full editing stay in Moed.
 
 Slash responses are ephemeral. `/moed link-event ID` is the one intentional
 channel-visible operation; its card contains only share-safe engagement fields.
+The post-menu actions never accept an engagement ID from the browser: the
+plugin resolves the selected post, verifies read-channel permission, and uses
+the server-side channel binding before calling Moed. Moed then enforces the
+linked account and editor/administrator role.
 
 ## Rotation and removal
 

@@ -57,40 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
         $conn->begin_transaction();
         $transaction_started = true;
         $task = normalizeFollowUpTaskInput($conn, $_POST);
-        $completed_by = $task['status'] === 'completed' ? (int) $_SESSION['user_id'] : null;
-        $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
         $created_by = (int) $_SESSION['user_id'];
-        $stmt = $conn->prepare(
-            'INSERT INTO follow_up_tasks
-                (title, details, status, priority, due_date, waiting_on,
-                 subject_type, engagement_id, organization_id, contact_id,
-                 assigned_to, created_by, completed_by, completed_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-        );
-        if (!$stmt) {
-            throw new RuntimeException('Unable to prepare the task.');
-        }
-        $stmt->bind_param(
-            'sssssssiiiiiis',
-            $task['title'],
-            $task['details'],
-            $task['status'],
-            $task['priority'],
-            $task['due_date'],
-            $task['waiting_on'],
-            $task['subject_type'],
-            $task['engagement_id'],
-            $task['organization_id'],
-            $task['contact_id'],
-            $task['assigned_to'],
-            $created_by,
-            $completed_by,
-            $completed_at
-        );
-        if (!$stmt->execute()) {
-            throw new RuntimeException('Unable to save the task.');
-        }
-        $stmt->close();
+        insertFollowUpTask($conn, $task, $created_by);
         $conn->commit();
         $transaction_started = false;
         $_SESSION['task_action_message'] = 'Task added.';

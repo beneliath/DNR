@@ -430,6 +430,46 @@ function normalizeFollowUpTaskInput(
     ]);
 }
 
+function insertFollowUpTask(mysqli $conn, array $task, int $created_by): int
+{
+    $completed_by = $task['status'] === 'completed' ? $created_by : null;
+    $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
+    $stmt = $conn->prepare(
+        'INSERT INTO follow_up_tasks
+            (title, details, status, priority, due_date, waiting_on,
+             subject_type, engagement_id, organization_id, contact_id,
+             assigned_to, created_by, completed_by, completed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the task.');
+    }
+    $stmt->bind_param(
+        'sssssssiiiiiis',
+        $task['title'],
+        $task['details'],
+        $task['status'],
+        $task['priority'],
+        $task['due_date'],
+        $task['waiting_on'],
+        $task['subject_type'],
+        $task['engagement_id'],
+        $task['organization_id'],
+        $task['contact_id'],
+        $task['assigned_to'],
+        $created_by,
+        $completed_by,
+        $completed_at
+    );
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to save the task.');
+    }
+    $task_id = (int) $conn->insert_id;
+    $stmt->close();
+    return $task_id;
+}
+
 function safeFollowUpTaskReturnUrl($value, $fallback = 'tasks.php')
 {
     $value = trim((string) $value);

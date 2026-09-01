@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/follow_up_task_helpers.php';
+require_once __DIR__ . '/chron_log_helpers.php';
 
 const MATTERMOST_LINK_CODE_TTL_SECONDS = 600;
 const MATTERMOST_LINK_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -438,6 +439,44 @@ function mattermostTasksForUser(mysqli $conn, array $user, int $limit = 10): arr
         static fn(array $task): array => mattermostTaskPayload($task, (string) $user['role']),
         $rows
     );
+}
+
+function mattermostTaskSummaryForUser(mysqli $conn, int $userId): array
+{
+    $businessDate = applicationBusinessDate();
+    $nextSevenDays = (new DateTimeImmutable($businessDate, new DateTimeZone('UTC')))
+        ->modify('+7 days')
+        ->format('Y-m-d');
+    $stmt = $conn->prepare(
+        "SELECT
+            SUM(due_date < ?) AS overdue_count,
+            SUM(due_date = ?) AS due_today_count,
+            SUM(due_date > ? AND due_date <= ?) AS next_seven_days_count,
+            SUM(status = 'waiting') AS waiting_count
+         FROM follow_up_tasks
+         WHERE assigned_to = ?
+           AND status IN ('open', 'in_progress', 'waiting')"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the Mattermost task summary.');
+    }
+    $stmt->bind_param(
+        'ssssi',
+        $businessDate,
+        $businessDate,
+        $businessDate,
+        $nextSevenDays,
+        $userId
+    );
+    $stmt->execute();
+    $summary = $stmt->get_result()->fetch_assoc() ?: [];
+    $stmt->close();
+    return [
+        'overdue' => (int) ($summary['overdue_count'] ?? 0),
+        'due_today' => (int) ($summary['due_today_count'] ?? 0),
+        'next_seven_days' => (int) ($summary['next_seven_days_count'] ?? 0),
+        'waiting' => (int) ($summary['waiting_count'] ?? 0),
+    ];
 }
 
 function mattermostUpcomingEngagements(mysqli $conn, int $limit = 5): array
