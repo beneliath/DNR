@@ -174,14 +174,18 @@ single-use link remains valid while its replacement is pending and is invalidate
 relay accepts the new message. Failed deliveries retry with bounded exponential backoff, and the
 encrypted payload is erased after success or terminal failure.
 
-Verified users may also opt into a daily work digest under **My Profile → Notifications**. Each user
-chooses a local delivery time and any combination of weekdays; weekday, weekend, and every-day
-presets are available. After that time on a selected day, the same worker queues at most one message
+Verified users receive a daily work digest by default on weekdays at 7:00 a.m. under
+**My Profile → Notifications**. Each user can disable it, choose a different local delivery time,
+or select any combination of days; weekday, weekend, and every-day presets are available. After the
+selected time on a selected day, the same worker queues at most one message
 per user and business date with their overdue, due-today, next-seven-days, and waiting tasks.
 Administrators and editors also receive incomplete financial closeouts. Digests use a separate
 encrypted `notification_outbox` so account-token delivery remains isolated; messages are discarded
 if the recipient opts out, changes their email, becomes inactive, no longer has a verified address,
 or removes the queued day from their schedule. Sent and terminal payloads are erased.
+
+Administrators with fresh elevation can also manage any user’s digest enablement, delivery time,
+and delivery days from **Users → Edit User**.
 
 Editors and administrators can also send tracked plain-text correspondence from an active
 Engagement. The composer provides booking-confirmation, travel/lodging, final-reconfirmation,

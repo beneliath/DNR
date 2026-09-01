@@ -76,9 +76,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $task_digest_time = taskDigestDeliveryTimeFromInput(
         taskDigestDeliveryTimeInputValue($user['task_digest_time'] ?? null)
     );
-    $task_digest_days = (int) ($user['task_digest_days'] ?? TASK_DIGEST_EVERY_DAY);
+    $task_digest_days = (int) ($user['task_digest_days'] ?? TASK_DIGEST_WEEKDAYS);
     if ($task_digest_days < 1 || $task_digest_days > TASK_DIGEST_EVERY_DAY) {
-        $task_digest_days = TASK_DIGEST_EVERY_DAY;
+        $task_digest_days = TASK_DIGEST_WEEKDAYS;
     }
     $remove_profile_picture = isset($_POST['remove_profile_picture']);
     $picture = null;
@@ -285,9 +285,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $stored_picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
 $profile_picture_version = (string) ($_SESSION['profile_picture_version'] ?? $stored_picture_version);
 $task_digest_time_value = taskDigestDeliveryTimeInputValue($user['task_digest_time'] ?? null);
-$task_digest_days_value = (int) ($user['task_digest_days'] ?? TASK_DIGEST_EVERY_DAY);
+$task_digest_days_value = (int) ($user['task_digest_days'] ?? TASK_DIGEST_WEEKDAYS);
 if ($task_digest_days_value < 1 || $task_digest_days_value > TASK_DIGEST_EVERY_DAY) {
-    $task_digest_days_value = TASK_DIGEST_EVERY_DAY;
+    $task_digest_days_value = TASK_DIGEST_WEEKDAYS;
 }
 $task_digest_day_options = [
     1 => ['short' => 'M', 'label' => 'Monday'],

@@ -414,6 +414,26 @@ grep -q 'No audit entries were old enough to prune.' "$temporary_directory/admin
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-elevated.html" "$base_url/users.php"
 admin_csrf=$(csrf_from "$temporary_directory/admin-users-elevated.html")
 target_user_id=$(fixture user-id "$fixture_suffix" target)
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-edit-user.html" \
+    "$base_url/edit_user.php?id=$target_user_id"
+grep -q 'name="task_digest_enabled"' "$temporary_directory/admin-edit-user.html"
+grep -q 'name="task_digest_time"' "$temporary_directory/admin-edit-user.html"
+grep -Fq 'name="task_digest_days[]"' "$temporary_directory/admin-edit-user.html"
+admin_csrf=$(csrf_from "$temporary_directory/admin-edit-user.html")
+status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-edit-user.headers" \
+    -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode "username=http-target-$fixture_suffix" \
+    --data-urlencode 'role=reviewer' \
+    --data-urlencode 'task_digest_enabled=1' \
+    --data-urlencode 'task_digest_time=06:30' \
+    --data-urlencode 'task_digest_days[]=2' \
+    --data-urlencode 'task_digest_days[]=8' \
+    "$base_url/edit_user.php?id=$target_user_id")
+expect_status "$status" '302' 'administrator digest preference update'
+expect_location "$temporary_directory/admin-edit-user.headers" 'users.php' 'administrator digest preference update'
+test "$(fixture digest-enabled "$fixture_suffix" target)" = '1'
+test "$(fixture digest-schedule "$fixture_suffix" target)" = '06:30:00|10'
 status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-delete.headers" \
     -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$admin_csrf" \

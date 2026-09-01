@@ -21,11 +21,13 @@ $read = static function (string $path) use ($root): string {
 
 $migration = $read('migrations/20260823_add_task_notifications.sql');
 $scheduleMigration = $read('migrations/20260828_customize_task_digest_schedule.sql');
+$defaultMigration = $read('migrations/20260901_default_daily_work_digest.sql');
 $reminderIndexMigration = $read('migrations/20260824_optimize_task_reminders.sql');
 $order = $read('migrations/order.txt');
 $helpers = $read('src/notification_helpers.php');
 $worker = $read('scripts/process_email_outbox.php');
 $profile = $read('src/profile.php');
+$editUser = $read('src/edit_user.php');
 $header = $read('src/templates/header.php');
 $tasks = $read('src/tasks.php');
 $styles = $read('src/assets/css/modern.css');
@@ -49,6 +51,14 @@ expectTaskNotificationsFeature(
         && str_contains($scheduleMigration, 'CHECK (task_digest_days BETWEEN 1 AND 127)')
         && str_contains($order, '20260828_customize_task_digest_schedule.sql'),
     'a forward migration should persist a bounded per-user delivery time and weekday mask.'
+);
+expectTaskNotificationsFeature(
+    str_contains($defaultMigration, 'task_digest_enabled TINYINT(1) NOT NULL DEFAULT 1')
+        && str_contains($defaultMigration, "task_digest_time TIME NOT NULL DEFAULT '07:00:00'")
+        && str_contains($defaultMigration, 'task_digest_days TINYINT UNSIGNED NOT NULL DEFAULT 31')
+        && !str_contains($defaultMigration, 'UPDATE users')
+        && str_contains($order, '20260901_default_daily_work_digest.sql'),
+    'new users should default to an enabled weekday digest at 7am without overwriting existing preferences.'
 );
 expectTaskNotificationsFeature(
     str_contains(
@@ -90,6 +100,7 @@ expectTaskNotificationsFeature(
         && str_contains($profile, 'name="task_digest_days[]"')
         && str_contains($profile, 'data-task-digest-days="31"')
         && str_contains($profile, 'data-task-digest-days="96"')
+        && str_contains($profile, '$user[\'task_digest_days\'] ?? TASK_DIGEST_WEEKDAYS')
         && str_contains($profileScript, 'updateDigestDayControls')
         && str_contains($profile, 'Verify your email address to enable daily digests.')
         && str_contains($profile, 'task_digest_enabled = ?')
@@ -98,6 +109,16 @@ expectTaskNotificationsFeature(
         && str_contains($tasks, 'task-reminder-badges')
         && str_contains($tasks, "owner_filter === 'me'"),
     'verified users should control digest delivery while personal in-app reminders remain visible.'
+);
+expectTaskNotificationsFeature(
+    str_contains($editUser, "include 'notification_helpers.php'")
+        && str_contains($editUser, 'task_digest_enabled, task_digest_time, task_digest_days')
+        && str_contains($editUser, 'name="task_digest_enabled"')
+        && str_contains($editUser, 'name="task_digest_time"')
+        && str_contains($editUser, 'name="task_digest_days[]"')
+        && str_contains($editUser, 'taskDigestDeliveryTimeFromInput(')
+        && str_contains($editUser, 'taskDigestDaysFromInput('),
+    'administrators should be able to validate and update every user’s daily digest settings.'
 );
 expectTaskNotificationsFeature(
     str_contains($styles, '.task-reminder-badge:hover,')

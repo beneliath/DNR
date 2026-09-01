@@ -39,15 +39,28 @@ try {
     $role = 'editor';
     $userStatement = $conn->prepare(
         "INSERT INTO users
-            (username, email, email_verified_at, task_digest_enabled,
-             task_digest_time, task_digest_days,
-             password, role, account_status)
-         VALUES (?, ?, UTC_TIMESTAMP(), 1, '08:00:00', 96, ?, ?, 'active')"
+            (username, email, email_verified_at, password, role, account_status)
+         VALUES (?, ?, UTC_TIMESTAMP(), ?, ?, 'active')"
     );
     $userStatement->bind_param('ssss', $username, $email, $password, $role);
     $userStatement->execute();
     $userId = (int) $conn->insert_id;
     $userStatement->close();
+    $defaultPreferences = $conn->query(
+        "SELECT task_digest_enabled, task_digest_time, task_digest_days
+         FROM users WHERE id = {$userId}"
+    )->fetch_assoc();
+    expectTaskNotificationIntegration(
+        (int) $defaultPreferences['task_digest_enabled'] === 1
+            && (string) $defaultPreferences['task_digest_time'] === '07:00:00'
+            && (int) $defaultPreferences['task_digest_days'] === TASK_DIGEST_WEEKDAYS,
+        'a new user should default to an enabled weekday digest at 7am.'
+    );
+    $conn->query(
+        "UPDATE users
+         SET task_digest_time = '08:00:00', task_digest_days = 96
+         WHERE id = {$userId}"
+    );
 
     $organizationName = 'Digest Organization ' . $suffix;
     $organizationStatement = $conn->prepare(

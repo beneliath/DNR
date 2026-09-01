@@ -568,7 +568,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <h3>Profile and Notifications</h3>
                         <p>Add your name, phone, email, and optional profile picture. Changing email clears its verified state and pauses the daily digest until the new address is verified.</p>
-                        <p>A verified email enables password recovery and the optional work digest of overdue, due-today, upcoming, and waiting tasks. Choose its delivery time and individual days, or quickly select weekdays, weekends, or every day. Editor/admin digests also include financial closeouts.</p>
+                        <p>A verified email enables password recovery and a work digest of overdue, due-today, upcoming, and waiting tasks. The digest defaults to enabled on weekdays at 7:00 a.m.; disable it or choose a different time and set of days at any time. Editor/admin digests also include financial closeouts.</p>
                         <a href="profile.php" class="manual-inline-link">Open My Profile</a>
                     </article>
                     <article class="manual-card">
@@ -737,7 +737,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Identity</span>
                         <h3>Users</h3>
                         <p>Invite a username, verified-on-acceptance email, and Reviewer, Editor, or Admin role. Review account status, profile, email verification, 2FA, password-change requirement, and activity timestamps.</p>
-                        <p>Elevated actions can resend invitations, edit username/role, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
+                        <p>Elevated actions can resend invitations, edit username, role, and daily work digest settings, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
                         <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage users</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
