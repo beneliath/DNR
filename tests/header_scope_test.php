@@ -84,10 +84,10 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<span>Calendar<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        '/<span>Calendar<\/span>.*<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
         $header_markup
     ) === 1,
-    'The utility navigation should place the user manual between account security and the theme selector using Title Case labels.'
+    'The utility navigation should place Mattermost between Calendar and Account Security, with the user manual before the theme selector.'
 );
 
 foreach (['recover_password.php'] as $authentication_page) {
