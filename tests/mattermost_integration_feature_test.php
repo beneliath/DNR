@@ -20,9 +20,10 @@ $helpers = file_get_contents($root . '/src/mattermost_integration_helpers.php');
 $manifestRaw = file_get_contents($root . '/mattermost-plugin/plugin.json');
 $compose = file_get_contents($root . '/docker-compose.mattermost.yaml');
 $secretEntrypoint = file_get_contents($root . '/docker/mattermost-secret-entrypoint.sh');
+$apacheSecurity = file_get_contents($root . '/docker/apache-security.conf');
 $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
 
-foreach ([$migration, $api, $accountPage, $helpers, $manifestRaw, $compose, $secretEntrypoint, $documentation] as $source) {
+foreach ([$migration, $api, $accountPage, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -89,6 +90,7 @@ expectMattermost(
         && str_contains($secretEntrypoint, 'install -m 0400 "$source_path" "$runtime_tmp"')
         && str_contains($secretEntrypoint, 'chown www-data:www-data "$runtime_tmp"')
         && str_contains($secretEntrypoint, 'export DNR_MATTERMOST_TOKEN_FILE=$runtime_path')
+        && str_contains($apacheSecurity, 'SetEnvIfNoCase Authorization "^(.*)$" HTTP_AUTHORIZATION=$1')
         && str_contains($documentation, 'System Console → Plugins → Plugin Management')
         && str_contains($documentation, '/moed status'),
     'deployment should mount the host-protected service token, prepare an Apache-only runtime copy, and document installation and verification.'
