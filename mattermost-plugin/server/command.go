@@ -213,6 +213,11 @@ func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
 	)
 }
 
+func channelVisibleEngagement(event apiEngagement) apiEngagement {
+	event.EmailRoutingMarker = ""
+	return event
+}
+
 func (p *Plugin) executeEventCommand(
 	ctx context.Context,
 	client *moedClient,
@@ -285,6 +290,9 @@ func (p *Plugin) executeLinkEvent(
 	if response.User.Role != "editor" && response.User.Role != "admin" {
 		return ephemeral("Your MOED role cannot bind a channel to an engagement.")
 	}
+	// The routing marker is useful in private event lookups but is intentionally
+	// omitted from the channel-visible binding announcement.
+	response.Engagement = channelVisibleEngagement(response.Engagement)
 	if err := p.setChannelBinding(channelID, &channelBinding{
 		EngagementID: id,
 		LinkedBy:     user.Id,

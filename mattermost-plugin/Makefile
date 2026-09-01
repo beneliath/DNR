@@ -1,6 +1,6 @@
 GO ?= go
 PLUGIN_ID := org.moed.mattermost
-PLUGIN_VERSION := 0.3.4
+PLUGIN_VERSION := 0.3.5
 BUNDLE_NAME := $(PLUGIN_ID)-$(PLUGIN_VERSION).tar.gz
 SERVER_DIST := server/dist
 WEBAPP_DIST := webapp/dist

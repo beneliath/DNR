@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by MOED.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.4.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.5.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.3.4.tar.gz`;
+3. select `org.moed.mattermost-0.3.5.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -115,7 +115,9 @@ linked. Each user then:
 The two commands render a theme-aware MOED dashboard inside Mattermost. It
 shows Overdue, Due today, Next 7 days, and Waiting counts, followed by the
 user's active tasks and only the actions that MOED permits. Engagement cards
-use the same webapp bundle and adapt to the available message width.
+use the same webapp bundle and adapt to the available message width. A private
+`/moed event show ID` card also displays the engagement's email routing marker
+with a quick-copy button; channel-visible binding cards omit the marker.
 
 The code expires in 10 minutes, is stored only as a SHA-256 digest, is consumed
 once, and is never placed in a channel-visible message. Users revoke a link

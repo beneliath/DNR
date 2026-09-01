@@ -37,6 +37,7 @@ func TestEventAttachmentIsShareSafe(t *testing.T) {
 		LifecycleStatus:    "active",
 		OrganizationName:   "Example Organization",
 		URL:                "https://moed.example.test/view_engagement.php?id=44",
+		EmailRoutingMarker: "[MOED#44]",
 	}
 	attachment := eventAttachment(event)
 	if attachment.TitleLink != event.URL || attachment.Text != "Public description" {
@@ -44,5 +45,10 @@ func TestEventAttachmentIsShareSafe(t *testing.T) {
 	}
 	if len(attachment.Actions) != 0 {
 		t.Fatal("engagement card should not contain mutation actions")
+	}
+	for _, field := range attachment.Fields {
+		if field != nil && (field.Title == "Email routing marker" || field.Value == event.EmailRoutingMarker) {
+			t.Fatal("share-safe fallback cards must not expose the routing marker")
+		}
 	}
 }

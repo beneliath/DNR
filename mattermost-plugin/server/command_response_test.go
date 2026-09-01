@@ -52,6 +52,37 @@ func TestCustomCommandResponseCrossesMattermostRPCBoundary(t *testing.T) {
 	}
 }
 
+func TestPrivateEventPayloadPreservesRoutingMarker(t *testing.T) {
+	command := customCommandResponse(
+		model.CommandResponseTypeEphemeral,
+		postTypeEvent,
+		"Event",
+		apiEngagement{ID: 42, Title: "Private event", EmailRoutingMarker: "[MOED#42]"},
+	)
+	payloadJSON, ok := command.Props["moed"].(string)
+	if !ok {
+		t.Fatal("the private event payload must cross the plugin RPC boundary as JSON")
+	}
+	var event apiEngagement
+	if err := json.Unmarshal([]byte(payloadJSON), &event); err != nil {
+		t.Fatalf("decode private event payload: %v", err)
+	}
+	if event.EmailRoutingMarker != "[MOED#42]" {
+		t.Fatalf("routing marker was not preserved: %q", event.EmailRoutingMarker)
+	}
+}
+
+func TestChannelVisibleEventOmitsRoutingMarker(t *testing.T) {
+	event := channelVisibleEngagement(apiEngagement{
+		ID:                 42,
+		Title:              "Channel event",
+		EmailRoutingMarker: "[MOED#42]",
+	})
+	if event.EmailRoutingMarker != "" {
+		t.Fatal("channel-visible event cards must omit the routing marker")
+	}
+}
+
 func TestTasksCommandUsesNativeWebappPost(t *testing.T) {
 	response := &todayResponse{BusinessDate: "2026-08-31"}
 	command := tasksCommandResponse(response)

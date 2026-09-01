@@ -610,6 +610,7 @@ function mattermostEngagement(mysqli $conn, int $engagementId): ?array
     $engagement['title'] = trim((string) $engagement['event_title'])
         ?: (string) $engagement['organization_name'];
     $engagement['url'] = mattermostPublicUrl('view_engagement.php', ['id' => $engagementId]);
+    $engagement['email_routing_marker'] = applicationInboundMarker($engagementId);
     $engagement['presentations'] = $presentations;
     $engagement['task_summary'] = [
         'active' => (int) ($taskSummary['active_count'] ?? 0),

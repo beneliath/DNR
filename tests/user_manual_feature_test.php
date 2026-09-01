@@ -93,6 +93,8 @@ expectUserManual(
     str_contains($manual, '/moed connect CODE')
         && str_contains($manual, '/moed today')
         && str_contains($manual, '/moed event search TEXT')
+        && str_contains($manual, 'an email routing marker you can copy')
+        && str_contains($manual, 'Channel-visible cards do not show the marker')
         && str_contains($manual, '/moed link-event ID')
         && str_contains($manual, 'MOED is authoritative')
         && str_contains($manual, '<strong>Message actions</strong> using the grid/apps icon')

@@ -60,6 +60,7 @@ type apiEngagement struct {
 	Country            *string           `json:"event_country"`
 	OrganizationName   string            `json:"organization_name"`
 	URL                string            `json:"url"`
+	EmailRoutingMarker string            `json:"email_routing_marker"`
 	Presentations      []apiPresentation `json:"presentations"`
 	TaskSummary        apiTaskSummary    `json:"task_summary"`
 }

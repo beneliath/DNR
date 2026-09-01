@@ -627,7 +627,7 @@ $manual_access_summary = match ($manual_role) {
                                 <tr><td><code>/moed today</code></td><td>Shows a private dashboard with Overdue, Due today, Next 7 days, and Waiting counts, active assigned tasks, and a link back to MOED.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed tasks</code></td><td>Shows the same task dashboard with up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
-                                <tr><td><code>/moed event show ID</code></td><td>Shows a share-safe card with dates, status, location, presentation schedule, and work counts.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed event show ID</code></td><td>Shows a private engagement card with dates, status, location, work counts, and an email routing marker you can copy.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement and posts its canonical card.</td><td>Editors and administrators</td></tr>
                                 <tr><td><code>/moed unlink-event</code></td><td>Removes the current channel’s engagement binding.</td><td>Editors and administrators</td></tr>
                             </tbody>
@@ -639,7 +639,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Channel Context</span>
                         <h3>Engagement Cards</h3>
-                        <p>A bound channel has one canonical MOED engagement. The card intentionally excludes private notes, Chron history, contact details, compensation, travel amounts, financial reports, and uploaded files. Use <strong>Open in MOED</strong> for the complete record under ordinary MOED permissions.</p>
+                        <p>Run <code>/moed event show ID</code> for a private engagement card. Choose <strong>Copy</strong> beside the email routing marker, then keep the marker in an email subject or message so MOED can place that email with the engagement. Channel-visible cards do not show the marker. Use <strong>Open in MOED</strong> for the complete record.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Follow-Up</span>

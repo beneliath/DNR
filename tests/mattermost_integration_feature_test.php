@@ -91,7 +91,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.3.4'
+        && ($manifest['version'] ?? null) === '0.3.5'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -106,6 +106,13 @@ expectMattermost(
         && !str_contains($webapp, 'registerPostDropdownSubMenuAction')
         && str_contains($webapp, "value.startsWith('MMCSRF=')")
         && str_contains($webapp, "headers['X-CSRF-Token'] = csrfToken")
+        && str_contains($helpers, "\$engagement['email_routing_marker'] = applicationInboundMarker(\$engagementId)")
+        && str_contains($webapp, "function RoutingMarker({value})")
+        && str_contains($webapp, "navigator.clipboard.writeText(value)")
+        && str_contains($webapp, "document.execCommand('copy')")
+        && str_contains($webapp, "aria-live='polite'")
+        && str_contains($webapp, "event.email_routing_marker && <RoutingMarker")
+        && str_contains($pluginCommand, 'response.Engagement = channelVisibleEngagement(response.Engagement)')
         && str_contains($pluginCommand, '**Message actions** (the grid icon, not the three-dot menu)')
         && str_contains($webapp, "pluginRequest('/post-action'")
         && str_contains($pluginServer, 'HasPermissionToChannel')
@@ -115,7 +122,7 @@ expectMattermost(
         && str_contains($documentation, '**Message actions**')
         && str_contains($documentation, '**Add MOED')
         && str_contains($documentation, '**Add to MOED Chron**'),
-    'the bundle should render native dashboards/cards and expose CSRF-authenticated, server-authorized task and Chron post actions.'
+    'the bundle should render native dashboards/cards, provide a private quick-copy routing marker, and expose CSRF-authenticated, server-authorized task and Chron post actions.'
 );
 
 expectMattermost(
