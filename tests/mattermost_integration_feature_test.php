@@ -29,6 +29,7 @@ $secretEntrypoint = file_get_contents($root . '/docker/mattermost-secret-entrypo
 $apacheSecurity = file_get_contents($root . '/docker/apache-security.conf');
 $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
 $webapp = file_get_contents($root . '/mattermost-plugin/webapp/src/index.jsx');
+$sidebarLabel = file_get_contents($root . '/mattermost-plugin/webapp/src/sidebar_channel_label.mjs');
 $pluginServer = file_get_contents($root . '/mattermost-plugin/server/http.go');
 $pluginCommand = file_get_contents($root . '/mattermost-plugin/server/command.go');
 $pluginChannelMarker = file_get_contents($root . '/mattermost-plugin/server/channel_marker.go');
@@ -37,7 +38,7 @@ $pluginLifecycle = file_get_contents($root . '/mattermost-plugin/server/plugin.g
 $pluginNotifications = file_get_contents($root . '/mattermost-plugin/server/notifications.go');
 $pluginReadme = file_get_contents($root . '/mattermost-plugin/README.md');
 
-foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginChannelMarker, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
+foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $sidebarLabel, $pluginServer, $pluginCommand, $pluginChannelMarker, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -111,7 +112,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.2'
+        && ($manifest['version'] ?? null) === '0.4.3'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -127,6 +128,12 @@ expectMattermost(
         && str_contains($webapp, 'registerChannelHeaderIcon')
         && str_contains($webapp, 'registerChannelHeaderButtonAction')
         && str_contains($webapp, 'registerChannelHeaderMenuAction')
+        && str_contains($webapp, 'registerSidebarChannelLinkLabelComponent')
+        && str_contains($webapp, 'shortMOEDSidebarChannelDisplayName(displayName)')
+        && str_contains($webapp, "classList.add('moed-sidebar-label-active')")
+        && str_contains($sidebarLabel, '[MOED#${match[1]}]')
+        && str_contains($documentation, 'compact `[MOED#17]`')
+        && str_contains($documentation, 'continue to show and copy the full')
         && str_contains($webapp, 'moed-channel-header-icon--linked')
         && str_contains($pluginChannelMarker, 'channelDisplayNameWithMarker')
         && str_contains($pluginChannelMarker, 'unlinkedChannelDisplayName')

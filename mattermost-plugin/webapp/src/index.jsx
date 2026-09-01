@@ -1,5 +1,7 @@
+import {shortMOEDSidebarChannelDisplayName} from './sidebar_channel_label.mjs';
+
 const React = window.React;
-const {useEffect, useRef, useState} = React;
+const {useEffect, useLayoutEffect, useRef, useState} = React;
 
 const PLUGIN_ID = 'org.moed.mattermost';
 const PLUGIN_API = `/plugins/${PLUGIN_ID}/api/v1`;
@@ -14,6 +16,8 @@ const EMAIL_STYLES = `
 .moed-channel-header-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.8}
 .moed-channel-header-icon--linked{color:#0f8f87}
 .moed-channel-header-icon__dot{position:absolute;right:-1px;bottom:-1px;width:7px;height:7px;border:1.5px solid var(--center-channel-bg,#fff);border-radius:50%;background:#21a179}
+.SidebarChannelLinkLabel_wrapper.moed-sidebar-label-active .SidebarChannelLinkLabel{display:none!important}
+.moed-sidebar-channel-label{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .moed-channel-link{display:grid;gap:14px;padding:15px;border:1px solid rgba(var(--button-bg-rgb,28,88,217),.18);border-radius:10px;background:rgba(var(--button-bg-rgb,28,88,217),.05)}
 .moed-channel-link__title{margin:0;font-size:16px}.moed-channel-link__meta{margin:3px 0 0;color:rgba(var(--center-channel-color-rgb,61,60,64),.65);font-size:12px}.moed-channel-link__actions{display:flex;flex-wrap:wrap;gap:9px}
 .moed-loading{padding:32px;text-align:center;color:rgba(var(--center-channel-color-rgb,61,60,64),.65)}
@@ -378,6 +382,28 @@ function LegacyChannelHeaderIcon({store}) {
     return <ChannelLinkGlyph linked={Boolean(binding && binding.linked)}/>;
 }
 
+function SidebarChannelLabel({channel}) {
+    const labelRef = useRef(null);
+    const displayName = channel && typeof channel.display_name === 'string' ? channel.display_name : '';
+    const sidebarDisplayName = shortMOEDSidebarChannelDisplayName(displayName);
+    const isShortened = sidebarDisplayName !== displayName;
+    useLayoutEffect(() => {
+        if (!isShortened || !labelRef.current) {
+            return undefined;
+        }
+        const wrapper = labelRef.current.closest('.SidebarChannelLinkLabel_wrapper');
+        if (!wrapper) {
+            return undefined;
+        }
+        wrapper.classList.add('moed-sidebar-label-active');
+        return () => wrapper.classList.remove('moed-sidebar-label-active');
+    }, [channel && channel.id, displayName, isShortened, sidebarDisplayName]);
+    if (!isShortened) {
+        return null;
+    }
+    return <span ref={labelRef} className='moed-sidebar-channel-label'>{sidebarDisplayName}</span>;
+}
+
 function ChannelModal({request, onClose, onCompose}) {
     const [binding, setBinding] = useState(null);
     const [error, setError] = useState('');
@@ -660,6 +686,9 @@ class MOEDPlugin {
         }
         if (typeof registry.registerChannelHeaderMenuAction === 'function') {
             registry.registerChannelHeaderMenuAction('MOED engagement', (channelId) => openChannelLink(store, channelId));
+        }
+        if (typeof registry.registerSidebarChannelLinkLabelComponent === 'function') {
+            registry.registerSidebarChannelLinkLabelComponent(SidebarChannelLabel);
         }
     }
 

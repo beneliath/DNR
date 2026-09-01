@@ -890,7 +890,8 @@ Push each branch with an upstream (`git push -u origin <branch>`) and merge it t
 request. When continuing on a different computer, fetch the remote branch and create a new branch
 with that computer's prefix instead of committing directly to the first computer's branch.
 Application versions describe released behavior, not the computer that produced a commit; do not
-bump the version for each workstation commit.
+bump the version for each workstation commit. Version positions follow
+`[super].[major].[minor]`; a routine minor release increments the final component.
 
 Contributions to the DNR project are welcome. To contribute:
 
