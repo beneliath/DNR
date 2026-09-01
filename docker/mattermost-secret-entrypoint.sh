@@ -11,7 +11,8 @@ if [ -n "$source_path" ]; then
     runtime_path=/run/dnr-mattermost/token
     runtime_tmp="${runtime_path}.$$"
     trap 'rm -f "$runtime_tmp"' EXIT HUP INT TERM
-    install -m 0400 -o www-data -g www-data "$source_path" "$runtime_tmp"
+    install -m 0400 "$source_path" "$runtime_tmp"
+    chown www-data:www-data "$runtime_tmp"
     mv -f "$runtime_tmp" "$runtime_path"
     trap - EXIT HUP INT TERM
     export DNR_MATTERMOST_TOKEN_FILE=$runtime_path
