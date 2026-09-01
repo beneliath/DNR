@@ -92,10 +92,43 @@ function applicationGeneralWorkLabel(): string
     return 'General ' . applicationBrandName() . ' work';
 }
 
+function applicationInboundMarkerTag(int $engagementId, string $prefix): string
+{
+    if ($engagementId < 1) {
+        throw new InvalidArgumentException('The Engagement routing marker requires a valid ID.');
+    }
+    $normalizedPrefix = strtolower(trim($prefix));
+    if ($normalizedPrefix === '') {
+        throw new InvalidArgumentException('The Engagement routing marker requires a prefix.');
+    }
+    $digest = hash_hmac(
+        'sha256',
+        "dnr-inbound-routing-v1\0{$normalizedPrefix}\0{$engagementId}",
+        \Dnr\Security\InboundRoutingKey::bytes(),
+        true
+    );
+    return rtrim(strtr(base64_encode(substr($digest, 0, 16)), '+/', '-_'), '=');
+}
+
 function applicationInboundMarker(int $engagementId): string
 {
+    $prefix = deploymentConfig()->string('inbound_email.emitted_marker_prefix');
+    return '[' . $prefix . '#' . $engagementId . '.'
+        . applicationInboundMarkerTag($engagementId, $prefix) . ']';
+}
+
+function applicationInboundMarkerIsValid(string $prefix, int $engagementId, string $tag): bool
+{
+    if ($engagementId < 1 || preg_match('/\A[A-Za-z0-9_-]{22}\z/D', $tag) !== 1) {
+        return false;
+    }
+    return hash_equals(applicationInboundMarkerTag($engagementId, $prefix), $tag);
+}
+
+function applicationInboundMarkerExample(int $engagementId = 123): string
+{
     return '[' . deploymentConfig()->string('inbound_email.emitted_marker_prefix')
-        . '#' . $engagementId . ']';
+        . '#' . $engagementId . '.<signed-token>]';
 }
 
 function applicationTimezone(): DateTimeZone

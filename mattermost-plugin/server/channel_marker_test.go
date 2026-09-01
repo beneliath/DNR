@@ -54,9 +54,75 @@ func TestUnlinkedChannelDisplayNameRestoresOrPreservesRename(t *testing.T) {
 	}
 }
 
+func TestUserCanManageLinkedChannelRequiresNativePermissions(t *testing.T) {
+	tests := []struct {
+		name        string
+		channelType model.ChannelType
+		permission  *model.Permission
+	}{
+		{name: "public", channelType: model.ChannelTypeOpen, permission: model.PermissionManagePublicChannelProperties},
+		{name: "private", channelType: model.ChannelTypePrivate, permission: model.PermissionManagePrivateChannelProperties},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			api := &plugintest.API{}
+			channel := &model.Channel{Id: "channel-id", Type: test.channelType}
+			api.On("HasPermissionToChannel", "user-id", channel.Id, test.permission).Return(true).Once()
+			api.On("HasPermissionToChannel", "user-id", channel.Id, model.PermissionCreatePost).Return(true).Once()
+			defer api.AssertExpectations(t)
+
+			plugin := &Plugin{}
+			plugin.SetAPI(api)
+			if !plugin.userCanManageLinkedChannel("user-id", channel) {
+				t.Fatal("expected a user with both native permissions to manage the linked channel")
+			}
+		})
+	}
+}
+
+func TestUserCanManageLinkedChannelDeniesMissingManagePermission(t *testing.T) {
+	api := &plugintest.API{}
+	channel := &model.Channel{Id: "channel-id", Type: model.ChannelTypeOpen}
+	api.On(
+		"HasPermissionToChannel",
+		"user-id",
+		channel.Id,
+		model.PermissionManagePublicChannelProperties,
+	).Return(false).Once()
+	defer api.AssertExpectations(t)
+
+	plugin := &Plugin{}
+	plugin.SetAPI(api)
+	if plugin.userCanManageLinkedChannel("user-id", channel) {
+		t.Fatal("expected a user without native channel-management permission to be denied")
+	}
+}
+
+func TestUserCanManageLinkedChannelDeniesMissingPostPermission(t *testing.T) {
+	api := &plugintest.API{}
+	channel := &model.Channel{Id: "channel-id", Type: model.ChannelTypePrivate}
+	api.On(
+		"HasPermissionToChannel",
+		"user-id",
+		channel.Id,
+		model.PermissionManagePrivateChannelProperties,
+	).Return(true).Once()
+	api.On("HasPermissionToChannel", "user-id", channel.Id, model.PermissionCreatePost).Return(false).Once()
+	defer api.AssertExpectations(t)
+
+	plugin := &Plugin{}
+	plugin.SetAPI(api)
+	if plugin.userCanManageLinkedChannel("user-id", channel) {
+		t.Fatal("expected a user without create-post permission to be denied")
+	}
+}
+
 func TestReconcileChannelBindingMarkersUpgradesExistingBinding(t *testing.T) {
 	api := &plugintest.API{}
-	legacyBinding, err := json.Marshal(channelBinding{EngagementID: 17, LinkedBy: "user-id", LinkedAt: 1234})
+	marker := "[MOED#17.AAAAAAAAAAAAAAAAAAAAAA]"
+	legacyBinding, err := json.Marshal(channelBinding{
+		EngagementID: 17, LinkedBy: "user-id", LinkedAt: 1234, EmailRoutingMarker: marker,
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,15 +130,30 @@ func TestReconcileChannelBindingMarkersUpgradesExistingBinding(t *testing.T) {
 	api.On("KVGet", "channel_binding:channel-id").Return(legacyBinding, nil)
 	api.On("GetChannel", "channel-id").Return(&model.Channel{Id: "channel-id", DisplayName: "Event team"}, nil).Twice()
 	api.On("UpdateChannel", mock.MatchedBy(func(channel *model.Channel) bool {
-		return channel.Id == "channel-id" && channel.DisplayName == "[MOED#17] Event team"
-	})).Return(&model.Channel{Id: "channel-id", DisplayName: "[MOED#17] Event team"}, nil)
+		return channel.Id == "channel-id" && channel.DisplayName == marker+" Event team"
+	})).Return(&model.Channel{Id: "channel-id", DisplayName: marker + " Event team"}, nil)
 	api.On("KVSet", "channel_binding:channel-id", mock.MatchedBy(func(encoded []byte) bool {
 		var binding channelBinding
 		return json.Unmarshal(encoded, &binding) == nil &&
-			binding.EmailRoutingMarker == "[MOED#17]" &&
+			binding.EmailRoutingMarker == marker &&
 			binding.OriginalChannelDisplayName == "Event team" &&
-			binding.AppliedChannelDisplayName == "[MOED#17] Event team"
+			binding.AppliedChannelDisplayName == marker+" Event team"
 	})).Return(nil)
+	defer api.AssertExpectations(t)
+
+	plugin := &Plugin{}
+	plugin.SetAPI(api)
+	plugin.reconcileChannelBindingMarkers()
+}
+
+func TestReconcileChannelBindingMarkersDoesNotFabricateUnsignedMarker(t *testing.T) {
+	api := &plugintest.API{}
+	legacyBinding, err := json.Marshal(channelBinding{EngagementID: 17, LinkedBy: "user-id", LinkedAt: 1234})
+	if err != nil {
+		t.Fatal(err)
+	}
+	api.On("KVList", 0, 100).Return([]string{"channel_binding:channel-id"}, nil)
+	api.On("KVGet", "channel_binding:channel-id").Return(legacyBinding, nil)
 	defer api.AssertExpectations(t)
 
 	plugin := &Plugin{}

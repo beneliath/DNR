@@ -345,17 +345,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $lifecycle_status
         );
 
-        $submitted_chron_entries = [];
-        foreach ((array) ($_POST['chron_entries'] ?? []) as $submitted_entry_id => $submitted_entry_text) {
-            if (!ctype_digit((string) $submitted_entry_id) || !is_scalar($submitted_entry_text)) {
-                throw new InvalidArgumentException('Invalid Chron entry submission.');
-            }
-            $submitted_entry_text = trim((string) $submitted_entry_text);
-            if ($submitted_entry_text === '') {
-                throw new InvalidArgumentException('Chron entries cannot be empty.');
-            }
-            $submitted_chron_entries[(int) $submitted_entry_id] = $submitted_entry_text;
-        }
+        $submitted_chron_entries = normalizeSubmittedChronLogEntries(
+            $_POST['chron_entries'] ?? null
+        );
+        $submitted_chron_versions = normalizeSubmittedChronLogVersions(
+            $_POST['chron_entry_versions'] ?? null
+        );
 
         // Validate required fields
         if (
@@ -435,7 +430,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         );
         if ($submitted_chron_entries) {
             $current_chron_stmt = $conn->prepare(
-                'SELECT id, entry_text
+                'SELECT id, entry_text, updated_at
                  FROM engagement_chron_entries
                  WHERE engagement_id = ? AND is_archived = 0
                  FOR UPDATE'
@@ -451,32 +446,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $current_chron_entries = [];
             $current_chron_result = $current_chron_stmt->get_result();
             while ($current_chron_entry = $current_chron_result->fetch_assoc()) {
-                $current_chron_entries[(int) $current_chron_entry['id']]
-                    = (string) $current_chron_entry['entry_text'];
+                $current_chron_entries[(int) $current_chron_entry['id']] = [
+                    'entry_text' => (string) $current_chron_entry['entry_text'],
+                    'updated_at' => (string) $current_chron_entry['updated_at'],
+                ];
             }
             $current_chron_stmt->close();
 
             $chron_update_stmt = $conn->prepare(
                 'UPDATE engagement_chron_entries
-                 SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP()
-                 WHERE id = ? AND engagement_id = ? AND is_archived = 0'
+                 SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP(6)
+                 WHERE id = ? AND engagement_id = ? AND is_archived = 0 AND updated_at = ?'
             );
             if (!$chron_update_stmt) {
                 throw new RuntimeException('Unable to prepare the Chron entry changes.');
             }
             $updated_chron_text = '';
             $updated_chron_id = 0;
+            $expected_chron_version = '';
             $chron_update_stmt->bind_param(
-                'siii',
+                'siiis',
                 $updated_chron_text,
                 $current_user_id,
                 $updated_chron_id,
-                $engagement_id
+                $engagement_id,
+                $expected_chron_version
             );
             foreach ($submitted_chron_entries as $submitted_entry_id => $submitted_entry_text) {
                 if (!array_key_exists($submitted_entry_id, $current_chron_entries)
-                    || $submitted_entry_text === $current_chron_entries[$submitted_entry_id]) {
+                    || $submitted_entry_text === $current_chron_entries[$submitted_entry_id]['entry_text']) {
                     continue;
+                }
+                $expected_chron_version = (string) (
+                    $submitted_chron_versions[$submitted_entry_id] ?? ''
+                );
+                if ($expected_chron_version === ''
+                    || !hash_equals(
+                        $current_chron_entries[$submitted_entry_id]['updated_at'],
+                        $expected_chron_version
+                    )
+                ) {
+                    $chron_update_stmt->close();
+                    throw new InvalidArgumentException(
+                        'A Chron entry changed after you opened this page. Reload before saving so newer history is not overwritten.'
+                    );
                 }
                 $updated_chron_id = $submitted_entry_id;
                 $updated_chron_text = $submitted_entry_text;
@@ -961,9 +974,12 @@ try {
 
         <div class="chron-entry-list">
             <?php
-            $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
-                ? $_POST['chron_entries']
-                : [];
+$submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
+    ? $_POST['chron_entries']
+    : [];
+$submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
+    ? $_POST['chron_entry_versions']
+    : [];
             ?>
             <?php foreach ($chron_entries as $chron_entry): ?>
                 <?php
@@ -976,6 +992,10 @@ try {
                 $chron_entry_value = is_scalar($submitted_chron_value)
                     ? (string) $submitted_chron_value
                     : (string) $chron_entry['entry_text'];
+                $submitted_chron_version = $submitted_chron_versions[(string) $chron_entry['id']] ?? null;
+                $chron_entry_version = is_scalar($submitted_chron_version)
+                    ? (string) $submitted_chron_version
+                    : (string) $chron_entry['updated_at'];
                 ?>
                 <article class="chron-entry-card">
                     <div class="chron-entry-meta">
@@ -989,6 +1009,7 @@ try {
                     </div>
                     <div class="chron-entry-editor">
                         <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
+                        <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>" form="engagement-edit-form">
                         <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="5" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
                         <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
                             <?php echo csrfInput(); ?>

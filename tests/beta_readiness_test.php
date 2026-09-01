@@ -116,12 +116,15 @@ expectBetaReadiness(
 
 $migration = $read('migrations/20260817_beta_readiness_hardening.sql');
 $runner = $read('scripts/migrate.sh');
+$ready = $read('src/ready.php');
 $rotation = $read('scripts/secure_existing_deployment.sh');
 expectBetaReadiness(
     str_contains($migration, 'authentication_rate_limits')
         && str_contains($migration, 'chk_engagement_date_range')
         && str_contains($migration, 'chk_presentation_time_format')
         && str_contains($runner, 'schema_migrations')
+        && str_contains($ready, 'SELECT migration_name, checksum, state FROM schema_migrations')
+        && str_contains($ready, '($record[\'state\'] ?? null) !== \'applied\'')
         && str_contains($rotation, 'openssl rand -hex 32')
         && str_contains($rotation, "ALTER USER 'dnruser'@'%'")
         && str_contains($rotation, '.env is not a recognized legacy configuration')
@@ -131,7 +134,7 @@ expectBetaReadiness(
         && str_contains($rotation, 'DNR_COMPOSE_MODE')
         && str_contains($rotation, 'docker-compose.dev.yaml')
         && str_contains($rotation, '--wait --wait-timeout'),
-    'tracked migrations must install authentication bounds and data-integrity constraints.'
+    'tracked migrations and readiness checks must enforce authentication, integrity, and applied state.'
 );
 
 foreach ([

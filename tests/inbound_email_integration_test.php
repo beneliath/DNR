@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
+
 if (getenv('DNR_INTEGRATION_TEST') !== '1'
     || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
 ) {
@@ -145,9 +147,12 @@ try {
     $createdIds['engagements'][] = $unrelatedEngagementId;
     $engagementStmt->close();
 
+    $engagementMarker = applicationInboundMarker($engagementId);
+    $unrelatedEngagementMarker = applicationInboundMarker($unrelatedEngagementId);
+
     $searchedEngagements = searchInboundEmailEngagements(
         $conn,
-        '[MOED#' . $unrelatedEngagementId . ']',
+        $unrelatedEngagementMarker,
         1
     );
     expectInboundIntegration(
@@ -162,7 +167,7 @@ try {
         'Staff <' . $userEmail . '>',
         'Inbound Contact <' . $contactEmail . '>',
         'outgoing-' . $suffix . '@example.net',
-        'Outgoing routing test [MOED#' . $engagementId . ']'
+        'Outgoing routing test ' . $engagementMarker
     ), '2026-08-23T15:01:00Z');
     $stored = storeInboundEmailMessage($conn, 'file', 'outgoing-' . $suffix, $outgoing);
     $createdIds['messages'][] = $stored['id'];
@@ -202,14 +207,14 @@ try {
     $engagementChron->close();
     expectInboundIntegration(
         $contactEntry
-            && (int) $contactEntry['created_by'] === $userId
-            && $contactEntry['created_by_username_snapshot'] === $username
+            && $contactEntry['created_by'] === null
+            && $contactEntry['created_by_username_snapshot'] === 'Email Gateway'
             && str_contains((string) $contactEntry['entry_text'], 'Outgoing routing test')
             && $organizationEntry
             && str_contains((string) $organizationEntry['entry_text'], 'Outgoing routing test')
             && $engagementEntry
-            && str_contains((string) $engagementEntry['entry_text'], '[MOED#' . $engagementId . ']'),
-        'one Contact, Organization, and explicitly marked Engagement entry should retain sender attribution.'
+            && str_contains((string) $engagementEntry['entry_text'], $engagementMarker),
+        'one Contact, Organization, and signed Engagement entry should use gateway attribution.'
     );
 
     $duplicate = storeInboundEmailMessage(
@@ -220,7 +225,7 @@ try {
             'Staff <' . $userEmail . '>',
             'Inbound Contact <' . $contactEmail . '>',
             'outgoing-' . $suffix . '@example.net',
-            'Outgoing routing test [MOED#' . $engagementId . ']'
+            'Outgoing routing test ' . $engagementMarker
         )))
     );
     expectInboundIntegration(
@@ -282,7 +287,7 @@ try {
             && $preservedEngagementEntry['inbound_email_message_id'] === null
             && str_contains(
                 (string) $preservedEngagementEntry['entry_text'],
-                '[MOED#' . $engagementId . ']'
+                $engagementMarker
             ),
         'purging a source should clear every foreign-key link without deleting or changing any Chron entry.'
     );
@@ -297,7 +302,7 @@ try {
     $mattermostLink->bind_param('ssi', $mattermostUserId, $mattermostUsername, $userId);
     $mattermostLink->execute();
     $mattermostLink->close();
-    $outboundSubject = 'Previous message [MOED#' . $engagementId . ']';
+    $outboundSubject = 'Previous message ' . $engagementMarker;
     $outboundBody = 'Previous outbound message';
     $outboundMessage = $conn->prepare(
         "INSERT INTO engagement_email_messages
@@ -343,7 +348,7 @@ try {
         'Inbound Contact <' . $contactEmail . '>',
         'Staff <' . $userEmail . '>',
         'reply-' . $suffix . '@example.org',
-        'Contact reply routing test [MOED#' . $engagementId . ']'
+        'Contact reply routing test ' . $engagementMarker
     ));
     $replyStored = storeInboundEmailMessage($conn, 'file', 'reply-' . $suffix, $reply);
     $createdIds['messages'][] = $replyStored['id'];
@@ -375,15 +380,15 @@ try {
         'Staff <' . $userEmail . '>',
         'cross-organization-' . $suffix . '@example.org',
         'Unrelated body marker routing',
-        'Route this message to [MOED#' . $unrelatedEngagementId . '].'
+        'Route this message to ' . $unrelatedEngagementMarker . '.'
     ));
     $crossOrganizationRouting = routeInboundEmailMessage($conn, $crossOrganization);
     expectInboundIntegration(
         $crossOrganizationRouting['automatic']
             && $crossOrganizationRouting['authoritative_engagement']
             && in_array(
-                '[MOED#' . $unrelatedEngagementId
-                    . '] belongs to an Organization not identified by the message participants.',
+                $unrelatedEngagementMarker
+                    . ' belongs to an Organization not identified by the message participants.',
                 $crossOrganizationRouting['reasons'],
                 true
             ),
@@ -429,6 +434,69 @@ try {
     expectInboundIntegration(
         $crossOrganizationEngagementTotal === 1 && $crossOrganizationContactTotal === 0,
         'participant mismatches should write only to the authoritatively marked Engagement.'
+    );
+
+    $unknownSigned = parseInboundEmail($rawMessage(
+        'Unknown Sender <unknown-' . $suffix . '@example.org>',
+        'Staff <' . $userEmail . '>',
+        'unknown-signed-' . $suffix . '@example.org',
+        'Unknown sender ' . $engagementMarker
+    ));
+    $unknownSignedStored = storeInboundEmailMessage(
+        $conn,
+        'file',
+        'unknown-signed-' . $suffix,
+        $unknownSigned
+    );
+    $createdIds['messages'][] = $unknownSignedStored['id'];
+    expectInboundIntegration(
+        processInboundEmailMessage($conn, $unknownSignedStored['id']) === 'review',
+        'a signed marker must not authorize automatic writes for an unknown sender.'
+    );
+
+    $standaloneEmail = 'standalone-' . $suffix . '@example.org';
+    $standaloneContactStmt = $conn->prepare(
+        "INSERT INTO contacts
+            (organization_id, contact_first_name, contact_last_name,
+             contact_role, contact_email, is_deleted)
+         VALUES (NULL, 'Standalone', 'Contact', 'admin', ?, 0)"
+    );
+    $standaloneContactStmt->bind_param('s', $standaloneEmail);
+    $standaloneContactStmt->execute();
+    $standaloneContactId = (int) $conn->insert_id;
+    $createdIds['contacts'][] = $standaloneContactId;
+    $standaloneContactStmt->close();
+    $standaloneMatches = inboundEmailContactMatches($conn, $standaloneEmail);
+    expectInboundIntegration(
+        count($standaloneMatches) === 1
+            && $standaloneMatches[0]['id'] === $standaloneContactId
+            && $standaloneMatches[0]['organization_id'] === null,
+        'a standalone Contact should remain an inbound-routing candidate without an Organization.'
+    );
+    $standaloneMessage = parseInboundEmail($rawMessage(
+        'Standalone Contact <' . $standaloneEmail . '>',
+        'Staff <' . $userEmail . '>',
+        'standalone-' . $suffix . '@example.org',
+        'Standalone Contact routing test'
+    ));
+    $standaloneStored = storeInboundEmailMessage(
+        $conn,
+        'file',
+        'standalone-' . $suffix,
+        $standaloneMessage
+    );
+    $createdIds['messages'][] = $standaloneStored['id'];
+    expectInboundIntegration(
+        processInboundEmailMessage($conn, $standaloneStored['id']) === 'review'
+            && processInboundEmailMessage(
+                $conn,
+                $standaloneStored['id'],
+                [$standaloneContactId],
+                [],
+                $userId,
+                []
+            ) === 'processed',
+        'manual review should be able to route mail to a standalone Contact.'
     );
 
     $duplicateContactStmt = $conn->prepare(

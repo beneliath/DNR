@@ -198,11 +198,35 @@ function normalizeSubmittedChronLogEntries($submitted_entries) {
     return $entries;
 }
 
+function normalizeSubmittedChronLogVersions($submitted_versions) {
+    if ($submitted_versions === null) {
+        return [];
+    }
+    if (!is_array($submitted_versions) || count($submitted_versions) > 200) {
+        throw new InvalidArgumentException('Invalid Chron entry version submission.');
+    }
+
+    $versions = [];
+    foreach ($submitted_versions as $submitted_entry_id => $version) {
+        if (!ctype_digit((string) $submitted_entry_id) || !is_scalar($version)) {
+            throw new InvalidArgumentException('Invalid Chron entry version submission.');
+        }
+        $version = trim((string) $version);
+        if ($version === '' || strlen($version) > 32) {
+            throw new InvalidArgumentException('Invalid Chron entry version submission.');
+        }
+        $versions[(int) $submitted_entry_id] = $version;
+    }
+
+    return $versions;
+}
+
 function updateEntityChronLogEntries(
     mysqli $conn,
     $entity_type,
     $entity_id,
     array $submitted_entries,
+    array $submitted_versions,
     $current_user_id
 ) {
     if (!$submitted_entries) {
@@ -213,7 +237,7 @@ function updateEntityChronLogEntries(
     $table = $configuration['table'];
     $parent_column = $configuration['parent_column'];
     $current_stmt = $conn->prepare(
-        "SELECT id, entry_text
+        "SELECT id, entry_text, updated_at
          FROM {$table}
          WHERE {$parent_column} = ? AND is_archived = 0
          FOR UPDATE"
@@ -229,34 +253,48 @@ function updateEntityChronLogEntries(
     $current_entries = [];
     $current_result = $current_stmt->get_result();
     while ($current_entry = $current_result->fetch_assoc()) {
-        $current_entries[(int) $current_entry['id']] = (string) $current_entry['entry_text'];
+        $current_entries[(int) $current_entry['id']] = [
+            'entry_text' => (string) $current_entry['entry_text'],
+            'updated_at' => (string) $current_entry['updated_at'],
+        ];
     }
     $current_stmt->close();
 
     $update_stmt = $conn->prepare(
         "UPDATE {$table}
-         SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP()
-         WHERE id = ? AND {$parent_column} = ? AND is_archived = 0"
+         SET entry_text = ?, updated_by = ?, updated_at = UTC_TIMESTAMP(6)
+         WHERE id = ? AND {$parent_column} = ? AND is_archived = 0 AND updated_at = ?"
     );
     if (!$update_stmt) {
         throw new RuntimeException('Unable to prepare the Chron entry update.');
     }
     $updated_text = '';
     $entry_id = 0;
+    $expected_version = '';
     $update_stmt->bind_param(
-        'siii',
+        'siiis',
         $updated_text,
         $current_user_id,
         $entry_id,
-        $entity_id
+        $entity_id,
+        $expected_version
     );
     foreach ($submitted_entries as $submitted_entry_id => $submitted_entry_text) {
         if (!array_key_exists($submitted_entry_id, $current_entries)) {
             $update_stmt->close();
             throw new InvalidArgumentException('A submitted Chron entry is no longer available.');
         }
-        if ($submitted_entry_text === $current_entries[$submitted_entry_id]) {
+        if ($submitted_entry_text === $current_entries[$submitted_entry_id]['entry_text']) {
             continue;
+        }
+        $expected_version = (string) ($submitted_versions[$submitted_entry_id] ?? '');
+        if ($expected_version === ''
+            || !hash_equals($current_entries[$submitted_entry_id]['updated_at'], $expected_version)
+        ) {
+            $update_stmt->close();
+            throw new InvalidArgumentException(
+                'A Chron entry changed after you opened this page. Reload before saving so newer history is not overwritten.'
+            );
         }
         $entry_id = $submitted_entry_id;
         $updated_text = $submitted_entry_text;

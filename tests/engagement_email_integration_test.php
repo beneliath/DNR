@@ -11,6 +11,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1'
 
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('E', 32)));
+putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
 putenv('DNR_MAIL_TRANSPORT=smtp');
 putenv('DNR_INBOUND_ADDRESS=replies@example.test');
 require_once $sourceDirectory . '/config.php';

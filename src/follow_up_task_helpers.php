@@ -135,10 +135,13 @@ function followUpTaskSubjectRecord(mysqli $conn, $subject_type, $subject_id = nu
     } elseif ($subject_type === 'contact') {
         $stmt = $conn->prepare(
             "SELECT c.id,
-                    CONCAT(c.contact_last_name, ', ', c.contact_first_name, ' · ', o.organization_name) AS label,
-                    (c.is_deleted = 0 AND o.is_deleted = 0) AS is_active
+                    CONCAT_WS(' · ',
+                        CONCAT(c.contact_last_name, ', ', c.contact_first_name),
+                        NULLIF(o.organization_name, '')
+                    ) AS label,
+                    (c.is_deleted = 0 AND (o.id IS NULL OR o.is_deleted = 0)) AS is_active
              FROM contacts c
-             INNER JOIN organizations o ON o.id = c.organization_id
+             LEFT JOIN organizations o ON o.id = c.organization_id
              WHERE c.id = ?"
         );
         $url = 'view_contact.php?id=' . $subject_id;
@@ -218,16 +221,18 @@ function followUpTaskSubjectOptions(mysqli $conn)
     $contacts = $conn->query(
         "SELECT c.id, c.contact_first_name, c.contact_last_name, o.organization_name
          FROM contacts c
-         INNER JOIN organizations o ON o.id = c.organization_id
-         WHERE c.is_deleted = 0 AND o.is_deleted = 0
+         LEFT JOIN organizations o ON o.id = c.organization_id
+         WHERE c.is_deleted = 0 AND (o.id IS NULL OR o.is_deleted = 0)
          ORDER BY c.contact_last_name, c.contact_first_name, o.organization_name, c.id"
     );
     if ($contacts) {
         while ($row = $contacts->fetch_assoc()) {
             $options['contact'][] = [
                 'value' => 'contact:' . (int) $row['id'],
-                'label' => trim($row['contact_last_name'] . ', ' . $row['contact_first_name'])
-                    . ' · ' . $row['organization_name'],
+                'label' => implode(' · ', array_filter([
+                    trim($row['contact_last_name'] . ', ' . $row['contact_first_name']),
+                    trim((string) ($row['organization_name'] ?? '')),
+                ])),
             ];
         }
     }
@@ -300,20 +305,23 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
 
     $contact_stmt = $conn->prepare(
         "SELECT c.id,
-                CONCAT(c.contact_last_name, ', ', c.contact_first_name, ' · ', o.organization_name) AS label
+                CONCAT_WS(' · ',
+                    CONCAT(c.contact_last_name, ', ', c.contact_first_name),
+                    NULLIF(o.organization_name, '')
+                ) AS label
          FROM contacts c
-         INNER JOIN organizations o ON o.id = c.organization_id
-         WHERE c.is_deleted = 0 AND o.is_deleted = 0
+         LEFT JOIN organizations o ON o.id = c.organization_id
+         WHERE c.is_deleted = 0 AND (o.id IS NULL OR o.is_deleted = 0)
            AND (
              MATCH(
                 c.contact_first_name, c.contact_last_name, c.contact_email,
                 c.contact_phone, c.contact_role_other, c.contact_notes
              ) AGAINST (? IN BOOLEAN MODE)
-             OR MATCH(
+             OR (o.id IS NOT NULL AND MATCH(
                 o.organization_name, o.notes, o.affiliation, o.distinctives,
                 o.email, o.phone, o.physical_city, o.physical_state,
                 o.mailing_city, o.mailing_state
-             ) AGAINST (? IN BOOLEAN MODE)
+             ) AGAINST (? IN BOOLEAN MODE))
            )
          ORDER BY c.contact_last_name, c.contact_first_name, c.id LIMIT ?"
     );

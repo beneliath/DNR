@@ -16,6 +16,7 @@ x-app-environment: &app-environment
   MYSQL_BACKUP_USER: dnrbackup
   MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
+  DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
@@ -67,6 +68,7 @@ services:
         condition: service_completed_successfully
     secrets:
       - dnr_2fa_encryption_key
+      - dnr_inbound_routing_key
       - dnr_mysql_app_password
       - dnr_mysql_backup_password
     environment: *app-environment
@@ -296,6 +298,8 @@ networks:
 secrets:
   dnr_2fa_encryption_key:
     file: ${DNR_2FA_KEY_FILE:-./secrets/dnr_2fa_encryption_key}
+  dnr_inbound_routing_key:
+    file: ${DNR_INBOUND_ROUTING_KEY_FILE:-./secrets/dnr_inbound_routing_key}
   dnr_mysql_root_password:
     file: ${DNR_MYSQL_ROOT_PASSWORD_FILE:-./secrets/mysql_root_password}
   dnr_mysql_app_password:

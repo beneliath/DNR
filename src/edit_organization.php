@@ -109,10 +109,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     }
     $same_address = (bool) $organization_input['same_address'];
     $submitted_chron_entries = [];
+    $submitted_chron_versions = [];
     $new_chron_entry = '';
     try {
         $submitted_chron_entries = normalizeSubmittedChronLogEntries(
             $_POST['chron_entries'] ?? null
+        );
+        $submitted_chron_versions = normalizeSubmittedChronLogVersions(
+            $_POST['chron_entry_versions'] ?? null
         );
         if (!is_scalar($_POST['new_chron_entry'] ?? '')) {
             throw new InvalidArgumentException('Enter a valid Chron entry.');
@@ -185,6 +189,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 'organization',
                 $org_id,
                 $submitted_chron_entries,
+                $submitted_chron_versions,
                 $current_user_id
             );
             if ($new_chron_entry !== '') {

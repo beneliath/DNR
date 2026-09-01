@@ -11,7 +11,7 @@ $manual_role_label = ucfirst($manual_role);
 $manual_can_manage = in_array($manual_role, ['admin', 'editor'], true);
 $manual_is_admin = $manual_role === 'admin';
 $manual_brand = applicationBrandName();
-$manual_marker_example = applicationInboundMarker(123);
+$manual_marker_example = applicationInboundMarkerExample(123);
 $manual_marker_template = str_replace('123', 'ID', $manual_marker_example);
 $manual_dashboard_days = applicationWorkflowSetting('dashboard_upcoming_days');
 $manual_task_days = applicationWorkflowSetting('task_upcoming_days');
@@ -477,7 +477,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>How Inbound Email Finds Its Records</h3>
-                    <p>One unique, valid engagement marker routes directly to that active engagement. When participant matching is uncertain, only the marked engagement receives the Chron entry and the message remains available for review.</p>
+                    <p>One unique, valid signed engagement marker routes directly to that active engagement only when the sender also uniquely matches an active record. Unknown senders and unsigned legacy markers require review. When participant matching is uncertain, only the signed engagement receives the Chron entry.</p>
                 </section>
 
                 <section class="manual-card-grid manual-card-grid-two">
@@ -493,7 +493,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Review the Inbound Queue</h3>
-                    <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Without an authoritative marker, unknown or ambiguous senders, shared addresses, and messages with no unique target require review. Invalid, conflicting, unknown, or archived engagement markers also require review.</p>
+                    <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Without a valid signed marker, every message requires review. Unknown or ambiguous senders, shared addresses, messages with no unique target, and invalid, conflicting, unknown, or archived engagement markers also require review.</p>
                     <ol class="manual-steps manual-steps-compact">
                         <li><span>01</span><section><strong>Inspect the source.</strong><p>Read the From, To, Cc, dates, attachment names, plain-text body, sender classification, suggested routes, and review reasons.</p></section></li>
                         <li><span>02</span><section><strong>Correct the targets.</strong><p>Select suggested Contact and Organization routes. Search any active engagement by marker, ID, title, or organization.</p></section></li>
@@ -628,8 +628,8 @@ $manual_access_summary = match ($manual_role) {
                                 <tr><td><code>/moed tasks</code></td><td>Shows the same task dashboard with up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event show ID</code></td><td>Shows a private engagement card with dates, status, location, work counts, and an email routing marker you can copy.</td><td>Linked users</td></tr>
-                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement, adds its routing marker to the channel name, and posts its card.</td><td>Editors and administrators</td></tr>
-                                <tr><td><code>/moed unlink-event</code></td><td>Removes the channel’s engagement binding and its channel-name marker.</td><td>Editors and administrators</td></tr>
+                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement, adds its routing marker to the channel name, and posts its card.</td><td>Editors and administrators with native channel-management and posting permission</td></tr>
+                                <tr><td><code>/moed unlink-event</code></td><td>Removes the channel’s engagement binding and its channel-name marker.</td><td>Editors and administrators with native channel-management and posting permission</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -650,7 +650,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Recognize the Engagement Linked to a Channel</h3>
-                    <p>A linked channel’s name begins with its MOED routing marker, such as <code>[MOED#17]</code>, so the connection remains visible in the sidebar and channel header. The colored chain control provides the same signal; select it, or choose <strong>MOED engagement</strong> from the channel menu, to see the engagement, open it in MOED, copy its routing marker, or begin an email. Unlinking removes the marker from the channel name.</p>
+                    <p>A linked channel’s name begins with its signed MOED routing marker, such as <code>[MOED#17.&lt;signed-token&gt;]</code>, so the connection remains visible in the sidebar and channel header. The colored chain control provides the same signal; select it, or choose <strong>MOED engagement</strong> from the channel menu, to see the engagement, open it in MOED, copy its routing marker, or begin an email. Unlinking removes the marker from the channel name.</p>
                 </section>
 
                 <section class="manual-subsection">

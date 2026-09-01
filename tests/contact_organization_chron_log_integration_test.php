@@ -89,6 +89,7 @@ try {
         'contact',
         $contactId,
         [(int) $contactEntries[0]['id'] => $updatedContactText],
+        [(int) $contactEntries[0]['id'] => (string) $contactEntries[0]['updated_at']],
         $userId
     );
     $organizationEntries = fetchEntityChronLogEntries($conn, 'organization', $organizationId);
@@ -97,7 +98,37 @@ try {
         'editing a contact entry should not alter the organization history.'
     );
 
-    $contactEntryId = (int) $contactEntries[0]['id'];
+    $updatedContactEntries = fetchEntityChronLogEntries($conn, 'contact', $contactId);
+    $staleVersion = (string) $updatedContactEntries[0]['updated_at'];
+    $concurrentText = $updatedContactText . ' by another editor';
+    $concurrentStmt = $conn->prepare(
+        'UPDATE contact_chron_entries
+         SET entry_text = ?, updated_at = TIMESTAMPADD(MICROSECOND, 1, updated_at)
+         WHERE id = ?'
+    );
+    $contactEntryId = (int) $updatedContactEntries[0]['id'];
+    $concurrentStmt->bind_param('si', $concurrentText, $contactEntryId);
+    $concurrentStmt->execute();
+    $concurrentStmt->close();
+    $staleChronRejected = false;
+    try {
+        updateEntityChronLogEntries(
+            $conn,
+            'contact',
+            $contactId,
+            [$contactEntryId => $updatedContactText . ' stale overwrite'],
+            [$contactEntryId => $staleVersion],
+            $userId
+        );
+    } catch (InvalidArgumentException $exception) {
+        $staleChronRejected = str_contains($exception->getMessage(), 'changed after you opened');
+    }
+    $concurrentContactEntries = fetchEntityChronLogEntries($conn, 'contact', $contactId);
+    expectEntityChronIntegration(
+        $staleChronRejected && $concurrentContactEntries[0]['entry_text'] === $concurrentText,
+        'a stale parent form should not overwrite a newer Chron-only edit.'
+    );
+
     archiveEntityChronLogEntry($conn, 'contact', $contactId, $contactEntryId, $userId);
     expectEntityChronIntegration(
         countEntityChronLogEntries($conn, 'contact', $contactId) === 0

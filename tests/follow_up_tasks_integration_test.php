@@ -23,6 +23,24 @@ mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
 requireFollowUpTaskSchema($conn);
 $suffix = bin2hex(random_bytes(4));
 
+$versionPrecision = $conn->query(
+    "SELECT table_name AS task_table, datetime_precision AS precision_value
+     FROM information_schema.columns
+     WHERE table_schema = DATABASE()
+       AND table_name IN ('follow_up_tasks', 'standard_event_tasks')
+       AND column_name = 'updated_at'"
+)->fetch_all(MYSQLI_ASSOC);
+expectFollowUpTaskIntegration(
+    count($versionPrecision) === 2
+        && array_reduce(
+            $versionPrecision,
+            static fn(bool $valid, array $row): bool =>
+                $valid && (int) $row['precision_value'] === 6,
+            true
+        ),
+    'task optimistic-lock timestamps should retain microsecond precision.'
+);
+
 $username = 'task-test-' . $suffix;
 $password_hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
 $user_stmt = $conn->prepare(
@@ -274,6 +292,34 @@ expectFollowUpTaskIntegration(
     'completion should record status, actor, and timestamp together.'
 );
 
+$standalone_contact_email = 'standalone-task-' . $suffix . '@example.org';
+$standalone_contact_stmt = $conn->prepare(
+    "INSERT INTO contacts
+        (organization_id, contact_first_name, contact_last_name, contact_role, contact_email)
+     VALUES (NULL, 'Standalone', 'Task Contact', 'admin', ?)"
+);
+$standalone_contact_stmt->bind_param('s', $standalone_contact_email);
+$standalone_contact_stmt->execute();
+$standalone_contact_id = (int) $conn->insert_id;
+$standalone_contact_stmt->close();
+$standalone_subject = followUpTaskSubjectRecord($conn, 'contact', $standalone_contact_id);
+$standalone_task = normalizeFollowUpTaskInput($conn, [
+    'title' => 'Follow up with standalone contact',
+    'status' => 'open',
+    'priority' => 'normal',
+    'subject' => 'contact:' . $standalone_contact_id,
+]);
+$standalone_task_id = insertFollowUpTask($conn, $standalone_task, $user_id);
+$stored_standalone_task = fetchFollowUpTask($conn, $standalone_task_id);
+expectFollowUpTaskIntegration(
+    $standalone_subject
+        && $standalone_subject['active']
+        && $standalone_subject['label'] === 'Task Contact, Standalone'
+        && $stored_standalone_task
+        && (int) $stored_standalone_task['contact_id'] === $standalone_contact_id,
+    'standalone Contacts should be valid task subjects without an Organization.'
+);
+
 $invalid_subject_rejected = false;
 try {
     $invalid_stmt = $conn->prepare(
@@ -313,6 +359,11 @@ $delete_org_stmt = $conn->prepare('DELETE FROM organizations WHERE id = ?');
 $delete_org_stmt->bind_param('i', $organization_id);
 $delete_org_stmt->execute();
 $delete_org_stmt->close();
+
+$delete_standalone_contact_stmt = $conn->prepare('DELETE FROM contacts WHERE id = ?');
+$delete_standalone_contact_stmt->bind_param('i', $standalone_contact_id);
+$delete_standalone_contact_stmt->execute();
+$delete_standalone_contact_stmt->close();
 
 $delete_template_stmt = $conn->prepare('DELETE FROM standard_event_tasks WHERE id = ?');
 $delete_template_stmt->bind_param('i', $custom_template_id);

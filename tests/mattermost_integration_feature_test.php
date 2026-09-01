@@ -111,7 +111,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.1'
+        && ($manifest['version'] ?? null) === '0.4.2'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -132,8 +132,14 @@ expectMattermost(
         && str_contains($pluginChannelMarker, 'unlinkedChannelDisplayName')
         && str_contains($pluginChannelMarker, 'ChannelDisplayNameMaxRunes')
         && str_contains($pluginChannelMarker, 'reconcileChannelBindingMarkers')
+        && str_contains($pluginChannelMarker, 'PermissionManagePublicChannelProperties')
+        && str_contains($pluginChannelMarker, 'PermissionManagePrivateChannelProperties')
+        && str_contains($pluginChannelMarker, 'PermissionCreatePost')
+        && str_contains($pluginChannelMarker, 'isSignedMOEDChannelMarker')
         && str_contains($pluginLifecycle, 'p.reconcileChannelBindingMarkers()')
         && str_contains($webapp, "pluginRequest('/email-send'")
+        && str_contains($webapp, 'stableIdempotencyKey(')
+        && str_contains($webapp, "useRef({fingerprint: '', key: ''})")
         && str_contains($webapp, 'Send and add to Chron')
         && str_contains($webapp, 'include_thread')
         && !str_contains($webapp, 'registerPostDropdownSubMenuAction')

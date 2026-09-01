@@ -225,18 +225,21 @@ function normalizeEngagementEmailSubject(mixed $subject, int $engagementId): str
         static fn(mixed $prefix): string => preg_quote((string) $prefix, '/'),
         deploymentConfig()->list('inbound_email.accepted_marker_prefixes')
     ));
-    preg_match_all('/\[(?:' . $prefixPattern . ')#([1-9][0-9]*)\]/i', $subject, $matches);
-    foreach ($matches[1] ?? [] as $markedEngagementId) {
-        if ((int) $markedEngagementId !== $engagementId) {
+    $markerPattern = '/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i';
+    preg_match_all($markerPattern, $subject, $matches, PREG_SET_ORDER);
+    foreach ($matches as $match) {
+        if (preg_match('/\A([1-9][0-9]{0,9})(?:\.[A-Za-z0-9_-]+)?\z/D', (string) $match[1], $parts) !== 1) {
+            throw new InvalidArgumentException('Remove the invalid routing marker before sending.');
+        }
+        if ((int) $parts[1] !== $engagementId) {
             throw new InvalidArgumentException(
                 'Remove the routing marker for the other engagement before sending.'
             );
         }
     }
+    $subject = trim(preg_replace($markerPattern, '', $subject) ?? $subject);
     $marker = applicationInboundMarker($engagementId);
-    if (stripos($subject, $marker) === false) {
-        $subject .= ' ' . $marker;
-    }
+    $subject = trim($subject . ' ' . $marker);
     if (mb_strlen($subject, 'UTF-8') > 255) {
         throw new InvalidArgumentException('Email subjects must be 255 characters or fewer, including the routing marker.');
     }

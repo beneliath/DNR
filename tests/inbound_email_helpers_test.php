@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
+
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/inbound_email_helpers.php';
 
@@ -62,8 +64,10 @@ expectInboundEmail(
     'mail dates should be retained in UTC.'
 );
 
+$marker123 = applicationInboundMarker(123);
+$lowerPrefixMarker123 = preg_replace('/\A\[MOED#/', '[moed#', $marker123);
 $markers = parseInboundEmailEngagementMarkers(
-    'Re: Schedule [MOED#123] [moed#123]'
+    'Re: Schedule ' . $marker123 . ' ' . $lowerPrefixMarker123
 );
 $invalidMarkers = parseInboundEmailEngagementMarkers(
     'Bad [MOED#0] [MOED#abc] [MOED#2147483648]'
@@ -76,15 +80,15 @@ expectInboundEmail(
 );
 $bodyMarkers = inboundEmailMessageEngagementMarkers([
     'subject' => 'Schedule update',
-    'body_text' => 'Please attach this message to [MOED#456].',
+    'body_text' => 'Please attach this message to ' . applicationInboundMarker(456) . '.',
 ]);
 $repeatedMessageMarkers = inboundEmailMessageEngagementMarkers([
-    'subject' => 'Re: Schedule [MOED#123]',
-    'body_text' => 'Quoted thread marker [moed#123]',
+    'subject' => 'Re: Schedule ' . $marker123,
+    'body_text' => 'Quoted thread marker ' . $lowerPrefixMarker123,
 ]);
 $conflictingMessageMarkers = inboundEmailMessageEngagementMarkers([
-    'subject' => 'First route [MOED#123]',
-    'body_text' => 'Second route [MOED#456]',
+    'subject' => 'First route ' . $marker123,
+    'body_text' => 'Second route ' . applicationInboundMarker(456),
 ]);
 expectInboundEmail(
     $bodyMarkers === ['ids' => [456], 'invalid' => []]
@@ -102,7 +106,7 @@ $engagementRoute = inboundEmailEngagementRoute([
     'lifecycle_status' => 'active',
 ]);
 expectInboundEmail(
-    $engagementRoute['marker'] === '[MOED#123]'
+    $engagementRoute['marker'] === $marker123
         && $engagementRoute['organization_id'] === 45
         && str_contains($engagementRoute['label'], 'Are You Ready? – Texas')
         && str_contains($engagementRoute['label'], '2026-09-11 – 2026-09-12'),

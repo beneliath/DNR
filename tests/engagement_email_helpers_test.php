@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
+
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 $vendorAutoload = getenv('DNR_TEST_VENDOR_AUTOLOAD') ?: __DIR__ . '/../vendor/autoload.php';
 require_once $vendorAutoload;
