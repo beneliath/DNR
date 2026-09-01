@@ -8,9 +8,11 @@ if [ -n "$source_path" ]; then
         exit 1
     fi
 
-    runtime_path=/run/dnr-mattermost/token
+    runtime_dir=/run/dnr-mattermost
+    runtime_path=${runtime_dir}/token
     runtime_tmp="${runtime_path}.$$"
     trap 'rm -f "$runtime_tmp"' EXIT HUP INT TERM
+    chown www-data:www-data "$runtime_dir"
     install -m 0400 "$source_path" "$runtime_tmp"
     chown www-data:www-data "$runtime_tmp"
     mv -f "$runtime_tmp" "$runtime_path"

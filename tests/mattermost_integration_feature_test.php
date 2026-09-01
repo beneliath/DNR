@@ -85,6 +85,7 @@ expectMattermost(
         && str_contains($compose, '/run/dnr-mattermost:rw,noexec,nosuid,size=1m,mode=0700')
         && str_contains($compose, 'DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token')
         && str_contains($compose, 'DNR_MATTERMOST_TOKEN_SECRET_FILE')
+        && str_contains($secretEntrypoint, 'chown www-data:www-data "$runtime_dir"')
         && str_contains($secretEntrypoint, 'install -m 0400 "$source_path" "$runtime_tmp"')
         && str_contains($secretEntrypoint, 'chown www-data:www-data "$runtime_tmp"')
         && str_contains($secretEntrypoint, 'export DNR_MATTERMOST_TOKEN_FILE=$runtime_path')
