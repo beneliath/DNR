@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 include 'two_factor_helpers.php';
+include 'notification_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -9,7 +10,11 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $user_id = (int) $_GET['id'];
 
     // Fetch user details from the database
-    $stmt = $conn->prepare("SELECT id, username, role FROM users WHERE id = ?");
+    $stmt = $conn->prepare(
+        "SELECT id, username, role, email, email_verified_at,
+                task_digest_enabled, task_digest_time, task_digest_days
+         FROM users WHERE id = ?"
+    );
     $stmt->bind_param("i", $user_id);
     $stmt->execute();
     $result = $stmt->get_result();
@@ -33,8 +38,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $username = trim($_POST['username'] ?? '');
     $role = $_POST['role'] ?? '';
     $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
+    $task_digest_enabled = ($_POST['task_digest_enabled'] ?? '') === '1' ? 1 : 0;
+    $task_digest_time = taskDigestDeliveryTimeFromInput(
+        taskDigestDeliveryTimeInputValue($user['task_digest_time'] ?? null)
+    );
+    $task_digest_days = (int) ($user['task_digest_days'] ?? TASK_DIGEST_WEEKDAYS);
+    if ($task_digest_days < 1 || $task_digest_days > TASK_DIGEST_EVERY_DAY) {
+        $task_digest_days = TASK_DIGEST_WEEKDAYS;
+    }
+    try {
+        $task_digest_time = taskDigestDeliveryTimeFromInput(
+            $_POST['task_digest_time'] ?? null
+        );
+        $task_digest_days = taskDigestDaysFromInput(
+            $_POST['task_digest_days'] ?? null
+        );
+    } catch (InvalidArgumentException $exception) {
+        $error = $exception->getMessage();
+    }
 
-    if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
+    if (isset($error)) {
+        // Keep the submitted values below so the administrator can correct them.
+        $user['username'] = $username;
+        $user['role'] = $role;
+        $user['task_digest_enabled'] = $task_digest_enabled;
+        $user['task_digest_time'] = $task_digest_time;
+        $user['task_digest_days'] = $task_digest_days;
+    } elseif ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
         $error = "Username is required and must be 50 characters or fewer.";
     } elseif (!in_array($role, $valid_roles, true)) {
         $error = "Invalid role selected.";
@@ -73,13 +103,23 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             $stmt = $conn->prepare(
                 'UPDATE users
-                 SET username = ?, role = ?, auth_version = auth_version + 1
+                 SET username = ?, role = ?,
+                     task_digest_enabled = ?, task_digest_time = ?, task_digest_days = ?,
+                     auth_version = auth_version + 1
                  WHERE id = ?'
             );
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the user update.');
             }
-            $stmt->bind_param('ssi', $username, $role, $user_id);
+            $stmt->bind_param(
+                'ssisii',
+                $username,
+                $role,
+                $task_digest_enabled,
+                $task_digest_time,
+                $task_digest_days,
+                $user_id
+            );
             if (!$stmt->execute() || $stmt->affected_rows !== 1) {
                 throw new RuntimeException('Unable to update the user.');
             }
@@ -94,9 +134,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 : 'Unable to update user details. The username may already exist.';
             $user['username'] = $username;
             $user['role'] = $role;
+            $user['task_digest_enabled'] = $task_digest_enabled;
+            $user['task_digest_time'] = $task_digest_time;
+            $user['task_digest_days'] = $task_digest_days;
         }
     }
 }
+
+$task_digest_time_value = taskDigestDeliveryTimeInputValue(
+    $user['task_digest_time'] ?? null
+);
+$task_digest_days_value = (int) ($user['task_digest_days'] ?? TASK_DIGEST_WEEKDAYS);
+if ($task_digest_days_value < 1 || $task_digest_days_value > TASK_DIGEST_EVERY_DAY) {
+    $task_digest_days_value = TASK_DIGEST_WEEKDAYS;
+}
+$task_digest_day_options = [
+    1 => ['short' => 'M', 'label' => 'Monday'],
+    2 => ['short' => 'T', 'label' => 'Tuesday'],
+    4 => ['short' => 'W', 'label' => 'Wednesday'],
+    8 => ['short' => 'Th', 'label' => 'Thursday'],
+    16 => ['short' => 'F', 'label' => 'Friday'],
+    32 => ['short' => 'Sa', 'label' => 'Saturday'],
+    64 => ['short' => 'Su', 'label' => 'Sunday'],
+];
 ?>
 
 <!DOCTYPE html>
@@ -107,12 +167,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
   ),
+  'scripts' =>
+  array (
+    0 =>
+    array (
+      'path' => 'assets/js/profile.min.js',
+    ),
+  ),
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit User</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change the account username or access level.</p></div></div>
+    <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change account access and daily work digest settings.</p></div></div>
 
     <?php if (isset($error)) echo "<p class='error'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</p>"; ?>
 
@@ -124,6 +191,44 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
             <?php endforeach; ?>
         </select></div>
+        <section class="form-section" aria-labelledby="digest-settings-heading">
+            <h2 id="digest-settings-heading">Daily Work Digest</h2>
+            <label class="profile-notification-option">
+                <input type="checkbox" name="task_digest_enabled" value="1" data-task-digest-enabled
+                    <?php echo !empty($user['task_digest_enabled']) ? 'checked' : ''; ?>>
+                <span>
+                    <strong>Enable daily work digest</strong>
+                    <small>Delivery requires an active account with a verified email address<?php echo empty($user['email_verified_at']) ? '; this user’s email is not currently verified' : ''; ?>.</small>
+                </span>
+            </label>
+            <div class="profile-notification-schedule" data-task-digest-schedule>
+                <div class="profile-notification-time">
+                    <label for="task_digest_time">Delivery time</label>
+                    <input type="time" id="task_digest_time" name="task_digest_time"
+                        value="<?php echo htmlspecialchars($task_digest_time_value, ENT_QUOTES, 'UTF-8'); ?>"
+                        step="60" required>
+                    <small>Uses <?php echo htmlspecialchars(applicationTimezoneName(), ENT_QUOTES, 'UTF-8'); ?> time.</small>
+                </div>
+                <fieldset class="profile-notification-days">
+                    <legend>Delivery days</legend>
+                    <div class="profile-notification-presets" aria-label="Delivery day presets">
+                        <button type="button" class="button-secondary" data-task-digest-days="31">Weekdays</button>
+                        <button type="button" class="button-secondary" data-task-digest-days="96">Weekends</button>
+                        <button type="button" class="button-secondary" data-task-digest-days="127">Every day</button>
+                    </div>
+                    <div class="profile-notification-day-options">
+                        <?php foreach ($task_digest_day_options as $day_value => $day_option): ?>
+                            <label title="<?php echo htmlspecialchars($day_option['label'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <input type="checkbox" name="task_digest_days[]"
+                                    value="<?php echo $day_value; ?>"
+                                    <?php echo ($task_digest_days_value & $day_value) !== 0 ? 'checked' : ''; ?>>
+                                <span><?php echo htmlspecialchars($day_option['short'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                </fieldset>
+            </div>
+        </section>
         <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save changes" class="save-button"></div>
     </form>
 </div>
