@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/mattermost/mattermost/server/public/model"
 	"github.com/mattermost/mattermost/server/public/plugin"
@@ -21,6 +22,8 @@ type Plugin struct {
 	client            *pluginapi.Client
 	botID             string
 	router            *http.ServeMux
+	replyPollStop     chan struct{}
+	replyPollDone     chan struct{}
 }
 
 func (p *Plugin) OnActivate() error {
@@ -48,7 +51,27 @@ func (p *Plugin) OnActivate() error {
 	router.HandleFunc("/api/v1/task-action", p.handleTaskAction)
 	router.HandleFunc("/api/v1/web/task-action", p.handleWebTaskAction)
 	router.HandleFunc("/api/v1/post-action", p.handlePostAction)
+	router.HandleFunc("/api/v1/channel-binding", p.handleChannelBinding)
+	router.HandleFunc("/api/v1/email-compose", p.handleEmailCompose)
+	router.HandleFunc("/api/v1/email-send", p.handleEmailSend)
+	router.HandleFunc("/api/v1/email-status", p.handleEmailStatus)
 	p.router = router
+	p.replyPollStop = make(chan struct{})
+	p.replyPollDone = make(chan struct{})
+	go p.runReplyNotificationPoller(p.replyPollStop, p.replyPollDone)
+	return nil
+}
+
+func (p *Plugin) OnDeactivate() error {
+	if p.replyPollStop == nil || p.replyPollDone == nil {
+		return nil
+	}
+	close(p.replyPollStop)
+	select {
+	case <-p.replyPollDone:
+	case <-time.After(5 * time.Second):
+		return fmt.Errorf("reply notification poller did not stop")
+	}
 	return nil
 }
 

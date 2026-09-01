@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once dirname(__DIR__, 2) . '/bootstrap.php';
 require_once dirname(__DIR__, 2) . '/mattermost_integration_helpers.php';
+require_once dirname(__DIR__, 2) . '/mattermost_email_helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store, max-age=0');
@@ -132,7 +133,7 @@ try {
         mattermostApiRequireMethod('GET');
         mattermostApiRespond([
             'ok' => true,
-            'integration_version' => '2',
+            'integration_version' => '3',
             'application' => applicationBrandName(),
             'instance_id' => $instanceId,
         ]);
@@ -152,6 +153,30 @@ try {
             'ok' => true,
             'message' => 'Mattermost is now linked to your MOED account.',
             'user' => $user,
+        ]);
+    }
+
+    if ($action === 'reply_notifications') {
+        mattermostApiRequireMethod('GET');
+        mattermostApiRespond([
+            'ok' => true,
+            'notifications' => mattermostPendingReplyNotifications($conn, $instanceId, 20),
+        ]);
+    }
+
+    if ($action === 'reply_notification_ack') {
+        mattermostApiRequireMethod('POST');
+        $body = mattermostApiBody();
+        $notificationId = filter_var($body['notification_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$notificationId) {
+            throw new InvalidArgumentException('A valid reply notification is required.');
+        }
+        mattermostApiRespond([
+            'ok' => acknowledgeMattermostReplyNotification(
+                $conn,
+                $instanceId,
+                (int) $notificationId
+            ),
         ]);
     }
 
@@ -222,6 +247,93 @@ try {
             'user' => $publicUser,
             'engagement' => $engagement,
         ]);
+    }
+
+    if ($action === 'email_compose') {
+        mattermostApiRequireMethod('GET');
+        if (!in_array((string) $user['role'], ['editor', 'admin'], true)) {
+            mattermostApiRespond([
+                'error' => 'Your MOED role cannot send engagement email.',
+                'code' => 'insufficient_role',
+            ], 403);
+        }
+        $engagementId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (!$engagementId) {
+            throw new InvalidArgumentException('A valid linked engagement is required.');
+        }
+        $response = mattermostEmailComposerPayload($conn, (int) $engagementId);
+        $response['user'] = $publicUser;
+        mattermostApiRespond($response);
+    }
+
+    if ($action === 'email_send') {
+        mattermostApiRequireMethod('POST');
+        if (!in_array((string) $user['role'], ['editor', 'admin'], true)) {
+            mattermostApiRespond([
+                'error' => 'Your MOED role cannot send engagement email.',
+                'code' => 'insufficient_role',
+            ], 403);
+        }
+        $body = mattermostApiBody();
+        $engagementId = filter_var($body['engagement_id'] ?? null, FILTER_VALIDATE_INT);
+        $idempotencyKey = mattermostApiHeader('Idempotency-Key');
+        if (!$engagementId) {
+            throw new InvalidArgumentException('A valid linked engagement is required.');
+        }
+        $existingResponse = mattermostIdempotentResponse(
+            $conn,
+            $instanceId,
+            $idempotencyKey,
+            (int) $user['id'],
+            'send_email'
+        );
+        if ($existingResponse !== null) {
+            mattermostApiRespond($existingResponse);
+        }
+        $context = mattermostEmailContext($conn, (int) $engagementId);
+        $messageId = queueEngagementEmail(
+            $conn,
+            $context['engagement'],
+            $context['presentations'],
+            normalizeEngagementEmailContactIds($body['contact_ids'] ?? null),
+            trim((string) ($body['template_key'] ?? 'custom')),
+            $body['subject'] ?? '',
+            mattermostEmailBodyWithContext(
+                $body['body'] ?? '',
+                $body['mattermost_context'] ?? ''
+            ),
+            !empty($body['include_event_brief']),
+            (int) $user['id'],
+            (string) $user['username'],
+            $instanceId,
+            $idempotencyKey
+        );
+        $response = mattermostEmailMessagePayload($conn, $messageId);
+        $response['user'] = $publicUser;
+        storeMattermostIdempotentResponse(
+            $conn,
+            $instanceId,
+            $idempotencyKey,
+            (int) $user['id'],
+            'send_email',
+            $response
+        );
+        mattermostApiRespond($response);
+    }
+
+    if ($action === 'email_status') {
+        mattermostApiRequireMethod('GET');
+        if (!in_array((string) $user['role'], ['editor', 'admin'], true)) {
+            mattermostApiRespond([
+                'error' => 'Your MOED role cannot view engagement email delivery.',
+                'code' => 'insufficient_role',
+            ], 403);
+        }
+        $messageId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+        if (!$messageId) {
+            throw new InvalidArgumentException('A valid outbound message is required.');
+        }
+        mattermostApiRespond(mattermostEmailMessagePayload($conn, (int) $messageId));
     }
 
     if ($action === 'create_task') {

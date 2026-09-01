@@ -1,6 +1,10 @@
 package main
 
-import "testing"
+import (
+	"fmt"
+	"strings"
+	"testing"
+)
 
 func TestTaskAttachmentContainsOnlyAllowedActions(t *testing.T) {
 	task := apiTask{
@@ -27,7 +31,7 @@ func TestTaskAttachmentContainsOnlyAllowedActions(t *testing.T) {
 	}
 }
 
-func TestEventAttachmentIsShareSafe(t *testing.T) {
+func TestEventAttachmentIncludesRoutingMarker(t *testing.T) {
 	event := apiEngagement{
 		ID:                 44,
 		Title:              "Spring gathering",
@@ -46,9 +50,13 @@ func TestEventAttachmentIsShareSafe(t *testing.T) {
 	if len(attachment.Actions) != 0 {
 		t.Fatal("engagement card should not contain mutation actions")
 	}
+	foundMarker := false
 	for _, field := range attachment.Fields {
-		if field != nil && (field.Title == "Email routing marker" || field.Value == event.EmailRoutingMarker) {
-			t.Fatal("share-safe fallback cards must not expose the routing marker")
+		if field != nil && field.Title == "Email routing marker" && strings.Contains(fmt.Sprint(field.Value), "MOED#44") {
+			foundMarker = true
 		}
+	}
+	if !foundMarker {
+		t.Fatal("fallback engagement cards must display the email routing marker")
 	}
 }

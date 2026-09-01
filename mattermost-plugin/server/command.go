@@ -79,7 +79,7 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 		"- `/moed event show ID` — show a share-safe engagement card\n" +
 		"- `/moed link-event ID` — bind this channel (Editor/Admin)\n" +
 		"- `/moed unlink-event` — remove the channel binding (Editor/Admin)\n\n" +
-		"To add a message to MOED, hover over the post and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task** or **Add to MOED Chron**."
+		"The MOED chain icon in the channel header shows whether this channel is linked and opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
 	return ephemeral(text)
 }
 
@@ -213,11 +213,6 @@ func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
 	)
 }
 
-func channelVisibleEngagement(event apiEngagement) apiEngagement {
-	event.EmailRoutingMarker = ""
-	return event
-}
-
 func (p *Plugin) executeEventCommand(
 	ctx context.Context,
 	client *moedClient,
@@ -290,9 +285,6 @@ func (p *Plugin) executeLinkEvent(
 	if response.User.Role != "editor" && response.User.Role != "admin" {
 		return ephemeral("Your MOED role cannot bind a channel to an engagement.")
 	}
-	// The routing marker is useful in private event lookups but is intentionally
-	// omitted from the channel-visible binding announcement.
-	response.Engagement = channelVisibleEngagement(response.Engagement)
 	if err := p.setChannelBinding(channelID, &channelBinding{
 		EngagementID: id,
 		LinkedBy:     user.Id,

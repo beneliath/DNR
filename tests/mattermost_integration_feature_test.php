@@ -14,7 +14,12 @@ function expectMattermost(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $migration = file_get_contents($root . '/migrations/20260831_add_mattermost_integration.sql');
+$emailMigration = file_get_contents($root . '/migrations/20260901_add_mattermost_email_workflow.sql');
 $api = file_get_contents($root . '/src/api/v1/mattermost.php');
+$emailHelpers = file_get_contents($root . '/src/mattermost_email_helpers.php');
+$emailQueue = file_get_contents($root . '/src/engagement_email_helpers.php');
+$inboundEmail = file_get_contents($root . '/src/inbound_email_helpers.php');
+$databasePrivileges = file_get_contents($root . '/scripts/configure_database_privileges.sh');
 $accountPage = file_get_contents($root . '/src/mattermost.php');
 $accountPageStyles = file_get_contents($root . '/src/assets/css/pages/mattermost.css');
 $helpers = file_get_contents($root . '/src/mattermost_integration_helpers.php');
@@ -28,14 +33,15 @@ $pluginServer = file_get_contents($root . '/mattermost-plugin/server/http.go');
 $pluginCommand = file_get_contents($root . '/mattermost-plugin/server/command.go');
 $pluginRender = file_get_contents($root . '/mattermost-plugin/server/render.go');
 $pluginLifecycle = file_get_contents($root . '/mattermost-plugin/server/plugin.go');
+$pluginNotifications = file_get_contents($root . '/mattermost-plugin/server/notifications.go');
 $pluginReadme = file_get_contents($root . '/mattermost-plugin/README.md');
 
-foreach ([$migration, $api, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginReadme] as $source) {
+foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
 expectMattermost(
-    preg_match('/\bMoed\b/', implode("\n", [$api, $accountPage, $manifestRaw, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginReadme])) === 0,
+    preg_match('/\bMoed\b/', implode("\n", [$api, $emailHelpers, $accountPage, $manifestRaw, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme])) === 0,
     'all user-visible Mattermost integration output should capitalize MOED consistently.'
 );
 
@@ -43,6 +49,19 @@ expectMattermost(
     normalizeMattermostLinkCode(' abcd-2345 ') === 'ABCD2345'
         && normalizeMattermostLinkCode('AB CD_23-45') === 'ABCD2345',
     'account-link codes should be normalized without weakening their alphabet validation.'
+);
+
+expectMattermost(
+    str_contains($emailMigration, 'uq_engagement_email_mattermost_request')
+        && str_contains($emailMigration, 'mattermost_reply_notifications')
+        && str_contains($emailMigration, 'delivered_at DATETIME(6)')
+        && str_contains($emailQueue, '$mattermostIdempotencyKey')
+        && str_contains($emailQueue, "existingRow['created_by']")
+        && str_contains($emailQueue, 'belongs to another user')
+        && str_contains($inboundEmail, 'queueMattermostReplyNotifications')
+        && str_contains($emailHelpers, 'message.mattermost_instance_id = link.instance_id')
+        && str_contains($databasePrivileges, 'mattermost_reply_notifications'),
+    'the email extension should provide idempotent requests, durable private reply alerts, inbound routing, and least-privilege database access.'
 );
 
 expectMattermost(
@@ -91,7 +110,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.3.5'
+        && ($manifest['version'] ?? null) === '0.4.0'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -103,6 +122,12 @@ expectMattermost(
         && str_contains($webapp, "registerPostTypeComponent('custom_moed_event'")
         && str_contains($webapp, "registerPostDropdownMenuAction('Add MOED task'")
         && str_contains($webapp, "registerPostDropdownMenuAction('Add to MOED Chron'")
+        && str_contains($webapp, "registerPostDropdownMenuAction('Send via MOED email'")
+        && str_contains($webapp, 'registerChannelHeaderButtonAction')
+        && str_contains($webapp, 'moed-channel-header-icon--linked')
+        && str_contains($webapp, "pluginRequest('/email-send'")
+        && str_contains($webapp, 'Send and add to Chron')
+        && str_contains($webapp, 'include_thread')
         && !str_contains($webapp, 'registerPostDropdownSubMenuAction')
         && str_contains($webapp, "value.startsWith('MMCSRF=')")
         && str_contains($webapp, "headers['X-CSRF-Token'] = csrfToken")
@@ -112,17 +137,27 @@ expectMattermost(
         && str_contains($webapp, "document.execCommand('copy')")
         && str_contains($webapp, "aria-live='polite'")
         && str_contains($webapp, "event.email_routing_marker && <RoutingMarker")
-        && str_contains($pluginCommand, 'response.Engagement = channelVisibleEngagement(response.Engagement)')
+        && !str_contains($pluginCommand, 'channelVisibleEngagement')
+        && str_contains($pluginRender, 'Email routing marker')
         && str_contains($pluginCommand, '**Message actions** (the grid icon, not the three-dot menu)')
         && str_contains($webapp, "pluginRequest('/post-action'")
         && str_contains($pluginServer, 'HasPermissionToChannel')
         && str_contains($pluginServer, 'p.channelBinding(post.ChannelId)')
+        && str_contains($pluginServer, 'p.mattermostEmailContexts')
+        && str_contains($pluginServer, 'binding.EngagementID')
         && str_contains($api, "if (\$action === 'create_task')")
         && str_contains($api, "if (\$action === 'save_chron')")
+        && str_contains($api, "if (\$action === 'email_compose')")
+        && str_contains($api, "if (\$action === 'email_send')")
+        && str_contains($emailHelpers, 'mattermostEmailContactPayload')
+        && str_contains($emailHelpers, 'fetchEngagementContacts')
+        && str_contains($pluginNotifications, 'GetDirectChannel')
+        && str_contains($pluginNotifications, 'The message was routed privately')
         && str_contains($documentation, '**Message actions**')
         && str_contains($documentation, '**Add MOED')
-        && str_contains($documentation, '**Add to MOED Chron**'),
-    'the bundle should render native dashboards/cards, provide a private quick-copy routing marker, and expose CSRF-authenticated, server-authorized task and Chron post actions.'
+        && str_contains($documentation, '**Add to MOED Chron**')
+        && str_contains($documentation, '**Send via MOED email**'),
+    'the bundle should render native dashboards/cards, preserve quick-copy routing markers, identify linked channels, and expose server-authorized task, Chron, and reviewed email actions.'
 );
 
 expectMattermost(

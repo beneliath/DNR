@@ -6,7 +6,7 @@ $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 $vendorAutoload = getenv('DNR_TEST_VENDOR_AUTOLOAD') ?: __DIR__ . '/../vendor/autoload.php';
 require_once $vendorAutoload;
 require_once $sourceDirectory . '/functions.php';
-require_once $sourceDirectory . '/engagement_email_helpers.php';
+require_once $sourceDirectory . '/mattermost_email_helpers.php';
 
 function expectEngagementEmailHelper(bool $condition, string $message): void
 {
@@ -46,6 +46,17 @@ expectEngagementEmailHelper(
         && !str_contains($brief, 'PRIVATE CHRON CONTENT')
         && !str_contains($brief, 'PRIVATE COMPENSATION'),
     'the share-safe brief should include public logistics but exclude internal and financial fields.'
+);
+
+$mattermostBody = mattermostEmailBodyWithContext(
+    'Approved message.',
+    "MATTERMOST POST\nAuthor: @alex\nMessage: Please confirm."
+);
+expectEngagementEmailHelper(
+    str_starts_with($mattermostBody, 'Approved message.')
+        && str_contains($mattermostBody, 'MATTERMOST POST')
+        && str_contains($mattermostBody, 'Please confirm.'),
+    'reviewed Mattermost context should be visibly separated and preserved in the outbound message.'
 );
 try {
     normalizeEngagementEmailSubject('Wrong event ' . applicationInboundMarker(99), 42);

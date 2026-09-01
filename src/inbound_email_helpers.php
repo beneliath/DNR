@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/mattermost_email_helpers.php';
 
 use ZBateson\MailMimeParser\Header\AddressHeader;
 use ZBateson\MailMimeParser\Header\HeaderConsts;
@@ -1066,6 +1067,12 @@ function processInboundEmailMessage(
         $update->bind_param('sii', $routingJson, $processedBy, $messageId);
         $update->execute();
         $update->close();
+        queueMattermostReplyNotifications(
+            $conn,
+            $messageId,
+            $engagementIds,
+            (string) $message['sender_address']
+        );
         $conn->commit();
         return 'processed';
     } catch (Throwable $exception) {

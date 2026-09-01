@@ -20,6 +20,8 @@ parameters:
         - src/image_upload_helpers.php
         - src/inbound_email_helpers.php
         - src/map_helpers.php
+        - src/mattermost_email_helpers.php
+        - src/mattermost_integration_helpers.php
         - src/notification_helpers.php
         - src/operations_helpers.php
         - src/presentation_helpers.php

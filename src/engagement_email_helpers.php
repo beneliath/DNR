@@ -370,13 +370,25 @@ function queueEngagementEmail(
     mixed $body,
     bool $includeEventBrief,
     int $createdBy,
-    string $createdByUsername
+    string $createdByUsername,
+    string $mattermostInstanceId = '',
+    string $mattermostIdempotencyKey = ''
 ): int {
     $transport = accountMailTransport();
     $engagementId = (int) ($engagement['id'] ?? 0);
     $organizationId = (int) ($engagement['organization_id'] ?? $engagement['org_id'] ?? 0);
     if ($engagementId < 1 || $organizationId < 1 || $createdBy < 1) {
         throw new InvalidArgumentException('A valid engagement, organization, and sender are required.');
+    }
+    $mattermostInstanceId = trim($mattermostInstanceId);
+    $mattermostIdempotencyKey = trim($mattermostIdempotencyKey);
+    if (($mattermostInstanceId === '') !== ($mattermostIdempotencyKey === '')
+        || ($mattermostInstanceId !== ''
+            && preg_match('/\A[A-Za-z0-9._-]{1,100}\z/', $mattermostInstanceId) !== 1)
+        || ($mattermostIdempotencyKey !== ''
+            && preg_match('/\A[A-Za-z0-9._:-]{8,100}\z/', $mattermostIdempotencyKey) !== 1)
+    ) {
+        throw new InvalidArgumentException('The Mattermost email request identity is invalid.');
     }
     if (!isset(engagementEmailTemplateDefinitions()[$templateKey])) {
         throw new InvalidArgumentException('Select a supported email template.');
@@ -416,6 +428,29 @@ function queueEngagementEmail(
             throw new InvalidArgumentException('Email can be sent only for an active engagement and organization.');
         }
 
+        if ($mattermostInstanceId !== '') {
+            $existing = $conn->prepare(
+                'SELECT id, created_by FROM engagement_email_messages
+                 WHERE mattermost_instance_id = ? AND mattermost_idempotency_key = ?
+                 LIMIT 1 FOR UPDATE'
+            );
+            if (!$existing) {
+                throw new RuntimeException('Unable to prepare the Mattermost email request lookup.');
+            }
+            $existing->bind_param('ss', $mattermostInstanceId, $mattermostIdempotencyKey);
+            $existing->execute();
+            $existingRow = $existing->get_result()->fetch_assoc();
+            $existingMessageId = (int) ($existingRow['id'] ?? 0);
+            $existing->close();
+            if ($existingMessageId > 0) {
+                if ((int) ($existingRow['created_by'] ?? 0) !== $createdBy) {
+                    throw new InvalidArgumentException('That Mattermost email request belongs to another user.');
+                }
+                $conn->commit();
+                return $existingMessageId;
+            }
+        }
+
         $availableContacts = fetchEngagementContacts($conn, $engagementId);
         $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds);
         $selectedContacts = $resolved['contacts'];
@@ -424,15 +459,16 @@ function queueEngagementEmail(
         $messageInsert = $conn->prepare(
             'INSERT INTO engagement_email_messages
                 (engagement_id, organization_id, template_key, subject, body_text, reply_to,
-                 included_event_brief, created_by, created_by_username_snapshot)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+                 included_event_brief, created_by, created_by_username_snapshot,
+                 mattermost_instance_id, mattermost_idempotency_key)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'))'
         );
         if (!$messageInsert) {
             throw new RuntimeException('Unable to prepare the engagement email.');
         }
         $briefValue = $includeEventBrief ? 1 : 0;
         $messageInsert->bind_param(
-            'iissssiis',
+            'iissssiisss',
             $engagementId,
             $organizationId,
             $templateKey,
@@ -441,7 +477,9 @@ function queueEngagementEmail(
             $replyTo,
             $briefValue,
             $createdBy,
-            $createdByUsername
+            $createdByUsername,
+            $mattermostInstanceId,
+            $mattermostIdempotencyKey
         );
         $messageInsert->execute();
         $messageId = (int) $conn->insert_id;

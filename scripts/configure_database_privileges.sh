@@ -158,6 +158,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.standard_event_tas
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_link_codes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_user_links TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_idempotency_keys TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${MYSQL_USER}'@'%';
 GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${MYSQL_USER}'@'%';
 
 CREATE USER IF NOT EXISTS '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';
@@ -183,6 +184,10 @@ GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${mai
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.contact_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.organization_chron_entries TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.mattermost_user_links TO '${mail_ingest_user}'@'%';
+GRANT INSERT ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${mail_ingest_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';
 ALTER USER '${mail_dispatch_user}'@'%' IDENTIFIED BY '${mail_dispatch_password}';

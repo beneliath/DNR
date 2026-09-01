@@ -143,6 +143,93 @@ type postActionResponse struct {
 	URL     string   `json:"url,omitempty"`
 }
 
+type apiEmailContact struct {
+	ID         int      `json:"id"`
+	Name       string   `json:"name"`
+	Email      string   `json:"email"`
+	Roles      []string `json:"roles"`
+	RoleLabels []string `json:"role_labels"`
+}
+
+type apiEmailTemplate struct {
+	Key                 string `json:"key"`
+	Label               string `json:"label"`
+	Subject             string `json:"subject"`
+	Body                string `json:"body"`
+	SuggestedContactIDs []int  `json:"suggested_contact_ids"`
+}
+
+type emailComposeResponse struct {
+	OK                bool                        `json:"ok"`
+	User              apiUser                     `json:"user"`
+	Engagement        apiEngagement               `json:"engagement"`
+	Contacts          []apiEmailContact           `json:"contacts"`
+	Templates         map[string]apiEmailTemplate `json:"templates"`
+	SafeEventBrief    string                      `json:"safe_event_brief"`
+	DeliveryAvailable bool                        `json:"delivery_available"`
+	ComposeURL        string                      `json:"compose_url"`
+	PostContext       string                      `json:"post_context,omitempty"`
+	ThreadContext     string                      `json:"thread_context,omitempty"`
+}
+
+type sendEmailRequest struct {
+	EngagementID      int    `json:"engagement_id"`
+	ContactIDs        []int  `json:"contact_ids"`
+	TemplateKey       string `json:"template_key"`
+	Subject           string `json:"subject"`
+	Body              string `json:"body"`
+	IncludeEventBrief bool   `json:"include_event_brief"`
+	MattermostContext string `json:"mattermost_context"`
+}
+
+type apiEmailDelivery struct {
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	LastError string `json:"last_error"`
+}
+
+type emailMessageResponse struct {
+	OK             bool               `json:"ok"`
+	Message        string             `json:"message"`
+	MessageID      int                `json:"message_id"`
+	EngagementID   int                `json:"engagement_id"`
+	Status         string             `json:"status"`
+	RecipientCount int                `json:"recipient_count"`
+	SentCount      int                `json:"sent_count"`
+	FailedCount    int                `json:"failed_count"`
+	PendingCount   int                `json:"pending_count"`
+	Deliveries     []apiEmailDelivery `json:"deliveries"`
+	URL            string             `json:"url"`
+}
+
+type replyNotification struct {
+	ID               int    `json:"id"`
+	MattermostUserID string `json:"mattermost_user_id"`
+	EngagementID     int    `json:"engagement_id"`
+	EngagementTitle  string `json:"engagement_title"`
+	SenderName       string `json:"sender_name"`
+	SenderAddress    string `json:"sender_address"`
+	Subject          string `json:"subject"`
+	ReceivedAt       string `json:"received_at"`
+	AttachmentCount  int    `json:"attachment_count"`
+	URL              string `json:"url"`
+}
+
+type replyNotificationsResponse struct {
+	OK            bool                `json:"ok"`
+	Notifications []replyNotification `json:"notifications"`
+}
+
+type replyNotificationAckResponse struct {
+	OK bool `json:"ok"`
+}
+
+type channelBindingResponse struct {
+	Linked     bool          `json:"linked"`
+	Engagement apiEngagement `json:"engagement"`
+	CanEmail   bool          `json:"can_email"`
+}
+
 type channelBinding struct {
 	EngagementID int    `json:"engagement_id"`
 	LinkedBy     string `json:"linked_by"`

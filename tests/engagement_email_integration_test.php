@@ -15,7 +15,7 @@ putenv('DNR_MAIL_TRANSPORT=smtp');
 putenv('DNR_INBOUND_ADDRESS=replies@example.test');
 require_once $sourceDirectory . '/config.php';
 require_once $sourceDirectory . '/functions.php';
-require_once $sourceDirectory . '/engagement_email_helpers.php';
+require_once $sourceDirectory . '/mattermost_email_helpers.php';
 
 function expectEngagementEmailIntegration(bool $condition, string $message): void
 {
@@ -169,6 +169,56 @@ try {
     expectEngagementEmailIntegration(
         $completed['status'] === 'sent' && $completed['payload_ciphertext'] === null,
         'successful delivery should erase its encrypted SMTP payload.'
+    );
+
+    $mattermostBody = mattermostEmailBodyWithContext(
+        'Reviewed email body.',
+        "MATTERMOST POST\nAuthor: @alex\nMessage: Approved."
+    );
+    $mattermostMessageId = queueEngagementEmail(
+        $conn,
+        $engagementRecord,
+        [],
+        [$contactId],
+        'custom',
+        'Mattermost follow-up',
+        $mattermostBody,
+        false,
+        $userId,
+        $username,
+        'primary',
+        'send-email:' . $suffix
+    );
+    $replayedMessageId = queueEngagementEmail(
+        $conn,
+        $engagementRecord,
+        [],
+        [$contactId],
+        'custom',
+        'Changed retry subject',
+        'Changed retry body',
+        false,
+        $userId,
+        $username,
+        'primary',
+        'send-email:' . $suffix
+    );
+    $mattermostDelivery = $conn->query(
+        "SELECT COUNT(*) AS total FROM engagement_email_deliveries
+         WHERE message_id = {$mattermostMessageId}"
+    )->fetch_assoc();
+    $storedMattermostMessage = $conn->query(
+        "SELECT subject, body_text, mattermost_instance_id, mattermost_idempotency_key
+         FROM engagement_email_messages WHERE id = {$mattermostMessageId}"
+    )->fetch_assoc();
+    expectEngagementEmailIntegration(
+        $replayedMessageId === $mattermostMessageId
+            && (int) $mattermostDelivery['total'] === 1
+            && $storedMattermostMessage['subject'] !== 'Changed retry subject'
+            && str_contains((string) $storedMattermostMessage['body_text'], 'MATTERMOST POST')
+            && $storedMattermostMessage['mattermost_instance_id'] === 'primary'
+            && $storedMattermostMessage['mattermost_idempotency_key'] === 'send-email:' . $suffix,
+        'a retried Mattermost send should return the original message without creating another delivery.'
     );
 } finally {
     if ($engagementId > 0) {

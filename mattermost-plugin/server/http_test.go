@@ -116,3 +116,57 @@ func TestPostActionRejectsBrowserSuppliedEngagementID(t *testing.T) {
 		t.Fatalf("expected browser engagement ID to be rejected, got %d", recorder.Code)
 	}
 }
+
+func TestEmailSendRejectsBrowserSuppliedEngagementID(t *testing.T) {
+	plugin := &Plugin{}
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/email-send", strings.NewReader(`{
+		"channel_id":"channel-id",
+		"engagement_id":999,
+		"contact_ids":[1],
+		"subject":"Hello",
+		"body":"Message",
+		"idempotency_key":"send-email:12345678"
+	}`))
+	request.Header.Set("Mattermost-User-Id", "requesting-user")
+	plugin.handleEmailSend(recorder, request)
+	if recorder.Code != http.StatusBadRequest {
+		t.Fatalf("expected browser engagement ID to be rejected, got %d", recorder.Code)
+	}
+}
+
+func TestEmailSendRequiresServerSideChannelBinding(t *testing.T) {
+	api := &plugintest.API{}
+	api.On("HasPermissionToChannel", "requesting-user", "channel-id", model.PermissionReadChannel).Return(true)
+	api.On("KVGet", "channel_binding:channel-id").Return([]byte(nil), nil)
+	defer api.AssertExpectations(t)
+
+	plugin := &Plugin{}
+	plugin.SetAPI(api)
+	recorder := httptest.NewRecorder()
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/email-send", strings.NewReader(`{
+		"channel_id":"channel-id",
+		"contact_ids":[1],
+		"subject":"Hello",
+		"body":"Message",
+		"idempotency_key":"send-email:12345678"
+	}`))
+	request.Header.Set("Mattermost-User-Id", "requesting-user")
+	plugin.handleEmailSend(recorder, request)
+	if recorder.Code != http.StatusConflict {
+		t.Fatalf("expected channel-binding conflict, got %d: %s", recorder.Code, recorder.Body.String())
+	}
+}
+
+func TestEmailContextRejectsPostFromAnotherChannel(t *testing.T) {
+	api := &plugintest.API{}
+	api.On("GetPost", "post-id").Return(&model.Post{Id: "post-id", ChannelId: "other-channel"}, nil)
+	defer api.AssertExpectations(t)
+
+	plugin := &Plugin{}
+	plugin.SetAPI(api)
+	_, _, err := plugin.mattermostEmailContexts("requesting-user", "channel-id", "post-id")
+	if err == nil {
+		t.Fatal("expected post context from another channel to be rejected")
+	}
+}

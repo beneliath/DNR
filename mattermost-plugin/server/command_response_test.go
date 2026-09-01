@@ -72,14 +72,28 @@ func TestPrivateEventPayloadPreservesRoutingMarker(t *testing.T) {
 	}
 }
 
-func TestChannelVisibleEventOmitsRoutingMarker(t *testing.T) {
-	event := channelVisibleEngagement(apiEngagement{
+func TestChannelVisibleEventPreservesRoutingMarker(t *testing.T) {
+	event := apiEngagement{
 		ID:                 42,
 		Title:              "Channel event",
 		EmailRoutingMarker: "[MOED#42]",
-	})
-	if event.EmailRoutingMarker != "" {
-		t.Fatal("channel-visible event cards must omit the routing marker")
+	}
+	command := customCommandResponse(
+		model.CommandResponseTypeInChannel,
+		postTypeEvent,
+		"Linked event",
+		event,
+	)
+	payloadJSON, ok := command.Props["moed"].(string)
+	if !ok {
+		t.Fatal("the channel event payload must cross the plugin RPC boundary as JSON")
+	}
+	var payload apiEngagement
+	if err := json.Unmarshal([]byte(payloadJSON), &payload); err != nil {
+		t.Fatalf("decode channel event payload: %v", err)
+	}
+	if payload.EmailRoutingMarker != "[MOED#42]" {
+		t.Fatal("channel-visible event cards must preserve the routing marker")
 	}
 }
 

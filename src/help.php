@@ -58,7 +58,7 @@ $manual_access_summary = match ($manual_role) {
             <a href="#engagements"><span>01</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
             <a href="#work-queue"><span>02</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
             <a href="#chron-mail"><span>03</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
-            <a href="#mattermost"><span>04</span><strong>Use Mattermost</strong><small>Summaries, cards, task actions</small></a>
+            <a href="#mattermost"><span>04</span><strong>Use Mattermost</strong><small>Cards, channel links, tasks, email</small></a>
         </nav>
     </section>
 
@@ -600,11 +600,11 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement card context menu create task save chron button assign start complete reopen permission reviewer editor administrator open in moed privacy">
+            <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement indicator chain card routing marker copy context menu create task save chron send email template recipient post thread preview delivery reply notification button assign start complete reopen permission reviewer editor administrator open in moed privacy">
                 <header class="manual-chapter-heading">
                     <span>Chapter 10</span>
                     <h2>Mattermost</h2>
-                    <p>The MOED plugin brings safe daily summaries, engagement context, and small follow-up actions into Mattermost while MOED remains the system of record.</p>
+                    <p>The MOED plugin brings daily summaries, engagement context, follow-up actions, and carefully reviewed engagement email into Mattermost while MOED remains the system of record.</p>
                 </header>
 
                 <article class="manual-callout manual-callout-accent">
@@ -628,7 +628,7 @@ $manual_access_summary = match ($manual_role) {
                                 <tr><td><code>/moed tasks</code></td><td>Shows the same task dashboard with up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event show ID</code></td><td>Shows a private engagement card with dates, status, location, work counts, and an email routing marker you can copy.</td><td>Linked users</td></tr>
-                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement and posts its canonical card.</td><td>Editors and administrators</td></tr>
+                                <tr><td><code>/moed link-event ID</code></td><td>Binds the current channel to an engagement and posts its card with a copyable email routing marker.</td><td>Editors and administrators</td></tr>
                                 <tr><td><code>/moed unlink-event</code></td><td>Removes the current channel’s engagement binding.</td><td>Editors and administrators</td></tr>
                             </tbody>
                         </table>
@@ -639,7 +639,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Channel Context</span>
                         <h3>Engagement Cards</h3>
-                        <p>Run <code>/moed event show ID</code> for a private engagement card. Choose <strong>Copy</strong> beside the email routing marker, then keep the marker in an email subject or message so MOED can place that email with the engagement. Channel-visible cards do not show the marker. Use <strong>Open in MOED</strong> for the complete record.</p>
+                        <p>Run <code>/moed event show ID</code> for a private engagement card. Linking a channel posts the same useful engagement context for the channel. Both cards show the email routing marker with a <strong>Copy</strong> control so it can be kept in a related email subject or message. Use <strong>Open in MOED</strong> for the complete record.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Follow-Up</span>
@@ -649,12 +649,29 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
+                    <h3>Recognize the Engagement Linked to a Channel</h3>
+                    <p>Look for the MOED chain icon in the channel header. A colored icon with a small dot means the current channel is linked. Select it to see the engagement number and name, open the full engagement in MOED, copy its routing marker, or begin an email. A muted icon means the channel has not been linked yet.</p>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Send Engagement Email From Mattermost</h3>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Start from the right engagement.</strong><p>In a linked channel, select the MOED chain icon and choose <strong>Send MOED email</strong>. To include a particular conversation, open that post's <strong>Message actions</strong> and choose <strong>Send via MOED email</strong>.</p></section></li>
+                        <li><span>02</span><section><strong>Choose a starting point.</strong><p>Select a MOED message template, then choose from the contacts already assigned to the engagement. Each unique address receives a separate message.</p></section></li>
+                        <li><span>03</span><section><strong>Decide what to include.</strong><p>Edit the subject and message. You may append the share-safe event brief and, when you started from a post, the selected post or a short thread excerpt.</p></section></li>
+                        <li><span>04</span><section><strong>Review before sending.</strong><p>Check the recipients, routing marker, subject, message, and any added context on the review screen. Nothing is sent until you choose <strong>Send and add to Chron</strong>.</p></section></li>
+                        <li><span>05</span><section><strong>Confirm the result.</strong><p>The form shows whether each delivery is pending, sent, or failed and links to the full delivery record in MOED. The message is also recorded in the Engagement, Organization, and selected Contact Chron logs.</p></section></li>
+                        <li><span>06</span><section><strong>Watch for replies.</strong><p>When a marked reply is routed back to the engagement, the MOED bot privately notifies the Mattermost user who most recently emailed that person about the engagement. Open the notification to continue in the engagement Chron.</p></section></li>
+                    </ol>
+                </section>
+
+                <section class="manual-subsection">
                     <h3>Turn a Mattermost Post Into MOED Work</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Link the channel.</strong><p>An editor or administrator runs <code>/moed link-event ID</code>. The link establishes which engagement receives work from that channel.</p></section></li>
-                        <li><span>02</span><section><strong>Open Message actions.</strong><p>Hover over a channel post and choose <strong>Message actions</strong> using the grid/apps icon—not the three-dot menu. Then choose <strong>Add MOED task</strong> or <strong>Add to MOED Chron</strong>.</p></section></li>
-                        <li><span>03</span><section><strong>Review before saving.</strong><p>For a task, confirm the title, notes, due date, and priority. For Chron, edit the entry text. Nothing is written until you submit the form.</p></section></li>
-                        <li><span>04</span><section><strong>Continue in MOED.</strong><p>The task or Chron entry appears on the linked engagement in MOED, with a reference back to the Mattermost conversation.</p></section></li>
+                        <li><span>02</span><section><strong>Open Message actions.</strong><p>Hover over a channel post and choose <strong>Message actions</strong> using the grid/apps icon—not the three-dot menu. Then choose <strong>Add MOED task</strong>, <strong>Add to MOED Chron</strong>, or <strong>Send via MOED email</strong>.</p></section></li>
+                        <li><span>03</span><section><strong>Review before saving or sending.</strong><p>Confirm the task, Chron entry, or email details in the form. Nothing changes in MOED and no email is sent until you submit the final review.</p></section></li>
+                        <li><span>04</span><section><strong>Continue in MOED.</strong><p>The resulting task, Chron entry, or email delivery record appears on the linked engagement, with the selected Mattermost context when you chose to include it.</p></section></li>
                     </ol>
                 </section>
 
@@ -669,13 +686,18 @@ $manual_access_summary = match ($manual_role) {
                         <h3>Preserve Context as History</h3>
                         <p><strong>Add to MOED Chron</strong> adds the post to the linked engagement's history. Review or edit the suggested entry, then choose <strong>Save to Chron</strong>. Use this for decisions, outcomes, commitments, and useful conversation context that should remain with the engagement.</p>
                     </article>
+                    <article class="manual-card">
+                        <span class="manual-kicker">Send via MOED Email</span>
+                        <h3>Continue the Conversation</h3>
+                        <p><strong>Send via MOED email</strong> creates a reviewed message to assigned engagement contacts. You can include the selected post or a short thread excerpt, and MOED keeps the routing marker, delivery result, and Chron history together.</p>
+                    </article>
                 </section>
 
                 <section class="manual-callout">
                     <span class="manual-callout-icon" aria-hidden="true">✓</span>
                     <div class="manual-callout-body">
                         <h3>Before You Save</h3>
-                        <p>Both options show you what will be saved and keep a reference to the original Mattermost conversation. They are available in channels linked to a MOED engagement when your account has permission to add work. Opening or canceling the form writes nothing.</p>
+                        <p>Task, Chron, and email actions all show what will be saved or sent. They are available in channels linked to a MOED engagement when your account has permission. Opening, reviewing, or canceling a form changes nothing.</p>
                     </div>
                 </section>
 
@@ -683,9 +705,9 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Permissions, Privacy, and Unlinking</h3>
                     <ul class="manual-check-list">
                         <li><strong>MOED decides access:</strong> linking does not grant a new role. Reviewers stay read only; editors and administrators receive only the task actions their MOED role permits.</li>
-                        <li><strong>Private by default:</strong> personal summaries, searches, errors, and action confirmations are ephemeral Mattermost responses visible only to the requesting user. Only <code>link-event</code> deliberately posts a channel-visible card.</li>
-                        <li><strong>MOED is authoritative:</strong> task buttons write through the authenticated MOED API. The plugin does not connect to the MOED database and does not keep a second copy of engagement records.</li>
-                        <li><strong>Post actions are scoped:</strong> the plugin verifies that you can read the selected post and obtains the engagement from the channel's server-side binding. The browser cannot choose a different engagement. MOED permits task and Chron creation only for linked editors and administrators.</li>
+                        <li><strong>Private by default:</strong> personal summaries, searches, email forms, delivery results, reply alerts, errors, and action confirmations are visible only to the requesting user. <code>link-event</code> deliberately posts a channel-visible engagement card, including its routing marker and Copy control.</li>
+                        <li><strong>MOED is authoritative:</strong> task, Chron, and email actions use MOED's permissions, delivery service, and records. The plugin does not connect to the MOED database or keep a second copy of engagement email.</li>
+                        <li><strong>Post actions are scoped:</strong> the plugin verifies that you can read the selected post and obtains the engagement from the channel's link. MOED permits task, Chron, and email actions only for linked editors and administrators.</li>
                         <li><strong>Remove access:</strong> open <a href="mattermost.php">Mattermost</a> in MOED and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
                     </ul>
                 </section>

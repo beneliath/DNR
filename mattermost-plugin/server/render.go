@@ -131,6 +131,13 @@ func eventAttachment(event apiEngagement) *model.SlackAttachment {
 	if address := eventAddress(event); address != "" {
 		fields = append(fields, &model.SlackAttachmentField{Title: "Location", Value: escapeMarkdown(address), Short: false})
 	}
+	if event.EmailRoutingMarker != "" {
+		fields = append(fields, &model.SlackAttachmentField{
+			Title: "Email routing marker",
+			Value: "`" + escapeMarkdown(event.EmailRoutingMarker) + "`",
+			Short: false,
+		})
+	}
 	work := fmt.Sprintf(
 		"%d active · %d overdue · %d unassigned",
 		event.TaskSummary.Active,

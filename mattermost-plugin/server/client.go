@@ -79,7 +79,7 @@ func (c *moedClient) do(
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.3.5")
+	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.4.0")
 	request.Header.Set("X-Mattermost-Instance-ID", c.instanceID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -159,6 +159,57 @@ func (c *moedClient) event(ctx context.Context, userID, username string, id int)
 	values := url.Values{"id": []string{strconv.Itoa(id)}}
 	err := c.do(ctx, http.MethodGet, "event", values, userID, username, nil, "", &response)
 	return &response, err
+}
+
+func (c *moedClient) emailCompose(ctx context.Context, userID, username string, engagementID int) (*emailComposeResponse, error) {
+	var response emailComposeResponse
+	values := url.Values{"id": []string{strconv.Itoa(engagementID)}}
+	err := c.do(ctx, http.MethodGet, "email_compose", values, userID, username, nil, "", &response)
+	return &response, err
+}
+
+func (c *moedClient) sendEmail(
+	ctx context.Context,
+	userID string,
+	username string,
+	request sendEmailRequest,
+	idempotencyKey string,
+) (*emailMessageResponse, error) {
+	var response emailMessageResponse
+	err := c.do(ctx, http.MethodPost, "email_send", nil, userID, username, request, idempotencyKey, &response)
+	return &response, err
+}
+
+func (c *moedClient) emailStatus(ctx context.Context, userID, username string, messageID int) (*emailMessageResponse, error) {
+	var response emailMessageResponse
+	values := url.Values{"id": []string{strconv.Itoa(messageID)}}
+	err := c.do(ctx, http.MethodGet, "email_status", values, userID, username, nil, "", &response)
+	return &response, err
+}
+
+func (c *moedClient) replyNotifications(ctx context.Context) (*replyNotificationsResponse, error) {
+	var response replyNotificationsResponse
+	err := c.do(ctx, http.MethodGet, "reply_notifications", nil, "", "", nil, "", &response)
+	return &response, err
+}
+
+func (c *moedClient) acknowledgeReplyNotification(ctx context.Context, notificationID int) error {
+	var response replyNotificationAckResponse
+	err := c.do(
+		ctx,
+		http.MethodPost,
+		"reply_notification_ack",
+		nil,
+		"",
+		"",
+		map[string]int{"notification_id": notificationID},
+		"",
+		&response,
+	)
+	if err == nil && !response.OK {
+		return fmt.Errorf("MOED did not acknowledge the reply notification")
+	}
+	return err
 }
 
 func (c *moedClient) taskAction(

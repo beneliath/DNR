@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -34,6 +35,29 @@ type contextPostActionRequest struct {
 	Priority       string `json:"priority"`
 	EntryText      string `json:"entry_text"`
 	IdempotencyKey string `json:"idempotency_key"`
+}
+
+type emailComposeWebRequest struct {
+	ChannelID string `json:"channel_id"`
+	PostID    string `json:"post_id"`
+}
+
+type emailSendWebRequest struct {
+	ChannelID         string `json:"channel_id"`
+	PostID            string `json:"post_id"`
+	ContactIDs        []int  `json:"contact_ids"`
+	TemplateKey       string `json:"template_key"`
+	Subject           string `json:"subject"`
+	Body              string `json:"body"`
+	IncludeEventBrief bool   `json:"include_event_brief"`
+	IncludePost       bool   `json:"include_post"`
+	IncludeThread     bool   `json:"include_thread"`
+	IdempotencyKey    string `json:"idempotency_key"`
+}
+
+type emailStatusWebRequest struct {
+	ChannelID string `json:"channel_id"`
+	MessageID int    `json:"message_id"`
 }
 
 func writeJSON(writer http.ResponseWriter, status int, payload any) {
@@ -185,6 +209,216 @@ func validTaskAction(action string) bool {
 	return action == "assign_to_me" || action == "start" || action == "complete" || action == "reopen"
 }
 
+func (p *Plugin) handleChannelBinding(writer http.ResponseWriter, request *http.Request) {
+	if request.Method != http.MethodGet {
+		writer.Header().Set("Allow", http.MethodGet)
+		writeJSON(writer, http.StatusMethodNotAllowed, map[string]string{"error": "method not allowed"})
+		return
+	}
+	userID := request.Header.Get("Mattermost-User-Id")
+	channelID := strings.TrimSpace(request.URL.Query().Get("channel_id"))
+	if userID == "" || channelID == "" || !p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel) {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "You cannot access that channel."})
+		return
+	}
+	binding, err := p.channelBinding(channelID)
+	if err != nil {
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "The channel binding could not be read."})
+		return
+	}
+	if binding == nil {
+		writeJSON(writer, http.StatusOK, channelBindingResponse{Linked: false})
+		return
+	}
+	config := p.getConfiguration()
+	if config == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "The plugin is not configured."})
+		return
+	}
+	user, appErr := p.mattermostUser(userID)
+	if appErr != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Mattermost could not resolve your account."})
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), config.timeout())
+	defer cancel()
+	response, apiErr := newMoedClient(config).event(ctx, user.Id, user.Username, binding.EngagementID)
+	if apiErr != nil {
+		if typed, ok := apiErr.(*moedAPIError); ok && typed.Payload.Code == "account_not_linked" {
+			writeJSON(writer, http.StatusOK, channelBindingResponse{
+				Linked: true,
+				Engagement: apiEngagement{
+					ID:  binding.EngagementID,
+					URL: config.MoedURL + "/view_engagement.php?id=" + strconv.Itoa(binding.EngagementID),
+				},
+			})
+			return
+		}
+		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
+		return
+	}
+	writeJSON(writer, http.StatusOK, channelBindingResponse{
+		Linked:     true,
+		Engagement: response.Engagement,
+		CanEmail:   response.User.Role == "editor" || response.User.Role == "admin",
+	})
+}
+
+func (p *Plugin) handleEmailCompose(writer http.ResponseWriter, request *http.Request) {
+	var compose emailComposeWebRequest
+	if !decodeJSONRequest(writer, request, &compose) {
+		return
+	}
+	userID := request.Header.Get("Mattermost-User-Id")
+	if userID == "" || compose.ChannelID == "" || !p.API.HasPermissionToChannel(userID, compose.ChannelID, model.PermissionReadChannel) {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "You cannot access that channel."})
+		return
+	}
+	binding, err := p.channelBinding(compose.ChannelID)
+	if err != nil {
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "The channel binding could not be read."})
+		return
+	}
+	if binding == nil {
+		writeJSON(writer, http.StatusConflict, map[string]string{"error": "Link this channel to a MOED engagement first with /moed link-event ID."})
+		return
+	}
+	postContext, threadContext, contextErr := p.mattermostEmailContexts(userID, compose.ChannelID, compose.PostID)
+	if contextErr != nil {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": contextErr.Error()})
+		return
+	}
+	config := p.getConfiguration()
+	if config == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "The plugin is not configured."})
+		return
+	}
+	user, userErr := p.mattermostUser(userID)
+	if userErr != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Mattermost could not resolve your account."})
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), config.timeout())
+	defer cancel()
+	response, apiErr := newMoedClient(config).emailCompose(ctx, user.Id, user.Username, binding.EngagementID)
+	if apiErr != nil {
+		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
+		return
+	}
+	response.PostContext = postContext
+	response.ThreadContext = threadContext
+	writeJSON(writer, http.StatusOK, response)
+}
+
+func (p *Plugin) handleEmailSend(writer http.ResponseWriter, request *http.Request) {
+	var send emailSendWebRequest
+	if !decodeJSONRequest(writer, request, &send) {
+		return
+	}
+	userID := request.Header.Get("Mattermost-User-Id")
+	if userID == "" || send.ChannelID == "" || !p.API.HasPermissionToChannel(userID, send.ChannelID, model.PermissionReadChannel) {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "You cannot access that channel."})
+		return
+	}
+	if len(send.ContactIDs) < 1 || len(send.ContactIDs) > 25 || strings.TrimSpace(send.Subject) == "" || strings.TrimSpace(send.Body) == "" || send.IdempotencyKey == "" {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Choose recipients and complete the email before sending."})
+		return
+	}
+	binding, err := p.channelBinding(send.ChannelID)
+	if err != nil {
+		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "The channel binding could not be read."})
+		return
+	}
+	if binding == nil {
+		writeJSON(writer, http.StatusConflict, map[string]string{"error": "Link this channel to a MOED engagement first with /moed link-event ID."})
+		return
+	}
+	postContext, threadContext, contextErr := p.mattermostEmailContexts(userID, send.ChannelID, send.PostID)
+	if contextErr != nil {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": contextErr.Error()})
+		return
+	}
+	mattermostContext := ""
+	if send.IncludeThread {
+		if send.PostID == "" {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Choose a Mattermost post before including its thread."})
+			return
+		}
+		mattermostContext = threadContext
+	} else if send.IncludePost {
+		if send.PostID == "" {
+			writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Choose a Mattermost post before including it."})
+			return
+		}
+		mattermostContext = postContext
+	}
+	config := p.getConfiguration()
+	if config == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "The plugin is not configured."})
+		return
+	}
+	user, userErr := p.mattermostUser(userID)
+	if userErr != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Mattermost could not resolve your account."})
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), config.timeout())
+	defer cancel()
+	response, apiErr := newMoedClient(config).sendEmail(ctx, user.Id, user.Username, sendEmailRequest{
+		EngagementID:      binding.EngagementID,
+		ContactIDs:        send.ContactIDs,
+		TemplateKey:       strings.TrimSpace(send.TemplateKey),
+		Subject:           send.Subject,
+		Body:              send.Body,
+		IncludeEventBrief: send.IncludeEventBrief,
+		MattermostContext: mattermostContext,
+	}, send.IdempotencyKey)
+	if apiErr != nil {
+		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
+		return
+	}
+	writeJSON(writer, http.StatusOK, response)
+}
+
+func (p *Plugin) handleEmailStatus(writer http.ResponseWriter, request *http.Request) {
+	var status emailStatusWebRequest
+	if !decodeJSONRequest(writer, request, &status) {
+		return
+	}
+	userID := request.Header.Get("Mattermost-User-Id")
+	if userID == "" || status.ChannelID == "" || status.MessageID < 1 || !p.API.HasPermissionToChannel(userID, status.ChannelID, model.PermissionReadChannel) {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "You cannot access that delivery record."})
+		return
+	}
+	binding, err := p.channelBinding(status.ChannelID)
+	if err != nil || binding == nil {
+		writeJSON(writer, http.StatusConflict, map[string]string{"error": "This channel is no longer linked to the outbound message engagement."})
+		return
+	}
+	config := p.getConfiguration()
+	if config == nil {
+		writeJSON(writer, http.StatusServiceUnavailable, map[string]string{"error": "The plugin is not configured."})
+		return
+	}
+	user, userErr := p.mattermostUser(userID)
+	if userErr != nil {
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Mattermost could not resolve your account."})
+		return
+	}
+	ctx, cancel := context.WithTimeout(request.Context(), config.timeout())
+	defer cancel()
+	response, apiErr := newMoedClient(config).emailStatus(ctx, user.Id, user.Username, status.MessageID)
+	if apiErr != nil {
+		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
+		return
+	}
+	if response.EngagementID != binding.EngagementID {
+		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "That delivery record belongs to another engagement."})
+		return
+	}
+	writeJSON(writer, http.StatusOK, response)
+}
+
 func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Request) {
 	var action contextPostActionRequest
 	if !decodeJSONRequest(writer, request, &action) {
@@ -265,6 +499,52 @@ func joinSourceText(text, source string) string {
 		return source
 	}
 	return text + "\n\n" + source
+}
+
+func (p *Plugin) mattermostEmailContexts(userID, channelID, postID string) (string, string, error) {
+	postID = strings.TrimSpace(postID)
+	if postID == "" {
+		return "", "", nil
+	}
+	post, appErr := p.API.GetPost(postID)
+	if appErr != nil || post == nil || post.DeleteAt != 0 || post.ChannelId != channelID || !p.API.HasPermissionToChannel(userID, channelID, model.PermissionReadChannel) {
+		return "", "", fmt.Errorf("You cannot include that Mattermost post")
+	}
+	selected := "MATTERMOST POST\n" + p.postSource(post) + "\n\nMessage:\n" + strings.TrimSpace(post.Message)
+	selected = truncateRunes(selected, 12000)
+
+	thread, threadErr := p.API.GetPostThread(postID)
+	if threadErr != nil || thread == nil {
+		return selected, selected, nil
+	}
+	lines := []string{"MATTERMOST THREAD", p.postSource(post), ""}
+	count := 0
+	for _, id := range thread.Order {
+		entry := thread.Posts[id]
+		if entry == nil || entry.DeleteAt != 0 || entry.ChannelId != channelID || strings.TrimSpace(entry.Message) == "" {
+			continue
+		}
+		author := "unknown user"
+		if entry.UserId == p.botID {
+			author = "MOED"
+		} else if user, lookupErr := p.API.GetUser(entry.UserId); lookupErr == nil && user != nil {
+			author = "@" + user.Username
+		}
+		stamp := time.UnixMilli(entry.CreateAt).UTC().Format("2006-01-02 15:04 UTC")
+		lines = append(lines, author+" · "+stamp, strings.TrimSpace(entry.Message), "")
+		count++
+		if count >= 20 || utf8Length(strings.Join(lines, "\n")) >= 18000 {
+			break
+		}
+	}
+	if count == 0 {
+		return selected, selected, nil
+	}
+	return selected, truncateRunes(strings.Join(lines, "\n"), 20000), nil
+}
+
+func utf8Length(value string) int {
+	return len([]rune(value))
 }
 
 func (p *Plugin) postSource(post *model.Post) string {

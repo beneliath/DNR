@@ -287,17 +287,87 @@ try {
         'purging a source should clear every foreign-key link without deleting or changing any Chron entry.'
     );
 
+    $mattermostUserId = 'mm-' . $suffix;
+    $mattermostUsername = 'mm-' . $suffix;
+    $mattermostLink = $conn->prepare(
+        'INSERT INTO mattermost_user_links
+            (instance_id, mattermost_user_id, mattermost_username, user_id)
+         VALUES (\'primary\', ?, ?, ?)'
+    );
+    $mattermostLink->bind_param('ssi', $mattermostUserId, $mattermostUsername, $userId);
+    $mattermostLink->execute();
+    $mattermostLink->close();
+    $outboundSubject = 'Previous message [MOED#' . $engagementId . ']';
+    $outboundBody = 'Previous outbound message';
+    $outboundMessage = $conn->prepare(
+        "INSERT INTO engagement_email_messages
+            (engagement_id, organization_id, template_key, subject, body_text,
+             created_by, created_by_username_snapshot,
+             mattermost_instance_id, mattermost_idempotency_key)
+         VALUES (?, ?, 'custom', ?, ?, ?, ?, 'primary', ?)"
+    );
+    $mattermostKey = 'send-email:' . $suffix;
+    $outboundMessage->bind_param(
+        'iississ',
+        $engagementId,
+        $organizationId,
+        $outboundSubject,
+        $outboundBody,
+        $userId,
+        $username,
+        $mattermostKey
+    );
+    $outboundMessage->execute();
+    $outboundMessageId = (int) $conn->insert_id;
+    $outboundMessage->close();
+    $recipientName = 'Inbound Contact';
+    $recipientRoles = '["primary_host"]';
+    $outboundDelivery = $conn->prepare(
+        "INSERT INTO engagement_email_deliveries
+            (message_id, contact_id, recipient_name, recipient_email,
+             recipient_roles_json, status, sent_at)
+         VALUES (?, ?, ?, ?, ?, 'sent', UTC_TIMESTAMP())"
+    );
+    $outboundDelivery->bind_param(
+        'iisss',
+        $outboundMessageId,
+        $contactId,
+        $recipientName,
+        $contactEmail,
+        $recipientRoles
+    );
+    $outboundDelivery->execute();
+    $outboundDelivery->close();
+
     $reply = parseInboundEmail($rawMessage(
         'Inbound Contact <' . $contactEmail . '>',
         'Staff <' . $userEmail . '>',
         'reply-' . $suffix . '@example.org',
-        'Contact reply routing test'
+        'Contact reply routing test [MOED#' . $engagementId . ']'
     ));
     $replyStored = storeInboundEmailMessage($conn, 'file', 'reply-' . $suffix, $reply);
     $createdIds['messages'][] = $replyStored['id'];
     expectInboundIntegration(
         processInboundEmailMessage($conn, $replyStored['id']) === 'processed',
         'a reply should route from the uniquely matched Contact in From.'
+    );
+    $replyNotifications = mattermostPendingReplyNotifications($conn, 'primary');
+    $matchingReplyNotifications = array_values(array_filter(
+        $replyNotifications,
+        static fn(array $notification): bool =>
+            (int) $notification['engagement_id'] === $engagementId
+            && $notification['mattermost_user_id'] === $mattermostUserId
+    ));
+    expectInboundIntegration(
+        count($matchingReplyNotifications) === 1
+            && $matchingReplyNotifications[0]['sender_address'] === $contactEmail
+            && !array_key_exists('body_text', $matchingReplyNotifications[0])
+            && acknowledgeMattermostReplyNotification(
+                $conn,
+                'primary',
+                (int) $matchingReplyNotifications[0]['id']
+            ),
+        'a routed reply should create one private notification for the latest linked sender without exposing its body.'
     );
 
     $crossOrganization = parseInboundEmail($rawMessage(

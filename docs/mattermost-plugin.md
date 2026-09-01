@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by MOED.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.5.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.0.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.3.5.tar.gz`;
+3. select `org.moed.mattermost-0.4.0.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -116,8 +116,15 @@ The two commands render a theme-aware MOED dashboard inside Mattermost. It
 shows Overdue, Due today, Next 7 days, and Waiting counts, followed by the
 user's active tasks and only the actions that MOED permits. Engagement cards
 use the same webapp bundle and adapt to the available message width. A private
-`/moed event show ID` card also displays the engagement's email routing marker
-with a quick-copy button; channel-visible binding cards omit the marker.
+`/moed event show ID` card displays the engagement's email routing marker with
+a quick-copy button. The deliberate channel-visible card created by `/moed
+link-event ID` includes the same marker and Copy control so channel members can
+route related email to the correct engagement.
+
+In a linked channel, the chain icon in the channel header is colored and marked
+with a dot. Select it to identify or open the linked engagement, copy its routing
+marker, or begin an engagement email. A muted icon means the channel is not
+linked.
 
 The code expires in 10 minutes, is stored only as a SHA-256 digest, is consumed
 once, and is never placed in a channel-visible message. Users revoke a link
@@ -132,15 +139,25 @@ from **MOED → Mattermost**.
   task action buttons.
 - In a bound channel, hover over a post and open **Message actions** using the
   grid/apps icon. This is separate from the three-dot menu. Choose **Add MOED
-  task** or **Add to MOED Chron**. The confirmation form lets
-  editors and administrators review the text before writing it to the channel's
-  linked engagement. MOED records the source author, channel, post ID, and
-  permalink with the new item.
+  task**, **Add to MOED Chron**, or **Send via MOED email**. The confirmation
+  form lets editors and administrators review the content before MOED writes or
+  sends anything.
+- Engagement email is restricted to contacts already assigned to the linked
+  engagement. The sender selects a template and recipients, may include the
+  share-safe event brief and a selected post or short thread excerpt, and sees a
+  final review before sending. Each recipient receives a separate message.
+- The email result shows pending, sent, or failed delivery per recipient and
+  links to the full record in MOED. MOED adds the message to the relevant Chron
+  history automatically. When a marked reply is routed back, the bot privately
+  notifies the linked user who most recently emailed that person about the
+  engagement; the email body remains in MOED.
 - Destructive actions, financial details, private Chron history, contacts,
   travel/compensation, files, waiting reasons, and full editing stay in MOED.
 
 Slash responses are ephemeral. `/moed link-event ID` is the one intentional
-channel-visible operation; its card contains only share-safe engagement fields.
+channel-visible operation; its card contains share-safe engagement fields and
+the engagement routing marker. Email forms, delivery results, reply alerts, and
+action confirmations remain private.
 The post-menu actions never accept an engagement ID from the browser: the
 plugin resolves the selected post, verifies read-channel permission, and uses
 the server-side channel binding before calling MOED. MOED then enforces the
