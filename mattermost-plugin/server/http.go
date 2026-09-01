@@ -191,7 +191,11 @@ func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	userID := request.Header.Get("Mattermost-User-Id")
-	if userID == "" || action.PostID == "" || action.IdempotencyKey == "" || (action.Action != "create_task" && action.Action != "save_chron") {
+	if userID == "" {
+		writeJSON(writer, http.StatusUnauthorized, map[string]string{"error": "Mattermost could not authenticate this MOED action. Refresh Mattermost and try again."})
+		return
+	}
+	if action.PostID == "" || action.IdempotencyKey == "" || (action.Action != "create_task" && action.Action != "save_chron") {
 		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Invalid MOED post action."})
 		return
 	}

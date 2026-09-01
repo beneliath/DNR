@@ -91,7 +91,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.3.3'
+        && ($manifest['version'] ?? null) === '0.3.4'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -104,6 +104,8 @@ expectMattermost(
         && str_contains($webapp, "registerPostDropdownMenuAction('Add MOED task'")
         && str_contains($webapp, "registerPostDropdownMenuAction('Add to MOED Chron'")
         && !str_contains($webapp, 'registerPostDropdownSubMenuAction')
+        && str_contains($webapp, "value.startsWith('MMCSRF=')")
+        && str_contains($webapp, "headers['X-CSRF-Token'] = csrfToken")
         && str_contains($pluginCommand, '**Message actions** (the grid icon, not the three-dot menu)')
         && str_contains($webapp, "pluginRequest('/post-action'")
         && str_contains($pluginServer, 'HasPermissionToChannel')
@@ -113,7 +115,7 @@ expectMattermost(
         && str_contains($documentation, '**Message actions**')
         && str_contains($documentation, '**Add MOED')
         && str_contains($documentation, '**Add to MOED Chron**'),
-    'the bundle should render native dashboards/cards and expose server-authorized task and Chron post actions.'
+    'the bundle should render native dashboards/cards and expose CSRF-authenticated, server-authorized task and Chron post actions.'
 );
 
 expectMattermost(

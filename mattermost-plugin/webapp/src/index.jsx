@@ -53,11 +53,24 @@ function idempotencyKey(prefix) {
     return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2)}`;
 }
 
+function mattermostCSRFToken() {
+    if (typeof document === 'undefined' || typeof document.cookie !== 'string') {
+        return '';
+    }
+    const cookie = document.cookie.split(';').map((value) => value.trim()).find((value) => value.startsWith('MMCSRF='));
+    return cookie ? cookie.slice('MMCSRF='.length) : '';
+}
+
 async function pluginRequest(path, body) {
+    const headers = {'Content-Type': 'application/json'};
+    const csrfToken = mattermostCSRFToken();
+    if (csrfToken) {
+        headers['X-CSRF-Token'] = csrfToken;
+    }
     const response = await fetch(`${PLUGIN_API}${path}`, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: {'Content-Type': 'application/json'},
+        headers,
         body: JSON.stringify(body),
     });
     let payload = {};

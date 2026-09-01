@@ -3,7 +3,7 @@
 This server plugin keeps MOED as the system of record while exposing a small,
 auditable workflow surface inside Mattermost.
 
-Version 0.3.3 provides:
+Version 0.3.4 provides:
 
 - short-lived, single-use account linking;
 - `/moed status` plus polished `/moed today` and `/moed tasks` dashboards;
@@ -31,7 +31,7 @@ make dist
 ```
 
 The installable bundle is written to
-`dist/org.moed.mattermost-0.3.3.tar.gz` with its SHA-256 digest printed at the
+`dist/org.moed.mattermost-0.3.4.tar.gz` with its SHA-256 digest printed at the
 end of the build.
 
 ## Install

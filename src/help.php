@@ -658,6 +658,27 @@ $manual_access_summary = match ($manual_role) {
                     </ol>
                 </section>
 
+                <section class="manual-card-grid manual-card-grid-two">
+                    <article class="manual-card">
+                        <span class="manual-kicker">Add MOED Task</span>
+                        <h3>Create Follow-Up Work</h3>
+                        <p><strong>Add MOED task</strong> creates a follow-up task on the engagement linked to the channel. The modal proposes a title from the post's first line and copies the post into the task notes. Before submitting, you can revise the title and notes, choose a due date, and set the priority. The new task then participates in the ordinary MOED work queue, assignment, status, reminder, and reporting workflows.</p>
+                    </article>
+                    <article class="manual-card">
+                        <span class="manual-kicker">Add to MOED Chron</span>
+                        <h3>Preserve Context as History</h3>
+                        <p><strong>Add to MOED Chron</strong> creates a new Chron entry on the engagement linked to the channel. The selected post text is prefilled as the entry and remains editable until you choose <strong>Save to Chron</strong>. Use it for decisions, outcomes, commitments, and other conversation context that belongs in the engagement's permanent timeline rather than as a follow-up task.</p>
+                    </article>
+                </section>
+
+                <section class="manual-callout">
+                    <span class="manual-callout-icon" aria-hidden="true">✓</span>
+                    <div class="manual-callout-body">
+                        <h3>What Both Actions Preserve</h3>
+                        <p>MOED appends the Mattermost author, channel, post ID, and permalink to the submitted content so the source can be traced later. Both actions require a linked MOED account, a channel bound to an engagement, permission to read the selected post, and an editor or administrator role in MOED. Opening or canceling a modal writes nothing.</p>
+                    </div>
+                </section>
+
                 <section class="manual-subsection">
                     <h3>Permissions, Privacy, and Unlinking</h3>
                     <ul class="manual-check-list">
