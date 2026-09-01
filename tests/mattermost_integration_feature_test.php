@@ -19,9 +19,10 @@ $accountPage = file_get_contents($root . '/src/mattermost.php');
 $helpers = file_get_contents($root . '/src/mattermost_integration_helpers.php');
 $manifestRaw = file_get_contents($root . '/mattermost-plugin/plugin.json');
 $compose = file_get_contents($root . '/docker-compose.mattermost.yaml');
+$secretEntrypoint = file_get_contents($root . '/docker/mattermost-secret-entrypoint.sh');
 $documentation = file_get_contents($root . '/docs/mattermost-plugin.md');
 
-foreach ([$migration, $api, $accountPage, $helpers, $manifestRaw, $compose, $documentation] as $source) {
+foreach ([$migration, $api, $accountPage, $helpers, $manifestRaw, $compose, $secretEntrypoint, $documentation] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
@@ -79,11 +80,14 @@ expectMattermost(
 );
 
 expectMattermost(
-    str_contains($compose, 'DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token')
+    str_contains($compose, 'entrypoint: ["/usr/local/bin/dnr-mattermost-secret-entrypoint"]')
+        && str_contains($compose, 'DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token')
         && str_contains($compose, 'DNR_MATTERMOST_TOKEN_SECRET_FILE')
+        && str_contains($secretEntrypoint, 'install -m 0400 -o www-data -g www-data')
+        && str_contains($secretEntrypoint, 'export DNR_MATTERMOST_TOKEN_FILE=$runtime_path')
         && str_contains($documentation, 'System Console → Plugins → Plugin Management')
         && str_contains($documentation, '/moed status'),
-    'deployment should mount the service token as a secret and document installation and verification.'
+    'deployment should mount the host-protected service token, prepare an Apache-only runtime copy, and document installation and verification.'
 );
 
 echo "Mattermost integration feature tests passed.\n";

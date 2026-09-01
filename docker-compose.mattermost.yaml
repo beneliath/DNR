@@ -1,5 +1,6 @@
 services:
   web:
+    entrypoint: ["/usr/local/bin/dnr-mattermost-secret-entrypoint"]
     environment:
       DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token
       DNR_MATTERMOST_INSTANCE_ID: ${DNR_MATTERMOST_INSTANCE_ID:-primary}
