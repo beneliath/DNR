@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -23,12 +24,16 @@ const (
 )
 
 func customCommandResponse(responseType, postType, text string, payload any) *model.CommandResponse {
+	payloadJSON := "{}"
+	if encoded, err := json.Marshal(payload); err == nil {
+		payloadJSON = string(encoded)
+	}
 	return &model.CommandResponse{
 		ResponseType: responseType,
 		Text:         text,
 		Type:         postType,
 		Props: model.StringInterface{
-			"moed": payload,
+			"moed": payloadJSON,
 			"type": postType,
 		},
 	}

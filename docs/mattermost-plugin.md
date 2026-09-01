@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by Moed.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical Moed HTTPS URL.
 - A deployed Moed version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.0.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.1.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.3.0.tar.gz`;
+3. select `org.moed.mattermost-0.3.1.tar.gz`;
 4. open the **Moed** plugin settings;
 5. enter the canonical **Moed URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
