@@ -36,6 +36,7 @@ $queue = $read('src/tasks.php');
 $add_task = $read('src/add_task.php');
 $edit_task = $read('src/edit_task.php');
 $form = $read('src/templates/follow_up_task_form.php');
+$subject_search = $read('src/task_subject_search.php');
 $section = $read('src/templates/follow_up_task_section.php');
 $header = $read('src/templates/header.php');
 $styles = $read('src/assets/css/modern.css');
@@ -92,6 +93,23 @@ expectFollowUpTaskFeature(
         && str_contains($form, 'name="waiting_on"')
         && str_contains($form, 'name="subject"'),
     'create and edit workflows should share validation and expose ownership, timing, waiting, and context fields.'
+);
+expectFollowUpTaskFeature(
+    str_contains($edit_task, "'duplicate_from' => \$task_id")
+        && str_contains($form, 'Duplicate to another event')
+        && str_contains($add_task, 'followUpTaskDuplicateFormValues($duplicate_source)')
+        && str_contains($add_task, 'requireDifferentEngagementForTaskDuplicate($duplicate_source, $task)')
+        && str_contains($add_task, "'Task duplicated.'")
+        && str_contains($form, "'?type=engagement'")
+        && str_contains($subject_search, "RequestInput::string(\$_GET, 'type', '')"),
+    'Edit Task should offer a duplicate flow that requires a different destination event.'
+);
+expectFollowUpTaskFeature(
+    preg_match(
+        '/\.follow-up-task-form #task-subject-search\s*\{[^}]*width:\s*100%;[^}]*margin-bottom:\s*10px;/s',
+        $styles
+    ) === 1,
+    'the related-record search should span the task form and remain separated from its select.'
 );
 expectFollowUpTaskFeature(
     str_contains($helpers, 'LEFT JOIN organizations o ON o.id = c.organization_id')

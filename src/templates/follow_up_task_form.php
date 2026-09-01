@@ -12,6 +12,14 @@ $task_priorities = followUpTaskPriorities();
 $task_selected_status = (string) ($task_form_values['status'] ?? 'open');
 $task_selected_priority = (string) ($task_form_values['priority'] ?? 'normal');
 $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
+$task_require_engagement_subject = !empty($task_require_engagement_subject);
+$task_duplicate_url = (string) ($task_duplicate_url ?? '');
+$task_subject_label = $task_require_engagement_subject ? 'Destination event' : 'Related record';
+$task_subject_search_placeholder = $task_require_engagement_subject
+    ? 'Search events'
+    : 'Search engagements, organizations, or contacts';
+$task_subject_search_url = 'task_subject_search.php'
+    . ($task_require_engagement_subject ? '?type=engagement' : '');
 ?>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
     <?php echo csrfInput(); ?>
@@ -32,15 +40,19 @@ $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
             <textarea id="task-details" name="details" rows="6" maxlength="20000"><?php echo htmlspecialchars($task_form_values['details'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
         <div class="form-group">
-            <label for="task-subject" class="required">Related record</label>
-            <input type="search" id="task-subject-search" autocomplete="off" placeholder="Search engagements, organizations, or contacts" data-subject-search-url="task_subject_search.php">
+            <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
+            <input type="search" id="task-subject-search" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
             <select id="task-subject" name="subject" required>
-                <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php if ($task_require_engagement_subject): ?>
+                    <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select destination event</option>
+                <?php else: ?>
+                    <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endif; ?>
                 <?php if ($task_selected_record && $task_selected_subject !== 'general'): ?>
                     <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
                 <?php endif; ?>
             </select>
-            <small id="task-subject-status" class="field-help" aria-live="polite">Type at least three characters to load a bounded result set. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.</small>
+            <small id="task-subject-status" class="field-help" aria-live="polite"><?php if ($task_require_engagement_subject): ?>Type at least three characters, then choose an event different from the source task.<?php else: ?>Type at least three characters to load a bounded result set. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.<?php endif; ?></small>
         </div>
     </section>
 
@@ -84,6 +96,7 @@ $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
     </section>
 
     <div class="engagement-page-actions">
+        <?php if ($task_duplicate_url !== ''): ?><a href="<?php echo htmlspecialchars($task_duplicate_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary task-duplicate-button">Duplicate to another event</a><?php endif; ?>
         <a href="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
         <button type="submit" name="save_task" value="1" class="save-button"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>

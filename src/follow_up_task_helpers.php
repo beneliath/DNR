@@ -98,6 +98,32 @@ function followUpTaskSubjectValue(array $task)
     return $subject_id > 0 ? $subject_type . ':' . $subject_id : 'general';
 }
 
+function followUpTaskDuplicateFormValues(array $task): array
+{
+    return [
+        'title' => (string) ($task['title'] ?? ''),
+        'details' => (string) ($task['details'] ?? ''),
+        'status' => 'open',
+        'priority' => (string) ($task['priority'] ?? 'normal'),
+        'due_date' => (string) ($task['due_date'] ?? ''),
+        'waiting_on' => '',
+        'assigned_to' => $task['assigned_to'] ?? '',
+    ];
+}
+
+function requireDifferentEngagementForTaskDuplicate(array $source_task, array $duplicate_task): void
+{
+    if (($duplicate_task['subject_type'] ?? '') !== 'engagement') {
+        throw new InvalidArgumentException('Select the destination event for the duplicated task.');
+    }
+
+    $source_engagement_id = (int) ($source_task['engagement_id'] ?? 0);
+    $destination_engagement_id = (int) ($duplicate_task['engagement_id'] ?? 0);
+    if ($source_engagement_id > 0 && $source_engagement_id === $destination_engagement_id) {
+        throw new InvalidArgumentException('Select a different destination event for the duplicated task.');
+    }
+}
+
 function followUpTaskSubjectRecord(mysqli $conn, $subject_type, $subject_id = null)
 {
     $subject_type = (string) $subject_type;
@@ -240,15 +266,20 @@ function followUpTaskSubjectOptions(mysqli $conn)
     return $options;
 }
 
-function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
+function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20, $subject_type = null)
 {
     $search = trim(substr((string) $search, 0, 100));
     $limit = max(1, min(50, (int) $limit));
-    $options = [[
-        'value' => 'general',
-        'label' => applicationGeneralWorkLabel(),
-        'type' => 'general',
-    ]];
+    $subject_type = in_array($subject_type, ['engagement', 'organization', 'contact'], true)
+        ? $subject_type
+        : null;
+    $options = $subject_type === null
+        ? [[
+            'value' => 'general',
+            'label' => applicationGeneralWorkLabel(),
+            'type' => 'general',
+        ]]
+        : [];
     if (strlen($search) < 2) {
         return $options;
     }
@@ -259,7 +290,8 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
     }
     $per_type_limit = max(3, (int) ceil($limit / 3));
 
-    $engagement_stmt = $conn->prepare(
+    if ($subject_type === null || $subject_type === 'engagement') {
+        $engagement_stmt = $conn->prepare(
         "SELECT e.id,
                 CONCAT(COALESCE(NULLIF(TRIM(e.event_title), ''), o.organization_name),
                        ' · ', DATE_FORMAT(e.event_start_date, '%Y-%m-%d')) AS label
@@ -280,30 +312,34 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
              ) AGAINST (? IN BOOLEAN MODE)
            )
          ORDER BY e.event_start_date DESC, e.id DESC LIMIT ?"
-    );
-    $engagement_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
-    $engagement_stmt->execute();
-    foreach ($engagement_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $options[] = ['value' => 'engagement:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'engagement'];
+        );
+        $engagement_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
+        $engagement_stmt->execute();
+        foreach ($engagement_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $options[] = ['value' => 'engagement:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'engagement'];
+        }
+        $engagement_stmt->close();
     }
-    $engagement_stmt->close();
 
-    $organization_stmt = $conn->prepare(
+    if ($subject_type === null || $subject_type === 'organization') {
+        $organization_stmt = $conn->prepare(
         "SELECT id, organization_name AS label FROM organizations
          WHERE is_deleted = 0 AND MATCH(
             organization_name, notes, affiliation, distinctives, email, phone,
             physical_city, physical_state, mailing_city, mailing_state
          ) AGAINST (? IN BOOLEAN MODE)
          ORDER BY organization_name, id LIMIT ?"
-    );
-    $organization_stmt->bind_param('si', $fulltext, $per_type_limit);
-    $organization_stmt->execute();
-    foreach ($organization_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $options[] = ['value' => 'organization:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'organization'];
+        );
+        $organization_stmt->bind_param('si', $fulltext, $per_type_limit);
+        $organization_stmt->execute();
+        foreach ($organization_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $options[] = ['value' => 'organization:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'organization'];
+        }
+        $organization_stmt->close();
     }
-    $organization_stmt->close();
 
-    $contact_stmt = $conn->prepare(
+    if ($subject_type === null || $subject_type === 'contact') {
+        $contact_stmt = $conn->prepare(
         "SELECT c.id,
                 CONCAT_WS(' · ',
                     CONCAT(c.contact_last_name, ', ', c.contact_first_name),
@@ -324,15 +360,16 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20)
              ) AGAINST (? IN BOOLEAN MODE))
            )
          ORDER BY c.contact_last_name, c.contact_first_name, c.id LIMIT ?"
-    );
-    $contact_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
-    $contact_stmt->execute();
-    foreach ($contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
-        $options[] = ['value' => 'contact:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'contact'];
+        );
+        $contact_stmt->bind_param('ssi', $fulltext, $fulltext, $per_type_limit);
+        $contact_stmt->execute();
+        foreach ($contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $options[] = ['value' => 'contact:' . (int) $row['id'], 'label' => $row['label'], 'type' => 'contact'];
+        }
+        $contact_stmt->close();
     }
-    $contact_stmt->close();
 
-    return array_slice($options, 0, $limit + 1);
+    return array_slice($options, 0, $limit + ($subject_type === null ? 1 : 0));
 }
 
 function followUpTaskUsers(mysqli $conn)
