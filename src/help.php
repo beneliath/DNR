@@ -654,7 +654,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>01</span><section><strong>Link the channel.</strong><p>An editor or administrator runs <code>/moed link-event ID</code>. The link establishes which engagement receives work from that channel.</p></section></li>
                         <li><span>02</span><section><strong>Open Message actions.</strong><p>Hover over a channel post and choose <strong>Message actions</strong> using the grid/apps icon—not the three-dot menu. Then choose <strong>Add MOED task</strong> or <strong>Add to MOED Chron</strong>.</p></section></li>
                         <li><span>03</span><section><strong>Review before saving.</strong><p>For a task, confirm the title, notes, due date, and priority. For Chron, edit the entry text. Nothing is written until you submit the form.</p></section></li>
-                        <li><span>04</span><section><strong>Continue in MOED.</strong><p>The task or Chron entry is stored on the linked engagement with the source author, channel, Mattermost post ID, and permalink. MOED remains the authoritative record.</p></section></li>
+                        <li><span>04</span><section><strong>Continue in MOED.</strong><p>The task or Chron entry appears on the linked engagement in MOED, with a reference back to the Mattermost conversation.</p></section></li>
                     </ol>
                 </section>
 
@@ -662,20 +662,20 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Add MOED Task</span>
                         <h3>Create Follow-Up Work</h3>
-                        <p><strong>Add MOED task</strong> creates a follow-up task on the engagement linked to the channel. The modal proposes a title from the post's first line and copies the post into the task notes. Before submitting, you can revise the title and notes, choose a due date, and set the priority. The new task then participates in the ordinary MOED work queue, assignment, status, reminder, and reporting workflows.</p>
+                        <p><strong>Add MOED task</strong> creates follow-up work on the engagement linked to the channel. MOED suggests a title and notes from the post. Review them, choose a due date and priority if needed, then save. The task appears with the engagement's other work in MOED.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Add to MOED Chron</span>
                         <h3>Preserve Context as History</h3>
-                        <p><strong>Add to MOED Chron</strong> creates a new Chron entry on the engagement linked to the channel. The selected post text is prefilled as the entry and remains editable until you choose <strong>Save to Chron</strong>. Use it for decisions, outcomes, commitments, and other conversation context that belongs in the engagement's permanent timeline rather than as a follow-up task.</p>
+                        <p><strong>Add to MOED Chron</strong> adds the post to the linked engagement's history. Review or edit the suggested entry, then choose <strong>Save to Chron</strong>. Use this for decisions, outcomes, commitments, and useful conversation context that should remain with the engagement.</p>
                     </article>
                 </section>
 
                 <section class="manual-callout">
                     <span class="manual-callout-icon" aria-hidden="true">✓</span>
                     <div class="manual-callout-body">
-                        <h3>What Both Actions Preserve</h3>
-                        <p>MOED appends the Mattermost author, channel, post ID, and permalink to the submitted content so the source can be traced later. Both actions require a linked MOED account, a channel bound to an engagement, permission to read the selected post, and an editor or administrator role in MOED. Opening or canceling a modal writes nothing.</p>
+                        <h3>Before You Save</h3>
+                        <p>Both options show you what will be saved and keep a reference to the original Mattermost conversation. They are available in channels linked to a MOED engagement when your account has permission to add work. Opening or canceling the form writes nothing.</p>
                     </div>
                 </section>
 
