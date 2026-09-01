@@ -81,6 +81,8 @@ expectMattermost(
 
 expectMattermost(
     str_contains($compose, 'entrypoint: ["/usr/local/bin/dnr-mattermost-secret-entrypoint"]')
+        && str_contains($compose, 'command: ["apache2-foreground"]')
+        && str_contains($compose, '/run/dnr-mattermost:rw,noexec,nosuid,size=1m,mode=0700')
         && str_contains($compose, 'DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token')
         && str_contains($compose, 'DNR_MATTERMOST_TOKEN_SECRET_FILE')
         && str_contains($secretEntrypoint, 'install -m 0400 -o www-data -g www-data')

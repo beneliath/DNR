@@ -8,7 +8,7 @@ if [ -n "$source_path" ]; then
         exit 1
     fi
 
-    runtime_path=/run/dnr-mattermost-token
+    runtime_path=/run/dnr-mattermost/token
     runtime_tmp="${runtime_path}.$$"
     trap 'rm -f "$runtime_tmp"' EXIT HUP INT TERM
     install -m 0400 -o www-data -g www-data "$source_path" "$runtime_tmp"

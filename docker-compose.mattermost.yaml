@@ -1,6 +1,9 @@
 services:
   web:
     entrypoint: ["/usr/local/bin/dnr-mattermost-secret-entrypoint"]
+    command: ["apache2-foreground"]
+    tmpfs:
+      - /run/dnr-mattermost:rw,noexec,nosuid,size=1m,mode=0700
     environment:
       DNR_MATTERMOST_TOKEN_FILE: /run/secrets/dnr_mattermost_token
       DNR_MATTERMOST_INSTANCE_ID: ${DNR_MATTERMOST_INSTANCE_ID:-primary}
