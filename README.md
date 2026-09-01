@@ -759,7 +759,7 @@ encrypted-storage and media-disposal policy.
 
 The installable server plugin under `mattermost-plugin/` exposes private daily
 summaries, engagement search/cards, editor/admin channel bindings, and
-role-checked follow-up buttons while keeping Moed authoritative. It uses
+role-checked follow-up buttons while keeping MOED authoritative. It uses
 single-use account-link codes and a deployment secret; it never connects to the
 database directly. Build it with `make -C mattermost-plugin dist` and follow
 the complete deployment, installation, verification, and rotation guide in

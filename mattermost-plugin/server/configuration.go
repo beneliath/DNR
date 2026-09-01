@@ -24,13 +24,13 @@ func (c *configuration) validate() error {
 	c.InstanceID = strings.TrimSpace(c.InstanceID)
 	parsed, err := url.Parse(c.MoedURL)
 	if err != nil || parsed.Host == "" || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-		return fmt.Errorf("Moed URL must be an absolute HTTP(S) URL")
+		return fmt.Errorf("MOED URL must be an absolute HTTP(S) URL")
 	}
 	if parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" {
-		return fmt.Errorf("Moed URL cannot contain credentials, a query, or a fragment")
+		return fmt.Errorf("MOED URL cannot contain credentials, a query, or a fragment")
 	}
 	if parsed.Scheme == "http" && parsed.Hostname() != "localhost" && parsed.Hostname() != "127.0.0.1" && parsed.Hostname() != "::1" {
-		return fmt.Errorf("Moed URL must use HTTPS except for loopback development")
+		return fmt.Errorf("MOED URL must use HTTPS except for loopback development")
 	}
 	if len(c.ServiceToken) < 32 {
 		return fmt.Errorf("Service Token must contain at least 32 characters")

@@ -80,7 +80,7 @@ try {
     <div class="page-heading">
         <div>
             <h1>Mattermost</h1>
-            <p class="page-intro">Link your Mattermost identity to use Moed summaries, engagement cards, and follow-up actions in chat.</p>
+            <p class="page-intro">Link your Mattermost identity to use MOED summaries, engagement cards, and follow-up actions in chat.</p>
         </div>
     </div>
 
@@ -90,7 +90,7 @@ try {
     <?php if (!$configured): ?>
         <section class="security-card">
             <h2>Integration Not Configured</h2>
-            <p>An administrator must install the Mattermost plugin and configure the matching Moed service secret before accounts can be linked.</p>
+            <p>An administrator must install the Mattermost plugin and configure the matching MOED service secret before accounts can be linked.</p>
         </section>
     <?php else: ?>
         <?php if (is_array($newCode)): ?>
@@ -133,7 +133,7 @@ try {
                             <td><?php echo htmlspecialchars(applicationTimestampLabel($link['linked_at']), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo $link['last_used_at'] ? htmlspecialchars(applicationTimestampLabel($link['last_used_at']), ENT_QUOTES, 'UTF-8') : 'Never'; ?></td>
                             <td>
-                                <form method="post" action="mattermost.php" data-confirm="Remove this Mattermost account link? Moed commands will stop working for that account until it is linked again.">
+                                <form method="post" action="mattermost.php" data-confirm="Remove this Mattermost account link? MOED commands will stop working for that account until it is linked again.">
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="action" value="revoke">
                                     <input type="hidden" name="link_id" value="<?php echo (int) $link['id']; ?>">

@@ -604,14 +604,14 @@ $manual_access_summary = match ($manual_role) {
                 <header class="manual-chapter-heading">
                     <span>Chapter 10</span>
                     <h2>Mattermost</h2>
-                    <p>The Moed plugin brings safe daily summaries, engagement context, and small follow-up actions into Mattermost while Moed remains the system of record.</p>
+                    <p>The MOED plugin brings safe daily summaries, engagement context, and small follow-up actions into Mattermost while MOED remains the system of record.</p>
                 </header>
 
                 <article class="manual-callout manual-callout-accent">
                     <span class="manual-callout-icon" aria-hidden="true">◇</span>
                     <div class="manual-callout-body">
                         <h3>Link Your Account First</h3>
-                        <p>Open <a href="mattermost.php">Mattermost</a> in Moed and generate a one-time code. The code is shown once, expires after 10 minutes, and becomes invalid after use. In Mattermost, run <code>/moed connect CODE</code>. Command responses are private to you. Never paste the code into an ordinary channel message.</p>
+                        <p>Open <a href="mattermost.php">Mattermost</a> in MOED and generate a one-time code. The code is shown once, expires after 10 minutes, and becomes invalid after use. In Mattermost, run <code>/moed connect CODE</code>. Command responses are private to you. Never paste the code into an ordinary channel message.</p>
                     </div>
                 </article>
 
@@ -622,9 +622,9 @@ $manual_access_summary = match ($manual_role) {
                             <thead><tr><th>Command</th><th>What It Does</th><th>Who Can Use It</th></tr></thead>
                             <tbody>
                                 <tr><td><code>/moed help</code></td><td>Shows the command reference and account-linking reminder.</td><td>Everyone</td></tr>
-                                <tr><td><code>/moed status</code></td><td>Checks the plugin connection and reports which Moed account is linked.</td><td>Everyone</td></tr>
-                                <tr><td><code>/moed connect CODE</code></td><td>Consumes a one-time code from the Moed Mattermost page and links your identities.</td><td>Everyone</td></tr>
-                                <tr><td><code>/moed today</code></td><td>Shows a private dashboard with Overdue, Due today, Next 7 days, and Waiting counts, active assigned tasks, and a link back to Moed.</td><td>Linked users</td></tr>
+                                <tr><td><code>/moed status</code></td><td>Checks the plugin connection and reports which MOED account is linked.</td><td>Everyone</td></tr>
+                                <tr><td><code>/moed connect CODE</code></td><td>Consumes a one-time code from the MOED Mattermost page and links your identities.</td><td>Everyone</td></tr>
+                                <tr><td><code>/moed today</code></td><td>Shows a private dashboard with Overdue, Due today, Next 7 days, and Waiting counts, active assigned tasks, and a link back to MOED.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed tasks</code></td><td>Shows the same task dashboard with up to 15 active tasks assigned to you. Editors and administrators also receive permitted action buttons.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event search TEXT</code></td><td>Searches active and historical non-archived engagements by event or organization name.</td><td>Linked users</td></tr>
                                 <tr><td><code>/moed event show ID</code></td><td>Shows a share-safe card with dates, status, location, presentation schedule, and work counts.</td><td>Linked users</td></tr>
@@ -639,33 +639,33 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Channel Context</span>
                         <h3>Engagement Cards</h3>
-                        <p>A bound channel has one canonical Moed engagement. The card intentionally excludes private notes, Chron history, contact details, compensation, travel amounts, financial reports, and uploaded files. Use <strong>Open in Moed</strong> for the complete record under ordinary Moed permissions.</p>
+                        <p>A bound channel has one canonical MOED engagement. The card intentionally excludes private notes, Chron history, contact details, compensation, travel amounts, financial reports, and uploaded files. Use <strong>Open in MOED</strong> for the complete record under ordinary MOED permissions.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Follow-Up</span>
                         <h3>Task Buttons</h3>
-                        <p>Editors and administrators can assign an unowned task to themselves, start it, complete it, or reopen it. Each button checks the task version before changing Moed; if someone already changed the task, refresh with <code>/moed tasks</code>. Waiting details, reassignment to someone else, editing, cancellation, and deletion remain in Moed.</p>
+                        <p>Editors and administrators can assign an unowned task to themselves, start it, complete it, or reopen it. Each button checks the task version before changing MOED; if someone already changed the task, refresh with <code>/moed tasks</code>. Waiting details, reassignment to someone else, editing, cancellation, and deletion remain in MOED.</p>
                     </article>
                 </section>
 
                 <section class="manual-subsection">
-                    <h3>Turn a Mattermost Post Into Moed Work</h3>
+                    <h3>Turn a Mattermost Post Into MOED Work</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Link the channel.</strong><p>An editor or administrator runs <code>/moed link-event ID</code>. The link establishes which engagement receives work from that channel.</p></section></li>
-                        <li><span>02</span><section><strong>Open the post menu.</strong><p>Choose <strong>More actions</strong> on a normal channel post, then choose <strong>Create Moed task</strong> or <strong>Save to Moed Chron</strong>.</p></section></li>
+                        <li><span>02</span><section><strong>Open the post menu.</strong><p>Choose <strong>More actions</strong> on a channel post, open the <strong>MOED</strong> submenu, then choose <strong>Create MOED task</strong> or <strong>Save to MOED Chron</strong>.</p></section></li>
                         <li><span>03</span><section><strong>Review before saving.</strong><p>For a task, confirm the title, notes, due date, and priority. For Chron, edit the entry text. Nothing is written until you submit the form.</p></section></li>
-                        <li><span>04</span><section><strong>Continue in Moed.</strong><p>The task or Chron entry is stored on the linked engagement with the source author, channel, Mattermost post ID, and permalink. Moed remains the authoritative record.</p></section></li>
+                        <li><span>04</span><section><strong>Continue in MOED.</strong><p>The task or Chron entry is stored on the linked engagement with the source author, channel, Mattermost post ID, and permalink. MOED remains the authoritative record.</p></section></li>
                     </ol>
                 </section>
 
                 <section class="manual-subsection">
                     <h3>Permissions, Privacy, and Unlinking</h3>
                     <ul class="manual-check-list">
-                        <li><strong>Moed decides access:</strong> linking does not grant a new role. Reviewers stay read only; editors and administrators receive only the task actions their Moed role permits.</li>
+                        <li><strong>MOED decides access:</strong> linking does not grant a new role. Reviewers stay read only; editors and administrators receive only the task actions their MOED role permits.</li>
                         <li><strong>Private by default:</strong> personal summaries, searches, errors, and action confirmations are ephemeral Mattermost responses visible only to the requesting user. Only <code>link-event</code> deliberately posts a channel-visible card.</li>
-                        <li><strong>Moed is authoritative:</strong> task buttons write through the authenticated Moed API. The plugin does not connect to the Moed database and does not keep a second copy of engagement records.</li>
-                        <li><strong>Post actions are scoped:</strong> the plugin verifies that you can read the selected post and obtains the engagement from the channel's server-side binding. The browser cannot choose a different engagement. Moed permits task and Chron creation only for linked editors and administrators.</li>
-                        <li><strong>Remove access:</strong> open <a href="mattermost.php">Mattermost</a> in Moed and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
+                        <li><strong>MOED is authoritative:</strong> task buttons write through the authenticated MOED API. The plugin does not connect to the MOED database and does not keep a second copy of engagement records.</li>
+                        <li><strong>Post actions are scoped:</strong> the plugin verifies that you can read the selected post and obtains the engagement from the channel's server-side binding. The browser cannot choose a different engagement. MOED permits task and Chron creation only for linked editors and administrators.</li>
+                        <li><strong>Remove access:</strong> open <a href="mattermost.php">Mattermost</a> in MOED and choose <strong>Unlink</strong>. The Mattermost account immediately loses command access until it is linked again.</li>
                     </ul>
                 </section>
             </section>

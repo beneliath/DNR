@@ -72,7 +72,7 @@ func moedErrorPayload(err error) map[string]string {
 	if typed, ok := err.(*moedAPIError); ok {
 		return map[string]string{"error": typed.Error(), "code": typed.Payload.Code}
 	}
-	return map[string]string{"error": "Moed is temporarily unavailable."}
+	return map[string]string{"error": "MOED is temporarily unavailable."}
 }
 
 func actionContextString(context map[string]any, key string) string {
@@ -192,7 +192,7 @@ func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Requ
 	}
 	userID := request.Header.Get("Mattermost-User-Id")
 	if userID == "" || action.PostID == "" || action.IdempotencyKey == "" || (action.Action != "create_task" && action.Action != "save_chron") {
-		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Invalid Moed post action."})
+		writeJSON(writer, http.StatusBadRequest, map[string]string{"error": "Invalid MOED post action."})
 		return
 	}
 	post, appErr := p.API.GetPost(action.PostID)
@@ -206,7 +206,7 @@ func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	if binding == nil {
-		writeJSON(writer, http.StatusConflict, map[string]string{"error": "Link this channel to a Moed engagement first with /moed link-event ID."})
+		writeJSON(writer, http.StatusConflict, map[string]string{"error": "Link this channel to a MOED engagement first with /moed link-event ID."})
 		return
 	}
 	config := p.getConfiguration()

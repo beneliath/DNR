@@ -57,11 +57,11 @@ func commandError(err error, linkURL string) *model.CommandResponse {
 	var apiErr *moedAPIError
 	if errors.As(err, &apiErr) {
 		if apiErr.Payload.Code == "account_not_linked" {
-			return ephemeral("Your Mattermost account is not linked to Moed. [Generate a one-time code](" + linkURL + ") and run `/moed connect CODE`.")
+			return ephemeral("Your Mattermost account is not linked to MOED. [Generate a one-time code](" + linkURL + ") and run `/moed connect CODE`.")
 		}
 		return ephemeral(":warning: " + escapeMarkdown(apiErr.Error()))
 	}
-	return ephemeral(":warning: Moed is temporarily unavailable. Ask an administrator to check the plugin connection.")
+	return ephemeral(":warning: MOED is temporarily unavailable. Ask an administrator to check the plugin connection.")
 }
 
 func (p *Plugin) helpResponse() *model.CommandResponse {
@@ -70,9 +70,9 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 	if config != nil {
 		linkURL = config.MoedURL + "/mattermost.php"
 	}
-	text := "### Moed commands\n" +
+	text := "### MOED commands\n" +
 		"- `/moed status` — check the connection and linked account\n" +
-		"- `/moed connect CODE` — link using a one-time code from [Moed](" + linkURL + ")\n" +
+		"- `/moed connect CODE` — link using a one-time code from [MOED](" + linkURL + ")\n" +
 		"- `/moed today` — your tasks and upcoming engagements\n" +
 		"- `/moed tasks` — your active assigned tasks\n" +
 		"- `/moed event search TEXT` — find an engagement\n" +
@@ -85,7 +85,7 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*model.CommandResponse, *model.AppError) {
 	config := p.getConfiguration()
 	if config == nil {
-		return ephemeral(":warning: The Moed plugin is not configured."), nil
+		return ephemeral(":warning: The MOED plugin is not configured."), nil
 	}
 	client, err := p.apiClient()
 	if err != nil {
@@ -111,7 +111,7 @@ func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*mo
 		return p.sendCustomEphemeral(args.UserId, args.ChannelId, customCommandResponse(
 			model.CommandResponseTypeEphemeral,
 			postTypeEvent,
-			"This channel is linked to Moed engagement **#"+strconv.Itoa(binding.EngagementID)+"**.",
+			"This channel is linked to MOED engagement **#"+strconv.Itoa(binding.EngagementID)+"**.",
 			response.Engagement,
 		)), nil
 	}
@@ -172,7 +172,7 @@ func (p *Plugin) ExecuteCommand(_ *plugin.Context, args *model.CommandArgs) (*mo
 }
 
 func todayCommandResponse(response *todayResponse) *model.CommandResponse {
-	lines := []string{"### Today in Moed · " + escapeMarkdown(response.BusinessDate)}
+	lines := []string{"### Today in MOED · " + escapeMarkdown(response.BusinessDate)}
 	if len(response.Engagements) == 0 {
 		lines = append(lines, "No upcoming engagements.")
 	} else {
@@ -200,7 +200,7 @@ func todayCommandResponse(response *todayResponse) *model.CommandResponse {
 }
 
 func tasksCommandResponse(response *todayResponse) *model.CommandResponse {
-	text := "### My Moed tasks"
+	text := "### My MOED tasks"
 	if len(response.Tasks) == 0 {
 		text += "\n:white_check_mark: You have no active assigned tasks."
 	}
@@ -227,7 +227,7 @@ func (p *Plugin) executeEventCommand(
 			return commandError(err, config.MoedURL+"/mattermost.php")
 		}
 		if len(response.Engagements) == 0 {
-			return ephemeral("No Moed engagements matched **" + escapeMarkdown(query) + "**.")
+			return ephemeral("No MOED engagements matched **" + escapeMarkdown(query) + "**.")
 		}
 		lines := []string{"### Engagement search · " + escapeMarkdown(query)}
 		for _, event := range response.Engagements {
@@ -255,7 +255,7 @@ func (p *Plugin) executeEventCommand(
 		return p.sendCustomEphemeral(user.Id, channelID, customCommandResponse(
 			model.CommandResponseTypeEphemeral,
 			postTypeEvent,
-			"Moed engagement **#"+strconv.Itoa(id)+"**",
+			"MOED engagement **#"+strconv.Itoa(id)+"**",
 			response.Engagement,
 		))
 	}
@@ -282,7 +282,7 @@ func (p *Plugin) executeLinkEvent(
 		return commandError(apiErr, config.MoedURL+"/mattermost.php")
 	}
 	if response.User.Role != "editor" && response.User.Role != "admin" {
-		return ephemeral("Your Moed role cannot bind a channel to an engagement.")
+		return ephemeral("Your MOED role cannot bind a channel to an engagement.")
 	}
 	if err := p.setChannelBinding(channelID, &channelBinding{
 		EngagementID: id,
@@ -294,7 +294,7 @@ func (p *Plugin) executeLinkEvent(
 	postResponse := customCommandResponse(
 		model.CommandResponseTypeInChannel,
 		postTypeEvent,
-		"This channel is now linked to Moed engagement **#"+strconv.Itoa(id)+"**.",
+		"This channel is now linked to MOED engagement **#"+strconv.Itoa(id)+"**.",
 		response.Engagement,
 	)
 	if _, appErr := p.API.CreatePost(&model.Post{
@@ -307,7 +307,7 @@ func (p *Plugin) executeLinkEvent(
 		_ = p.setChannelBinding(channelID, nil)
 		return ephemeral(":warning: The channel link could not be announced, so it was not saved.")
 	}
-	return ephemeral(":white_check_mark: Linked this channel to Moed engagement **#" + strconv.Itoa(id) + "**.")
+	return ephemeral(":white_check_mark: Linked this channel to MOED engagement **#" + strconv.Itoa(id) + "**.")
 }
 
 func (p *Plugin) executeUnlinkEvent(
@@ -325,17 +325,17 @@ func (p *Plugin) executeUnlinkEvent(
 		return commandError(err, config.MoedURL+"/mattermost.php")
 	}
 	if response.User.Role != "editor" && response.User.Role != "admin" {
-		return ephemeral("Your Moed role cannot remove a channel binding.")
+		return ephemeral("Your MOED role cannot remove a channel binding.")
 	}
 	binding, bindingErr := p.channelBinding(channelID)
 	if bindingErr != nil {
 		return ephemeral(":warning: The channel binding could not be read.")
 	}
 	if binding == nil {
-		return ephemeral("This channel is not linked to a Moed engagement.")
+		return ephemeral("This channel is not linked to a MOED engagement.")
 	}
 	if err := p.setChannelBinding(channelID, nil); err != nil {
 		return ephemeral(":warning: The channel binding could not be removed.")
 	}
-	return ephemeral(":white_check_mark: Removed the link to Moed engagement **#" + strconv.Itoa(binding.EngagementID) + "**.")
+	return ephemeral(":white_check_mark: Removed the link to MOED engagement **#" + strconv.Itoa(binding.EngagementID) + "**.")
 }

@@ -67,7 +67,7 @@ async function pluginRequest(path, body) {
         payload = {};
     }
     if (!response.ok) {
-        throw new Error(payload.error || 'Moed could not complete that action.');
+        throw new Error(payload.error || 'MOED could not complete that action.');
     }
     return payload;
 }
@@ -151,8 +151,8 @@ function TaskDashboard({post, mode}) {
     };
     return <div className='moed-card'>
         <header className='moed-card__header'>
-            <div><p className='moed-card__eyebrow'>Moed workflow</p><h3 className='moed-card__title'>{mode === 'today' ? 'Here’s your Moed day' : 'My Moed tasks'}</h3><p className='moed-card__intro'>{mode === 'today' ? formatDate(businessDate) : 'Your active assigned follow-up work'}</p></div>
-            {openURL && <a className='moed-open-link' href={openURL} target='_blank' rel='noreferrer'>Open in Moed ↗</a>}
+            <div><p className='moed-card__eyebrow'>MOED workflow</p><h3 className='moed-card__title'>{mode === 'today' ? 'Here’s your MOED day' : 'My MOED tasks'}</h3><p className='moed-card__intro'>{mode === 'today' ? formatDate(businessDate) : 'Your active assigned follow-up work'}</p></div>
+            {openURL && <a className='moed-open-link' href={openURL} target='_blank' rel='noreferrer'>Open in MOED ↗</a>}
         </header>
         <section className='moed-summary' aria-label='Task summary'>
             <SummaryTile label='Overdue' value={summary.overdue} icon='◷' danger={true}/>
@@ -162,7 +162,7 @@ function TaskDashboard({post, mode}) {
         </section>
         {feedback && <p className='moed-feedback' role='status'>{feedback}</p>}
         {activeTasks.length ? <section className='moed-task-list'>{activeTasks.map((task) => <TaskRow key={task.id} task={task} businessDate={businessDate} channelId={post.channel_id} onUpdate={updateTask}/>)}</section> : <p className='moed-empty'>You have no active assigned tasks.</p>}
-        {openURL && <footer className='moed-card__footer'><a className='moed-open-link' href={openURL} target='_blank' rel='noreferrer'>Open in Moed</a></footer>}
+        {openURL && <footer className='moed-card__footer'><a className='moed-open-link' href={openURL} target='_blank' rel='noreferrer'>Open in MOED</a></footer>}
     </div>;
 }
 
@@ -182,7 +182,7 @@ function EventPost({post}) {
     return <div>
         {post.message && <div className='moed-card__intro'><FormattedPostMessage message={post.message}/></div>}
         <article className='moed-card'>
-            <header className='moed-card__header'><div><p className='moed-card__eyebrow'>Moed engagement #{event.id}</p><h3 className='moed-card__title'>{event.title}</h3><p className='moed-card__intro'>{event.organization_name}</p></div>{event.url && <a className='moed-open-link' href={event.url} target='_blank' rel='noreferrer'>Open in Moed ↗</a>}</header>
+            <header className='moed-card__header'><div><p className='moed-card__eyebrow'>MOED engagement #{event.id}</p><h3 className='moed-card__title'>{event.title}</h3><p className='moed-card__intro'>{event.organization_name}</p></div>{event.url && <a className='moed-open-link' href={event.url} target='_blank' rel='noreferrer'>Open in MOED ↗</a>}</header>
             {event.event_description && <p className='moed-event__description'>{event.event_description}</p>}
             <section className='moed-event-grid'>
                 <div className='moed-field'><span className='moed-field__label'>Dates</span><span className='moed-field__value'>{dateRange(event.event_start_date, event.event_end_date)}</span></div>
@@ -191,7 +191,7 @@ function EventPost({post}) {
             </section>
             <section className='moed-event-work' aria-label='Follow-up work'><div className='moed-event-work__item'><strong>{summary.active || 0}</strong><span>Active tasks</span></div><div className='moed-event-work__item'><strong>{summary.overdue || 0}</strong><span>Overdue</span></div><div className='moed-event-work__item'><strong>{summary.unassigned || 0}</strong><span>Unassigned</span></div></section>
             {presentations.length > 0 && <ul className='moed-presentations'>{presentations.map((presentation, index) => <li key={`${presentation.topic_title}-${index}`}><strong>{presentation.topic_title}</strong>{presentation.presentation_date ? ` · ${formatDate(presentation.presentation_date)}` : ''}{presentation.speaker_name ? ` · ${presentation.speaker_name}` : ''}</li>)}</ul>}
-            {event.url && <footer className='moed-card__footer'><a className='moed-open-link' href={event.url} target='_blank' rel='noreferrer'>Open full engagement in Moed</a></footer>}
+            {event.url && <footer className='moed-card__footer'><a className='moed-open-link' href={event.url} target='_blank' rel='noreferrer'>Open full engagement in MOED</a></footer>}
         </article>
     </div>;
 }
@@ -242,10 +242,10 @@ function ActionModal({request, onClose}) {
         }
     };
     return <div className='moed-modal-backdrop' role='presentation' onMouseDown={(event) => event.target === event.currentTarget && onClose()}><form className='moed-modal' role='dialog' aria-modal='true' aria-labelledby='moed-modal-title' onSubmit={submit}>
-        <header className='moed-modal__header'><h2 id='moed-modal-title'>{createTask ? 'Create Moed task' : 'Save to Moed Chron'}</h2><button className='moed-modal__close' type='button' aria-label='Close' onClick={onClose}>×</button></header>
+        <header className='moed-modal__header'><h2 id='moed-modal-title'>{createTask ? 'Create MOED task' : 'Save to MOED Chron'}</h2><button className='moed-modal__close' type='button' aria-label='Close' onClick={onClose}>×</button></header>
         <div className='moed-modal__body'>
-            {success ? <p className='moed-feedback' role='status'><strong>{success.message || (createTask ? 'Moed task created.' : 'Post saved to the Moed Chron.')}</strong>{(success.url || (success.task && success.task.url)) && <> <a className='moed-open-link' href={success.url || success.task.url} target='_blank' rel='noreferrer'>Open in Moed ↗</a></>}</p> : <>
-            <p className='moed-modal__hint'>This will save the selected post to the engagement linked to this channel. Moed checks your linked account and role before writing.</p>
+            {success ? <p className='moed-feedback' role='status'><strong>{success.message || (createTask ? 'MOED task created.' : 'Post saved to the MOED Chron.')}</strong>{(success.url || (success.task && success.task.url)) && <> <a className='moed-open-link' href={success.url || success.task.url} target='_blank' rel='noreferrer'>Open in MOED ↗</a></>}</p> : <>
+            <p className='moed-modal__hint'>This will save the selected post to the engagement linked to this channel. MOED checks your linked account and role before writing.</p>
             {createTask ? <>
                 <label className='moed-label'>Task title<input className='moed-input' required maxLength='255' value={title} onChange={(event) => setTitle(event.target.value)}/></label>
                 <label className='moed-label'>Notes<textarea className='moed-textarea' maxLength='18000' value={details} onChange={(event) => setDetails(event.target.value)} placeholder='Optional task instructions'/></label>
@@ -276,11 +276,6 @@ function resolvePost(store, postOrID) {
     return state && state.entities && state.entities.posts && state.entities.posts.posts ? state.entities.posts.posts[postOrID] : null;
 }
 
-function postSupportsAction(store, postOrID) {
-    const post = resolvePost(store, postOrID);
-    return Boolean(post && !post.delete_at && post.message && !String(post.type || '').startsWith('custom_moed_'));
-}
-
 function openPostAction(store, action, postOrID) {
     const post = resolvePost(store, postOrID);
     if (!post) {
@@ -289,7 +284,7 @@ function openPostAction(store, action, postOrID) {
     window.dispatchEvent(new CustomEvent('moed-open-post-action', {detail: {action, post}}));
 }
 
-class MoedPlugin {
+class MOEDPlugin {
     initialize(registry, store) {
         const style = document.createElement('style');
         style.id = 'moed-mattermost-webapp-styles';
@@ -299,8 +294,14 @@ class MoedPlugin {
         registry.registerPostTypeComponent('custom_moed_today', TodayPost);
         registry.registerPostTypeComponent('custom_moed_tasks', TasksPost);
         registry.registerPostTypeComponent('custom_moed_event', EventPost);
-        registry.registerPostDropdownMenuAction('Create Moed task', (postOrID) => openPostAction(store, 'create_task', postOrID), (postOrID) => postSupportsAction(store, postOrID));
-        registry.registerPostDropdownMenuAction('Save to Moed Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID), (postOrID) => postSupportsAction(store, postOrID));
+        if (registry.registerPostDropdownSubMenuAction) {
+            const {rootRegisterMenuItem} = registry.registerPostDropdownSubMenuAction('MOED');
+            rootRegisterMenuItem('Create MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
+            rootRegisterMenuItem('Save to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
+        } else {
+            registry.registerPostDropdownMenuAction('Create MOED task', (postOrID) => openPostAction(store, 'create_task', postOrID));
+            registry.registerPostDropdownMenuAction('Save to MOED Chron', (postOrID) => openPostAction(store, 'save_chron', postOrID));
+        }
     }
 
     uninitialize() {
@@ -311,4 +312,4 @@ class MoedPlugin {
     }
 }
 
-window.registerPlugin(PLUGIN_ID, new MoedPlugin());
+window.registerPlugin(PLUGIN_ID, new MOEDPlugin());

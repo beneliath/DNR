@@ -224,7 +224,7 @@ function redeemMattermostLinkCode(
         $externalLink = $externalStmt->get_result()->fetch_assoc();
         $externalStmt->close();
         if ($externalLink && (int) $externalLink['user_id'] !== $userId) {
-            throw new InvalidArgumentException('That Mattermost account is already linked to another Moed user.');
+            throw new InvalidArgumentException('That Mattermost account is already linked to another MOED user.');
         }
 
         $moedStmt = $conn->prepare(
@@ -232,14 +232,14 @@ function redeemMattermostLinkCode(
              WHERE instance_id = ? AND user_id = ? FOR UPDATE'
         );
         if (!$moedStmt) {
-            throw new RuntimeException('Unable to check the Moed identity.');
+            throw new RuntimeException('Unable to check the MOED identity.');
         }
         $moedStmt->bind_param('si', $instanceId, $userId);
         $moedStmt->execute();
         $moedLink = $moedStmt->get_result()->fetch_assoc();
         $moedStmt->close();
         if ($moedLink && !hash_equals((string) $moedLink['mattermost_user_id'], $mattermostUserId)) {
-            throw new InvalidArgumentException('This Moed account is already linked to another Mattermost user.');
+            throw new InvalidArgumentException('This MOED account is already linked to another Mattermost user.');
         }
 
         if ($externalLink) {

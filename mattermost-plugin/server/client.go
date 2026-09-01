@@ -54,7 +54,7 @@ func (c *moedClient) do(
 ) error {
 	endpoint, err := url.Parse(c.baseURL + "/api/v1/mattermost.php")
 	if err != nil {
-		return fmt.Errorf("build Moed endpoint: %w", err)
+		return fmt.Errorf("build MOED endpoint: %w", err)
 	}
 	values := endpoint.Query()
 	values.Set("action", action)
@@ -69,17 +69,17 @@ func (c *moedClient) do(
 	if body != nil {
 		encoded, encodeErr := json.Marshal(body)
 		if encodeErr != nil {
-			return fmt.Errorf("encode Moed request: %w", encodeErr)
+			return fmt.Errorf("encode MOED request: %w", encodeErr)
 		}
 		requestBody = bytes.NewReader(encoded)
 	}
 	request, err := http.NewRequestWithContext(ctx, method, endpoint.String(), requestBody)
 	if err != nil {
-		return fmt.Errorf("create Moed request: %w", err)
+		return fmt.Errorf("create MOED request: %w", err)
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "Moed-Mattermost-Plugin/0.3.1")
+	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.3.2")
 	request.Header.Set("X-Mattermost-Instance-ID", c.instanceID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -96,12 +96,12 @@ func (c *moedClient) do(
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
-		return fmt.Errorf("contact Moed: %w", err)
+		return fmt.Errorf("contact MOED: %w", err)
 	}
 	defer response.Body.Close()
 	limited := io.LimitReader(response.Body, 1<<20)
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		payload := apiError{Error: "Moed returned HTTP " + strconv.Itoa(response.StatusCode) + "."}
+		payload := apiError{Error: "MOED returned HTTP " + strconv.Itoa(response.StatusCode) + "."}
 		_ = json.NewDecoder(limited).Decode(&payload)
 		return &moedAPIError{StatusCode: response.StatusCode, Payload: payload}
 	}
@@ -110,7 +110,7 @@ func (c *moedClient) do(
 		return nil
 	}
 	if err := json.NewDecoder(limited).Decode(out); err != nil {
-		return fmt.Errorf("decode Moed response: %w", err)
+		return fmt.Errorf("decode MOED response: %w", err)
 	}
 	return nil
 }

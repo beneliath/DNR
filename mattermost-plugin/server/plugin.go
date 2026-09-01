@@ -27,18 +27,18 @@ func (p *Plugin) OnActivate() error {
 	p.client = pluginapi.NewClient(p.API, p.Driver)
 	botID, err := p.client.Bot.EnsureBot(&model.Bot{
 		Username:    "moed",
-		DisplayName: "Moed",
-		Description: "Moed engagement workflow assistant",
+		DisplayName: "MOED",
+		Description: "MOED engagement workflow assistant",
 	})
 	if err != nil {
-		return fmt.Errorf("ensure Moed bot: %w", err)
+		return fmt.Errorf("ensure MOED bot: %w", err)
 	}
 	p.botID = botID
 
 	if appErr := p.API.RegisterCommand(&model.Command{
 		Trigger:          "moed",
 		AutoComplete:     true,
-		AutoCompleteDesc: "Moed engagement summaries and follow-up actions",
+		AutoCompleteDesc: "MOED engagement summaries and follow-up actions",
 		AutoCompleteHint: "[help|status|connect|today|tasks|event|link-event|unlink-event]",
 	}); appErr != nil {
 		return fmt.Errorf("register /moed command: %s", appErr.Error())

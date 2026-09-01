@@ -166,7 +166,7 @@ func eventAttachment(event apiEngagement) *model.SlackAttachment {
 		TitleLink: event.URL,
 		Text:      escapeMarkdown(truncateRunes(event.EventDescription, 700)),
 		Fields:    fields,
-		Footer:    "Moed is the system of record · Open the title for the full record",
+		Footer:    "MOED is the system of record · Open the title for the full record",
 	}
 }
 

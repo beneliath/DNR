@@ -72,7 +72,7 @@ type apiError struct {
 
 func (e *apiError) ErrorMessage() string {
 	if e.Error == "" {
-		return "Moed returned an unexpected error."
+		return "MOED returned an unexpected error."
 	}
 	return e.Error
 }

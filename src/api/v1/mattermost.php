@@ -68,7 +68,7 @@ function mattermostApiRequireService(): string
 {
     if (!mattermostIntegrationConfigured()) {
         mattermostApiRespond([
-            'error' => 'The Mattermost integration is not configured in Moed.',
+            'error' => 'The Mattermost integration is not configured in MOED.',
             'code' => 'integration_unconfigured',
         ], 503);
     }
@@ -114,7 +114,7 @@ function mattermostApiRequireUser(mysqli $conn, string $instanceId): array
     );
     if ($user === null) {
         mattermostApiRespond([
-            'error' => 'Link your Moed account with `/moed connect CODE` first.',
+            'error' => 'Link your MOED account with `/moed connect CODE` first.',
             'code' => 'account_not_linked',
         ], 403);
     }
@@ -150,7 +150,7 @@ try {
         );
         mattermostApiRespond([
             'ok' => true,
-            'message' => 'Mattermost is now linked to your Moed account.',
+            'message' => 'Mattermost is now linked to your MOED account.',
             'user' => $user,
         ]);
     }
@@ -228,7 +228,7 @@ try {
         mattermostApiRequireMethod('POST');
         if (!canManageFollowUpTasks((string) $user['role'])) {
             mattermostApiRespond([
-                'error' => 'Your Moed role cannot create follow-up work.',
+                'error' => 'Your MOED role cannot create follow-up work.',
                 'code' => 'insufficient_role',
             ], 403);
         }
@@ -268,7 +268,7 @@ try {
             }
             $response = [
                 'ok' => true,
-                'message' => 'Moed task created.',
+                'message' => 'MOED task created.',
                 'user' => $publicUser,
                 'task' => mattermostTaskPayload($createdTask, (string) $user['role']),
             ];
@@ -292,7 +292,7 @@ try {
         mattermostApiRequireMethod('POST');
         if (!canManageFollowUpTasks((string) $user['role'])) {
             mattermostApiRespond([
-                'error' => 'Your Moed role cannot add engagement Chron entries.',
+                'error' => 'Your MOED role cannot add engagement Chron entries.',
                 'code' => 'insufficient_role',
             ], 403);
         }
@@ -326,7 +326,7 @@ try {
             );
             $response = [
                 'ok' => true,
-                'message' => 'Post saved to the Moed Chron.',
+                'message' => 'Post saved to the MOED Chron.',
                 'user' => $publicUser,
                 'url' => mattermostPublicUrl('view_engagement.php', ['id' => (int) $engagementId]),
             ];
@@ -350,7 +350,7 @@ try {
         mattermostApiRequireMethod('POST');
         if (!canManageFollowUpTasks((string) $user['role'])) {
             mattermostApiRespond([
-                'error' => 'Your Moed role cannot update follow-up work.',
+                'error' => 'Your MOED role cannot update follow-up work.',
                 'code' => 'insufficient_role',
             ], 403);
         }
@@ -437,7 +437,7 @@ try {
         'error' => $exception->getMessage(),
     ]);
     mattermostApiRespond([
-        'error' => 'Moed could not complete the Mattermost request.',
+        'error' => 'MOED could not complete the Mattermost request.',
         'code' => 'internal_error',
     ], 500);
 }

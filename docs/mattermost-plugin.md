@@ -1,19 +1,19 @@
-# Moed Mattermost Plugin
+# MOED Mattermost Plugin
 
-The Moed plugin is a workflow assistant for Mattermost. Moed remains the system
+The MOED plugin is a workflow assistant for Mattermost. MOED remains the system
 of record and the final authorization boundary; Mattermost stores only a
-channel-to-engagement binding and renders data returned by Moed.
+channel-to-engagement binding and renders data returned by MOED.
 
 ## Prerequisites
 
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
-- A network path from the Mattermost server to the canonical Moed HTTPS URL.
-- A deployed Moed version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.1.tar.gz`.
+- A network path from the Mattermost server to the canonical MOED HTTPS URL.
+- A deployed MOED version containing the Mattermost integration migration.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.3.2.tar.gz`.
 
 ## 1. Generate the shared secret
 
-From the Moed repository root, generate a 32-byte random token and protect it
+From the MOED repository root, generate a 32-byte random token and protect it
 like a password:
 
 ```sh
@@ -35,7 +35,7 @@ DNR_MATTERMOST_INSTANCE_ID=primary
 The ID may contain letters, numbers, dots, underscores, and hyphens. A user can
 link only one Mattermost identity per configured instance.
 
-## 2. Deploy or upgrade Moed
+## 2. Deploy or upgrade MOED
 
 The Mattermost Compose modes add the secret only to the web container. The
 normal migration service installs the link, identity, and idempotency tables
@@ -59,7 +59,7 @@ For Ubuntu with Proton Bridge:
 scripts/compose_with_provenance.sh production-ubuntu-proton-mattermost up -d --build
 ```
 
-Development uses `development-mattermost`. After startup, confirm that Moed is
+Development uses `development-mattermost`. After startup, confirm that MOED is
 ready and that signed-in users can open **Mattermost** in the utility navigation.
 
 ## 3. Build the plugin bundle
@@ -84,9 +84,9 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.3.1.tar.gz`;
-4. open the **Moed** plugin settings;
-5. enter the canonical **Moed URL**, for example `https://moed.example.org`;
+3. select `org.moed.mattermost-0.3.2.tar.gz`;
+4. open the **MOED** plugin settings;
+5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
 7. set **Instance ID** to the exact `DNR_MATTERMOST_INSTANCE_ID` value;
 8. keep the 10-second timeout unless the network requires another value from
@@ -94,7 +94,7 @@ Then:
 9. save, then enable the plugin.
 
 Mattermost plugins execute trusted server code. Install this bundle only from
-the controlled Moed build or a verified internal release.
+the controlled MOED build or a verified internal release.
 
 ## 5. Verify and link users
 
@@ -104,22 +104,22 @@ Run the private command:
 /moed status
 ```
 
-It should report a successful Moed connection and that the account is not yet
+It should report a successful MOED connection and that the account is not yet
 linked. Each user then:
 
-1. signs into Moed and opens **Mattermost**;
+1. signs into MOED and opens **Mattermost**;
 2. chooses **Generate One-Time Code**;
 3. immediately runs `/moed connect CODE` in Mattermost;
 4. confirms `/moed today` and `/moed tasks` work.
 
-The two commands render a theme-aware Moed dashboard inside Mattermost. It
+The two commands render a theme-aware MOED dashboard inside Mattermost. It
 shows Overdue, Due today, Next 7 days, and Waiting counts, followed by the
-user's active tasks and only the actions that Moed permits. Engagement cards
+user's active tasks and only the actions that MOED permits. Engagement cards
 use the same webapp bundle and adapt to the available message width.
 
 The code expires in 10 minutes, is stored only as a SHA-256 digest, is consumed
 once, and is never placed in a channel-visible message. Users revoke a link
-from **Moed → Mattermost**.
+from **MOED → Mattermost**.
 
 ## Commands and permissions
 
@@ -128,29 +128,29 @@ from **Moed → Mattermost**.
 - Reviewers receive read-only cards and links.
 - Editors and administrators can bind/unbind channels and receive permitted
   task action buttons.
-- In a bound channel, open a normal post's **More actions** menu to choose
-  **Create Moed task** or **Save to Moed Chron**. The confirmation form lets
+- In a bound channel, open a post's **More actions** menu, open the **MOED**
+  submenu, and choose **Create MOED task** or **Save to MOED Chron**. The confirmation form lets
   editors and administrators review the text before writing it to the channel's
-  linked engagement. Moed records the source author, channel, post ID, and
+  linked engagement. MOED records the source author, channel, post ID, and
   permalink with the new item.
 - Destructive actions, financial details, private Chron history, contacts,
-  travel/compensation, files, waiting reasons, and full editing stay in Moed.
+  travel/compensation, files, waiting reasons, and full editing stay in MOED.
 
 Slash responses are ephemeral. `/moed link-event ID` is the one intentional
 channel-visible operation; its card contains only share-safe engagement fields.
 The post-menu actions never accept an engagement ID from the browser: the
 plugin resolves the selected post, verifies read-channel permission, and uses
-the server-side channel binding before calling Moed. Moed then enforces the
+the server-side channel binding before calling MOED. MOED then enforces the
 linked account and editor/administrator role.
 
 ## Rotation and removal
 
-To rotate the service token, replace the secret file, recreate the Moed web
+To rotate the service token, replace the secret file, recreate the MOED web
 container with the same Mattermost Compose mode, update the masked Service
 Token setting, and run `/moed status`. Requests fail closed while the values do
 not match.
 
 To remove the integration, disable/remove the plugin in Mattermost and deploy
-Moed without the Mattermost Compose overlay. Existing account-link rows contain
+MOED without the Mattermost Compose overlay. Existing account-link rows contain
 only internal/external user identifiers and can remain for audit continuity;
 users can remove their own links before shutdown.
