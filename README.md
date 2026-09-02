@@ -151,7 +151,10 @@ npm test
 
 Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Run them only against the disposable Compose environment with `sh scripts/run_integration_tests.sh disposable`; the runner sends destructive backup/restore coverage to the isolated maintenance container.
 
-`VERSION` is the single source of release-version metadata. Update it once when preparing a release; runtime responses, asset cache keys, the footer, backups, and container images read that value automatically.
+`VERSION` is the single source of release-version metadata. DNR uses the project ontology
+`[super].[major].[minor]` = `x.y.z`, so a minor release increments `z` (for example,
+`1.10.3` becomes `1.10.4`). Update it once when preparing a release; runtime responses, asset
+cache keys, the footer, backups, and container images read that value automatically.
 
 ### Health and operations
 
@@ -541,6 +544,24 @@ accurately identify uncommitted source files.
 For CI source archives without `.git`, export a complete 40-character `DNR_BUILD_COMMIT` and a UTC
 `DNR_BUILD_TIMESTAMP` in `YYYY-MM-DDTHH:MM:SSZ` format before invoking the wrapper. Both values must
 be supplied together.
+
+### Deploying the tracked MOED release to s1
+
+After the final `main` GitHub Actions run succeeds, deploy that exact commit with:
+
+```sh
+./scripts/deploy_s1.sh "$(git rev-parse HEAD)"
+```
+
+The guarded command defaults to `dgilmore@192.168.1.150`, the checkout at
+`/home/dgilmore/moed`, the `production-ubuntu-proton-mattermost` Compose mode, and
+`https://moed.beneliath.com`. It refuses a dirty or non-`main` local or remote checkout, requires
+`origin/main` and a successful GitHub CI run to match the requested commit, fast-forwards the
+remote checkout without rewriting history, rebuilds with provenance, and verifies the migration
+gate, expected services, container version/commit, and public health/readiness responses. The
+`DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR`, `DNR_S1_COMPOSE_MODE`,
+`DNR_S1_PUBLIC_BASE_URL`, and `DNR_S1_GITHUB_REPOSITORY` variables exist for an intentional future
+infrastructure change; the topology guard prevents accidentally deploying s1 with a partial mode.
 
 ### Two-factor authentication
 
