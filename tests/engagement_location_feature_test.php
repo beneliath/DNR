@@ -29,8 +29,22 @@ expectEngagementLocationFeature(
         $edit_engagement
     ) === 1
         && str_contains($edit_styles, '.event-address-country-field .address-country-picker')
-        && str_contains($edit_styles, 'width: 170px;'),
-    'City, state, Zipcode, and the compact country picker should share one row.'
+        && str_contains($edit_styles, '.event-address-row input[type="text"]')
+        && str_contains($edit_styles, 'margin-bottom: 0;')
+        && str_contains($edit_styles, 'width: 100%;')
+        && str_contains($edit_styles, 'align-items: flex-start;')
+        && str_contains($edit_styles, 'flex-direction: column;')
+        && str_contains($edit_engagement, 'event-address-city-field')
+        && str_contains($edit_engagement, 'event-address-state-field')
+        && str_contains($edit_engagement, 'event-address-zipcode-field')
+        && str_contains($edit_styles, '.event-address-row #event_city')
+        && str_contains($edit_styles, 'flex: 2 1 220px;')
+        && str_contains($edit_styles, 'min-width: 220px;')
+        && str_contains($edit_styles, '.event-address-row [data-address-region-control]')
+        && str_contains($edit_styles, 'min-width: 230px;')
+        && str_contains($edit_styles, 'min-width: 340px;')
+        && str_contains($edit_styles, '.event-address-country-field .address-country-trigger'),
+    'City, state, Zipcode, and country should fill one aligned row and display their longest values.'
 );
 
 expectEngagementLocationFeature(
