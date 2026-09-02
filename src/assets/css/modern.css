@@ -1186,6 +1186,11 @@ html body .calendar-view-filter-all-tasks {
   --calendar-filter-bg: var(--action-archive-bg);
 }
 
+html body .calendar-view-filter-birthdays {
+  --calendar-filter-color: var(--warning);
+  --calendar-filter-bg: var(--warning-subtle);
+}
+
 html body .calendar-view-filter-everything {
   --calendar-filter-color: var(--primary);
   --calendar-filter-bg: color-mix(in srgb, var(--primary-subtle) 52%, var(--action-archive-bg));
@@ -1234,6 +1239,10 @@ html body .calendar-view-filter.is-active {
 
 .calendar-filter-swatch-other-task {
   color: var(--action-archive);
+}
+
+.calendar-filter-swatch-birthday {
+  color: var(--warning);
 }
 
 html body .calendar-month-control {
@@ -1431,6 +1440,11 @@ html body .calendar-event-canceled {
 
 html body .calendar-event-completed {
   border-left-color: var(--success);
+}
+
+html body .calendar-event-birthday {
+  border-left-color: var(--warning);
+  background: var(--warning-subtle) !important;
 }
 
 html body .calendar-task-mine {

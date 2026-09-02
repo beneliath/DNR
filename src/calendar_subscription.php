@@ -99,6 +99,7 @@ $calendar_view_mode = normalizeCalendarViewerMode(
 );
 $calendar_month = calendarMonthContext($effective_month, $business_date);
 $calendar_show_events = in_array($calendar_view_mode, ['events', 'everything'], true);
+$calendar_show_birthdays = in_array($calendar_view_mode, ['birthdays', 'everything'], true);
 $calendar_show_tasks = in_array($calendar_view_mode, ['my_tasks', 'all_tasks', 'everything'], true);
 $calendar_viewer_error = '';
 try {
@@ -109,6 +110,16 @@ try {
             $calendar_month['grid_end']
         )
         : [];
+    if ($calendar_show_birthdays) {
+        $calendar_events = array_merge(
+            $calendar_events,
+            calendarBirthdayOccurrences(
+                fetchCalendarViewerBirthdays($conn),
+                $calendar_month['grid_start'],
+                $calendar_month['grid_end']
+            )
+        );
+    }
     $calendar_tasks = $calendar_show_tasks
         ? fetchCalendarViewerTasks(
             $conn,
@@ -139,10 +150,24 @@ $calendar_tasks_by_date = calendarTasksByDate(
 $calendar_month_event_count = count(array_filter(
     $calendar_events,
     static function (array $engagement) use ($calendar_month): bool {
+        if (($engagement['calendar_item_type'] ?? '') === 'birthday') {
+            return false;
+        }
         $event_start = trim((string) ($engagement['event_start_date'] ?? ''));
         $event_end = trim((string) ($engagement['event_end_date'] ?? '')) ?: $event_start;
         return $event_start <= $calendar_month['month_end']
             && $event_end >= $calendar_month['month_start'];
+    }
+));
+$calendar_month_birthday_count = count(array_filter(
+    $calendar_events,
+    static function (array $engagement) use ($calendar_month): bool {
+        if (($engagement['calendar_item_type'] ?? '') !== 'birthday') {
+            return false;
+        }
+        $birthday_date = trim((string) ($engagement['event_start_date'] ?? ''));
+        return $birthday_date >= $calendar_month['month_start']
+            && $birthday_date <= $calendar_month['month_end'];
     }
 ));
 $calendar_month_task_count = count(array_filter(
@@ -279,7 +304,7 @@ $webcal_url = $calendar_url === null
                 </table>
             </div>
         <?php endif; ?>
-        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to event and presentation schedule data, but not contacts, notes, travel, lodging, or compensation.</p>
+        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to event and presentation schedules plus contact names and birthdays, but not contact details, notes, travel, lodging, or compensation.</p>
     </section>
     </section>
 </main>

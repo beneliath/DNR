@@ -21,11 +21,11 @@ $edit_contact = $read('src/edit_contact.php');
 $add_organization = $read('src/add_organization.php');
 expectContactNotesFeature(
     str_contains($add_contact, '<textarea name="contact_notes"')
-        && str_contains($add_contact, 'contact_phone, contact_notes')
+        && preg_match('/contact_phone,\s+(?:contact_birthday,\s+)?contact_notes/', $add_contact) === 1
         && str_contains($edit_contact, '<textarea name="contact_notes"')
         && str_contains($edit_contact, 'contact_notes = ?')
         && str_contains($add_organization, "'notes' => \$contact_notes")
-        && str_contains($add_organization, 'contact_phone, contact_notes')
+        && preg_match('/contact_phone,\s+(?:contact_birthday,\s+)?contact_notes/', $add_organization) === 1
         && str_contains($add_organization, '<textarea name="contact_notes"')
         && str_contains($add_organization, '<textarea name="contacts[__CONTACT_INDEX__][notes]"'),
     'all contact creation and editing paths should use multiline fields and save optional notes.'

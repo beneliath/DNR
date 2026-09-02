@@ -160,5 +160,27 @@ $presentation_result = $presentation_statement->get_result();
 $presentations = $presentation_result->fetch_all(MYSQLI_ASSOC);
 $presentation_statement->close();
 
+$birthday_result = $conn->query(
+    "SELECT id, contact_first_name, contact_last_name, contact_birthday,
+            UNIX_TIMESTAMP(updated_at) AS calendar_updated_at
+     FROM contacts
+     WHERE is_deleted = 0
+       AND contact_birthday IS NOT NULL
+     ORDER BY SUBSTRING(contact_birthday, 1, 2),
+              SUBSTRING(contact_birthday, 4, 2), id"
+);
+if (!$birthday_result) {
+    applicationLog('error', 'Unable to add birthdays to the private calendar', ['error' => $conn->error]);
+    http_response_code(503);
+    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+}
+$birthdays = $birthday_result->fetch_all(MYSQLI_ASSOC);
+
 $calendar_timezone = applicationTimezoneName();
-echo buildCalendar($engagements, applicationCalendarName(), $presentations, $calendar_timezone);
+echo buildCalendar(
+    $engagements,
+    applicationCalendarName(),
+    $presentations,
+    $calendar_timezone,
+    $birthdays
+);

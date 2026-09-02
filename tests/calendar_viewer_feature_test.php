@@ -24,7 +24,8 @@ expectCalendarViewerFeature(
         && str_contains($viewer, 'calendarViewerPageUrl($calendar_month[\'previous_month\'], $calendar_view_mode)')
         && str_contains($viewer, '$calendar_day[\'previous_day\']')
         && str_contains($viewer, '$calendar_day[\'next_day\']')
-        && str_contains($viewer, 'view_engagement.php?id='),
+        && str_contains($viewer, 'calendarViewerEventUrl($engagement)')
+        && str_contains($helpers, "'view_engagement.php'"),
     'the Calendar page should render a desktop month grid and a mobile day agenda with event links.'
 );
 
@@ -32,13 +33,17 @@ expectCalendarViewerFeature(
     str_contains($page, "normalizeCalendarViewerMode(")
         && str_contains($page, "fetchCalendarViewerTasks(")
         && str_contains($page, "['my_tasks', 'all_tasks', 'everything']")
+        && str_contains($page, "['birthdays', 'everything']")
         && str_contains($helpers, "'events' => 'Events'")
         && str_contains($helpers, "'my_tasks' => 'My Tasks'")
         && str_contains($helpers, "'all_tasks' => 'All Tasks'")
+        && str_contains($helpers, "'birthdays' => 'Birthdays'")
         && str_contains($helpers, "'everything' => 'Everything'")
         && str_contains($viewer, 'class="calendar-view-filters"')
+        && str_contains($viewer, 'calendar-filter-swatch-birthday')
+        && str_contains($viewer, "\$mode_value === 'birthdays' || \$mode_value === 'everything'")
         && str_contains($viewer, 'calendar-task-<?php echo $task_tone; ?>'),
-    'the calendar should switch between events, personal tasks, all tasks, and their combined view.'
+    'the calendar should switch between events, personal tasks, all tasks, birthdays, and their combined view.'
 );
 
 expectCalendarViewerFeature(
@@ -61,10 +66,13 @@ expectCalendarViewerFeature(
         && preg_match('/\.calendar-view-filters\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1
         && preg_match('/\.calendar-subscriptions-section\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1
         && str_contains($styles, '.calendar-view-filter-events')
+        && str_contains($styles, '.calendar-view-filter-birthdays')
         && str_contains($styles, '.calendar-filter-swatch-my-task')
+        && str_contains($styles, '.calendar-filter-swatch-birthday')
         && str_contains($styles, '.calendar-task-mine')
         && str_contains($styles, '.calendar-task-other')
         && str_contains($styles, '.calendar-event-canceled')
+        && str_contains($styles, '.calendar-event-birthday')
         && str_contains($styles, '.calendar-daily-agenda')
         && str_contains($styles, '.calendar-agenda-navigation')
         && preg_match('/@media \(max-width: 860px\)[\s\S]*?\.calendar-month-scroll\s*\{[^}]*display:\s*none !important;/s', $styles) === 1

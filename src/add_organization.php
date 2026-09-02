@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_email = trim($_POST['contact_email'] ?? '');
     $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
     $contact_phone = trim($_POST['contact_phone'] ?? '');
+    $contact_birthday = trim($_POST['contact_birthday'] ?? '');
     $contact_notes = trim($_POST['contact_notes'] ?? '');
     $contact_phone_country_code = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 
@@ -38,6 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         'email' => $contact_email,
         'email_confirm' => $contact_email_confirm,
         'phone' => $contact_phone,
+        'birthday' => $contact_birthday,
         'notes' => $contact_notes,
         'phone_country_code' => $contact_phone_country_code
     ]];
@@ -54,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 'email' => trim($submitted_contact['email'] ?? ''),
                 'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
                 'phone' => trim($submitted_contact['phone'] ?? ''),
+                'birthday' => trim($submitted_contact['birthday'] ?? ''),
                 'notes' => trim($submitted_contact['notes'] ?? ''),
                 'phone_country_code' => trim($submitted_contact['phone_country_code'] ?? applicationDefaultPhoneCountryCode())
             ];
@@ -71,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             $candidate['email'],
             $candidate['email_confirm'],
             $candidate['phone'],
+            $candidate['birthday'],
             $candidate['notes'],
         ]) !== '';
         if (!$has_contact_data) {
@@ -119,8 +123,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     $contact_stmt = $conn->prepare(
                         "INSERT INTO contacts (
                             organization_id, contact_first_name, contact_last_name, contact_role,
-                            contact_role_other, contact_email, contact_phone, contact_notes
-                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                            contact_role_other, contact_email, contact_phone, contact_birthday, contact_notes
+                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                     );
                     $saved_contact_first_name = '';
                     $saved_contact_last_name = '';
@@ -128,9 +132,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     $saved_contact_role_other = '';
                     $saved_contact_email = '';
                     $saved_contact_phone = '';
+                    $saved_contact_birthday = null;
                     $saved_contact_notes = '';
                     $contact_stmt->bind_param(
-                        "isssssss",
+                        "issssssss",
                         $organization_id,
                         $saved_contact_first_name,
                         $saved_contact_last_name,
@@ -138,6 +143,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                         $saved_contact_role_other,
                         $saved_contact_email,
                         $saved_contact_phone,
+                        $saved_contact_birthday,
                         $saved_contact_notes
                     );
 
@@ -148,6 +154,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                         $saved_contact_role_other = $contact_to_create['role_other'];
                         $saved_contact_email = $contact_to_create['email'];
                         $saved_contact_phone = $contact_to_create['phone'];
+                        $saved_contact_birthday = $contact_to_create['birthday'];
                         $saved_contact_notes = $contact_to_create['notes'];
                         if (!$contact_stmt->execute()) {
                             throw new RuntimeException("Unable to save contact.");
@@ -331,12 +338,17 @@ if (isset($_SESSION['success_message'])) {
                                 <input type="text" name="contact_last_name" id="contact_last_name" autocomplete="family-name" value="<?php echo htmlspecialchars($_POST['contact_last_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group contact-phone-field">
                                 <label>Phone</label>
                                 <div class="phone-input-group" data-phone-input-group>
                                     <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value, 'Contact phone country code'); ?>
                                     <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                                 </div>
+                            </div>
+                            <div class="form-group contact-birthday-field">
+                                <label for="contact_birthday">Birthday</label>
+                                <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
+                                <p class="field-help">Optional; repeats annually.</p>
                             </div>
                         </div>
 
@@ -388,12 +400,17 @@ if (isset($_SESSION['success_message'])) {
                                 <label class="required">Last Name</label>
                                 <input type="text" name="contacts[__CONTACT_INDEX__][last_name]" autocomplete="family-name" required>
                             </div>
-                            <div class="form-group">
+                            <div class="form-group contact-phone-field">
                                 <label class="required">Phone</label>
                                 <div class="phone-input-group" data-phone-input-group>
                                     <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', applicationDefaultPhoneCountryCode(), 'Contact phone country code'); ?>
                                     <input type="tel" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
                                 </div>
+                            </div>
+                            <div class="form-group contact-birthday-field">
+                                <label>Birthday</label>
+                                <input type="text" name="contacts[__CONTACT_INDEX__][birthday]" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
+                                <p class="field-help">Optional; repeats annually.</p>
                             </div>
                         </div>
                         <div class="role-container">

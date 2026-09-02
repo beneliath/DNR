@@ -67,19 +67,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                 $stmt = $conn->prepare(
                     "INSERT INTO contacts (
                         organization_id, contact_first_name, contact_last_name, contact_role,
-                        contact_role_other, contact_email, contact_phone, contact_notes,
+                        contact_role_other, contact_email, contact_phone, contact_birthday, contact_notes,
                         contact_photo, contact_photo_thumbnail,
                         contact_photo_thumbnail_mime, contact_photo_mime,
                         contact_photo_sha256,
                         contact_photo_updated_at
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP())"
                 );
             } else {
                 $stmt = $conn->prepare(
                     "INSERT INTO contacts (
                         organization_id, contact_first_name, contact_last_name, contact_role,
-                        contact_role_other, contact_email, contact_phone, contact_notes
-                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+                        contact_role_other, contact_email, contact_phone, contact_birthday, contact_notes
+                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
                 );
             }
             if (!$stmt) {
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $contact_photo_sha256 = $contact_photo['sha256'];
                 $stmt->bind_param(
-                    'issssssssssss',
+                    'isssssssssssss',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -100,6 +100,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_birthday,
                     $contact_notes,
                     $contact_photo_data,
                     $contact_photo_thumbnail,
@@ -109,7 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                 );
             } else {
                 $stmt->bind_param(
-                    'isssssss',
+                    'issssssss',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -117,6 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_birthday,
                     $contact_notes
                 );
             }
@@ -253,11 +255,19 @@ $cancel_url = $requested_organization_id !== null
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="contact_phone">Phone Number</label>
-            <div class="phone-input-group" data-phone-input-group>
-                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
-                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+        <div class="contact-phone-birthday-row">
+            <div class="form-group contact-phone-field">
+                <label for="contact_phone">Phone Number</label>
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
+                    <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                </div>
+            </div>
+
+            <div class="form-group contact-birthday-field">
+                <label for="contact_birthday">Birthday</label>
+                <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($_POST['contact_birthday'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
+                <p class="field-help" id="contact-birthday-help">Optional; repeats annually.</p>
             </div>
         </div>
 

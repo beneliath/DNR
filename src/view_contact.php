@@ -16,7 +16,7 @@ $contact_stmt = $conn->prepare(
     "SELECT
         c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
         c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
-        c.contact_notes, c.contact_photo_updated_at, c.is_deleted,
+        c.contact_birthday, c.contact_notes, c.contact_photo_updated_at, c.is_deleted,
         o.organization_name,
         o.is_deleted AS organization_is_archived
      FROM contacts c
@@ -47,6 +47,13 @@ $display_role = $contact['contact_role'] === 'other'
 $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
 $contact_notes = trim((string) ($contact['contact_notes'] ?? ''));
+$contact_birthday_display = 'Not specified';
+if (!empty($contact['contact_birthday'])) {
+    $birthday = DateTimeImmutable::createFromFormat('!m/d/Y', (string) $contact['contact_birthday'] . '/2000');
+    if ($birthday instanceof DateTimeImmutable) {
+        $contact_birthday_display = $birthday->format('F j');
+    }
+}
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 try {
     $chron_page_size = 20;
@@ -136,6 +143,11 @@ try {
                     ENT_QUOTES,
                     'UTF-8'
                 ); ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Birthday</strong>
+                <?php echo htmlspecialchars($contact_birthday_display, ENT_QUOTES, 'UTF-8'); ?>
             </div>
 
             <div class="detail-row">
