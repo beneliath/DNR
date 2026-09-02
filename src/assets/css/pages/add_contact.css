@@ -101,3 +101,28 @@
         .email-field {
             flex: 1;
         }
+        .contact-phone-birthday-row {
+            display: flex;
+            align-items: flex-start;
+            gap: 30px;
+        }
+        .contact-phone-field {
+            flex: 1;
+        }
+        .contact-birthday-field {
+            width: 8rem;
+            flex: 0 0 8rem;
+            margin-left: auto;
+        }
+        @media (max-width: 640px) {
+            .contact-phone-birthday-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            .contact-phone-field,
+            .contact-birthday-field {
+                width: 100%;
+                flex: 1 1 auto;
+                margin-left: 0;
+            }
+        }

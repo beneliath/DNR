@@ -6,7 +6,15 @@ $calendar_return_url = calendarViewerPageUrl(
     $calendar_view_mode,
     $has_requested_day ? $calendar_day['date'] : null
 );
-$calendar_day_events = $calendar_events_by_date[$calendar_day['date']] ?? [];
+$calendar_day_items = $calendar_events_by_date[$calendar_day['date']] ?? [];
+$calendar_day_events = array_values(array_filter(
+    $calendar_day_items,
+    static fn(array $item): bool => ($item['calendar_item_type'] ?? '') !== 'birthday'
+));
+$calendar_day_birthdays = array_values(array_filter(
+    $calendar_day_items,
+    static fn(array $item): bool => ($item['calendar_item_type'] ?? '') === 'birthday'
+));
 $calendar_day_tasks = $calendar_tasks_by_date[$calendar_day['date']] ?? [];
 $calendar_day_summary = match ($calendar_view_mode) {
     'my_tasks' => sprintf(
@@ -19,12 +27,19 @@ $calendar_day_summary = match ($calendar_view_mode) {
         count($calendar_day_tasks),
         count($calendar_day_tasks) === 1 ? '' : 's'
     ),
+    'birthdays' => sprintf(
+        '%d birthday%s',
+        count($calendar_day_birthdays),
+        count($calendar_day_birthdays) === 1 ? '' : 's'
+    ),
     'everything' => sprintf(
-        '%d event%s and %d task%s',
+        '%d event%s, %d task%s, and %d birthday%s',
         count($calendar_day_events),
         count($calendar_day_events) === 1 ? '' : 's',
         count($calendar_day_tasks),
-        count($calendar_day_tasks) === 1 ? '' : 's'
+        count($calendar_day_tasks) === 1 ? '' : 's',
+        count($calendar_day_birthdays),
+        count($calendar_day_birthdays) === 1 ? '' : 's'
     ),
     default => sprintf(
         '%d event%s',
@@ -43,12 +58,19 @@ $calendar_month_summary = match ($calendar_view_mode) {
         $calendar_month_task_count,
         $calendar_month_task_count === 1 ? '' : 's'
     ),
+    'birthdays' => sprintf(
+        '%d birthday%s this month',
+        $calendar_month_birthday_count,
+        $calendar_month_birthday_count === 1 ? '' : 's'
+    ),
     'everything' => sprintf(
-        '%d event%s and %d task%s this month',
+        '%d event%s, %d task%s, and %d birthday%s this month',
         $calendar_month_event_count,
         $calendar_month_event_count === 1 ? '' : 's',
         $calendar_month_task_count,
-        $calendar_month_task_count === 1 ? '' : 's'
+        $calendar_month_task_count === 1 ? '' : 's',
+        $calendar_month_birthday_count,
+        $calendar_month_birthday_count === 1 ? '' : 's'
     ),
     default => sprintf(
         '%d event%s this month',
@@ -101,6 +123,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
                     <?php if ($mode_value === 'events' || $mode_value === 'everything'): ?><span class="calendar-filter-swatch calendar-filter-swatch-event"></span><?php endif; ?>
                     <?php if (in_array($mode_value, ['my_tasks', 'all_tasks', 'everything'], true)): ?><span class="calendar-filter-swatch calendar-filter-swatch-my-task"></span><?php endif; ?>
                     <?php if (in_array($mode_value, ['all_tasks', 'everything'], true)): ?><span class="calendar-filter-swatch calendar-filter-swatch-other-task"></span><?php endif; ?>
+                    <?php if ($mode_value === 'birthdays' || $mode_value === 'everything'): ?><span class="calendar-filter-swatch calendar-filter-swatch-birthday"></span><?php endif; ?>
                 </span>
                 <?php echo htmlspecialchars($mode_label, ENT_QUOTES, 'UTF-8'); ?>
             </a>
@@ -111,7 +134,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
         <p class="error"><?php echo htmlspecialchars($calendar_viewer_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php else: ?>
         <div class="calendar-daily-agenda" aria-labelledby="calendar-agenda-title">
-            <?php if ($calendar_day_events === [] && $calendar_day_tasks === []): ?>
+            <?php if ($calendar_day_events === [] && $calendar_day_birthdays === [] && $calendar_day_tasks === []): ?>
                 <p class="calendar-agenda-empty">Nothing scheduled for this day in the current view.</p>
             <?php else: ?>
                 <?php if ($calendar_day_events !== []): ?>
@@ -121,16 +144,30 @@ $calendar_month_summary = match ($calendar_view_mode) {
                             <?php foreach ($calendar_day_events as $engagement): ?>
                                 <?php
                                 $event_label = calendarViewerEventLabel($engagement);
-                                $organization_name = trim((string) ($engagement['organization_name'] ?? ''));
-                                $status_label = calendarOperationalStatus($engagement);
-                                $event_meta = array_filter([
-                                    $organization_name !== $event_label ? $organization_name : '',
-                                    $status_label,
-                                ]);
+                                $event_meta = calendarViewerEventMeta($engagement);
+                                $event_href = calendarViewerEventUrl($engagement);
                                 ?>
-                                <a class="calendar-item calendar-event calendar-event-<?php echo calendarViewerEventTone($engagement); ?>" href="view_engagement.php?id=<?php echo (int) $engagement['id']; ?>">
+                                <a class="calendar-item calendar-event calendar-event-<?php echo calendarViewerEventTone($engagement); ?>" href="<?php echo htmlspecialchars($event_href, ENT_QUOTES, 'UTF-8'); ?>">
                                     <span class="calendar-item-title"><?php echo htmlspecialchars($event_label, ENT_QUOTES, 'UTF-8'); ?></span>
                                     <span class="calendar-item-meta"><?php echo htmlspecialchars(implode(' · ', $event_meta), ENT_QUOTES, 'UTF-8'); ?></span>
+                                </a>
+                            <?php endforeach; ?>
+                        </div>
+                    </section>
+                <?php endif; ?>
+                <?php if ($calendar_day_birthdays !== []): ?>
+                    <section class="calendar-agenda-group" aria-labelledby="calendar-agenda-birthdays-title">
+                        <h3 id="calendar-agenda-birthdays-title">Birthdays <span><?php echo count($calendar_day_birthdays); ?></span></h3>
+                        <div class="calendar-agenda-items">
+                            <?php foreach ($calendar_day_birthdays as $birthday): ?>
+                                <?php
+                                $birthday_label = calendarViewerEventLabel($birthday);
+                                $birthday_meta = calendarViewerEventMeta($birthday);
+                                $birthday_href = calendarViewerEventUrl($birthday);
+                                ?>
+                                <a class="calendar-item calendar-event calendar-event-birthday" href="<?php echo htmlspecialchars($birthday_href, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <span class="calendar-item-title"><?php echo htmlspecialchars($birthday_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <span class="calendar-item-meta"><?php echo htmlspecialchars(implode(' · ', $birthday_meta), ENT_QUOTES, 'UTF-8'); ?></span>
                                 </a>
                             <?php endforeach; ?>
                         </div>
@@ -180,7 +217,15 @@ $calendar_month_summary = match ($calendar_view_mode) {
                         $day = new DateTimeImmutable($date);
                         $outside_month = $day->format('Y-m') !== $calendar_month['month'];
                         $is_today = $date === $calendar_month['today'];
-                        $day_events = $calendar_events_by_date[$date] ?? [];
+                        $day_items = $calendar_events_by_date[$date] ?? [];
+                        $day_events = array_values(array_filter(
+                            $day_items,
+                            static fn(array $item): bool => ($item['calendar_item_type'] ?? '') !== 'birthday'
+                        ));
+                        $day_birthdays = array_values(array_filter(
+                            $day_items,
+                            static fn(array $item): bool => ($item['calendar_item_type'] ?? '') === 'birthday'
+                        ));
                         $day_tasks = $calendar_tasks_by_date[$date] ?? [];
                         $day_classes = ['calendar-month-day'];
                         if ($outside_month) $day_classes[] = 'is-outside-month';
@@ -198,16 +243,23 @@ $calendar_month_summary = match ($calendar_view_mode) {
                                 <?php foreach ($day_events as $engagement): ?>
                                     <?php
                                     $event_label = calendarViewerEventLabel($engagement);
-                                    $organization_name = trim((string) ($engagement['organization_name'] ?? ''));
-                                    $status_label = calendarOperationalStatus($engagement);
-                                    $event_meta = array_filter([
-                                        $organization_name !== $event_label ? $organization_name : '',
-                                        $status_label,
-                                    ]);
+                                    $event_meta = calendarViewerEventMeta($engagement);
+                                    $event_href = calendarViewerEventUrl($engagement);
                                     ?>
-                                    <a class="calendar-item calendar-event calendar-event-<?php echo calendarViewerEventTone($engagement); ?>" href="view_engagement.php?id=<?php echo (int) $engagement['id']; ?>">
+                                    <a class="calendar-item calendar-event calendar-event-<?php echo calendarViewerEventTone($engagement); ?>" href="<?php echo htmlspecialchars($event_href, ENT_QUOTES, 'UTF-8'); ?>">
                                         <span class="calendar-item-title"><?php echo htmlspecialchars($event_label, ENT_QUOTES, 'UTF-8'); ?></span>
                                         <span class="calendar-item-meta"><?php echo htmlspecialchars(implode(' · ', $event_meta), ENT_QUOTES, 'UTF-8'); ?></span>
+                                    </a>
+                                <?php endforeach; ?>
+                                <?php foreach ($day_birthdays as $birthday): ?>
+                                    <?php
+                                    $birthday_label = calendarViewerEventLabel($birthday);
+                                    $birthday_meta = calendarViewerEventMeta($birthday);
+                                    $birthday_href = calendarViewerEventUrl($birthday);
+                                    ?>
+                                    <a class="calendar-item calendar-event calendar-event-birthday" href="<?php echo htmlspecialchars($birthday_href, ENT_QUOTES, 'UTF-8'); ?>">
+                                        <span class="calendar-item-title"><?php echo htmlspecialchars($birthday_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                                        <span class="calendar-item-meta"><?php echo htmlspecialchars(implode(' · ', $birthday_meta), ENT_QUOTES, 'UTF-8'); ?></span>
                                     </a>
                                 <?php endforeach; ?>
                                 <?php foreach ($day_tasks as $task): ?>

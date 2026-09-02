@@ -20,6 +20,8 @@ final class ContactInput
         $organization_id = !$organization_id_is_invalid && $organization_id_value !== ''
             ? (int) $organization_id_value
             : null;
+        $birthday_value = InputText::value($input, 'contact_birthday');
+        [$contact_birthday, $birthday_error] = self::normalizeBirthday($birthday_value);
         $data = [
             'organization_id' => $organization_id > 0 ? $organization_id : null,
             'contact_first_name' => InputText::value($input, 'contact_first_name'),
@@ -29,6 +31,7 @@ final class ContactInput
             'contact_email' => InputText::value($input, 'contact_email'),
             'contact_email_confirm' => InputText::value($input, 'contact_email_confirm'),
             'contact_phone' => InputText::value($input, 'contact_phone'),
+            'contact_birthday' => $contact_birthday,
             'contact_notes' => InputText::value($input, 'contact_notes'),
             'contact_phone_country_code' => InputText::value($input, 'contact_phone_country_code')
                 ?: \applicationDefaultPhoneCountryCode(),
@@ -36,6 +39,9 @@ final class ContactInput
         $errors = [];
         if ($organization_id_is_invalid) {
             $errors[] = 'Select a valid organization.';
+        }
+        if ($birthday_error !== null) {
+            $errors[] = $birthday_error;
         }
         if ($data['contact_first_name'] === '') {
             $errors[] = 'First name is required.';
@@ -83,13 +89,32 @@ final class ContactInput
         return ['data' => $data, 'errors' => array_values(array_unique($errors))];
     }
 
+    /** @return array{0: string|null, 1: string|null} */
+    private static function normalizeBirthday(string $value): array
+    {
+        if ($value === '') {
+            return [null, null];
+        }
+        if (preg_match('/\A(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\z/', $value, $matches) !== 1) {
+            return [null, 'Birthday must use MM/DD format.'];
+        }
+
+        $month = (int) $matches[1];
+        $day = (int) $matches[2];
+        if (!checkdate($month, $day, 2000)) {
+            return [null, 'Birthday must be a valid date.'];
+        }
+
+        return [sprintf('%02d/%02d', $month, $day), null];
+    }
+
     /**
      * Normalize a contact nested inside the organization creation form.
      *
      * @param array<string, mixed> $input
      * @return array{
      *   data: array{first_name: string, last_name: string, role: string,
-     *     role_other: string, email: string, phone: string, notes: string,
+     *     role_other: string, email: string, phone: string, birthday: string|null, notes: string,
      *     phone_country_code: string},
      *   errors: list<string>
      * }
@@ -105,6 +130,7 @@ final class ContactInput
             'contact_email' => $input['email'] ?? '',
             'contact_email_confirm' => $input['email_confirm'] ?? '',
             'contact_phone' => $input['phone'] ?? '',
+            'contact_birthday' => $input['birthday'] ?? '',
             'contact_notes' => $input['notes'] ?? '',
             'contact_phone_country_code' => $input['phone_country_code']
                 ?? \applicationDefaultPhoneCountryCode(),
@@ -118,6 +144,7 @@ final class ContactInput
                 'role_other' => (string) $data['contact_role_other'],
                 'email' => (string) $data['contact_email'],
                 'phone' => (string) $data['contact_phone'],
+                'birthday' => $data['contact_birthday'],
                 'notes' => (string) $data['contact_notes'],
                 'phone_country_code' => (string) $data['contact_phone_country_code'],
             ],

@@ -209,8 +209,14 @@
             flex: 1;
         }
 
-        .name-phone-row .form-group:last-child {
-            flex: 0 0 320px;
+        .name-phone-row .contact-phone-field {
+            flex: 0 1 320px;
+        }
+
+        .name-phone-row .contact-birthday-field {
+            width: 8rem;
+            flex: 0 0 8rem;
+            margin-left: auto;
         }
 
         .add-contact-btn {

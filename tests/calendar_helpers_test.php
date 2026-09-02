@@ -134,6 +134,27 @@ expectCalendar(
     'Presentation event names should retain the requested format when the speaker is blank.'
 );
 
+$birthday = [
+    'id' => 99,
+    'contact_first_name' => 'Avery',
+    'contact_last_name' => 'Morgan',
+    'contact_birthday' => '08/17',
+    'calendar_updated_at' => 1786708800,
+];
+$calendar_with_birthday = buildCalendar([], 'DNR Events', [], null, [$birthday]);
+expectCalendar(
+    str_contains($calendar_with_birthday, "UID:contact-birthday-99@dnr-calendar\r\n")
+        && str_contains($calendar_with_birthday, "SUMMARY:Birthday: Avery Morgan\r\n")
+        && str_contains($calendar_with_birthday, "DTSTART;VALUE=DATE:20000817\r\n")
+        && str_contains($calendar_with_birthday, "RRULE:FREQ=YEARLY\r\n")
+        && str_contains($calendar_with_birthday, "TRANSP:TRANSPARENT\r\n"),
+    'contact birthdays should publish as stable, transparent, annually recurring all-day events.'
+);
+expectCalendar(
+    calendarBirthdayEventLines(array_merge($birthday, ['contact_birthday' => 'not-a-date'])) === [],
+    'invalid stored birthdays should not produce calendar events.'
+);
+
 foreach (explode("\r\n", $calendar_with_presentation) as $line) {
     expectCalendar(strlen($line) <= 75, 'Generated iCalendar lines must be folded to 75 octets or fewer.');
 }
@@ -153,8 +174,9 @@ expectCalendar(
     'Invalid month navigation values should fall back to the current business month.'
 );
 expectCalendar(
-    array_keys(calendarViewerModes()) === ['events', 'my_tasks', 'all_tasks', 'everything']
+    array_keys(calendarViewerModes()) === ['events', 'my_tasks', 'all_tasks', 'birthdays', 'everything']
         && normalizeCalendarViewerMode('my_tasks') === 'my_tasks'
+        && normalizeCalendarViewerMode('birthdays') === 'birthdays'
         && normalizeCalendarViewerMode('invalid') === 'everything',
     'Calendar content selectors should use a fixed allowlist and default to everything.'
 );
@@ -226,6 +248,44 @@ expectCalendar(
         && calendarViewerEventTone($viewer_events[1]) === 'tentative'
         && calendarViewerEventTone(['lifecycle_status' => 'canceled']) === 'canceled',
     'Calendar event labels and visual status tones should remain stable.'
+);
+
+$birthday_occurrences = calendarBirthdayOccurrences([
+    $birthday + ['organization_name' => 'Example Org'],
+    [
+        'id' => 100,
+        'contact_first_name' => 'Leap',
+        'contact_last_name' => 'Person',
+        'contact_birthday' => '02/29',
+        'organization_name' => '',
+    ],
+], '2026-01-01', '2027-12-31');
+$birthday_dates = array_column($birthday_occurrences, 'event_start_date', 'id');
+$avery_occurrences = array_values(array_filter(
+    $birthday_occurrences,
+    static fn(array $occurrence): bool => (int) $occurrence['id'] === 99
+));
+expectCalendar(
+    count($birthday_occurrences) === 4
+        && array_column($avery_occurrences, 'event_start_date') === ['2026-08-17', '2027-08-17']
+        && ($birthday_dates[100] ?? '') === '2027-02-28'
+        && calendarViewerEventLabel($avery_occurrences[0]) === "Avery Morgan's birthday"
+        && calendarViewerEventTone($avery_occurrences[0]) === 'birthday'
+        && calendarViewerEventUrl($avery_occurrences[0]) === 'view_contact.php?id=99'
+        && calendarViewerEventMeta($avery_occurrences[0]) === ['Example Org', 'Birthday'],
+    'the graphical calendar should expand birthdays annually, link to contacts, and observe leap-day birthdays on February 28 in other years.'
+);
+
+$leap_birthday_calendar = buildCalendar([], 'DNR Events', [], null, [[
+    'id' => 100,
+    'contact_first_name' => 'Leap',
+    'contact_last_name' => 'Person',
+    'contact_birthday' => '02/29',
+    'calendar_updated_at' => 1786708800,
+]]);
+expectCalendar(
+    str_contains($leap_birthday_calendar, "RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1\r\n"),
+    'leap-day birthday subscriptions should recur on the final day of February every year.'
 );
 
 $viewer_tasks = [

@@ -130,9 +130,12 @@ $embeddedContact = ContactInput::normalizeEmbedded([
     'role' => 'admin',
     'email' => 'avery@example.org',
     'email_confirm' => 'avery@example.org',
+    'birthday' => '08/17',
 ]);
 expectDomainInput(
-    $embeddedContact['errors'] === [] && $embeddedContact['data']['role'] === 'admin',
+    $embeddedContact['errors'] === []
+        && $embeddedContact['data']['role'] === 'admin'
+        && $embeddedContact['data']['birthday'] === '08/17',
     'organization contact rows should use the same contact validation as standalone forms.'
 );
 
@@ -146,12 +149,28 @@ $contact = ContactInput::normalize([
     'contact_email_confirm' => 'avery@example.org',
     'contact_phone_country_code' => '+1',
     'contact_phone' => '7735550199',
+    'contact_birthday' => '08/17',
 ]);
 expectDomainInput($contact['errors'] === [], 'a valid contact should normalize without errors.');
 expectDomainInput(
     $contact['data']['contact_role'] === 'other'
-        && $contact['data']['contact_phone'] === '+17735550199',
-    'contact role and telephone normalization should be shared across create and edit flows.'
+        && $contact['data']['contact_phone'] === '+17735550199'
+        && $contact['data']['contact_birthday'] === '08/17',
+    'contact role, telephone, and birthday normalization should be shared across create and edit flows.'
+);
+
+$invalidBirthdayContact = ContactInput::normalize([
+    'organization_id' => '',
+    'contact_first_name' => 'Avery',
+    'contact_last_name' => 'Morgan',
+    'contact_role' => 'admin',
+    'contact_email' => 'avery@example.org',
+    'contact_email_confirm' => 'avery@example.org',
+    'contact_birthday' => '02/30',
+]);
+expectDomainInput(
+    in_array('Birthday must be a valid date.', $invalidBirthdayContact['errors'], true),
+    'contact birthdays should reject impossible calendar dates.'
 );
 
 $contactWithoutOrganization = ContactInput::normalize([

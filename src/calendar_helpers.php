@@ -87,6 +87,7 @@ function calendarViewerModes() {
         'events' => 'Events',
         'my_tasks' => 'My Tasks',
         'all_tasks' => 'All Tasks',
+        'birthdays' => 'Birthdays',
         'everything' => 'Everything',
     ];
 }
@@ -174,6 +175,25 @@ function fetchCalendarViewerEngagements(mysqli $conn, $window_start, $window_end
 }
 
 /** @return list<array<string, mixed>> */
+function fetchCalendarViewerBirthdays(mysqli $conn) {
+    $result = $conn->query(
+        "SELECT c.id, c.contact_first_name, c.contact_last_name, c.contact_birthday,
+                o.organization_name
+         FROM contacts c
+         LEFT JOIN organizations o ON o.id = c.organization_id
+         WHERE c.is_deleted = 0
+           AND c.contact_birthday IS NOT NULL
+         ORDER BY SUBSTRING(c.contact_birthday, 1, 2),
+                  SUBSTRING(c.contact_birthday, 4, 2),
+                  c.contact_last_name, c.contact_first_name, c.id"
+    );
+    if (!$result) {
+        throw new RuntimeException('Unable to prepare birthdays for the calendar month view.');
+    }
+    return $result->fetch_all(MYSQLI_ASSOC);
+}
+
+/** @return list<array<string, mixed>> */
 function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $assigned_user_id = null) {
     $assigned_user_id = $assigned_user_id === null ? null : (int) $assigned_user_id;
     $assigned_filter = $assigned_user_id !== null ? ' AND t.assigned_to = ?' : '';
@@ -253,6 +273,68 @@ function calendarEventsByDate(array $engagements, $window_start, $window_end) {
 }
 
 /**
+ * Expand stored birthdays into the visible calendar window without exposing ages.
+ *
+ * @param list<array<string, mixed>> $contacts
+ * @return list<array<string, mixed>>
+ */
+function calendarBirthdayOccurrences(array $contacts, $window_start, $window_end) {
+    $window_start_value = trim((string) $window_start);
+    $window_end_value = trim((string) $window_end);
+    $range_start = DateTimeImmutable::createFromFormat('!Y-m-d', $window_start_value);
+    $range_end = DateTimeImmutable::createFromFormat('!Y-m-d', $window_end_value);
+    if (!$range_start instanceof DateTimeImmutable
+        || !$range_end instanceof DateTimeImmutable
+        || $range_start->format('Y-m-d') !== $window_start_value
+        || $range_end->format('Y-m-d') !== $window_end_value
+        || $range_end < $range_start
+    ) {
+        throw new InvalidArgumentException('A valid calendar date window is required.');
+    }
+
+    $occurrences = [];
+    $first_year = (int) $range_start->format('Y');
+    $last_year = (int) $range_end->format('Y');
+    foreach ($contacts as $contact) {
+        $birthday_value = trim((string) ($contact['contact_birthday'] ?? ''));
+        if (preg_match('/\A(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\z/', $birthday_value, $matches) !== 1) {
+            continue;
+        }
+        $month = (int) $matches[1];
+        $day = (int) $matches[2];
+        if (!checkdate($month, $day, 2000)) {
+            continue;
+        }
+
+        for ($year = $first_year; $year <= $last_year; $year++) {
+            $occurrence_day = $day;
+            if (!checkdate($month, $occurrence_day, $year)) {
+                if ($month === 2 && $occurrence_day === 29) {
+                    $occurrence_day = 28;
+                } else {
+                    continue;
+                }
+            }
+            $date = sprintf('%04d-%02d-%02d', $year, $month, $occurrence_day);
+            if ($date < $window_start_value || $date > $window_end_value) {
+                continue;
+            }
+            $occurrences[] = array_merge($contact, [
+                'calendar_item_type' => 'birthday',
+                'event_start_date' => $date,
+                'event_end_date' => $date,
+            ]);
+        }
+    }
+
+    usort($occurrences, static function (array $left, array $right): int {
+        return [$left['event_start_date'], $left['contact_last_name'], $left['contact_first_name'], $left['id']]
+            <=> [$right['event_start_date'], $right['contact_last_name'], $right['contact_first_name'], $right['id']];
+    });
+    return $occurrences;
+}
+
+/**
  * @param list<array<string, mixed>> $tasks
  * @return array<string, list<array<string, mixed>>>
  */
@@ -277,6 +359,13 @@ function calendarTasksByDate(array $tasks, $window_start, $window_end) {
 }
 
 function calendarViewerEventLabel(array $engagement) {
+    if (($engagement['calendar_item_type'] ?? '') === 'birthday') {
+        $name = trim(implode(' ', array_filter([
+            trim((string) ($engagement['contact_first_name'] ?? '')),
+            trim((string) ($engagement['contact_last_name'] ?? '')),
+        ], static fn(string $part): bool => $part !== '')));
+        return $name !== '' ? $name . "'s birthday" : 'Contact birthday';
+    }
     $event_title = trim((string) ($engagement['event_title'] ?? ''));
     if ($event_title !== '') {
         return $event_title;
@@ -286,6 +375,9 @@ function calendarViewerEventLabel(array $engagement) {
 }
 
 function calendarViewerEventTone(array $engagement) {
+    if (($engagement['calendar_item_type'] ?? '') === 'birthday') {
+        return 'birthday';
+    }
     $lifecycle = trim((string) ($engagement['lifecycle_status'] ?? 'active'));
     if (in_array($lifecycle, ['canceled', 'postponed', 'completed'], true)) {
         return $lifecycle;
@@ -293,6 +385,26 @@ function calendarViewerEventTone(array $engagement) {
     return ($engagement['confirmation_status'] ?? '') === 'confirmed'
         ? 'confirmed'
         : 'tentative';
+}
+
+function calendarViewerEventUrl(array $engagement) {
+    $page = ($engagement['calendar_item_type'] ?? '') === 'birthday'
+        ? 'view_contact.php'
+        : 'view_engagement.php';
+    return $page . '?id=' . (int) ($engagement['id'] ?? 0);
+}
+
+/** @return list<string> */
+function calendarViewerEventMeta(array $engagement) {
+    $organization_name = trim((string) ($engagement['organization_name'] ?? ''));
+    if (($engagement['calendar_item_type'] ?? '') === 'birthday') {
+        return array_values(array_filter([$organization_name, 'Birthday']));
+    }
+    $event_label = calendarViewerEventLabel($engagement);
+    return array_values(array_filter([
+        $organization_name !== $event_label ? $organization_name : '',
+        calendarOperationalStatus($engagement),
+    ]));
 }
 
 function calendarViewerTaskLabel(array $task) {
@@ -479,6 +591,49 @@ function calendarEventLines(array $engagement) {
     return $lines;
 }
 
+function calendarBirthdayEventLines(array $contact) {
+    $birthday_value = trim((string) ($contact['contact_birthday'] ?? ''));
+    if (preg_match('/\A(0[1-9]|1[0-2])\/(0[1-9]|[12]\d|3[01])\z/', $birthday_value, $matches) !== 1) {
+        return [];
+    }
+    $month = (int) $matches[1];
+    $day = (int) $matches[2];
+    if (!checkdate($month, $day, 2000)) {
+        return [];
+    }
+    $birthday = new DateTimeImmutable(sprintf('2000-%02d-%02d', $month, $day));
+
+    $name = trim(implode(' ', array_filter([
+        trim((string) ($contact['contact_first_name'] ?? '')),
+        trim((string) ($contact['contact_last_name'] ?? '')),
+    ], static fn(string $part): bool => $part !== '')));
+    if ($name === '') {
+        return [];
+    }
+    $updated_timestamp = $contact['calendar_updated_at'] ?? null;
+    $updated_at = calendarUtcTimestamp($updated_timestamp);
+    $recurrence = $birthday_value === '02/29'
+        ? 'RRULE:FREQ=YEARLY;BYMONTH=2;BYMONTHDAY=-1'
+        : 'RRULE:FREQ=YEARLY';
+
+    return [
+        'BEGIN:VEVENT',
+        'UID:contact-birthday-' . (int) ($contact['id'] ?? 0) . '@dnr-calendar',
+        'DTSTAMP:' . $updated_at,
+        'LAST-MODIFIED:' . $updated_at,
+        'SEQUENCE:' . calendarSequence($updated_timestamp),
+        'SUMMARY:' . calendarEscapeText('Birthday: ' . $name),
+        'DTSTART;VALUE=DATE:' . $birthday->format('Ymd'),
+        'DTEND;VALUE=DATE:' . $birthday->modify('+1 day')->format('Ymd'),
+        $recurrence,
+        'DESCRIPTION:' . calendarEscapeText('Annual birthday reminder for ' . $name . '.'),
+        'CATEGORIES:BIRTHDAY',
+        'STATUS:CONFIRMED',
+        'TRANSP:TRANSPARENT',
+        'END:VEVENT',
+    ];
+}
+
 function calendarPresentationStart(array $presentation, $timezone_name = null) {
     $timezone_name = trim((string) ($timezone_name ?? applicationTimezoneName()));
     try {
@@ -577,7 +732,8 @@ function buildCalendar(
     array $engagements,
     $calendar_name = null,
     array $presentations = [],
-    $timezone_name = null
+    $timezone_name = null,
+    array $birthdays = []
 ) {
     $calendar_name = $calendar_name ?? applicationCalendarName();
     $productName = preg_replace('/[^A-Za-z0-9 ._-]+/u', '', applicationBrandName()) ?: 'DNR';
@@ -601,6 +757,10 @@ function buildCalendar(
             $lines,
             calendarPresentationEventLines($presentation, $timezone_name)
         );
+    }
+
+    foreach ($birthdays as $birthday) {
+        $lines = array_merge($lines, calendarBirthdayEventLines($birthday));
     }
 
     $lines[] = 'END:VCALENDAR';

@@ -21,7 +21,7 @@ if (!$contact_id) {
 $contact_stmt = $conn->prepare(
     "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
             c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
-            c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
+            c.contact_birthday, c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
             c.contact_photo_updated_at, c.created_at, c.updated_at, c.is_deleted
      FROM contacts c
      LEFT JOIN organizations o ON o.id = c.organization_id
@@ -108,6 +108,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact_email = (string) $normalized_contact['data']['contact_email'];
     $contact_email_confirm = (string) $normalized_contact['data']['contact_email_confirm'];
     $contact_phone = (string) $normalized_contact['data']['contact_phone'];
+    $contact_birthday = $normalized_contact['data']['contact_birthday'];
     $contact_notes = (string) $normalized_contact['data']['contact_notes'];
     $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
@@ -224,6 +225,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                         contact_role_other = ?,
                         contact_email = ?,
                         contact_phone = ?,
+                        contact_birthday = ?,
                         contact_notes = ?,
                         contact_photo = ?,
                         contact_photo_thumbnail = ?,
@@ -243,6 +245,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                         contact_role_other = ?,
                         contact_email = ?,
                         contact_phone = ?,
+                        contact_birthday = ?,
                         contact_notes = ?,
                         contact_photo = NULL,
                         contact_photo_thumbnail = NULL,
@@ -262,6 +265,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                         contact_role_other = ?,
                         contact_email = ?,
                         contact_phone = ?,
+                        contact_birthday = ?,
                         contact_notes = ?
                      WHERE id = ? AND is_deleted = 0"
                 );
@@ -276,7 +280,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $contact_photo_sha256 = $contact_photo['sha256'];
                 $update_stmt->bind_param(
-                    'issssssssssssi',
+                    'isssssssssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -284,6 +288,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_birthday,
                     $contact_notes,
                     $contact_photo_data,
                     $contact_photo_thumbnail,
@@ -294,7 +299,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 );
             } else {
                 $update_stmt->bind_param(
-                    'isssssssi',
+                    'issssssssi',
                     $organization_id,
                     $contact_first_name,
                     $contact_last_name,
@@ -302,6 +307,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                     $contact_role_other,
                     $contact_email,
                     $contact_phone,
+                    $contact_birthday,
                     $contact_notes,
                     $contact_id
                 );
@@ -354,6 +360,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact['contact_role_other'] = $contact_role_other;
     $contact['contact_email'] = $contact_email;
     $contact['contact_phone'] = $contact_phone;
+    $contact['contact_birthday'] = $contact_birthday;
     $contact['contact_notes'] = $contact_notes;
     if (isset($submitted_version)) {
         $contact['updated_at'] = $submitted_version;
@@ -370,6 +377,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     [$contact_phone_country_code_value, $contact_phone_local_value] = phoneNumberInputParts(
         $contact['contact_phone'] ?? ''
     );
+}
+$contact_birthday_input = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['contact_birthday'] ?? null)) {
+    $contact_birthday_input = trim((string) $_POST['contact_birthday']);
+} elseif (!empty($contact['contact_birthday'])) {
+    $contact_birthday_input = (string) $contact['contact_birthday'];
 }
 
 $organizations_result = $conn->query(
@@ -500,11 +513,19 @@ try {
             </div>
         </div>
 
-        <div class="form-group">
-            <label for="contact_phone">Phone Number</label>
-            <div class="phone-input-group" data-phone-input-group>
-                <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
-                <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+        <div class="contact-phone-birthday-row">
+            <div class="form-group contact-phone-field">
+                <label for="contact_phone">Phone Number</label>
+                <div class="phone-input-group" data-phone-input-group>
+                    <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value); ?>
+                    <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                </div>
+            </div>
+
+            <div class="form-group contact-birthday-field">
+                <label for="contact_birthday">Birthday</label>
+                <input type="text" name="contact_birthday" id="contact_birthday" value="<?php echo htmlspecialchars($contact_birthday_input, ENT_QUOTES, 'UTF-8'); ?>" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}" aria-describedby="contact-birthday-help">
+                <p class="field-help" id="contact-birthday-help">Optional; repeats annually.</p>
             </div>
         </div>
 
