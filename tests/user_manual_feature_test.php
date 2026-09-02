@@ -215,6 +215,14 @@ expectUserManual(
 );
 
 expectUserManual(
+    preg_match(
+        '/\.manual-search-control input\[type="search"\]\s*\{[^}]*margin:\s*0\s*!important;/s',
+        $styles
+    ) === 1,
+    'the manual search input should clear global field margins so it stays vertically centered in its pane.'
+);
+
+expectUserManual(
     str_contains($behavior, "terms.every")
         && str_contains($behavior, "event.key === '/'")
         && str_contains($behavior, "event.key === 'Escape'")

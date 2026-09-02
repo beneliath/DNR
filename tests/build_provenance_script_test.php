@@ -9,6 +9,8 @@ function expectBuildProvenanceScript($condition, $message) {
 
 $script_path = __DIR__ . '/../scripts/compose_with_provenance.sh';
 $script = file_get_contents($script_path);
+$s1_deploy_path = __DIR__ . '/../scripts/deploy_s1.sh';
+$s1_deploy = file_get_contents($s1_deploy_path);
 $readme = file_get_contents(__DIR__ . '/../README.md');
 $secure_existing = file_get_contents(__DIR__ . '/../scripts/secure_existing_deployment.sh');
 $dockerfile = file_get_contents(__DIR__ . '/../Dockerfile');
@@ -81,6 +83,32 @@ expectBuildProvenanceScript(
 expectBuildProvenanceScript(
     strpos($dockerfile, 'ARG DNR_BUILD_COMMIT') > strpos($dockerfile, 'COPY src/ /var/www/html/'),
     'provenance-only changes should not invalidate expensive image build layers.'
+);
+
+expectBuildProvenanceScript(
+    is_string($s1_deploy)
+        && is_executable($s1_deploy_path)
+        && str_contains($s1_deploy, 'DNR_S1_HOST:-192.168.1.150')
+        && str_contains($s1_deploy, 'DNR_S1_PROJECT_DIR:-/home/dgilmore/moed')
+        && str_contains($s1_deploy, 'DNR_S1_COMPOSE_MODE:-production-ubuntu-proton-mattermost')
+        && str_contains($s1_deploy, 'ci_state'),
+    'the s1 workflow should encode its stable endpoint, checkout, full topology, and CI gate.'
+);
+expectBuildProvenanceScript(
+    str_contains($s1_deploy, 'status --porcelain --untracked-files=normal')
+        && str_contains($s1_deploy, 'merge --ff-only origin/main')
+        && str_contains($s1_deploy, 'DNR_BUILD_COMMIT')
+        && str_contains($s1_deploy, 'State.Health.Status')
+        && str_contains($s1_deploy, 'State.ExitCode')
+        && str_contains($s1_deploy, '/ready.php')
+        && str_contains($s1_deploy, '/health.php'),
+    'the s1 workflow should reject ambiguous source and verify provenance, migrations, health, and readiness.'
+);
+expectBuildProvenanceScript(
+    str_contains($readme, '`[super].[major].[minor]` = `x.y.z`')
+        && str_contains($readme, '`1.10.3` becomes `1.10.4`')
+        && str_contains($readme, './scripts/deploy_s1.sh "$(git rev-parse HEAD)"'),
+    'release and deployment documentation should preserve the project version ontology and one-command s1 path.'
 );
 
 echo "Build provenance script tests passed.\n";
