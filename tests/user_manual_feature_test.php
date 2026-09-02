@@ -96,7 +96,7 @@ expectUserManual(
         && str_contains($manual, 'an email routing marker you can copy')
         && str_contains($manual, 'Both cards show the email routing marker')
         && str_contains($manual, '/moed link-event ID')
-        && str_contains($manual, 'linked channel’s sidebar label begins with a compact marker')
+        && str_contains($manual, 'On desktop and mobile, a linked channel’s sidebar label begins with a compact marker')
         && str_contains($manual, 'leaving more room for the channel title')
         && str_contains($manual, 'full signed routing marker remains available')
         && str_contains($manual, 'colored chain control')

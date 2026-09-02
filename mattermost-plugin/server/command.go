@@ -79,7 +79,7 @@ func (p *Plugin) helpResponse() *model.CommandResponse {
 		"- `/moed event show ID` — show a share-safe engagement card\n" +
 		"- `/moed link-event ID` — bind this channel (Editor/Admin with native channel-management permission)\n" +
 		"- `/moed unlink-event` — remove the channel binding (Editor/Admin with native channel-management permission)\n\n" +
-		"A linked channel's sidebar label begins with a compact `[MOED#n]` marker; the full signed `[MOED#n.token]` routing marker remains available in MOED engagement cards and email tools. The MOED chain control in the channel header—or **MOED engagement** in the channel menu—opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
+		"On web, desktop, and mobile, a linked channel's sidebar label begins with a compact `[MOED#n]` marker; the full signed `[MOED#n.token]` routing marker remains available in MOED engagement cards and email tools. The MOED chain control in the channel header—or **MOED engagement** in the channel menu—opens its engagement. To use a post, hover over it and open **Message actions** (the grid icon, not the three-dot menu). Choose **Add MOED task**, **Add to MOED Chron**, or **Send via MOED email**."
 	return ephemeral(text)
 }
 
@@ -334,7 +334,7 @@ func (p *Plugin) executeLinkEvent(
 		_ = p.updateChannelDisplayName(channelID, previousDisplayName)
 		return ephemeral(":warning: The channel link could not be announced, so it was not saved.")
 	}
-	return ephemeral(":white_check_mark: Linked this channel to MOED engagement **#" + strconv.Itoa(id) + "**. The channel name now begins with `" + marker + "`.")
+	return ephemeral(":white_check_mark: Linked this channel to MOED engagement **#" + strconv.Itoa(id) + "**. The channel name now begins with `" + compactMOEDChannelMarker(marker) + "`; the full routing marker remains `" + marker + "`.")
 }
 
 func (p *Plugin) executeUnlinkEvent(
