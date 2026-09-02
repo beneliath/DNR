@@ -189,8 +189,32 @@ expectDomainInput(
         && $engagement['lifecycle_status'] === 'active'
         && $engagement['travel_amount'] === 125.5
         && $engagement['event_city'] === 'Chicago'
-        && $engagement['event_country'] === 'USA',
+        && $engagement['event_state'] === 'IL'
+        && $engagement['event_country'] === 'US',
     'engagement reference choices, amounts, and address fields should be normalized consistently.'
+);
+
+expectDomainInputFailure(
+    static fn () => EngagementInput::normalize([
+        'organization_id' => 10,
+        'event_title' => 'Conference',
+        'event_type' => 'conference',
+        'event_country' => 'US',
+        'event_state' => 'Not a state',
+    ]),
+    'Select a valid event state.',
+    'engagement addresses should reject unsupported U.S. states.'
+);
+
+expectDomainInputFailure(
+    static fn () => EngagementInput::normalize([
+        'organization_id' => 10,
+        'event_title' => 'Conference',
+        'event_type' => 'conference',
+        'event_country' => 'Not a country',
+    ]),
+    'Select a valid event country.',
+    'engagement addresses should reject unsupported countries.'
 );
 
 $canceledEngagement = EngagementInput::normalize([

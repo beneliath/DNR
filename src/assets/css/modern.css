@@ -865,6 +865,18 @@ html body .container > .profile-form {
   text-decoration: none;
 }
 
+.app-footer .footer-ascii-cat {
+  max-width: 100%;
+  margin: 2lh 0 0;
+  overflow-x: auto;
+  color: inherit;
+  opacity: 0.55;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(0.5rem, 2.15vw, 0.58rem);
+  line-height: 1.15;
+  white-space: pre;
+}
+
 .page-heading {
   display: flex !important;
   align-items: flex-start !important;
