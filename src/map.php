@@ -210,11 +210,18 @@ $map_payload = [
     'notFoundCount' => $not_found_count,
     'withoutAddressCount' => $events_without_addresses,
     'resultsTruncated' => $map_results_truncated,
-    'tileProvider' => [
-        'url' => deploymentConfig()->string('map.tile_url'),
+    'mapProvider' => [
+        'type' => 'openstreetmap',
+        'rasterTileUrl' => deploymentConfig()->string('map.tile_url'),
         'attributionText' => deploymentConfig()->string('map.attribution_text'),
         'attributionUrl' => deploymentConfig()->string('map.attribution_url'),
         'maximumZoom' => deploymentConfig()->integer('map.maximum_zoom'),
+    ],
+    'locationLookup' => [
+        'url' => 'map_geocode.php',
+        'csrfToken' => generateCsrfToken(),
+        'pollIntervalMilliseconds' => 1500,
+        'maximumPolls' => 40,
     ],
 ];
 ?>
@@ -225,7 +232,7 @@ $map_payload = [
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css?rev=consistent-control-geometry-1',
-    2 => 'assets/css/map.min.css?rev=dark-controls-layout-11',
+    2 => 'assets/css/map.min.css?rev=maplibre-theme-surfaces-3',
   ),
 )); ?>
 <body>
@@ -294,7 +301,7 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan."></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a rate-limited background worker and cached.</p>
+        <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a background worker, cached, and added to the open map automatically.</p>
     </section>
 </main>
 

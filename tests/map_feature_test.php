@@ -48,14 +48,18 @@ expectMapFeature(
     'the Map page should filter statuses and events that overlap the selected date window.'
 );
 expectMapFeature(
-    str_contains($map_script, 'scrollWheelZoom: true')
-        && str_contains($map_script, 'dragging: true')
-        && str_contains($map_script, 'touchZoom: true')
-        && str_contains($map_script, 'zoomControl: false')
-        && str_contains($map_script, "L.control({position: 'topleft'})")
-        && str_contains($map_script, "L.DomUtil.create('button', 'map-zoom-button button-secondary'")
+    str_contains($map_helpers, 'applicationBusinessDate($instant)')
+        && str_contains($map_helpers, 'engagementMapDateAfterMonths($default_date_from, 3)')
+        && !str_contains($map_helpers, "applicationWorkflowSetting('map_past_days')")
+        && !str_contains($map_helpers, "applicationWorkflowSetting('map_future_days')"),
+    'the initial Map window should run from today through three calendar months later.'
+);
+expectMapFeature(
+    str_contains($map_script, 'Map as MapLibreMap')
+        && str_contains($map_script, 'new MapLibreMap({')
+        && str_contains($map_script, 'new NavigationControl({showCompass: false})')
         && str_contains($map_script, 'fitMapToPins')
-        && str_contains($map_script, 'L.marker'),
+        && str_contains($map_script, 'new Marker({element: markerElement'),
     'the graphical map should provide colored pins, zoom, pan, touch zoom, and fit-to-pins.'
 );
 expectMapFeature(
@@ -65,13 +69,36 @@ expectMapFeature(
     'each engagement status should have its own pin color.'
 );
 expectMapFeature(
-    str_contains($map_styles, '.map-zoom-controls')
-        && str_contains($map_styles, '.map-zoom-button')
-        && str_contains($map_styles, 'gap: 8px;')
-        && str_contains($map_styles, 'background: transparent !important;')
-        && str_contains($map_styles, 'background-color: transparent !important;')
-        && str_contains($map_styles, 'border-color: var(--control-hover-border) !important;'),
-    'zoom controls should be spaced apart and use a transparent surface with the project hover treatment.'
+    str_contains($map_styles, '.maplibregl-ctrl-group')
+        && str_contains($map_styles, 'display: flex;')
+        && str_contains($map_styles, 'flex-direction: row-reverse;')
+        && str_contains($map_styles, 'gap: 6px;')
+        && str_contains($map_styles, 'box-shadow: none !important;')
+        && str_contains($map_styles, '.maplibregl-ctrl-group button')
+        && str_contains($map_styles, 'border: 0 !important;')
+        && str_contains($map_styles, 'background: var(--control-hover-bg) !important;')
+        && str_contains($map_styles, 'outline: 2px solid var(--control-hover-border);')
+        && str_contains($map_styles, 'html.dark-mode .maplibregl-ctrl-group button .maplibregl-ctrl-icon,')
+        && str_contains($map_styles, 'filter: invert(1);'),
+    'MapLibre zoom controls should use the project surface, hover treatment, and visible dark-mode icons.'
+);
+expectMapFeature(
+    str_contains($map_styles, '.maplibregl-popup-content')
+        && preg_match('/\.maplibregl-popup,\s*\.maplibregl-popup-tip\s*\{[^}]*background:\s*transparent\s*!important;[^}]*background-color:\s*transparent\s*!important;/s', $map_styles) === 1
+        && str_contains($map_styles, 'background: var(--surface) !important;')
+        && str_contains($map_styles, 'color: var(--text) !important;')
+        && str_contains($map_styles, '.maplibregl-popup-close-button')
+        && preg_match('/\.map-popup\s*\{[^}]*background:\s*transparent\s*!important;[^}]*background-color:\s*transparent\s*!important;/s', $map_styles) === 1
+        && str_contains($map_styles, '.map-popup-organization,')
+        && str_contains($map_styles, 'color: var(--text-muted);'),
+    'Map popups should use theme-aware surfaces, readable text, and a compact close control.'
+);
+expectMapFeature(
+    str_contains($map_styles, '.maplibregl-ctrl-attrib {')
+        && str_contains($map_styles, 'background: color-mix(in srgb, var(--surface) 92%, transparent) !important;')
+        && str_contains($map_styles, '.maplibregl-ctrl-attrib a {')
+        && str_contains($map_styles, 'color: var(--text-muted) !important;'),
+    'Map attribution should use a compact theme-aware label instead of MapLibre defaults.'
 );
 expectMapFeature(
     preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
@@ -86,15 +113,14 @@ expectMapFeature(
     'the map header, legend, and attribution footer should reveal the surrounding page background.'
 );
 expectMapFeature(
-    str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-control-container,')
-        && str_contains($map_styles, 'html.dark-mode .map-shell .leaflet-top,')
-        && str_contains($map_styles, 'html.dark-mode .map-shell .map-zoom-controls {')
+    str_contains($map_styles, '.map-shell .maplibregl-control-container,')
+        && str_contains($map_styles, '.map-shell .maplibregl-ctrl-top-left,')
         && str_contains($map_styles, 'background-color: transparent !important;'),
-    'dark-theme Leaflet control containers should not paint a panel over the map tiles.'
+    'MapLibre control containers should not paint a panel over the map in either theme.'
 );
 expectMapFeature(
     str_contains($map_page, 'assets/css/modern.min.css?rev=consistent-control-geometry-1')
-        && str_contains($map_page, 'assets/css/map.min.css?rev=dark-controls-layout-11'),
+        && str_contains($map_page, 'assets/css/map.min.css?rev=maplibre-theme-surfaces-3'),
     'the Map page should invalidate previously immutable shared and map styles for control geometry fixes.'
 );
 expectMapFeature(
@@ -109,7 +135,7 @@ expectMapFeature(
     'the Clear filter action should look like a button without link underlining.'
 );
 expectMapFeature(
-    str_contains($map_styles, '.engagement-map .leaflet-tile-pane')
+    str_contains($map_styles, '.engagement-map[data-map-provider="openstreetmap"] .maplibregl-canvas')
         && str_contains($map_styles, 'saturate(0.62)')
         && str_contains($map_styles, 'opacity: 0.82;'),
     'the basemap should use a lighter, lower-saturation treatment that matches the application theme.'
@@ -142,10 +168,20 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($security_headers, 'deploymentConfig()->tileCspSource()')
-        && str_contains($map_page, "'tileProvider' => [")
-        && str_contains($map_script, 'L.tileLayer(tileUrl')
+        && str_contains($security_headers, "worker-src 'self' blob:")
+        && str_contains($map_page, "'mapProvider' => [")
+        && str_contains($map_script, 'const style = {')
         && str_contains($apache, 'Referrer-Policy "strict-origin-when-cross-origin"'),
-    'the security policy should allow the configured tile host and send only the site origin as its required Referer.'
+    'the security policy should allow the configured OpenStreetMap tile host, MapLibre worker, and origin-only Referer.'
+);
+expectMapFeature(
+    str_contains($map_page, "'locationLookup' => [")
+        && str_contains($map_page, "'csrfToken' => generateCsrfToken()")
+        && str_contains($map_script, 'pollPendingLocations')
+        && str_contains($map_script, 'fetch(lookupUrl')
+        && str_contains($map_script, 'pendingEvents.delete(eventId)')
+        && str_contains($map_script, 'fitMapToPins();'),
+    'an open Map page should securely poll pending locations and add completed pins without a reload.'
 );
 
 echo "Map feature tests passed.\n";
