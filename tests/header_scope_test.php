@@ -160,18 +160,17 @@ expectHeaderScope(
 expectHeaderScope(
     str_contains($footer_source, 'class="footer-ascii-cat"')
         && str_contains($footer_source, 'aria-label="ASCII art cat"')
-        && str_contains($footer_source, '(il),-\'\'  (li),\'  ((!.-\'')
-        && str_contains($footer_source, 'Genesis 49:9,10 ... Revelation 5:5')
+        && str_contains($footer_source, "  (il),-''  (li),'  ((!.-'\n\nGenesis 49:9,10 ... Revelation 5:5")
         && str_contains($footer_source, 'Do you see Him?'),
-    'The shared footer should restore the ASCII cat below its copyright line.'
+    'The shared footer should leave one blank line between the ASCII cat and the Genesis/Revelation line.'
 );
 expectHeaderScope(
     preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*margin:\s*2lh 0 0;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-family:\s*ui-monospace/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-size:\s*clamp\(0\.5rem, 2\.15vw, 0\.58rem\);/s', $modern_styles) === 1
-        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.55;/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.5;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*white-space:\s*pre;/s', $modern_styles) === 1,
-    'The ASCII cat should sit two lines below the copyright in a small space-preserving monospace font.'
+    'The ASCII cat should sit two lines below the copyright in a small, 50%-opacity, space-preserving monospace font.'
 );
 expectHeaderScope(
     preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{(?=[^}]*display:\s*flex\s*!important)(?=[^}]*background:\s*var\(--surface\)\s*!important)(?![^}]*backdrop-filter)[^}]*\}/s', $modern_styles) === 1,

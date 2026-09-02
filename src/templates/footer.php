@@ -20,6 +20,7 @@ $footer_repository_url = githubRepositoryUrl();
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'
   (il),-''  (li),'  ((!.-'
+
 Genesis 49:9,10 ... Revelation 5:5
          Do you see Him?
     </pre>
