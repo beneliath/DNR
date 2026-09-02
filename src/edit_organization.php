@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 include 'chron_log_helpers.php';
 startSecureSession();
 requireLogin();

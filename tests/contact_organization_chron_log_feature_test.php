@@ -57,6 +57,8 @@ expectEntityChronFeature(
 
 expectEntityChronFeature(
     is_string($editContact)
+        && str_contains($editContact, "require_once __DIR__ . '/two_factor_helpers.php';")
+        && str_contains($editContact, 'requireRecentAdminElevation(')
         && str_contains($editContact, "insertEntityChronLogEntry(\n                    \$conn,\n                    'contact'")
         && str_contains($editContact, "updateEntityChronLogEntries(\n                \$conn,\n                'contact'")
         && str_contains($editContact, 'name="save_contact"')
@@ -65,6 +67,8 @@ expectEntityChronFeature(
 );
 expectEntityChronFeature(
     is_string($editOrganization)
+        && str_contains($editOrganization, "require_once __DIR__ . '/two_factor_helpers.php';")
+        && str_contains($editOrganization, 'requireRecentAdminElevation(')
         && str_contains($editOrganization, "insertEntityChronLogEntry(\n                    \$conn,\n                    'organization'")
         && str_contains($editOrganization, "updateEntityChronLogEntries(\n                \$conn,\n                'organization'")
         && str_contains($editOrganization, 'name="save_organization"')
