@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by MOED.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.3.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.4.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.4.3.tar.gz`;
+3. select `org.moed.mattermost-0.4.4.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -121,15 +121,16 @@ a quick-copy button. The deliberate channel-visible card created by `/moed
 link-event ID` includes the same marker and Copy control so channel members can
 route related email to the correct engagement.
 
-In a linked channel, the stored channel name begins with its signed routing
-marker, such as `[MOED#17.<signed-token>]`. The web sidebar renders that prefix
-as the compact `[MOED#17]` so the channel title has more room; engagement cards,
-email tools, and the rest of the plugin continue to show and copy the full
-signed marker. The chain control in the channel header is colored and marked
-with a dot. Select the chain control—or choose **MOED engagement** from the
-channel menu—to identify or open the engagement, copy its routing marker, or
-begin an engagement email. Unlinking the channel removes the name marker. A
-muted chain control means the channel is not linked.
+In a linked channel, the stored channel display name begins with the compact `[MOED#17]`
+marker so the channel title has more room in web, desktop, and mobile sidebars.
+The private channel binding retains the full signed marker, such as
+`[MOED#17.<signed-token>]`; engagement cards, email tools, and the rest of the
+plugin continue to show and copy the full signed value. The chain control in the
+channel header is colored and marked with a dot. Select the chain control—or
+choose **MOED engagement** from the channel menu—to identify or open the
+engagement, copy its routing marker, or begin an engagement email. Unlinking the
+channel removes the name marker. A muted chain control means the channel is not
+linked.
 
 The code expires in 10 minutes, is stored only as a SHA-256 digest, is consumed
 once, and is never placed in a channel-visible message. Users revoke a link

@@ -9,10 +9,19 @@ import (
 )
 
 var moedChannelMarkerPrefix = regexp.MustCompile(`^\s*\[MOED#[0-9]+(?:\.[A-Za-z0-9_-]{22})?\]\s*`)
-var signedMOEDChannelMarker = regexp.MustCompile(`^\[MOED#[0-9]+\.[A-Za-z0-9_-]{22}\]$`)
+var signedMOEDChannelMarker = regexp.MustCompile(`^\[MOED#([0-9]+)\.[A-Za-z0-9_-]{22}\]$`)
 
 func isSignedMOEDChannelMarker(marker string) bool {
 	return signedMOEDChannelMarker.MatchString(strings.TrimSpace(marker))
+}
+
+func compactMOEDChannelMarker(marker string) string {
+	trimmed := strings.TrimSpace(marker)
+	match := signedMOEDChannelMarker.FindStringSubmatch(trimmed)
+	if len(match) != 2 {
+		return trimmed
+	}
+	return "[MOED#" + match[1] + "]"
 }
 
 func stripMOEDChannelMarker(displayName string) string {
@@ -32,7 +41,7 @@ func truncateChannelNameRunes(value string, limit int) string {
 
 func channelDisplayNameWithMarker(displayName, marker string) string {
 	base := stripMOEDChannelMarker(displayName)
-	prefix := strings.TrimSpace(marker)
+	prefix := compactMOEDChannelMarker(marker)
 	if prefix == "" {
 		return base
 	}

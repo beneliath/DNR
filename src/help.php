@@ -660,7 +660,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Recognize the Engagement Linked to a Channel</h3>
-                    <p>A linked channel’s sidebar label begins with a compact marker such as <code>[MOED#17]</code>, leaving more room for the channel title. The full signed routing marker remains available in engagement cards and email tools wherever it is needed for routing. The colored chain control provides the same link signal; select it, or choose <strong>MOED engagement</strong> from the channel menu, to see the engagement, open it in MOED, copy its routing marker, or begin an email. Unlinking removes the marker from the channel name.</p>
+                    <p>On desktop and mobile, a linked channel’s sidebar label begins with a compact marker such as <code>[MOED#17]</code>, leaving more room for the channel title. The full signed routing marker remains available in engagement cards and email tools wherever it is needed for routing. The colored chain control provides the same link signal; select it, or choose <strong>MOED engagement</strong> from the channel menu, to see the engagement, open it in MOED, copy its routing marker, or begin an email. Unlinking removes the marker from the channel name.</p>
                 </section>
 
                 <section class="manual-subsection">
