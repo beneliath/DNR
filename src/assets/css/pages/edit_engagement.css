@@ -169,6 +169,27 @@
     .address-row .form-field input {
         width: 150px;
     }
+    .event-address-row .form-field {
+        min-width: 0;
+    }
+    .event-address-row #event_city {
+        width: 110px;
+    }
+    .event-address-row [data-address-region-control] {
+        width: 125px;
+    }
+    .event-address-row #event_zipcode {
+        width: 90px;
+    }
+    .event-address-country-field .address-country-picker {
+        width: 170px;
+    }
+    @media (max-width: 760px) {
+        .event-address-row [data-address-region-control],
+        .event-address-country-field .address-country-picker {
+            width: 100%;
+        }
+    }
     .narrow-select {
         width: 200px;
     }

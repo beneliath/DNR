@@ -884,23 +884,29 @@ try {
                     <label for="event_address_line_2">Address Line 2</label>
                     <input type="text" name="event_address_line_2" id="event_address_line_2" value="<?php echo htmlspecialchars($engagement['event_address_line_2'] ?? ''); ?>">
                 </div>
-                <div class="address-row">
+                <div class="address-row event-address-row">
                     <div class="form-field">
                         <label for="event_city">City</label>
                         <input type="text" name="event_city" id="event_city" value="<?php echo htmlspecialchars($engagement['event_city'] ?? ''); ?>">
                     </div>
                     <div class="form-field">
                         <label for="event_state">State</label>
-                        <input type="text" name="event_state" id="event_state" value="<?php echo htmlspecialchars($engagement['event_state'] ?? ''); ?>">
+                        <div data-address-region-control data-address-region-for="event">
+                            <input type="text" name="event_state" id="event_state" value="<?php echo htmlspecialchars($engagement['event_state'] ?? ''); ?>" data-address-region-input>
+                        </div>
                     </div>
                     <div class="form-field">
                         <label for="event_zipcode">Zipcode</label>
                         <input type="text" name="event_zipcode" id="event_zipcode" value="<?php echo htmlspecialchars($engagement['event_zipcode'] ?? ''); ?>">
                     </div>
-                </div>
-                <div class="form-field">
-                    <label for="event_country">Country</label>
-                    <input type="text" name="event_country" id="event_country" value="<?php echo htmlspecialchars($engagement['event_country'] ?? ''); ?>">
+                    <div class="form-field event-address-country-field">
+                        <label>Country</label>
+                        <?php echo addressCountryPicker(
+                            'event_country',
+                            $engagement['event_country'] ?: applicationDefaultCountry(),
+                            'event'
+                        ); ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1045,6 +1051,10 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
     </div>
 </div>
 
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="address-region-data"><?php echo json_encode(
+    addressRegionClientData(),
+    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
+); ?></script>
 <?php include 'templates/footer.php'; ?>
 
 <?php renderScript('assets/js/presentation-form.min.js', false); ?>

@@ -249,6 +249,10 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagemen
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode 'event_city=Austin' \
+    --data-urlencode 'event_state=Texas' \
+    --data-urlencode 'event_zipcode=78701' \
+    --data-urlencode 'event_country=USA' \
     --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
     --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/index.php")
@@ -272,6 +276,10 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement.h
 editor_csrf=$(csrf_from "$temporary_directory/editor-edit-engagement.html")
 engagement_version=$(field_from "$temporary_directory/editor-edit-engagement.html" engagement_version)
 test -n "$engagement_version"
+grep -q 'data-address-region-for="event"' "$temporary_directory/editor-edit-engagement.html"
+grep -q 'data-address-country="event"' "$temporary_directory/editor-edit-engagement.html"
+grep -q '<option value="US" selected>' "$temporary_directory/editor-edit-engagement.html"
+grep -q 'name="event_state" id="event_state" value="TX"' "$temporary_directory/editor-edit-engagement.html"
 status=$(curl -sS -b "$editor_cookies" -o "$temporary_directory/editor-conflict.html" \
     -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \
@@ -287,6 +295,10 @@ status=$(curl -sS -b "$editor_cookies" -o "$temporary_directory/editor-conflict.
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode 'event_city=Toronto' \
+    --data-urlencode 'event_state=Ontario' \
+    --data-urlencode 'event_zipcode=M5V 3L9' \
+    --data-urlencode 'event_country=CA' \
     --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
     --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/edit_engagement.php?id=$engagement_id")
@@ -309,12 +321,21 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagemen
     --data-urlencode 'travel_covered=unknown' \
     --data-urlencode 'compensation_type=Unknown' \
     --data-urlencode 'housing_type=Unknown' \
+    --data-urlencode 'event_city=Toronto' \
+    --data-urlencode 'event_state=Ontario' \
+    --data-urlencode 'event_zipcode=M5V 3L9' \
+    --data-urlencode 'event_country=CA' \
     --data-urlencode "engagement_contacts[$contact_id][]=primary_host" \
     --data-urlencode "engagement_contacts[$contact_id][]=travel" \
     "$base_url/edit_engagement.php?id=$engagement_id")
 expect_status "$status" '302' 'editor engagement update'
 expect_location "$temporary_directory/editor-engagement-update.headers" 'engagements.php' 'editor engagement update'
 test "$(fixture engagement-title "$fixture_suffix")" = "HTTP Test Engagement $fixture_suffix Updated"
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement-updated.html" \
+    "$base_url/edit_engagement.php?id=$engagement_id"
+grep -q '<option value="CA" selected>' "$temporary_directory/editor-edit-engagement-updated.html"
+grep -q 'name="event_state" id="event_state" value="ON"' "$temporary_directory/editor-edit-engagement-updated.html"
 
 # Archive dependent records before exercising the organization archive guard.
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-contacts.html" "$base_url/contacts.php"

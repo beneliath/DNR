@@ -90,6 +90,24 @@ final class EngagementInput
         foreach (['city', 'state', 'zipcode', 'country'] as $part) {
             $data['event_' . $part] = InputText::value($input, 'event_' . $part);
         }
+        if ($data['event_country'] !== '') {
+            $event_country = \normalizeAddressCountryCode($data['event_country']);
+            if ($event_country === null) {
+                throw new \InvalidArgumentException('Select a valid event country.');
+            }
+            $data['event_country'] = $event_country;
+        }
+        if ($data['event_state'] !== '') {
+            $event_state = \normalizeAddressRegion($data['event_country'], $data['event_state']);
+            if ($event_state === null) {
+                throw new \InvalidArgumentException(
+                    $data['event_country'] === 'CA'
+                        ? 'Select a valid event province.'
+                        : 'Select a valid event state.'
+                );
+            }
+            $data['event_state'] = $event_state;
+        }
         if ($data['organization_id'] < 1) {
             throw new \InvalidArgumentException('Please select an active organization.');
         }
