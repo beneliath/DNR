@@ -93,7 +93,7 @@ function calendarViewerModes() {
 
 function normalizeCalendarViewerMode($mode) {
     $mode = trim((string) $mode);
-    return array_key_exists($mode, calendarViewerModes()) ? $mode : 'events';
+    return array_key_exists($mode, calendarViewerModes()) ? $mode : 'everything';
 }
 
 /**
@@ -129,14 +129,14 @@ function calendarDayContext($requested_day = null, $today_date = null) {
     ];
 }
 
-function calendarViewerPageUrl($month = null, $mode = 'events', $day = null) {
+function calendarViewerPageUrl($month = null, $mode = 'everything', $day = null) {
     $parameters = [];
     $month = trim((string) $month);
     if (preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1) {
         $parameters['month'] = $month;
     }
     $mode = normalizeCalendarViewerMode($mode);
-    if ($mode !== 'events') {
+    if ($mode !== 'everything') {
         $parameters['show'] = $mode;
     }
     $day = trim((string) $day);

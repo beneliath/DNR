@@ -155,8 +155,8 @@ expectCalendar(
 expectCalendar(
     array_keys(calendarViewerModes()) === ['events', 'my_tasks', 'all_tasks', 'everything']
         && normalizeCalendarViewerMode('my_tasks') === 'my_tasks'
-        && normalizeCalendarViewerMode('invalid') === 'events',
-    'Calendar content selectors should use a fixed allowlist and default to events.'
+        && normalizeCalendarViewerMode('invalid') === 'everything',
+    'Calendar content selectors should use a fixed allowlist and default to everything.'
 );
 $day_context = calendarDayContext('2026-08-25', '2026-08-25');
 expectCalendar(
@@ -169,15 +169,15 @@ expectCalendar(
 );
 expectCalendar(
     calendarViewerPageUrl('2026-09', 'everything')
-        === 'calendar_subscription.php?month=2026-09&show=everything#event-calendar'
+        === 'calendar_subscription.php?month=2026-09#event-calendar'
         && calendarViewerPageUrl(null, 'my_tasks')
         === 'calendar_subscription.php?show=my_tasks#event-calendar'
         && calendarViewerPageUrl(null, 'everything', '2026-08-26')
-        === 'calendar_subscription.php?show=everything&day=2026-08-26#event-calendar'
+        === 'calendar_subscription.php?day=2026-08-26#event-calendar'
         && calendarViewerPageUrl(null, 'events', 'invalid')
-        === 'calendar_subscription.php#event-calendar'
+        === 'calendar_subscription.php?show=events#event-calendar'
         && calendarViewerPageUrl('invalid', 'events')
-        === 'calendar_subscription.php#event-calendar',
+        === 'calendar_subscription.php?show=events#event-calendar',
     'Calendar navigation should preserve selected content without accepting invalid month or day values.'
 );
 
