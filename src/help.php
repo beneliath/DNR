@@ -386,7 +386,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen">
+            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen duplicate copy another event destination">
                 <header class="manual-chapter-heading">
                     <span>Chapter 06</span>
                     <h2>Work Queue</h2>
@@ -425,6 +425,16 @@ $manual_access_summary = match ($manual_role) {
                             <tr><td><span class="manual-status-pill status-canceled">Canceled</span></td><td>The action is no longer needed.</td><td>It leaves active views and can be reopened.</td></tr>
                         </tbody>
                     </table>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Duplicate a Task to Another Event</h3>
+                    <ol class="manual-steps manual-steps-compact">
+                        <li><span>01</span><section><strong>Open the task for editing.</strong><p>Select <strong>Duplicate to another event</strong> at the bottom of the Edit Task page.</p></section></li>
+                        <li><span>02</span><section><strong>Choose the destination event.</strong><p>Enter at least three characters in <strong>Search events</strong>, then select a different event from the results. The source event cannot be selected as its own destination.</p></section></li>
+                        <li><span>03</span><section><strong>Review the copied work.</strong><p>The title, notes, assignee, due date, and priority are copied so you can adjust them before saving. The duplicate starts <strong>Open</strong>, and any “Waiting on” text is cleared.</p></section></li>
+                        <li><span>04</span><section><strong>Create the duplicate.</strong><p>Select <strong>Duplicate task</strong> to add a new task to the destination event. The original task remains unchanged.</p></section></li>
+                    </ol>
                 </section>
 
                 <section class="manual-subsection">
