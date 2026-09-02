@@ -175,6 +175,16 @@ expectUserManual(
 );
 
 expectUserManual(
+    str_contains($manual, 'Duplicate a Task to Another Event')
+        && str_contains($manual, '<strong>Duplicate to another event</strong>')
+        && str_contains($manual, '<strong>Search events</strong>')
+        && str_contains($manual, 'source event cannot be selected as its own destination')
+        && str_contains($manual, 'duplicate starts <strong>Open</strong>')
+        && str_contains($manual, 'The original task remains unchanged.'),
+    'the manual should explain how to duplicate a task safely to a different event.'
+);
+
+expectUserManual(
     str_contains($manual, 'Monthly Calendar')
         && str_contains($manual, '<strong>Previous</strong>')
         && str_contains($manual, '<strong>Next</strong>')
