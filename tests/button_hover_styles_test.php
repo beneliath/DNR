@@ -58,6 +58,12 @@ $source_iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(__DIR__ . '/../src', FilesystemIterator::SKIP_DOTS)
 );
 foreach ($source_iterator as $source_file) {
+    // map.min.js contains the bundled MapLibre runtime. Its upstream color
+    // constants are not application hover styles and are covered by the
+    // generated-asset tests instead.
+    if ($source_file->getFilename() === 'map.min.js') {
+        continue;
+    }
     if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {
         $source_paths[] = $source_file->getPathname();
     }

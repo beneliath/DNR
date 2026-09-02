@@ -800,7 +800,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A New Address Has No Map Pin</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm that the engagement contains a usable location and fits the current lifecycle/date filters. New addresses are processed asynchronously; revisit after the geocoding worker has had time to resolve them.</p>
+                        <p>Confirm that the engagement contains a usable location and fits the current lifecycle/date filters. New addresses are processed asynchronously; keep the Map page open and the pin will appear automatically when the lookup finishes. If it remains pending, ask an administrator to check the geocoding queue and provider health.</p>
                     </details>
                     <details>
                         <summary><span>An Email Still Needs Review</span><i aria-hidden="true">+</i></summary>

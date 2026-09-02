@@ -1,4 +1,4 @@
-@import "leaflet/dist/leaflet.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 .map-page {
   max-width: 1440px;
@@ -178,7 +178,7 @@
   background: #eef3f7;
 }
 
-.engagement-map .leaflet-tile-pane {
+.engagement-map[data-map-provider="openstreetmap"] .maplibregl-canvas {
   filter: saturate(0.62) brightness(1.08) contrast(0.88);
   opacity: 0.82;
 }
@@ -189,8 +189,12 @@
 }
 
 .engagement-map-pin {
+  width: 30px;
+  height: 38px;
+  padding: 0;
   border: 0;
   background: transparent !important;
+  cursor: pointer;
 }
 
 .engagement-map-pin-shape {
@@ -217,7 +221,11 @@
   background: #fff;
 }
 
-.leaflet-marker-icon:focus-visible .engagement-map-pin-shape {
+.engagement-map-pin:focus-visible {
+  outline: 0;
+}
+
+.engagement-map-pin:focus-visible .engagement-map-pin-shape {
   box-shadow: 0 0 0 4px rgba(132, 202, 255, 0.85), 0 2px 7px rgba(15, 23, 42, 0.38);
 }
 
@@ -226,7 +234,9 @@
   min-width: 210px;
   flex-direction: column;
   gap: 7px;
-  color: #172033;
+  background: transparent !important;
+  background-color: transparent !important;
+  color: var(--text);
 }
 
 .map-popup-title {
@@ -236,7 +246,7 @@
 
 .map-popup-organization,
 .map-popup-detail {
-  color: #526074;
+  color: var(--text-muted);
   font-size: 0.82rem;
   line-height: 1.4;
 }
@@ -245,8 +255,8 @@
   width: fit-content;
   padding: 3px 8px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--map-pin-color) 14%, white);
-  color: var(--map-pin-color);
+  background: color-mix(in srgb, var(--map-pin-color) 18%, var(--surface));
+  color: color-mix(in srgb, var(--map-pin-color) 80%, var(--text));
   font-size: 0.74rem;
   font-weight: 700;
 }
@@ -254,7 +264,7 @@
 .map-popup-link {
   width: fit-content;
   margin-top: 3px;
-  color: #1d4ed8;
+  color: var(--primary);
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
@@ -277,83 +287,125 @@
   color: inherit;
 }
 
-.leaflet-container {
+.maplibregl-map {
   font-family: inherit;
 }
 
-.map-zoom-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  background: transparent;
-}
-
-/*
- * The legacy dark-theme stylesheet assigns a background to every div. Leaflet's
- * corner containers are divs positioned over the tiles, so that rule otherwise
- * creates an opaque rectangle behind custom controls.
- */
-html.dark-mode .map-shell .leaflet-control-container,
-html.dark-mode .map-shell .leaflet-top,
-html.dark-mode .map-shell .leaflet-bottom,
-html.dark-mode .map-shell .leaflet-left,
-html.dark-mode .map-shell .leaflet-right,
-html.dark-mode .map-shell .map-zoom-controls {
+.maplibregl-popup,
+.maplibregl-popup-tip {
+  background: transparent !important;
   background-color: transparent !important;
 }
 
-.map-zoom-controls .map-zoom-button {
+.maplibregl-popup-content {
+  padding: 18px !important;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md) !important;
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-md) !important;
+  color: var(--text) !important;
+}
+
+.maplibregl-popup-close-button {
+  top: 8px !important;
+  right: 8px !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  font-size: 1.25rem !important;
+  line-height: 1 !important;
+}
+
+.maplibregl-popup-close-button:hover,
+.maplibregl-popup-close-button:focus-visible {
+  background: var(--surface-hover) !important;
+  color: var(--text) !important;
+  outline: 2px solid var(--nav-focus);
+  outline-offset: 1px;
+}
+
+.maplibregl-popup-anchor-top .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip {
+  border-bottom-color: var(--surface) !important;
+}
+
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip {
+  border-top-color: var(--surface) !important;
+}
+
+.maplibregl-popup-anchor-left .maplibregl-popup-tip {
+  border-right-color: var(--surface) !important;
+}
+
+.maplibregl-popup-anchor-right .maplibregl-popup-tip {
+  border-left-color: var(--surface) !important;
+}
+
+.map-shell .maplibregl-control-container,
+.map-shell .maplibregl-ctrl-top-left,
+.map-shell .maplibregl-ctrl-bottom-right {
+  background-color: transparent !important;
+}
+
+.maplibregl-ctrl-group {
   display: flex;
+  flex-direction: row-reverse;
+  gap: 6px;
+  overflow: visible;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button {
+  flex: 0 0 42px;
   width: 42px !important;
   height: 42px !important;
-  min-height: 42px !important;
-  align-items: center;
-  justify-content: center;
-  padding: 0 !important;
-  border: 1px solid var(--border-strong) !important;
+  border: 0 !important;
   border-radius: var(--radius-sm) !important;
-  background: transparent !important;
-  background-color: transparent !important;
+  background-color: var(--surface) !important;
   box-shadow: var(--shadow-sm);
-  color: var(--text) !important;
-  font-family: inherit;
-  font-size: 1.25rem;
-  font-weight: 650;
-  line-height: 1;
-  text-decoration: none;
-  transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-.map-zoom-controls .map-zoom-button:hover,
-.map-zoom-controls .map-zoom-button:focus-visible {
-  border-color: var(--control-hover-border) !important;
+.maplibregl-ctrl-group button:hover,
+.maplibregl-ctrl-group button:focus-visible {
   background: var(--control-hover-bg) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
-  color: var(--control-hover-fg) !important;
-  transform: translateY(-1px);
+  outline: 2px solid var(--control-hover-border);
+  outline-offset: -2px;
 }
 
-.map-zoom-controls .map-zoom-button:active {
-  transform: translateY(0) scale(0.98);
+html.dark-mode .maplibregl-ctrl-group button .maplibregl-ctrl-icon,
+html.dark-mode .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+  opacity: 0.82;
 }
 
-.map-zoom-controls .map-zoom-button:disabled {
-  border-color: var(--border) !important;
-  background: transparent !important;
-  background-color: transparent !important;
-  box-shadow: none;
-  color: var(--text-subtle) !important;
-  cursor: not-allowed;
-  opacity: 0.68;
-  transform: none;
+.maplibregl-ctrl-attrib {
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+  border-radius: 7px 0 0 0;
+  background: color-mix(in srgb, var(--surface) 92%, transparent) !important;
+  color: var(--text-muted) !important;
+  box-shadow: var(--shadow-sm);
 }
 
-.leaflet-control-attribution {
-  color: #526074;
+.maplibregl-ctrl-attrib a {
+  color: var(--text-muted) !important;
+  text-decoration-color: color-mix(in srgb, var(--text-muted) 45%, transparent);
 }
 
-.leaflet-control-attribution a {
-  color: #1d4ed8;
+.maplibregl-ctrl-attrib a:hover,
+.maplibregl-ctrl-attrib a:focus-visible {
+  color: var(--primary) !important;
 }
 
 @media (max-width: 900px) {

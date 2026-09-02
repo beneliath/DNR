@@ -1,4 +1,10 @@
-import * as L from 'leaflet';
+import {
+    LngLatBounds,
+    Map as MapLibreMap,
+    Marker,
+    NavigationControl,
+    Popup
+} from 'maplibre-gl';
 
 (function () {
     const mapElement = document.getElementById('engagement-map');
@@ -16,69 +22,54 @@ import * as L from 'leaflet';
     }
 
     const events = Array.isArray(payload.events) ? payload.events : [];
-    const tileProvider = payload.tileProvider && typeof payload.tileProvider === 'object'
-        ? payload.tileProvider
+    const mapProvider = payload.mapProvider && typeof payload.mapProvider === 'object'
+        ? payload.mapProvider
         : {};
-    const tileUrl = String(tileProvider.url || '');
-    const attributionText = String(tileProvider.attributionText || 'Map contributors');
-    const attributionUrl = String(tileProvider.attributionUrl || '');
-    const maximumZoom = Number(tileProvider.maximumZoom) || 19;
-    const escapeHtml = function (value) {
-        return String(value).replace(/[&<>"']/g, function (character) {
-            return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[character];
-        });
+    const locationLookup = payload.locationLookup && typeof payload.locationLookup === 'object'
+        ? payload.locationLookup
+        : {};
+    mapElement.dataset.mapProvider = String(mapProvider.type || 'openstreetmap');
+    const attributionText = String(mapProvider.attributionText || 'Map contributors');
+    const attributionUrl = String(mapProvider.attributionUrl || '');
+    const maximumZoom = Number(mapProvider.maximumZoom) || 19;
+    const rasterTileUrl = String(mapProvider.rasterTileUrl || '');
+    const rasterAttribution = attributionUrl
+        ? '&copy; <a href="' + attributionUrl + '">' + attributionText + '</a>'
+        : attributionText;
+    const style = {
+        version: 8,
+        sources: {
+            base: {
+                type: 'raster',
+                tiles: [rasterTileUrl],
+                tileSize: 256,
+                attribution: rasterAttribution,
+                maxzoom: maximumZoom
+            }
+        },
+        layers: [{id: 'base-map', type: 'raster', source: 'base'}]
     };
-    const map = L.map(mapElement, {
-        center: [20, 0],
+    const map = new MapLibreMap({
+        container: mapElement,
+        style: style,
+        center: [0, 20],
         zoom: 2,
         minZoom: 2,
-        zoomControl: false,
-        scrollWheelZoom: true,
-        dragging: true,
-        touchZoom: true,
-        worldCopyJump: true
-    });
-    L.tileLayer(tileUrl, {
         maxZoom: maximumZoom,
-        attribution: '&copy; <a href="' + escapeHtml(attributionUrl) + '">' + escapeHtml(attributionText) + '</a>'
-    }).addTo(map);
+        attributionControl: true,
+        validateStyle: false
+    });
+    map.addControl(new NavigationControl({showCompass: false}), 'top-left');
 
-    const zoomControl = L.control({position: 'topleft'});
-    zoomControl.onAdd = function () {
-        const container = L.DomUtil.create('div', 'map-zoom-controls leaflet-control');
-        const zoomInButton = L.DomUtil.create('button', 'map-zoom-button button-secondary', container);
-        const zoomOutButton = L.DomUtil.create('button', 'map-zoom-button button-secondary', container);
-        zoomInButton.type = 'button';
-        zoomOutButton.type = 'button';
-        zoomInButton.textContent = '+';
-        zoomOutButton.textContent = '\u2212';
-        zoomInButton.setAttribute('aria-label', 'Zoom in');
-        zoomOutButton.setAttribute('aria-label', 'Zoom out');
-        zoomInButton.title = 'Zoom in';
-        zoomOutButton.title = 'Zoom out';
-
-        L.DomEvent.disableClickPropagation(container);
-        L.DomEvent.disableScrollPropagation(container);
-        L.DomEvent.on(zoomInButton, 'click', function () { map.zoomIn(); });
-        L.DomEvent.on(zoomOutButton, 'click', function () { map.zoomOut(); });
-
-        const updateZoomButtons = function () {
-            zoomInButton.disabled = map.getZoom() >= map.getMaxZoom();
-            zoomOutButton.disabled = map.getZoom() <= map.getMinZoom();
-        };
-        map.on('zoomend', updateZoomButtons);
-        updateZoomButtons();
-        return container;
-    };
-    zoomControl.addTo(map);
-
-    const markers = L.featureGroup().addTo(map);
-    const coordinateCounts = new Map();
+    const markers = [];
+    const coordinateCounts = new globalThis.Map();
+    const pendingEvents = new globalThis.Map();
     let pinCount = 0;
-    const pendingCount = Number(payload.pendingGeocodeCount) || 0;
-    const notFoundCount = Number(payload.notFoundCount) || 0;
+    let pendingCount = Number(payload.pendingGeocodeCount) || 0;
+    let notFoundCount = Number(payload.notFoundCount) || 0;
     const withoutAddressCount = Number(payload.withoutAddressCount) || 0;
     const resultsTruncated = payload.resultsTruncated === true;
+    let providerError = '';
 
     function plural(count, singular, pluralForm) {
         return count + ' ' + (count === 1 ? singular : (pluralForm || singular + 's'));
@@ -90,23 +81,30 @@ import * as L from 'leaflet';
         if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address') + ' not found');
         if (withoutAddressCount > 0) parts.push(plural(withoutAddressCount, 'event') + ' without an address');
         if (resultsTruncated) parts.push('more matching events are outside the display limit');
+        if (providerError) parts.push(providerError);
         feedbackElement.textContent = parts.join(' · ');
         fitButton.disabled = pinCount === 0;
     }
 
-    function fitMapToPins() {
-        const bounds = markers.getBounds();
-        if (!bounds.isValid()) return;
-        if (pinCount === 1) {
-            map.setView(bounds.getCenter(), 11);
-            return;
-        }
-        map.fitBounds(bounds, {padding: [42, 42], maxZoom: 12});
+    function markerBounds() {
+        const bounds = new LngLatBounds();
+        markers.forEach(function (marker) {
+            bounds.extend(marker.getLngLat());
+        });
+        return bounds;
     }
 
-    fitButton.addEventListener('click', function () {
-        fitMapToPins();
-    });
+    function fitMapToPins() {
+        if (pinCount === 0) return;
+        const bounds = markerBounds();
+        if (pinCount === 1) {
+            map.easeTo({center: bounds.getCenter(), zoom: 11});
+            return;
+        }
+        map.fitBounds(bounds, {padding: 42, maxZoom: 12});
+    }
+
+    fitButton.addEventListener('click', fitMapToPins);
 
     function pinClass(status) {
         if (status === 'confirmed') return 'status-confirmed-pin';
@@ -118,14 +116,14 @@ import * as L from 'leaflet';
         const key = latitude.toFixed(5) + ',' + longitude.toFixed(5);
         const occurrence = coordinateCounts.get(key) || 0;
         coordinateCounts.set(key, occurrence + 1);
-        if (occurrence === 0) return [latitude, longitude];
+        if (occurrence === 0) return [longitude, latitude];
 
         const angle = occurrence * 2.399963229728653;
         const ring = Math.ceil(occurrence / 6);
         const latitudeOffset = Math.sin(angle) * 0.00016 * ring;
         const longitudeScale = Math.max(0.25, Math.cos(latitude * Math.PI / 180));
         const longitudeOffset = Math.cos(angle) * 0.00016 * ring / longitudeScale;
-        return [latitude + latitudeOffset, longitude + longitudeOffset];
+        return [longitude + longitudeOffset, latitude + latitudeOffset];
     }
 
     function popupContent(event) {
@@ -178,22 +176,18 @@ import * as L from 'leaflet';
         if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return false;
         const coordinates = offsetOverlappingCoordinates(latitude, longitude);
         const statusClass = pinClass(event.status);
-        const icon = L.divIcon({
-            className: 'engagement-map-pin ' + statusClass,
-            html: '<span class="engagement-map-pin-shape"><span class="engagement-map-pin-center"></span></span>',
-            iconSize: [30, 38],
-            iconAnchor: [15, 38],
-            popupAnchor: [0, -34]
-        });
-        const marker = L.marker(coordinates, {
-            icon: icon,
-            title: event.title + ' — ' + event.statusLabel,
-            alt: event.title + ' — ' + event.statusLabel,
-            keyboard: true,
-            riseOnHover: true
-        });
-        marker.bindPopup(popupContent(event), {maxWidth: 320});
-        marker.addTo(markers);
+        const markerElement = document.createElement('button');
+        markerElement.type = 'button';
+        markerElement.className = 'engagement-map-pin ' + statusClass;
+        markerElement.setAttribute('aria-label', event.title + ' — ' + event.statusLabel);
+        markerElement.title = event.title + ' — ' + event.statusLabel;
+        markerElement.innerHTML = '<span class="engagement-map-pin-shape"><span class="engagement-map-pin-center"></span></span>';
+        const popup = new Popup({offset: 30, maxWidth: '320px'}).setDOMContent(popupContent(event));
+        const marker = new Marker({element: markerElement, anchor: 'bottom'})
+            .setLngLat(coordinates)
+            .setPopup(popup)
+            .addTo(map);
+        markers.push(marker);
         pinCount++;
         return true;
     }
@@ -201,8 +195,71 @@ import * as L from 'leaflet';
     events.forEach(function (event) {
         if (event.latitude !== null && event.longitude !== null) {
             addPin(event, Number(event.latitude), Number(event.longitude));
+        } else if (Number(event.id) > 0 && event.address) {
+            pendingEvents.set(Number(event.id), event);
         }
     });
     updateFeedback();
-    if (pinCount > 0) fitMapToPins();
+    map.once('load', function () {
+        if (pinCount > 0) fitMapToPins();
+    });
+    map.on('error', function () {
+        providerError = 'map provider unavailable';
+        updateFeedback();
+    });
+
+    const lookupUrl = String(locationLookup.url || '');
+    const csrfToken = String(locationLookup.csrfToken || '');
+    const pollInterval = Math.max(750, Number(locationLookup.pollIntervalMilliseconds) || 1500);
+    const maximumPolls = Math.max(1, Number(locationLookup.maximumPolls) || 40);
+    let pollCount = 0;
+    let polling = false;
+
+    async function pollPendingLocations() {
+        if (polling || pendingEvents.size === 0 || pollCount >= maximumPolls) return;
+        if (document.visibilityState === 'hidden') {
+            window.setTimeout(pollPendingLocations, pollInterval);
+            return;
+        }
+        polling = true;
+        pollCount++;
+        const lookups = Array.from(pendingEvents.entries()).map(async function ([eventId, event]) {
+            try {
+                const response = await fetch(lookupUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+                    body: new URLSearchParams({
+                        csrf_token: csrfToken,
+                        engagement_id: String(eventId)
+                    })
+                });
+                if (!response.ok && response.status !== 202) return;
+                const result = await response.json();
+                if (result.status === 'found'
+                    && addPin(event, Number(result.latitude), Number(result.longitude))
+                ) {
+                    pendingEvents.delete(eventId);
+                    pendingCount = Math.max(0, pendingCount - 1);
+                    fitMapToPins();
+                } else if (result.status === 'not_found' || result.status === 'no_address') {
+                    pendingEvents.delete(eventId);
+                    pendingCount = Math.max(0, pendingCount - 1);
+                    notFoundCount++;
+                }
+            } catch (error) {
+                // Keep the location pending. The worker and the next poll can recover.
+            }
+        });
+        await Promise.all(lookups);
+        polling = false;
+        updateFeedback();
+        if (pendingEvents.size > 0 && pollCount < maximumPolls) {
+            window.setTimeout(pollPendingLocations, pollInterval);
+        }
+    }
+
+    if (lookupUrl && csrfToken && pendingEvents.size > 0) {
+        window.setTimeout(pollPendingLocations, 250);
+    }
 })();

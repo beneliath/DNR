@@ -235,6 +235,9 @@ grep -q '"primary_host":"Primary host"' "$temporary_directory/editor-organizatio
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
+grep -q 'data-address-region-for="event"' "$temporary_directory/editor-add-engagement.html"
+grep -q 'data-address-country="event"' "$temporary_directory/editor-add-engagement.html"
+grep -q '<option value="US" selected>' "$temporary_directory/editor-add-engagement.html"
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagement-create.headers" \
     -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \

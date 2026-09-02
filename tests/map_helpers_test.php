@@ -29,6 +29,27 @@ expectMapHelper(
     'address hashes should ignore case and repeated whitespace.'
 );
 
+$default_filters = normalizeEngagementMapFilters(
+    [],
+    new DateTimeImmutable('2026-01-31 18:00:00', new DateTimeZone('UTC'))
+);
+expectMapHelper(
+    $default_filters['date_from'] === '2026-01-31'
+        && $default_filters['date_to'] === '2026-04-30'
+        && $default_filters['lifecycle'] === 'active'
+        && $default_filters['errors'] === [],
+    'the default map window should begin today and end three calendar months later, clamped at month end.'
+);
+
+$from_only_filters = normalizeEngagementMapFilters([
+    'date_from' => '2026-08-31',
+]);
+expectMapHelper(
+    $from_only_filters['date_from'] === '2026-08-31'
+        && $from_only_filters['date_to'] === '2026-11-30',
+    'an omitted Through date should default to three calendar months after the selected From date.'
+);
+
 $filters = normalizeEngagementMapFilters([
     'status' => 'confirmed',
     'lifecycle' => 'postponed',
@@ -55,9 +76,9 @@ expectMapHelper(
         && $invalid_filters['lifecycle'] === 'active'
         && validIsoDate($invalid_filters['date_from'])
         && validIsoDate($invalid_filters['date_to'])
-        && $invalid_filters['date_to'] > $invalid_filters['date_from']
+        && $invalid_filters['date_to'] === engagementMapDateAfterMonths($invalid_filters['date_from'], 3)
         && count($invalid_filters['errors']) === 1,
-    'invalid status values should fall back to all and reversed windows should be rejected in favor of bounded defaults.'
+    'invalid status values should fall back to all and reversed windows should be rejected in favor of the default window.'
 );
 
 expectMapHelper(

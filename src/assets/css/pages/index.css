@@ -298,3 +298,76 @@
         display: block;
         width: fit-content;
     }
+
+    .address-row {
+        display: flex;
+        gap: 20px;
+    }
+
+    .address-row .form-field input {
+        width: 150px;
+    }
+
+    .event-address-row {
+        width: 100%;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .event-address-row .form-field {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        min-width: 0;
+    }
+
+    .event-address-row input[type="text"] {
+        margin-bottom: 0;
+    }
+
+    .event-address-city-field {
+        flex: 2 1 220px;
+        min-width: 220px;
+    }
+
+    .event-address-row #event_city {
+        width: 100%;
+    }
+
+    .event-address-state-field {
+        flex: 2 1 230px;
+        min-width: 230px;
+    }
+
+    .event-address-row [data-address-region-control] {
+        width: 100%;
+    }
+
+    .event-address-zipcode-field {
+        flex: 1 1 90px;
+        min-width: 90px;
+    }
+
+    .event-address-row #event_zipcode {
+        width: 100%;
+    }
+
+    .event-address-country-field {
+        flex: 3 1 340px;
+        min-width: 340px;
+    }
+
+    .event-address-country-field .address-country-picker {
+        width: 100%;
+    }
+
+    .event-address-country-field .address-country-trigger {
+        font-size: 0.875rem !important;
+    }
+
+    @media (max-width: 760px) {
+        .event-address-row [data-address-region-control],
+        .event-address-country-field .address-country-picker {
+            width: 100%;
+        }
+    }

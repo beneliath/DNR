@@ -24,7 +24,28 @@ function engagementMapLifecycles()
     ];
 }
 
-function normalizeEngagementMapFilters(array $query)
+function engagementMapDateAfterMonths($date, $months)
+{
+    $date = trim((string) $date);
+    $months = (int) $months;
+    if (!validIsoDate($date) || $months < 1) {
+        throw new InvalidArgumentException('A valid date and positive month offset are required.');
+    }
+
+    $source = new DateTimeImmutable($date . ' 12:00:00', applicationTimezone());
+    $target_month = $source
+        ->modify('first day of this month')
+        ->modify('+' . $months . ' months');
+    $target_day = min((int) $source->format('j'), (int) $target_month->format('t'));
+
+    return $target_month->setDate(
+        (int) $target_month->format('Y'),
+        (int) $target_month->format('n'),
+        $target_day
+    )->format('Y-m-d');
+}
+
+function normalizeEngagementMapFilters(array $query, ?DateTimeImmutable $instant = null)
 {
     $scalar = static function ($value) {
         return is_scalar($value) ? trim((string) $value) : '';
@@ -54,19 +75,18 @@ function normalizeEngagementMapFilters(array $query)
         $errors[] = 'Choose a valid end date.';
         $date_to = '';
     }
-    if ($date_from !== '' && $date_to !== '' && $date_to < $date_from) {
-        $errors[] = 'The end of the date window cannot precede its start.';
-        $date_from = '';
-        $date_to = '';
+    $default_date_from = applicationBusinessDate($instant);
+    $default_date_to = engagementMapDateAfterMonths($default_date_from, 3);
+    if ($date_from === '') {
+        $date_from = $default_date_from;
     }
-
-    // Keep the initial map query bounded. Callers may narrow this window, but
-    // an empty filter never means "load the entire engagement history".
-    if ($date_from === '' && $date_to === '') {
-        $past_days = applicationWorkflowSetting('map_past_days');
-        $future_days = applicationWorkflowSetting('map_future_days');
-        $date_from = applicationBusinessDateOffset(-$past_days);
-        $date_to = applicationBusinessDateOffset($future_days);
+    if ($date_to === '') {
+        $date_to = engagementMapDateAfterMonths($date_from, 3);
+    }
+    if ($date_to < $date_from) {
+        $errors[] = 'The end of the date window cannot precede its start.';
+        $date_from = $default_date_from;
+        $date_to = $default_date_to;
     }
 
     return [
