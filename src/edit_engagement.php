@@ -885,17 +885,17 @@ try {
                     <input type="text" name="event_address_line_2" id="event_address_line_2" value="<?php echo htmlspecialchars($engagement['event_address_line_2'] ?? ''); ?>">
                 </div>
                 <div class="address-row event-address-row">
-                    <div class="form-field">
+                    <div class="form-field event-address-city-field">
                         <label for="event_city">City</label>
                         <input type="text" name="event_city" id="event_city" value="<?php echo htmlspecialchars($engagement['event_city'] ?? ''); ?>">
                     </div>
-                    <div class="form-field">
+                    <div class="form-field event-address-state-field">
                         <label for="event_state">State</label>
                         <div data-address-region-control data-address-region-for="event">
                             <input type="text" name="event_state" id="event_state" value="<?php echo htmlspecialchars($engagement['event_state'] ?? ''); ?>" data-address-region-input>
                         </div>
                     </div>
-                    <div class="form-field">
+                    <div class="form-field event-address-zipcode-field">
                         <label for="event_zipcode">Zipcode</label>
                         <input type="text" name="event_zipcode" id="event_zipcode" value="<?php echo htmlspecialchars($engagement['event_zipcode'] ?? ''); ?>">
                     </div>
