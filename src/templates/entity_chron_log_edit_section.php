@@ -59,16 +59,22 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                     <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></label>
                     <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version, ENT_QUOTES, 'UTF-8'); ?>" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>">
                     <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="5" maxlength="100000" required form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($chron_entry_value, ENT_QUOTES, 'UTF-8'); ?></textarea>
-                    <form method="post" action="<?php echo htmlspecialchars($chron_edit_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" class="chron-entry-management">
-                        <?php echo csrfInput(); ?>
-                        <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
-                        <div class="chron-entry-actions">
-                            <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
-                            <?php if ($user_role === 'admin'): ?>
-                                <button type="submit" name="chron_action" value="delete" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
-                            <?php endif; ?>
-                        </div>
-                    </form>
+                    <div class="chron-entry-actions">
+                        <form method="post" action="<?php echo htmlspecialchars($chron_edit_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" class="chron-entry-management">
+                            <?php echo csrfInput(); ?>
+                            <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
+                            <input type="hidden" name="chron_action" value="archive">
+                            <button type="submit" class="archive-button">Archive</button>
+                        </form>
+                        <?php if ($user_role === 'admin'): ?>
+                            <form method="post" action="<?php echo htmlspecialchars($chron_edit_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" class="chron-entry-management">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
+                                <input type="hidden" name="chron_action" value="delete">
+                                <button type="submit" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </article>
         <?php endforeach; ?>

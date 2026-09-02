@@ -143,6 +143,22 @@ try {
         [$contactEntryId],
         $userId
     );
+    deleteEntityChronLogEntry($conn, 'contact', $contactId, $contactEntryId);
+    expectEntityChronIntegration(
+        countEntityChronLogEntries($conn, 'contact', $contactId) === 0
+            && countEntityChronLogEntries($conn, 'contact', $contactId, 1) === 0
+            && countEntityChronLogEntries($conn, 'organization', $organizationId) === 1,
+        'permanently deleting a contact entry should remove only that entry.'
+    );
+
+    insertEntityChronLogEntry(
+        $conn,
+        'contact',
+        $contactId,
+        $contactText . ' cascade probe',
+        $userId,
+        $username
+    );
 
     $deleteContactStmt = $conn->prepare('DELETE FROM contacts WHERE id = ?');
     $deleteContactStmt->bind_param('i', $contactId);

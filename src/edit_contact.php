@@ -45,8 +45,12 @@ $contact_stmt->close();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
     requireValidCsrfToken();
-    $chron_entry_id = filter_input(INPUT_POST, 'chron_entry_id', FILTER_VALIDATE_INT);
-    $chron_action = is_scalar($_POST['chron_action']) ? (string) $_POST['chron_action'] : '';
+    $chron_entry_id = \Dnr\Http\RequestInput::positiveInt($_POST, 'chron_entry_id');
+    $chron_action = \Dnr\Http\RequestInput::enum(
+        $_POST,
+        'chron_action',
+        ['archive', 'delete']
+    );
     try {
         if (!$chron_entry_id) {
             throw new InvalidArgumentException('Select a valid Chron entry.');
@@ -72,6 +76,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
             throw new InvalidArgumentException('Invalid Chron action.');
         }
     } catch (Throwable $exception) {
+        if (!$exception instanceof InvalidArgumentException) {
+            applicationLog('error', 'Contact Chron action failed', [
+                'contact_id' => $contact_id,
+                'chron_entry_id' => $chron_entry_id,
+                'chron_action' => $chron_action,
+                'error' => $exception->getMessage(),
+            ]);
+        }
         $_SESSION['chron_action_error'] = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
             : 'Unable to update the Chron log. Please try again.';
