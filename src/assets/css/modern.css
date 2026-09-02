@@ -86,6 +86,9 @@
 
 html.dark-mode {
   --app-bg: #10141c;
+  /* Keep legacy layout rules on the current app canvas instead of #121212. */
+  --dark-bg-color: var(--app-bg);
+  --bg-color: var(--app-bg);
   --surface: #171d27;
   --surface-subtle: #1d2531;
   --surface-hover: #222c39;
