@@ -99,6 +99,8 @@ expectBuildProvenanceScript(
         && str_contains($s1_deploy, 'merge --ff-only origin/main')
         && str_contains($s1_deploy, 'DNR_BUILD_COMMIT')
         && str_contains($s1_deploy, 'State.Health.Status')
+        && str_contains($s1_deploy, 'did not become healthy within 60 seconds')
+        && str_contains($s1_deploy, 'sleep 2')
         && str_contains($s1_deploy, 'State.ExitCode')
         && str_contains($s1_deploy, '/ready.php')
         && str_contains($s1_deploy, '/health.php'),

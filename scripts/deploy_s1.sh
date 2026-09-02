@@ -146,8 +146,19 @@ done
 
 for service in db web ingress proton-bridge; do
     container=$(./scripts/compose_with_provenance.sh "$compose_mode" ps -q "$service" | tail -n 1)
-    if [ "$(docker inspect --format '{{.State.Health.Status}}' "$container")" != 'healthy' ]; then
-        echo "The s1 $service service is not healthy." >&2
+    attempt=1
+    health_status=$(docker inspect --format '{{.State.Health.Status}}' "$container")
+    while [ "$health_status" != 'healthy' ] && [ "$attempt" -le 30 ]; do
+        if [ "$(docker inspect --format '{{.State.Running}}' "$container")" != 'true' ]; then
+            echo "The s1 $service service stopped while waiting for health." >&2
+            exit 1
+        fi
+        sleep 2
+        attempt=$((attempt + 1))
+        health_status=$(docker inspect --format '{{.State.Health.Status}}' "$container")
+    done
+    if [ "$health_status" != 'healthy' ]; then
+        echo "The s1 $service service did not become healthy within 60 seconds (status: $health_status)." >&2
         exit 1
     fi
 done
