@@ -216,10 +216,26 @@ expectUserManual(
 
 expectUserManual(
     preg_match(
-        '/\.manual-search-control input\[type="search"\]\s*\{[^}]*margin:\s*0\s*!important;/s',
+        '/\.manual-search-control input\[type="search"\]\s*\{[^}]*margin:\s*0\s*!important;[^}]*outline:\s*0\s*!important;[^}]*box-shadow:\s*none\s*!important;/s',
         $styles
     ) === 1,
-    'the manual search input should clear global field margins so it stays vertically centered in its pane.'
+    'the manual search input should clear global field margins and its internal focus outline so the exterior pane defines the control.'
+);
+
+expectUserManual(
+    preg_match(
+        '/\.manual-search-control:focus-within\s*\{[^}]*border-color:\s*var\(--primary\);[^}]*box-shadow:\s*var\(--focus-ring\),/s',
+        $styles
+    ) === 1,
+    'the manual search pane should retain the visible focus indicator for the composite control.'
+);
+
+expectUserManual(
+    preg_match(
+        '/@media \(forced-colors: active\)\s*\{\s*\.manual-search-control:focus-within\s*\{[^}]*outline:\s*2px solid Highlight;[^}]*outline-offset:\s*2px;/s',
+        $styles
+    ) === 1,
+    'the exterior manual search pane should remain visibly focused in forced-colors mode.'
 );
 
 expectUserManual(
