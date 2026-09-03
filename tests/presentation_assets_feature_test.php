@@ -99,10 +99,13 @@ expectPresentationAssetFeature(
         && str_contains($presentation_script, 'if (!shouldReleaseQrPreviews(event)) return;')
         && !str_contains($presentation_script, 'readAsDataURL')
         && str_contains($page_actions, "new ClipboardItem({ 'image/png': png })")
+        && str_contains($page_actions, "activeQrCopyStatus.textContent = ''")
+        && str_contains($page_actions, 'activeQrCopyButton.classList.remove')
+        && str_contains($page_actions, 'if (requestId !== latestRequestId) return;')
         && str_contains($page_actions, "document.getElementById('qr-code-preview')")
         && str_contains($page_actions, 'preview.showModal()')
         && !str_contains($page_actions, 'window.open('),
-    'QR images should support paste input, clipboard copy, and a themed in-app fallback preview.'
+    'QR images should support paste input, single-active clipboard feedback, and a themed in-app fallback preview.'
 );
 
 expectPresentationAssetFeature(
