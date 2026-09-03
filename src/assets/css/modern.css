@@ -878,6 +878,15 @@ html body .container > .profile-form {
   font-size: 0.78rem;
 }
 
+.app-footer .footer-moed-definition {
+  margin-top: 1lh;
+  opacity: 0.5;
+}
+
+.app-footer .footer-moed-hebrew {
+  font-size: 1.21em;
+}
+
 .app-footer .footer-link {
   color: inherit;
   text-decoration: none;
