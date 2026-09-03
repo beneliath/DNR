@@ -7,6 +7,7 @@ brand:
   calendar_name: Example Ministry Events
   logo_light: assets/dnr-logo.svg
   logo_dark: assets/dnr-logo-dark.svg
+  logo_email: assets/dnr-logo-email.png
 
 defaults:
   speaker: Default Speaker

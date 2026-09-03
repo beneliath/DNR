@@ -30,6 +30,7 @@ $example = DeploymentConfig::load($examplePath, []);
 
 expectDeploymentConfig(
     $moed->string('brand.display_name') === 'MOED'
+        && $moed->string('brand.logo_email') === 'assets/dnr-logo-email.png'
         && $moed->string('defaults.speaker') === 'Olivier Melnick'
         && $moed->string('inbound_email.emitted_marker_prefix') === 'MOED'
         && count($moed->list('standard_event_tasks')) === 9,
@@ -37,6 +38,7 @@ expectDeploymentConfig(
 );
 expectDeploymentConfig(
     $example->string('brand.display_name') === 'Example Ministry'
+        && $example->string('brand.logo_email') === 'assets/dnr-logo-email.png'
         && $example->string('defaults.timezone') === 'America/New_York'
         && $example->list('standard_event_tasks') === [],
     'an independent deployment profile should load without source changes.'

@@ -37,6 +37,8 @@ $styles = $read('src/assets/css/modern.css');
 $profileScript = $read('src/assets/js/profile.js');
 $grants = $read('scripts/configure_database_privileges.sh');
 $smtp = $read('docker-compose.smtp.yaml');
+$emailLogo = $root . '/src/assets/dnr-logo-email.png';
+$emailLogoSize = is_file($emailLogo) ? getimagesize($emailLogo) : false;
 $mailDispatchGrantSection = explode(
     "CREATE USER IF NOT EXISTS '\${maintenance_user}'",
     explode("CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'", $grants, 2)[1] ?? '',
@@ -106,6 +108,8 @@ expectTaskNotificationsFeature(
         && str_contains($helpers, "'html_body' => renderDailyTaskDigestHtml(")
         && str_contains($helpers, "'html_body' => is_string(\$message['html_body']")
         && str_contains($digestTemplate, 'function renderDailyTaskDigestHtml(')
+        && str_contains($digestTemplate, 'applicationBrandEmailLogo()')
+        && str_contains($digestTemplate, 'class="masthead-logo"')
         && str_contains($digestTemplate, 'name="color-scheme" content="light only"')
         && str_contains($digestTemplate, '#ffe8ee')
         && str_contains($digestTemplate, '#d92d20')
@@ -121,6 +125,13 @@ expectTaskNotificationsFeature(
         && str_contains($emailHelpers, 'Content-Type: multipart/alternative; boundary=')
         && str_contains($emailHelpers, 'Content-Type: text/html; charset=UTF-8'),
     'daily digests should queue a light-only linked Dashboard rendering beside the plaintext fallback.'
+);
+expectTaskNotificationsFeature(
+    is_array($emailLogoSize)
+        && ($emailLogoSize[0] ?? 0) === 454
+        && ($emailLogoSize[1] ?? 0) === 78
+        && ($emailLogoSize['mime'] ?? '') === 'image/png',
+    'the digest masthead should use the cropped, email-compatible 2x PNG artwork.'
 );
 expectTaskNotificationsFeature(
     str_contains($worker, 'queueDueDailyTaskDigests($conn)')

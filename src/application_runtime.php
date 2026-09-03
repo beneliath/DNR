@@ -62,6 +62,11 @@ function applicationBrandLogo(string $theme = 'light'): string
     return deploymentConfig()->string($theme === 'dark' ? 'brand.logo_dark' : 'brand.logo_light');
 }
 
+function applicationBrandEmailLogo(): string
+{
+    return deploymentConfig()->string('brand.logo_email');
+}
+
 function applicationCalendarName(): string
 {
     return deploymentConfig()->string('brand.calendar_name');
