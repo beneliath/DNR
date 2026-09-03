@@ -181,6 +181,7 @@ html.dark-mode body.user-manual-page .manual-callout-body {
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
+  outline: 0 !important;
   background: transparent !important;
   box-shadow: none !important;
   color: var(--text) !important;
@@ -1287,6 +1288,13 @@ kbd {
   .manual-card,
   .manual-link-row a {
     transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  }
+}
+
+@media (forced-colors: active) {
+  .manual-search-control:focus-within {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }
 
