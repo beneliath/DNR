@@ -500,7 +500,7 @@ Configure these values as needed:
 - `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` hops DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. DNR walks the forwarding chain from the nearest hop outward, skips only configured proxies, and uses the first untrusted address so a client-controlled leftmost value cannot override audit or throttling attribution. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers, including `X-Forwarded-Proto`.
 - `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.254`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
-- `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, and `DNR_PDF_MAX_CHRON_ENTRIES`: optional overrides for validated workflow windows normally read from YAML.
+- `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, `DNR_PDF_MAX_CHRON_ENTRIES`, and `DNR_PDF_MAX_TASKS`: optional overrides for validated workflow windows and PDF export limits normally read from YAML.
 - `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `268435456` bytes (256 MB), leaving room for the base64 representation of the documented 100 MB PDF upload plus normal application data. Backup and restore plaintext exists only in the relevant container's memory-backed `/tmp`.
 - `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
@@ -635,7 +635,7 @@ the maintenance profile, and restore the same two-factor encryption key.
 The application keeps the audit log append-only during normal use. An administrator can open
 **Users → Audit Log**, enter the number of days to keep in the **Retention** panel, and preview the
 exact UTC cutoff and affected row count. Pruning then requires a recent administrator password and
-fresh 2FA confirmation, the literal `PRUNE` phrase, and a final browser confirmation. The web
+fresh 2FA confirmation, the literal `PRUNE` phrase, and a final themed in-app confirmation. The web
 database identity still has no direct delete permission; it can invoke only the migration-installed,
 definer-secured retention procedure, which validates the retention range and performs the deletion
 in 1,000-row transactions. Every committed batch writes its own audit entry atomically, so an
@@ -853,7 +853,10 @@ event. Each contact may hold one or more event-specific roles: **Primary host**,
 contact**, **Billing**, **Travel**, and **Materials**. Engagement detail pages and exports include
 only assigned event contacts and distinguish these event responsibilities from the contact's
 organization-level role. Changing the engagement organization clears incompatible assignments;
-moving a contact to another organization removes assignments that are no longer valid.
+moving a contact to another organization removes assignments that are no longer valid. PDF exports
+carry the configured digest-email wordmark on a white masthead for consistent graphical branding.
+They include only active work linked to the exported event and mirror the Work Queue's labeled
+overdue and due-today colors and semantic edge.
 
 ## Engagement lifecycle
 
@@ -903,10 +906,12 @@ lodging, and travel received.
 
 Editors and administrators can close an active event from its detail page by finalizing the actual
 giving/income, lodging, and travel amounts received. These actual receipts are stored separately
-from the anticipated travel, lodging, and compensation fields used during planning. A report can be
-corrected later without changing its original closer or close timestamp; concurrent corrections are
-rejected rather than silently overwriting newer figures. Every insert and correction is captured by
-the database audit log.
+from the anticipated travel, lodging, and compensation fields used during planning. Before the first
+report can be finalized, every event task due on or before the last active presentation must be
+marked Completed. Tasks due after that presentation and tasks without due dates do not hold the
+closeout. A report can be corrected later without changing its original closer or close timestamp;
+concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and
+correction is captured by the database audit log.
 
 Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
 event, and aggregate lodging and travel receipts from finalized reports only. “Latest event” follows

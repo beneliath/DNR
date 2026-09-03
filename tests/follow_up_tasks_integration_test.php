@@ -140,6 +140,13 @@ expectFollowUpTaskIntegration(
         && (int) $caller_ownership['caller_owned'] === $inserted,
     'every initial standard task should be assigned to the selected Caller.'
 );
+$limited_pdf_tasks = fetchFollowUpTasksForSubject($conn, 'engagement', $engagement_id, 2);
+expectFollowUpTaskIntegration(
+    count($limited_pdf_tasks) === 2
+        && (int) $limited_pdf_tasks[0]['engagement_id'] === $engagement_id
+        && (int) $limited_pdf_tasks[1]['engagement_id'] === $engagement_id,
+    'subject task queries should enforce the configured PDF result bound without crossing events.'
+);
 $custom_task_stmt = $conn->prepare(
     'SELECT title, details, due_date, assigned_to
      FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ?'

@@ -35,5 +35,6 @@ workflow:
   map_future_days: 730
   map_max_events: 500
   pdf_max_chron_entries: 500
+  pdf_max_tasks: 250
 
 standard_event_tasks: []

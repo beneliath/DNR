@@ -10,6 +10,39 @@
     background: var(--surface);
 }
 
+.closeout-task-hold {
+    margin-bottom: 24px;
+}
+
+.closeout-task-hold h2 {
+    margin-bottom: 12px;
+}
+
+.closeout-blocking-task-list {
+    display: grid;
+    gap: 10px;
+    margin: 0 0 20px;
+    padding: 0;
+    list-style: none;
+}
+
+.closeout-blocking-task-list li {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+}
+
+.closeout-blocking-task-list span {
+    flex: 0 0 auto;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
 .closeout-form fieldset {
     margin: 0 0 22px;
     padding: 0;
@@ -101,5 +134,11 @@
     .financial-fields {
         grid-template-columns: 1fr;
         gap: 0;
+    }
+
+    .closeout-blocking-task-list li {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
     }
 }

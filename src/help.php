@@ -317,9 +317,9 @@ $manual_access_summary = match ($manual_role) {
                     <section class="manual-card-grid manual-card-grid-three">
                         <article class="manual-card"><h4>Copy Text</h4><p>Copies a plain-text event brief for messages or notes.</p></article>
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
-                        <article class="manual-card"><h4>Download PDF</h4><p>Downloads a formatted event summary for sharing or offline reference.</p></article>
+                        <article class="manual-card"><h4>Download PDF</h4><p>Downloads a graphically branded event summary with its active follow-up work for sharing or offline reference. Overdue and due-today work uses the same labeled color treatment and semantic edge as the Work Queue.</p></article>
                     </section>
-                    <p>After the event, editors and administrators can open <strong>Financial Closeout</strong> and enter the actual giving/income, lodging, and travel received. Enter zero where nothing was received. The original planning estimates remain unchanged. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
+                    <p>After the event, editors and administrators can open <strong>Financial Closeout</strong> and enter the actual giving/income, lodging, and travel received. Enter zero where nothing was received. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
@@ -754,7 +754,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Accountability</span>
                         <h3>Audit Log</h3>
                         <p>Inspect login, security, and database-change activity with actor, affected record, IP address, and local/UTC time. Filter by category, text, date range, and exact IP. Entries are newest first and append-only during normal use; individual records cannot be edited or deleted.</p>
-                        <p>In the Retention panel, administrators choose how many days to keep and preview the exact UTC cutoff and affected count. Pruning requires freshly confirmed administrator access, the literal <code>PRUNE</code> phrase, and a final browser confirmation. Deployment operators can use <code>./scripts/prune_audit_log.sh DAYS</code> for the equivalent preview-first terminal workflow. Either path records the completed operation in the log.</p>
+                        <p>In the Retention panel, administrators choose how many days to keep and preview the exact UTC cutoff and affected count. Pruning requires freshly confirmed administrator access, the literal <code>PRUNE</code> phrase, and a final themed in-app confirmation. Deployment operators can use <code>./scripts/prune_audit_log.sh DAYS</code> for the equivalent preview-first terminal workflow. Either path records the completed operation in the log.</p>
                         <?php if ($manual_is_admin): ?><a href="audit_log.php" class="manual-inline-link">Review the audit log</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
@@ -824,7 +824,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A QR Code Will Not Paste or Copy</span><i aria-hidden="true">+</i></summary>
-                        <p>For paste, copy a supported JPEG, PNG, or WebP image, select <strong>Paste QR code</strong>, and—if prompted by the page—press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> while the button remains focused. For copy, select the QR preview. If the browser cannot write an image directly to the clipboard, <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> opens the image in a separate tab so you can copy it there.</p>
+                        <p>For paste, copy a supported JPEG, PNG, or WebP image, select <strong>Paste QR code</strong>, and—if prompted by the page—press <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + <kbd>V</kbd> while the button remains focused. For copy, select the QR preview. If the browser cannot write an image directly to the clipboard, <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> opens a themed in-app preview so you can scan or save it there.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>

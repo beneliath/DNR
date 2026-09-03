@@ -49,6 +49,7 @@ final class DeploymentConfig
             'map_future_days' => 730,
             'map_max_events' => 500,
             'pdf_max_chron_entries' => 500,
+            'pdf_max_tasks' => 250,
         ],
         'standard_event_tasks' => [],
     ];
@@ -77,6 +78,7 @@ final class DeploymentConfig
         'workflow.map_future_days' => ['names' => ['DNR_MAP_FUTURE_DAYS'], 'type' => 'int'],
         'workflow.map_max_events' => ['names' => ['DNR_MAP_MAX_EVENTS'], 'type' => 'int'],
         'workflow.pdf_max_chron_entries' => ['names' => ['DNR_PDF_MAX_CHRON_ENTRIES'], 'type' => 'int'],
+        'workflow.pdf_max_tasks' => ['names' => ['DNR_PDF_MAX_TASKS'], 'type' => 'int'],
     ];
 
     /** @param array<string, mixed> $data */
@@ -273,6 +275,7 @@ final class DeploymentConfig
             'workflow.map_future_days' => [1, 3650],
             'workflow.map_max_events' => [50, 2000],
             'workflow.pdf_max_chron_entries' => [50, 1000],
+            'workflow.pdf_max_tasks' => [25, 1000],
         ];
         foreach ($integerRanges as $path => [$minimum, $maximum]) {
             $value = self::pathValue($data, $path);

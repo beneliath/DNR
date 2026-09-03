@@ -27,6 +27,95 @@ function fetchEngagementFinancialReport(mysqli $conn, int $engagement_id): ?arra
     return $report;
 }
 
+/**
+ * @return array{
+ *     last_presentation_date: string|null,
+ *     blocking_tasks: list<array<string, mixed>>
+ * }
+ */
+function fetchEngagementCloseoutTaskReadiness(
+    mysqli $conn,
+    int $engagement_id,
+    bool $lock = false
+): array {
+    if ($engagement_id < 1) {
+        throw new InvalidArgumentException('Select a valid engagement.');
+    }
+
+    $presentation_sql =
+        'SELECT presentation_date
+         FROM presentations
+         WHERE engagement_id = ?
+           AND is_archived = 0
+           AND presentation_date IS NOT NULL
+         ORDER BY presentation_date DESC, id DESC
+         LIMIT 1';
+    if ($lock) {
+        $presentation_sql .= ' FOR UPDATE';
+    }
+    $presentation_stmt = $conn->prepare($presentation_sql);
+    if (!$presentation_stmt) {
+        throw new RuntimeException('Unable to prepare the engagement presentation cutoff.');
+    }
+    $presentation_stmt->bind_param('i', $engagement_id);
+    $presentation_stmt->execute();
+    $presentation = $presentation_stmt->get_result()->fetch_assoc();
+    $presentation_stmt->close();
+
+    $last_presentation_date = $presentation
+        ? (string) $presentation['presentation_date']
+        : null;
+    if ($last_presentation_date === null) {
+        return [
+            'last_presentation_date' => null,
+            'blocking_tasks' => [],
+        ];
+    }
+
+    $task_sql =
+        "SELECT id, title, status, due_date
+         FROM follow_up_tasks
+         WHERE engagement_id = ?
+           AND due_date <= ?
+           AND status <> 'completed'
+         ORDER BY due_date, id";
+    if ($lock) {
+        $task_sql .= ' FOR UPDATE';
+    }
+    $task_stmt = $conn->prepare($task_sql);
+    if (!$task_stmt) {
+        throw new RuntimeException('Unable to prepare the engagement closeout tasks.');
+    }
+    $task_stmt->bind_param('is', $engagement_id, $last_presentation_date);
+    $task_stmt->execute();
+    $blocking_tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $task_stmt->close();
+
+    return [
+        'last_presentation_date' => $last_presentation_date,
+        'blocking_tasks' => $blocking_tasks,
+    ];
+}
+
+/**
+ * @param array{
+ *     last_presentation_date: string|null,
+ *     blocking_tasks: list<array<string, mixed>>
+ * } $readiness
+ */
+function engagementCloseoutTaskHoldMessage(array $readiness): string
+{
+    $task_count = count($readiness['blocking_tasks']);
+    if ($task_count === 0 || $readiness['last_presentation_date'] === null) {
+        return '';
+    }
+
+    return $task_count . ' task' . ($task_count === 1 ? '' : 's')
+        . ' due on or before the last presentation ('
+        . $readiness['last_presentation_date']
+        . ') must be marked completed before this event can be closed out.';
+}
+
 /** @param array<string, mixed> $report */
 function financialReportTotal(array $report): string
 {

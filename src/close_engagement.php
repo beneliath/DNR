@@ -160,6 +160,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 $success_message = 'Final financial report corrected.';
             } else {
+                $task_readiness = fetchEngagementCloseoutTaskReadiness(
+                    $conn,
+                    $engagement_id,
+                    true
+                );
+                $task_hold_message = engagementCloseoutTaskHoldMessage($task_readiness);
+                if ($task_hold_message !== '') {
+                    throw new InvalidArgumentException($task_hold_message);
+                }
                 if ($submitted_version !== '') {
                     throw new InvalidArgumentException(
                         'This engagement closeout changed after you opened it. Reload the page before saving.'
@@ -244,6 +253,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $is_correction = $financial_report !== null;
+$task_readiness = [
+    'last_presentation_date' => null,
+    'blocking_tasks' => [],
+];
+if (!$is_correction) {
+    try {
+        $task_readiness = fetchEngagementCloseoutTaskReadiness($conn, $engagement_id);
+    } catch (Throwable $exception) {
+        abortApplication(503, 'The engagement closeout tasks are temporarily unavailable.', [
+            'engagement_id' => $engagement_id,
+            'error' => $exception->getMessage(),
+        ]);
+    }
+}
+$task_hold_message = engagementCloseoutTaskHoldMessage($task_readiness);
+$closeout_is_held = $task_hold_message !== '';
+if ($closeout_is_held && $form_error === $task_hold_message) {
+    $form_error = '';
+}
 $closed_timestamp = $is_correction
     ? chronLogTimestampDetails($financial_report['closed_at'])
     : null;
@@ -284,6 +312,29 @@ $closed_timestamp = $is_correction
             <?php endif; ?>.
             Saving here records a correction without changing the original close date.
         </p>
+    <?php elseif ($closeout_is_held): ?>
+        <section class="closeout-task-hold" aria-labelledby="closeout-task-hold-title">
+            <h2 id="closeout-task-hold-title">Complete Earlier Event Tasks First</h2>
+            <p class="error" role="alert"><?php echo htmlspecialchars($task_hold_message, ENT_QUOTES, 'UTF-8'); ?></p>
+            <ul class="closeout-blocking-task-list">
+                <?php foreach ($task_readiness['blocking_tasks'] as $blocking_task): ?>
+                    <?php
+                    $task_edit_url = 'edit_task.php?' . http_build_query([
+                        'id' => (int) $blocking_task['id'],
+                        'return_to' => 'view_engagement.php?id=' . $engagement_id . '#financial-closeout',
+                    ]);
+                    $task_status_label = ucfirst(str_replace('_', ' ', (string) $blocking_task['status']));
+                    ?>
+                    <li>
+                        <a href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $blocking_task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
+                        <span>Due <?php echo htmlspecialchars((string) $blocking_task['due_date'], ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars($task_status_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+            <div class="form-actions">
+                <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#follow-up-work" class="action-button back-button">Back to event tasks</a>
+            </div>
+        </section>
     <?php else: ?>
         <p class="closeout-status">
             Enter actual amounts received. Planning estimates on the engagement are not copied into this final report.
@@ -294,6 +345,7 @@ $closed_timestamp = $is_correction
         <p class="error" role="alert"><?php echo htmlspecialchars($form_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
+    <?php if (!$closeout_is_held): ?>
     <form method="post" action="close_engagement.php?id=<?php echo $engagement_id; ?>" class="closeout-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="report_version" value="<?php echo htmlspecialchars((string) ($financial_report['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -337,6 +389,7 @@ $closed_timestamp = $is_correction
             <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#financial-closeout" class="action-button back-button">Cancel</a>
         </div>
     </form>
+    <?php endif; ?>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

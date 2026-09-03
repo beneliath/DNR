@@ -4,6 +4,7 @@ require_once __DIR__ . '/chron_log_helpers.php';
 require_once __DIR__ . '/engagement_export_helpers.php';
 require_once __DIR__ . '/engagement_contact_helpers.php';
 require_once __DIR__ . '/engagement_lifecycle_helpers.php';
+require_once __DIR__ . '/follow_up_task_helpers.php';
 
 startSecureSession();
 requireLogin();
@@ -81,6 +82,27 @@ $presentations = $presentation_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $presentation_stmt->close();
 
 try {
+    $pdf_task_limit = applicationWorkflowSetting('pdf_max_tasks');
+    $follow_up_tasks = fetchFollowUpTasksForSubject(
+        $conn,
+        'engagement',
+        $engagement_id,
+        $pdf_task_limit + 1
+    );
+    $follow_up_tasks_truncated = count($follow_up_tasks) > $pdf_task_limit;
+    if ($follow_up_tasks_truncated) {
+        $follow_up_tasks = array_slice($follow_up_tasks, 0, $pdf_task_limit);
+    }
+} catch (Throwable $exception) {
+    applicationLog('error', 'Unable to load engagement tasks for PDF export', [
+        'engagement_id' => $engagement_id,
+        'error' => $exception->getMessage(),
+    ]);
+    http_response_code(500);
+    exit('Unable to prepare the engagement task export.');
+}
+
+try {
     $pdf_chron_limit = applicationWorkflowSetting('pdf_max_chron_entries');
     $chron_entries = fetchChronLogEntries($conn, $engagement_id, false, $pdf_chron_limit, 0);
 } catch (Throwable $exception) {
@@ -107,8 +129,13 @@ if (!class_exists('TCPDF')) {
 
 require_once __DIR__ . '/engagement_pdf.php';
 
+$pdf_business_date = applicationBusinessDate();
 $pdf_contents = renderEngagementPdf(
-    buildEngagementExport($engagement, $contacts, $presentations, $chron_entries)
+    buildEngagementExport($engagement, $contacts, $presentations, $chron_entries),
+    null,
+    $follow_up_tasks,
+    $pdf_business_date,
+    $follow_up_tasks_truncated
 );
 $filename = engagementPdfFilename($engagement);
 

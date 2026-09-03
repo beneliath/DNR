@@ -633,28 +633,6 @@
         synchronize();
     }
 
-    function initializeSensitiveUserActions() {
-        document.querySelectorAll('form[data-sensitive-action]').forEach(function (form) {
-            form.addEventListener('submit', function (event) {
-                const deleting = form.dataset.sensitiveAction === 'delete-user';
-                const phrase = deleting ? 'DELETE USER' : 'RESET 2FA';
-                const confirmation = window.prompt(
-                    (deleting
-                        ? 'Are you sure you want to delete this user? This cannot be undone.'
-                        : 'Reset two-factor authentication for this user? Their current authenticator and recovery codes will stop working.')
-                    + '\n\nType ' + phrase + ' to continue:'
-                );
-                if (confirmation !== phrase) {
-                    event.preventDefault();
-                    if (confirmation !== null) window.alert('Action cancelled. The confirmation phrase did not match ' + phrase + '.');
-                    return;
-                }
-                const field = form.elements[deleting ? 'delete_confirmation' : 'reset_confirmation'];
-                if (field) field.value = confirmation;
-            });
-        });
-    }
-
     function copyWithFallback(value) {
         const textarea = document.createElement('textarea');
         textarea.value = value;
@@ -750,8 +728,23 @@
     }
 
     function openQrFallback(button, url) {
-        window.open(url, '_blank', 'noopener');
-        qrCopyStatus(button, 'QR code opened in a new tab.', false);
+        const preview = document.getElementById('qr-code-preview');
+        const previewTitle = document.getElementById('qr-code-preview-title');
+        const previewImage = document.getElementById('qr-code-preview-image');
+        if (!preview || !previewTitle || !previewImage || typeof preview.showModal !== 'function') {
+            qrCopyStatus(button, 'QR code preview is unavailable.', true);
+            return;
+        }
+        const buttonLabel = button.getAttribute('aria-label') || 'Copy QR code';
+        const qrContext = buttonLabel
+            .replace(/^Copy\s+/i, '')
+            .replace(/\s+QR code$/i, '')
+            .trim() || 'QR';
+        previewTitle.textContent = qrContext + ' QR Code Preview';
+        previewImage.alt = qrContext + ' QR code preview';
+        previewImage.src = url;
+        if (!preview.open) preview.showModal();
+        qrCopyStatus(button, 'QR code opened in the app preview.', false);
     }
 
     function initializeQrCopy() {
@@ -849,7 +842,6 @@
         initializeEngagementForm();
         initializeSelectAll('select-all-chron-entries', 'chron_entry_ids[]');
         initializeSelectAll('select-all-presentations', 'presentation_ids[]');
-        initializeSensitiveUserActions();
         initializeCopyTextButtons();
         initializeQrCopy();
         initializeEngagementCopy();
