@@ -72,6 +72,13 @@
   --danger: #b42318;
   --danger-hover: #8f1c14;
   --danger-subtle: #fff0ee;
+  --task-overdue-row-bg: #ffe8ee;
+  --task-overdue-row-hover-bg: #ffdae4;
+  --task-today-row-bg: #e4f2ff;
+  --task-today-row-hover-bg: #d4e9ff;
+  --task-overdue-row-accent: #d92d20;
+  --task-today-row-accent: #2563eb;
+  --task-highlight-row-muted: #475467;
   --calendar-today: #be185d;
   --calendar-today-bg: #fdf2f8;
   --sidebar-width: 260px;
@@ -143,6 +150,12 @@ html.dark-mode {
   --danger: #ff8c82;
   --danger-hover: #ffaaa3;
   --danger-subtle: #47211f;
+  --task-overdue-row-bg: #42202b;
+  --task-overdue-row-hover-bg: #361a23;
+  --task-today-row-bg: #1d3150;
+  --task-today-row-hover-bg: #172840;
+  --task-overdue-row-accent: #ff8c82;
+  --task-today-row-accent: #78a7ff;
   --calendar-today: #f9a8d4;
   --calendar-today-bg: #45162f;
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.25);
@@ -3506,6 +3519,39 @@ input[type="radio"] {
 .audit-table tbody tr:hover,
 .task-table tbody tr:hover {
   background: var(--surface-hover) !important;
+}
+
+.task-table tbody tr.task-row-overdue {
+  background: var(--task-overdue-row-bg) !important;
+}
+
+.task-table tbody tr.task-row-overdue:hover,
+.task-table tbody tr.task-row-overdue:focus-within {
+  background: var(--task-overdue-row-hover-bg) !important;
+}
+
+.task-table tbody tr.task-row-today {
+  background: var(--task-today-row-bg) !important;
+}
+
+.task-table tbody tr.task-row-today:hover,
+.task-table tbody tr.task-row-today:focus-within {
+  background: var(--task-today-row-hover-bg) !important;
+}
+
+html:not(.dark-mode) .task-table tbody tr.task-row-overdue,
+html:not(.dark-mode) .task-table tbody tr.task-row-today {
+  --text-muted: var(--task-highlight-row-muted);
+  --text-subtle: var(--task-highlight-row-muted);
+  --warning: #843600;
+}
+
+.task-table tbody tr.task-row-overdue > td:first-child {
+  box-shadow: inset 4px 0 0 var(--task-overdue-row-accent);
+}
+
+.task-table tbody tr.task-row-today > td:first-child {
+  box-shadow: inset 4px 0 0 var(--task-today-row-accent);
 }
 
 .contact-table a {

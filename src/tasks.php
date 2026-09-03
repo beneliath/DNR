@@ -353,6 +353,7 @@ $new_task_url = 'add_task.php?' . http_build_query($new_task_parameters);
 $view_labels = followUpTaskQueueViews();
 $status_labels = followUpTaskStatuses();
 $priority_labels = followUpTaskPriorities();
+$active_task_statuses = followUpTaskActiveStatuses();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -455,7 +456,17 @@ $priority_labels = followUpTaskPriorities();
         <?php if (!$tasks): ?><tr><td colspan="6" class="empty-state">No tasks match this work queue.</td></tr><?php endif; ?>
         <?php foreach ($tasks as $task): ?>
             <?php
-            $due = followUpTaskDueState($task['due_date']);
+            $due = followUpTaskDueState($task['due_date'], $business_date);
+            $row_due_key = in_array($task['status'], $active_task_statuses, true)
+                ? $due['key']
+                : 'none';
+            $task_due_aria_label = match ($row_due_key) {
+                'overdue' => 'Overdue, due ' . $task['due_date'],
+                'today' => 'Due today, ' . $task['due_date'],
+                default => !empty($task['due_date'])
+                    ? 'Due ' . $task['due_date']
+                    : $due['label'],
+            };
             $subject = followUpTaskSubjectFromRow($task);
             $task_priority_label = $priority_labels[$task['priority']] . ' Priority';
             $task_edit_url = 'edit_task.php?' . http_build_query([
@@ -463,8 +474,8 @@ $priority_labels = followUpTaskPriorities();
                 'return_to' => $task_return_to,
             ]);
             ?>
-            <tr class="task-row task-row-<?php echo htmlspecialchars($due['key'], ENT_QUOTES, 'UTF-8'); ?>">
-                <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="Due <?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="No due date; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></td>
+            <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?>">
+                <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></td>
                 <td>
                     <?php if ($can_manage_tasks): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>

@@ -153,6 +153,39 @@
     background: var(--surface-hover) !important;
 }
 
+.dashboard-task-list > li.task-row-overdue {
+    background: var(--task-overdue-row-bg) !important;
+}
+
+.dashboard-task-list > li.task-row-overdue:hover,
+.dashboard-task-list > li.task-row-overdue:focus-within {
+    background: var(--task-overdue-row-hover-bg) !important;
+}
+
+.dashboard-task-list > li.task-row-today {
+    background: var(--task-today-row-bg) !important;
+}
+
+.dashboard-task-list > li.task-row-today:hover,
+.dashboard-task-list > li.task-row-today:focus-within {
+    background: var(--task-today-row-hover-bg) !important;
+}
+
+html:not(.dark-mode) .dashboard-task-list > li.task-row-overdue,
+html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
+    --text-muted: var(--task-highlight-row-muted);
+    --text-subtle: var(--task-highlight-row-muted);
+    --warning: #843600;
+}
+
+.dashboard-task-list > li.task-row-overdue {
+    box-shadow: inset 4px 0 0 var(--task-overdue-row-accent);
+}
+
+.dashboard-task-list > li.task-row-today {
+    box-shadow: inset 4px 0 0 var(--task-today-row-accent);
+}
+
 .dashboard-record-main {
     display: flex;
     min-width: 0;

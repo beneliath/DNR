@@ -27,6 +27,19 @@ $functions = $read('src/functions.php');
 $task_helpers = $read('src/follow_up_task_helpers.php');
 $styles = $read('src/assets/css/pages/dashboard.css');
 $modern_styles = $read('src/assets/css/modern.css');
+$my_work_list_start = strpos($dashboard, '<ul class="dashboard-record-list dashboard-task-list">');
+$my_work_due_state = $my_work_list_start === false
+    ? false
+    : strpos($dashboard, "followUpTaskDueState(\$task['due_date'], \$business_date)", $my_work_list_start);
+$my_work_row_class = $my_work_list_start === false
+    ? false
+    : strpos($dashboard, 'class="task-row-<?php echo htmlspecialchars($due_state[\'key\']', $my_work_list_start);
+$my_work_due_label = $my_work_list_start === false
+    ? false
+    : strpos($dashboard, "htmlspecialchars(\$due_state['label']", $my_work_list_start);
+$my_work_list_end = $my_work_list_start === false
+    ? false
+    : strpos($dashboard, '</ul>', $my_work_list_start);
 
 expectDashboardFeature(
     str_contains($index, "header('Location: dashboard.php')")
@@ -67,6 +80,26 @@ expectDashboardFeature(
     str_contains($task_helpers, "'dashboard.php'")
         && str_contains($dashboard, "'return_to' => 'dashboard.php'"),
     'task edits opened from the dashboard should safely return to it.'
+);
+
+expectDashboardFeature(
+    $my_work_list_start !== false
+        && $my_work_due_state !== false
+        && $my_work_row_class !== false
+        && $my_work_due_label !== false
+        && $my_work_list_end !== false
+        && $my_work_list_start < $my_work_due_state
+        && $my_work_due_state < $my_work_row_class
+        && $my_work_row_class < $my_work_due_label
+        && $my_work_due_label < $my_work_list_end
+        && preg_match('/\.dashboard-task-list > li\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li\.task-row-overdue:hover,\s*\.dashboard-task-list > li\.task-row-overdue:focus-within\s*\{[^}]*var\(--task-overdue-row-hover-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li\.task-row-today\s*\{[^}]*var\(--task-today-row-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li\.task-row-today:hover,\s*\.dashboard-task-list > li\.task-row-today:focus-within\s*\{[^}]*var\(--task-today-row-hover-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/html:not\(\.dark-mode\) \.dashboard-task-list > li\.task-row-overdue,[^{]*\{[^}]*--warning:\s*#843600;/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-accent\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li\.task-row-today\s*\{[^}]*var\(--task-today-row-accent\)[^}]*\}/s', $styles) === 1,
+    'dashboard My Work tasks should reuse the theme-aware overdue and due-today row highlights and interaction feedback.'
 );
 
 expectDashboardFeature(

@@ -59,10 +59,45 @@ expectFollowUpTaskFeature(
 expectFollowUpTaskFeature(
     str_contains($queue, '<time class="task-due task-priority-')
         && str_contains($queue, 'datetime="<?php echo htmlspecialchars($task[\'due_date\']')
-        && str_contains($queue, 'aria-label="Due <?php echo htmlspecialchars($task[\'due_date\']')
+        && str_contains($queue, 'match ($row_due_key)')
+        && str_contains($queue, "'overdue' => 'Overdue, due ' . \$task['due_date']")
+        && str_contains($queue, "'today' => 'Due today, ' . \$task['due_date']")
+        && str_contains($queue, "? 'Due ' . \$task['due_date']")
+        && str_contains($queue, 'aria-label="<?php echo htmlspecialchars($task_due_aria_label')
         && str_contains($queue, '><?php echo htmlspecialchars($task[\'due_date\']')
         && !str_contains($queue, '<small class="task-priority'),
-    'dated queue badges should show only the date while exposing their color-coded priority to assistive technology.'
+    'dated queue badges should show only the date while exposing due state and color-coded priority to assistive technology.'
+);
+expectFollowUpTaskFeature(
+    str_contains($queue, "followUpTaskDueState(\$task['due_date'], \$business_date)")
+        && str_contains($queue, "in_array(\$task['status'], \$active_task_statuses, true)")
+        && str_contains($queue, "? \$due['key']")
+        && str_contains($queue, ": 'none'")
+        && str_contains($queue, 'task-row-<?php echo htmlspecialchars($row_due_key'),
+    'queue rows should use the request business date and only mark active work as overdue or due today.'
+);
+expectFollowUpTaskFeature(
+    str_contains($styles, '--task-overdue-row-bg: #ffe8ee;')
+        && str_contains($styles, '--task-overdue-row-hover-bg: #ffdae4;')
+        && str_contains($styles, '--task-today-row-bg: #e4f2ff;')
+        && str_contains($styles, '--task-today-row-hover-bg: #d4e9ff;')
+        && str_contains($styles, '--task-overdue-row-accent: #d92d20;')
+        && str_contains($styles, '--task-today-row-accent: #2563eb;')
+        && str_contains($styles, '--task-highlight-row-muted: #475467;')
+        && str_contains($styles, '--task-overdue-row-bg: #42202b;')
+        && str_contains($styles, '--task-overdue-row-hover-bg: #361a23;')
+        && str_contains($styles, '--task-today-row-bg: #1d3150;')
+        && str_contains($styles, '--task-today-row-hover-bg: #172840;')
+        && str_contains($styles, '--task-overdue-row-accent: #ff8c82;')
+        && str_contains($styles, '--task-today-row-accent: #78a7ff;')
+        && preg_match('/\.task-table tbody tr\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.task-table tbody tr\.task-row-overdue:hover,\s*\.task-table tbody tr\.task-row-overdue:focus-within\s*\{[^}]*var\(--task-overdue-row-hover-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.task-table tbody tr\.task-row-today\s*\{[^}]*var\(--task-today-row-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.task-table tbody tr\.task-row-today:hover,\s*\.task-table tbody tr\.task-row-today:focus-within\s*\{[^}]*var\(--task-today-row-hover-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/html:not\(\.dark-mode\) \.task-table tbody tr\.task-row-overdue,[^{]*\{[^}]*--warning:\s*#843600;/s', $styles) === 1
+        && preg_match('/\.task-table tbody tr\.task-row-overdue > td:first-child\s*\{[^}]*var\(--task-overdue-row-accent\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.task-table tbody tr\.task-row-today > td:first-child\s*\{[^}]*var\(--task-today-row-accent\)[^}]*\}/s', $styles) === 1,
+    'active overdue and due-today rows should have theme-aware highlights with stronger hover and keyboard-focus feedback.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, 'class="task-priority-legend"')

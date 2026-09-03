@@ -177,7 +177,7 @@ $task_status_labels = followUpTaskStatuses();
                             ])
                             : $subject['url'];
                         ?>
-                        <li>
+                        <li class="task-row-<?php echo htmlspecialchars($due_state['key'], ENT_QUOTES, 'UTF-8'); ?>">
                             <div class="dashboard-record-main">
                                 <a class="record-link" href="<?php echo htmlspecialchars($task_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
                                 <span><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a></span>
