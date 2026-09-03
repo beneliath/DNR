@@ -116,5 +116,12 @@ expectEntityChronFeature(
         && str_contains($privilegeScript, 'organization_chron_entries'),
     'the single deployment privilege manifest should grant access to both new Chron tables.'
 );
+expectEntityChronFeature(
+    is_string($viewTemplate)
+        && str_contains($viewTemplate, 'renderChronLogEntryHtml($chron_entry[\'entry_text\'])')
+        && is_string($restore)
+        && str_contains($restore, 'renderChronLogEntryHtml($chron_entry[\'entry_text\'])'),
+    'active and archived contact and organization Chron entries should render URLs as safe links.'
+);
 
 echo "Contact and organization Chron log feature tests passed.\n";
