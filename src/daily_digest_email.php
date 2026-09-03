@@ -348,6 +348,10 @@ function renderDailyTaskDigestHtml(
         'return_to' => 'dashboard.php',
     ]);
     $newEngagementUrl = dailyTaskDigestHtmlUrl('index.php');
+    $mastheadLogoUrl = dailyTaskDigestHtmlEscape(applicationPublicUrl(
+        applicationBrandEmailLogo(),
+        ['v' => applicationVersion()]
+    ));
 
     ob_start();
     ?>
@@ -395,6 +399,9 @@ function renderDailyTaskDigestHtml(
             .summary-cell { display: block !important; width: 100% !important; padding: 0 0 10px !important; }
             .record-meta { width: 118px !important; }
             .hide-mobile { display: none !important; }
+            .masthead-brand, .masthead-action { display: block !important; width: 100% !important; box-sizing: border-box !important; }
+            .masthead-action { padding-top: 12px !important; text-align: left !important; }
+            .masthead-logo { width: 180px !important; max-width: 100% !important; height: auto !important; }
         }
     </style>
 </head>
@@ -411,11 +418,13 @@ function renderDailyTaskDigestHtml(
                         <td class="email-surface" bgcolor="#ffffff" style="padding:17px 22px;border:1px solid #dfe4ec;border-radius:14px;background-color:#ffffff;">
                             <table role="presentation" width="100%" style="width:100%;">
                                 <tr>
-                                    <td style="vertical-align:middle;">
-                                        <div style="color:#0f766e;font-size:20px;font-weight:800;line-height:1.1;letter-spacing:-0.02em;"><?php echo dailyTaskDigestHtmlEscape($brandName); ?></div>
-                                        <div style="margin-top:4px;color:#8992a3;font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;">Daily operations</div>
+                                    <td class="masthead-brand" style="vertical-align:middle;">
+                                        <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;text-decoration:none;">
+                                            <img class="masthead-logo" src="<?php echo $mastheadLogoUrl; ?>" alt="<?php echo dailyTaskDigestHtmlEscape(applicationBrandLabel()); ?>" width="227" height="39" border="0" style="display:block;width:227px;max-width:100%;height:auto;border:0;outline:none;text-decoration:none;">
+                                        </a>
+                                        <div style="margin-top:7px;color:#8992a3;font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;">Daily operations</div>
                                     </td>
-                                    <td align="right" style="vertical-align:middle;">
+                                    <td align="right" class="masthead-action" style="vertical-align:middle;">
                                         <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;padding:9px 13px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:12px;font-weight:700;">Open Dashboard</a>
                                     </td>
                                 </tr>

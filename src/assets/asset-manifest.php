@@ -55,6 +55,7 @@ return [
     "assets/css/style.css" => "27f488259f08",
     "assets/css/style.min.css" => "4aea1dbf1265",
     "assets/dnr-logo-dark.svg" => "471b4614aee8",
+    "assets/dnr-logo-email.png" => "22ecb88ca50e",
     "assets/dnr-logo.svg" => "0c5c3b379fba",
     "assets/favicon.svg" => "e48d793c4774",
     "assets/fonts/rubik-OFL.txt" => "3cb6a6084f5d",

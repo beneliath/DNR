@@ -22,6 +22,7 @@ final class DeploymentConfig
             'calendar_name' => 'DNR Events',
             'logo_light' => 'assets/dnr-logo.svg',
             'logo_dark' => 'assets/dnr-logo-dark.svg',
+            'logo_email' => 'assets/dnr-logo-email.png',
         ],
         'defaults' => [
             'speaker' => 'Unknown Speaker',
@@ -222,7 +223,7 @@ final class DeploymentConfig
         if (!is_string($nativeName) || mb_strlen($nativeName, 'UTF-8') > 255) {
             throw new InvalidArgumentException('Deployment setting brand.native_name must be a string of at most 255 characters.');
         }
-        foreach (['brand.logo_light', 'brand.logo_dark'] as $path) {
+        foreach (['brand.logo_light', 'brand.logo_dark', 'brand.logo_email'] as $path) {
             $asset = self::pathValue($data, $path);
             if (!is_string($asset)
                 || preg_match('#\Aassets/[A-Za-z0-9][A-Za-z0-9._/-]*\z#D', $asset) !== 1

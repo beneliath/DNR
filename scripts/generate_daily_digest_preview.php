@@ -145,7 +145,23 @@ $message = dailyTaskDigestMessage([
     'username' => 'mjones',
     'role' => 'editor',
 ], $digest, '2026-09-03');
-$preview = $message['html_body'] . "\n";
+$productionLogoUrl = dailyTaskDigestHtmlEscape(applicationPublicUrl(
+    applicationBrandEmailLogo(),
+    ['v' => applicationVersion()]
+));
+$previewLogoUrl = dailyTaskDigestHtmlEscape(
+    '../src/' . applicationBrandEmailLogo() . '?v=' . rawurlencode(applicationVersion())
+);
+$previewHtml = str_replace(
+    'src="' . $productionLogoUrl . '"',
+    'src="' . $previewLogoUrl . '"',
+    $message['html_body'],
+    $logoReplacementCount
+);
+if ($logoReplacementCount !== 1) {
+    throw new RuntimeException('Unable to map the digest logo into the local preview.');
+}
+$preview = $previewHtml . "\n";
 $previewPath = $root . '/docs/daily-digest-preview.html';
 
 if (in_array('--check', $argv, true)) {

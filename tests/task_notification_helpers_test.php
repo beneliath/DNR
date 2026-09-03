@@ -164,6 +164,16 @@ expectTaskNotificationHelper(
     str_starts_with($message['html_body'], '<!doctype html>')
         && str_contains($message['html_body'], 'name="color-scheme" content="light only"')
         && str_contains($message['html_body'], 'color-scheme: light only')
+        && substr_count($message['html_body'], 'class="masthead-logo"') === 1
+        && str_contains(
+            $message['html_body'],
+            'src="https://moed.example.test/assets/dnr-logo-email.png?v='
+        )
+        && str_contains($message['html_body'], 'alt="MOED מוֹעֵד" width="227" height="39"')
+        && !str_contains(
+            $message['html_body'],
+            '<div style="color:#0f766e;font-size:20px;font-weight:800;line-height:1.1;letter-spacing:-0.02em;">MOED</div>'
+        )
         && str_contains($message['html_body'], 'Upcoming Engagements')
         && str_contains($message['html_body'], 'My Work')
         && str_contains($message['html_body'], 'Needs Attention')
