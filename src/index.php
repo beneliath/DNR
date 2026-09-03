@@ -351,7 +351,7 @@ try {
         <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
 
         <label for="event_description">Event Description</label>
-        <textarea name="event_description" id="event_description" rows="5"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
+        <textarea name="event_description" id="event_description" rows="10"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
 
         </section>
 

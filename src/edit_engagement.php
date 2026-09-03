@@ -768,7 +768,7 @@ try {
         </div>
 
         <label for="event_description">Event Description</label>
-        <textarea name="event_description" id="event_description" rows="5"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
+        <textarea name="event_description" id="event_description" rows="10"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
         </section>
 
         <?php include 'templates/engagement_contact_form.php'; ?>
@@ -976,7 +976,7 @@ try {
 
         <div class="chron-add-form">
             <label for="new-chron-entry">New Chron entry</label>
-            <textarea name="new_chron_entry" id="new-chron-entry" rows="5" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
+            <textarea name="new_chron_entry" id="new-chron-entry" rows="6" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
             <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add entry</button>
         </div>
 
@@ -1018,7 +1018,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                     <div class="chron-entry-editor">
                         <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
                         <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>" form="engagement-edit-form">
-                        <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="5" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
+                        <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="6" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
                         <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
                             <?php echo csrfInput(); ?>
                             <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
