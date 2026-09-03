@@ -15,6 +15,10 @@ function expectMattermost(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $migration = file_get_contents($root . '/migrations/20260831_add_mattermost_integration.sql');
 $emailMigration = file_get_contents($root . '/migrations/20260901_add_mattermost_email_workflow.sql');
+$postReactionMigration = file_get_contents(
+    $root . '/migrations/20260903_add_mattermost_email_reaction_notifications.sql'
+);
+$migrationOrder = file_get_contents($root . '/migrations/order.txt');
 $api = file_get_contents($root . '/src/api/v1/mattermost.php');
 $emailHelpers = file_get_contents($root . '/src/mattermost_email_helpers.php');
 $emailQueue = file_get_contents($root . '/src/engagement_email_helpers.php');
@@ -38,13 +42,46 @@ $pluginLifecycle = file_get_contents($root . '/mattermost-plugin/server/plugin.g
 $pluginNotifications = file_get_contents($root . '/mattermost-plugin/server/notifications.go');
 $pluginReadme = file_get_contents($root . '/mattermost-plugin/README.md');
 
-foreach ([$migration, $emailMigration, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $sidebarLabel, $pluginServer, $pluginCommand, $pluginChannelMarker, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
+foreach ([$migration, $emailMigration, $postReactionMigration, $migrationOrder, $api, $emailHelpers, $emailQueue, $inboundEmail, $databasePrivileges, $accountPage, $accountPageStyles, $helpers, $manifestRaw, $compose, $secretEntrypoint, $apacheSecurity, $documentation, $webapp, $sidebarLabel, $pluginServer, $pluginCommand, $pluginChannelMarker, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme] as $source) {
     expectMattermost(is_string($source), 'all integration source files should be readable.');
 }
 
 expectMattermost(
     preg_match('/\bMoed\b/', implode("\n", [$api, $emailHelpers, $accountPage, $manifestRaw, $documentation, $webapp, $pluginServer, $pluginCommand, $pluginRender, $pluginLifecycle, $pluginNotifications, $pluginReadme])) === 0,
     'all user-visible Mattermost integration output should capitalize MOED consistently.'
+);
+
+expectMattermost(
+    str_contains($postReactionMigration, 'ADD COLUMN mattermost_post_id CHAR(26) NULL')
+        && str_contains($postReactionMigration, 'CREATE TABLE mattermost_post_reaction_notifications')
+        && str_contains($postReactionMigration, 'outbound_email_message_id')
+        && str_contains($postReactionMigration, 'engagement_chron_entry_id')
+        && str_contains($postReactionMigration, "reaction_name ENUM('memo', 'email')")
+        && str_contains($postReactionMigration, 'uq_mattermost_post_reaction_notification')
+        && str_contains($postReactionMigration, 'delivered_at DATETIME(6) NULL')
+        && str_contains($postReactionMigration, 'next_attempt_at DATETIME(6)')
+        && str_contains(
+            (string) $migrationOrder,
+            '20260903_add_mattermost_email_reaction_notifications.sql'
+        )
+        && str_contains($emailQueue, 'function normalizeMattermostPostId(')
+        && str_contains($emailQueue, "preg_match('/\\A[a-z0-9]{26}\\z/D'")
+        && str_contains($emailQueue, 'mattermost_post_reaction_notifications')
+        && str_contains($emailQueue, 'function queueMattermostPostReactionNotification(')
+        && str_contains($emailHelpers, 'function mattermostPendingPostReactionNotifications(')
+        && str_contains($emailHelpers, "delivery.status = 'sent'")
+        && str_contains($emailHelpers, 'function acknowledgeMattermostPostReactionNotification(')
+        && str_contains($emailHelpers, 'function deferMattermostPostReactionNotification(')
+        && str_contains($api, "'integration_version' => '4'")
+        && str_contains($api, "if (\$action === 'post_reaction_notifications')")
+        && str_contains($api, "if (\$action === 'post_reaction_notification_ack')")
+        && str_contains($api, "if (\$action === 'post_reaction_notification_fail')")
+        && str_contains($api, "\$body['mattermost_post_id'] ?? null")
+        && str_contains($api, "'mattermost_post_id' => \$mattermostPostId")
+        && str_contains($api, "'memo',")
+        && str_contains($api, '$chronEntryId')
+        && str_contains($databasePrivileges, 'mattermost_post_reaction_notifications'),
+    'successful Mattermost Chron and email actions should expose durable, retryable post-reaction notifications.'
 );
 
 expectMattermost(
@@ -114,7 +151,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.5'
+        && ($manifest['version'] ?? null) === '0.4.6'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,

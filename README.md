@@ -155,9 +155,10 @@ npm test
 Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Run them only against the disposable Compose environment with `sh scripts/run_integration_tests.sh disposable`; the runner sends destructive backup/restore coverage to the isolated maintenance container.
 
 `VERSION` is the single source of release-version metadata. DNR uses the project ontology
-`[super].[major].[minor]` = `x.y.z`, so a minor release increments `z` (for example,
-`1.10.3` becomes `1.10.4`). Update it once when preparing a release; runtime responses, asset
-cache keys, the footer, backups, and container images read that value automatically.
+`[super].[major].[minor]` = `x.y.z`: a minor release is `[x].[y].[z+1]` (for example,
+`1.10.3` becomes `1.10.4`), a major release is `[x].[y+1].0`, and a super release is
+`[x+1].0.0`. Update it once when preparing a release; runtime responses, asset cache keys, the
+footer, backups, and container images read that value automatically.
 
 ### Health and operations
 
@@ -960,7 +961,8 @@ request. When continuing on a different computer, fetch the remote branch and cr
 with that computer's prefix instead of committing directly to the first computer's branch.
 Application versions describe released behavior, not the computer that produced a commit; do not
 bump the version for each workstation commit. Version positions follow
-`[super].[major].[minor]`; a routine minor release increments the final component.
+`[super].[major].[minor]`: minor is `[x].[y].[z+1]`, major is `[x].[y+1].0`, and super is
+`[x+1].0.0`.
 
 Contributions to the DNR project are welcome. To contribute:
 

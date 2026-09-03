@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 )
 
 type moedClient struct {
@@ -79,7 +80,7 @@ func (c *moedClient) do(
 	}
 	request.Header.Set("Authorization", "Bearer "+c.token)
 	request.Header.Set("Accept", "application/json")
-	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.4.5")
+	request.Header.Set("User-Agent", "MOED-Mattermost-Plugin/0.4.6")
 	request.Header.Set("X-Mattermost-Instance-ID", c.instanceID)
 	if body != nil {
 		request.Header.Set("Content-Type", "application/json")
@@ -208,6 +209,58 @@ func (c *moedClient) acknowledgeReplyNotification(ctx context.Context, notificat
 	)
 	if err == nil && !response.OK {
 		return fmt.Errorf("MOED did not acknowledge the reply notification")
+	}
+	return err
+}
+
+func (c *moedClient) postReactionNotifications(ctx context.Context) (*postReactionNotificationsResponse, error) {
+	var response postReactionNotificationsResponse
+	err := c.do(ctx, http.MethodGet, "post_reaction_notifications", nil, "", "", nil, "", &response)
+	return &response, err
+}
+
+func (c *moedClient) acknowledgePostReactionNotification(ctx context.Context, notificationID int) error {
+	var response replyNotificationAckResponse
+	err := c.do(
+		ctx,
+		http.MethodPost,
+		"post_reaction_notification_ack",
+		nil,
+		"",
+		"",
+		map[string]int{"notification_id": notificationID},
+		"",
+		&response,
+	)
+	if err == nil && !response.OK {
+		return fmt.Errorf("MOED did not acknowledge the post reaction notification")
+	}
+	return err
+}
+
+func (c *moedClient) failPostReactionNotification(ctx context.Context, notificationID int, failure string) error {
+	var response replyNotificationAckResponse
+	failure = strings.TrimSpace(failure)
+	if failure == "" {
+		failure = "Mattermost could not add the reaction."
+	}
+	failure = truncateRunes(failure, 500)
+	err := c.do(
+		ctx,
+		http.MethodPost,
+		"post_reaction_notification_fail",
+		nil,
+		"",
+		"",
+		map[string]any{
+			"notification_id": notificationID,
+			"error":           failure,
+		},
+		"",
+		&response,
+	)
+	if err == nil && !response.OK {
+		return fmt.Errorf("MOED did not defer the post reaction notification")
 	}
 	return err
 }

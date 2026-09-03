@@ -610,7 +610,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement indicator chain card routing marker copy context menu create task save chron send email template recipient post thread preview delivery reply notification button assign start complete reopen permission reviewer editor administrator open in moed privacy">
+            <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement indicator chain card routing marker copy context menu create task save chron send email template recipient post thread preview delivery reply notification reaction receipt memo button assign start complete reopen permission reviewer editor administrator open in moed privacy">
                 <header class="manual-chapter-heading">
                     <span>Chapter 10</span>
                     <h2>Mattermost</h2>
@@ -701,6 +701,16 @@ $manual_access_summary = match ($manual_role) {
                         <h3>Continue the Conversation</h3>
                         <p><strong>Send via MOED email</strong> creates a reviewed message to assigned engagement contacts. You can include the selected post or a short thread excerpt, and MOED keeps the routing marker, delivery result, and Chron history together.</p>
                     </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Read the Receipt Reactions</h3>
+                    <ul class="manual-check-list">
+                        <li><strong>📝 Chron receipt:</strong> the MOED bot adds the <code>:memo:</code> reaction after <strong>Add to MOED Chron</strong> successfully writes the selected post to the linked engagement.</li>
+                        <li><strong>✉️ Email receipt:</strong> the MOED bot adds the <code>:email:</code> reaction when a MOED email includes the selected post or thread and at least one recipient delivery succeeds.</li>
+                        <li><strong>Both may appear:</strong> the reactions are independent, so one post can show both. They are visual receipts rather than counters; MOED remains the authoritative record.</li>
+                        <li><strong>New actions only:</strong> reactions appear for Chron saves and email deliveries completed after this feature is deployed. Earlier Chron entries and emails are not marked retroactively.</li>
+                    </ul>
                 </section>
 
                 <section class="manual-callout">

@@ -1,0 +1,9 @@
+---
+description: Use the canonical network identity for Server 1
+alwaysApply: true
+---
+
+# Server 1 Address
+
+- `s1` always means **Server 1** at `192.168.1.150`.
+- Use `192.168.1.150` for connectivity checks, deployments, and operational work targeting `s1` unless the user explicitly overrides it for that request.

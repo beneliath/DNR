@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -17,14 +18,15 @@ const pluginID = "org.moed.mattermost"
 type Plugin struct {
 	plugin.MattermostPlugin
 
-	configurationLock sync.RWMutex
-	configuration     *configuration
-	client            *pluginapi.Client
-	botID             string
-	router            *http.ServeMux
-	replyPollStop     chan struct{}
-	replyPollDone     chan struct{}
-	bindingResponses  channelBindingResponseCache
+	configurationLock         sync.RWMutex
+	configuration             *configuration
+	client                    *pluginapi.Client
+	botID                     string
+	router                    *http.ServeMux
+	notificationLifecycleLock sync.Mutex
+	notificationCancel        context.CancelFunc
+	notificationWorkers       sync.WaitGroup
+	bindingResponses          channelBindingResponseCache
 }
 
 func (p *Plugin) OnActivate() error {
@@ -58,23 +60,32 @@ func (p *Plugin) OnActivate() error {
 	router.HandleFunc("/api/v1/email-send", p.handleEmailSend)
 	router.HandleFunc("/api/v1/email-status", p.handleEmailStatus)
 	p.router = router
-	p.replyPollStop = make(chan struct{})
-	p.replyPollDone = make(chan struct{})
-	go p.runReplyNotificationPoller(p.replyPollStop, p.replyPollDone)
+	p.startNotificationWorkers()
 	return nil
 }
 
 func (p *Plugin) OnDeactivate() error {
-	if p.replyPollStop == nil || p.replyPollDone == nil {
+	p.notificationLifecycleLock.Lock()
+	cancel := p.notificationCancel
+	p.notificationLifecycleLock.Unlock()
+	if cancel == nil {
 		return nil
 	}
-	close(p.replyPollStop)
+	cancel()
+	done := make(chan struct{})
+	go func() {
+		p.notificationWorkers.Wait()
+		close(done)
+	}()
 	select {
-	case <-p.replyPollDone:
+	case <-done:
+		p.notificationLifecycleLock.Lock()
+		p.notificationCancel = nil
+		p.notificationLifecycleLock.Unlock()
+		return nil
 	case <-time.After(5 * time.Second):
-		return fmt.Errorf("reply notification poller did not stop")
+		return fmt.Errorf("notification workers did not stop")
 	}
-	return nil
 }
 
 func (p *Plugin) OnConfigurationChange() error {

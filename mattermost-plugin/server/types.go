@@ -131,8 +131,9 @@ type createTaskRequest struct {
 }
 
 type saveChronRequest struct {
-	EngagementID int    `json:"engagement_id"`
-	EntryText    string `json:"entry_text"`
+	EngagementID     int    `json:"engagement_id"`
+	EntryText        string `json:"entry_text"`
+	MattermostPostID string `json:"mattermost_post_id,omitempty"`
 }
 
 type postActionResponse struct {
@@ -180,6 +181,7 @@ type sendEmailRequest struct {
 	Body              string `json:"body"`
 	IncludeEventBrief bool   `json:"include_event_brief"`
 	MattermostContext string `json:"mattermost_context"`
+	MattermostPostID  string `json:"mattermost_post_id,omitempty"`
 }
 
 type apiEmailDelivery struct {
@@ -218,6 +220,18 @@ type replyNotification struct {
 type replyNotificationsResponse struct {
 	OK            bool                `json:"ok"`
 	Notifications []replyNotification `json:"notifications"`
+}
+
+type postReactionNotification struct {
+	ID                     int    `json:"id"`
+	MattermostPostID       string `json:"mattermost_post_id"`
+	OutboundEmailMessageID int    `json:"outbound_email_message_id"`
+	ReactionName           string `json:"reaction_name"`
+}
+
+type postReactionNotificationsResponse struct {
+	OK            bool                       `json:"ok"`
+	Notifications []postReactionNotification `json:"notifications"`
 }
 
 type replyNotificationAckResponse struct {

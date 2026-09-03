@@ -60,6 +60,26 @@ expectEngagementEmailHelper(
         && str_contains($mattermostBody, 'Please confirm.'),
     'reviewed Mattermost context should be visibly separated and preserved in the outbound message.'
 );
+$validMattermostPostId = 'abc123def456ghi789jkl012mn';
+expectEngagementEmailHelper(
+    normalizeMattermostPostId($validMattermostPostId) === $validMattermostPostId
+        && normalizeMattermostPostId(null) === ''
+        && normalizeMattermostPostId('') === '',
+    'Mattermost post IDs should remain optional and preserve valid 26-character IDs.'
+);
+foreach ([
+    'too-short',
+    'ABC123DEF456GHI789JKL012MN',
+    'abc123def456ghi789jkl012m-',
+    ['abc123def456ghi789jkl012mn'],
+] as $invalidMattermostPostId) {
+    try {
+        normalizeMattermostPostId($invalidMattermostPostId);
+        expectEngagementEmailHelper(false, 'an invalid Mattermost post ID should be rejected.');
+    } catch (InvalidArgumentException) {
+        // Expected.
+    }
+}
 try {
     normalizeEngagementEmailSubject('Wrong event ' . applicationInboundMarker(99), 42);
     expectEngagementEmailHelper(false, 'a subject marker for another engagement should be rejected.');

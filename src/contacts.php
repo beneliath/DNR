@@ -353,7 +353,7 @@ function contactsPageUrl(
                             </td>
                             <td>
                                 <?php if (!empty($contact['contact_phone'])): ?>
-                                    <a href="tel:<?php echo htmlspecialchars($contact['contact_phone'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <a class="contact-phone-link" href="tel:<?php echo htmlspecialchars($contact['contact_phone'], ENT_QUOTES, 'UTF-8'); ?>">
                                         <?php echo htmlspecialchars(formatPhoneNumberForDisplay($contact['contact_phone']), ENT_QUOTES, 'UTF-8'); ?>
                                     </a>
                                 <?php endif; ?>

@@ -9,36 +9,152 @@ import (
 	"github.com/mattermost/mattermost/server/public/model"
 )
 
-const replyNotificationPollInterval = time.Minute
+const (
+	notificationInitialDelay             = 5 * time.Second
+	replyNotificationPollInterval        = 60 * time.Second
+	postReactionNotificationPollInterval = 15 * time.Second
+	chronPostReactionEmoji               = "memo"
+	emailPostReactionEmoji               = "email"
+)
 
-func (p *Plugin) runReplyNotificationPoller(stop <-chan struct{}, done chan<- struct{}) {
-	defer close(done)
-	timer := time.NewTimer(5 * time.Second)
+func (p *Plugin) startNotificationWorkers() {
+	p.notificationLifecycleLock.Lock()
+	defer p.notificationLifecycleLock.Unlock()
+	if p.notificationCancel != nil {
+		return
+	}
+	lifecycleContext, cancel := context.WithCancel(context.Background())
+	p.notificationCancel = cancel
+	p.notificationWorkers.Add(2)
+	go func() {
+		defer p.notificationWorkers.Done()
+		runNotificationWorker(
+			lifecycleContext,
+			notificationInitialDelay,
+			replyNotificationPollInterval,
+			p.pollReplyNotifications,
+		)
+	}()
+	go func() {
+		defer p.notificationWorkers.Done()
+		runNotificationWorker(
+			lifecycleContext,
+			notificationInitialDelay,
+			postReactionNotificationPollInterval,
+			p.pollPostReactionNotifications,
+		)
+	}()
+}
+
+func runNotificationWorker(
+	ctx context.Context,
+	initialDelay time.Duration,
+	interval time.Duration,
+	poll func(context.Context),
+) {
+	timer := time.NewTimer(initialDelay)
 	defer timer.Stop()
 	for {
 		select {
-		case <-stop:
+		case <-ctx.Done():
 			return
 		case <-timer.C:
-			p.pollReplyNotifications()
-			timer.Reset(replyNotificationPollInterval)
+			poll(ctx)
+			timer.Reset(interval)
 		}
 	}
 }
 
-func (p *Plugin) pollReplyNotifications() {
+func (p *Plugin) pollPostReactionNotifications(parentContext context.Context) {
 	config := p.getConfiguration()
 	if config == nil || p.botID == "" {
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), config.timeout())
-	response, err := newMoedClient(config).replyNotifications(ctx)
+	ctx, cancel := context.WithTimeout(parentContext, config.timeout())
+	client := newMoedClient(config)
+	response, err := client.postReactionNotifications(ctx)
 	cancel()
 	if err != nil {
-		p.API.LogError("Unable to retrieve MOED reply notifications", "error", err.Error())
+		if parentContext.Err() == nil {
+			p.API.LogError("Unable to retrieve MOED post reaction notifications", "error", err.Error())
+		}
 		return
 	}
 	for _, notification := range response.Notifications {
+		if parentContext.Err() != nil {
+			return
+		}
+		if notification.ID < 1 || strings.TrimSpace(notification.MattermostPostID) == "" {
+			continue
+		}
+		reactionErr := p.addPostReaction(notification.MattermostPostID, notification.ReactionName)
+		if reactionErr != nil {
+			followupContext, followupCancel := context.WithTimeout(parentContext, config.timeout())
+			reportErr := client.failPostReactionNotification(followupContext, notification.ID, reactionErr.Error())
+			followupCancel()
+			if reportErr != nil && parentContext.Err() == nil {
+				p.API.LogError(
+					"Unable to report a failed MOED post reaction notification",
+					"notification_id", notification.ID,
+					"reaction_error", reactionErr.Error(),
+					"report_error", reportErr.Error(),
+				)
+				return
+			}
+			continue
+		}
+		followupContext, followupCancel := context.WithTimeout(parentContext, config.timeout())
+		err := client.acknowledgePostReactionNotification(followupContext, notification.ID)
+		followupCancel()
+		if err != nil && parentContext.Err() == nil {
+			p.API.LogError(
+				"Unable to acknowledge a MOED post reaction notification",
+				"notification_id", notification.ID,
+				"error", err.Error(),
+			)
+			return
+		}
+	}
+}
+
+func (p *Plugin) addPostReaction(postID, reactionName string) error {
+	postID = strings.TrimSpace(postID)
+	if p.botID == "" || postID == "" {
+		return fmt.Errorf("reaction identity is incomplete")
+	}
+	if reactionName != chronPostReactionEmoji && reactionName != emailPostReactionEmoji {
+		return fmt.Errorf("unsupported Mattermost reaction %q", reactionName)
+	}
+	_, appErr := p.API.AddReaction(&model.Reaction{
+		UserId:    p.botID,
+		PostId:    postID,
+		EmojiName: reactionName,
+	})
+	if appErr != nil {
+		return fmt.Errorf("add Mattermost reaction: %s", appErr.Error())
+	}
+	return nil
+}
+
+func (p *Plugin) pollReplyNotifications(parentContext context.Context) {
+	config := p.getConfiguration()
+	if config == nil || p.botID == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(parentContext, config.timeout())
+	client := newMoedClient(config)
+	response, err := client.replyNotifications(ctx)
+	cancel()
+	if err != nil {
+		if parentContext.Err() == nil {
+			p.API.LogError("Unable to retrieve MOED reply notifications", "error", err.Error())
+		}
+		return
+	}
+	for _, notification := range response.Notifications {
+		if parentContext.Err() != nil {
+			return
+		}
 		if notification.ID < 1 || notification.MattermostUserID == "" {
 			continue
 		}
@@ -50,15 +166,16 @@ func (p *Plugin) pollReplyNotifications() {
 			)
 			continue
 		}
-		ackContext, ackCancel := context.WithTimeout(context.Background(), config.timeout())
-		err := newMoedClient(config).acknowledgeReplyNotification(ackContext, notification.ID)
-		ackCancel()
-		if err != nil {
+		followupContext, followupCancel := context.WithTimeout(parentContext, config.timeout())
+		err := client.acknowledgeReplyNotification(followupContext, notification.ID)
+		followupCancel()
+		if err != nil && parentContext.Err() == nil {
 			p.API.LogError(
 				"Unable to acknowledge a MOED reply notification",
 				"notification_id", notification.ID,
 				"error", err.Error(),
 			)
+			return
 		}
 	}
 }

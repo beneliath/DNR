@@ -10,6 +10,15 @@ function expectContactListColumns($condition, $message) {
 $root = dirname(__DIR__);
 $contacts_page = file_get_contents($root . '/src/contacts.php');
 $styles = file_get_contents($root . '/src/assets/css/modern.css');
+$contact_styles = file_get_contents($root . '/src/assets/css/pages/contacts.css');
+$desktop_phone_rule = '';
+if (preg_match(
+    '/@media\s*\(min-width:\s*761px\)\s*\{\s*\.contact-phone-link\s*\{([^}]*)\}/s',
+    $contact_styles,
+    $desktop_phone_matches
+) === 1) {
+    $desktop_phone_rule = $desktop_phone_matches[1];
+}
 
 expectContactListColumns(
     str_contains($contacts_page, 'c.contact_phone,')
@@ -26,10 +35,18 @@ expectContactListColumns(
 
 expectContactListColumns(
     str_contains($contacts_page, 'href="tel:')
+        && str_contains($contacts_page, 'class="contact-phone-link"')
         && str_contains($contacts_page, 'formatPhoneNumberForDisplay(')
         && str_contains($contacts_page, 'href="mailto:')
         && !str_contains($contacts_page, '<span class="empty-value"'),
     'contact methods should be actionable links while missing values remain blank.'
+);
+
+expectContactListColumns(
+    str_contains($desktop_phone_rule, 'font-size: 0.9rem;')
+        && str_contains($desktop_phone_rule, 'font-variant-numeric: tabular-nums;')
+        && str_contains($desktop_phone_rule, 'white-space: nowrap;'),
+    'desktop contact phone links should use modestly smaller, non-wrapping text without changing mobile typography.'
 );
 
 expectContactListColumns(
