@@ -23,57 +23,47 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
 }
 requireValidCsrfToken();
 
-$engagement_id = filter_input(INPUT_POST, 'engagement_id', FILTER_VALIDATE_INT);
-if (!$engagement_id) {
-    $respond(400, ['status' => 'error', 'message' => 'Select a valid engagement.']);
+try {
+    $engagement_ids = normalizeEngagementMapIds(
+        $_POST['engagement_ids'] ?? ($_POST['engagement_id'] ?? ''),
+        applicationWorkflowSetting('map_max_events')
+    );
+} catch (InvalidArgumentException | LengthException $exception) {
+    $respond(400, ['status' => 'error', 'message' => $exception->getMessage()]);
 }
+releaseApplicationSessionLock();
 
-$stmt = $conn->prepare(
-    'SELECT event_address_line_1, event_address_line_2, event_city, event_state,
-            event_zipcode, event_country
-     FROM engagements
-     WHERE id = ? AND is_deleted = 0'
-);
-if (!$stmt) {
+try {
+    $locations = engagementMapLocationStatuses($conn, $engagement_ids);
+} catch (RuntimeException $exception) {
+    applicationLog('error', 'Unable to load batched map locations', ['error' => $exception->getMessage()]);
     $respond(503, ['status' => 'error', 'message' => 'The location service is temporarily unavailable.']);
 }
-$stmt->bind_param('i', $engagement_id);
-$stmt->execute();
-$engagement = $stmt->get_result()->fetch_assoc();
-$stmt->close();
-if (!$engagement) {
-    $respond(404, ['status' => 'error', 'message' => 'That engagement is no longer available.']);
+if ($locations === []) {
+    $respond(404, ['status' => 'error', 'message' => 'Those engagements are no longer available.']);
 }
 
-$address = engagementMapAddress($engagement);
-if ($address === '') {
-    $respond(200, ['status' => 'no_address']);
+$addresses_to_queue = [];
+foreach ($locations as $location) {
+    if ($location['status'] === 'unqueued') {
+        $addresses_to_queue[] = $location['address'];
+    }
 }
-$address_hash = engagementMapAddressHash($address);
-$cache_stmt = $conn->prepare(
-    'SELECT latitude, longitude, lookup_status
-     FROM engagement_map_geocodes
-     WHERE address_hash = ?'
-);
-if (!$cache_stmt) {
-    $respond(503, ['status' => 'error', 'message' => 'The engagement map migration is required.']);
+if (!queueEngagementMapAddresses($conn, $addresses_to_queue)) {
+    $respond(503, ['status' => 'error', 'message' => 'Unable to queue the location lookups.']);
 }
-$cache_stmt->bind_param('s', $address_hash);
-$cache_stmt->execute();
-$cached = $cache_stmt->get_result()->fetch_assoc();
-$cache_stmt->close();
-if ($cached && $cached['lookup_status'] === 'not_found') {
-    $respond(200, ['status' => 'not_found']);
+
+$payload_locations = [];
+$has_pending = false;
+foreach ($locations as $location) {
+    unset($location['address']);
+    if ($location['status'] === 'unqueued') {
+        $location['status'] = 'pending';
+    }
+    $has_pending = $has_pending || $location['status'] === 'pending';
+    $payload_locations[] = $location;
 }
-if ($cached && $cached['lookup_status'] === 'found'
-    && engagementMapCoordinatesAreValid($cached['latitude'], $cached['longitude'])) {
-    $respond(200, [
-        'status' => 'found',
-        'latitude' => (float) $cached['latitude'],
-        'longitude' => (float) $cached['longitude'],
-    ]);
-}
-if (!queueEngagementMapAddress($conn, $address)) {
-    $respond(503, ['status' => 'error', 'message' => 'Unable to queue the location lookup.']);
-}
-$respond(202, ['status' => 'pending']);
+$respond($has_pending ? 202 : 200, [
+    'status' => $has_pending ? 'pending' : 'complete',
+    'locations' => $payload_locations,
+]);

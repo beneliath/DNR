@@ -321,47 +321,57 @@ function completeQueuedAccountEmail(
     $invalidate->close();
 }
 
+function maintainQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): void
+{
+    $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    $discard = $conn->query(
+        "UPDATE email_outbox outbox
+         INNER JOIN user_email_tokens token ON token.id = outbox.token_id
+         INNER JOIN users user ON user.id = token.user_id
+         SET outbox.status = 'failed', outbox.payload_ciphertext = NULL,
+             outbox.processing_started_at = NULL,
+             outbox.last_error = 'Queued account link is no longer valid.'
+         WHERE outbox.attempts < 8
+           AND outbox.payload_ciphertext IS NOT NULL
+           AND (
+                (outbox.status IN ('pending', 'retry')
+                    AND outbox.next_attempt_at <= UTC_TIMESTAMP())
+                OR (outbox.status = 'processing'
+                    AND outbox.processing_started_at <= DATE_SUB(
+                        UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
+                    ))
+           )
+           AND (
+                token.user_id <> outbox.user_id
+                OR token.purpose <> outbox.purpose
+                OR token.consumed_at IS NOT NULL
+                OR token.expires_at <= UTC_TIMESTAMP()
+                OR token.auth_version <> user.auth_version
+                OR (outbox.purpose = 'invitation' AND user.account_status <> 'invited')
+                OR (outbox.purpose IN ('verification', 'recovery')
+                    AND user.account_status <> 'active')
+           )"
+    );
+    if ($discard === false) {
+        throw new RuntimeException('Unable to discard invalid queued account email.');
+    }
+}
+
 /**
  * @return array{id: int, token_id: int, user_id: int, purpose: string,
  *   payload_ciphertext: string, expires_at: string}|null
  */
-function claimQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): ?array
-{
+function claimQueuedAccountEmail(
+    mysqli $conn,
+    int $leaseSeconds = 600,
+    bool $performMaintenance = true
+): ?array {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    if ($performMaintenance) {
+        maintainQueuedAccountEmail($conn, $leaseSeconds);
+    }
     $conn->begin_transaction();
     try {
-        $discard = $conn->query(
-            "UPDATE email_outbox outbox
-             INNER JOIN user_email_tokens token ON token.id = outbox.token_id
-             INNER JOIN users user ON user.id = token.user_id
-             SET outbox.status = 'failed', outbox.payload_ciphertext = NULL,
-                 outbox.processing_started_at = NULL,
-                 outbox.last_error = 'Queued account link is no longer valid.'
-             WHERE outbox.attempts < 8
-               AND outbox.payload_ciphertext IS NOT NULL
-               AND (
-                    (outbox.status IN ('pending', 'retry')
-                        AND outbox.next_attempt_at <= UTC_TIMESTAMP())
-                    OR (outbox.status = 'processing'
-                        AND outbox.processing_started_at <= DATE_SUB(
-                            UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
-                        ))
-               )
-               AND (
-                    token.user_id <> outbox.user_id
-                    OR token.purpose <> outbox.purpose
-                    OR token.consumed_at IS NOT NULL
-                    OR token.expires_at <= UTC_TIMESTAMP()
-                    OR token.auth_version <> user.auth_version
-                    OR (outbox.purpose = 'invitation' AND user.account_status <> 'invited')
-                    OR (outbox.purpose IN ('verification', 'recovery')
-                        AND user.account_status <> 'active')
-               )"
-        );
-        if ($discard === false) {
-            throw new RuntimeException('Unable to discard invalid queued account email.');
-        }
-
         $result = $conn->query(
             "SELECT outbox.id, outbox.token_id, outbox.user_id, outbox.purpose,
                     outbox.payload_ciphertext, token.expires_at
@@ -484,6 +494,26 @@ function mailConfigurationSecret($name)
     return trim((string) (getenv($name) ?: ''));
 }
 
+final class SmtpResponseException extends RuntimeException
+{
+    public function __construct(private readonly int $statusCode)
+    {
+        parent::__construct(
+            'SMTP server rejected a mail-delivery step with status ' . $statusCode . '.',
+            $statusCode
+        );
+    }
+
+    public function statusCode(): int
+    {
+        return $this->statusCode;
+    }
+}
+
+final class SmtpPreDataException extends RuntimeException
+{
+}
+
 function smtpReadResponse($stream, array $accepted_codes)
 {
     $response = '';
@@ -495,7 +525,7 @@ function smtpReadResponse($stream, array $accepted_codes)
     }
     $code = (int) substr($response, 0, 3);
     if (!in_array($code, $accepted_codes, true)) {
-        throw new RuntimeException('SMTP server rejected a mail-delivery step with status ' . $code . '.');
+        throw new SmtpResponseException($code);
     }
     return $response;
 }
@@ -543,71 +573,91 @@ function smtpTlsStreamContext($host)
     return stream_context_create(['ssl' => $ssl_options]);
 }
 
-function sendSmtpMessage($recipient, $subject, $body, $replyTo = '')
+final class SmtpSession
 {
-    $recipient = normalizeAccountEmail($recipient);
-    $from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
-    $replyTo = trim((string) $replyTo);
-    if ($replyTo !== '') {
-        $replyTo = normalizeAccountEmail($replyTo);
-    }
-    $from_name = deploymentConfig()->string('brand.mail_name');
-    if (preg_match('/[\r\n]/', $from_name . (string) $subject . $replyTo) === 1) {
-        throw new InvalidArgumentException('Mail headers contain invalid characters.');
-    }
-    $host = trim((string) (getenv('DNR_SMTP_HOST') ?: ''));
-    $encryption = strtolower(trim((string) (getenv('DNR_SMTP_ENCRYPTION') ?: 'starttls')));
-    $port = (int) (getenv('DNR_SMTP_PORT') ?: ($encryption === 'tls' ? 465 : 587));
-    if ($host === '' || $port < 1 || $port > 65535 || !in_array($encryption, ['none', 'starttls', 'tls'], true)) {
-        throw new RuntimeException('SMTP delivery is not fully configured.');
-    }
+    /** @var resource|null */
+    private $stream = null;
+    private string $from;
+    private string $fromName;
 
-    $remote = ($encryption === 'tls' ? 'tls://' : 'tcp://') . $host . ':' . $port;
-    $stream_context = smtpTlsStreamContext($host);
-    $stream = @stream_socket_client(
-        $remote,
-        $error_number,
-        $error_message,
-        10,
-        STREAM_CLIENT_CONNECT,
-        $stream_context
-    );
-    if (!is_resource($stream)) {
-        throw new RuntimeException('Unable to connect to the configured SMTP server.');
-    }
-    stream_set_timeout($stream, 10);
-    try {
-        smtpReadResponse($stream, [220]);
-        $hostname = gethostname() ?: 'localhost';
-        smtpCommand($stream, 'EHLO ' . preg_replace('/[^A-Za-z0-9.-]/', '', $hostname), [250]);
-        if ($encryption === 'starttls') {
-            smtpCommand($stream, 'STARTTLS', [220]);
-            if (!stream_socket_enable_crypto($stream, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
-                throw new RuntimeException('Unable to establish SMTP transport encryption.');
-            }
-            smtpCommand($stream, 'EHLO ' . preg_replace('/[^A-Za-z0-9.-]/', '', $hostname), [250]);
+    public function __construct()
+    {
+        $this->from = normalizeAccountEmail(getenv('DNR_MAIL_FROM') ?: '');
+        $this->fromName = deploymentConfig()->string('brand.mail_name');
+        $host = trim((string) (getenv('DNR_SMTP_HOST') ?: ''));
+        $encryption = strtolower(trim((string) (getenv('DNR_SMTP_ENCRYPTION') ?: 'starttls')));
+        $port = (int) (getenv('DNR_SMTP_PORT') ?: ($encryption === 'tls' ? 465 : 587));
+        if ($host === ''
+            || $port < 1
+            || $port > 65535
+            || !in_array($encryption, ['none', 'starttls', 'tls'], true)
+        ) {
+            throw new RuntimeException('SMTP delivery is not fully configured.');
         }
 
-        $username = trim((string) (getenv('DNR_SMTP_USERNAME') ?: ''));
-        $password = mailConfigurationSecret('DNR_SMTP_PASSWORD');
-        if ($username !== '' || $password !== '') {
-            if ($username === '' || $password === '') {
-                throw new RuntimeException('Both SMTP username and password are required.');
+        $remote = ($encryption === 'tls' ? 'tls://' : 'tcp://') . $host . ':' . $port;
+        $stream = @stream_socket_client(
+            $remote,
+            $errorNumber,
+            $errorMessage,
+            10,
+            STREAM_CLIENT_CONNECT,
+            smtpTlsStreamContext($host)
+        );
+        if (!is_resource($stream)) {
+            throw new RuntimeException('Unable to connect to the configured SMTP server.');
+        }
+        $this->stream = $stream;
+        stream_set_timeout($stream, 10);
+        try {
+            smtpReadResponse($stream, [220]);
+            $hostname = preg_replace('/[^A-Za-z0-9.-]/', '', gethostname() ?: 'localhost');
+            smtpCommand($stream, 'EHLO ' . $hostname, [250]);
+            if ($encryption === 'starttls') {
+                smtpCommand($stream, 'STARTTLS', [220]);
+                if (!stream_socket_enable_crypto($stream, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                    throw new RuntimeException('Unable to establish SMTP transport encryption.');
+                }
+                smtpCommand($stream, 'EHLO ' . $hostname, [250]);
             }
-            if ($encryption === 'none') {
-                throw new RuntimeException('SMTP credentials require TLS encryption.');
+
+            $username = trim((string) (getenv('DNR_SMTP_USERNAME') ?: ''));
+            $password = mailConfigurationSecret('DNR_SMTP_PASSWORD');
+            if ($username !== '' || $password !== '') {
+                if ($username === '' || $password === '') {
+                    throw new RuntimeException('Both SMTP username and password are required.');
+                }
+                if ($encryption === 'none') {
+                    throw new RuntimeException('SMTP credentials require TLS encryption.');
+                }
+                smtpCommand($stream, 'AUTH PLAIN ' . base64_encode("\0{$username}\0{$password}"), [235]);
             }
-            smtpCommand($stream, 'AUTH PLAIN ' . base64_encode("\0{$username}\0{$password}"), [235]);
+        } catch (Throwable $exception) {
+            $this->disconnect(false);
+            throw $exception;
+        }
+    }
+
+    public function send($recipient, $subject, $body, $replyTo = ''): bool
+    {
+        if (!is_resource($this->stream)) {
+            throw new RuntimeException('The SMTP session is closed.');
+        }
+        $recipient = normalizeAccountEmail($recipient);
+        $replyTo = trim((string) $replyTo);
+        if ($replyTo !== '') {
+            $replyTo = normalizeAccountEmail($replyTo);
+        }
+        if (preg_match('/[\r\n]/', $this->fromName . (string) $subject . $replyTo) === 1) {
+            throw new InvalidArgumentException('Mail headers contain invalid characters.');
         }
 
-        smtpCommand($stream, 'MAIL FROM:<' . $from . '>', [250]);
-        smtpCommand($stream, 'RCPT TO:<' . $recipient . '>', [250, 251]);
-        smtpCommand($stream, 'DATA', [354]);
+        $stream = $this->stream;
         $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
-        $encoded_name = '=?UTF-8?B?' . base64_encode($from_name) . '?=';
+        $encoded_name = '=?UTF-8?B?' . base64_encode($this->fromName) . '?=';
         $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
         $message = smtpNormalizeLineEndings(implode("\n", [
-            'From: ' . $encoded_name . ' <' . $from . '>',
+            'From: ' . $encoded_name . ' <' . $this->from . '>',
             'To: <' . $recipient . '>',
             ...($replyToHeader !== '' ? [$replyToHeader] : []),
             'Subject: ' . $encoded_subject,
@@ -619,15 +669,98 @@ function sendSmtpMessage($recipient, $subject, $body, $replyTo = '')
             (string) $body,
         ]));
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
-        if (fwrite($stream, $message . "\r\n.\r\n") === false) {
-            throw new RuntimeException('Unable to send the SMTP message body.');
+        try {
+            smtpCommand($stream, 'MAIL FROM:<' . $this->from . '>', [250]);
+            smtpCommand($stream, 'RCPT TO:<' . $recipient . '>', [250, 251]);
+            smtpCommand($stream, 'DATA', [354]);
+        } catch (SmtpResponseException $exception) {
+            $this->disconnect(false);
+            if (in_array($exception->statusCode(), [0, 421], true)) {
+                throw new SmtpPreDataException(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
+            if ($exception->statusCode() >= 500 && $exception->statusCode() <= 599) {
+                throw new DomainException(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
+            throw $exception;
+        } catch (Throwable $exception) {
+            // No message body has been transferred, so the caller may safely
+            // reconnect and replay this envelope once after transport loss.
+            $this->disconnect(false);
+            throw new SmtpPreDataException(
+                $exception->getMessage(),
+                (int) $exception->getCode(),
+                $exception
+            );
         }
-        smtpReadResponse($stream, [250]);
-        smtpCommand($stream, 'QUIT', [221]);
-    } finally {
+        try {
+            if (fwrite($stream, $message . "\r\n.\r\n") === false) {
+                throw new RuntimeException('Unable to send the SMTP message body.');
+            }
+            smtpReadResponse($stream, [250]);
+        } catch (SmtpResponseException $exception) {
+            $this->disconnect(false);
+            if ($exception->statusCode() >= 500 && $exception->statusCode() <= 599) {
+                throw new DomainException(
+                    $exception->getMessage(),
+                    $exception->getCode(),
+                    $exception
+                );
+            }
+            throw $exception;
+        } catch (Throwable $exception) {
+            // After DATA begins, delivery state can be ambiguous. Discard this
+            // connection so no subsequent envelope inherits a partial transaction.
+            $this->disconnect(false);
+            throw $exception;
+        }
+        return true;
+    }
+
+    public function close(): void
+    {
+        $this->disconnect(true);
+    }
+
+    public function __destruct()
+    {
+        $this->disconnect(true);
+    }
+
+    private function disconnect(bool $sendQuit): void
+    {
+        if (!is_resource($this->stream)) {
+            $this->stream = null;
+            return;
+        }
+        $stream = $this->stream;
+        $this->stream = null;
+        if ($sendQuit) {
+            try {
+                smtpCommand($stream, 'QUIT', [221]);
+            } catch (Throwable $exception) {
+                // Closing is best-effort; the message result has already been recorded.
+            }
+        }
         fclose($stream);
     }
-    return true;
+}
+
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '')
+{
+    $session = new SmtpSession();
+    try {
+        return $session->send($recipient, $subject, $body, $replyTo);
+    } finally {
+        $session->close();
+    }
 }
 
 function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '')
@@ -641,6 +774,36 @@ function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '')
         return true;
     }
     return sendSmtpMessage($recipient, $subject, $body, $replyTo);
+}
+
+function deliverApplicationEmailWithSession(
+    ?SmtpSession &$session,
+    $recipient,
+    $subject,
+    $body,
+    $replyTo = ''
+): bool {
+    if (accountMailTransport() === 'log') {
+        return deliverApplicationEmail($recipient, $subject, $body, $replyTo);
+    }
+    $reconnected = false;
+    while (true) {
+        $session ??= new SmtpSession();
+        try {
+            return $session->send($recipient, $subject, $body, $replyTo);
+        } catch (SmtpPreDataException $exception) {
+            $session->close();
+            $session = null;
+            if ($reconnected) {
+                throw $exception;
+            }
+            $reconnected = true;
+        } catch (Throwable $exception) {
+            $session->close();
+            $session = null;
+            throw $exception;
+        }
+    }
 }
 
 function deliverAccountEmail($recipient, $subject, $body)

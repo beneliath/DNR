@@ -24,6 +24,7 @@ type Plugin struct {
 	router            *http.ServeMux
 	replyPollStop     chan struct{}
 	replyPollDone     chan struct{}
+	bindingResponses  channelBindingResponseCache
 }
 
 func (p *Plugin) OnActivate() error {
@@ -87,6 +88,7 @@ func (p *Plugin) OnConfigurationChange() error {
 	p.configurationLock.Lock()
 	p.configuration = &next
 	p.configurationLock.Unlock()
+	p.bindingResponses.clear()
 	return nil
 }
 
@@ -132,6 +134,7 @@ func (p *Plugin) setChannelBinding(channelID string, binding *channelBinding) er
 		if appErr := p.API.KVDelete(key); appErr != nil {
 			return fmt.Errorf("remove channel binding: %s", appErr.Error())
 		}
+		p.bindingResponses.invalidateChannel(channelID)
 		return nil
 	}
 	encoded, err := json.Marshal(binding)
@@ -141,6 +144,7 @@ func (p *Plugin) setChannelBinding(channelID string, binding *channelBinding) er
 	if appErr := p.API.KVSet(key, encoded); appErr != nil {
 		return fmt.Errorf("store channel binding: %s", appErr.Error())
 	}
+	p.bindingResponses.invalidateChannel(channelID)
 	return nil
 }
 

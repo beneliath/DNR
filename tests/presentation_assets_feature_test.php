@@ -54,7 +54,8 @@ expectPresentationAssetFeature(
         && str_contains($template, "'speaker_donation_qr' =>")
         && str_contains($template, 'data-paste-qr')
         && !str_contains($template, 'data-qr-paste-zone')
-        && str_contains($template, 'target="_blank"')
+        && str_contains($template, 'Download <?php echo htmlspecialchars($slide_filename')
+        && !str_contains($template, 'target="_blank"')
         && str_contains($template, 'data-copy-qr-url'),
     'the shared presentation form should expose PDF and direct QR paste controls without a separate paste zone.'
 );
@@ -62,15 +63,16 @@ expectPresentationAssetFeature(
 expectPresentationAssetFeature(
     str_contains($asset_route, 'startSecureSession();')
         && str_contains($asset_route, 'requireLogin();')
-        && str_contains($asset_route, "'Content-Disposition: inline;")
+        && str_contains($asset_route, "'Content-Disposition: attachment;")
+        && str_contains($asset_route, 'Content-Security-Policy: sandbox')
         && str_contains($asset_route, "'X-Content-Type-Options: nosniff'")
         && str_contains($asset_route, 'presentationAssetDefinitionForQueryType'),
-    'the asset route should be authenticated, allowlisted, and render assets inline.'
+    'the asset route should be authenticated and allowlisted, with PDFs delivered as downloads.'
 );
 
 expectPresentationAssetFeature(
-    str_contains($view_engagement, 'View PDF slide deck')
-        && str_contains($view_engagement, 'target="_blank"')
+    str_contains($view_engagement, 'Download PDF slide deck')
+        && !str_contains($view_engagement, 'target="_blank"')
         && str_contains($view_engagement, 'Speaker Notes')
         && str_contains($view_engagement, 'Speaker Website')
         && str_contains($view_engagement, 'Speaker Donations')
@@ -88,11 +90,14 @@ expectPresentationAssetFeature(
     str_contains($presentation_script, 'navigator.clipboard.read()')
         && str_contains($presentation_script, 'navigator.permissions.query({ name: "clipboard-read" })')
         && str_contains($presentation_script, 'event.clipboardData')
-        && str_contains($presentation_script, 'document.addEventListener("paste", pasteImageFromEvent)')
+        && substr_count($presentation_script, 'document.addEventListener("paste",') === 1
+        && str_contains($presentation_script, 'document.addEventListener("paste", pasteQrImage)')
         && !str_contains($presentation_script, 'data-qr-paste-zone')
         && str_contains($presentation_script, 'new DataTransfer()')
-        && str_contains($presentation_script, 'reader.readAsDataURL(input.files[0])')
-        && !str_contains($presentation_script, 'URL.createObjectURL')
+        && str_contains($presentation_script, 'URL.createObjectURL(input.files[0])')
+        && str_contains($presentation_script, 'URL.revokeObjectURL(previewUrl)')
+        && str_contains($presentation_script, 'if (!shouldReleaseQrPreviews(event)) return;')
+        && !str_contains($presentation_script, 'readAsDataURL')
         && str_contains($page_actions, "new ClipboardItem({ 'image/png': png })")
         && str_contains($page_actions, "window.open(url, '_blank', 'noopener')"),
     'QR images should support paste input and image clipboard copy with a safe fallback.'
@@ -116,13 +121,15 @@ expectPresentationAssetFeature(
         && str_contains($template, 'PDF slide decks may be up to 100 MB.')
         && str_contains($presentation_script, 'PDF slide decks may be up to 100 MB.')
         && str_contains($asset_helper, "!== 'application/pdf'")
-        && str_contains($asset_helper, "str_starts_with(\$contents, '%PDF-')")
-        && str_contains($production_ini, 'memory_limit=256M')
+        && str_contains($asset_helper, "preg_match('/\\A%PDF-")
+        && str_contains($asset_helper, 'startxref\\s+\\d+\\s+%%EOF')
+        && str_contains($production_ini, 'memory_limit=512M')
         && str_contains($production_ini, 'post_max_size=120M')
         && str_contains($production_ini, 'upload_max_filesize=100M')
         && str_contains($development_ini, 'post_max_size=120M')
         && str_contains($development_ini, 'upload_max_filesize=100M')
-        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=160m')
+        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=640m')
+        && str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES:-268435456')
         && str_contains($compose, '--max-allowed-packet=128M'),
     'PDF validation, request handling, temporary storage, and database transport should accommodate the documented 100 MB limit.'
 );
@@ -131,7 +138,12 @@ $pdf_path = tempnam(sys_get_temp_dir(), 'dnr-presentation-pdf-');
 if ($pdf_path === false) {
     throw new RuntimeException('Unable to create a temporary PDF fixture.');
 }
-file_put_contents($pdf_path, "%PDF-1.4\n1 0 obj\n<<>>\nendobj\n%%EOF\n");
+file_put_contents(
+    $pdf_path,
+    "%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\nxref\n0 2\n"
+        . "0000000000 65535 f \n0000000009 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\n"
+        . "startxref\n52\n%%EOF\n"
+);
 try {
     $pdf = presentationSlideDeckFromPath($pdf_path, '../../Unsafe Deck.PDF', false);
     expectPresentationAssetFeature(
@@ -162,6 +174,23 @@ try {
     unlink($invalid_path);
 }
 
+$truncated_pdf_path = tempnam(sys_get_temp_dir(), 'dnr-presentation-truncated-pdf-');
+if ($truncated_pdf_path === false) {
+    throw new RuntimeException('Unable to create a truncated PDF fixture.');
+}
+file_put_contents($truncated_pdf_path, "%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
+try {
+    presentationSlideDeckFromPath($truncated_pdf_path, 'truncated.pdf', false);
+    expectPresentationAssetFeature(false, 'a PDF without a final cross-reference marker should be rejected.');
+} catch (InvalidArgumentException $exception) {
+    expectPresentationAssetFeature(
+        str_contains($exception->getMessage(), 'valid PDF'),
+        'a truncated PDF should return a useful validation message.'
+    );
+} finally {
+    unlink($truncated_pdf_path);
+}
+
 try {
     normalizeEngagementPresentations(
         [7 => ['topic_title' => '', 'speaker_name' => 'Default Speaker']],
@@ -184,6 +213,36 @@ expectPresentationAssetFeature(
         && str_contains($presentation_helper, "'asset_changes'")
         && str_contains($edit_engagement, 'mergeStoredPresentationAssetMetadata'),
     'asset replacements and removals should participate in transactional presentation synchronization.'
+);
+
+expectPresentationAssetFeature(
+    presentationAssetByteRange('', 100) === null
+        && presentationAssetByteRange('bytes=10-19', 100) === [
+            'start' => 10, 'end' => 19, 'length' => 10,
+        ]
+        && presentationAssetByteRange('bytes=95-', 100) === [
+            'start' => 95, 'end' => 99, 'length' => 5,
+        ]
+        && presentationAssetByteRange('bytes=-8', 100) === [
+            'start' => 92, 'end' => 99, 'length' => 8,
+        ],
+    'asset delivery should parse bounded, open-ended, and suffix byte ranges.'
+);
+try {
+    presentationAssetByteRange('bytes=100-101', 100);
+    expectPresentationAssetFeature(false, 'an out-of-bounds byte range should be rejected.');
+} catch (OutOfRangeException $exception) {
+    expectPresentationAssetFeature(true, 'an out-of-bounds byte range should return 416.');
+}
+expectPresentationAssetFeature(
+    str_contains($asset_route, 'asset_size')
+        && str_contains($asset_route, 'HTTP_IF_NONE_MATCH')
+        && str_contains($asset_route, 'HTTP_IF_RANGE')
+        && str_contains($asset_route, 'hash_equals($etag, $if_range)')
+        && strpos($asset_route, 'HTTP_IF_NONE_MATCH') < strpos($asset_route, '$data_sql')
+        && str_contains($asset_route, "' = UNHEX(?) AND '")
+        && str_contains($asset_route, 'Content-Range: bytes '),
+    'asset delivery should validate stable metadata and 304 responses before reading BLOB bytes, with range support.'
 );
 
 echo "Presentation asset feature tests passed.\n";

@@ -20,20 +20,31 @@ function assetUrl($path) {
     $version = defined('APP_VERSION') ? APP_VERSION : 'dev';
     $url = $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
 
-    // Static assets are cached as immutable. Include their content fingerprint
-    // so a rebuilt asset receives a new URL even within the same app release.
+    // Static assets are cached as immutable. Prefer the build manifest so a
+    // request does not re-read and hash large bundles; retain a development
+    // fallback for newly added files before the next asset build.
     $asset_path = parse_url($path, PHP_URL_PATH);
     if (is_string($asset_path) && str_starts_with($asset_path, 'assets/')) {
-        $local_path = __DIR__ . '/' . $asset_path;
-        if (is_file($local_path)) {
-            static $fingerprints = [];
-            if (!array_key_exists($local_path, $fingerprints)) {
-                $hash = hash_file('sha256', $local_path);
-                $fingerprints[$local_path] = is_string($hash) ? substr($hash, 0, 12) : '';
+        static $manifest = null;
+        if ($manifest === null) {
+            $manifest_path = __DIR__ . '/assets/asset-manifest.php';
+            $loaded_manifest = is_file($manifest_path) ? require $manifest_path : [];
+            $manifest = is_array($loaded_manifest) ? $loaded_manifest : [];
+        }
+        $fingerprint = $manifest[$asset_path] ?? '';
+        if (!is_string($fingerprint) || preg_match('/\A[0-9a-f]{12}\z/', $fingerprint) !== 1) {
+            $local_path = __DIR__ . '/' . $asset_path;
+            if (is_file($local_path)) {
+                static $fallback_fingerprints = [];
+                if (!array_key_exists($local_path, $fallback_fingerprints)) {
+                    $hash = hash_file('sha256', $local_path);
+                    $fallback_fingerprints[$local_path] = is_string($hash) ? substr($hash, 0, 12) : '';
+                }
+                $fingerprint = $fallback_fingerprints[$local_path];
             }
-            if ($fingerprints[$local_path] !== '') {
-                $url .= '&h=' . rawurlencode($fingerprints[$local_path]);
-            }
+        }
+        if (is_string($fingerprint) && $fingerprint !== '') {
+            $url .= '&h=' . rawurlencode($fingerprint);
         }
     }
 
@@ -164,6 +175,25 @@ function startSecureSession() {
     $_SESSION['_session_started_at'] = $started_at;
     $_SESSION['_session_last_seen_at'] = $now;
     $_SESSION['_session_rotated_at'] = (int) ($_SESSION['_session_rotated_at'] ?? $now);
+}
+
+/**
+ * Persist the current session and release its file lock before slow read-only
+ * database work or response streaming. Session values remain readable for the
+ * remainder of the request, but callers must perform every required session
+ * mutation (including CSRF token creation) before invoking this helper.
+ */
+function releaseApplicationSessionLock(): bool {
+    if (session_status() !== PHP_SESSION_ACTIVE) {
+        return true;
+    }
+
+    $released = session_write_close();
+    if (!$released) {
+        applicationLog('warning', 'Unable to release the PHP session lock early');
+    }
+
+    return $released;
 }
 
 function validIsoDate($date) {

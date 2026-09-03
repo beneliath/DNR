@@ -25,6 +25,9 @@ expectDatabaseBackupFeature(
         && str_contains($page, 'PasswordPolicy::verify')
         && str_contains($page, 'verifyAndConsumeTotp')
         && str_contains($page, 'consumeRecoveryCode')
+        && str_contains($page, "GET_LOCK('dnr_database_backup_export', 0)")
+        && str_contains($page, "RELEASE_LOCK('dnr_database_backup_export')")
+        && str_contains($page, 'ignore_user_abort(true)')
         && strpos($page, 'databaseBackupConnection()')
             > strrpos($page, 'databaseMaintenanceAuthenticationAccepted('),
     'backup and restore must require admin authorization, CSRF validation, password re-entry, and a fresh second factor.'
@@ -40,8 +43,25 @@ expectDatabaseBackupFeature(
         && str_contains($restore_command, 'restoreDatabaseBackup'),
     'the web process should export only, while restore requires an explicit one-shot CLI confirmation and password secret.'
 );
+$encryptPosition = strpos($page, '$encrypted_backup = encryptDatabaseBackup(');
+$plaintextRemovalPosition = strpos($page, "is_file(\$backup['path'])");
+$streamPosition = strpos($page, "readfile(\$encrypted_backup['path'])");
+expectDatabaseBackupFeature(
+    $encryptPosition !== false
+        && $plaintextRemovalPosition !== false
+        && $streamPosition !== false
+        && $encryptPosition < $plaintextRemovalPosition
+        && $plaintextRemovalPosition < $streamPosition
+        && str_contains($page, '$backup = null;'),
+    'the plaintext archive should be removed immediately after encryption instead of remaining allocated during the download.'
+);
 expectDatabaseBackupFeature(
     str_contains($helpers, 'SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13')
+        && str_contains($helpers, 'SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE')
+        && str_contains($helpers, 'SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE')
+        && str_contains($helpers, 'DNRBACKUP-ENC-1')
+        && str_contains($helpers, 'DNRBACKUP-ENC-2')
+        && str_contains($page, 'DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES')
         && str_contains($helpers, 'sodium_crypto_secretstream_xchacha20poly1305_push')
         && str_contains($helpers, 'sodium_crypto_secretstream_xchacha20poly1305_pull')
         && str_contains($helpers, 'SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL')

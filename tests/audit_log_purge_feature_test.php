@@ -17,6 +17,7 @@ $dockerfile = file_get_contents(__DIR__ . '/../Dockerfile');
 $manual = file_get_contents(__DIR__ . '/../src/help.php');
 $readme = file_get_contents(__DIR__ . '/../README.md');
 $migration = file_get_contents(__DIR__ . '/../migrations/20260830_add_audit_log_pruning.sql');
+$bounded_migration = file_get_contents(__DIR__ . '/../migrations/20260902_bound_audit_pruning.sql');
 $migration_order = file_get_contents(__DIR__ . '/../migrations/order.txt');
 
 expectAuditLogPurgeFeature(
@@ -51,16 +52,22 @@ expectAuditLogPurgeFeature(
 );
 expectAuditLogPurgeFeature(
     str_contains($migration, 'CREATE PROCEDURE prune_security_audit_log')
-        && str_contains($migration, 'SQL SECURITY DEFINER')
-        && str_contains($migration, 'p_retention_days < 1 OR p_retention_days > 36500')
-        && str_contains($migration, "GET_LOCK('dnr_audit_log_prune', 0)")
-        && str_contains($migration, 'START TRANSACTION')
-        && str_contains($migration, 'DELETE FROM security_audit_log')
-        && str_contains($migration, "'audit_log_pruned'")
-        && str_contains($migration, 'ROLLBACK')
-        && str_contains($migration, 'COMMIT')
-        && str_contains($migration_order, '20260830_add_audit_log_pruning.sql'),
-    'the UI should prune through a serialized, range-limited, atomic definer procedure installed by a new migration.'
+        && str_contains($bounded_migration, 'CREATE PROCEDURE prune_security_audit_log')
+        && str_contains($bounded_migration, 'SQL SECURITY DEFINER')
+        && str_contains($bounded_migration, 'p_retention_days < 1 OR p_retention_days > 36500')
+        && str_contains($bounded_migration, "GET_LOCK('dnr_audit_log_prune', 0)")
+        && str_contains($bounded_migration, 'prune_batches: LOOP')
+        && str_contains($bounded_migration, 'LIMIT 1000')
+        && str_contains($bounded_migration, 'v_batch_count >= 50')
+        && str_contains($bounded_migration, 'DELETE FROM security_audit_log')
+        && str_contains($bounded_migration, "'audit_log_prune_batch'")
+        && strpos($bounded_migration, "'audit_log_prune_batch'")
+            < strpos($bounded_migration, 'COMMIT;')
+        && str_contains($bounded_migration, "'audit_log_pruned'")
+        && str_contains($bounded_migration, 'ROLLBACK')
+        && str_contains($bounded_migration, 'COMMIT')
+        && str_contains($migration_order, '20260902_bound_audit_pruning.sql'),
+    'the UI should prune through a serialized definer procedure with bounded transactions and work per invocation.'
 );
 expectAuditLogPurgeFeature(
     str_contains($purge, '"${1:-}" != "PURGE"')
@@ -80,16 +87,14 @@ expectAuditLogPurgeFeature(
 expectAuditLogPurgeFeature(
     str_contains($prune_command, "\$confirmation !== 'PRUNE'")
         && str_contains($prune_command, 'Preview: %d audit %s older than %s UTC')
-        && str_contains($prune_command, "SELECT GET_LOCK('dnr_audit_log_prune', 0)")
-        && str_contains($prune_command, 'begin_transaction()')
-        && str_contains($prune_command, 'DELETE FROM security_audit_log WHERE created_at < ?')
-        && str_contains($prune_command, "'audit_log_pruned'")
-        && str_contains($prune_command, 'commit()')
-        && str_contains($prune_command, 'rollback()'),
-    'pruning must preview by default, require explicit confirmation, serialize runs, and atomically retain its maintenance event.'
+        && str_contains($prune_command, 'CALL prune_security_audit_log(?, ?, ?, ?)')
+        && !str_contains($prune_command, 'DELETE FROM security_audit_log WHERE created_at < ?')
+        && str_contains($prune_command, 'More expired entries remain'),
+    'terminal pruning should preview by default and use the same bounded definer procedure as the UI.'
 );
 expectAuditLogPurgeFeature(
     str_contains($page, "'audit_log_pruned' => 'Audit log pruned'")
+        && str_contains($page, "'audit_log_prune_batch' => 'Audit log pruning batch'")
         && str_contains($manual, 'In the Retention panel')
         && str_contains($manual, './scripts/prune_audit_log.sh DAYS')
         && str_contains($readme, '### Audit-log retention')
@@ -99,9 +104,16 @@ expectAuditLogPurgeFeature(
 );
 expectAuditLogPurgeFeature(
     str_contains($grants, 'GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log')
-        && str_contains($grants, 'GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log')
+        && substr_count(
+            $grants,
+            'GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log'
+        ) === 2
+        && str_contains(
+            $grants,
+            "prune_security_audit_log TO '\${maintenance_user}'@'%';"
+        )
         && !str_contains($grants, 'UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.security_audit_log'),
-    'the runtime database user must retain append-only table access and receive only procedure execution for pruning.'
+    'the runtime database user must retain append-only table access while runtime and maintenance identities receive procedure execution.'
 );
 
 echo "Audit log purge feature tests passed.\n";

@@ -55,7 +55,10 @@ $source_directory = new RecursiveDirectoryIterator(
 $source_files = new RecursiveIteratorIterator($source_directory);
 
 foreach ($source_files as $source_file) {
-    if (!$source_file->isFile() || $source_file->getExtension() !== 'php') {
+    if (!$source_file->isFile()
+        || $source_file->getExtension() !== 'php'
+        || $source_file->getFilename() === 'asset-manifest.php'
+    ) {
         continue;
     }
 
@@ -80,5 +83,32 @@ foreach ($source_files as $source_file) {
 foreach ($runtime_references as $minified_asset => $is_referenced) {
     expectMinifiedAsset($is_referenced, $minified_asset . ' should be loaded by the application.');
 }
+
+$manifest_path = __DIR__ . '/../src/assets/asset-manifest.php';
+$manifest = is_file($manifest_path) ? require $manifest_path : null;
+expectMinifiedAsset(is_array($manifest), 'the generated asset fingerprint manifest should exist.');
+foreach ($manifest as $asset => $fingerprint) {
+    $asset_path = __DIR__ . '/../src/' . $asset;
+    expectMinifiedAsset(
+        is_file($asset_path)
+            && preg_match('/\A[0-9a-f]{12}\z/', (string) $fingerprint) === 1
+            && substr((string) hash_file('sha256', $asset_path), 0, 12) === $fingerprint,
+        $asset . ' should match its generated fingerprint.'
+    );
+}
+foreach (array_merge(array_values($asset_pairs), $bundled_assets, ['assets/favicon.svg']) as $runtime_asset) {
+    expectMinifiedAsset(
+        isset($manifest[$runtime_asset]),
+        $runtime_asset . ' should have a build-time fingerprint.'
+    );
+}
+$functions = file_get_contents(__DIR__ . '/../src/functions.php');
+expectMinifiedAsset(
+    is_string($functions)
+        && str_contains($functions, "require \$manifest_path")
+        && str_contains($functions, 'hash_file')
+        && strpos($functions, "require \$manifest_path") < strpos($functions, 'hash_file'),
+    'asset URLs should prefer the manifest while retaining a development fallback.'
+);
 
 echo "Minified asset tests passed.\n";

@@ -53,7 +53,7 @@ expectCalendarViewerFeature(
         && str_contains($helpers, 'function fetchCalendarViewerTasks(')
         && str_contains($helpers, 'function calendarEventsByDate(')
         && str_contains($helpers, 'function calendarTasksByDate(')
-        && str_contains($helpers, 'COALESCE(e.event_end_date, e.event_start_date) >= ?'),
+        && str_contains($helpers, 'e.event_end_date >= ?'),
     'the calendar viewer should load events overlapping the grid and active tasks due within it.'
 );
 

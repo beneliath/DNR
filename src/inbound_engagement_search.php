@@ -17,6 +17,7 @@ if (!hasRole(['admin', 'editor'])) {
     echo json_encode(['error' => 'Forbidden']);
     exit();
 }
+releaseApplicationSessionLock();
 
 try {
     echo json_encode([

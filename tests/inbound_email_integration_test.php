@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
+putenv('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=1');
+putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.integration.test');
 
 if (getenv('DNR_INTEGRATION_TEST') !== '1'
     || getenv('DNR_INTEGRATION_TARGET') !== 'disposable'
@@ -41,9 +43,10 @@ $rawMessage = static function (
     string $to,
     string $messageId,
     string $subject,
-    ?string $body = null
+    ?string $body = null,
+    bool $authenticated = true
 ): string {
-    return implode("\r\n", [
+    $headers = [
         'From: ' . $from,
         'To: ' . $to,
         'Cc: DNR <dnr@example.org>',
@@ -52,9 +55,21 @@ $rawMessage = static function (
         'Message-ID: <' . $messageId . '>',
         'MIME-Version: 1.0',
         'Content-Type: text/plain; charset=UTF-8',
-        '',
-        $body ?? 'Integration test body for ' . $messageId,
-    ]);
+    ];
+    if ($authenticated) {
+        $fromAddress = $from;
+        if (preg_match('/<([^>]+)>/', $from, $match) === 1) {
+            $fromAddress = $match[1];
+        }
+        $fromDomain = strtolower((string) substr(strrchr($fromAddress, '@') ?: '', 1));
+        array_splice($headers, 1, 0, [
+            'Authentication-Results: mx.integration.test; dmarc=pass header.from=' . $fromDomain,
+        ]);
+    }
+    $headers[] = '';
+    $headers[] = $body ?? 'Integration test body for ' . $messageId;
+
+    return implode("\r\n", $headers);
 };
 
 try {
@@ -163,6 +178,26 @@ try {
     );
 
     setDatabaseAuditContext($conn, null, 'Email Gateway');
+    $unauthenticated = parseInboundEmail($rawMessage(
+        'Staff <' . $userEmail . '>',
+        'Inbound Contact <' . $contactEmail . '>',
+        'unauthenticated-' . $suffix . '@example.net',
+        'Unauthenticated routing test ' . $engagementMarker,
+        null,
+        false
+    ), '2026-08-23T15:00:00Z');
+    $unauthenticatedStored = storeInboundEmailMessage(
+        $conn,
+        'file',
+        'unauthenticated-' . $suffix,
+        $unauthenticated
+    );
+    $createdIds['messages'][] = $unauthenticatedStored['id'];
+    expectInboundIntegration(
+        processInboundEmailMessage($conn, $unauthenticatedStored['id']) === 'review',
+        'mail without trusted DMARC results should remain in manual review.'
+    );
+
     $outgoing = parseInboundEmail($rawMessage(
         'Staff <' . $userEmail . '>',
         'Inbound Contact <' . $contactEmail . '>',
@@ -174,7 +209,7 @@ try {
     expectInboundIntegration($stored['inserted'], 'a new source email should be stored.');
     expectInboundIntegration(
         processInboundEmailMessage($conn, $stored['id']) === 'processed',
-        'mail from a verified active user to a unique Contact should route automatically.'
+        'authenticated mail from a verified active user to a unique Contact should route automatically.'
     );
 
     $contactChron = $conn->prepare(

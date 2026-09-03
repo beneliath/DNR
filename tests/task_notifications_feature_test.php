@@ -80,6 +80,11 @@ expectTaskNotificationsFeature(
         && str_contains($helpers, "user.task_digest_enabled <> 1")
         && str_contains($helpers, 'function taskDigestScheduleIsDue(')
         && str_contains($helpers, 'user.task_digest_time, user.task_digest_days')
+        && str_contains($helpers, 'user.id > ?')
+        && str_contains($helpers, '$maximumRecipients')
+        && str_contains($helpers, "'Unable to schedule daily work digest for user'")
+        && str_contains($helpers, 'recordDailyTaskDigestSchedulingFailure(')
+        && str_contains($helpers, "NULL, 'failed', ?")
         && str_contains($helpers, 'user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))')
         && str_contains($helpers, 'outbox.digest_date < ?')
         && str_contains($helpers, 'FOR UPDATE OF outbox SKIP LOCKED')
@@ -90,9 +95,11 @@ expectTaskNotificationsFeature(
 expectTaskNotificationsFeature(
     str_contains($worker, 'queueDueDailyTaskDigests($conn)')
         && str_contains($worker, 'claimQueuedNotificationEmail(')
-        && str_contains($worker, 'deliverAccountEmail(')
+        && str_contains($worker, 'deliverApplicationEmailWithSession(')
+        && str_contains($worker, 'maintainQueuedNotificationEmail(')
+        && str_contains($worker, 'claimQueuedNotificationEmail($conn, $businessDate, 600, false)')
         && str_contains($smtp, 'DNR_NOTIFICATION_OUTBOX_BATCH_SIZE:'),
-    'the existing outbound-mail service should schedule and deliver the separate digest queue.'
+    'the outbound-mail service should schedule the digest queue, sweep leases once, and reuse its SMTP session.'
 );
 expectTaskNotificationsFeature(
     str_contains($profile, 'name="task_digest_enabled"')

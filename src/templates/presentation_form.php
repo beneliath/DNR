@@ -103,8 +103,8 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                     $slide_filename = (string) ($presentation['slide_deck_filename'] ?? 'slide-deck.pdf');
                                     ?>
                                     <div class="presentation-existing-asset">
-                                        <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" class="presentation-pdf-link">
-                                            View <?php echo htmlspecialchars($slide_filename, ENT_QUOTES, 'UTF-8'); ?>
+                                        <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>" class="presentation-pdf-link">
+                                            Download <?php echo htmlspecialchars($slide_filename, ENT_QUOTES, 'UTF-8'); ?>
                                         </a>
                                         <?php if (!empty($presentation['slide_deck_size'])): ?>
                                             <span><?php echo htmlspecialchars(number_format(((int) $presentation['slide_deck_size']) / 1048576, 1)); ?> MB</span>

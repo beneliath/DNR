@@ -83,6 +83,13 @@ expectChronFeature(
     'archived entries should disappear from View and Edit and use the dedicated restore page.'
 );
 expectChronFeature(
+    str_contains($chron_helpers, 'function chronLogPageBoundary(')
+        && str_contains($chron_helpers, 'SELECT created_at, id FROM {$table}')
+        && str_contains($chron_helpers, 'AND (ce.created_at < ? OR (ce.created_at = ? AND ce.id <= ?))')
+        && !str_contains($chron_helpers, 'LIMIT {$limit} OFFSET {$offset}'),
+    'deep Chron pages should discard only covering-index keys before seeking the expensive joined rows.'
+);
+expectChronFeature(
     str_contains($restore_chron_entries, 'canArchiveEntries($user_role)')
         && str_contains($restore_chron_entries, 'name="chron_entry_ids[]"')
         && str_contains($restore_chron_entries, 'name="restore_selected"')

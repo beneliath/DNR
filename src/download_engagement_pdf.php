@@ -7,6 +7,7 @@ require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
 startSecureSession();
 requireLogin();
+releaseApplicationSessionLock();
 
 $engagement_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, [
     'options' => ['min_range' => 1],

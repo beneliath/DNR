@@ -64,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['contact_action_message'] ?? '';
 $action_error = $_SESSION['contact_action_error'] ?? '';
 unset($_SESSION['contact_action_message'], $_SESSION['contact_action_error']);
+generateCsrfToken();
+releaseApplicationSessionLock();
 
 $requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
 $page_size = in_array($requested_page_size, $allowed_page_sizes, true)
@@ -166,8 +168,6 @@ $contact_query = "SELECT
                     c.contact_phone,
                     c.contact_email,
                     c.contact_photo_mime,
-                    c.contact_photo_thumbnail,
-                    c.contact_photo_thumbnail_mime,
                     c.contact_photo_updated_at,
                     o.organization_name,
                     o.is_deleted AS organization_is_archived
@@ -325,14 +325,9 @@ function contactsPageUrl(
                             <td>
                                 <span class="contact-name-cell">
                                     <?php if (!empty($contact['contact_photo_mime'])): ?>
-                                        <?php $contact_thumbnail_url = uploadedImageDataUrl(
-                                            $contact['contact_photo_thumbnail_mime'] ?? '',
-                                            $contact['contact_photo_thumbnail'] ?? null
-                                        ); ?>
                                         <img class="contact-list-avatar" src="<?php echo htmlspecialchars(
-                                            $contact_thumbnail_url !== ''
-                                                ? $contact_thumbnail_url
-                                                : 'contact_photo.php?id=' . (int) $contact['id'] . '&v=' . (strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0),
+                                            'contact_photo.php?id=' . (int) $contact['id']
+                                                . '&v=' . (strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0),
                                             ENT_QUOTES,
                                             'UTF-8'
                                         ); ?>" alt="">

@@ -33,11 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $user['password'] ?? $dummy_password_hash
         );
 
-        if ($user
-            && $user['account_status'] === 'active'
-            && empty($user['login_is_locked'])
-            && $password_valid
-        ) {
+        if (passwordAuthenticationIsAccepted($user, $password_valid)) {
             setDatabaseAuditContext($conn, (int) $user['id'], (string) $user['username']);
             resetAuthenticationFailures($conn, (int) $user['id'], 'password');
             clearLoginRateLimitForCurrentIp($conn, $username);

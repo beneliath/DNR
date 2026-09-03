@@ -64,6 +64,57 @@ expectInboundEmail(
     'mail dates should be retained in UTC.'
 );
 
+putenv('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=1');
+putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.example.net');
+$trustedAuthentication = inboundEmailSenderAuthentication([
+    'sender_address' => 'david@example.net',
+    'raw_headers' => implode("\r\n", [
+        'Authentication-Results: mx.example.net;',
+        "\tdkim=pass header.d=example.net; dmarc=pass header.from=example.net",
+    ]),
+]);
+$wrongDomainAuthentication = inboundEmailSenderAuthentication([
+    'sender_address' => 'david@example.net',
+    'raw_headers' => 'Authentication-Results: mx.example.net; dmarc=pass header.from=attacker.example',
+]);
+$mixedDmarcAuthentication = inboundEmailSenderAuthentication([
+    'sender_address' => 'david@example.net',
+    'raw_headers' => 'Authentication-Results: mx.example.net; '
+        . 'dmarc=fail header.from=example.net; dmarc=pass header.from=attacker.example',
+]);
+$senderSuppliedAuthentication = inboundEmailSenderAuthentication([
+    'sender_address' => 'david@example.net',
+    'raw_headers' => implode("\r\n", [
+        'Authentication-Results: attacker.example; dmarc=pass header.from=example.net',
+        'Authentication-Results: mx.example.net; dmarc=pass header.from=example.net',
+    ]),
+]);
+expectInboundEmail(
+    $trustedAuthentication['trusted']
+        && $trustedAuthentication['authentication_server'] === 'mx.example.net'
+        && !$wrongDomainAuthentication['trusted']
+        && !$mixedDmarcAuthentication['trusted']
+        && !$senderSuppliedAuthentication['trusted'],
+    'automatic routing should accept only one topmost trusted, passing, aligned DMARC result.'
+);
+putenv('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=0');
+expectInboundEmail(
+    !inboundEmailSenderAuthentication([
+        'sender_address' => 'david@example.net',
+        'raw_headers' => '',
+    ])['required'],
+    'mailboxes without authentication-result support should require an explicit compatibility opt-out.'
+);
+putenv('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM');
+putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS');
+expectInboundEmail(
+    inboundEmailSenderAuthentication([
+        'sender_address' => 'david@example.net',
+        'raw_headers' => '',
+    ])['required'],
+    'automatic inbound routing should fail closed when no authentication setting is provided.'
+);
+
 $marker123 = applicationInboundMarker(123);
 $lowerPrefixMarker123 = preg_replace('/\A\[MOED#/', '[moed#', $marker123);
 $markers = parseInboundEmailEngagementMarkers(

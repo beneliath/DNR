@@ -65,6 +65,46 @@ function chronLogEntityConfiguration($entity_type) {
     return $configurations[$entity_type];
 }
 
+/**
+ * Resolve an offset against only the covering parent/date index. The expensive
+ * Chron row query can then seek from this key without discarding large entry
+ * text or joined user rows for every preceding page.
+ *
+ * @return array{created_at: string, id: int}|null
+ */
+function chronLogPageBoundary(
+    mysqli $conn,
+    string $table,
+    string $parent_column,
+    int $entity_id,
+    ?int $archive_state,
+    int $offset
+): ?array {
+    if ($offset < 1) {
+        return null;
+    }
+    $query = "SELECT created_at, id FROM {$table} WHERE {$parent_column} = ?";
+    if ($archive_state !== null) {
+        $query .= $archive_state === 1 ? ' AND is_archived = 1' : ' AND is_archived = 0';
+    }
+    $query .= " ORDER BY created_at DESC, id DESC LIMIT 1 OFFSET {$offset}";
+    $stmt = $conn->prepare($query);
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the Chron page boundary.');
+    }
+    $stmt->bind_param('i', $entity_id);
+    if (!$stmt->execute()) {
+        $stmt->close();
+        throw new RuntimeException('Unable to load the Chron page boundary.');
+    }
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+
+    return is_array($row)
+        ? ['created_at' => (string) $row['created_at'], 'id' => (int) $row['id']]
+        : null;
+}
+
 function fetchEntityChronLogEntriesForArchiveState(
     mysqli $conn,
     $entity_type,
@@ -76,6 +116,20 @@ function fetchEntityChronLogEntriesForArchiveState(
     $configuration = chronLogEntityConfiguration($entity_type);
     $table = $configuration['table'];
     $parent_column = $configuration['parent_column'];
+    $limit = $limit === null ? null : max(1, min(1000, (int) $limit));
+    $offset = max(0, (int) $offset);
+    $boundary = $limit === null ? null : chronLogPageBoundary(
+        $conn,
+        $table,
+        $parent_column,
+        (int) $entity_id,
+        $archive_state === null ? null : ($archive_state === 1 ? 1 : 0),
+        $offset
+    );
+    if ($limit !== null && $offset > 0 && $boundary === null) {
+        return [];
+    }
+
     $query = "SELECT ce.*,
                     COALESCE(creator.username, ce.created_by_username_snapshot)
                         AS created_by_username,
@@ -91,11 +145,12 @@ function fetchEntityChronLogEntriesForArchiveState(
             ? ' AND ce.is_archived = 1'
             : ' AND ce.is_archived = 0';
     }
+    if ($boundary !== null) {
+        $query .= ' AND (ce.created_at < ? OR (ce.created_at = ? AND ce.id <= ?))';
+    }
     $query .= ' ORDER BY ce.created_at DESC, ce.id DESC';
     if ($limit !== null) {
-        $limit = max(1, min(1000, (int) $limit));
-        $offset = max(0, (int) $offset);
-        $query .= " LIMIT {$limit} OFFSET {$offset}";
+        $query .= " LIMIT {$limit}";
     }
 
     $stmt = $conn->prepare($query);
@@ -106,7 +161,19 @@ function fetchEntityChronLogEntriesForArchiveState(
         ]);
         throw new RuntimeException('Unable to prepare the Chron log query.');
     }
-    $stmt->bind_param('i', $entity_id);
+    if ($boundary === null) {
+        $stmt->bind_param('i', $entity_id);
+    } else {
+        $boundary_created_at = $boundary['created_at'];
+        $boundary_id = $boundary['id'];
+        $stmt->bind_param(
+            'issi',
+            $entity_id,
+            $boundary_created_at,
+            $boundary_created_at,
+            $boundary_id
+        );
+    }
     if (!$stmt->execute()) {
         $stmt->close();
         throw new RuntimeException('Unable to load the Chron log.');
@@ -449,6 +516,20 @@ function fetchChronLogEntriesForArchiveState(
     $limit = null,
     $offset = 0
 ) {
+    $limit = $limit === null ? null : max(1, min(1000, (int) $limit));
+    $offset = max(0, (int) $offset);
+    $boundary = $limit === null ? null : chronLogPageBoundary(
+        $conn,
+        'engagement_chron_entries',
+        'engagement_id',
+        (int) $engagement_id,
+        $archive_state === null ? null : ($archive_state === 1 ? 1 : 0),
+        $offset
+    );
+    if ($limit !== null && $offset > 0 && $boundary === null) {
+        return [];
+    }
+
     $query = 'SELECT ce.*,
                     COALESCE(creator.username, ce.created_by_username_snapshot)
                         AS created_by_username,
@@ -464,11 +545,12 @@ function fetchChronLogEntriesForArchiveState(
             ? ' AND ce.is_archived = 1'
             : ' AND ce.is_archived = 0';
     }
+    if ($boundary !== null) {
+        $query .= ' AND (ce.created_at < ? OR (ce.created_at = ? AND ce.id <= ?))';
+    }
     $query .= ' ORDER BY ce.created_at DESC, ce.id DESC';
     if ($limit !== null) {
-        $limit = max(1, min(1000, (int) $limit));
-        $offset = max(0, (int) $offset);
-        $query .= " LIMIT {$limit} OFFSET {$offset}";
+        $query .= " LIMIT {$limit}";
     }
 
     $stmt = $conn->prepare($query);
@@ -476,7 +558,19 @@ function fetchChronLogEntriesForArchiveState(
         applicationLog('error', 'Unable to prepare the Chron log query', ['error' => $conn->error]);
         throw new RuntimeException('Unable to prepare the Chron log query.');
     }
-    $stmt->bind_param('i', $engagement_id);
+    if ($boundary === null) {
+        $stmt->bind_param('i', $engagement_id);
+    } else {
+        $boundary_created_at = $boundary['created_at'];
+        $boundary_id = $boundary['id'];
+        $stmt->bind_param(
+            'issi',
+            $engagement_id,
+            $boundary_created_at,
+            $boundary_created_at,
+            $boundary_id
+        );
+    }
     if (!$stmt->execute()) {
         $stmt->close();
         throw new RuntimeException('Unable to load the Chron log.');

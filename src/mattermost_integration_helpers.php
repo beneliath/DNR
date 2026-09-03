@@ -7,6 +7,7 @@ require_once __DIR__ . '/chron_log_helpers.php';
 
 const MATTERMOST_LINK_CODE_TTL_SECONDS = 600;
 const MATTERMOST_LINK_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const MATTERMOST_LAST_USED_WRITE_INTERVAL_SECONDS = 900;
 
 function mattermostIntegrationToken(): string
 {
@@ -342,15 +343,30 @@ function mattermostLinkedUser(
     }
 
     $mattermostUsername = trim($mattermostUsername);
+    $lastUsedWriteInterval = MATTERMOST_LAST_USED_WRITE_INTERVAL_SECONDS;
     $update = $conn->prepare(
-        'UPDATE mattermost_user_links
+        "UPDATE mattermost_user_links
          SET last_used_at = UTC_TIMESTAMP(6),
-             mattermost_username = CASE WHEN ? = \'\' THEN mattermost_username ELSE ? END
-         WHERE id = ?'
+             mattermost_username = CASE WHEN ? = '' THEN mattermost_username ELSE ? END
+         WHERE id = ?
+           AND (
+               last_used_at IS NULL
+               OR last_used_at <= DATE_SUB(UTC_TIMESTAMP(6), INTERVAL {$lastUsedWriteInterval} SECOND)
+               OR (? <> '' AND mattermost_username <> ?)
+           )"
     );
     if ($update) {
         $linkId = (int) $user['link_id'];
-        $update->bind_param('ssi', $mattermostUsername, $mattermostUsername, $linkId);
+        // Authentication reads are frequent; record coarse activity without turning
+        // every Mattermost request into a write and replication/binlog event.
+        $update->bind_param(
+            'ssiss',
+            $mattermostUsername,
+            $mattermostUsername,
+            $linkId,
+            $mattermostUsername,
+            $mattermostUsername
+        );
         $update->execute();
         $update->close();
     }

@@ -111,10 +111,17 @@ expectUserProfile(
 
 $users_page = $read('src/users.php');
 expectUserProfile(
-    str_contains($users_page, 'profile_picture_thumbnail')
-        && str_contains($users_page, 'uploadedImageDataUrl(')
+    !str_contains($users_page, 'profile_picture_thumbnail')
+        && !str_contains($users_page, 'uploadedImageDataUrl(')
         && str_contains($users_page, 'class="user-list-avatar"')
         && str_contains($users_page, 'profile_picture.php?id=')
+        && str_contains($users_page, 'decodePaginationCursor(')
+        && str_contains($users_page, 'LIMIT ?')
+        && str_contains($users_page, 'First page')
+        && str_contains($picture_endpoint, 'profile_picture_thumbnail_size')
+        && str_contains($picture_endpoint, 'profile_picture_sha256 = UNHEX(?)')
+        && strpos($picture_endpoint, 'HTTP_IF_NONE_MATCH')
+            < strpos($picture_endpoint, '$picture_stmt = $conn->prepare')
         && str_contains($users_page, 'formatPhoneNumberForDisplay(')
         && str_contains($users_page, 'Email: ')
         && str_contains($users_page, 'Phone: '),

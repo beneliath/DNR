@@ -10,6 +10,22 @@ function expectTwoFactor($condition, $message) {
     }
 }
 
+$lockedActiveUser = ['account_status' => 'active', 'login_is_locked' => 1, 'two_factor_enabled' => 0];
+expectTwoFactor(
+    !passwordAuthenticationIsAccepted($lockedActiveUser, true)
+        && passwordAuthenticationIsAccepted(
+            ['account_status' => 'active', 'login_is_locked' => 1, 'two_factor_enabled' => 1],
+            true
+        ),
+    'a locked account should require a configured second factor or verified-email recovery.'
+);
+expectTwoFactor(
+    !passwordAuthenticationIsAccepted($lockedActiveUser, false)
+        && !passwordAuthenticationIsAccepted(['account_status' => 'disabled'], true)
+        && !passwordAuthenticationIsAccepted(null, true),
+    'wrong passwords, disabled accounts, and unknown accounts must remain rejected.'
+);
+
 $secret = generateTotpSecret();
 expectTwoFactor(strlen($secret) >= 32, 'A TOTP secret should have sufficient entropy.');
 

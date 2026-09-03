@@ -14,8 +14,10 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
 
 FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb
 
-# Install the extensions used by the database and PDF export dependencies.
-RUN apt-get update \
+# Install the extensions used by the database and PDF export dependencies,
+# then retain only libraries referenced by the compiled modules.
+RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
+    && apt-get update \
     && apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -23,6 +25,16 @@ RUN apt-get update \
     && a2enmod headers proxy proxy_http deflate expires \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
+    && apt-mark auto '.*' >/dev/null \
+    && apt-mark manual $dnr_saved_apt_mark \
+    && find /usr/local/lib/php/extensions -type f -name '*.so' -exec ldd '{}' ';' \
+        | awk '/=>/ { library = $(NF - 1); if (index(library, "/usr/local/") == 1) next; sub("^/(usr/)?", "", library); print library }' \
+        | sort -u \
+        | xargs -r dpkg-query --search \
+        | cut -d: -f1 \
+        | sort -u \
+        | xargs -r apt-mark manual \
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf

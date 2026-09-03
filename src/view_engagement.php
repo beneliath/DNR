@@ -345,10 +345,8 @@ $presentation_stmt->close();
                         <?php if (!empty($presentation['has_slide_deck'])): ?>
                             <?php $slide_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slides'; ?>
                             <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>"
-                               target="_blank"
-                               rel="noopener"
                                class="presentation-view-pdf">
-                                View PDF slide deck<?php if (!empty($presentation['slide_deck_filename'])): ?>:
+                                Download PDF slide deck<?php if (!empty($presentation['slide_deck_filename'])): ?>:
                                     <?php echo htmlspecialchars((string) $presentation['slide_deck_filename'], ENT_QUOTES, 'UTF-8'); ?>
                                 <?php endif; ?>
                             </a>

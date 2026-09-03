@@ -112,13 +112,17 @@ $contacts_page = $read('src/contacts.php');
 $view_contact = $read('src/view_contact.php');
 expectContactPhoto(
     str_contains($contacts_page, 'class="contact-list-avatar"')
-        && str_contains($contacts_page, 'contact_photo_thumbnail')
-        && str_contains($contacts_page, 'uploadedImageDataUrl(')
         && str_contains($contacts_page, 'contact_photo.php?id=')
+        && !str_contains($contacts_page, 'contact_photo_thumbnail')
+        && !str_contains($contacts_page, 'uploadedImageDataUrl(')
+        && str_contains($photo_endpoint, 'contact_photo_thumbnail_size')
+        && str_contains($photo_endpoint, 'contact_photo_sha256 = UNHEX(?)')
+        && strpos($photo_endpoint, 'HTTP_IF_NONE_MATCH')
+            < strpos($photo_endpoint, '$photo_stmt = $conn->prepare')
         && str_contains($view_contact, 'class="contact-details-photo"')
         && str_contains($view_contact, 'contact_photo.php?id=')
         && str_contains($view_contact, 'size=full'),
-    'list avatars should use embedded thumbnails while detail entries request the full image.'
+    'list avatars should use cached photo URLs while detail entries request the full image.'
 );
 
 $migration = $read('migrations/20260818_add_contact_photos.sql');

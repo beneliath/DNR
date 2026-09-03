@@ -24,6 +24,22 @@ expectMapHelper(
     'event address fields should produce a geocoder-ready address.'
 );
 expectMapHelper(
+    normalizeEngagementMapIds('7,8,7', 3) === [7, 8],
+    'batched map IDs should be positive, ordered, and de-duplicated.'
+);
+try {
+    normalizeEngagementMapIds('7,invalid', 3);
+    expectMapHelper(false, 'invalid batched map IDs should be rejected.');
+} catch (InvalidArgumentException $exception) {
+    expectMapHelper(true, 'invalid batched map IDs should be rejected.');
+}
+try {
+    normalizeEngagementMapIds('1,2,3', 2);
+    expectMapHelper(false, 'oversized map batches should be rejected.');
+} catch (LengthException $exception) {
+    expectMapHelper(true, 'oversized map batches should be rejected.');
+}
+expectMapHelper(
     engagementMapAddressHash("  123 Main Street,  Dallas ")
         === engagementMapAddressHash('123 main street, Dallas'),
     'address hashes should ignore case and repeated whitespace.'
@@ -96,6 +112,25 @@ expectMapHelper(
 expectMapHelper(
     parseEngagementMapGeocoderResponse('[]') === null,
     'an empty geocoder result should be treated as not found.'
+);
+expectMapHelper(
+    geocoderAddressIsPublic('8.8.8.8')
+        && geocoderAddressIsPublic('2606:4700:4700::1111')
+        && !geocoderAddressIsPublic('127.0.0.1')
+        && !geocoderAddressIsPublic('10.0.0.1')
+        && !geocoderAddressIsPublic('100.64.0.1')
+        && !geocoderAddressIsPublic('169.254.169.254')
+        && !geocoderAddressIsPublic('::1')
+        && !geocoderAddressIsPublic('::ffff:127.0.0.1')
+        && !geocoderAddressIsPublic('64:ff9b::c0a8:101')
+        && !geocoderAddressIsPublic('2002:7f00:1::')
+        && !geocoderAddressIsPublic('fc00::1'),
+    'geocoder endpoints should reject loopback, private, shared, transition, reserved, and link-local addresses.'
+);
+expectMapHelper(
+    geocoderAddressesMatch('2606:4700:4700::1111', '2606:4700:4700:0:0:0:0:1111')
+        && !geocoderAddressesMatch('8.8.8.8', '1.1.1.1'),
+    'connected geocoder addresses should be compared in canonical binary form.'
 );
 expectMapHelper(
     engagementMapDateLabel('2026-08-17', '2026-08-17') === 'Aug 17, 2026'

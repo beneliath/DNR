@@ -16,7 +16,8 @@ function fetchTaskReminderCounts(
     mysqli $conn,
     int $userId,
     string $role,
-    ?string $businessDate = null
+    ?string $businessDate = null,
+    ?int $sharedCloseoutCount = null
 ): array {
     $counts = [
         'overdue' => 0,
@@ -63,6 +64,9 @@ function fetchTaskReminderCounts(
     }
 
     if (in_array($role, ['admin', 'editor'], true)) {
+        if ($sharedCloseoutCount !== null) {
+            $counts['closeouts'] = max(0, $sharedCloseoutCount);
+        } else {
         $closeoutStatement = $conn->prepare(
             "SELECT COUNT(*) AS closeout_count
              FROM engagements engagement
@@ -84,11 +88,52 @@ function fetchTaskReminderCounts(
         $closeoutRow = $closeoutStatement->get_result()->fetch_assoc() ?: [];
         $closeoutStatement->close();
         $counts['closeouts'] = (int) ($closeoutRow['closeout_count'] ?? 0);
+        }
     }
 
     $counts['total'] = $counts['overdue'] + $counts['today']
         + $counts['upcoming'] + $counts['waiting'] + $counts['closeouts'];
     return $counts;
+}
+
+/**
+ * The closeout list is identical for every editor/admin digest in one business
+ * day, so schedulers can fetch it once and share the bounded result.
+ *
+ * @return array{count: int, items: list<array<string, mixed>>}
+ */
+function fetchDailyTaskDigestCloseouts(mysqli $conn, string $businessDate): array
+{
+    $statement = $conn->prepare(
+        "SELECT engagement.id, engagement.event_title,
+                engagement.event_end_date, organization.organization_name,
+                COUNT(*) OVER () AS closeout_count
+         FROM engagements engagement
+         INNER JOIN organizations organization
+            ON organization.id = engagement.organization_id
+         LEFT JOIN engagement_financial_reports report
+            ON report.engagement_id = engagement.id
+         WHERE engagement.is_deleted = 0
+           AND organization.is_deleted = 0
+           AND engagement.lifecycle_status IN ('active', 'completed')
+           AND engagement.event_end_date < ?
+           AND report.engagement_id IS NULL
+         ORDER BY engagement.event_end_date, engagement.id
+         LIMIT 12"
+    );
+    if (!$statement) {
+        throw new RuntimeException('Unable to prepare daily digest closeouts.');
+    }
+    $statement->bind_param('s', $businessDate);
+    $statement->execute();
+    $items = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
+    $statement->close();
+    $count = isset($items[0]['closeout_count']) ? (int) $items[0]['closeout_count'] : 0;
+    foreach ($items as &$item) {
+        unset($item['closeout_count']);
+    }
+    unset($item);
+    return ['count' => $count, 'items' => $items];
 }
 
 function taskDigestDeliveryTimeFromInput(mixed $value): string
@@ -164,14 +209,20 @@ function fetchDailyTaskDigestData(
     mysqli $conn,
     int $userId,
     string $role,
-    string $businessDate
+    string $businessDate,
+    ?array $sharedCloseouts = null
 ): array {
+    $canReviewCloseouts = in_array($role, ['admin', 'editor'], true);
+    if ($canReviewCloseouts && $sharedCloseouts === null) {
+        $sharedCloseouts = fetchDailyTaskDigestCloseouts($conn, $businessDate);
+    }
     $data = [
         'counts' => fetchTaskReminderCounts(
             $conn,
             $userId,
             $role,
-            $businessDate
+            $businessDate,
+            $canReviewCloseouts ? (int) ($sharedCloseouts['count'] ?? 0) : null
         ),
         'overdue' => [],
         'today' => [],
@@ -182,71 +233,65 @@ function fetchDailyTaskDigestData(
     $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
 
     $taskStatement = $conn->prepare(
-        "SELECT id, title, status, priority, due_date, waiting_on
-         FROM follow_up_tasks
-         WHERE assigned_to = ?
-           AND (
-                status = 'waiting'
-                OR (
-                    status IN ('open', 'in_progress')
-                    AND due_date IS NOT NULL
-                    AND due_date <= DATE_ADD(?, INTERVAL {$upcomingDays} DAY)
-                )
-           )
+        "SELECT id, title, status, priority, due_date, waiting_on, digest_section
+         FROM (
+            SELECT categorized.*,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY digest_section
+                       ORDER BY COALESCE(due_date, '9999-12-31'),
+                                FIELD(priority, 'urgent', 'high', 'normal', 'low'), id
+                   ) AS digest_rank
+            FROM (
+                SELECT id, title, status, priority, due_date, waiting_on,
+                       CASE
+                           WHEN status = 'waiting' THEN 'waiting'
+                           WHEN due_date < ? THEN 'overdue'
+                           WHEN due_date = ? THEN 'today'
+                           ELSE 'upcoming'
+                       END AS digest_section
+                FROM follow_up_tasks
+                WHERE assigned_to = ?
+                  AND (
+                       status = 'waiting'
+                       OR (
+                           status IN ('open', 'in_progress')
+                           AND due_date IS NOT NULL
+                           AND due_date <= DATE_ADD(?, INTERVAL {$upcomingDays} DAY)
+                       )
+                  )
+            ) categorized
+         ) ranked
+         WHERE digest_rank <= 12
          ORDER BY
-            FIELD(status, 'open', 'in_progress', 'waiting'),
+            FIELD(digest_section, 'overdue', 'today', 'upcoming', 'waiting'),
             COALESCE(due_date, '9999-12-31'),
             FIELD(priority, 'urgent', 'high', 'normal', 'low'),
-            id
-         LIMIT 500"
+            id"
     );
     if (!$taskStatement) {
         throw new RuntimeException('Unable to prepare daily digest tasks.');
     }
-    $taskStatement->bind_param('is', $userId, $businessDate);
+    $taskStatement->bind_param(
+        'ssis',
+        $businessDate,
+        $businessDate,
+        $userId,
+        $businessDate
+    );
     $taskStatement->execute();
     $tasks = $taskStatement->get_result()->fetch_all(MYSQLI_ASSOC);
     $taskStatement->close();
 
     foreach ($tasks as $task) {
-        if ($task['status'] === 'waiting') {
-            $data['waiting'][] = $task;
-            continue;
-        }
-        $dueDate = (string) ($task['due_date'] ?? '');
-        if ($dueDate < $businessDate) {
-            $data['overdue'][] = $task;
-        } elseif ($dueDate === $businessDate) {
-            $data['today'][] = $task;
-        } else {
-            $data['upcoming'][] = $task;
-        }
+        $section = (string) $task['digest_section'];
+        unset($task['digest_section']);
+        $data[$section][] = $task;
     }
 
-    if (in_array($role, ['admin', 'editor'], true)) {
-        $closeoutStatement = $conn->prepare(
-            "SELECT engagement.id, engagement.event_title,
-                    engagement.event_end_date, organization.organization_name
-             FROM engagements engagement
-             INNER JOIN organizations organization
-                ON organization.id = engagement.organization_id
-             LEFT JOIN engagement_financial_reports report
-                ON report.engagement_id = engagement.id
-             WHERE engagement.is_deleted = 0
-               AND organization.is_deleted = 0
-               AND engagement.lifecycle_status IN ('active', 'completed')
-               AND engagement.event_end_date < ?
-               AND report.engagement_id IS NULL
-             ORDER BY engagement.event_end_date, engagement.id
-             LIMIT 100"
-        );
-        if (!$closeoutStatement) {
-            throw new RuntimeException('Unable to prepare daily digest closeouts.');
-        }
-        $closeoutStatement->bind_param('s', $businessDate);
-        $closeoutStatement->execute();
-        $data['closeouts'] = $closeoutStatement->get_result()->fetch_all(MYSQLI_ASSOC);
-        $closeoutStatement->close();
+    if ($canReviewCloseouts) {
+        $data['closeouts'] = is_array($sharedCloseouts['items'] ?? null)
+            ? $sharedCloseouts['items']
+            : [];
     }
 
     return $data;
@@ -422,12 +467,45 @@ function queueNotificationPayload(
     return $inserted;
 }
 
+function recordDailyTaskDigestSchedulingFailure(
+    mysqli $conn,
+    int $userId,
+    string $digestDate,
+    string $email,
+    Throwable $exception
+): void {
+    $recipientHash = hash('sha256', strtolower(trim($email)), true);
+    $error = mb_substr('Scheduling failed: ' . $exception->getMessage(), 0, 255, 'UTF-8');
+    $statement = $conn->prepare(
+        "INSERT IGNORE INTO notification_outbox
+            (user_id, notification_type, digest_date, recipient_hash,
+             payload_ciphertext, status, last_error)
+         VALUES (?, 'daily_task_digest', ?, ?, NULL, 'failed', ?)"
+    );
+    if (!$statement) {
+        throw new RuntimeException('Unable to prepare a daily digest scheduling failure.');
+    }
+    $statement->bind_param('isss', $userId, $digestDate, $recipientHash, $error);
+    $statement->execute();
+    $statement->close();
+}
+
 function queueDueDailyTaskDigests(
     mysqli $conn,
-    ?DateTimeImmutable $instant = null
+    ?DateTimeImmutable $instant = null,
+    int $pageSize = 100,
+    int $maximumRecipients = 5000,
+    float $maximumSeconds = 20.0
 ): int {
     $instant ??= new DateTimeImmutable('now', new DateTimeZone('UTC'));
     $businessDate = applicationBusinessDate($instant);
+    $localInstant = $instant->setTimezone(applicationTimezone());
+    $deliveryCutoff = $localInstant->format('H:i:s');
+    $deliveryDayMask = 1 << ((int) $localInstant->format('N') - 1);
+    $pageSize = max(1, min(500, $pageSize));
+    $maximumRecipients = max($pageSize, min(50000, $maximumRecipients));
+    $maximumSeconds = max(1.0, min(60.0, $maximumSeconds));
+    $deadline = hrtime(true) + (int) round($maximumSeconds * 1_000_000_000);
     $userStatement = $conn->prepare(
         "SELECT user.id, user.username, user.first_name, user.email, user.role,
                 user.task_digest_time, user.task_digest_days
@@ -437,49 +515,145 @@ function queueDueDailyTaskDigests(
            AND outbox.notification_type = 'daily_task_digest'
            AND outbox.digest_date = ?
          WHERE user.account_status = 'active'
+           AND user.id > ?
            AND user.task_digest_enabled = 1
            AND user.email IS NOT NULL
            AND user.email <> ''
            AND user.email_verified_at IS NOT NULL
+           AND user.task_digest_time <= ?
+           AND (user.task_digest_days & ?) <> 0
            AND outbox.id IS NULL
-         ORDER BY user.id"
+         ORDER BY user.id
+         LIMIT ?"
     );
     if (!$userStatement) {
         throw new RuntimeException('Unable to prepare daily digest recipients.');
     }
-    $userStatement->bind_param('s', $businessDate);
-    $userStatement->execute();
-    $users = $userStatement->get_result();
 
     $queued = 0;
-    while ($user = $users->fetch_assoc()) {
-        if (!taskDigestScheduleIsDue(
-            (string) $user['task_digest_time'],
-            (int) $user['task_digest_days'],
-            $instant
-        )) {
-            continue;
+    $scanned = 0;
+    $afterUserId = 0;
+    $sharedCloseouts = null;
+    try {
+        while ($scanned < $maximumRecipients && hrtime(true) < $deadline) {
+            $pageLimit = min($pageSize, $maximumRecipients - $scanned);
+            $userStatement->bind_param(
+                'sisii',
+                $businessDate,
+                $afterUserId,
+                $deliveryCutoff,
+                $deliveryDayMask,
+                $pageLimit
+            );
+            $userStatement->execute();
+            $users = $userStatement->get_result()->fetch_all(MYSQLI_ASSOC);
+            if ($users === []) {
+                break;
+            }
+
+            foreach ($users as $user) {
+                if (hrtime(true) >= $deadline) {
+                    break 2;
+                }
+                $userId = (int) $user['id'];
+                $afterUserId = $userId;
+                $scanned++;
+                try {
+                    if ($sharedCloseouts === null
+                        && in_array($user['role'], ['admin', 'editor'], true)
+                    ) {
+                        $sharedCloseouts = fetchDailyTaskDigestCloseouts($conn, $businessDate);
+                    }
+                    $digest = fetchDailyTaskDigestData(
+                        $conn,
+                        $userId,
+                        (string) $user['role'],
+                        $businessDate,
+                        $sharedCloseouts
+                    );
+                    $message = dailyTaskDigestMessage($user, $digest, $businessDate);
+                    if (queueNotificationPayload(
+                        $conn,
+                        $userId,
+                        'daily_task_digest',
+                        $businessDate,
+                        $message
+                    )) {
+                        $queued++;
+                    }
+                } catch (Throwable $exception) {
+                    applicationLog('error', 'Unable to schedule daily work digest for user', [
+                        'user_id' => $userId,
+                        'error' => $exception->getMessage(),
+                    ]);
+                    try {
+                        // A per-day terminal marker keeps one malformed account
+                        // from consuming every bounded scan while trying again
+                        // automatically on the next selected digest date.
+                        recordDailyTaskDigestSchedulingFailure(
+                            $conn,
+                            $userId,
+                            $businessDate,
+                            (string) ($user['email'] ?? ''),
+                            $exception
+                        );
+                    } catch (Throwable $recordException) {
+                        applicationLog('error', 'Unable to record daily digest scheduling failure', [
+                            'user_id' => $userId,
+                            'error' => $recordException->getMessage(),
+                        ]);
+                    }
+                }
+            }
+
+            if (count($users) < $pageLimit) {
+                break;
+            }
         }
-        $userId = (int) $user['id'];
-        $digest = fetchDailyTaskDigestData(
-            $conn,
-            $userId,
-            (string) $user['role'],
-            $businessDate
-        );
-        $message = dailyTaskDigestMessage($user, $digest, $businessDate);
-        if (queueNotificationPayload(
-            $conn,
-            $userId,
-            'daily_task_digest',
-            $businessDate,
-            $message
-        )) {
-            $queued++;
-        }
+    } finally {
+        $userStatement->close();
     }
-    $userStatement->close();
     return $queued;
+}
+
+function maintainQueuedNotificationEmail(
+    mysqli $conn,
+    string $businessDate,
+    int $leaseSeconds = 600
+): void {
+    $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    $discard = $conn->prepare(
+        "UPDATE notification_outbox outbox
+         INNER JOIN users user ON user.id = outbox.user_id
+         SET outbox.status = 'failed', outbox.payload_ciphertext = NULL,
+             outbox.processing_started_at = NULL,
+             outbox.last_error = 'Digest is stale or its recipient is unavailable.'
+         WHERE outbox.attempts < 8
+           AND outbox.payload_ciphertext IS NOT NULL
+           AND (
+                (outbox.status IN ('pending', 'retry')
+                    AND outbox.next_attempt_at <= UTC_TIMESTAMP())
+                OR (outbox.status = 'processing'
+                    AND outbox.processing_started_at <= DATE_SUB(
+                        UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
+                    ))
+           )
+           AND (
+                outbox.digest_date < ?
+                OR user.account_status <> 'active'
+                OR user.task_digest_enabled <> 1
+                OR (user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))) = 0
+                OR user.email_verified_at IS NULL
+                OR user.email IS NULL
+                OR outbox.recipient_hash <> UNHEX(SHA2(LOWER(TRIM(user.email)), 256))
+           )"
+    );
+    if (!$discard) {
+        throw new RuntimeException('Unable to prepare invalid notification cleanup.');
+    }
+    $discard->bind_param('s', $businessDate);
+    $discard->execute();
+    $discard->close();
 }
 
 /**
@@ -489,44 +663,15 @@ function queueDueDailyTaskDigests(
 function claimQueuedNotificationEmail(
     mysqli $conn,
     string $businessDate,
-    int $leaseSeconds = 600
+    int $leaseSeconds = 600,
+    bool $performMaintenance = true
 ): ?array {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    if ($performMaintenance) {
+        maintainQueuedNotificationEmail($conn, $businessDate, $leaseSeconds);
+    }
     $conn->begin_transaction();
     try {
-        $discard = $conn->prepare(
-            "UPDATE notification_outbox outbox
-             INNER JOIN users user ON user.id = outbox.user_id
-             SET outbox.status = 'failed', outbox.payload_ciphertext = NULL,
-                 outbox.processing_started_at = NULL,
-                 outbox.last_error = 'Digest is stale or its recipient is unavailable.'
-             WHERE outbox.attempts < 8
-               AND outbox.payload_ciphertext IS NOT NULL
-               AND (
-                    (outbox.status IN ('pending', 'retry')
-                        AND outbox.next_attempt_at <= UTC_TIMESTAMP())
-                    OR (outbox.status = 'processing'
-                        AND outbox.processing_started_at <= DATE_SUB(
-                            UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
-                        ))
-               )
-               AND (
-                    outbox.digest_date < ?
-                    OR user.account_status <> 'active'
-                    OR user.task_digest_enabled <> 1
-                    OR (user.task_digest_days & (1 << WEEKDAY(outbox.digest_date))) = 0
-                    OR user.email_verified_at IS NULL
-                    OR user.email IS NULL
-                    OR outbox.recipient_hash <> UNHEX(SHA2(LOWER(TRIM(user.email)), 256))
-               )"
-        );
-        if (!$discard) {
-            throw new RuntimeException('Unable to prepare invalid notification cleanup.');
-        }
-        $discard->bind_param('s', $businessDate);
-        $discard->execute();
-        $discard->close();
-
         $statement = $conn->prepare(
             "SELECT outbox.id, outbox.user_id, outbox.notification_type,
                     outbox.digest_date, outbox.payload_ciphertext

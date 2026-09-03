@@ -208,58 +208,103 @@ import {
         updateFeedback();
     });
 
-    const lookupUrl = String(locationLookup.url || '');
+    const enqueueUrl = String(locationLookup.enqueueUrl || '');
+    const statusUrl = String(locationLookup.statusUrl || '');
     const csrfToken = String(locationLookup.csrfToken || '');
     const pollInterval = Math.max(750, Number(locationLookup.pollIntervalMilliseconds) || 1500);
-    const maximumPolls = Math.max(1, Number(locationLookup.maximumPolls) || 40);
+    const maximumPollInterval = Math.max(
+        pollInterval,
+        Number(locationLookup.maximumPollIntervalMilliseconds) || 30000
+    );
+    const maximumPolls = Math.max(1, Number(locationLookup.maximumPolls) || 20);
     let pollCount = 0;
     let polling = false;
+
+    function applyLocationResults(locations) {
+        if (!Array.isArray(locations)) return;
+        let pinsChanged = false;
+        locations.forEach(function (result) {
+            const eventId = Number(result.id);
+            const event = pendingEvents.get(eventId);
+            if (!event) return;
+            if (result.status === 'found'
+                && addPin(event, Number(result.latitude), Number(result.longitude))
+            ) {
+                pendingEvents.delete(eventId);
+                pendingCount = Math.max(0, pendingCount - 1);
+                pinsChanged = true;
+            } else if (result.status === 'not_found'
+                || result.status === 'no_address'
+                || result.status === 'failed'
+            ) {
+                pendingEvents.delete(eventId);
+                pendingCount = Math.max(0, pendingCount - 1);
+                notFoundCount++;
+            }
+        });
+        if (pinsChanged) fitMapToPins();
+    }
+
+    async function requestLocationBatch(url) {
+        const response = await fetch(url, {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
+            body: new URLSearchParams({
+                csrf_token: csrfToken,
+                engagement_ids: Array.from(pendingEvents.keys()).join(',')
+            })
+        });
+        if (!response.ok && response.status !== 202) {
+            throw new Error('Location lookup failed.');
+        }
+        const result = await response.json();
+        applyLocationResults(result.locations);
+    }
+
+    function nextPollDelay() {
+        const exponentialDelay = Math.min(
+            maximumPollInterval,
+            pollInterval * Math.pow(2, Math.min(pollCount, 5))
+        );
+        // Jitter keeps multiple open map pages from synchronizing their polls.
+        return Math.round(exponentialDelay * (0.8 + Math.random() * 0.4));
+    }
 
     async function pollPendingLocations() {
         if (polling || pendingEvents.size === 0 || pollCount >= maximumPolls) return;
         if (document.visibilityState === 'hidden') {
-            window.setTimeout(pollPendingLocations, pollInterval);
+            window.setTimeout(pollPendingLocations, nextPollDelay());
             return;
         }
         polling = true;
         pollCount++;
-        const lookups = Array.from(pendingEvents.entries()).map(async function ([eventId, event]) {
-            try {
-                const response = await fetch(lookupUrl, {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
-                    body: new URLSearchParams({
-                        csrf_token: csrfToken,
-                        engagement_id: String(eventId)
-                    })
-                });
-                if (!response.ok && response.status !== 202) return;
-                const result = await response.json();
-                if (result.status === 'found'
-                    && addPin(event, Number(result.latitude), Number(result.longitude))
-                ) {
-                    pendingEvents.delete(eventId);
-                    pendingCount = Math.max(0, pendingCount - 1);
-                    fitMapToPins();
-                } else if (result.status === 'not_found' || result.status === 'no_address') {
-                    pendingEvents.delete(eventId);
-                    pendingCount = Math.max(0, pendingCount - 1);
-                    notFoundCount++;
-                }
-            } catch (error) {
-                // Keep the location pending. The worker and the next poll can recover.
-            }
-        });
-        await Promise.all(lookups);
+        try {
+            await requestLocationBatch(statusUrl);
+        } catch (error) {
+            // Keep the locations pending. The worker and a later poll can recover.
+        }
         polling = false;
         updateFeedback();
         if (pendingEvents.size > 0 && pollCount < maximumPolls) {
+            window.setTimeout(pollPendingLocations, nextPollDelay());
+        }
+    }
+
+    async function enqueuePendingLocations() {
+        if (!enqueueUrl || !statusUrl || !csrfToken || pendingEvents.size === 0) return;
+        polling = true;
+        try {
+            await requestLocationBatch(enqueueUrl);
+        } catch (error) {
+            // A status poll can still observe work queued by another request.
+        }
+        polling = false;
+        updateFeedback();
+        if (pendingEvents.size > 0) {
             window.setTimeout(pollPendingLocations, pollInterval);
         }
     }
 
-    if (lookupUrl && csrfToken && pendingEvents.size > 0) {
-        window.setTimeout(pollPendingLocations, 250);
-    }
+    enqueuePendingLocations();
 })();

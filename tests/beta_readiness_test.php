@@ -75,6 +75,8 @@ expectBetaReadiness(
 );
 
 $compose = $read('docker-compose.yaml');
+$development_compose = $read('docker-compose.dev.yaml');
+$development_ingress_guard = $read('docker/development-ingress-entrypoint.sh');
 $apache = $read('docker/apache-security.conf');
 $ingress = $read('docker/apache-ingress.conf');
 $ingress_dockerfile = $read('docker/ingress.Dockerfile');
@@ -90,6 +92,11 @@ $ingress_service = substr(
 );
 expectBetaReadiness(
     str_contains($compose, 'DNR_BIND_ADDRESS:-127.0.0.1')
+        && str_contains($development_compose, 'ports: !override')
+        && str_contains($development_compose, 'DNR_DEV_BIND_ADDRESS:-127.0.0.1')
+        && str_contains($development_compose, 'DNR_DEV_ALLOW_REMOTE_HTTP:-0')
+        && str_contains($development_ingress_guard, 'Refusing to publish the plaintext development ingress')
+        && str_contains($development_ingress_guard, 'DNR_DEV_ALLOW_REMOTE_HTTP=1')
         && str_contains($compose, 'MYSQL_ROOT_PASSWORD_FILE: /run/secrets/dnr_mysql_root_password')
         && str_contains($compose, 'MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password')
         && str_contains($compose, 'test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]')

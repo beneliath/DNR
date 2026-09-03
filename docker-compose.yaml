@@ -9,6 +9,8 @@ x-app-environment: &app-environment
   DNR_DEFAULT_PHONE_COUNTRY_CODE: ${DNR_DEFAULT_PHONE_COUNTRY_CODE:-}
   DNR_INBOUND_MARKER_PREFIX: ${DNR_INBOUND_MARKER_PREFIX:-}
   DNR_INBOUND_ACCEPTED_MARKER_PREFIXES: ${DNR_INBOUND_ACCEPTED_MARKER_PREFIXES:-}
+  DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM: ${DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM:-1}
+  DNR_INBOUND_TRUSTED_AUTH_SERVERS: ${DNR_INBOUND_TRUSTED_AUTH_SERVERS:-}
   DB_HOST: db
   MYSQL_DATABASE: dnr
   MYSQL_USER: dnruser
@@ -21,7 +23,7 @@ x-app-environment: &app-environment
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
   DNR_TIMEZONE: ${DNR_TIMEZONE:-}
-  DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
+  DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-268435456}
   DNR_GITHUB_REPOSITORY: ${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
   DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
   DNR_SESSION_IDLE_SECONDS: ${DNR_SESSION_IDLE_SECONDS:-1800}
@@ -54,7 +56,7 @@ services:
     restart: unless-stopped
     read_only: true
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=160m
+      - /tmp:rw,noexec,nosuid,size=640m
       - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
       - /var/lock/apache2:rw,noexec,nosuid,size=1m
       - /var/run/apache2:rw,noexec,nosuid,size=1m
@@ -163,7 +165,7 @@ services:
     user: www-data
     entrypoint: ["php", "/opt/dnr/bin/restore_database.php"]
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=128m
+      - /tmp:rw,noexec,nosuid,size=640m
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
@@ -186,7 +188,7 @@ services:
       MYSQL_BACKUP_USER: dnrbackup
       MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       DNR_BACKUP_PASSWORD_FILE: /run/secrets/dnr_backup_password
-      DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-67108864}
+      DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-268435456}
       DNR_CONFIG_FILE: /run/dnr/config/application.yaml
     networks: [backend]
 

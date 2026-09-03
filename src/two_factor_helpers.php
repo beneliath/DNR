@@ -159,6 +159,17 @@ function fetchAuthenticationUserById(mysqli $conn, $user_id) {
     return $result->num_rows === 1 ? $result->fetch_assoc() : null;
 }
 
+function passwordAuthenticationIsAccepted(?array $user, bool $password_valid): bool {
+    // A valid second factor lets the real owner recover from an attacker-
+    // induced password lock without turning the account threshold into a
+    // distributed password-guessing bypass. Accounts without 2FA remain
+    // locked and can use the verified-email password-recovery flow.
+    return $user !== null
+        && ($user['account_status'] ?? null) === 'active'
+        && $password_valid
+        && (empty($user['login_is_locked']) || !empty($user['two_factor_enabled']));
+}
+
 function recordAuthenticationFailure(mysqli $conn, $user_id, $factor) {
     $columns = [
         'password' => ['login_failed_attempts', 'login_locked_until'],
@@ -388,8 +399,7 @@ function attemptAdminElevation(mysqli $conn, $password, $code) {
         return false;
     }
 
-    if (!empty($user['login_is_locked'])
-        || !\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
+    if (!\Dnr\Security\PasswordPolicy::verify($password, $user['password'])) {
         if (empty($user['login_is_locked'])) {
             recordAuthenticationFailure($conn, $user_id, 'password');
         }

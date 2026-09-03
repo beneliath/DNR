@@ -17,6 +17,7 @@ if (!hasRole(['admin', 'editor'])) {
     echo json_encode(['error' => 'Forbidden']);
     exit();
 }
+releaseApplicationSessionLock();
 
 $organization_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'organization_id');
 if ($organization_id === null) {

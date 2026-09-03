@@ -760,7 +760,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Continuity</span>
                         <h3>Encrypted Backup</h3>
-                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 12 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
+                        <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 16 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
                         <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Database restore is intentionally a deployment-host procedure, not a web action.</p>
                         <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
                     </article>

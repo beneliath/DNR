@@ -55,9 +55,14 @@
         };
     }
 
+    function shouldReleaseQrPreviews(event) {
+        return !event || event.persisted !== true;
+    }
+
     if (typeof module === "object" && module.exports) {
         module.exports = {
             compact24HourTime: compact24HourTime,
+            shouldReleaseQrPreviews: shouldReleaseQrPreviews,
             validTime: validTime,
             validWholeNumber: validWholeNumber
         };
@@ -385,6 +390,16 @@
         status.classList.toggle("is-error", Boolean(isError));
     }
 
+    function releaseQrPreview(uploader) {
+        var previewButton = uploader.querySelector("[data-qr-preview-button]");
+        if (!previewButton) return;
+        var previewUrl = previewButton.dataset.copyQrUrl || "";
+        if (previewUrl.startsWith("blob:") && typeof URL.revokeObjectURL === "function") {
+            URL.revokeObjectURL(previewUrl);
+        }
+        previewButton.dataset.copyQrUrl = "";
+    }
+
     function setQrImage(uploader, file) {
         if (!file || !/^image\/(jpeg|png|webp)$/.test(file.type)) {
             showQrStatus(uploader, "Paste or choose a JPEG, PNG, or WebP image.", true);
@@ -398,32 +413,28 @@
         var input = uploader.querySelector("[data-qr-file]");
         var preview = uploader.querySelector("[data-qr-preview]");
         var previewButton = uploader.querySelector("[data-qr-preview-button]");
-        if (!input || !preview || !previewButton || typeof DataTransfer === "undefined") {
+        if (!input || !preview || !previewButton
+            || typeof DataTransfer === "undefined"
+            || typeof URL.createObjectURL !== "function"
+        ) {
             showQrStatus(uploader, "This browser cannot attach the pasted image. Choose the image file instead.", true);
             return false;
         }
         var transfer = new DataTransfer();
-        transfer.items.add(new File([file], file.name || "pasted-qr.png", { type: file.type }));
+        var attachedFile = file instanceof File
+            ? file
+            : new File([file], "pasted-qr.png", { type: file.type });
+        transfer.items.add(attachedFile);
         input.files = transfer.files;
 
         var removal = uploader.querySelector('input[name*="[remove_"]');
         if (removal) removal.checked = false;
-        showQrStatus(uploader, "Preparing QR code preview…", false);
-        var reader = new FileReader();
-        reader.addEventListener("load", function () {
-            if (typeof reader.result !== "string" || !reader.result.startsWith("data:image/")) {
-                showQrStatus(uploader, "The QR code preview could not be prepared.", true);
-                return;
-            }
-            preview.src = reader.result;
-            previewButton.dataset.copyQrUrl = reader.result;
-            previewButton.hidden = false;
-            showQrStatus(uploader, "QR code ready to save. Click the preview to copy it.", false);
-        });
-        reader.addEventListener("error", function () {
-            showQrStatus(uploader, "The QR code preview could not be prepared.", true);
-        });
-        reader.readAsDataURL(input.files[0]);
+        releaseQrPreview(uploader);
+        var previewUrl = URL.createObjectURL(input.files[0]);
+        preview.src = previewUrl;
+        previewButton.dataset.copyQrUrl = previewUrl;
+        previewButton.hidden = false;
+        showQrStatus(uploader, "QR code ready to save. Click the preview to copy it.", false);
         updateConfirmedAvailability();
         return true;
     }
@@ -437,17 +448,6 @@
             });
         }
 
-        function pasteImageFromEvent(event) {
-            if (document.activeElement !== pasteButton) return;
-            var image = qrImageFromClipboardItems(event.clipboardData && event.clipboardData.items);
-            if (!image) {
-                showQrStatus(uploader, "The clipboard does not contain a supported image.", true);
-                return;
-            }
-            event.preventDefault();
-            setQrImage(uploader, image);
-        }
-
         async function clipboardReadIsGranted() {
             if (!navigator.permissions || typeof navigator.permissions.query !== "function") return false;
             try {
@@ -459,7 +459,6 @@
         }
 
         if (pasteButton) {
-            document.addEventListener("paste", pasteImageFromEvent);
             pasteButton.addEventListener("click", async function () {
                 pasteButton.focus();
                 if (!navigator.clipboard
@@ -494,6 +493,20 @@
                 }
             });
         }
+    }
+
+    function pasteQrImage(event) {
+        var pasteButton = document.activeElement;
+        if (!pasteButton || !pasteButton.matches("[data-paste-qr]")) return;
+        var uploader = pasteButton.closest("[data-qr-uploader]");
+        if (!uploader) return;
+        var image = qrImageFromClipboardItems(event.clipboardData && event.clipboardData.items);
+        if (!image) {
+            showQrStatus(uploader, "The clipboard does not contain a supported image.", true);
+            return;
+        }
+        event.preventDefault();
+        setQrImage(uploader, image);
     }
 
     function presentationMarkup(id) {
@@ -574,6 +587,7 @@
     window.removePresentation = function (id) {
         var entry = document.getElementById("presentation-" + id);
         if (entry) {
+            entry.querySelectorAll("[data-qr-uploader]").forEach(releaseQrPreview);
             entry.remove();
         }
         updateConfirmedAvailability();
@@ -635,6 +649,13 @@
             if (removeButton) {
                 window.removePresentation(parseInt(removeButton.dataset.removePresentation, 10));
             }
+        });
+        // One delegated listener handles dynamically added presentations and
+        // avoids three document listeners for every presentation row.
+        document.addEventListener("paste", pasteQrImage);
+        window.addEventListener("pagehide", function (event) {
+            if (!shouldReleaseQrPreviews(event)) return;
+            document.querySelectorAll("[data-qr-uploader]").forEach(releaseQrPreview);
         });
         applyPresentationDateConstraints();
         updateConfirmedAvailability();

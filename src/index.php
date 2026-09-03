@@ -210,7 +210,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         'event_zipcode' => $event_zipcode,
                         'event_country' => $event_country,
                     ]);
-                    if ($map_address !== '' && !queueEngagementMapAddress($conn, $map_address)) {
+                    if ($map_address !== ''
+                        && !queueEngagementMapAddress($conn, $map_address, true)
+                    ) {
                         throw new RuntimeException('Unable to queue the engagement location.');
                     }
 

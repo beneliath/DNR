@@ -48,7 +48,9 @@ expectInboundFeature(
 );
 expectInboundFeature(
     str_contains($helper, 'routeInboundEmailMessage')
-        && str_contains($helper, "'automatic' => \$authoritativeEngagement && \$recognizedSender")
+        && str_contains($helper, "!\$senderAuthentication['required'] || \$senderAuthentication['trusted']")
+        && str_contains($helper, 'inboundEmailTopAuthenticationResults')
+        && str_contains($helper, 'trusted aligned DMARC pass')
         && str_contains($helper, 'inboundEmailMessageEngagementMarkers')
         && str_contains($helper, 'applicationInboundMarkerIsValid')
         && str_contains($helper, "'authoritative_engagement' => \$authoritativeEngagement")
@@ -74,6 +76,8 @@ expectInboundFeature(
         && str_contains($worker, 'UIDVALIDITY changed after reconnecting')
         && str_contains($compose, 'DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password')
         && str_contains($compose, 'DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key')
+        && str_contains($compose, 'DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM')
+        && str_contains($compose, 'DNR_INBOUND_TRUSTED_AUTH_SERVERS')
         && str_contains($workflow, 'openssl rand -base64 32 > secrets/dnr_inbound_routing_key')
         && str_contains($compose, 'cap_drop: [ALL]'),
     'the least-privilege worker should poll configurable IMAP and use a mounted password secret.'
@@ -114,6 +118,8 @@ expectInboundFeature(
 );
 expectInboundFeature(
     str_contains($environment, 'DNR_INBOUND_ADDRESS=dnr@example.org')
+        && str_contains($environment, 'DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=1')
+        && str_contains($environment, 'DNR_INBOUND_TRUSTED_AUTH_SERVERS=')
         && str_contains($environment, 'DNR_IMAP_PASSWORD_FILE=./secrets/imap_password')
         && str_contains($readme, '### Inbound email to Chron')
         && str_contains($readme, '[MOED#123.<signed-token>]')
@@ -121,6 +127,7 @@ expectInboundFeature(
         && str_contains($readme, 'searchable')
         && str_contains($readme, 'production-mail')
         && str_contains($readme, 'Attachment contents are not stored')
+        && str_contains($readme, 'aligned `dmarc=pass`')
         && str_contains($readme, 'does not delete or move the source message'),
     'the gateway, deployment modes, routing limits, and attachment policy should be documented.'
 );

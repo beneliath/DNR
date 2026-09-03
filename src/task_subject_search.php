@@ -14,6 +14,7 @@ if (!canManageFollowUpTasks($_SESSION['role'] ?? '')) {
     echo json_encode(['error' => 'Forbidden']);
     exit();
 }
+releaseApplicationSessionLock();
 
 try {
     echo json_encode([

@@ -133,7 +133,7 @@ function fetchDashboardUpcomingEngagements(
          INNER JOIN organizations o ON o.id = e.organization_id
          WHERE e.is_deleted = 0
            AND e.lifecycle_status = 'active'
-           AND COALESCE(e.event_end_date, e.event_start_date) >= ?
+           AND e.event_end_date >= ?
            AND e.event_start_date <= ?
          ORDER BY e.event_start_date, e.id
          LIMIT {$limit}"
@@ -216,7 +216,7 @@ function fetchDashboardFinancialCloseouts(
     $stmt = $conn->prepare(
         "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                 o.organization_name,
-                DATEDIFF(?, COALESCE(e.event_end_date, e.event_start_date)) AS days_overdue,
+                DATEDIFF(?, e.event_end_date) AS days_overdue,
                 COUNT(*) OVER() AS dashboard_total
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
@@ -224,9 +224,9 @@ function fetchDashboardFinancialCloseouts(
                 ON report.engagement_id = e.id
          WHERE e.is_deleted = 0
            AND e.lifecycle_status IN ('active', 'completed')
-           AND COALESCE(e.event_end_date, e.event_start_date) < ?
+           AND e.event_end_date < ?
            AND report.engagement_id IS NULL
-         ORDER BY COALESCE(e.event_end_date, e.event_start_date) DESC, e.id DESC
+         ORDER BY e.event_end_date DESC, e.id DESC
          LIMIT {$limit}"
     );
     if (!$stmt) {
