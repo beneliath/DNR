@@ -51,3 +51,5 @@
 20260901_default_daily_work_digest.sql
 20260902_add_contact_birthdays.sql
 20260902_store_contact_birthday_month_day.sql
+20260902_bound_audit_pruning.sql
+20260902_add_mail_history_retention.sql

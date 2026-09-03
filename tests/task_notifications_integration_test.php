@@ -32,6 +32,7 @@ $businessDate = applicationBusinessDate($instant);
 
 $userId = 0;
 $organizationId = 0;
+$bulkUsernamePattern = '';
 try {
     $username = 'digest-' . $suffix;
     $email = $username . '@example.test';
@@ -181,6 +182,97 @@ try {
         'invalidated digest content should be erased before it can be sent.'
     );
 
+    $bulkPrefix = 'digest-bulk-' . $suffix . '-';
+    $bulkUsernamePattern = $bulkPrefix . '%';
+    $bulkRole = 'reviewer';
+    $bulkPassword = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
+    $bulkUserStatement = $conn->prepare(
+        "INSERT INTO users
+            (username, email, email_verified_at, password, role, account_status,
+             task_digest_enabled, task_digest_time, task_digest_days)
+         VALUES (?, ?, UTC_TIMESTAMP(), ?, ?, 'active', 1, '00:00:00', 127)"
+    );
+    $bulkValidUsers = 105;
+    for ($index = 0; $index <= $bulkValidUsers; $index++) {
+        $bulkUsername = $bulkPrefix . $index;
+        $bulkEmail = $index === 0
+            ? 'not-an-email-' . $suffix
+            : $bulkUsername . '@example.test';
+        $bulkUserStatement->bind_param(
+            'ssss',
+            $bulkUsername,
+            $bulkEmail,
+            $bulkPassword,
+            $bulkRole
+        );
+        $bulkUserStatement->execute();
+    }
+    $bulkUserStatement->close();
+
+    $bulkQueued = queueDueDailyTaskDigests($conn, $instant);
+    $bulkOutboxStatement = $conn->prepare(
+        "SELECT COUNT(*) AS total
+         FROM notification_outbox outbox
+         INNER JOIN users user ON user.id = outbox.user_id
+         WHERE user.username LIKE ?
+           AND outbox.notification_type = 'daily_task_digest'
+           AND outbox.digest_date = ?
+           AND outbox.status = 'pending'"
+    );
+    $bulkOutboxStatement->bind_param('ss', $bulkUsernamePattern, $businessDate);
+    $bulkOutboxStatement->execute();
+    $bulkOutboxTotal = (int) $bulkOutboxStatement->get_result()->fetch_assoc()['total'];
+    $bulkOutboxStatement->close();
+    expectTaskNotificationIntegration(
+        $bulkQueued === $bulkValidUsers && $bulkOutboxTotal === $bulkValidUsers,
+        'one scheduling pass should drain more than 100 recipients while a malformed early recipient cannot starve later user IDs.'
+    );
+
+    $starvationPrefix = $bulkPrefix . 'starvation-';
+    $starvationPattern = $starvationPrefix . '%';
+    for ($index = 0; $index < 4; $index++) {
+        $bulkUsername = $starvationPrefix . $index;
+        $bulkEmail = $index < 3
+            ? 'invalid-starvation-' . $suffix . '-' . $index
+            : $bulkUsername . '@example.test';
+        $bulkUserStatement = $conn->prepare(
+            "INSERT INTO users
+                (username, email, email_verified_at, password, role, account_status,
+                 task_digest_enabled, task_digest_time, task_digest_days)
+             VALUES (?, ?, UTC_TIMESTAMP(), ?, ?, 'active', 1, '00:00:00', 127)"
+        );
+        $bulkUserStatement->bind_param(
+            'ssss',
+            $bulkUsername,
+            $bulkEmail,
+            $bulkPassword,
+            $bulkRole
+        );
+        $bulkUserStatement->execute();
+        $bulkUserStatement->close();
+    }
+    $firstBoundedPass = queueDueDailyTaskDigests($conn, $instant, 2, 2, 20.0);
+    $secondBoundedPass = queueDueDailyTaskDigests($conn, $instant, 2, 2, 20.0);
+    $starvationState = $conn->prepare(
+        "SELECT
+            SUM(outbox.status = 'failed') AS failed_total,
+            SUM(outbox.status = 'pending') AS pending_total
+         FROM notification_outbox outbox
+         INNER JOIN users user ON user.id = outbox.user_id
+         WHERE user.username LIKE ? AND outbox.digest_date = ?"
+    );
+    $starvationState->bind_param('ss', $starvationPattern, $businessDate);
+    $starvationState->execute();
+    $starvationTotals = $starvationState->get_result()->fetch_assoc();
+    $starvationState->close();
+    expectTaskNotificationIntegration(
+        $firstBoundedPass === 0
+            && $secondBoundedPass === 1
+            && (int) $starvationTotals['failed_total'] === 3
+            && (int) $starvationTotals['pending_total'] === 1,
+        'per-day failure markers should let later user IDs progress across bounded scheduling calls.'
+    );
+
 } finally {
     if ($userId > 0) {
         $conn->query("DELETE FROM follow_up_tasks WHERE created_by = {$userId}");
@@ -188,6 +280,12 @@ try {
     if ($organizationId > 0) {
         $conn->query("DELETE FROM engagements WHERE organization_id = {$organizationId}");
         $conn->query("DELETE FROM organizations WHERE id = {$organizationId}");
+    }
+    if ($bulkUsernamePattern !== '') {
+        $bulkCleanup = $conn->prepare('DELETE FROM users WHERE username LIKE ?');
+        $bulkCleanup->bind_param('s', $bulkUsernamePattern);
+        $bulkCleanup->execute();
+        $bulkCleanup->close();
     }
     if ($userId > 0) {
         $conn->query("DELETE FROM users WHERE id = {$userId}");

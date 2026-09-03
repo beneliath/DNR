@@ -4,4 +4,6 @@
 /secrets/
 /backups/
 /tmp/
+/output/
+/operations-view-colon.png
 .DS_Store

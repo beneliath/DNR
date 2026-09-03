@@ -34,6 +34,38 @@ jobs:
       - run: npm test
       - run: git diff --exit-code -- src/assets
 
+  mattermost-plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: mattermost-plugin/go.mod
+          cache-dependency-path: mattermost-plugin/go.sum
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Verify plugin module graph is tidy
+        working-directory: mattermost-plugin
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Test plugin
+        working-directory: mattermost-plugin
+        run: go test ./...
+      - name: Vet plugin
+        working-directory: mattermost-plugin
+        run: go vet ./...
+      - name: Scan plugin dependencies
+        working-directory: mattermost-plugin
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
+      - name: Build plugin webapp
+        run: make -C mattermost-plugin webapp
+      - name: Verify plugin build leaves no tracked drift
+        run: git diff --exit-code -- mattermost-plugin
+
   integration:
     runs-on: ubuntu-latest
     timeout-minutes: 20

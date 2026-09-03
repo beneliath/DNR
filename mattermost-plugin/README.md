@@ -3,7 +3,7 @@
 This server plugin keeps MOED as the system of record while exposing a small,
 auditable workflow surface inside Mattermost.
 
-Version 0.4.4 provides:
+Version 0.4.5 provides:
 
 - short-lived, single-use account linking;
 - `/moed status` plus polished `/moed today` and `/moed tasks` dashboards;
@@ -23,7 +23,7 @@ and performs all reads and writes.
 
 ## Build
 
-Go 1.25 or newer and Node.js with the repository's root dependencies are
+Go 1.26.7 or newer and Node.js with the repository's root dependencies are
 required. Run `npm install` from the repository root once before building the
 plugin webapp.
 
@@ -33,7 +33,7 @@ make dist
 ```
 
 The installable bundle is written to
-`dist/org.moed.mattermost-0.4.4.tar.gz` with its SHA-256 digest printed at the
+`dist/org.moed.mattermost-0.4.5.tar.gz` with its SHA-256 digest printed at the
 end of the build.
 
 ## Install

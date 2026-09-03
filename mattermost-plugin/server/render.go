@@ -59,18 +59,18 @@ func taskColor(priority string) string {
 	}
 }
 
-func taskAttachment(task apiTask) *model.SlackAttachment {
+func taskAttachment(task apiTask) *model.MessageAttachment {
 	due := "No due date"
 	if task.DueDate != nil && *task.DueDate != "" {
 		due = *task.DueDate
 	}
-	fields := []*model.SlackAttachmentField{
+	fields := []*model.MessageAttachmentField{
 		{Title: "Status", Value: formatStatus(task.Status), Short: true},
 		{Title: "Due", Value: due, Short: true},
 		{Title: "Priority", Value: formatStatus(task.Priority), Short: true},
 		{Title: "Record", Value: escapeMarkdown(task.Subject), Short: true},
 	}
-	attachment := &model.SlackAttachment{
+	attachment := &model.MessageAttachment{
 		Fallback:  task.Title,
 		Color:     taskColor(task.Priority),
 		Title:     escapeMarkdown(task.Title),
@@ -121,18 +121,18 @@ func eventAddress(event apiEngagement) string {
 	return strings.Join(parts, ", ")
 }
 
-func eventAttachment(event apiEngagement) *model.SlackAttachment {
-	fields := []*model.SlackAttachmentField{
+func eventAttachment(event apiEngagement) *model.MessageAttachment {
+	fields := []*model.MessageAttachmentField{
 		{Title: "Organization", Value: escapeMarkdown(event.OrganizationName), Short: true},
 		{Title: "Dates", Value: formatDateRange(event.EventStartDate, event.EventEndDate), Short: true},
 		{Title: "Lifecycle", Value: formatStatus(event.LifecycleStatus), Short: true},
 		{Title: "Confirmation", Value: formatStatus(event.ConfirmationStatus), Short: true},
 	}
 	if address := eventAddress(event); address != "" {
-		fields = append(fields, &model.SlackAttachmentField{Title: "Location", Value: escapeMarkdown(address), Short: false})
+		fields = append(fields, &model.MessageAttachmentField{Title: "Location", Value: escapeMarkdown(address), Short: false})
 	}
 	if event.EmailRoutingMarker != "" {
-		fields = append(fields, &model.SlackAttachmentField{
+		fields = append(fields, &model.MessageAttachmentField{
 			Title: "Email routing marker",
 			Value: "`" + escapeMarkdown(event.EmailRoutingMarker) + "`",
 			Short: false,
@@ -144,7 +144,7 @@ func eventAttachment(event apiEngagement) *model.SlackAttachment {
 		event.TaskSummary.Overdue,
 		event.TaskSummary.Unassigned,
 	)
-	fields = append(fields, &model.SlackAttachmentField{Title: "Follow-up", Value: work, Short: false})
+	fields = append(fields, &model.MessageAttachmentField{Title: "Follow-up", Value: work, Short: false})
 
 	presentations := make([]string, 0, len(event.Presentations))
 	for _, presentation := range event.Presentations {
@@ -159,14 +159,14 @@ func eventAttachment(event apiEngagement) *model.SlackAttachment {
 		presentations = append(presentations, line)
 	}
 	if len(presentations) > 0 {
-		fields = append(fields, &model.SlackAttachmentField{
+		fields = append(fields, &model.MessageAttachmentField{
 			Title: "Presentations",
 			Value: strings.Join(presentations, "\n"),
 			Short: false,
 		})
 	}
 
-	return &model.SlackAttachment{
+	return &model.MessageAttachment{
 		Fallback:  event.Title,
 		Color:     "#0f766e",
 		Title:     escapeMarkdown(event.Title),
@@ -177,6 +177,6 @@ func eventAttachment(event apiEngagement) *model.SlackAttachment {
 	}
 }
 
-func attachmentsProps(attachments ...*model.SlackAttachment) model.StringInterface {
+func attachmentsProps(attachments ...*model.MessageAttachment) model.StringInterface {
 	return model.StringInterface{"attachments": attachments}
 }

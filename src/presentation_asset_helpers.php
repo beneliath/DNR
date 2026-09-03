@@ -9,6 +9,45 @@ const PRESENTATION_QR_MAX_BYTES = 5 * 1024 * 1024;
 const PRESENTATION_QR_MAX_PIXELS = 16000000;
 const PRESENTATION_QR_MAX_DIMENSION = 1600;
 
+/**
+ * Parse one RFC 7233 byte range. Multiple ranges are intentionally rejected
+ * because these authenticated assets are served directly by PHP.
+ *
+ * @return array{start: int, end: int, length: int}|null
+ */
+function presentationAssetByteRange(string $header, int $size): ?array
+{
+    $header = trim($header);
+    if ($header === '') {
+        return null;
+    }
+    if ($size < 1 || preg_match('/\Abytes=(\d*)-(\d*)\z/', $header, $matches) !== 1) {
+        throw new OutOfRangeException('The requested byte range is not satisfiable.');
+    }
+
+    $start_text = $matches[1];
+    $end_text = $matches[2];
+    if ($start_text === '' && $end_text === '') {
+        throw new OutOfRangeException('The requested byte range is not satisfiable.');
+    }
+    if ($start_text === '') {
+        $suffix_length = (int) $end_text;
+        if ($suffix_length < 1) {
+            throw new OutOfRangeException('The requested byte range is not satisfiable.');
+        }
+        $start = max(0, $size - $suffix_length);
+        $end = $size - 1;
+    } else {
+        $start = (int) $start_text;
+        $end = $end_text === '' ? $size - 1 : min((int) $end_text, $size - 1);
+        if ($start >= $size || $end < $start) {
+            throw new OutOfRangeException('The requested byte range is not satisfiable.');
+        }
+    }
+
+    return ['start' => $start, 'end' => $end, 'length' => $end - $start + 1];
+}
+
 function presentationAssetDefinitions(): array
 {
     return [
@@ -162,7 +201,10 @@ function presentationSlideDeckFromPath(
         throw new RuntimeException('The PDF slide deck could not be read.');
     }
     $finfo = new finfo(FILEINFO_MIME_TYPE);
-    if ((string) $finfo->file($path) !== 'application/pdf' || !str_starts_with($contents, '%PDF-')) {
+    $tail = substr($contents, -4096);
+    $hasValidStructure = preg_match('/\A%PDF-(?:1\.[0-7]|2\.0)(?:\r\n|\r|\n)/', $contents) === 1
+        && preg_match('/startxref\s+\d+\s+%%EOF[\x09\x0A\x0C\x0D\x20]*\z/D', $tail) === 1;
+    if ((string) $finfo->file($path) !== 'application/pdf' || !$hasValidStructure) {
         throw new InvalidArgumentException('Upload a valid PDF slide deck.');
     }
 

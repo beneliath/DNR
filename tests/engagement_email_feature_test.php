@@ -86,8 +86,9 @@ expectEngagementEmailFeature(
     'outbound source links should appear in engagement, contact, and organization Chron logs.'
 );
 expectEngagementEmailFeature(
-    str_contains($worker, 'claimQueuedEngagementEmail($conn)')
-        && str_contains($worker, 'deliverApplicationEmail(')
+    str_contains($worker, 'claimQueuedEngagementEmail($conn, 600, false)')
+        && str_contains($worker, 'deliverApplicationEmailWithSession(')
+        && str_contains($worker, 'maintainQueuedEngagementEmail(')
         && str_contains($worker, 'completeQueuedEngagementEmail(')
         && str_contains($compose, 'DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE:')
         && str_contains($mailCompose, 'DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-}')

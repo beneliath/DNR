@@ -614,30 +614,45 @@ function queueEngagementEmail(
     return $messageId;
 }
 
-/** @return array{id: int, message_id: int, payload_ciphertext: string, attempts: int}|null */
-function claimQueuedEngagementEmail(mysqli $conn, int $leaseSeconds = 600): ?array
+function maintainQueuedEngagementEmail(mysqli $conn, int $leaseSeconds = 600): void
 {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    if ($conn->query(
+        "UPDATE engagement_email_deliveries
+         SET status = 'failed', processing_started_at = NULL,
+             payload_ciphertext = NULL,
+             last_error = 'Delivery stopped after the final attempt.'
+         WHERE status = 'processing'
+           AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)
+           AND attempts >= 8"
+    ) === false) {
+        throw new RuntimeException('Unable to expire terminal engagement-email leases.');
+    }
+    if ($conn->query(
+        "UPDATE engagement_email_deliveries
+         SET status = 'retry', processing_started_at = NULL,
+             next_attempt_at = UTC_TIMESTAMP(),
+             last_error = 'Delivery lease expired before completion.'
+         WHERE status = 'processing'
+           AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)
+           AND attempts < 8"
+    ) === false) {
+        throw new RuntimeException('Unable to recover expired engagement-email leases.');
+    }
+}
+
+/** @return array{id: int, message_id: int, payload_ciphertext: string, attempts: int}|null */
+function claimQueuedEngagementEmail(
+    mysqli $conn,
+    int $leaseSeconds = 600,
+    bool $performMaintenance = true
+): ?array {
+    $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    if ($performMaintenance) {
+        maintainQueuedEngagementEmail($conn, $leaseSeconds);
+    }
     $conn->begin_transaction();
     try {
-        $conn->query(
-            "UPDATE engagement_email_deliveries
-             SET status = 'failed', processing_started_at = NULL,
-                 payload_ciphertext = NULL,
-                 last_error = 'Delivery stopped after the final attempt.'
-             WHERE status = 'processing'
-               AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)
-               AND attempts >= 8"
-        );
-        $conn->query(
-            "UPDATE engagement_email_deliveries
-             SET status = 'retry', processing_started_at = NULL,
-                 next_attempt_at = UTC_TIMESTAMP(),
-                 last_error = 'Delivery lease expired before completion.'
-             WHERE status = 'processing'
-               AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)
-               AND attempts < 8"
-        );
         $stmt = $conn->prepare(
             "SELECT id, message_id, payload_ciphertext, attempts
              FROM engagement_email_deliveries

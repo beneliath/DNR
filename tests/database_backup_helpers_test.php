@@ -57,6 +57,38 @@ function writeTestDatabaseBackup(
     fclose($handle);
 }
 
+function writeLegacyEncryptedDatabaseBackup(string $plaintextPath, string $password): string
+{
+    $plaintext = file_get_contents($plaintextPath);
+    if (!is_string($plaintext) || $plaintext === '') {
+        throw new RuntimeException('Unable to read the legacy encryption fixture.');
+    }
+    $salt = random_bytes(SODIUM_CRYPTO_PWHASH_SALTBYTES);
+    $key = databaseBackupDeriveEncryptionKey($password, $salt, true);
+    [$state, $streamHeader] = sodium_crypto_secretstream_xchacha20poly1305_init_push($key);
+    $ciphertext = sodium_crypto_secretstream_xchacha20poly1305_push(
+        $state,
+        $plaintext,
+        '',
+        SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_TAG_FINAL
+    );
+    $path = tempnam(sys_get_temp_dir(), 'dnr-legacy-encrypted-backup-test-');
+    if ($path === false) {
+        throw new RuntimeException('Unable to create the legacy encryption fixture.');
+    }
+    file_put_contents(
+        $path,
+        DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC
+            . $salt
+            . $streamHeader
+            . pack('N', strlen($ciphertext))
+            . $ciphertext
+    );
+    sodium_memzero($key);
+    sodium_memzero($state);
+    return $path;
+}
+
 $schema = [
     [
         'name' => 'users',
@@ -86,6 +118,19 @@ expectDatabaseBackup($decoded === ['7', 'admin', "\x00\xFF\x10"], 'binary values
 expectDatabaseBackup(
     databaseBackupDecodedValues([null], 1) === [null],
     'SQL NULL should remain distinct from an empty string.'
+);
+expectDatabaseBackup(
+    databaseBackupBase64EncodedBytes(0) === 0
+        && databaseBackupBase64EncodedBytes(1) === 4
+        && databaseBackupBase64EncodedBytes(3) === 4
+        && databaseBackupBase64EncodedBytes(4) === 8,
+    'backup capacity calculations should match base64 block expansion.'
+);
+$maximum_pdf_bytes = 100 * 1024 * 1024;
+expectDatabaseBackup(
+    DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES
+        >= databaseBackupBase64EncodedBytes($maximum_pdf_bytes) + (64 * 1024 * 1024),
+    'the default archive limit should fit a maximum PDF row with capacity for normal data.'
 );
 
 $timestamp_schema = [[
@@ -154,6 +199,16 @@ expectDatabaseBackup(
 );
 
 $encryption_password = 'correct horse battery staple';
+$short_password_rejected = false;
+try {
+    encryptDatabaseBackup($backup_path, str_repeat('x', 15), 1048576);
+} catch (InvalidArgumentException $exception) {
+    $short_password_rejected = str_contains($exception->getMessage(), 'at least 16');
+}
+expectDatabaseBackup(
+    $short_password_rejected,
+    'new backup passwords should meet the stronger minimum length.'
+);
 $encrypted = encryptDatabaseBackup($backup_path, $encryption_password, 1048576);
 expectDatabaseBackup(
     file_get_contents($encrypted['path'], false, null, 0, strlen(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC))
@@ -164,6 +219,12 @@ $decrypted = decryptDatabaseBackup($encrypted['path'], $encryption_password, 104
 expectDatabaseBackup(
     hash_file('sha256', $decrypted['path']) === hash_file('sha256', $backup_path),
     'authenticated encryption should round-trip the complete backup exactly.'
+);
+$legacy_encrypted_path = writeLegacyEncryptedDatabaseBackup($backup_path, $encryption_password);
+$legacy_decrypted = decryptDatabaseBackup($legacy_encrypted_path, $encryption_password, 1048576);
+expectDatabaseBackup(
+    hash_file('sha256', $legacy_decrypted['path']) === hash_file('sha256', $backup_path),
+    'the versioned reader should preserve restore support for legacy encrypted backups.'
 );
 
 try {
@@ -223,5 +284,7 @@ unlink($tampered_path);
 unlink($encrypted['path']);
 unlink($decrypted['path']);
 unlink($encrypted_tampered_path);
+unlink($legacy_encrypted_path);
+unlink($legacy_decrypted['path']);
 
 echo "Database backup helper tests passed.\n";

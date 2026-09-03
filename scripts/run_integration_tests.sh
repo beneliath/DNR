@@ -72,6 +72,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     fi
     if [ "$test_name" = 'email_outbox_worker_integration_test.php' ] \
         || [ "$test_name" = 'engagement_email_integration_test.php' ] \
+        || [ "$test_name" = 'operational_retention_integration_test.php' ] \
         || [ "$test_name" = 'task_notifications_integration_test.php' ]; then
         compose run --rm --no-deps --entrypoint php \
             -e DNR_INTEGRATION_TEST=1 \

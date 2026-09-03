@@ -13,9 +13,7 @@ function databaseMaintenanceAuthenticationAccepted(mysqli $conn, array $actor, $
     $actor_id = (int) $actor['id'];
     $failure_event = 'database_backup_auth_failed';
 
-    if (!empty($actor['login_is_locked'])
-        || !\Dnr\Security\PasswordPolicy::verify($password, $actor['password'])
-    ) {
+    if (!\Dnr\Security\PasswordPolicy::verify($password, $actor['password'])) {
         if (empty($actor['login_is_locked'])) {
             recordAuthenticationFailure($conn, $actor_id, 'password');
         }
@@ -41,6 +39,20 @@ function databaseMaintenanceAuthenticationAccepted(mysqli $conn, array $actor, $
 
     resetAuthenticationFailures($conn, $actor_id, 'two_factor');
     return true;
+}
+
+function acquireDatabaseBackupOperationLock(mysqli $conn): bool {
+    $result = $conn->query("SELECT GET_LOCK('dnr_database_backup_export', 0) AS lock_acquired");
+    if (!$result) {
+        throw new RuntimeException('Unable to check the database backup operation lock.');
+    }
+    return (int) ($result->fetch_assoc()['lock_acquired'] ?? 0) === 1;
+}
+
+function releaseDatabaseBackupOperationLock(mysqli $conn): void {
+    if (!$conn->query("DO RELEASE_LOCK('dnr_database_backup_export')")) {
+        applicationLog('warning', 'Unable to release the database backup operation lock');
+    }
 }
 
 $maximum_backup_bytes = databaseBackupMaximumBytes();
@@ -74,14 +86,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $backup = null;
         $backup_connection = null;
         $encrypted_backup = null;
+        $backup_lock_acquired = false;
+        $download_completed = false;
+        $previous_ignore_user_abort = null;
         $backup_started_at = microtime(true);
         try {
-            if (strlen($backup_password) < 12) {
-                $error = 'The backup encryption password must contain at least 12 characters.';
+            if (strlen($backup_password) < DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES) {
+                $error = 'The backup encryption password must contain at least '
+                    . DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES . ' characters.';
             } elseif (preg_match('/[\x00-\x1F\x7F]/', $backup_password) === 1) {
                 $error = 'The backup encryption password cannot contain control characters.';
             } elseif (!hash_equals($backup_password, $backup_password_confirmation)) {
                 $error = 'The backup encryption passwords do not match.';
+            } elseif (!($backup_lock_acquired = acquireDatabaseBackupOperationLock($conn))) {
+                $error = 'Another database backup is already in progress. Try again after it finishes.';
             } elseif (!databaseMaintenanceAuthenticationAccepted(
                 $conn,
                 $actor,
@@ -91,6 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             )) {
                 $error = 'Your administrator password or authentication code was not accepted.';
             } else {
+                // The authenticated backup can take minutes on a large dataset.
+                // Persist the consumed factor and let this user's other requests proceed.
+                releaseApplicationSessionLock();
+                set_time_limit(300);
                 $backup_connection = databaseBackupConnection();
                 $backup = createDatabaseBackup(
                     $backup_connection,
@@ -104,7 +126,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $backup_password,
                     $maximum_backup_bytes
                 );
-                @unlink($backup['path']);
+                if (is_file($backup['path']) && !@unlink($backup['path'])) {
+                    throw new RuntimeException(
+                        'Unable to remove the plaintext database backup after encryption.'
+                    );
+                }
                 $backup = null;
 
                 $audit_recorded = recordAuditEvent($conn, [
@@ -129,11 +155,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Content-Disposition: attachment; filename="' . $filename . '"');
                 header('Content-Length: ' . $encrypted_backup['size']);
                 header('X-Content-Type-Options: nosniff');
-                readfile($encrypted_backup['path']);
-                @unlink($encrypted_backup['path']);
-                exit();
+                $previous_ignore_user_abort = ignore_user_abort(true);
+                if (readfile($encrypted_backup['path']) === false) {
+                    throw new RuntimeException('Unable to stream the encrypted database backup.');
+                }
+                $download_completed = true;
             }
         } catch (Throwable $exception) {
+            applicationLog('error', 'Database backup failed', ['error' => $exception->getMessage()]);
+            $error = 'The database backup could not be created. No database data was changed.';
+        } finally {
             if ($backup_connection instanceof mysqli) {
                 $backup_connection->close();
             }
@@ -143,8 +174,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (is_array($encrypted_backup) && isset($encrypted_backup['path'])) {
                 @unlink($encrypted_backup['path']);
             }
-            applicationLog('error', 'Database backup failed', ['error' => $exception->getMessage()]);
-            $error = 'The database backup could not be created. No database data was changed.';
+            if ($backup_lock_acquired) {
+                releaseDatabaseBackupOperationLock($conn);
+            }
+            if ($previous_ignore_user_abort !== null) {
+                ignore_user_abort((bool) $previous_ignore_user_abort);
+            }
+        }
+        if ($download_completed) {
+            exit();
         }
     }
 }
@@ -198,10 +236,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <input type="text" name="admin_code" id="backup_admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
 
                 <label for="backup_password">New backup encryption password</label>
-                <input type="password" name="backup_password" id="backup_password" autocomplete="new-password" minlength="12" required>
+                <input type="password" name="backup_password" id="backup_password" autocomplete="new-password" minlength="<?php echo DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES; ?>" required>
 
                 <label for="backup_password_confirmation">Confirm backup encryption password</label>
-                <input type="password" name="backup_password_confirmation" id="backup_password_confirmation" autocomplete="new-password" minlength="12" required>
+                <input type="password" name="backup_password_confirmation" id="backup_password_confirmation" autocomplete="new-password" minlength="<?php echo DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES; ?>" required>
 
                 <button type="submit" class="button-add">Encrypt and Download Backup</button>
             </form>

@@ -1,4 +1,5 @@
 import {shortMOEDSidebarChannelDisplayName} from './sidebar_channel_label.mjs';
+import {channelBindingRefreshDelay} from './channel_binding_refresh.mjs';
 
 const React = window.React;
 const {useEffect, useLayoutEffect, useRef, useState} = React;
@@ -117,8 +118,11 @@ async function pluginRequest(path, body) {
     return payload;
 }
 
-async function pluginGet(path) {
-    const response = await fetch(`${PLUGIN_API}${path}`, {credentials: 'same-origin'});
+async function pluginGet(path, options = {}) {
+    const response = await fetch(`${PLUGIN_API}${path}`, {
+        credentials: 'same-origin',
+        signal: options.signal,
+    });
     let payload = {};
     try {
         payload = await response.json();
@@ -326,35 +330,67 @@ function useChannelBinding(store, channel) {
     }), [store, channel && channel.id]);
     useEffect(() => {
         let active = true;
+        let requestController = null;
+        let refreshTimer = null;
+        let refreshAfterFlight = false;
+        let consecutiveFailures = 0;
+        const scheduleRefresh = (delay) => {
+            window.clearTimeout(refreshTimer);
+            refreshTimer = null;
+            if (active && document.visibilityState !== 'hidden') {
+                refreshTimer = window.setTimeout(refresh, delay);
+            }
+        };
         const refresh = async () => {
-            if (!channelId) {
-                setBinding(null);
+            if (!channelId || document.visibilityState === 'hidden') {
                 return;
             }
+            if (requestController) {
+                refreshAfterFlight = true;
+                return;
+            }
+            requestController = new AbortController();
             try {
-                const response = await pluginGet(`/channel-binding?channel_id=${encodeURIComponent(channelId)}`);
+                const response = await pluginGet(
+                    `/channel-binding?channel_id=${encodeURIComponent(channelId)}`,
+                    {signal: requestController.signal},
+                );
                 if (active) {
                     setBinding(response);
+                    consecutiveFailures = 0;
                 }
-            } catch (_) {
-                if (active) {
-                    setBinding(null);
+            } catch (requestError) {
+                if (active && requestError.name !== 'AbortError') {
+                    consecutiveFailures++;
+                }
+            } finally {
+                requestController = null;
+                if (!active) return;
+                if (refreshAfterFlight) {
+                    refreshAfterFlight = false;
+                    scheduleRefresh(0);
+                } else {
+                    scheduleRefresh(channelBindingRefreshDelay(consecutiveFailures));
                 }
             }
         };
-        refresh();
+        const refreshWhenVisible = () => {
+            if (document.visibilityState !== 'hidden') refresh();
+        };
         const refreshRequested = (event) => {
             if (!event.detail || !event.detail.channelId || event.detail.channelId === channelId) {
                 refresh();
             }
         };
-        const interval = window.setInterval(refresh, 10000);
-        window.addEventListener('focus', refresh);
+        setBinding(null);
+        refresh();
+        document.addEventListener('visibilitychange', refreshWhenVisible);
         window.addEventListener('moed-refresh-channel-link', refreshRequested);
         return () => {
             active = false;
-            window.clearInterval(interval);
-            window.removeEventListener('focus', refresh);
+            window.clearTimeout(refreshTimer);
+            if (requestController) requestController.abort();
+            document.removeEventListener('visibilitychange', refreshWhenVisible);
             window.removeEventListener('moed-refresh-channel-link', refreshRequested);
         };
     }, [channelId]);

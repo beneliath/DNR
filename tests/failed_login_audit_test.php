@@ -51,6 +51,7 @@ $audit_log_source = file_get_contents(__DIR__ . '/../src/audit_log.php');
 
 expectFailedLoginAudit(
     str_contains($login_source, 'recordFailedLoginAttempt(')
+        && str_contains($login_source, 'passwordAuthenticationIsAccepted($user, $password_valid)')
         && str_contains($login_source, "'Unknown username'")
         && str_contains($login_source, "'Incorrect password'"),
     'Password sign-in failures should be sent to the audit log.'

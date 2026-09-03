@@ -216,5 +216,7 @@ CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${maintenance_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.* TO '${maintenance_user}'@'%';
+GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${maintenance_user}'@'%';
+GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_operational_mail_history TO '${maintenance_user}'@'%';
 FLUSH PRIVILEGES;
 SQL

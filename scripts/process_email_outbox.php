@@ -37,6 +37,7 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 
 do {
     $processed = 0;
+    $smtpSession = null;
     if (!$loop || time() - $lastScheduleCheck >= $scheduleInterval) {
         try {
             $processed += queueDueDailyTaskDigests($conn);
@@ -48,8 +49,26 @@ do {
         $lastScheduleCheck = time();
     }
 
+    $businessDate = applicationBusinessDate();
+    foreach ([
+        'account email' => static fn() => maintainQueuedAccountEmail($conn),
+        'notification email' => static fn() => maintainQueuedNotificationEmail($conn, $businessDate),
+        'engagement email' => static fn() => maintainQueuedEngagementEmail($conn),
+    ] as $queueName => $maintainQueue) {
+        try {
+            // Sweep invalid or abandoned leases once per bounded worker cycle,
+            // rather than repeating table-wide maintenance before every claim.
+            $maintainQueue();
+        } catch (Throwable $exception) {
+            applicationLog('error', 'Unable to maintain outbound queue leases', [
+                'queue' => $queueName,
+                'error' => $exception->getMessage(),
+            ]);
+        }
+    }
+
     for ($index = 0; $index < $batchSize; $index++) {
-        $queued = claimQueuedAccountEmail($conn);
+        $queued = claimQueuedAccountEmail($conn, 600, false);
         if ($queued === null) {
             break;
         }
@@ -58,7 +77,12 @@ do {
                 throw new DomainException('The queued account link expired before delivery.');
             }
             $message = decryptQueuedAccountEmail($queued['payload_ciphertext']);
-            deliverAccountEmail($message['recipient'], $message['subject'], $message['body']);
+            deliverApplicationEmailWithSession(
+                $smtpSession,
+                $message['recipient'],
+                $message['subject'],
+                $message['body']
+            );
             $conn->begin_transaction();
             try {
                 completeQueuedAccountEmail(
@@ -96,15 +120,19 @@ do {
         $processed++;
     }
 
-    $businessDate = applicationBusinessDate();
     for ($index = 0; $index < $notificationBatchSize; $index++) {
-        $queued = claimQueuedNotificationEmail($conn, $businessDate);
+        $queued = claimQueuedNotificationEmail($conn, $businessDate, 600, false);
         if ($queued === null) {
             break;
         }
         try {
             $message = decryptQueuedNotificationEmail($queued['payload_ciphertext']);
-            deliverAccountEmail($message['recipient'], $message['subject'], $message['body']);
+            deliverApplicationEmailWithSession(
+                $smtpSession,
+                $message['recipient'],
+                $message['subject'],
+                $message['body']
+            );
             completeQueuedNotificationEmail($conn, $queued['id']);
         } catch (Throwable $exception) {
             try {
@@ -130,13 +158,14 @@ do {
     }
 
     for ($index = 0; $index < $engagementBatchSize; $index++) {
-        $queued = claimQueuedEngagementEmail($conn);
+        $queued = claimQueuedEngagementEmail($conn, 600, false);
         if ($queued === null) {
             break;
         }
         try {
             $message = decryptQueuedEngagementEmail($queued['payload_ciphertext']);
-            deliverApplicationEmail(
+            deliverApplicationEmailWithSession(
+                $smtpSession,
                 $message['recipient'],
                 $message['subject'],
                 $message['body'],
@@ -165,6 +194,11 @@ do {
             ]);
         }
         $processed++;
+    }
+
+    if ($smtpSession instanceof SmtpSession) {
+        $smtpSession->close();
+        $smtpSession = null;
     }
 
     if ($loop && $processed === 0) {

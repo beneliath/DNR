@@ -5,8 +5,11 @@ declare(strict_types=1);
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
 const DNR_DATABASE_BACKUP_VERSION = 2;
-const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-1\n";
+const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
+const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
+const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
+const DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES = 16;
 
 function databaseBackupConnection() {
     $host = (string) (getenv('DB_HOST') ?: 'db');
@@ -37,7 +40,11 @@ function databaseBackupMaximumBytes() {
         ['options' => ['min_range' => 1048576, 'max_range' => 1073741824]]
     );
 
-    return $configured ?: 67108864;
+    return $configured ?: DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES;
+}
+
+function databaseBackupBase64EncodedBytes(int $binary_bytes): int {
+    return 4 * (int) ceil(max(0, $binary_bytes) / 3);
 }
 
 function databaseBackupMaximumSizeLabel($bytes) {
@@ -59,22 +66,31 @@ function databaseBackupMaximumEncryptedBytes($maximum_plaintext_bytes) {
         + ($frame_count * (4 + SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_ABYTES));
 }
 
-function databaseBackupDeriveEncryptionKey($password, $salt) {
+function databaseBackupDeriveEncryptionKey($password, $salt, bool $legacy_profile = false) {
     return sodium_crypto_pwhash(
         SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_KEYBYTES,
         (string) $password,
         $salt,
-        SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE,
-        SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE,
+        $legacy_profile
+            ? SODIUM_CRYPTO_PWHASH_OPSLIMIT_INTERACTIVE
+            : SODIUM_CRYPTO_PWHASH_OPSLIMIT_MODERATE,
+        $legacy_profile
+            ? SODIUM_CRYPTO_PWHASH_MEMLIMIT_INTERACTIVE
+            : SODIUM_CRYPTO_PWHASH_MEMLIMIT_MODERATE,
         SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13
     );
 }
 
 function databaseBackupWriteBytes($handle, $bytes) {
     $length = strlen($bytes);
-    $written = fwrite($handle, $bytes);
-    if ($written !== $length) {
-        throw new RuntimeException('Unable to write the encrypted database backup.');
+    $offset = 0;
+    while ($offset < $length) {
+        $chunk = substr($bytes, $offset, min(1048576, $length - $offset));
+        $written = fwrite($handle, $chunk);
+        if ($written === false || $written < 1) {
+            throw new RuntimeException('Unable to write the database backup.');
+        }
+        $offset += $written;
     }
 }
 
@@ -93,8 +109,11 @@ function databaseBackupReadExactBytes($handle, $length) {
 
 function encryptDatabaseBackup($plaintext_path, $password, $maximum_plaintext_bytes = null) {
     $maximum_plaintext_bytes = $maximum_plaintext_bytes ?: databaseBackupMaximumBytes();
-    if (!is_string($password) || strlen($password) < 12) {
-        throw new InvalidArgumentException('The backup encryption password must contain at least 12 characters.');
+    if (!is_string($password) || strlen($password) < DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES) {
+        throw new InvalidArgumentException(
+            'The backup encryption password must contain at least '
+            . DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES . ' characters.'
+        );
     }
     if (preg_match('/[\x00-\x1F\x7F]/', $password) === 1) {
         throw new InvalidArgumentException('The backup encryption password cannot contain control characters.');
@@ -230,7 +249,8 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
     $stream_state = null;
     try {
         $magic = databaseBackupReadExactBytes($input, strlen(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC));
-        if (!hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC, $magic)) {
+        $legacy_profile = hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC, $magic);
+        if (!hash_equals(DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC, $magic) && !$legacy_profile) {
             throw new RuntimeException('The selected file is not an encrypted DNR backup.');
         }
         $salt = databaseBackupReadExactBytes($input, SODIUM_CRYPTO_PWHASH_SALTBYTES);
@@ -238,7 +258,7 @@ function decryptDatabaseBackup($encrypted_path, $password, $maximum_plaintext_by
             $input,
             SODIUM_CRYPTO_SECRETSTREAM_XCHACHA20POLY1305_HEADERBYTES
         );
-        $key = databaseBackupDeriveEncryptionKey((string) $password, $salt);
+        $key = databaseBackupDeriveEncryptionKey((string) $password, $salt, $legacy_profile);
         $stream_state = sodium_crypto_secretstream_xchacha20poly1305_init_pull(
             $stream_header,
             $key
@@ -497,19 +517,20 @@ function databaseBackupDecodedValues(array $encoded_values, $expected_count) {
 }
 
 function databaseBackupWriteLine($handle, array $record, &$bytes_written, $maximum_bytes, $hash = null) {
-    $line = databaseBackupJson($record) . "\n";
-    $next_size = (int) $bytes_written + strlen($line);
+    $json = databaseBackupJson($record);
+    $next_size = (int) $bytes_written + strlen($json) + 1;
     if ($next_size > (int) $maximum_bytes) {
         throw new RuntimeException(
             'The database backup exceeds the configured maximum size of '
             . databaseBackupMaximumSizeLabel($maximum_bytes) . '.'
         );
     }
-    if (fwrite($handle, $line) !== strlen($line)) {
-        throw new RuntimeException('Unable to write the database backup.');
-    }
+    // Avoid duplicating a potentially large base64 row merely to append LF.
+    databaseBackupWriteBytes($handle, $json);
+    databaseBackupWriteBytes($handle, "\n");
     if ($hash !== null) {
-        hash_update($hash, $line);
+        hash_update($hash, $json);
+        hash_update($hash, "\n");
     }
     $bytes_written = $next_size;
 }

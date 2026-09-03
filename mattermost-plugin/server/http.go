@@ -221,13 +221,21 @@ func (p *Plugin) handleChannelBinding(writer http.ResponseWriter, request *http.
 		writeJSON(writer, http.StatusForbidden, map[string]string{"error": "You cannot access that channel."})
 		return
 	}
+	cacheKey := userID + "\x00" + channelID
+	if cached, ok := p.bindingResponses.get(cacheKey, time.Now()); ok {
+		writeJSON(writer, http.StatusOK, cached)
+		return
+	}
+	cacheGeneration := p.bindingResponses.snapshotGeneration()
 	binding, err := p.channelBinding(channelID)
 	if err != nil {
 		writeJSON(writer, http.StatusInternalServerError, map[string]string{"error": "The channel binding could not be read."})
 		return
 	}
 	if binding == nil {
-		writeJSON(writer, http.StatusOK, channelBindingResponse{Linked: false})
+		response := channelBindingResponse{Linked: false}
+		p.bindingResponses.setIfGeneration(cacheKey, channelID, response, time.Now(), cacheGeneration)
+		writeJSON(writer, http.StatusOK, response)
 		return
 	}
 	config := p.getConfiguration()
@@ -245,23 +253,33 @@ func (p *Plugin) handleChannelBinding(writer http.ResponseWriter, request *http.
 	response, apiErr := newMoedClient(config).event(ctx, user.Id, user.Username, binding.EngagementID)
 	if apiErr != nil {
 		if typed, ok := apiErr.(*moedAPIError); ok && typed.Payload.Code == "account_not_linked" {
-			writeJSON(writer, http.StatusOK, channelBindingResponse{
+			cachedResponse := channelBindingResponse{
 				Linked: true,
 				Engagement: apiEngagement{
 					ID:  binding.EngagementID,
 					URL: config.MoedURL + "/view_engagement.php?id=" + strconv.Itoa(binding.EngagementID),
 				},
-			})
+			}
+			p.bindingResponses.setIfGeneration(
+				cacheKey,
+				channelID,
+				cachedResponse,
+				time.Now(),
+				cacheGeneration,
+			)
+			writeJSON(writer, http.StatusOK, cachedResponse)
 			return
 		}
 		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
 		return
 	}
-	writeJSON(writer, http.StatusOK, channelBindingResponse{
+	cachedResponse := channelBindingResponse{
 		Linked:     true,
 		Engagement: response.Engagement,
 		CanEmail:   response.User.Role == "editor" || response.User.Role == "admin",
-	})
+	}
+	p.bindingResponses.setIfGeneration(cacheKey, channelID, cachedResponse, time.Now(), cacheGeneration)
+	writeJSON(writer, http.StatusOK, cachedResponse)
 }
 
 func (p *Plugin) handleEmailCompose(writer http.ResponseWriter, request *http.Request) {

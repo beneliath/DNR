@@ -52,6 +52,7 @@ function auditLogPrune(mysqli $conn, $retention_days, $actor_user_id, $actor_use
     return [
         'deleted_count' => (int) $outcome['deleted_count'],
         'cutoff_utc' => (string) $outcome['cutoff_utc'],
+        'more_entries' => !empty($outcome['more_entries']),
     ];
 }
 
@@ -102,10 +103,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['_audit_log_prune_message'] = 'No audit entries were old enough to prune.';
             } else {
                 $_SESSION['_audit_log_prune_message'] = sprintf(
-                    'Permanently pruned %d audit %s older than %s UTC.',
+                    'Permanently pruned %d audit %s older than %s UTC.%s',
                     $deleted_count,
                     $deleted_count === 1 ? 'entry' : 'entries',
-                    $outcome['cutoff_utc']
+                    $outcome['cutoff_utc'],
+                    $outcome['more_entries']
+                        ? ' More expired entries remain; run the reviewed prune again.'
+                        : ''
                 );
                 unset($_SESSION['_admin_elevated_at']);
             }
@@ -116,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'actor_user_id' => (int) $_SESSION['user_id'],
                 'error' => $exception->getMessage(),
             ]);
-            $_SESSION['_audit_log_prune_error'] = 'The audit log could not be pruned. No entries were deleted.';
+            $_SESSION['_audit_log_prune_error'] = 'The audit log could not finish pruning. Any completed batches remain deleted; preview again before retrying.';
         }
     }
     header('Location: ' . $return_url);
@@ -283,6 +287,7 @@ $security_event_labels = [
     'database_restore_auth_failed' => 'Database restore verification failed',
     'audit_log_purged' => 'Audit log purged',
     'audit_log_pruned' => 'Audit log pruned',
+    'audit_log_prune_batch' => 'Audit log pruning batch',
     'calendar_subscription_created' => 'Calendar subscription created',
     'calendar_subscription_revoked' => 'Calendar subscription revoked',
     'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged',

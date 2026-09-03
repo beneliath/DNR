@@ -15,3 +15,13 @@ services:
   maintenance:
     volumes:
       - ./tests:/opt/dnr/tests:ro
+
+  # Plaintext development HTTP is deliberately isolated from the production
+  # publish address. Remote exposure requires a separate, explicit opt-in.
+  ingress:
+    ports: !override
+      - "${DNR_DEV_BIND_ADDRESS:-127.0.0.1}:${PORT:-8080}:80"
+    environment:
+      DNR_DEV_BIND_ADDRESS: ${DNR_DEV_BIND_ADDRESS:-127.0.0.1}
+      DNR_DEV_ALLOW_REMOTE_HTTP: ${DNR_DEV_ALLOW_REMOTE_HTTP:-0}
+    entrypoint: ["/usr/local/bin/dnr-development-ingress-entrypoint"]

@@ -4,6 +4,8 @@ $conn = applicationDatabaseConnection();
 include 'map_helpers.php';
 startSecureSession();
 requireLogin();
+$map_csrf_token = generateCsrfToken();
+releaseApplicationSessionLock();
 
 $filters = normalizeEngagementMapFilters($_GET);
 $status_labels = engagementMapStatuses();
@@ -218,10 +220,12 @@ $map_payload = [
         'maximumZoom' => deploymentConfig()->integer('map.maximum_zoom'),
     ],
     'locationLookup' => [
-        'url' => 'map_geocode.php',
-        'csrfToken' => generateCsrfToken(),
+        'enqueueUrl' => 'map_geocode.php',
+        'statusUrl' => 'map_geocode_status.php',
+        'csrfToken' => $map_csrf_token,
         'pollIntervalMilliseconds' => 1500,
-        'maximumPolls' => 40,
+        'maximumPollIntervalMilliseconds' => 30000,
+        'maximumPolls' => 20,
     ],
 ];
 ?>

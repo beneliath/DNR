@@ -9,7 +9,7 @@ channel-to-engagement binding and renders data returned by MOED.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.4.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.5.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -64,7 +64,7 @@ ready and that signed-in users can open **Mattermost** in the utility navigation
 
 ## 3. Build the plugin bundle
 
-Prebuilt releases can skip this step. To rebuild from source with Go 1.25 or
+Prebuilt releases can skip this step. To rebuild from source with Go 1.26.7 or
 newer and Node.js, install the root web dependencies once and then build:
 
 ```sh
@@ -84,7 +84,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.4.4.tar.gz`;
+3. select `org.moed.mattermost-0.4.5.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;

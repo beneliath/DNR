@@ -354,6 +354,96 @@ function inboundEmailDecodeStringList(mixed $json): array
     return array_values(array_unique($strings));
 }
 
+function inboundEmailRequiresAuthenticatedFrom(): bool
+{
+    $configured = getenv('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM');
+    if ($configured === false || trim((string) $configured) === '') {
+        return true;
+    }
+    $configured = trim((string) $configured);
+    if (!in_array($configured, ['0', '1'], true)) {
+        throw new RuntimeException('DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM must be 0 or 1.');
+    }
+    return $configured === '1';
+}
+
+/** @return list<string> */
+function inboundEmailTrustedAuthenticationServers(): array
+{
+    $servers = [];
+    foreach (explode(',', (string) (getenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS') ?: '')) as $server) {
+        $server = strtolower(rtrim(trim($server), '.'));
+        if ($server !== '' && preg_match('/\A[A-Za-z0-9.-]{1,253}\z/', $server) === 1) {
+            $servers[$server] = true;
+        }
+    }
+    return array_keys($servers);
+}
+
+function inboundEmailTopAuthenticationResults(string $rawHeaders): ?string
+{
+    $unfolded = preg_replace("/\r?\n[\t ]+/", ' ', $rawHeaders);
+    if (!is_string($unfolded)) {
+        return null;
+    }
+    foreach (preg_split("/\r?\n/", $unfolded) ?: [] as $line) {
+        if (preg_match('/\AAuthentication-Results\s*:\s*(.+)\z/i', $line, $match) === 1) {
+            return trim($match[1]);
+        }
+    }
+    return null;
+}
+
+/** @return array{required: bool, trusted: bool, authentication_server: ?string} */
+function inboundEmailSenderAuthentication(array $message): array
+{
+    $required = inboundEmailRequiresAuthenticatedFrom();
+    if (!$required) {
+        return ['required' => false, 'trusted' => false, 'authentication_server' => null];
+    }
+
+    $result = inboundEmailTopAuthenticationResults((string) ($message['raw_headers'] ?? ''));
+    if ($result === null) {
+        return ['required' => true, 'trusted' => false, 'authentication_server' => null];
+    }
+    $authservSection = trim(explode(';', $result, 2)[0]);
+    $authservId = strtolower(rtrim((string) (preg_split('/\s+/', $authservSection)[0] ?? ''), '.'));
+    $trustedServers = inboundEmailTrustedAuthenticationServers();
+    if ($authservId === '' || !in_array($authservId, $trustedServers, true)) {
+        return [
+            'required' => true,
+            'trusted' => false,
+            'authentication_server' => $authservId !== '' ? $authservId : null,
+        ];
+    }
+
+    $senderAddress = normalizeInboundEmailAddress($message['sender_address'] ?? '');
+    $senderDomain = strrchr($senderAddress, '@');
+    $senderDomain = $senderDomain === false ? '' : strtolower(substr($senderDomain, 1));
+    $dmarcPassed = false;
+    foreach (preg_split('/\s*;\s*/', $result) ?: [] as $methodResult) {
+        if (preg_match('/\Admarc\s*=\s*pass\b/i', $methodResult) !== 1) {
+            continue;
+        }
+        if (preg_match('/\bheader\.from\s*=\s*(?:"([^"]+)"|([^;\s]+))/i', $methodResult, $match) !== 1) {
+            continue;
+        }
+        $quotedDomain = (string) $match[1];
+        $headerFrom = $quotedDomain !== '' ? $quotedDomain : (string) ($match[2] ?? '');
+        $headerFrom = strtolower(rtrim(trim($headerFrom, '<>'), '.'));
+        if ($senderDomain !== '' && hash_equals($senderDomain, $headerFrom)) {
+            $dmarcPassed = true;
+            break;
+        }
+    }
+
+    return [
+        'required' => true,
+        'trusted' => $dmarcPassed,
+        'authentication_server' => $authservId,
+    ];
+}
+
 /** @return list<array{id: int, username: string}> */
 function inboundEmailUserMatches(mysqli $conn, string $address): array
 {
@@ -633,6 +723,8 @@ function searchInboundEmailEngagements(
  * @param array<string, mixed> $message
  * @return array{
  *   automatic: bool, authoritative_engagement: bool,
+ *   sender_authentication_required: bool, sender_authenticated: bool,
+ *   authentication_server: ?string,
  *   reasons: list<string>, sender: array<string, mixed>,
  *   participants: list<array<string, mixed>>,
  *   contacts: list<array{id: int, label: string}>,
@@ -651,6 +743,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     $senderOrganizations = $senderAddress !== ''
         ? inboundEmailOrganizationMatches($conn, $senderAddress)
         : [];
+    $senderAuthentication = inboundEmailSenderAuthentication($message);
 
     $sender = ['type' => 'unknown', 'id' => null, 'label' => $senderAddress];
     $reasons = [];
@@ -676,6 +769,9 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         $reasons[] = 'The sender address matches more than one active record.';
     } else {
         $reasons[] = 'The sender is not a uniquely recognized active user, Contact, or Organization.';
+    }
+    if ($senderAuthentication['required'] && !$senderAuthentication['trusted']) {
+        $reasons[] = 'The visible sender does not have a trusted aligned DMARC pass from the mailbox provider.';
     }
 
     $engagements = [];
@@ -778,8 +874,13 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
 
     $recognizedSender = in_array($sender['type'], ['user', 'contact', 'organization'], true);
     return [
-        'automatic' => $authoritativeEngagement && $recognizedSender,
+        'automatic' => $authoritativeEngagement
+            && $recognizedSender
+            && (!$senderAuthentication['required'] || $senderAuthentication['trusted']),
         'authoritative_engagement' => $authoritativeEngagement,
+        'sender_authentication_required' => $senderAuthentication['required'],
+        'sender_authenticated' => $senderAuthentication['trusted'],
+        'authentication_server' => $senderAuthentication['authentication_server'],
         'reasons' => $reasons,
         'sender' => $sender,
         'participants' => $participants,

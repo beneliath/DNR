@@ -81,7 +81,9 @@ expectMattermost(
         && str_contains($helpers, 'MATTERMOST_LINK_CODE_TTL_SECONDS = 600')
         && str_contains($helpers, "users.account_status = 'active'")
         && str_contains($helpers, 'canManageFollowUpTasks')
-        && str_contains($helpers, 'hash_equals'),
+        && str_contains($helpers, 'hash_equals')
+        && str_contains($helpers, 'MATTERMOST_LAST_USED_WRITE_INTERVAL_SECONDS = 900')
+        && str_contains($helpers, 'last_used_at <= DATE_SUB'),
     'MOED should fail closed, hash short-lived codes, require active linked accounts, and retain role checks.'
 );
 
@@ -112,7 +114,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.4'
+        && ($manifest['version'] ?? null) === '0.4.5'
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,
@@ -136,6 +138,11 @@ expectMattermost(
         && str_contains($documentation, 'web, desktop, and mobile')
         && str_contains($documentation, 'continue to show and copy the full')
         && str_contains($webapp, 'moed-channel-header-icon--linked')
+        && str_contains($webapp, 'channelBindingRefreshDelay(consecutiveFailures)')
+        && str_contains($webapp, "document.addEventListener('visibilitychange'")
+        && str_contains($webapp, 'requestController.abort()')
+        && !str_contains($webapp, 'window.setInterval(refresh, 10000)')
+        && str_contains($pluginServer, 'p.bindingResponses.get')
         && str_contains($pluginChannelMarker, 'channelDisplayNameWithMarker')
         && str_contains($pluginChannelMarker, 'compactMOEDChannelMarker')
         && str_contains($pluginChannelMarker, 'unlinkedChannelDisplayName')

@@ -31,19 +31,66 @@ $lifecycle_error = $_SESSION['_user_lifecycle_error'] ?? '';
 unset($_SESSION['_admin_elevation_message'], $_SESSION['_admin_elevation_error']);
 unset($_SESSION['_user_lifecycle_message'], $_SESSION['_user_lifecycle_error']);
 $admin_actions_unlocked = hasRecentAdminElevation();
+$current_user_id = (int) $_SESSION['user_id'];
+generateCsrfToken();
+releaseApplicationSessionLock();
 
-$users = $conn->query(
+$page_size = 50;
+$cursor = decodePaginationCursor(
+    \Dnr\Http\RequestInput::string($_GET, 'cursor'),
+    ['username', 'id']
+);
+$cursor_filter = '';
+$cursor_values = [];
+$cursor_types = '';
+if (is_array($cursor)
+    && is_string($cursor['username'])
+    && filter_var($cursor['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
+) {
+    $cursor_filter = 'WHERE (username, id) > (?, ?)';
+    $cursor_values = [(string) $cursor['username'], (int) $cursor['id']];
+    $cursor_types = 'si';
+} else {
+    $cursor = null;
+}
+$users_stmt = $conn->prepare(
     "SELECT id, username, first_name, last_name, phone, email,
-            profile_picture_mime, profile_picture_thumbnail,
-            profile_picture_thumbnail_mime, profile_picture_updated_at,
+            profile_picture_mime, profile_picture_updated_at,
             role, account_status, activated_at, deactivated_at,
             email_verified_at, two_factor_enabled,
             created_at, last_updated_at, last_login_at, must_change_password
      FROM users
-     ORDER BY username"
+     {$cursor_filter}
+     ORDER BY username, id
+     LIMIT ?"
 );
-
-if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', ['error' => $conn->error]);
+if (!$users_stmt) {
+    abortApplication(503, 'The user list is temporarily unavailable.', ['error' => $conn->error]);
+}
+$query_limit = $page_size + 1;
+$cursor_values[] = $query_limit;
+$cursor_types .= 'i';
+$users_bind = [$cursor_types];
+foreach ($cursor_values as &$cursor_value) {
+    $users_bind[] = &$cursor_value;
+}
+unset($cursor_value);
+$users_stmt->bind_param(...$users_bind);
+$users_stmt->execute();
+$users = $users_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$users_stmt->close();
+$has_next_page = count($users) > $page_size;
+if ($has_next_page) {
+    array_pop($users);
+}
+$next_cursor = null;
+if ($has_next_page && $users !== []) {
+    $last_user = $users[array_key_last($users)];
+    $next_cursor = encodePaginationCursor([
+        'username' => (string) $last_user['username'],
+        'id' => (int) $last_user['id'],
+    ]);
+}
 ?>
 
 <!DOCTYPE html>
@@ -111,7 +158,7 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
     </section>
 
     <div class="users-list">
-        <?php while ($user = $users->fetch_assoc()) { ?>
+        <?php foreach ($users as $user) { ?>
             <?php
             $display_name = profileDisplayName($user);
             $has_personal_name = trim((string) ($user['first_name'] ?? '')) !== ''
@@ -119,22 +166,14 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
             $display_phone = formatPhoneNumberForDisplay($user['phone'] ?? '');
             $display_email = trim((string) ($user['email'] ?? ''));
             $picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
-            $profile_thumbnail_url = uploadedImageDataUrl(
-                $user['profile_picture_thumbnail_mime'] ?? '',
-                $user['profile_picture_thumbnail'] ?? null
-            );
-            if ($profile_thumbnail_url === '' && empty($user['profile_picture_mime'])) {
-                $profile_thumbnail_url = 'data:image/svg+xml;base64,'
-                    . base64_encode(profileInitialsSvg($user));
-            }
+            $profile_thumbnail_url = 'profile_picture.php?id=' . (int) $user['id']
+                . '&v=' . $picture_version;
             ?>
             <div class="user-details">
                 <div class="user-main">
                     <div class="user-profile-summary">
                         <img class="user-list-avatar" src="<?php echo htmlspecialchars(
-                            $profile_thumbnail_url !== ''
-                                ? $profile_thumbnail_url
-                                : 'profile_picture.php?id=' . (int) $user['id'] . '&v=' . $picture_version,
+                            $profile_thumbnail_url,
                             ENT_QUOTES,
                             'UTF-8'
                         ); ?>" alt="">
@@ -229,6 +268,16 @@ if (!$users) abortApplication(503, 'The user list is temporarily unavailable.', 
             </div>
         <?php } ?>
     </div>
+    <?php if ($cursor !== null || $next_cursor !== null): ?>
+        <nav class="pagination" aria-label="User pages">
+            <?php if ($cursor !== null): ?>
+                <a href="users.php" class="pagination-link">First page</a>
+            <?php endif; ?>
+            <?php if ($next_cursor !== null): ?>
+                <a href="users.php?cursor=<?php echo rawurlencode($next_cursor); ?>" class="pagination-link">Next</a>
+            <?php endif; ?>
+        </nav>
+    <?php endif; ?>
 </div>
 <?php include 'templates/footer.php'; ?>
 </body>

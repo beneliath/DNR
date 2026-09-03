@@ -23,8 +23,11 @@ $map_script = $read('src/assets/js/map.js');
 $map_styles = $read('src/assets/css/map.css');
 $modern_styles = $read('src/assets/css/modern.css');
 $geocoder = $read('src/map_geocode.php');
+$geocoder_status = $read('src/map_geocode_status.php');
 $geocoder_worker = $read('scripts/process_geocode_queue.php');
 $map_helpers = $read('src/map_helpers.php');
+$new_engagement = $read('src/index.php');
+$edit_engagement = $read('src/edit_engagement.php');
 $migration = $read('migrations/20260817_add_engagement_map.sql');
 $hardening_migration = $read('migrations/20260821_security_performance_hardening.sql');
 $apache = $read('docker/apache-security.conf');
@@ -149,7 +152,11 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($geocoder, 'requireValidCsrfToken')
-        && str_contains($geocoder, 'queueEngagementMapAddress')
+        && str_contains($geocoder, 'queueEngagementMapAddresses')
+        && str_contains($geocoder, 'engagement_ids')
+        && str_contains($geocoder_status, 'engagementMapLocationStatuses')
+        && !str_contains($geocoder_status, 'queueEngagementMapAddress')
+        && str_contains($geocoder_status, 'releaseApplicationSessionLock')
         && !str_contains($geocoder, 'file_get_contents($geocoder_url')
         && str_contains($geocoder_worker, 'usleep(1100000)')
         && str_contains($geocoder_worker, 'FOR UPDATE SKIP LOCKED')
@@ -159,8 +166,9 @@ expectMapFeature(
         && str_contains($geocoder_worker, 'Maximum geocoding attempts reached')
         && str_contains($map_helpers, 'validatedGeocoderBaseUrl')
         && str_contains($map_helpers, 'DNR_GEOCODER_ALLOWED_HOSTS')
-        && str_contains($map_helpers, 'http_get_last_response_headers()')
-        && !str_contains($map_helpers, '$http_response_header')
+        && str_contains($map_helpers, 'CURLOPT_RESOLVE')
+        && str_contains($map_helpers, 'CURLINFO_PRIMARY_IP')
+        && str_contains($map_helpers, 'CURLOPT_PROTOCOLS => CURLPROTO_HTTPS')
         && str_contains($map_helpers, 'completeEngagementMapGeocodeJob')
         && str_contains($migration, 'engagement_map_geocodes')
         && str_contains($hardening_migration, 'engagement_map_geocode_queue'),
@@ -176,12 +184,33 @@ expectMapFeature(
 );
 expectMapFeature(
     str_contains($map_page, "'locationLookup' => [")
-        && str_contains($map_page, "'csrfToken' => generateCsrfToken()")
+        && str_contains($map_page, "'enqueueUrl' => 'map_geocode.php'")
+        && str_contains($map_page, "'statusUrl' => 'map_geocode_status.php'")
+        && str_contains($map_page, "'csrfToken' => \$map_csrf_token")
         && str_contains($map_script, 'pollPendingLocations')
-        && str_contains($map_script, 'fetch(lookupUrl')
+        && str_contains($map_script, 'requestLocationBatch')
+        && str_contains($map_script, 'engagement_ids: Array.from(pendingEvents.keys()).join')
+        && str_contains($map_script, 'Math.random()')
+        && str_contains($map_script, 'maximumPollIntervalMilliseconds')
+        && !str_contains($map_script, 'Promise.all(lookups)')
         && str_contains($map_script, 'pendingEvents.delete(eventId)')
         && str_contains($map_script, 'fitMapToPins();'),
-    'an open Map page should securely poll pending locations and add completed pins without a reload.'
+    'an open Map page should use one bulk enqueue plus batched, backed-off status polls.'
+);
+
+expectMapFeature(
+    str_contains($map_helpers, 'queueEngagementMapAddresses')
+        && str_contains($map_helpers, 'bool $retry_failed = false')
+        && str_contains($map_helpers, "IF(status = 'failed', 0, attempts)")
+        && strpos($map_helpers, "IF(status = 'failed', 0, attempts)")
+            > strpos($map_helpers, 'if ($retry_failed)'),
+    'normal map refreshes should preserve retry and failed state unless a retry is explicit.'
+);
+
+expectMapFeature(
+    str_contains($new_engagement, 'queueEngagementMapAddress($conn, $map_address, true)')
+        && str_contains($edit_engagement, 'queueEngagementMapAddress($conn, $map_address, true)'),
+    'an explicit create or edit submission should revive a terminal geocoding failure.'
 );
 
 echo "Map feature tests passed.\n";

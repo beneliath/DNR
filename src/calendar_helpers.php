@@ -160,7 +160,7 @@ function fetchCalendarViewerEngagements(mysqli $conn, $window_start, $window_end
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
          WHERE e.is_deleted = 0
-           AND COALESCE(e.event_end_date, e.event_start_date) >= ?
+           AND e.event_end_date >= ?
            AND e.event_start_date <= ?
          ORDER BY e.event_start_date, e.id"
     );

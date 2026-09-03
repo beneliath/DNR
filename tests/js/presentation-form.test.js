@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
     compact24HourTime,
+    shouldReleaseQrPreviews,
     validTime,
     validWholeNumber
 } = require("../../src/assets/js/presentation-form.js");
@@ -39,4 +40,10 @@ test("validWholeNumber applies inclusive presentation field bounds", function ()
     assert.equal(validWholeNumber("0", 1, 1440), false);
     assert.equal(validWholeNumber("1.5", 1, 1440), false);
     assert.equal(validWholeNumber("1441", 1, 1440), false);
+});
+
+test("QR preview URLs survive bfcache navigation and release on real unload", function () {
+    assert.equal(shouldReleaseQrPreviews({persisted: true}), false);
+    assert.equal(shouldReleaseQrPreviews({persisted: false}), true);
+    assert.equal(shouldReleaseQrPreviews(), true);
 });
