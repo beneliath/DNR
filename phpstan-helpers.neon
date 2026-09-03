@@ -8,6 +8,7 @@ parameters:
         - src/contact_photo_helpers.php
         - src/database_backup_helpers.php
         - src/dashboard_helpers.php
+        - src/daily_digest_email.php
         - src/engagement_export_helpers.php
         - src/engagement_email_helpers.php
         - src/engagement_contact_helpers.php

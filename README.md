@@ -184,11 +184,16 @@ Verified users receive a daily work digest by default on weekdays at 7:00 a.m. u
 **My Profile → Notifications**. Each user can disable it, choose a different local delivery time,
 or select any combination of days; weekday, weekend, and every-day presets are available. After the
 selected time on a selected day, the same worker queues at most one message
-per user and business date with their overdue, due-today, next-seven-days, and waiting tasks.
-Administrators and editors also receive incomplete financial closeouts. Digests use a separate
-encrypted `notification_outbox` so account-token delivery remains isolated; messages are discarded
-if the recipient opts out, changes their email, becomes inactive, no longer has a verified address,
-or removes the queued day from their schedule. Sent and terminal payloads are erased.
+per user and business date with a light-only HTML snapshot of the Dashboard: upcoming engagements,
+My Work, event readiness, financial closeouts, and, for administrators and editors, inbound mail
+awaiting review. Overdue and due-today rows retain the Dashboard's semantic highlighting, and every
+record includes the same role-appropriate navigation link as the Dashboard. A matching plain-text
+alternative is included for clients that do not render HTML. Digests use a separate encrypted
+`notification_outbox` so account-token delivery remains isolated; messages are discarded if the
+recipient opts out, changes their email, becomes inactive, no longer has a verified address, or
+removes the queued day from their schedule. Sent and terminal payloads are erased.
+`php scripts/generate_daily_digest_preview.php` refreshes the deterministic sample at
+`docs/daily-digest-preview.html` through the production renderer.
 
 Administrators with fresh elevation can also manage any user’s digest enablement, delivery time,
 and delivery days from **Users → Edit User**.

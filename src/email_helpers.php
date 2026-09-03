@@ -544,6 +544,47 @@ function smtpNormalizeLineEndings($value)
     return str_replace("\n", "\r\n", $value);
 }
 
+/**
+ * @return array{headers: list<string>, body: string}
+ */
+function smtpMessageContent($plainTextBody, $htmlBody = null): array
+{
+    if ($htmlBody === null || (string) $htmlBody === '') {
+        return [
+            'headers' => [
+                'Content-Type: text/plain; charset=UTF-8',
+                'Content-Transfer-Encoding: 8bit',
+            ],
+            'body' => (string) $plainTextBody,
+        ];
+    }
+
+    $boundary = '=_dnr_' . bin2hex(random_bytes(18));
+    $encodePart = static function ($value): string {
+        $canonical = smtpNormalizeLineEndings((string) $value);
+        return rtrim(chunk_split(base64_encode($canonical), 76, "\n"), "\r\n");
+    };
+
+    return [
+        'headers' => [
+            'Content-Type: multipart/alternative; boundary="' . $boundary . '"',
+        ],
+        'body' => implode("\n", [
+            '--' . $boundary,
+            'Content-Type: text/plain; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            $encodePart($plainTextBody),
+            '--' . $boundary,
+            'Content-Type: text/html; charset=UTF-8',
+            'Content-Transfer-Encoding: base64',
+            '',
+            $encodePart($htmlBody),
+            '--' . $boundary . '--',
+        ]),
+    ];
+}
+
 function smtpTlsStreamContext($host)
 {
     $host = trim((string) $host);
@@ -638,7 +679,7 @@ final class SmtpSession
         }
     }
 
-    public function send($recipient, $subject, $body, $replyTo = ''): bool
+    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null): bool
     {
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
@@ -656,17 +697,17 @@ final class SmtpSession
         $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
         $encoded_name = '=?UTF-8?B?' . base64_encode($this->fromName) . '?=';
         $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
+        $content = smtpMessageContent($body, $htmlBody);
         $message = smtpNormalizeLineEndings(implode("\n", [
             'From: ' . $encoded_name . ' <' . $this->from . '>',
             'To: <' . $recipient . '>',
             ...($replyToHeader !== '' ? [$replyToHeader] : []),
             'Subject: ' . $encoded_subject,
             'MIME-Version: 1.0',
-            'Content-Type: text/plain; charset=UTF-8',
-            'Content-Transfer-Encoding: 8bit',
+            ...$content['headers'],
             'Date: ' . gmdate(DATE_RFC2822),
             '',
-            (string) $body,
+            $content['body'],
         ]));
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
         try {
@@ -753,17 +794,17 @@ final class SmtpSession
     }
 }
 
-function sendSmtpMessage($recipient, $subject, $body, $replyTo = '')
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null)
 {
     $session = new SmtpSession();
     try {
-        return $session->send($recipient, $subject, $body, $replyTo);
+        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody);
     } finally {
         $session->close();
     }
 }
 
-function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '')
+function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null)
 {
     $transport = accountMailTransport();
     if ($transport === 'log') {
@@ -773,7 +814,7 @@ function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '')
         ]);
         return true;
     }
-    return sendSmtpMessage($recipient, $subject, $body, $replyTo);
+    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody);
 }
 
 function deliverApplicationEmailWithSession(
@@ -781,16 +822,17 @@ function deliverApplicationEmailWithSession(
     $recipient,
     $subject,
     $body,
-    $replyTo = ''
+    $replyTo = '',
+    $htmlBody = null
 ): bool {
     if (accountMailTransport() === 'log') {
-        return deliverApplicationEmail($recipient, $subject, $body, $replyTo);
+        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody);
     }
     $reconnected = false;
     while (true) {
         $session ??= new SmtpSession();
         try {
-            return $session->send($recipient, $subject, $body, $replyTo);
+            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody);
         } catch (SmtpPreDataException $exception) {
             $session->close();
             $session = null;
@@ -806,9 +848,9 @@ function deliverApplicationEmailWithSession(
     }
 }
 
-function deliverAccountEmail($recipient, $subject, $body)
+function deliverAccountEmail($recipient, $subject, $body, $htmlBody = null)
 {
-    return deliverApplicationEmail($recipient, $subject, $body);
+    return deliverApplicationEmail($recipient, $subject, $body, '', $htmlBody);
 }
 
 function sendInvitationEmail($email, $username, $token)

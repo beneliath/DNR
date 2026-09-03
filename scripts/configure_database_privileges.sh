@@ -202,15 +202,27 @@ GRANT SELECT (
     task_digest_time, task_digest_days
 ) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
-    id, title, status, priority, due_date, waiting_on, assigned_to
+    id, title, status, priority, due_date, waiting_on, assigned_to,
+    subject_type, engagement_id, organization_id, contact_id
 ) ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
-    id, organization_id, event_title, event_end_date, is_deleted, lifecycle_status
+    id, organization_id, event_title, event_start_date, event_end_date,
+    confirmation_status,
+    event_address_line_1, event_address_line_2, event_city, event_state,
+    event_zipcode, event_country, is_deleted, lifecycle_status
 ) ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id, organization_name, is_deleted)
     ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (engagement_id)
     ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (engagement_id, is_archived)
+    ON \`${MYSQL_DATABASE}\`.presentations TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (engagement_id, contact_id)
+    ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id, organization_id, contact_first_name, contact_last_name, is_deleted)
+    ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (status)
+    ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_dispatch_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';
 ALTER USER '${maintenance_user}'@'%' IDENTIFIED BY '${maintenance_password}';

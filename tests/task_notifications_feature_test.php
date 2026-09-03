@@ -25,8 +25,11 @@ $defaultMigration = $read('migrations/20260901_default_daily_work_digest.sql');
 $reminderIndexMigration = $read('migrations/20260824_optimize_task_reminders.sql');
 $order = $read('migrations/order.txt');
 $helpers = $read('src/notification_helpers.php');
+$digestTemplate = $read('src/daily_digest_email.php');
+$emailHelpers = $read('src/email_helpers.php');
 $worker = $read('scripts/process_email_outbox.php');
 $profile = $read('src/profile.php');
+$help = $read('src/help.php');
 $editUser = $read('src/edit_user.php');
 $header = $read('src/templates/header.php');
 $tasks = $read('src/tasks.php');
@@ -34,6 +37,11 @@ $styles = $read('src/assets/css/modern.css');
 $profileScript = $read('src/assets/js/profile.js');
 $grants = $read('scripts/configure_database_privileges.sh');
 $smtp = $read('docker-compose.smtp.yaml');
+$mailDispatchGrantSection = explode(
+    "CREATE USER IF NOT EXISTS '\${maintenance_user}'",
+    explode("CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'", $grants, 2)[1] ?? '',
+    2
+)[0];
 
 expectTaskNotificationsFeature(
     str_contains($migration, 'task_digest_enabled TINYINT(1) NOT NULL DEFAULT 0')
@@ -93,13 +101,45 @@ expectTaskNotificationsFeature(
     'daily scheduling should be encrypted, retryable, preference-aware, and reject stale mail before delivery.'
 );
 expectTaskNotificationsFeature(
+    str_contains($helpers, "require_once __DIR__ . '/daily_digest_email.php'")
+        && str_contains($helpers, 'fetchDailyTaskDigestSharedDashboardData(')
+        && str_contains($helpers, "'html_body' => renderDailyTaskDigestHtml(")
+        && str_contains($helpers, "'html_body' => is_string(\$message['html_body']")
+        && str_contains($digestTemplate, 'function renderDailyTaskDigestHtml(')
+        && str_contains($digestTemplate, 'name="color-scheme" content="light only"')
+        && str_contains($digestTemplate, '#ffe8ee')
+        && str_contains($digestTemplate, '#d92d20')
+        && str_contains($digestTemplate, '#e4f2ff')
+        && str_contains($digestTemplate, '#2563eb')
+        && str_contains($digestTemplate, 'aria-label="ASCII art cat"')
+        && str_contains($digestTemplate, 'Genesis 49:9,10 ... Revelation 5:5')
+        && str_contains($digestTemplate, '<br>Do you see Him?</div>')
+        && str_contains($digestTemplate, 'text-align:left;white-space:pre')
+        && str_contains($digestTemplate, 'opacity:0.5')
+        && str_contains($digestTemplate, "dailyTaskDigestHtmlUrl('edit_task.php'")
+        && str_contains($digestTemplate, "dailyTaskDigestHtmlUrl('view_engagement.php'")
+        && str_contains($emailHelpers, 'Content-Type: multipart/alternative; boundary=')
+        && str_contains($emailHelpers, 'Content-Type: text/html; charset=UTF-8'),
+    'daily digests should queue a light-only linked Dashboard rendering beside the plaintext fallback.'
+);
+expectTaskNotificationsFeature(
     str_contains($worker, 'queueDueDailyTaskDigests($conn)')
         && str_contains($worker, 'claimQueuedNotificationEmail(')
         && str_contains($worker, 'deliverApplicationEmailWithSession(')
         && str_contains($worker, 'maintainQueuedNotificationEmail(')
         && str_contains($worker, 'claimQueuedNotificationEmail($conn, $businessDate, 600, false)')
-        && str_contains($smtp, 'DNR_NOTIFICATION_OUTBOX_BATCH_SIZE:'),
-    'the outbound-mail service should schedule the digest queue, sweep leases once, and reuse its SMTP session.'
+        && str_contains($worker, "is_string(\$message['html_body'] ?? null)")
+        && preg_match(
+            '/\$message\[\'body\'\],\s*\'\',\s*'
+                . 'is_string\(\$message\[\'html_body\'\] \?\? null\)/s',
+            $worker
+        ) === 1
+        && str_contains($smtp, 'DNR_NOTIFICATION_OUTBOX_BATCH_SIZE:')
+        && str_contains(
+            $smtp,
+            'DNR_DASHBOARD_UPCOMING_DAYS: ${DNR_DASHBOARD_UPCOMING_DAYS:-}'
+        ),
+    'the outbound-mail service should share the Dashboard horizon, schedule the digest queue, sweep leases once, reuse its SMTP session, and deliver the HTML alternative.'
 );
 expectTaskNotificationsFeature(
     str_contains($profile, 'name="task_digest_enabled"')
@@ -110,12 +150,17 @@ expectTaskNotificationsFeature(
         && str_contains($profile, '$user[\'task_digest_days\'] ?? TASK_DIGEST_WEEKDAYS')
         && str_contains($profileScript, 'updateDigestDayControls')
         && str_contains($profile, 'Verify your email address to enable daily digests.')
+        && str_contains($profile, 'Dashboard-style snapshot of upcoming engagements')
+        && str_contains($profile, ', plus inbound mail awaiting review')
+        && str_contains($profile, 'Overdue and due-today tasks are highlighted.')
+        && str_contains($help, 'Dashboard-style Daily Digest of upcoming engagements')
+        && str_contains($help, 'editor/admin digests also include inbound mail awaiting review')
         && str_contains($profile, 'task_digest_enabled = ?')
         && str_contains($profile, 'task_digest_time = ?, task_digest_days = ?')
         && str_contains($header, 'nav-notification-badge')
         && str_contains($tasks, 'task-reminder-badges')
         && str_contains($tasks, "owner_filter === 'me'"),
-    'verified users should control digest delivery while personal in-app reminders remain visible.'
+    'verified users should understand and control the Dashboard-style digest while personal in-app reminders remain visible.'
 );
 expectTaskNotificationsFeature(
     str_contains($editUser, "include 'notification_helpers.php'")
@@ -134,12 +179,25 @@ expectTaskNotificationsFeature(
     'reminder links should avoid underlines and retain responsive hover and focus feedback.'
 );
 expectTaskNotificationsFeature(
-    str_contains($grants, '.notification_outbox')
-        && str_contains($grants, "TO '\${mail_dispatch_user}'@'%'")
-        && str_contains($grants, 'task_digest_enabled')
-        && str_contains($grants, 'task_digest_time, task_digest_days')
-        && !str_contains($grants, "GRANT ALL PRIVILEGES"),
-    'the outbound-mail worker should receive only table- and column-scoped notification access.'
+    str_contains($mailDispatchGrantSection, '.notification_outbox')
+        && str_contains($mailDispatchGrantSection, "TO '\${mail_dispatch_user}'@'%'")
+        && str_contains($mailDispatchGrantSection, 'task_digest_enabled')
+        && str_contains($mailDispatchGrantSection, 'task_digest_time, task_digest_days')
+        && str_contains(
+            $mailDispatchGrantSection,
+            'subject_type, engagement_id, organization_id, contact_id'
+        )
+        && str_contains($mailDispatchGrantSection, 'event_start_date, event_end_date')
+        && str_contains($mailDispatchGrantSection, 'confirmation_status')
+        && str_contains($mailDispatchGrantSection, 'event_address_line_1')
+        && str_contains($mailDispatchGrantSection, 'event_country')
+        && str_contains($mailDispatchGrantSection, '.presentations TO')
+        && str_contains($mailDispatchGrantSection, '.engagement_contacts TO')
+        && str_contains($mailDispatchGrantSection, '.contacts TO')
+        && str_contains($mailDispatchGrantSection, '.inbound_email_messages TO')
+        && !str_contains($mailDispatchGrantSection, 'body_text')
+        && !str_contains($mailDispatchGrantSection, "GRANT ALL PRIVILEGES"),
+    'the outbound-mail worker should receive only the notification and Dashboard columns needed for linked digests.'
 );
 
 echo "Task notifications feature tests passed.\n";

@@ -50,7 +50,7 @@ function smtpFakeRelayHandshake($connection): void
 }
 
 /** @param resource $connection */
-function smtpFakeRelayEnvelope($connection, bool $acknowledge): void
+function smtpFakeRelayEnvelope($connection, bool $acknowledge): string
 {
     smtpFakeRelayExpect($connection, 'MAIL FROM:<sender@example.test>');
     smtpFakeRelayWrite($connection, '250 sender accepted');
@@ -58,21 +58,30 @@ function smtpFakeRelayEnvelope($connection, bool $acknowledge): void
     smtpFakeRelayWrite($connection, '250 recipient accepted');
     smtpFakeRelayExpect($connection, 'DATA');
     smtpFakeRelayWrite($connection, '354 send message');
-    while (smtpFakeRelayRead($connection) !== '.') {
-        // Consume the message through its SMTP terminator.
+    $messageLines = [];
+    while (($line = smtpFakeRelayRead($connection)) !== '.') {
+        $messageLines[] = $line;
     }
     if ($acknowledge) {
         smtpFakeRelayWrite($connection, '250 queued');
     }
+    return implode("\r\n", $messageLines);
 }
 
 /**
  * @param resource $server
- * @return array{connections: int, messages: int, quits: int, error: ?string}
+ * @return array{connections: int, messages: int, quits: int,
+ *   message_data: ?string, error: ?string}
  */
 function smtpFakeRelayRun($server, string $scenario): array
 {
-    $result = ['connections' => 0, 'messages' => 0, 'quits' => 0, 'error' => null];
+    $result = [
+        'connections' => 0,
+        'messages' => 0,
+        'quits' => 0,
+        'message_data' => null,
+        'error' => null,
+    ];
     try {
         $first = stream_socket_accept($server, 5);
         if (!is_resource($first)) {
@@ -85,6 +94,16 @@ function smtpFakeRelayRun($server, string $scenario): array
             smtpFakeRelayEnvelope($first, true);
             $result['messages']++;
             smtpFakeRelayEnvelope($first, true);
+            $result['messages']++;
+            smtpFakeRelayExpect($first, 'QUIT');
+            $result['quits']++;
+            smtpFakeRelayWrite($first, '221 goodbye');
+            fclose($first);
+            return $result;
+        }
+
+        if ($scenario === 'html') {
+            $result['message_data'] = smtpFakeRelayEnvelope($first, true);
             $result['messages']++;
             smtpFakeRelayExpect($first, 'QUIT');
             $result['quits']++;
@@ -172,6 +191,7 @@ function smtpFakeRelayRun($server, string $scenario): array
  *   connections: int,
  *   messages: int,
  *   quits: int,
+ *   message_data: ?string,
  *   error: ?string,
  *   client_error: ?string,
  *   client_type: ?string,
@@ -234,7 +254,11 @@ function runSmtpSessionScenario(string $scenario): ?array
             $session,
             'recipient@example.test',
             'First message',
-            'First message body'
+            'First message body',
+            '',
+            $scenario === 'html'
+                ? '<!doctype html><html><body><p>Rich message body.</p></body></html>'
+                : null
         );
         if (in_array($scenario, ['reuse', 'pre-data-reconnect'], true)) {
             deliverApplicationEmailWithSession(
@@ -288,6 +312,37 @@ expectSmtpSessionProtocol(
         && $reuse['messages'] === 2
         && $reuse['quits'] === 1,
     'a healthy session should carry two envelopes and emit only one QUIT even when close is repeated.'
+);
+
+$html = runSmtpSessionScenario('html');
+$htmlMessage = is_array($html) && is_string($html['message_data'] ?? null)
+    ? $html['message_data']
+    : '';
+expectSmtpSessionProtocol(
+    $html !== null
+        && $html['child_status'] === 0
+        && $html['error'] === null
+        && $html['client_error'] === null
+        && $html['connections'] === 1
+        && $html['messages'] === 1
+        && $html['quits'] === 1
+        && preg_match(
+            '/^Content-Type: multipart\/alternative; boundary="[^"]+"\r?$/m',
+            $htmlMessage
+        ) === 1
+        && str_contains($htmlMessage, 'Content-Type: text/plain; charset=UTF-8')
+        && str_contains($htmlMessage, 'Content-Type: text/html; charset=UTF-8')
+        && str_contains(
+            $htmlMessage,
+            base64_encode(smtpNormalizeLineEndings('First message body'))
+        )
+        && str_contains(
+            $htmlMessage,
+            rtrim(chunk_split(base64_encode(smtpNormalizeLineEndings(
+                '<!doctype html><html><body><p>Rich message body.</p></body></html>'
+            )), 76, "\r\n"), "\r\n")
+        ),
+    'an HTML delivery should reach the relay as multipart/alternative with both encoded bodies.'
 );
 
 $reconnect = runSmtpSessionScenario('pre-data-reconnect');
