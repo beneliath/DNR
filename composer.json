@@ -21,7 +21,7 @@
         "giggsey/libphonenumber-for-php": "^9.0",
         "spomky-labs/otphp": "^11.4",
         "symfony/yaml": "^7.3",
-        "tecnickcom/tcpdf": "^6.11",
+        "tecnickcom/tcpdf": "^7.0",
         "zbateson/mail-mime-parser": "^4.0.3"
     },
     "config": {
