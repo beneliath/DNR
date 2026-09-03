@@ -543,7 +543,7 @@ $presentation_stmt->close();
                             <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
                         <?php endif; ?>
                     </div>
-                    <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'])); ?></div>
+                    <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($chron_entry['entry_text']); ?></div>
                 </article>
             <?php endforeach; ?>
             <?php if (!$chron_entries): ?>

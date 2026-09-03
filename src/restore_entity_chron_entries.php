@@ -178,7 +178,7 @@ $restore_query = http_build_query([
                                 <small>Archived <time datetime="<?php echo htmlspecialchars($archived_timestamp['iso'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($archived_timestamp['display'], ENT_QUOTES, 'UTF-8'); ?></time><?php if (!empty($chron_entry['archived_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['archived_by_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></small>
                             <?php endif; ?>
                         </div>
-                        <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'], ENT_QUOTES, 'UTF-8')); ?></div>
+                        <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($chron_entry['entry_text']); ?></div>
                     </article>
                 <?php endforeach; ?>
             </div>

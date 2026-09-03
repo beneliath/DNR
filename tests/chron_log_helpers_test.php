@@ -42,4 +42,37 @@ expectChronLog(
     'UTC database timestamps should display in the configured timezone.'
 );
 
+$linked_entry = renderChronLogEntryHtml(
+    "Source: https://example.test/posts/42?view=full&from=chron.\n<script>alert('unsafe')</script>"
+);
+expectChronLog(
+    str_contains(
+        $linked_entry,
+        '<a href="https://example.test/posts/42?view=full&amp;from=chron" target="_blank" rel="noopener noreferrer">https://example.test/posts/42?view=full&amp;from=chron</a>.'
+    ),
+    'absolute HTTP(S) URLs should render as external links without absorbing sentence punctuation.'
+);
+expectChronLog(
+    str_contains($linked_entry, "<br />\n&lt;script&gt;alert(&#039;unsafe&#039;)&lt;/script&gt;")
+        && !str_contains($linked_entry, '<script>'),
+    'Chron link rendering should preserve line breaks and escape non-link HTML.'
+);
+
+$parenthesized_entry = renderChronLogEntryHtml(
+    'See (https://example.test/wiki/Function_(mathematics)) and http://example.test/plain. javascript:alert(1)'
+);
+expectChronLog(
+    str_contains(
+        $parenthesized_entry,
+        '<a href="https://example.test/wiki/Function_(mathematics)" target="_blank" rel="noopener noreferrer">https://example.test/wiki/Function_(mathematics)</a>'
+    )
+        && str_contains(
+            $parenthesized_entry,
+            '<a href="http://example.test/plain" target="_blank" rel="noopener noreferrer">http://example.test/plain</a>.'
+        )
+        && substr_count($parenthesized_entry, '<a href=') === 2
+        && !str_contains($parenthesized_entry, 'href="javascript:'),
+    'multiple HTTP(S) URLs should link while balanced parentheses stay included and other schemes stay plain.'
+);
+
 echo "Chron log helper tests passed.\n";

@@ -130,5 +130,11 @@ expectChronFeature(
         && str_contains($chron_helpers, 'changed after you opened this page'),
     'Chron entries should load newest first and reject stale row-level edits.'
 );
+expectChronFeature(
+    str_contains($chron_helpers, 'function renderChronLogEntryHtml(')
+        && str_contains($view_engagement, 'renderChronLogEntryHtml($chron_entry[\'entry_text\'])')
+        && str_contains($restore_chron_entries, 'renderChronLogEntryHtml($chron_entry[\'entry_text\'])'),
+    'active and archived engagement Chron entries should render URLs as safe links.'
+);
 
 echo "Chron log feature tests passed.\n";

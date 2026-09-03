@@ -186,7 +186,7 @@ if ($engagement_title === '') {
                                 <small>Archived <time datetime="<?php echo htmlspecialchars($archived_timestamp['iso']); ?>"><?php echo htmlspecialchars($archived_timestamp['display']); ?></time><?php if (!empty($chron_entry['archived_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['archived_by_username']); ?><?php endif; ?></small>
                             <?php endif; ?>
                         </div>
-                        <div class="chron-entry-text"><?php echo nl2br(htmlspecialchars($chron_entry['entry_text'])); ?></div>
+                        <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($chron_entry['entry_text']); ?></div>
                     </article>
                 <?php endforeach; ?>
             </div>
