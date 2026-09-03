@@ -713,9 +713,26 @@
         });
     }
 
-    function qrCopyStatus(button, message, failed) {
+    let activeQrCopyButton = null;
+    let activeQrCopyStatus = null;
+
+    function activateQrCopyFeedback(button) {
         const container = button.closest('.presentation-qr-card, .presentation-qr-display');
         const status = container ? container.querySelector('[data-copy-status]') : null;
+        if (activeQrCopyStatus && activeQrCopyStatus !== status) {
+            activeQrCopyStatus.textContent = '';
+            activeQrCopyStatus.classList.remove('is-error');
+        }
+        if (activeQrCopyButton && activeQrCopyButton !== button) {
+            activeQrCopyButton.classList.remove('is-copied', 'is-copy-failed');
+        }
+        activeQrCopyButton = button;
+        activeQrCopyStatus = status;
+        return status;
+    }
+
+    function qrCopyStatus(button, message, failed) {
+        const status = activateQrCopyFeedback(button);
         if (status) {
             status.textContent = message;
             status.classList.toggle('is-error', Boolean(failed));
@@ -748,11 +765,14 @@
     }
 
     function initializeQrCopy() {
+        let latestRequestId = 0;
         document.addEventListener('click', async function (event) {
             const button = event.target.closest('[data-copy-qr-url]');
             if (!button || button.hidden) return;
             const url = button.dataset.copyQrUrl || '';
             if (!url) return;
+            const requestId = ++latestRequestId;
+            activateQrCopyFeedback(button);
 
             if (!navigator.clipboard
                 || typeof navigator.clipboard.write !== 'function'
@@ -767,8 +787,10 @@
             try {
                 const png = await qrImageAsPng(url);
                 await navigator.clipboard.write([new ClipboardItem({ 'image/png': png })]);
+                if (requestId !== latestRequestId) return;
                 qrCopyStatus(button, 'QR code copied to the clipboard.', false);
             } catch (error) {
+                if (requestId !== latestRequestId) return;
                 openQrFallback(button, url);
             } finally {
                 button.disabled = false;
