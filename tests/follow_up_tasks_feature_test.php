@@ -40,6 +40,8 @@ $subject_search = $read('src/task_subject_search.php');
 $section = $read('src/templates/follow_up_task_section.php');
 $header = $read('src/templates/header.php');
 $styles = $read('src/assets/css/modern.css');
+$pdf_download = $read('src/download_engagement_pdf.php');
+$pdf_renderer = $read('src/engagement_pdf.php');
 
 expectFollowUpTaskFeature(
     str_contains($queue, "'my' => 'My work'") === false
@@ -116,9 +118,28 @@ expectFollowUpTaskFeature(
         && str_contains($edit_task, 'task_version')
         && str_contains($edit_task, 'FOR UPDATE') === false
         && str_contains($helpers, "if (\$lock)")
-        && str_contains($helpers, "\$sql .= ' FOR UPDATE'")
+        && str_contains($helpers, "\$sql = 'SELECT * FROM follow_up_tasks WHERE id = ? FOR UPDATE'")
         && str_contains($helpers, 'hash_equals'),
     'task writes should use CSRF protection, role checks, PRG, and locked optimistic concurrency.'
+);
+expectFollowUpTaskFeature(
+    str_contains($helpers, 'function lockFollowUpTaskEngagements(')
+        && str_contains($helpers, "'SELECT id FROM engagements WHERE id = ? FOR UPDATE'")
+        && str_contains($helpers, "lockFollowUpTaskEngagements(\$conn, [\$task['engagement_id'] ?? null])")
+        && str_contains($helpers, "lockFollowUpTaskEngagements(\$conn, [\$task_hint['engagement_id'] ?? null])")
+        && str_contains($helpers, "\$existing_subject['engagement_id'] ?? null")
+        && str_contains($helpers, "\$subject['engagement_id'] ?? null")
+        && str_contains($edit_task, "\$locked_task['engagement_id'] ?? 0")
+        && str_contains($edit_task, "\$task['engagement_id'] ?? 0")
+        && preg_match(
+            '/function normalizeFollowUpTaskInput\(.+?lockFollowUpTaskEngagements\(.+?SELECT id FROM users/s',
+            $helpers
+        ) === 1
+        && preg_match(
+            '/function generateEngagementFollowUpChecklist\(.+?lockFollowUpTaskEngagements\(\$conn, \[\$engagement_id\]\).+?lifecycle_status = \'active\'/s',
+            $helpers
+        ) === 1,
+    'event task creation, status changes, association edits, and checklist generation should serialize on the parent event before closeout can commit.'
 );
 expectFollowUpTaskFeature(
     str_contains($add_task, 'normalizeFollowUpTaskInput')
@@ -158,6 +179,18 @@ expectFollowUpTaskFeature(
         && str_contains($queue, 'generate_engagement_checklist')
         && str_contains($section, 'Add missing checklist tasks'),
     'standard engagement checklist generation should be optional and idempotent.'
+);
+expectFollowUpTaskFeature(
+    str_contains($pdf_download, "applicationWorkflowSetting('pdf_max_tasks')")
+        && str_contains($pdf_download, '$pdf_task_limit + 1')
+        && str_contains($pdf_download, '$follow_up_tasks_truncated')
+        && str_contains($pdf_download, '$pdf_business_date = applicationBusinessDate()')
+        && str_contains($pdf_renderer, 'buildEngagementPdfTaskSection(')
+        && str_contains($pdf_renderer, 'Additional active tasks are available in MOED.')
+        && str_contains($pdf_renderer, 'engagementPdfSectionMinimumStartHeight(')
+        && str_contains($pdf_renderer, "'edge' => [217, 45, 32]")
+        && str_contains($pdf_renderer, "'edge' => [37, 99, 235]"),
+    'event PDFs should include active event tasks with Dashboard due-state semantics and colored edges.'
 );
 expectFollowUpTaskFeature(
     str_contains($header, "'standard_tasks.php'")

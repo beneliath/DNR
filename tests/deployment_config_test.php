@@ -33,6 +33,7 @@ expectDeploymentConfig(
         && $moed->string('brand.logo_email') === 'assets/dnr-logo-email.png'
         && $moed->string('defaults.speaker') === 'Olivier Melnick'
         && $moed->string('inbound_email.emitted_marker_prefix') === 'MOED'
+        && $moed->integer('workflow.pdf_max_tasks') === 250
         && count($moed->list('standard_event_tasks')) === 9,
     'the tracked MOED profile should preserve current production behavior.'
 );
@@ -50,12 +51,14 @@ $overridden = DeploymentConfig::load($examplePath, [
     'DNR_INBOUND_MARKER_PREFIX' => 'NEWNAME',
     'DNR_INBOUND_ACCEPTED_MARKER_PREFIXES' => 'NEWNAME,EXAMPLE',
     'DNR_TASK_UPCOMING_DAYS' => '14',
+    'DNR_PDF_MAX_TASKS' => '125',
 ]);
 expectDeploymentConfig(
     $overridden->string('brand.display_name') === 'Override Name'
         && $overridden->string('defaults.speaker') === 'Override Speaker'
         && $overridden->list('inbound_email.accepted_marker_prefixes') === ['NEWNAME', 'EXAMPLE']
-        && $overridden->integer('workflow.task_upcoming_days') === 14,
+        && $overridden->integer('workflow.task_upcoming_days') === 14
+        && $overridden->integer('workflow.pdf_max_tasks') === 125,
     'documented environment values should override the deployment YAML with typed validation.'
 );
 

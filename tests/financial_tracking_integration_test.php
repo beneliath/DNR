@@ -55,6 +55,7 @@ try {
     foreach ([
         ['Older archived event ' . $suffix, '2026-01-10', '2026-01-12', 1],
         ['Newer event ' . $suffix, '2026-02-10', '2026-02-12', 0],
+        ['Closeout readiness event ' . $suffix, '2026-03-10', '2026-03-20', 0],
     ] as [$title, $startDate, $endDate, $isDeleted]) {
         $eventStmt->bind_param(
             'isssi',
@@ -94,6 +95,116 @@ try {
         $reportStmt->execute();
     }
     $reportStmt->close();
+
+    $readinessEngagementId = $engagementIds[2];
+    $presentationStmt = $conn->prepare(
+        "INSERT INTO presentations
+            (engagement_id, topic_title, presentation_date, presentation_time,
+             speaker_name, is_archived, archived_by, archived_at)
+         VALUES (?, ?, ?, '10:00:00', 'Financial Test Speaker', ?, ?, ?)"
+    );
+    foreach ([
+        ['Opening presentation', '2026-03-10', 0, null, null],
+        ['Last active presentation', '2026-03-12', 0, null, null],
+        ['Later archived presentation', '2026-03-18', 1, $userId, '2026-03-01 12:00:00'],
+    ] as [$topic, $presentationDate, $isArchived, $archivedBy, $archivedAt]) {
+        $presentationStmt->bind_param(
+            'issiis',
+            $readinessEngagementId,
+            $topic,
+            $presentationDate,
+            $isArchived,
+            $archivedBy,
+            $archivedAt
+        );
+        $presentationStmt->execute();
+    }
+    $presentationStmt->close();
+
+    $taskStmt = $conn->prepare(
+        "INSERT INTO follow_up_tasks
+            (title, status, due_date, subject_type, engagement_id, created_by,
+             completed_by, completed_at)
+         VALUES (?, ?, ?, 'engagement', ?, ?, ?, ?)"
+    );
+    foreach ([
+        ['Incomplete before last presentation', 'open', '2026-03-11', $readinessEngagementId, null, null],
+        ['Incomplete on last presentation', 'waiting', '2026-03-12', $readinessEngagementId, null, null],
+        ['Canceled on last presentation', 'canceled', '2026-03-12', $readinessEngagementId, null, null],
+        ['Completed before last presentation', 'completed', '2026-03-10', $readinessEngagementId, $userId, '2026-03-10 12:00:00'],
+        ['Incomplete after last presentation', 'open', '2026-03-13', $readinessEngagementId, null, null],
+        ['Incomplete without a due date', 'open', null, $readinessEngagementId, null, null],
+        ['Other engagement task', 'open', '2026-03-01', $engagementIds[1], null, null],
+    ] as [$title, $status, $dueDate, $taskEngagementId, $completedBy, $completedAt]) {
+        $taskStmt->bind_param(
+            'sssiiis',
+            $title,
+            $status,
+            $dueDate,
+            $taskEngagementId,
+            $userId,
+            $completedBy,
+            $completedAt
+        );
+        $taskStmt->execute();
+    }
+    $taskStmt->close();
+
+    $readiness = fetchEngagementCloseoutTaskReadiness($conn, $readinessEngagementId);
+    expectFinancialTrackingIntegration(
+        $readiness['last_presentation_date'] === '2026-03-12',
+        'the closeout cutoff should use the last active presentation and ignore a later archived one.'
+    );
+    expectFinancialTrackingIntegration(
+        array_column($readiness['blocking_tasks'], 'title') === [
+            'Incomplete before last presentation',
+            'Incomplete on last presentation',
+            'Canceled on last presentation',
+        ],
+        'only same-event tasks due through the inclusive cutoff and not marked completed should hold closeout.'
+    );
+    expectFinancialTrackingIntegration(
+        engagementCloseoutTaskHoldMessage($readiness)
+            === '3 tasks due on or before the last presentation (2026-03-12) must be marked completed before this event can be closed out.',
+        'the closeout hold should explain the blocker count and cutoff date.'
+    );
+    $conn->begin_transaction();
+    try {
+        $lockedReadiness = fetchEngagementCloseoutTaskReadiness(
+            $conn,
+            $readinessEngagementId,
+            true
+        );
+        $conn->commit();
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+    expectFinancialTrackingIntegration(
+        $lockedReadiness === $readiness,
+        'the transactional closeout check should lock and classify the same presentation and task rows.'
+    );
+    $undatedReadiness = fetchEngagementCloseoutTaskReadiness($conn, $engagementIds[0]);
+    expectFinancialTrackingIntegration(
+        $undatedReadiness['last_presentation_date'] === null
+            && $undatedReadiness['blocking_tasks'] === [],
+        'an engagement without an active dated presentation should have no date-bounded task hold.'
+    );
+
+    $completeBlockersStmt = $conn->prepare(
+        "UPDATE follow_up_tasks
+         SET status = 'completed', completed_by = ?, completed_at = '2026-03-12 18:00:00'
+         WHERE engagement_id = ? AND due_date <= '2026-03-12' AND status <> 'completed'"
+    );
+    $completeBlockersStmt->bind_param('ii', $userId, $readinessEngagementId);
+    $completeBlockersStmt->execute();
+    $completeBlockersStmt->close();
+    $readyAfterCompletion = fetchEngagementCloseoutTaskReadiness($conn, $readinessEngagementId);
+    expectFinancialTrackingIntegration(
+        $readyAfterCompletion['blocking_tasks'] === []
+            && engagementCloseoutTaskHoldMessage($readyAfterCompletion) === '',
+        'the hold should clear after every task through the last presentation is marked completed.'
+    );
 
     $summary = fetchOrganizationFinancialSummary($conn, $organizationId);
     expectFinancialTrackingIntegration(

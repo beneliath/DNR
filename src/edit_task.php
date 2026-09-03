@@ -47,6 +47,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
         if (!$locked_task) {
             throw new InvalidArgumentException('That task is no longer available.');
         }
+        if ((int) ($locked_task['engagement_id'] ?? 0)
+            !== (int) ($task['engagement_id'] ?? 0)
+        ) {
+            throw new InvalidArgumentException(
+                'This task changed in another session. Reload it and review the latest version before saving.'
+            );
+        }
         if ($submitted_version === ''
             || !hash_equals((string) $locked_task['updated_at'], $submitted_version)
         ) {

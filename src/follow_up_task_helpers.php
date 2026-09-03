@@ -58,6 +58,36 @@ function requireFollowUpTaskSchema(mysqli $conn)
     // Deployment health checks verify schema readiness.
 }
 
+/** @param array<int, int|null> $engagement_ids */
+function lockFollowUpTaskEngagements(mysqli $conn, array $engagement_ids): void
+{
+    $engagement_ids = array_values(array_unique(array_filter(
+        array_map(
+            static fn($engagement_id): int => (int) $engagement_id,
+            $engagement_ids
+        ),
+        static fn(int $engagement_id): bool => $engagement_id > 0
+    )));
+    sort($engagement_ids, SORT_NUMERIC);
+    if ($engagement_ids === []) {
+        return;
+    }
+
+    $stmt = $conn->prepare('SELECT id FROM engagements WHERE id = ? FOR UPDATE');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to lock the task engagement.');
+    }
+    foreach ($engagement_ids as $engagement_id) {
+        $stmt->bind_param('i', $engagement_id);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows !== 1) {
+            $stmt->close();
+            throw new InvalidArgumentException('The task engagement is no longer available.');
+        }
+    }
+    $stmt->close();
+}
+
 function parseFollowUpTaskSubject($value)
 {
     $value = trim((string) $value);
@@ -426,6 +456,14 @@ function normalizeFollowUpTaskInput(
         $waiting_on = '';
     }
 
+    $existing_subject = $existing_subject_value === null
+        ? null
+        : parseFollowUpTaskSubject($existing_subject_value);
+    lockFollowUpTaskEngagements($conn, [
+        $existing_subject['engagement_id'] ?? null,
+        $subject['engagement_id'] ?? null,
+    ]);
+
     $assigned_to = null;
     if ($assigned_raw !== '') {
         if (!ctype_digit($assigned_raw) || (int) $assigned_raw < 1) {
@@ -477,6 +515,7 @@ function normalizeFollowUpTaskInput(
 
 function insertFollowUpTask(mysqli $conn, array $task, int $created_by): int
 {
+    lockFollowUpTaskEngagements($conn, [$task['engagement_id'] ?? null]);
     $completed_by = $task['status'] === 'completed' ? $created_by : null;
     $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
     $stmt = $conn->prepare(
@@ -603,9 +642,10 @@ function fetchFollowUpTask(mysqli $conn, $task_id, $lock = false)
     if ($task_id < 1) {
         return null;
     }
-    $sql = followUpTaskSelectSql() . ' WHERE t.id = ?';
     if ($lock) {
-        $sql .= ' FOR UPDATE';
+        $sql = 'SELECT * FROM follow_up_tasks WHERE id = ? FOR UPDATE';
+    } else {
+        $sql = followUpTaskSelectSql() . ' WHERE t.id = ?';
     }
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
@@ -639,9 +679,21 @@ function setFollowUpTaskStatus(
 
     $conn->begin_transaction();
     try {
+        $task_hint = fetchFollowUpTask($conn, $task_id);
+        if (!$task_hint) {
+            throw new InvalidArgumentException('That task is no longer available.');
+        }
+        lockFollowUpTaskEngagements($conn, [$task_hint['engagement_id'] ?? null]);
         $task = fetchFollowUpTask($conn, $task_id, true);
         if (!$task) {
             throw new InvalidArgumentException('That task is no longer available.');
+        }
+        if ((int) ($task['engagement_id'] ?? 0)
+            !== (int) ($task_hint['engagement_id'] ?? 0)
+        ) {
+            throw new InvalidArgumentException(
+                'That task changed in another session. Reload the work queue before updating it.'
+            );
         }
         if ((string) $expected_version === ''
             || !hash_equals((string) $task['updated_at'], (string) $expected_version)
@@ -731,8 +783,20 @@ function assignFollowUpTaskToUser(
     }
 }
 
-function fetchFollowUpTasksForSubject(mysqli $conn, $subject_type, $subject_id = null)
+function fetchFollowUpTasksForSubject(
+    mysqli $conn,
+    $subject_type,
+    $subject_id = null,
+    $limit = null
+)
 {
+    if ($limit !== null) {
+        $limit = (int) $limit;
+        if ($limit < 1) {
+            throw new InvalidArgumentException('The follow-up task limit must be at least 1.');
+        }
+    }
+
     if ($subject_type === 'general') {
         $where = "t.subject_type = 'general'";
         $bind = false;
@@ -754,12 +818,19 @@ function fetchFollowUpTasksForSubject(mysqli $conn, $subject_type, $subject_id =
                 t.due_date ASC,
                 FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
                 t.id ASC";
+    if ($limit !== null) {
+        $sql .= ' LIMIT ?';
+    }
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         return [];
     }
-    if ($bind) {
+    if ($bind && $limit !== null) {
+        $stmt->bind_param('ii', $subject_id, $limit);
+    } elseif ($bind) {
         $stmt->bind_param('i', $subject_id);
+    } elseif ($limit !== null) {
+        $stmt->bind_param('i', $limit);
     }
     $stmt->execute();
     $tasks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -1041,29 +1112,30 @@ function generateEngagementFollowUpChecklist(
         throw new InvalidArgumentException('Unable to create a checklist for that engagement.');
     }
 
-    $engagement_stmt = $conn->prepare(
-        "SELECT e.event_start_date, e.event_end_date
-         FROM engagements e
-         INNER JOIN organizations o ON o.id = e.organization_id
-         WHERE e.id = ? AND e.is_deleted = 0 AND o.is_deleted = 0
-           AND e.lifecycle_status = 'active'"
-    );
-    if (!$engagement_stmt) {
-        throw new RuntimeException('Unable to load the engagement checklist dates.');
-    }
-    $engagement_stmt->bind_param('i', $engagement_id);
-    $engagement_stmt->execute();
-    $engagement = $engagement_stmt->get_result()->fetch_assoc();
-    $engagement_stmt->close();
-    if (!$engagement) {
-        throw new InvalidArgumentException('Checklists can only be added to active engagements.');
-    }
-
     $manage_transaction = (bool) $manage_transaction;
     if ($manage_transaction) {
         $conn->begin_transaction();
     }
     try {
+        lockFollowUpTaskEngagements($conn, [$engagement_id]);
+        $engagement_stmt = $conn->prepare(
+            "SELECT e.event_start_date, e.event_end_date
+             FROM engagements e
+             INNER JOIN organizations o ON o.id = e.organization_id
+             WHERE e.id = ? AND e.is_deleted = 0 AND o.is_deleted = 0
+               AND e.lifecycle_status = 'active'"
+        );
+        if (!$engagement_stmt) {
+            throw new RuntimeException('Unable to load the engagement checklist dates.');
+        }
+        $engagement_stmt->bind_param('i', $engagement_id);
+        $engagement_stmt->execute();
+        $engagement = $engagement_stmt->get_result()->fetch_assoc();
+        $engagement_stmt->close();
+        if (!$engagement) {
+            throw new InvalidArgumentException('Checklists can only be added to active engagements.');
+        }
+
         if ($assigned_to !== null) {
             $user_stmt = $conn->prepare(
                 "SELECT id FROM users

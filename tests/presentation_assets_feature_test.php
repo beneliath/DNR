@@ -99,8 +99,10 @@ expectPresentationAssetFeature(
         && str_contains($presentation_script, 'if (!shouldReleaseQrPreviews(event)) return;')
         && !str_contains($presentation_script, 'readAsDataURL')
         && str_contains($page_actions, "new ClipboardItem({ 'image/png': png })")
-        && str_contains($page_actions, "window.open(url, '_blank', 'noopener')"),
-    'QR images should support paste input and image clipboard copy with a safe fallback.'
+        && str_contains($page_actions, "document.getElementById('qr-code-preview')")
+        && str_contains($page_actions, 'preview.showModal()')
+        && !str_contains($page_actions, 'window.open('),
+    'QR images should support paste input, clipboard copy, and a themed in-app fallback preview.'
 );
 
 expectPresentationAssetFeature(

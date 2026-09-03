@@ -88,6 +88,40 @@ $chron_entries = [
         'is_archived' => 1,
     ],
 ];
+$follow_up_tasks = [
+    [
+        'title' => 'Confirm travel arrangements',
+        'status' => 'open',
+        'priority' => 'urgent',
+        'due_date' => '2026-08-14',
+        'assignee_username' => 'Alex Editor',
+        'waiting_on' => null,
+    ],
+    [
+        'title' => 'Send the final speaker packet',
+        'status' => 'in_progress',
+        'priority' => 'high',
+        'due_date' => '2026-08-15',
+        'assignee_username' => 'Jordan Admin',
+        'waiting_on' => null,
+    ],
+    [
+        'title' => 'Collect final slides',
+        'status' => 'waiting',
+        'priority' => 'normal',
+        'due_date' => '2026-08-18',
+        'assignee_username' => '',
+        'waiting_on' => 'Presenter approval',
+    ],
+    [
+        'title' => 'Completed setup task',
+        'status' => 'completed',
+        'priority' => 'low',
+        'due_date' => '2026-08-13',
+        'assignee_username' => 'Alex Editor',
+        'waiting_on' => null,
+    ],
+];
 
 $export = buildEngagementExport($engagement, $contacts, $presentations, $chron_entries);
 $plain_text = renderEngagementPlainText($export);
@@ -150,8 +184,56 @@ expectExport(
     engagementPdfDisplayValue('Date and Time', '2026-08-21 09:30 AM') === 'August 21, 2026 at 9:30 AM',
     'PDF presentation dates use a readable display format.'
 );
+expectExport(
+    engagementPdfBrandLogoPath() === realpath($source_directory . '/' . applicationBrandEmailLogo()),
+    'PDF export uses the configured digest-email logo artwork.'
+);
+expectExport(
+    engagementPdfDateLabel('2026-08-15') === 'August 15, 2026',
+    'PDF generated dates use the same application business date as task due states.'
+);
 
-$pdf_contents = renderEngagementPdf($export, 'August 15, 2026');
+$task_section = buildEngagementPdfTaskSection($follow_up_tasks, '2026-08-15');
+expectExport(
+    $task_section !== null
+        && array_column($task_section['entries'], 'due_state') === ['overdue', 'today', 'upcoming']
+        && array_column($task_section['entries'], 'title') === [
+            'Confirm travel arrangements',
+            'Send the final speaker packet',
+            'Collect final slides',
+        ],
+    'PDF export includes only active event tasks and preserves their due-state semantics.'
+);
+$truncated_task_section = buildEngagementPdfTaskSection($follow_up_tasks, '2026-08-15', true);
+expectExport(
+    $truncated_task_section !== null
+        && str_contains($truncated_task_section['notice'], 'first 3 active tasks')
+        && str_contains($truncated_task_section['notice'], 'Additional active tasks'),
+    'bounded PDF task exports disclose when additional active work was omitted.'
+);
+expectExport(
+    engagementPdfTaskCardPalette('overdue')['edge'] === [217, 45, 32]
+        && engagementPdfTaskCardPalette('overdue')['fill'] === [255, 232, 238]
+        && engagementPdfTaskCardPalette('today')['edge'] === [37, 99, 235]
+        && engagementPdfTaskCardPalette('today')['fill'] === [228, 242, 255],
+    'PDF task cards use the Dashboard overdue and due-today fills and semantic edges.'
+);
+
+$pagination_pdf = new DnrEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
+$pagination_pdf->SetMargins(18, 23, 18);
+$pagination_pdf->SetAutoPageBreak(true, 18);
+$pagination_pdf->AddPage();
+expectExport(
+    engagementPdfSectionMinimumStartHeight($pagination_pdf, $task_section) > 24,
+    'task sections reserve room for both the heading and first card before choosing a page.'
+);
+
+$pdf_contents = renderEngagementPdf(
+    $export,
+    'August 15, 2026',
+    $follow_up_tasks,
+    '2026-08-15'
+);
 $pdf_section_headings = array_column(orderEngagementPdfSections($export['sections']), 'heading');
 expectExport(
     array_slice($pdf_section_headings, 0, 3) === ['Overview', 'Location', 'Event Details'],
@@ -166,6 +248,10 @@ expectExport(
 expectExport(str_starts_with($pdf_contents, '%PDF-'), 'PDF export has a valid PDF header.');
 expectExport(str_ends_with(rtrim($pdf_contents), '%%EOF'), 'PDF export has a valid PDF trailer.');
 expectExport(strlen($pdf_contents) > 1500, 'PDF export contains rendered engagement content.');
+expectExport(
+    preg_match('/\/Subtype\s*\/Image\b/', $pdf_contents) === 1,
+    'PDF export embeds the graphical brand logo.'
+);
 expectExport(
     preg_match('/\/Count\s+([2-9]|[1-9][0-9]+)\b/', $pdf_contents) === 1,
     'PDF export includes a separate final page for Chron.'

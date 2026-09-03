@@ -26,9 +26,9 @@ Genesis 49:9,10 ... Revelation 5:5
     </pre>
 </footer>
 
-<dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title">
+<dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title" aria-describedby="logout-confirmation-message">
     <h2 id="logout-confirmation-title">Log Out?</h2>
-    <p>You’ll need to sign in again to manage <?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?> records.</p>
+    <p id="logout-confirmation-message">You’ll need to sign in again to manage <?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?> records.</p>
     <div class="confirmation-dialog-actions">
         <button type="button" id="cancel-logout" class="button-secondary">Cancel</button>
         <button type="button" id="confirm-logout" class="danger-button">Log out</button>
@@ -43,6 +43,41 @@ Genesis 49:9,10 ... Revelation 5:5
         <button type="button" id="cancel-delete" class="button-secondary" autofocus>Cancel</button>
         <button type="button" id="archive-instead" class="archive-button">Archive instead</button>
         <button type="button" id="confirm-delete" class="danger-button">Delete permanently</button>
+    </div>
+</dialog>
+
+<dialog id="action-confirmation" class="confirmation-dialog" aria-labelledby="action-confirmation-title" aria-describedby="action-confirmation-message">
+    <h2 id="action-confirmation-title">Confirm Action</h2>
+    <p id="action-confirmation-message">Continue with this action?</p>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="cancel-action-confirmation" class="button-secondary" autofocus>Cancel</button>
+        <button type="button" id="confirm-action" class="save-button">Continue</button>
+    </div>
+</dialog>
+
+<dialog id="sensitive-action-confirmation" class="confirmation-dialog" aria-labelledby="sensitive-action-confirmation-title" aria-describedby="sensitive-action-confirmation-message sensitive-action-confirmation-help">
+    <h2 id="sensitive-action-confirmation-title">Confirm Sensitive Action</h2>
+    <p id="sensitive-action-confirmation-message"></p>
+    <label for="sensitive-action-confirmation-input" class="confirmation-dialog-label">
+        Type <code id="sensitive-action-confirmation-phrase"></code> to continue
+    </label>
+    <input type="text" id="sensitive-action-confirmation-input" class="confirmation-dialog-input" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-required="true" aria-describedby="sensitive-action-confirmation-help sensitive-action-confirmation-error">
+    <p id="sensitive-action-confirmation-help" class="dialog-supporting-text">The phrase must match exactly.</p>
+    <p id="sensitive-action-confirmation-error" class="dialog-inline-error" role="alert" hidden></p>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="cancel-sensitive-action" class="button-secondary">Cancel</button>
+        <button type="button" id="confirm-sensitive-action" class="danger-button">Confirm</button>
+    </div>
+</dialog>
+
+<dialog id="qr-code-preview" class="confirmation-dialog qr-code-preview-dialog" aria-labelledby="qr-code-preview-title" aria-describedby="qr-code-preview-message">
+    <h2 id="qr-code-preview-title">QR Code Preview</h2>
+    <p id="qr-code-preview-message" class="dialog-supporting-text">Clipboard image access is unavailable. Use this preview to scan or save the QR code.</p>
+    <div class="qr-code-preview-frame">
+        <img id="qr-code-preview-image" alt="QR code preview">
+    </div>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="close-qr-code-preview" class="button-secondary" autofocus>Close</button>
     </div>
 </dialog>
 

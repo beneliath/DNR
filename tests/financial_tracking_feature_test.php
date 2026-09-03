@@ -23,6 +23,15 @@ $engagementList = file_get_contents($root . '/src/engagements.php');
 $organizationView = file_get_contents($root . '/src/view_organization.php');
 $organizationList = file_get_contents($root . '/src/organizations.php');
 $helpers = file_get_contents($root . '/src/financial_report_helpers.php');
+$correctionPosition = is_string($closeout)
+    ? strpos($closeout, 'UPDATE engagement_financial_reports')
+    : false;
+$taskHoldPosition = is_string($closeout)
+    ? strpos($closeout, 'fetchEngagementCloseoutTaskReadiness(')
+    : false;
+$initialClosePosition = is_string($closeout)
+    ? strpos($closeout, 'INSERT INTO engagement_financial_reports')
+    : false;
 
 expectFinancialTracking(
     is_string($migration)
@@ -53,6 +62,22 @@ expectFinancialTracking(
         && str_contains($closeout, 'UPDATE engagement_financial_reports')
         && str_contains($closeout, "in_array(\$user_role, ['admin', 'editor'], true)"),
     'event closeout should be editor-protected, explicit, CSRF-safe, serialized, and optimistic-lock aware.'
+);
+
+expectFinancialTracking(
+    is_string($helpers)
+        && str_contains($helpers, 'function fetchEngagementCloseoutTaskReadiness(')
+        && str_contains($helpers, 'AND is_archived = 0')
+        && str_contains($helpers, 'AND due_date <= ?')
+        && str_contains($helpers, "AND status <> 'completed'")
+        && str_contains($closeout, 'engagementCloseoutTaskHoldMessage(')
+        && str_contains($closeout, 'if (!$closeout_is_held)')
+        && $correctionPosition !== false
+        && $taskHoldPosition !== false
+        && $initialClosePosition !== false
+        && $correctionPosition < $taskHoldPosition
+        && $taskHoldPosition < $initialClosePosition,
+    'initial closeout should be held by every non-completed task due through the last active presentation without blocking corrections.'
 );
 
 expectFinancialTracking(

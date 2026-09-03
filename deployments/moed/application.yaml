@@ -36,6 +36,7 @@ workflow:
   map_future_days: 730
   map_max_events: 500
   pdf_max_chron_entries: 500
+  pdf_max_tasks: 250
 
 # These definitions are imported only by the explicit seed command. They are
 # not reconciled on application startup, so administrator edits remain intact.
