@@ -1,15 +1,16 @@
 # MOED Mattermost Plugin
 
 The MOED plugin is a workflow assistant for Mattermost. MOED remains the system
-of record and the final authorization boundary; Mattermost stores only a
-channel-to-engagement binding and renders data returned by MOED.
+of record and the final authorization boundary; the plugin stores only a
+channel-to-engagement binding, renders data returned by MOED, and adds
+channel-visible receipt reactions after confirmed MOED actions.
 
 ## Prerequisites
 
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.5.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.6.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -84,7 +85,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.4.5.tar.gz`;
+3. select `org.moed.mattermost-0.4.6.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -149,6 +150,12 @@ from **MOED → Mattermost**.
   task**, **Add to MOED Chron**, or **Send via MOED email**. The confirmation
   form lets editors and administrators review the content before MOED writes or
   sends anything.
+- After an explicit **Add to MOED Chron** succeeds, the MOED bot adds a
+  :memo: reaction to the source post. After at least one recipient delivery
+  succeeds for a MOED email that includes the selected post or thread, the bot
+  adds an :email: reaction to the selected source post. The two reactions are
+  independent, so both appear when both actions occurred. They are durable
+  visual receipts, not counters or replacements for the MOED audit record.
 - Engagement email is restricted to contacts already assigned to the linked
   engagement. The sender selects a template and recipients, may include the
   share-safe event brief and a selected post or short thread excerpt, and sees a
@@ -161,10 +168,11 @@ from **MOED → Mattermost**.
 - Destructive actions, financial details, private Chron history, contacts,
   travel/compensation, files, waiting reasons, and full editing stay in MOED.
 
-Slash responses are ephemeral. `/moed link-event ID` is the one intentional
-channel-visible operation; its card contains share-safe engagement fields and
-the engagement routing marker. Email forms, delivery results, reply alerts, and
-action confirmations remain private.
+Slash responses are ephemeral. `/moed link-event ID` and the :memo: / :email:
+source-post receipts are the intentional channel-visible operations. The link
+card contains share-safe engagement fields and the engagement routing marker.
+Email forms, delivery results, reply alerts, and detailed action confirmations
+remain private.
 The post-menu actions never accept an engagement ID from the browser: the
 plugin resolves the selected post, verifies read-channel permission, and uses
 the server-side channel binding before calling MOED. MOED then enforces the

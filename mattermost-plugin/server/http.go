@@ -390,6 +390,7 @@ func (p *Plugin) handleEmailSend(writer http.ResponseWriter, request *http.Reque
 		Body:              send.Body,
 		IncludeEventBrief: send.IncludeEventBrief,
 		MattermostContext: mattermostContext,
+		MattermostPostID:  mattermostEmailReactionPostID(send),
 	}, send.IdempotencyKey)
 	if apiErr != nil {
 		writeJSON(writer, moedErrorStatus(apiErr), moedErrorPayload(apiErr))
@@ -501,8 +502,9 @@ func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Requ
 			return
 		}
 		response, err = client.saveChron(ctx, user.Id, user.Username, saveChronRequest{
-			EngagementID: binding.EngagementID,
-			EntryText:    joinSourceText(entryText, source),
+			EngagementID:     binding.EngagementID,
+			EntryText:        joinSourceText(entryText, source),
+			MattermostPostID: post.Id,
 		}, action.IdempotencyKey)
 	}
 	if err != nil {
@@ -510,6 +512,13 @@ func (p *Plugin) handlePostAction(writer http.ResponseWriter, request *http.Requ
 		return
 	}
 	writeJSON(writer, http.StatusOK, response)
+}
+
+func mattermostEmailReactionPostID(send emailSendWebRequest) string {
+	if send.PostID == "" || (!send.IncludePost && !send.IncludeThread) {
+		return ""
+	}
+	return send.PostID
 }
 
 func joinSourceText(text, source string) string {

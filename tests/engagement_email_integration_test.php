@@ -16,6 +16,7 @@ putenv('DNR_MAIL_TRANSPORT=smtp');
 putenv('DNR_INBOUND_ADDRESS=replies@example.test');
 require_once $sourceDirectory . '/config.php';
 require_once $sourceDirectory . '/functions.php';
+require_once $sourceDirectory . '/chron_log_helpers.php';
 require_once $sourceDirectory . '/mattermost_email_helpers.php';
 
 function expectEngagementEmailIntegration(bool $condition, string $message): void
@@ -30,6 +31,7 @@ $userId = 0;
 $organizationId = 0;
 $engagementId = 0;
 $contactId = 0;
+$secondaryContactId = 0;
 try {
     $username = 'engagement-email-' . $suffix;
     $password = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
@@ -87,6 +89,35 @@ try {
     $assignment->bind_param('iii', $engagementId, $contactId, $userId);
     $assignment->execute();
     $assignment->close();
+
+    $secondaryEmail = 'coordinator-' . $suffix . '@example.test';
+    $secondaryFirstName = 'Blair';
+    $secondaryLastName = 'Coordinator';
+    $secondaryContact = $conn->prepare(
+        "INSERT INTO contacts
+            (organization_id, contact_first_name, contact_last_name,
+             contact_role, contact_email, is_deleted)
+         VALUES (?, ?, ?, 'admin', ?, 0)"
+    );
+    $secondaryContact->bind_param(
+        'isss',
+        $organizationId,
+        $secondaryFirstName,
+        $secondaryLastName,
+        $secondaryEmail
+    );
+    $secondaryContact->execute();
+    $secondaryContactId = (int) $conn->insert_id;
+    $secondaryContact->close();
+
+    $secondaryAssignment = $conn->prepare(
+        "INSERT INTO engagement_contacts
+            (engagement_id, contact_id, contact_role, created_by)
+         VALUES (?, ?, 'travel', ?)"
+    );
+    $secondaryAssignment->bind_param('iii', $engagementId, $secondaryContactId, $userId);
+    $secondaryAssignment->execute();
+    $secondaryAssignment->close();
 
     $engagementRecord = [
         'id' => $engagementId,
@@ -176,11 +207,12 @@ try {
         'Reviewed email body.',
         "MATTERMOST POST\nAuthor: @alex\nMessage: Approved."
     );
+    $mattermostPostId = substr(str_repeat($suffix, 3), 0, 26);
     $mattermostMessageId = queueEngagementEmail(
         $conn,
         $engagementRecord,
         [],
-        [$contactId],
+        [$contactId, $secondaryContactId],
         'custom',
         'Mattermost follow-up',
         $mattermostBody,
@@ -188,7 +220,8 @@ try {
         $userId,
         $username,
         'primary',
-        'send-email:' . $suffix
+        'send-email:' . $suffix,
+        $mattermostPostId
     );
     $replayedMessageId = queueEngagementEmail(
         $conn,
@@ -209,17 +242,173 @@ try {
          WHERE message_id = {$mattermostMessageId}"
     )->fetch_assoc();
     $storedMattermostMessage = $conn->query(
-        "SELECT subject, body_text, mattermost_instance_id, mattermost_idempotency_key
+        "SELECT subject, body_text, mattermost_instance_id, mattermost_idempotency_key,
+                mattermost_post_id
          FROM engagement_email_messages WHERE id = {$mattermostMessageId}"
     )->fetch_assoc();
     expectEngagementEmailIntegration(
         $replayedMessageId === $mattermostMessageId
-            && (int) $mattermostDelivery['total'] === 1
+            && (int) $mattermostDelivery['total'] === 2
             && $storedMattermostMessage['subject'] !== 'Changed retry subject'
             && str_contains((string) $storedMattermostMessage['body_text'], 'MATTERMOST POST')
             && $storedMattermostMessage['mattermost_instance_id'] === 'primary'
-            && $storedMattermostMessage['mattermost_idempotency_key'] === 'send-email:' . $suffix,
+            && $storedMattermostMessage['mattermost_idempotency_key'] === 'send-email:' . $suffix
+            && $storedMattermostMessage['mattermost_post_id'] === $mattermostPostId,
         'a retried Mattermost send should return the original message without creating another delivery.'
+    );
+
+    $reactionRows = $conn->query(
+        "SELECT id, reaction_name, source_key FROM mattermost_post_reaction_notifications
+         WHERE outbound_email_message_id = {$mattermostMessageId}"
+    )->fetch_all(MYSQLI_ASSOC);
+    $pendingReactions = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            (int) $notification['outbound_email_message_id'] === $mattermostMessageId
+    ));
+    expectEngagementEmailIntegration(
+        count($reactionRows) === 1
+            && $reactionRows[0]['reaction_name'] === 'email'
+            && $reactionRows[0]['source_key'] === 'send-email:' . $suffix
+            && $pendingReactions === [],
+        'Mattermost post metadata should create one durable notification intent that stays hidden before delivery.'
+    );
+
+    $firstMattermostDelivery = claimQueuedEngagementEmail($conn);
+    expectEngagementEmailIntegration(
+        $firstMattermostDelivery !== null
+            && (int) $firstMattermostDelivery['message_id'] === $mattermostMessageId,
+        'the first Mattermost-context recipient should be claimable.'
+    );
+    completeQueuedEngagementEmail($conn, (int) $firstMattermostDelivery['id']);
+    $pendingReactions = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            (int) $notification['outbound_email_message_id'] === $mattermostMessageId
+    ));
+    expectEngagementEmailIntegration(
+        count($pendingReactions) === 1
+            && $pendingReactions[0]['mattermost_post_id'] === $mattermostPostId
+            && $pendingReactions[0]['reaction_name'] === 'email',
+        'the first successful recipient delivery should make the Mattermost reaction notification pending.'
+    );
+
+    $reactionNotificationId = (int) $pendingReactions[0]['id'];
+    expectEngagementEmailIntegration(
+        !deferMattermostPostReactionNotification(
+            $conn,
+            'another-instance',
+            $reactionNotificationId,
+            'Wrong instance must not change this row.'
+        )
+            && deferMattermostPostReactionNotification(
+                $conn,
+                'primary',
+                $reactionNotificationId,
+                'The source post is temporarily unavailable.'
+            ),
+        'a failed reaction should be deferred only by its authorized Mattermost instance.'
+    );
+    $deferredReaction = $conn->query(
+        "SELECT attempt_count, next_attempt_at > UTC_TIMESTAMP(6) AS deferred, last_error
+         FROM mattermost_post_reaction_notifications
+         WHERE id = {$reactionNotificationId}"
+    )->fetch_assoc();
+    $pendingWhileDeferred = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            (int) $notification['id'] === $reactionNotificationId
+    ));
+    expectEngagementEmailIntegration(
+        (int) $deferredReaction['attempt_count'] === 1
+            && (int) $deferredReaction['deferred'] === 1
+            && str_contains((string) $deferredReaction['last_error'], 'temporarily unavailable')
+            && $pendingWhileDeferred === [],
+        'a failed reaction should back off so it cannot occupy and starve the pending window.'
+    );
+    $conn->query(
+        "UPDATE mattermost_post_reaction_notifications
+         SET next_attempt_at = UTC_TIMESTAMP(6) WHERE id = {$reactionNotificationId}"
+    );
+
+    $secondMattermostDelivery = claimQueuedEngagementEmail($conn);
+    expectEngagementEmailIntegration(
+        $secondMattermostDelivery !== null
+            && (int) $secondMattermostDelivery['message_id'] === $mattermostMessageId,
+        'the second Mattermost-context recipient should remain independently claimable.'
+    );
+    completeQueuedEngagementEmail($conn, (int) $secondMattermostDelivery['id']);
+    $pendingAfterSecondDelivery = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            (int) $notification['outbound_email_message_id'] === $mattermostMessageId
+    ));
+    expectEngagementEmailIntegration(
+        count($pendingAfterSecondDelivery) === 1
+            && !acknowledgeMattermostPostReactionNotification(
+                $conn,
+                'another-instance',
+                $reactionNotificationId
+            )
+            && acknowledgeMattermostPostReactionNotification(
+                $conn,
+                'primary',
+                $reactionNotificationId
+            )
+            && acknowledgeMattermostPostReactionNotification(
+                $conn,
+                'primary',
+                $reactionNotificationId
+            ),
+        'later successes should not duplicate the reaction and acknowledgement should be instance-scoped and idempotent.'
+    );
+    $pendingAfterAcknowledgement = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            (int) $notification['outbound_email_message_id'] === $mattermostMessageId
+    ));
+    expectEngagementEmailIntegration(
+        $pendingAfterAcknowledgement === [],
+        'an acknowledged Mattermost post reaction should leave the pending service queue.'
+    );
+
+    $chronPostId = substr(str_repeat('c' . $suffix, 3), 0, 26);
+    $chronSourceKey = 'save-chron:' . $suffix;
+    $conn->begin_transaction();
+    insertEntityChronLogEntry(
+        $conn,
+        'engagement',
+        $engagementId,
+        'Mattermost Chron receipt integration test.',
+        $userId,
+        $username
+    );
+    $chronEntryId = (int) $conn->insert_id;
+    queueMattermostPostReactionNotification(
+        $conn,
+        'primary',
+        $chronSourceKey,
+        $chronPostId,
+        'memo',
+        null,
+        $chronEntryId
+    );
+    $conn->commit();
+    $pendingChronReactions = array_values(array_filter(
+        mattermostPendingPostReactionNotifications($conn, 'primary'),
+        static fn(array $notification): bool =>
+            $notification['mattermost_post_id'] === $chronPostId
+    ));
+    expectEngagementEmailIntegration(
+        count($pendingChronReactions) === 1
+            && $pendingChronReactions[0]['reaction_name'] === 'memo'
+            && (int) $pendingChronReactions[0]['outbound_email_message_id'] === 0
+            && acknowledgeMattermostPostReactionNotification(
+                $conn,
+                'primary',
+                (int) $pendingChronReactions[0]['id']
+            ),
+        'a committed Chron entry should expose a durable memo reaction that can be acknowledged.'
     );
 } finally {
     if ($engagementId > 0) {
@@ -227,6 +416,9 @@ try {
     }
     if ($contactId > 0) {
         $conn->query("DELETE FROM contacts WHERE id = {$contactId}");
+    }
+    if ($secondaryContactId > 0) {
+        $conn->query("DELETE FROM contacts WHERE id = {$secondaryContactId}");
     }
     if ($organizationId > 0) {
         $conn->query("DELETE FROM organizations WHERE id = {$organizationId}");

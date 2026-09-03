@@ -358,6 +358,70 @@ function engagementEmailChronText(
         . 'Delivery record: Outbound message #' . $messageId;
 }
 
+function normalizeMattermostPostId(mixed $postId): string
+{
+    if ($postId === null || $postId === '') {
+        return '';
+    }
+    if (!is_string($postId)) {
+        throw new InvalidArgumentException('The Mattermost post ID is invalid.');
+    }
+    $postId = trim($postId);
+    if ($postId === '') {
+        return '';
+    }
+    if (preg_match('/\A[a-z0-9]{26}\z/D', $postId) !== 1) {
+        throw new InvalidArgumentException('The Mattermost post ID is invalid.');
+    }
+    return $postId;
+}
+
+function queueMattermostPostReactionNotification(
+    mysqli $conn,
+    string $instanceId,
+    string $sourceKey,
+    string $mattermostPostId,
+    string $reactionName,
+    ?int $outboundEmailMessageId = null,
+    ?int $engagementChronEntryId = null
+): void {
+    $instanceId = trim($instanceId);
+    $sourceKey = trim($sourceKey);
+    $mattermostPostId = normalizeMattermostPostId($mattermostPostId);
+    if (preg_match('/\A[A-Za-z0-9._-]{1,100}\z/', $instanceId) !== 1
+        || preg_match('/\A[A-Za-z0-9._:-]{8,100}\z/', $sourceKey) !== 1
+        || $mattermostPostId === ''
+        || !in_array($reactionName, ['memo', 'email'], true)
+        || ($reactionName === 'email') !== ($outboundEmailMessageId !== null)
+        || ($reactionName === 'memo') !== ($engagementChronEntryId !== null)
+        || ($outboundEmailMessageId !== null && $outboundEmailMessageId < 1)
+        || ($engagementChronEntryId !== null && $engagementChronEntryId < 1)
+    ) {
+        throw new InvalidArgumentException('The Mattermost reaction notification is invalid.');
+    }
+    $notification = $conn->prepare(
+        'INSERT INTO mattermost_post_reaction_notifications
+            (outbound_email_message_id, engagement_chron_entry_id,
+             instance_id, source_key,
+             mattermost_post_id, reaction_name)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    );
+    if (!$notification) {
+        throw new RuntimeException('Unable to prepare the Mattermost post reaction notification.');
+    }
+    $notification->bind_param(
+        'iissss',
+        $outboundEmailMessageId,
+        $engagementChronEntryId,
+        $instanceId,
+        $sourceKey,
+        $mattermostPostId,
+        $reactionName
+    );
+    $notification->execute();
+    $notification->close();
+}
+
 /**
  * @param array<string, mixed> $engagement
  * @param list<array<string, mixed>> $presentations
@@ -375,7 +439,8 @@ function queueEngagementEmail(
     int $createdBy,
     string $createdByUsername,
     string $mattermostInstanceId = '',
-    string $mattermostIdempotencyKey = ''
+    string $mattermostIdempotencyKey = '',
+    string $mattermostPostId = ''
 ): int {
     $transport = accountMailTransport();
     $engagementId = (int) ($engagement['id'] ?? 0);
@@ -385,11 +450,13 @@ function queueEngagementEmail(
     }
     $mattermostInstanceId = trim($mattermostInstanceId);
     $mattermostIdempotencyKey = trim($mattermostIdempotencyKey);
+    $mattermostPostId = normalizeMattermostPostId($mattermostPostId);
     if (($mattermostInstanceId === '') !== ($mattermostIdempotencyKey === '')
         || ($mattermostInstanceId !== ''
             && preg_match('/\A[A-Za-z0-9._-]{1,100}\z/', $mattermostInstanceId) !== 1)
         || ($mattermostIdempotencyKey !== ''
             && preg_match('/\A[A-Za-z0-9._:-]{8,100}\z/', $mattermostIdempotencyKey) !== 1)
+        || ($mattermostPostId !== '' && $mattermostInstanceId === '')
     ) {
         throw new InvalidArgumentException('The Mattermost email request identity is invalid.');
     }
@@ -463,15 +530,16 @@ function queueEngagementEmail(
             'INSERT INTO engagement_email_messages
                 (engagement_id, organization_id, template_key, subject, body_text, reply_to,
                  included_event_brief, created_by, created_by_username_snapshot,
-                 mattermost_instance_id, mattermost_idempotency_key)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'))'
+                 mattermost_instance_id, mattermost_idempotency_key, mattermost_post_id)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'),
+                     NULLIF(?, \'\'))'
         );
         if (!$messageInsert) {
             throw new RuntimeException('Unable to prepare the engagement email.');
         }
         $briefValue = $includeEventBrief ? 1 : 0;
         $messageInsert->bind_param(
-            'iissssiisss',
+            'iissssiissss',
             $engagementId,
             $organizationId,
             $templateKey,
@@ -482,7 +550,8 @@ function queueEngagementEmail(
             $createdBy,
             $createdByUsername,
             $mattermostInstanceId,
-            $mattermostIdempotencyKey
+            $mattermostIdempotencyKey,
+            $mattermostPostId
         );
         $messageInsert->execute();
         $messageId = (int) $conn->insert_id;
@@ -586,6 +655,17 @@ function queueEngagementEmail(
         $engagementChron->close();
         $organizationChron->close();
         $contactChron->close();
+
+        if ($mattermostPostId !== '') {
+            queueMattermostPostReactionNotification(
+                $conn,
+                $mattermostInstanceId,
+                $mattermostIdempotencyKey,
+                $mattermostPostId,
+                'email',
+                $messageId
+            );
+        }
         $conn->commit();
     } catch (Throwable $exception) {
         $conn->rollback();

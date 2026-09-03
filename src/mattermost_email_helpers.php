@@ -182,6 +182,137 @@ function mattermostEmailMessagePayload(mysqli $conn, int $messageId): array
     ];
 }
 
+/** @return list<array{id: int, outbound_email_message_id: int, mattermost_post_id: string, reaction_name: string}> */
+function mattermostPendingPostReactionNotifications(
+    mysqli $conn,
+    string $instanceId,
+    int $limit = 20
+): array {
+    $limit = max(1, min(50, $limit));
+    $stmt = $conn->prepare(
+        "SELECT notification.id, notification.outbound_email_message_id,
+                notification.mattermost_post_id, notification.reaction_name
+         FROM mattermost_post_reaction_notifications notification
+         WHERE notification.instance_id = ?
+           AND notification.delivered_at IS NULL
+           AND notification.next_attempt_at <= UTC_TIMESTAMP(6)
+           AND (
+                notification.reaction_name = 'memo'
+                OR (notification.reaction_name = 'email' AND EXISTS (
+                    SELECT 1
+                    FROM engagement_email_deliveries delivery
+                    WHERE delivery.message_id = notification.outbound_email_message_id
+                      AND delivery.status = 'sent'
+                ))
+           )
+         ORDER BY notification.next_attempt_at, notification.id
+         LIMIT {$limit}"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare pending Mattermost post reaction notifications.');
+    }
+    $stmt->bind_param('s', $instanceId);
+    $stmt->execute();
+    $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return array_map(static fn(array $row): array => [
+        'id' => (int) $row['id'],
+        'outbound_email_message_id' => (int) $row['outbound_email_message_id'],
+        'mattermost_post_id' => (string) $row['mattermost_post_id'],
+        'reaction_name' => (string) $row['reaction_name'],
+    ], $rows);
+}
+
+/** @phpstan-impure */
+function acknowledgeMattermostPostReactionNotification(
+    mysqli $conn,
+    string $instanceId,
+    int $notificationId
+): bool {
+    if ($notificationId < 1) {
+        throw new InvalidArgumentException('A valid post reaction notification is required.');
+    }
+    $stmt = $conn->prepare(
+        "UPDATE mattermost_post_reaction_notifications notification
+         SET delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP(6))
+         WHERE notification.id = ? AND notification.instance_id = ?
+           AND (
+                notification.reaction_name = 'memo'
+                OR (notification.reaction_name = 'email' AND EXISTS (
+                    SELECT 1
+                    FROM engagement_email_deliveries delivery
+                    WHERE delivery.message_id = notification.outbound_email_message_id
+                      AND delivery.status = 'sent'
+                ))
+           )"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the Mattermost post reaction acknowledgement.');
+    }
+    $stmt->bind_param('is', $notificationId, $instanceId);
+    $stmt->execute();
+    $acknowledged = $stmt->affected_rows === 1;
+    if (!$acknowledged) {
+        $check = $conn->prepare(
+            'SELECT id FROM mattermost_post_reaction_notifications
+             WHERE id = ? AND instance_id = ? AND delivered_at IS NOT NULL'
+        );
+        if (!$check) {
+            $stmt->close();
+            throw new RuntimeException('Unable to confirm the Mattermost post reaction acknowledgement.');
+        }
+        $check->bind_param('is', $notificationId, $instanceId);
+        $check->execute();
+        $acknowledged = $check->get_result()->fetch_assoc() !== null;
+        $check->close();
+    }
+    $stmt->close();
+    return $acknowledged;
+}
+
+/** @phpstan-impure */
+function deferMattermostPostReactionNotification(
+    mysqli $conn,
+    string $instanceId,
+    int $notificationId,
+    mixed $error
+): bool {
+    if ($notificationId < 1 || !is_scalar($error)) {
+        throw new InvalidArgumentException('A valid post reaction failure is required.');
+    }
+    $error = trim((string) $error);
+    if ($error === '') {
+        $error = 'Mattermost could not add the reaction.';
+    }
+    $error = mb_substr($error, 0, 500, 'UTF-8');
+    $stmt = $conn->prepare(
+        "UPDATE mattermost_post_reaction_notifications
+         SET next_attempt_at = TIMESTAMPADD(
+                SECOND,
+                CASE attempt_count
+                    WHEN 0 THEN 30
+                    WHEN 1 THEN 60
+                    WHEN 2 THEN 120
+                    WHEN 3 THEN 300
+                    WHEN 4 THEN 600
+                    ELSE 900
+                END,
+                UTC_TIMESTAMP(6)
+             ),
+             attempt_count = LEAST(attempt_count + 1, 65535),
+             last_error = ?
+         WHERE id = ? AND instance_id = ? AND delivered_at IS NULL"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the Mattermost post reaction retry.');
+    }
+    $stmt->bind_param('sis', $error, $notificationId, $instanceId);
+    $stmt->execute();
+    $deferred = $stmt->affected_rows === 1;
+    $stmt->close();
+    return $deferred;
+}
+
 function queueMattermostReplyNotifications(
     mysqli $conn,
     int $inboundMessageId,

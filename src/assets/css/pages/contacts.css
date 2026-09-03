@@ -72,6 +72,13 @@
         .dark-mode .contact-table tr:hover {
             background-color: #333;
         }
+        @media (min-width: 761px) {
+            .contact-phone-link {
+                font-size: 0.9rem;
+                font-variant-numeric: tabular-nums;
+                white-space: nowrap;
+            }
+        }
         .action-buttons {
             display: inline-flex;
             justify-content: flex-end;

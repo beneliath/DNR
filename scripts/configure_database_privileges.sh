@@ -159,6 +159,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_link_co
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_user_links TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_idempotency_keys TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.mattermost_reply_notifications TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.mattermost_post_reaction_notifications TO '${MYSQL_USER}'@'%';
 GRANT EXECUTE ON PROCEDURE \`${MYSQL_DATABASE}\`.prune_security_audit_log TO '${MYSQL_USER}'@'%';
 
 CREATE USER IF NOT EXISTS '${backup_user}'@'%' IDENTIFIED BY '${backup_password}';

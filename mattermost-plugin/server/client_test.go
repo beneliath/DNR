@@ -84,7 +84,7 @@ func TestMoedClientSendsEngagementEmailWithIdempotency(t *testing.T) {
 		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
 			t.Fatalf("decode email body: %v", err)
 		}
-		if body.EngagementID != 42 || len(body.ContactIDs) != 1 || body.ContactIDs[0] != 9 || body.MattermostContext != "MATTERMOST POST" {
+		if body.EngagementID != 42 || len(body.ContactIDs) != 1 || body.ContactIDs[0] != 9 || body.MattermostContext != "MATTERMOST POST" || body.MattermostPostID != "mattermost-post-id" {
 			t.Fatalf("unexpected email request: %#v", body)
 		}
 		return &http.Response{
@@ -100,9 +100,84 @@ func TestMoedClientSendsEngagementEmailWithIdempotency(t *testing.T) {
 		Subject:           "Subject [MOED#42]",
 		Body:              "Message",
 		MattermostContext: "MATTERMOST POST",
+		MattermostPostID:  "mattermost-post-id",
 	}, "send-email:12345678")
 	if err != nil || response.MessageID != 77 || response.EngagementID != 42 {
 		t.Fatalf("email send failed: %#v, %v", response, err)
+	}
+}
+
+func TestMoedClientPollsAndAcknowledgesPostReactionNotificationsAsService(t *testing.T) {
+	config := validConfiguration()
+	client := newMoedClient(&config)
+	acknowledged := false
+	client.httpClient.Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.Header.Get("X-Mattermost-User-ID") != "" || request.Header.Get("Authorization") == "" {
+			t.Fatal("post reaction notifications must use service authentication without impersonating a user")
+		}
+		switch request.URL.Query().Get("action") {
+		case "post_reaction_notifications":
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"ok":true,"notifications":[{"id":8,"mattermost_post_id":"post-id","outbound_email_message_id":77,"reaction_name":"email"}]}`)),
+			}, nil
+		case "post_reaction_notification_ack":
+			var body map[string]int
+			if err := json.NewDecoder(request.Body).Decode(&body); err != nil || body["notification_id"] != 8 {
+				t.Fatalf("invalid acknowledgement body: %#v, %v", body, err)
+			}
+			acknowledged = true
+			return &http.Response{
+				StatusCode: http.StatusOK,
+				Header:     http.Header{"Content-Type": []string{"application/json"}},
+				Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+			}, nil
+		default:
+			t.Fatalf("unexpected endpoint: %s", request.URL.String())
+			return nil, nil
+		}
+	})
+	response, err := client.postReactionNotifications(context.Background())
+	if err != nil || len(response.Notifications) != 1 || response.Notifications[0].MattermostPostID != "post-id" || response.Notifications[0].ReactionName != emailPostReactionEmoji {
+		t.Fatalf("post reaction notification poll failed: %#v, %v", response, err)
+	}
+	if err := client.acknowledgePostReactionNotification(context.Background(), response.Notifications[0].ID); err != nil {
+		t.Fatalf("post reaction notification acknowledgement failed: %v", err)
+	}
+	if !acknowledged {
+		t.Fatal("expected acknowledgement request")
+	}
+}
+
+func TestMoedClientReportsBoundedPostReactionFailureAsService(t *testing.T) {
+	config := validConfiguration()
+	client := newMoedClient(&config)
+	client.httpClient.Transport = roundTripFunc(func(request *http.Request) (*http.Response, error) {
+		if request.URL.Query().Get("action") != "post_reaction_notification_fail" {
+			t.Fatalf("unexpected endpoint: %s", request.URL.String())
+		}
+		if request.Header.Get("X-Mattermost-User-ID") != "" || request.Header.Get("Authorization") == "" {
+			t.Fatal("post reaction failure reporting must use service authentication without impersonating a user")
+		}
+		var body struct {
+			NotificationID int    `json:"notification_id"`
+			Error          string `json:"error"`
+		}
+		if err := json.NewDecoder(request.Body).Decode(&body); err != nil {
+			t.Fatalf("decode failure body: %v", err)
+		}
+		if body.NotificationID != 9 || len([]rune(body.Error)) != 500 {
+			t.Fatalf("failure body was not bounded correctly: id=%d length=%d", body.NotificationID, len([]rune(body.Error)))
+		}
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"ok":true}`)),
+		}, nil
+	})
+	if err := client.failPostReactionNotification(context.Background(), 9, strings.Repeat("failure", 100)); err != nil {
+		t.Fatalf("report post reaction failure: %v", err)
 	}
 }
 

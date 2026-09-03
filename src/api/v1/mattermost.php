@@ -133,7 +133,7 @@ try {
         mattermostApiRequireMethod('GET');
         mattermostApiRespond([
             'ok' => true,
-            'integration_version' => '3',
+            'integration_version' => '4',
             'application' => applicationBrandName(),
             'instance_id' => $instanceId,
         ]);
@@ -176,6 +176,47 @@ try {
                 $conn,
                 $instanceId,
                 (int) $notificationId
+            ),
+        ]);
+    }
+
+    if ($action === 'post_reaction_notifications') {
+        mattermostApiRequireMethod('GET');
+        mattermostApiRespond([
+            'ok' => true,
+            'notifications' => mattermostPendingPostReactionNotifications($conn, $instanceId, 20),
+        ]);
+    }
+
+    if ($action === 'post_reaction_notification_ack') {
+        mattermostApiRequireMethod('POST');
+        $body = mattermostApiBody();
+        $notificationId = filter_var($body['notification_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$notificationId) {
+            throw new InvalidArgumentException('A valid post reaction notification is required.');
+        }
+        mattermostApiRespond([
+            'ok' => acknowledgeMattermostPostReactionNotification(
+                $conn,
+                $instanceId,
+                (int) $notificationId
+            ),
+        ]);
+    }
+
+    if ($action === 'post_reaction_notification_fail') {
+        mattermostApiRequireMethod('POST');
+        $body = mattermostApiBody();
+        $notificationId = filter_var($body['notification_id'] ?? null, FILTER_VALIDATE_INT);
+        if (!$notificationId) {
+            throw new InvalidArgumentException('A valid post reaction notification is required.');
+        }
+        mattermostApiRespond([
+            'ok' => deferMattermostPostReactionNotification(
+                $conn,
+                $instanceId,
+                (int) $notificationId,
+                $body['error'] ?? ''
             ),
         ]);
     }
@@ -277,8 +318,17 @@ try {
         $body = mattermostApiBody();
         $engagementId = filter_var($body['engagement_id'] ?? null, FILTER_VALIDATE_INT);
         $idempotencyKey = mattermostApiHeader('Idempotency-Key');
+        $mattermostContext = $body['mattermost_context'] ?? '';
+        $mattermostPostId = normalizeMattermostPostId($body['mattermost_post_id'] ?? null);
         if (!$engagementId) {
             throw new InvalidArgumentException('A valid linked engagement is required.');
+        }
+        if ($mattermostPostId !== ''
+            && (!is_scalar($mattermostContext) || trim((string) $mattermostContext) === '')
+        ) {
+            throw new InvalidArgumentException(
+                'A Mattermost post ID requires selected post or thread context.'
+            );
         }
         $existingResponse = mattermostIdempotentResponse(
             $conn,
@@ -300,13 +350,14 @@ try {
             $body['subject'] ?? '',
             mattermostEmailBodyWithContext(
                 $body['body'] ?? '',
-                $body['mattermost_context'] ?? ''
+                $mattermostContext
             ),
             !empty($body['include_event_brief']),
             (int) $user['id'],
             (string) $user['username'],
             $instanceId,
-            $idempotencyKey
+            $idempotencyKey,
+            $mattermostPostId
         );
         $response = mattermostEmailMessagePayload($conn, $messageId);
         $response['user'] = $publicUser;
@@ -411,6 +462,7 @@ try {
         $body = mattermostApiBody();
         $engagementId = filter_var($body['engagement_id'] ?? null, FILTER_VALIDATE_INT);
         $entryText = (string) ($body['entry_text'] ?? '');
+        $mattermostPostId = normalizeMattermostPostId($body['mattermost_post_id'] ?? null);
         $idempotencyKey = mattermostApiHeader('Idempotency-Key');
         if (!$engagementId || mattermostEngagement($conn, (int) $engagementId) === null) {
             throw new InvalidArgumentException('The linked engagement is no longer available.');
@@ -436,12 +488,25 @@ try {
                 (int) $user['id'],
                 (string) $user['username']
             );
+            $chronEntryId = (int) $conn->insert_id;
             $response = [
                 'ok' => true,
                 'message' => 'Post saved to the MOED Chron.',
                 'user' => $publicUser,
                 'url' => mattermostPublicUrl('view_engagement.php', ['id' => (int) $engagementId]),
+                'mattermost_post_id' => $mattermostPostId,
             ];
+            if ($mattermostPostId !== '') {
+                queueMattermostPostReactionNotification(
+                    $conn,
+                    $instanceId,
+                    $idempotencyKey,
+                    $mattermostPostId,
+                    'memo',
+                    null,
+                    $chronEntryId
+                );
+            }
             storeMattermostIdempotentResponse(
                 $conn,
                 $instanceId,

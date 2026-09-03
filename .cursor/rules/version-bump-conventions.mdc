@@ -1,0 +1,11 @@
+---
+description: Apply the DNR version-bump numbering conventions
+alwaysApply: true
+---
+
+# Version Bump Conventions
+
+- In this project, a **minor version bump** always means `[x].[y].[z+1]`.
+- Example: `1.10.21` becomes `1.10.22`.
+- A **major version bump** always means `[x].[y+1].0`.
+- A **super version bump** always means `[x+1].0.0`.

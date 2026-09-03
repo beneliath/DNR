@@ -13,6 +13,9 @@ function expectEngagementEmailFeature(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $read = static fn(string $path): string => (string) file_get_contents($root . '/' . $path);
 $migration = $read('migrations/20260831_add_engagement_email_correspondence.sql');
+$mattermostReactionMigration = $read(
+    'migrations/20260903_add_mattermost_email_reaction_notifications.sql'
+);
 $order = $read('migrations/order.txt');
 $helpers = $read('src/engagement_email_helpers.php');
 $emailHelpers = $read('src/email_helpers.php');
@@ -29,6 +32,12 @@ $environment = $read('.env.example');
 $readme = $read('README.md');
 $chronView = $read('src/templates/entity_chron_log_view_section.php');
 $chronEdit = $read('src/templates/entity_chron_log_edit_section.php');
+$webGrantSection = explode("CREATE USER IF NOT EXISTS '\${backup_user}'", $grants, 2)[0];
+$mailDispatchGrantSection = explode(
+    "CREATE USER IF NOT EXISTS '\${maintenance_user}'",
+    explode("CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'", $grants, 2)[1] ?? '',
+    2
+)[0];
 
 expectEngagementEmailFeature(
     str_contains($migration, 'CREATE TABLE engagement_email_messages')
@@ -43,6 +52,23 @@ expectEngagementEmailFeature(
         && str_contains($migration, 'uq_organization_chron_outbound_email')
         && str_contains($order, '20260831_add_engagement_email_correspondence.sql'),
     'the ordered schema should retain one source message, independent encrypted deliveries, and idempotent Chron links.'
+);
+expectEngagementEmailFeature(
+    str_contains($mattermostReactionMigration, 'mattermost_post_id CHAR(26)')
+        && str_contains(
+            $mattermostReactionMigration,
+            'CREATE TABLE mattermost_post_reaction_notifications'
+        )
+        && str_contains($mattermostReactionMigration, 'outbound_email_message_id')
+        && str_contains($mattermostReactionMigration, 'engagement_chron_entry_id')
+        && str_contains($mattermostReactionMigration, "reaction_name ENUM('memo', 'email')")
+        && str_contains($mattermostReactionMigration, 'delivered_at DATETIME(6) NULL')
+        && str_contains($mattermostReactionMigration, 'next_attempt_at DATETIME(6)')
+        && str_contains(
+            $order,
+            '20260903_add_mattermost_email_reaction_notifications.sql'
+        ),
+    'the ordered schema should retain optional Mattermost source posts and durable reaction acknowledgements.'
 );
 expectEngagementEmailFeature(
     str_contains($helpers, 'function engagementEmailTemplates(')
@@ -99,6 +125,11 @@ expectEngagementEmailFeature(
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%'")
         && !str_contains($grants, 'GRANT ALL PRIVILEGES'),
     'the isolated SMTP worker should receive only the additional delivery-table access it needs.'
+);
+expectEngagementEmailFeature(
+    str_contains($webGrantSection, '.mattermost_post_reaction_notifications')
+        && !str_contains($mailDispatchGrantSection, '.mattermost_post_reaction_notifications'),
+    'the web identity should queue and acknowledge Mattermost reactions without widening SMTP-worker access.'
 );
 expectEngagementEmailFeature(
     str_contains($javascript, 'suggested_roles')
