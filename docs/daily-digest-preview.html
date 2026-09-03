@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en" style="color-scheme: light only; supported-color-schemes: light;">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light">
+    <title>MOED Daily Operations</title>
+    <style>
+        :root { color-scheme: light only; supported-color-schemes: light; }
+        html, body { margin: 0 !important; padding: 0 !important; background: #f6f7fb !important; color: #172033 !important; }
+        body, table, td, a { font-family: Rubik, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; }
+        table { border-spacing: 0; border-collapse: separate; }
+        img { border: 0; display: block; }
+        a { text-decoration: none; }
+        .email-shell { width: 100%; max-width: 720px; }
+        .mobile-column { vertical-align: top; }
+        .task-row-overdue, .task-row-overdue td { background-color: #ffe8ee !important; }
+        .task-row-today, .task-row-today td { background-color: #e4f2ff !important; }
+        .task-row-overdue .task-edge-overdue { background-color: #d92d20 !important; }
+        .task-row-today .task-edge-today { background-color: #2563eb !important; }
+        @media (prefers-color-scheme: dark) {
+            html, body, .email-canvas { background: #f6f7fb !important; color: #172033 !important; }
+            .email-surface, .email-surface td { background: #ffffff !important; color: #172033 !important; }
+            .email-subtle, .email-subtle td { background: #f8fafc !important; color: #172033 !important; }
+            .task-row-overdue, .task-row-overdue td { background: #ffe8ee !important; color: #172033 !important; }
+            .task-row-today, .task-row-today td { background: #e4f2ff !important; color: #172033 !important; }
+            .task-row-overdue .task-edge-overdue { background: #d92d20 !important; }
+            .task-row-today .task-edge-today { background: #2563eb !important; }
+        }
+        [data-ogsc] .email-canvas { background: #f6f7fb !important; color: #172033 !important; }
+        [data-ogsc] .email-surface, [data-ogsc] .email-surface td { background: #ffffff !important; color: #172033 !important; }
+        [data-ogsc] .task-row-overdue, [data-ogsc] .task-row-overdue td { background: #ffe8ee !important; color: #172033 !important; }
+        [data-ogsc] .task-row-today, [data-ogsc] .task-row-today td { background: #e4f2ff !important; color: #172033 !important; }
+        [data-ogsc] .task-row-overdue .task-edge-overdue { background: #d92d20 !important; }
+        [data-ogsc] .task-row-today .task-edge-today { background: #2563eb !important; }
+        @media only screen and (max-width: 620px) {
+            .email-gutter { padding-left: 14px !important; padding-right: 14px !important; }
+            .content-padding { padding-left: 18px !important; padding-right: 18px !important; }
+            .mobile-column { display: block !important; width: 100% !important; box-sizing: border-box !important; padding-left: 0 !important; padding-right: 0 !important; }
+            .mobile-column + .mobile-column { padding-left: 0 !important; padding-top: 10px !important; }
+            .summary-cell { display: block !important; width: 100% !important; padding: 0 0 10px !important; }
+            .record-meta { width: 118px !important; }
+            .hide-mobile { display: none !important; }
+        }
+    </style>
+</head>
+<body class="email-canvas" bgcolor="#f6f7fb" style="margin:0;padding:0;background-color:#f6f7fb;color:#172033;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+        4 active tasks, 1 overdue, and 1 due today.    </div>
+    <table role="presentation" width="100%" bgcolor="#f6f7fb" class="email-canvas" style="width:100%;background-color:#f6f7fb;">
+        <tr>
+            <td align="center" class="email-gutter" style="padding:28px 20px 36px;">
+                <!--[if mso]><table role="presentation" width="720" align="center"><tr><td><![endif]-->
+                <table role="presentation" width="720" class="email-shell" style="width:100%;max-width:720px;">
+                    <tr>
+                        <td class="email-surface" bgcolor="#ffffff" style="padding:17px 22px;border:1px solid #dfe4ec;border-radius:14px;background-color:#ffffff;">
+                            <table role="presentation" width="100%" style="width:100%;">
+                                <tr>
+                                    <td style="vertical-align:middle;">
+                                        <div style="color:#0f766e;font-size:20px;font-weight:800;line-height:1.1;letter-spacing:-0.02em;">MOED</div>
+                                        <div style="margin-top:4px;color:#8992a3;font-size:10px;font-weight:700;letter-spacing:0.13em;text-transform:uppercase;">Daily operations</div>
+                                    </td>
+                                    <td align="right" style="vertical-align:middle;">
+                                        <a href="https://moed.example.test/dashboard.php" style="display:inline-block;padding:9px 13px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:12px;font-weight:700;">Open Dashboard</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="content-padding" style="padding:28px 2px 18px;">
+                            <h1 style="margin:0;color:#172033;font-size:28px;line-height:1.22;letter-spacing:-0.025em;">Good day, Mary</h1>
+                            <p style="margin:7px 0 0;color:#667085;font-size:14px;line-height:1.55;">Your operations view for Thursday, September 3, 2026:</p>
+                            <div style="margin-top:15px;">
+                                <a href="https://moed.example.test/tasks.php?view=my" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">Open my work</a>
+                                                                    <a href="https://moed.example.test/add_task.php?return_to=dashboard.php" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">+ New task</a>
+                                    <a href="https://moed.example.test/index.php" style="display:inline-block;margin:0 0 7px;padding:9px 12px;border:1px solid #2457d6;border-radius:9px;background:#2457d6;color:#ffffff;font-size:11px;font-weight:700;">+ New engagement</a>
+                                                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <table role="presentation" width="100%" style="width:100%;table-layout:fixed;">
+                                <tr>
+                                    <td width="33.333%" class="summary-cell" style="width:33.333%;padding-right:6px;vertical-align:top;">
+                                        <a href="https://moed.example.test/engagements.php?sort_by=date&amp;date_sort=asc" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
+                                            <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#eff4ff;color:#2457d6;font-size:17px;font-weight:800;line-height:27px;text-align:center;">◇</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">Events, next 30 days</span>
+                                            <strong style="display:block;margin-top:3px;color:#172033;font-size:24px;line-height:1;">3</strong>
+                                        </a>
+                                    </td>
+                                    <td width="33.333%" class="summary-cell" style="width:33.333%;padding:0 3px;vertical-align:top;">
+                                        <a href="https://moed.example.test/tasks.php?view=my" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
+                                            <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#e7f6ef;color:#137a55;font-size:16px;font-weight:800;line-height:27px;text-align:center;">✓</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My active work</span>
+                                            <strong style="display:block;margin-top:3px;color:#172033;font-size:24px;line-height:1;">4</strong>
+                                        </a>
+                                    </td>
+                                    <td width="33.333%" class="summary-cell" style="width:33.333%;padding-left:6px;vertical-align:top;">
+                                        <a href="https://moed.example.test/tasks.php?view=my" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
+                                            <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#fff0ee;color:#b42318;font-size:17px;font-weight:800;line-height:27px;text-align:center;">!</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My overdue work</span>
+                                            <strong style="display:block;margin-top:3px;color:#b42318;font-size:24px;line-height:1;">1</strong>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding-top:10px;">
+                            <table role="presentation" width="100%" style="width:100%;table-layout:fixed;">
+                                <tr>
+                                    <td width="50%" class="summary-cell" style="width:50%;padding-right:5px;vertical-align:top;">
+                                        <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;">
+                                            <tr>
+                                                <td style="vertical-align:middle;"><a href="https://moed.example.test/dashboard.php#financial-closeouts" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#9a5b05;font-size:16px;font-weight:800;">$</span><span style="color:#667085;font-size:11px;">Financial closeouts due</span></a></td>
+                                                <td align="right" width="52" style="width:52px;vertical-align:middle;"><a href="https://moed.example.test/dashboard.php#financial-closeouts" style="display:block;padding:14px 16px 14px 0;"><strong style="color:#9a5b05;font-size:18px;">2</strong></a></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                                                            <td width="50%" class="summary-cell" style="width:50%;padding-left:5px;vertical-align:top;">
+                                            <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;">
+                                                <tr>
+                                                    <td style="vertical-align:middle;"><a href="https://moed.example.test/inbound_mail.php?status=review" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#2457d6;font-size:16px;font-weight:800;">@</span><span style="color:#667085;font-size:11px;">Mail awaiting review</span></a></td>
+                                                    <td align="right" width="52" style="width:52px;vertical-align:middle;"><a href="https://moed.example.test/inbound_mail.php?status=review" style="display:block;padding:14px 16px 14px 0;"><strong style="color:#9a5b05;font-size:18px;">3</strong></a></td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                                                    </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding-top:20px;">
+                            <table role="presentation" width="100%" style="width:100%;table-layout:fixed;">
+                                <tr>
+                                    <td width="50%" class="mobile-column primary-column" style="width:50%;padding-right:5px;">
+                            <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;overflow:hidden;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;">
+                                <tr>
+                                    <td class="content-padding" style="padding:18px 20px 14px;border-bottom:1px solid #dfe4ec;">
+                                        <table role="presentation" width="100%" style="width:100%;">
+                                            <tr>
+                                                <td>
+                                                    <h2 style="margin:0;color:#172033;font-size:17px;line-height:1.3;">Upcoming Engagements</h2>
+                                                    <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Active events beginning or continuing during the next 30 days.</p>
+                                                </td>
+                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="https://moed.example.test/engagements.php?sort_by=date&amp;date_sort=asc" style="color:#2457d6;font-size:12px;font-weight:700;">View all</a></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                                                                                                                                    <tr>
+                                            <td class="content-padding" style="padding:14px 20px;border-bottom:1px solid #dfe4ec;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/view_engagement.php?id=284" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Midwest Leadership Summit</a>
+                                                            <div style="margin-top:4px;color:#667085;font-size:11px;line-height:1.4;">Lakeside Community Church · Sep 8 – Sep 10, 2026</div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="110" style="width:110px;vertical-align:middle;">
+                                                            <span style="display:inline-block;margin-bottom:5px;padding:4px 8px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:10px;font-weight:700;line-height:1.2;">2 details needed</span><br>                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;line-height:1.2;">Under review</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                                    <tr>
+                                            <td class="content-padding" style="padding:14px 20px;border-bottom:1px solid #dfe4ec;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/view_engagement.php?id=291" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Shalom in the City</a>
+                                                            <div style="margin-top:4px;color:#667085;font-size:11px;line-height:1.4;">Beth El Congregation · Sep 15, 2026</div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="110" style="width:110px;vertical-align:middle;">
+                                                                                                                        <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#e7f6ef;color:#137a55;font-size:10px;font-weight:700;line-height:1.2;">Confirmed</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                                    <tr>
+                                            <td class="content-padding" style="padding:14px 20px;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/view_engagement.php?id=297" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Prophecy Conference 2026</a>
+                                                            <div style="margin-top:4px;color:#667085;font-size:11px;line-height:1.4;">First Baptist Dallas · Sep 24 – Sep 26, 2026</div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="110" style="width:110px;vertical-align:middle;">
+                                                            <span style="display:inline-block;margin-bottom:5px;padding:4px 8px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:10px;font-weight:700;line-height:1.2;">1 detail needed</span><br>                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#eff4ff;color:#2457d6;font-size:10px;font-weight:700;line-height:1.2;">Work in progress</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                </table>
+                                    </td>
+                                    <td width="50%" class="mobile-column primary-column" style="width:50%;padding-left:5px;">
+                            <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;overflow:hidden;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;">
+                                <tr>
+                                    <td colspan="2" class="content-padding" style="padding:18px 20px 14px;border-bottom:1px solid #dfe4ec;">
+                                        <table role="presentation" width="100%" style="width:100%;">
+                                            <tr>
+                                                <td>
+                                                    <h2 style="margin:0;color:#172033;font-size:17px;line-height:1.3;">My Work</h2>
+                                                    <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">1 due today, ordered by urgency and due date.</p>
+                                                </td>
+                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="https://moed.example.test/tasks.php?view=my" style="color:#2457d6;font-size:12px;font-weight:700;">Open queue</a></td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                                                                                                                                                    <tr class="task-row-overdue" bgcolor="#ffe8ee">
+                                            <td width="4" class="task-edge-overdue" bgcolor="#d92d20" style="width:4px;padding:0;background-color:#d92d20;"></td>
+                                            <td class="content-padding task-content-cell" bgcolor="#ffe8ee" style="padding:14px 16px;background-color:#ffe8ee;border-bottom:1px solid #dfe4ec;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/edit_task.php?id=743&amp;return_to=dashboard.php" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Send final flight itinerary</a>
+                                                            <div style="margin-top:4px;color:#475467;font-size:11px;line-height:1.4;"><a href="https://moed.example.test/view_engagement.php?id=284" style="color:#475467;">Midwest Leadership Summit</a></div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="120" style="width:120px;vertical-align:middle;">
+                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;line-height:1.2;">Overdue · 2026-09-02</span><br>
+                                                            <span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#eff4ff;color:#2457d6;font-size:10px;font-weight:700;line-height:1.2;">In progress</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                                    <tr class="task-row-today" bgcolor="#e4f2ff">
+                                            <td width="4" class="task-edge-today" bgcolor="#2563eb" style="width:4px;padding:0;background-color:#2563eb;"></td>
+                                            <td class="content-padding task-content-cell" bgcolor="#e4f2ff" style="padding:14px 16px;background-color:#e4f2ff;border-bottom:1px solid #dfe4ec;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/edit_task.php?id=751&amp;return_to=dashboard.php" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Reconfirm A/V setup</a>
+                                                            <div style="margin-top:4px;color:#475467;font-size:11px;line-height:1.4;"><a href="https://moed.example.test/view_engagement.php?id=291" style="color:#475467;">Shalom in the City</a></div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="120" style="width:120px;vertical-align:middle;">
+                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:10px;font-weight:700;line-height:1.2;">Due today</span><br>
+                                                            <span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#667085;font-size:10px;font-weight:700;line-height:1.2;">Open</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                                    <tr class="email-surface" bgcolor="#ffffff">
+                                            <td width="4" class="task-edge-upcoming" bgcolor="#ffffff" style="width:4px;padding:0;background-color:#ffffff;"></td>
+                                            <td class="content-padding task-content-cell" bgcolor="#ffffff" style="padding:14px 16px;background-color:#ffffff;border-bottom:1px solid #dfe4ec;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/edit_task.php?id=756&amp;return_to=dashboard.php" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Print prophecy handouts</a>
+                                                            <div style="margin-top:4px;color:#475467;font-size:11px;line-height:1.4;"><a href="https://moed.example.test/view_engagement.php?id=297" style="color:#475467;">Prophecy Conference 2026</a></div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="120" style="width:120px;vertical-align:middle;">
+                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#eff4ff;color:#2457d6;font-size:10px;font-weight:700;line-height:1.2;">Due 2026-09-05</span><br>
+                                                            <span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#f1f5f9;color:#667085;font-size:10px;font-weight:700;line-height:1.2;">Open</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                                    <tr class="email-surface" bgcolor="#ffffff">
+                                            <td width="4" class="task-edge-none" bgcolor="#ffffff" style="width:4px;padding:0;background-color:#ffffff;"></td>
+                                            <td class="content-padding task-content-cell" bgcolor="#ffffff" style="padding:14px 16px;background-color:#ffffff;">
+                                                <table role="presentation" width="100%" style="width:100%;">
+                                                    <tr>
+                                                        <td style="padding-right:12px;vertical-align:middle;">
+                                                            <a href="https://moed.example.test/edit_task.php?id=762&amp;return_to=dashboard.php" style="color:#172033;font-size:14px;font-weight:700;line-height:1.35;">Venue contract countersignature</a>
+                                                            <div style="margin-top:4px;color:#475467;font-size:11px;line-height:1.4;"><a href="https://moed.example.test/view_organization.php?id=88" style="color:#475467;">Grace Fellowship</a></div>
+                                                        </td>
+                                                        <td class="record-meta" align="right" width="120" style="width:120px;vertical-align:middle;">
+                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;line-height:1.2;">No due date</span><br>
+                                                            <span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;line-height:1.2;">Waiting</span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </td>
+                                        </tr>
+                                                                                                </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td class="content-padding" style="padding:25px 2px 10px;">
+                            <table role="presentation" width="100%" style="width:100%;">
+                                <tr>
+                                    <td>
+                                        <h2 style="margin:0;color:#172033;font-size:20px;line-height:1.3;">Needs Attention</h2>
+                                        <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Upcoming records and completed events that still need an operational decision.</p>
+                                    </td>
+                                                                            <td align="right" class="hide-mobile" style="padding-left:12px;"><a href="https://moed.example.test/inbound_mail.php?status=review" style="display:inline-block;padding:7px 10px;border:1px solid #d7b36a;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;white-space:nowrap;">3 messages awaiting review</a></td>
+                                                                    </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td>
+                            <table role="presentation" width="100%" style="width:100%;table-layout:fixed;">
+                                <tr>
+                                    <td width="50%" class="mobile-column" style="width:50%;padding-right:5px;">
+                                        <table role="presentation" width="100%" height="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;height:100%;overflow:hidden;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;">
+                                            <tr><td style="padding:17px 18px 13px;border-bottom:1px solid #dfe4ec;"><h3 style="margin:0;color:#172033;font-size:15px;line-height:1.3;">Event Readiness</h3><p style="margin:5px 0 0;color:#667085;font-size:11px;line-height:1.45;">Missing essentials for upcoming events.</p></td></tr>
+                                                                                                                                                                                                    <tr><td style="padding:13px 16px;border-bottom:1px solid #dfe4ec;"><a href="https://moed.example.test/edit_engagement.php?id=284" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;">Midwest Leadership Summit</a><div style="margin-top:7px;"><span style="display:inline-block;margin:0 4px 4px 0;padding:4px 7px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:9px;font-weight:700;line-height:1.2;">Venue address missing</span><span style="display:inline-block;margin:0 4px 4px 0;padding:4px 7px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:9px;font-weight:700;line-height:1.2;">No event contacts assigned</span></div></td></tr>
+                                                                                                                                                        <tr><td style="padding:13px 16px;"><a href="https://moed.example.test/edit_engagement.php?id=302" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;">Israel Update Luncheon</a><div style="margin-top:7px;"><span style="display:inline-block;margin:0 4px 4px 0;padding:4px 7px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:9px;font-weight:700;line-height:1.2;">No presentations</span></div></td></tr>
+                                                                                                                                    </table>
+                                    </td>
+                                    <td width="50%" class="mobile-column" style="width:50%;padding-left:5px;">
+                                        <table role="presentation" width="100%" height="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;height:100%;overflow:hidden;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;">
+                                            <tr><td style="padding:17px 18px 13px;border-bottom:1px solid #dfe4ec;"><h3 style="margin:0;color:#172033;font-size:15px;line-height:1.3;">Financial Closeouts</h3><p style="margin:5px 0 0;color:#667085;font-size:11px;line-height:1.45;">Ended active events without final figures.</p></td></tr>
+                                                                                                                                                                                                    <tr><td style="padding:13px 16px;border-bottom:1px solid #dfe4ec;"><table role="presentation" width="100%" style="width:100%;"><tr><td style="padding-right:8px;"><a href="https://moed.example.test/close_engagement.php?id=268" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;">Hope for Israel Weekend</a><div style="margin-top:4px;color:#667085;font-size:10px;line-height:1.4;">Calvary Chapel · ended 2026-08-29</div></td><td align="right" style="color:#b42318;font-size:10px;font-weight:700;white-space:nowrap;">5 days</td></tr></table></td></tr>
+                                                                                                                                                        <tr><td style="padding:13px 16px;"><table role="presentation" width="100%" style="width:100%;"><tr><td style="padding-right:8px;"><a href="https://moed.example.test/close_engagement.php?id=271" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;">Prophecy &amp; the Church</a><div style="margin-top:4px;color:#667085;font-size:10px;line-height:1.4;">Northside Bible Church · ended 2026-09-01</div></td><td align="right" style="color:#b42318;font-size:10px;font-weight:700;white-space:nowrap;">2 days</td></tr></table></td></tr>
+                                                                                                                                    </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td align="center" class="content-padding" style="padding:26px 20px 10px;">
+                            <a href="https://moed.example.test/dashboard.php" style="display:inline-block;padding:11px 17px;border-radius:9px;background:#2457d6;color:#ffffff;font-size:13px;font-weight:700;">Open your Dashboard</a>
+                            <div style="margin-top:16px;color:#8992a3;font-size:11px;line-height:1.6;">This is your scheduled MOED Daily Digest. <a href="https://moed.example.test/profile.php#notification-preferences-heading" style="color:#667085;text-decoration:underline;">Manage delivery settings</a>.</div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding:18px 8px 2px;">
+                            <pre aria-label="ASCII art cat" style="display:inline-block;margin:0;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:left;white-space:pre;opacity:0.5;filter:alpha(opacity=50);mso-line-height-rule:exactly;">     (&quot;`-''-/&quot;).___..--''&quot;`-.
+     `6_ 6  )   `-.  (     ).`-.__.`)
+     (_Y_.)'  ._   )  `._ `. ``-..-'
+   _..`--'_..-_/  /--'_.' ,'
+  (il),-''  (li),'  ((!.-'</pre>
+                            <div style="margin-top:6px;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:center;opacity:0.5;filter:alpha(opacity=50);mso-line-height-rule:exactly;">Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?</div>
+                        </td>
+                    </tr>
+                </table>
+                <!--[if mso]></td></tr></table><![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

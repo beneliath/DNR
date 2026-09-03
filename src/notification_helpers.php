@@ -3,14 +3,18 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/dashboard_helpers.php';
+require_once __DIR__ . '/follow_up_task_helpers.php';
+require_once __DIR__ . '/daily_digest_email.php';
 
 const TASK_DIGEST_WEEKDAYS = 31;
 const TASK_DIGEST_WEEKENDS = 96;
 const TASK_DIGEST_EVERY_DAY = 127;
 
 /**
- * @return array{overdue: int, today: int, upcoming: int, waiting: int,
- *   closeouts: int, total: int}
+ * @return array{active: int, dashboard_overdue: int, dashboard_today: int,
+ *   overdue: int, today: int, upcoming: int, waiting: int, closeouts: int,
+ *   total: int}
  */
 function fetchTaskReminderCounts(
     mysqli $conn,
@@ -20,6 +24,9 @@ function fetchTaskReminderCounts(
     ?int $sharedCloseoutCount = null
 ): array {
     $counts = [
+        'active' => 0,
+        'dashboard_overdue' => 0,
+        'dashboard_today' => 0,
         'overdue' => 0,
         'today' => 0,
         'upcoming' => 0,
@@ -35,6 +42,9 @@ function fetchTaskReminderCounts(
     $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
     $taskStatement = $conn->prepare(
         "SELECT
+            COUNT(*) AS active_count,
+            SUM(due_date < ?) AS dashboard_overdue_count,
+            SUM(due_date = ?) AS dashboard_today_count,
             SUM(status IN ('open', 'in_progress') AND due_date < ?) AS overdue_count,
             SUM(status IN ('open', 'in_progress') AND due_date = ?) AS today_count,
             SUM(status IN ('open', 'in_progress')
@@ -49,7 +59,9 @@ function fetchTaskReminderCounts(
         throw new RuntimeException('Unable to prepare work reminder counts.');
     }
     $taskStatement->bind_param(
-        'ssssi',
+        'ssssssi',
+        $businessDate,
+        $businessDate,
         $businessDate,
         $businessDate,
         $businessDate,
@@ -59,6 +71,9 @@ function fetchTaskReminderCounts(
     $taskStatement->execute();
     $taskCounts = $taskStatement->get_result()->fetch_assoc() ?: [];
     $taskStatement->close();
+    $counts['active'] = (int) ($taskCounts['active_count'] ?? 0);
+    $counts['dashboard_overdue'] = (int) ($taskCounts['dashboard_overdue_count'] ?? 0);
+    $counts['dashboard_today'] = (int) ($taskCounts['dashboard_today_count'] ?? 0);
     foreach (['overdue', 'today', 'upcoming', 'waiting'] as $key) {
         $counts[$key] = (int) ($taskCounts[$key . '_count'] ?? 0);
     }
@@ -67,27 +82,27 @@ function fetchTaskReminderCounts(
         if ($sharedCloseoutCount !== null) {
             $counts['closeouts'] = max(0, $sharedCloseoutCount);
         } else {
-        $closeoutStatement = $conn->prepare(
-            "SELECT COUNT(*) AS closeout_count
-             FROM engagements engagement
-             INNER JOIN organizations organization
-                ON organization.id = engagement.organization_id
-             LEFT JOIN engagement_financial_reports report
-                ON report.engagement_id = engagement.id
-             WHERE engagement.is_deleted = 0
-               AND organization.is_deleted = 0
-               AND engagement.lifecycle_status IN ('active', 'completed')
-               AND engagement.event_end_date < ?
-               AND report.engagement_id IS NULL"
-        );
-        if (!$closeoutStatement) {
-            throw new RuntimeException('Unable to prepare closeout reminder counts.');
-        }
-        $closeoutStatement->bind_param('s', $businessDate);
-        $closeoutStatement->execute();
-        $closeoutRow = $closeoutStatement->get_result()->fetch_assoc() ?: [];
-        $closeoutStatement->close();
-        $counts['closeouts'] = (int) ($closeoutRow['closeout_count'] ?? 0);
+            $closeoutStatement = $conn->prepare(
+                "SELECT COUNT(*) AS closeout_count
+                 FROM engagements engagement
+                 INNER JOIN organizations organization
+                    ON organization.id = engagement.organization_id
+                 LEFT JOIN engagement_financial_reports report
+                    ON report.engagement_id = engagement.id
+                 WHERE engagement.is_deleted = 0
+                   AND organization.is_deleted = 0
+                   AND engagement.lifecycle_status IN ('active', 'completed')
+                   AND engagement.event_end_date < ?
+                   AND report.engagement_id IS NULL"
+            );
+            if (!$closeoutStatement) {
+                throw new RuntimeException('Unable to prepare closeout reminder counts.');
+            }
+            $closeoutStatement->bind_param('s', $businessDate);
+            $closeoutStatement->execute();
+            $closeoutRow = $closeoutStatement->get_result()->fetch_assoc() ?: [];
+            $closeoutStatement->close();
+            $counts['closeouts'] = (int) ($closeoutRow['closeout_count'] ?? 0);
         }
     }
 
@@ -96,44 +111,74 @@ function fetchTaskReminderCounts(
     return $counts;
 }
 
-/**
- * The closeout list is identical for every editor/admin digest in one business
- * day, so schedulers can fetch it once and share the bounded result.
- *
- * @return array{count: int, items: list<array<string, mixed>>}
- */
+/** @return array{count: int, items: list<array<string, mixed>>} */
 function fetchDailyTaskDigestCloseouts(mysqli $conn, string $businessDate): array
 {
-    $statement = $conn->prepare(
-        "SELECT engagement.id, engagement.event_title,
-                engagement.event_end_date, organization.organization_name,
-                COUNT(*) OVER () AS closeout_count
-         FROM engagements engagement
-         INNER JOIN organizations organization
-            ON organization.id = engagement.organization_id
-         LEFT JOIN engagement_financial_reports report
-            ON report.engagement_id = engagement.id
-         WHERE engagement.is_deleted = 0
-           AND organization.is_deleted = 0
-           AND engagement.lifecycle_status IN ('active', 'completed')
-           AND engagement.event_end_date < ?
-           AND report.engagement_id IS NULL
-         ORDER BY engagement.event_end_date, engagement.id
-         LIMIT 12"
+    $items = fetchDashboardFinancialCloseouts($conn, $businessDate);
+    return [
+        'count' => $items === [] ? 0 : (int) ($items[0]['dashboard_total'] ?? 0),
+        'items' => $items,
+    ];
+}
+
+/**
+ * The schedule, readiness, closeout, and inbound-review data is identical for
+ * all recipients on a business day. Fetch it once per scheduler pass so a rich
+ * digest has the same bounded-query behavior as the Dashboard itself.
+ *
+ * @return array{
+ *   upcoming_count: int,
+ *   upcoming_engagements: list<array<string, mixed>>,
+ *   readiness_items: list<array<string, mixed>>,
+ *   financial_closeout_count: int,
+ *   financial_closeouts: list<array<string, mixed>>,
+ *   inbound_review_count: int
+ * }
+ */
+function fetchDailyTaskDigestSharedDashboardData(
+    mysqli $conn,
+    string $businessDate
+): array {
+    $dashboardUpcomingDays = applicationWorkflowSetting('dashboard_upcoming_days');
+    try {
+        $windowEnd = (new DateTimeImmutable(
+            $businessDate . ' 12:00:00',
+            applicationTimezone()
+        ))->modify('+' . $dashboardUpcomingDays . ' days')->format('Y-m-d');
+    } catch (Throwable $exception) {
+        throw new InvalidArgumentException('Choose a valid digest business date.', 0, $exception);
+    }
+
+    $upcoming = fetchDashboardUpcomingEngagements(
+        $conn,
+        $businessDate,
+        $windowEnd
     );
-    if (!$statement) {
-        throw new RuntimeException('Unable to prepare daily digest closeouts.');
+    $displayedUpcoming = array_slice($upcoming, 0, 8);
+    $readiness = [];
+    foreach ($upcoming as $engagement) {
+        $issues = dashboardEngagementReadinessIssues($engagement);
+        if ($issues === []) {
+            continue;
+        }
+        $engagement['readiness_issues'] = $issues;
+        $readiness[] = $engagement;
+        if (count($readiness) === 8) {
+            break;
+        }
     }
-    $statement->bind_param('s', $businessDate);
-    $statement->execute();
-    $items = $statement->get_result()->fetch_all(MYSQLI_ASSOC);
-    $statement->close();
-    $count = isset($items[0]['closeout_count']) ? (int) $items[0]['closeout_count'] : 0;
-    foreach ($items as &$item) {
-        unset($item['closeout_count']);
-    }
-    unset($item);
-    return ['count' => $count, 'items' => $items];
+
+    $closeouts = fetchDailyTaskDigestCloseouts($conn, $businessDate);
+    return [
+        'upcoming_count' => $upcoming === []
+            ? 0
+            : (int) ($upcoming[0]['dashboard_total'] ?? 0),
+        'upcoming_engagements' => $displayedUpcoming,
+        'readiness_items' => $readiness,
+        'financial_closeout_count' => (int) $closeouts['count'],
+        'financial_closeouts' => $closeouts['items'],
+        'inbound_review_count' => fetchDashboardInboundReviewCount($conn),
+    ];
 }
 
 function taskDigestDeliveryTimeFromInput(mixed $value): string
@@ -196,13 +241,17 @@ function taskDigestScheduleIsDue(
 
 /**
  * @return array{
- *   counts: array{overdue: int, today: int, upcoming: int, waiting: int,
- *     closeouts: int, total: int},
+ *   counts: array{active: int, dashboard_overdue: int, dashboard_today: int,
+ *     overdue: int, today: int, upcoming: int, waiting: int, closeouts: int,
+ *     total: int},
  *   overdue: list<array<string, mixed>>,
  *   today: list<array<string, mixed>>,
  *   upcoming: list<array<string, mixed>>,
  *   waiting: list<array<string, mixed>>,
- *   closeouts: list<array<string, mixed>>
+ *   undated: list<array<string, mixed>>,
+ *   future: list<array<string, mixed>>,
+ *   closeouts: list<array<string, mixed>>,
+ *   dashboard: array<string, mixed>
  * }
  */
 function fetchDailyTaskDigestData(
@@ -210,30 +259,37 @@ function fetchDailyTaskDigestData(
     int $userId,
     string $role,
     string $businessDate,
-    ?array $sharedCloseouts = null
+    ?array $sharedDashboard = null
 ): array {
     $canReviewCloseouts = in_array($role, ['admin', 'editor'], true);
-    if ($canReviewCloseouts && $sharedCloseouts === null) {
-        $sharedCloseouts = fetchDailyTaskDigestCloseouts($conn, $businessDate);
-    }
+    $sharedDashboard ??= fetchDailyTaskDigestSharedDashboardData($conn, $businessDate);
+    $counts = fetchTaskReminderCounts(
+        $conn,
+        $userId,
+        $role,
+        $businessDate,
+        $canReviewCloseouts
+            ? (int) ($sharedDashboard['financial_closeout_count'] ?? 0)
+            : null
+    );
     $data = [
-        'counts' => fetchTaskReminderCounts(
-            $conn,
-            $userId,
-            $role,
-            $businessDate,
-            $canReviewCloseouts ? (int) ($sharedCloseouts['count'] ?? 0) : null
-        ),
+        'counts' => $counts,
         'overdue' => [],
         'today' => [],
         'upcoming' => [],
         'waiting' => [],
+        'undated' => [],
+        'future' => [],
         'closeouts' => [],
+        'dashboard' => [],
     ];
     $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
 
     $taskStatement = $conn->prepare(
-        "SELECT id, title, status, priority, due_date, waiting_on, digest_section
+        "SELECT id, title, status, priority, due_date, waiting_on,
+                subject_type, engagement_id, organization_id, contact_id,
+                engagement_label, organization_label, contact_label,
+                digest_section
          FROM (
             SELECT categorized.*,
                    ROW_NUMBER() OVER (
@@ -242,28 +298,44 @@ function fetchDailyTaskDigestData(
                                 FIELD(priority, 'urgent', 'high', 'normal', 'low'), id
                    ) AS digest_rank
             FROM (
-                SELECT id, title, status, priority, due_date, waiting_on,
+                SELECT task.id, task.title, task.status, task.priority,
+                       task.due_date, task.waiting_on, task.subject_type,
+                       task.engagement_id, task.organization_id, task.contact_id,
+                       COALESCE(NULLIF(TRIM(engagement.event_title), ''),
+                                engagement_organization.organization_name)
+                           AS engagement_label,
+                       organization.organization_name AS organization_label,
+                       CONCAT(contact.contact_last_name, ', ', contact.contact_first_name)
+                           AS contact_label,
                        CASE
-                           WHEN status = 'waiting' THEN 'waiting'
-                           WHEN due_date < ? THEN 'overdue'
-                           WHEN due_date = ? THEN 'today'
-                           ELSE 'upcoming'
+                           WHEN task.status = 'waiting' THEN 'waiting'
+                           WHEN task.due_date IS NULL THEN 'undated'
+                           WHEN task.due_date < ? THEN 'overdue'
+                           WHEN task.due_date = ? THEN 'today'
+                           WHEN task.due_date <= DATE_ADD(
+                               ?, INTERVAL {$upcomingDays} DAY
+                           ) THEN 'upcoming'
+                           ELSE 'future'
                        END AS digest_section
-                FROM follow_up_tasks
-                WHERE assigned_to = ?
-                  AND (
-                       status = 'waiting'
-                       OR (
-                           status IN ('open', 'in_progress')
-                           AND due_date IS NOT NULL
-                           AND due_date <= DATE_ADD(?, INTERVAL {$upcomingDays} DAY)
-                       )
-                  )
+                FROM follow_up_tasks task
+                LEFT JOIN engagements engagement
+                  ON engagement.id = task.engagement_id
+                LEFT JOIN organizations engagement_organization
+                  ON engagement_organization.id = engagement.organization_id
+                LEFT JOIN organizations organization
+                  ON organization.id = task.organization_id
+                LEFT JOIN contacts contact
+                  ON contact.id = task.contact_id
+                WHERE task.assigned_to = ?
+                  AND task.status IN ('open', 'in_progress', 'waiting')
             ) categorized
          ) ranked
          WHERE digest_rank <= 12
          ORDER BY
-            FIELD(digest_section, 'overdue', 'today', 'upcoming', 'waiting'),
+            FIELD(
+                digest_section,
+                'overdue', 'today', 'upcoming', 'waiting', 'undated', 'future'
+            ),
             COALESCE(due_date, '9999-12-31'),
             FIELD(priority, 'urgent', 'high', 'normal', 'low'),
             id"
@@ -272,27 +344,52 @@ function fetchDailyTaskDigestData(
         throw new RuntimeException('Unable to prepare daily digest tasks.');
     }
     $taskStatement->bind_param(
-        'ssis',
+        'sssi',
         $businessDate,
         $businessDate,
-        $userId,
-        $businessDate
+        $businessDate,
+        $userId
     );
     $taskStatement->execute();
     $tasks = $taskStatement->get_result()->fetch_all(MYSQLI_ASSOC);
     $taskStatement->close();
 
+    $dashboardTasks = [];
     foreach ($tasks as $task) {
         $section = (string) $task['digest_section'];
         unset($task['digest_section']);
         $data[$section][] = $task;
+        $dashboardTasks[] = $task;
     }
 
     if ($canReviewCloseouts) {
-        $data['closeouts'] = is_array($sharedCloseouts['items'] ?? null)
-            ? $sharedCloseouts['items']
+        $data['closeouts'] = is_array($sharedDashboard['financial_closeouts'] ?? null)
+            ? $sharedDashboard['financial_closeouts']
             : [];
     }
+
+    $priorityOrder = ['urgent' => 0, 'high' => 1, 'normal' => 2, 'low' => 3];
+    usort($dashboardTasks, static function (array $left, array $right) use ($priorityOrder): int {
+        $leftDate = trim((string) ($left['due_date'] ?? '')) ?: '9999-12-31';
+        $rightDate = trim((string) ($right['due_date'] ?? '')) ?: '9999-12-31';
+        $dateOrder = $leftDate <=> $rightDate;
+        if ($dateOrder !== 0) {
+            return $dateOrder;
+        }
+        $priority = ($priorityOrder[(string) ($left['priority'] ?? '')] ?? 4)
+            <=> ($priorityOrder[(string) ($right['priority'] ?? '')] ?? 4);
+        return $priority !== 0
+            ? $priority
+            : ((int) ($left['id'] ?? 0) <=> (int) ($right['id'] ?? 0));
+    });
+    $data['dashboard'] = array_merge($sharedDashboard, [
+        'task_summary' => [
+            'active' => $counts['active'],
+            'overdue' => $counts['dashboard_overdue'],
+            'today' => $counts['dashboard_today'],
+        ],
+        'my_tasks' => array_slice($dashboardTasks, 0, 8),
+    ]);
 
     return $data;
 }
@@ -307,125 +404,21 @@ function digestDisplayDate(string $businessDate): string
     }
 }
 
-/** @param list<array<string, mixed>> $items */
-function appendTaskDigestSection(
-    array &$lines,
-    string $heading,
-    array $items,
-    int $total,
-    bool $waiting = false
-): void {
-    if ($total < 1) {
-        return;
-    }
-    $lines[] = '';
-    $lines[] = strtoupper($heading) . ' (' . $total . ')';
-    foreach (array_slice($items, 0, 12) as $item) {
-        $priority = ucfirst((string) ($item['priority'] ?? 'normal'));
-        $line = '- [' . $priority . '] ' . trim((string) ($item['title'] ?? 'Task'));
-        if ($waiting) {
-            $waitingOn = trim((string) ($item['waiting_on'] ?? ''));
-            if ($waitingOn !== '') {
-                $line .= ' — waiting on: ' . $waitingOn;
-            }
-        } elseif (!empty($item['due_date'])) {
-            $line .= ' — due ' . $item['due_date'];
-        }
-        $lines[] = $line;
-    }
-    if ($total > count($items) || $total > 12) {
-        $shown = min(12, count($items));
-        $lines[] = '- … and ' . max(0, $total - $shown) . ' more';
-    }
-}
-
 /**
  * @param array<string, mixed> $user
  * @param array<string, mixed> $digest
- * @return array{recipient: string, subject: string, body: string}
+ * @return array{recipient: string, subject: string, body: string, html_body: string}
  */
 function dailyTaskDigestMessage(array $user, array $digest, string $businessDate): array
 {
     $recipient = normalizeAccountEmail($user['email'] ?? '');
-    $name = trim((string) ($user['first_name'] ?? ''));
-    if ($name === '') {
-        $name = trim((string) ($user['username'] ?? 'there')) ?: 'there';
-    }
-    $displayDate = digestDisplayDate($businessDate);
     $brandName = applicationBrandName();
-    $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
-    $counts = is_array($digest['counts'] ?? null) ? $digest['counts'] : [];
-    $lines = [
-        'Good day, ' . $name . '.',
-        '',
-        'Here is your ' . $brandName . ' work digest for ' . $displayDate . '.',
-    ];
-
-    appendTaskDigestSection(
-        $lines,
-        'Overdue',
-        is_array($digest['overdue'] ?? null) ? $digest['overdue'] : [],
-        (int) ($counts['overdue'] ?? 0)
-    );
-    appendTaskDigestSection(
-        $lines,
-        'Due today',
-        is_array($digest['today'] ?? null) ? $digest['today'] : [],
-        (int) ($counts['today'] ?? 0)
-    );
-    appendTaskDigestSection(
-        $lines,
-        'Next ' . $upcomingDays . ' days',
-        is_array($digest['upcoming'] ?? null) ? $digest['upcoming'] : [],
-        (int) ($counts['upcoming'] ?? 0)
-    );
-    appendTaskDigestSection(
-        $lines,
-        'Waiting',
-        is_array($digest['waiting'] ?? null) ? $digest['waiting'] : [],
-        (int) ($counts['waiting'] ?? 0),
-        true
-    );
-
-    $closeoutTotal = (int) ($counts['closeouts'] ?? 0);
-    if ($closeoutTotal > 0) {
-        $lines[] = '';
-        $lines[] = 'FINANCIAL CLOSEOUTS (' . $closeoutTotal . ')';
-        $closeouts = is_array($digest['closeouts'] ?? null) ? $digest['closeouts'] : [];
-        foreach (array_slice($closeouts, 0, 12) as $closeout) {
-            $title = trim((string) ($closeout['event_title'] ?? ''));
-            if ($title === '') {
-                $title = (string) ($closeout['organization_name'] ?? 'Engagement');
-            }
-            $lines[] = '- ' . $title . ' · '
-                . (string) ($closeout['organization_name'] ?? 'Organization')
-                . ' — ended ' . (string) ($closeout['event_end_date'] ?? '');
-        }
-        if ($closeoutTotal > count($closeouts) || $closeoutTotal > 12) {
-            $shown = min(12, count($closeouts));
-            $lines[] = '- … and ' . max(0, $closeoutTotal - $shown) . ' more';
-        }
-    }
-
-    if ((int) ($counts['total'] ?? 0) === 0) {
-        $lines[] = '';
-        $lines[] = 'You have no assigned reminders or financial closeouts needing attention.';
-    }
-
-    $lines[] = '';
-    $lines[] = 'Open your work queue: ' . applicationPublicUrl('tasks.php', [
-        'view' => 'my',
-    ]);
-    if ($closeoutTotal > 0) {
-        $lines[] = 'Review closeouts: ' . applicationPublicUrl('dashboard.php')
-            . '#financial-closeouts';
-    }
-    $lines[] = 'Manage this digest: ' . applicationPublicUrl('profile.php');
 
     return [
         'recipient' => $recipient,
         'subject' => $brandName . ' daily work digest · ' . $businessDate,
-        'body' => implode("\n", $lines),
+        'body' => renderDailyTaskDigestText($user, $digest, $businessDate),
+        'html_body' => renderDailyTaskDigestHtml($user, $digest, $businessDate),
     ];
 }
 
@@ -441,6 +434,9 @@ function queueNotificationPayload(
         'recipient' => $recipient,
         'subject' => (string) ($message['subject'] ?? ''),
         'body' => (string) ($message['body'] ?? ''),
+        'html_body' => is_string($message['html_body'] ?? null)
+            ? $message['html_body']
+            : null,
     ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES);
     $ciphertext = \Dnr\Security\ApplicationKey::seal($json);
     $recipientHash = hash('sha256', $recipient, true);
@@ -533,7 +529,7 @@ function queueDueDailyTaskDigests(
     $queued = 0;
     $scanned = 0;
     $afterUserId = 0;
-    $sharedCloseouts = null;
+    $sharedDashboard = null;
     try {
         while ($scanned < $maximumRecipients && hrtime(true) < $deadline) {
             $pageLimit = min($pageSize, $maximumRecipients - $scanned);
@@ -559,17 +555,16 @@ function queueDueDailyTaskDigests(
                 $afterUserId = $userId;
                 $scanned++;
                 try {
-                    if ($sharedCloseouts === null
-                        && in_array($user['role'], ['admin', 'editor'], true)
-                    ) {
-                        $sharedCloseouts = fetchDailyTaskDigestCloseouts($conn, $businessDate);
-                    }
+                    $sharedDashboard ??= fetchDailyTaskDigestSharedDashboardData(
+                        $conn,
+                        $businessDate
+                    );
                     $digest = fetchDailyTaskDigestData(
                         $conn,
                         $userId,
                         (string) $user['role'],
                         $businessDate,
-                        $sharedCloseouts
+                        $sharedDashboard
                     );
                     $message = dailyTaskDigestMessage($user, $digest, $businessDate);
                     if (queueNotificationPayload(
@@ -736,7 +731,7 @@ function claimQueuedNotificationEmail(
     }
 }
 
-/** @return array{recipient: string, subject: string, body: string} */
+/** @return array{recipient: string, subject: string, body: string, html_body: ?string} */
 function decryptQueuedNotificationEmail(string $ciphertext): array
 {
     $decoded = json_decode(
@@ -749,6 +744,7 @@ function decryptQueuedNotificationEmail(string $ciphertext): array
         || !is_string($decoded['recipient'] ?? null)
         || !is_string($decoded['subject'] ?? null)
         || !is_string($decoded['body'] ?? null)
+        || (isset($decoded['html_body']) && !is_string($decoded['html_body']))
     ) {
         throw new RuntimeException('The queued notification payload is invalid.');
     }
@@ -756,6 +752,7 @@ function decryptQueuedNotificationEmail(string $ciphertext): array
         'recipient' => normalizeAccountEmail($decoded['recipient']),
         'subject' => $decoded['subject'],
         'body' => $decoded['body'],
+        'html_body' => isset($decoded['html_body']) ? $decoded['html_body'] : null,
     ];
 }
 

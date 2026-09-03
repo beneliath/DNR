@@ -131,7 +131,9 @@ do {
                 $smtpSession,
                 $message['recipient'],
                 $message['subject'],
-                $message['body']
+                $message['body'],
+                '',
+                is_string($message['html_body'] ?? null) ? $message['html_body'] : null
             );
             completeQueuedNotificationEmail($conn, $queued['id']);
         } catch (Throwable $exception) {

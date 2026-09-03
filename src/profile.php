@@ -394,7 +394,7 @@ $task_digest_day_options = [
                     <?php echo empty($user['email_verified_at']) ? 'disabled' : ''; ?>>
                 <span>
                     <strong>Daily work digest</strong>
-                    <small>Email me on the selected days with my overdue, due-today, upcoming, and waiting tasks<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus financial closeouts' : ''; ?>.</small>
+                    <small>Email me on the selected days with a Dashboard-style snapshot of upcoming engagements, My Work, event readiness, and financial closeouts<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus inbound mail awaiting review' : ''; ?>. Overdue and due-today tasks are highlighted.</small>
                 </span>
             </label>
             <div class="profile-notification-schedule" data-task-digest-schedule>

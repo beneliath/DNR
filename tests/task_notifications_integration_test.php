@@ -95,6 +95,8 @@ try {
         ['Digest today', 'in_progress', 'high', '2026-08-23', null],
         ['Digest upcoming', 'open', 'normal', '2026-08-27', null],
         ['Digest waiting', 'waiting', 'normal', null, 'venue confirmation'],
+        ['Digest far future', 'open', 'normal', '2027-08-23', null],
+        ['Digest undated', 'open', 'normal', null, null],
     ] as [$title, $status, $priority, $dueDate, $waitingOn]) {
         $taskStatement->bind_param(
             'sssssii',
@@ -140,12 +142,33 @@ try {
     $message = decryptQueuedNotificationEmail((string) $claimed['payload_ciphertext']);
     expectTaskNotificationIntegration(
         $message['recipient'] === $email
-            && str_contains($message['body'], 'OVERDUE (1)')
-            && str_contains($message['body'], 'DUE TODAY (1)')
-            && str_contains($message['body'], 'NEXT 7 DAYS (1)')
-            && str_contains($message['body'], 'WAITING (1)')
-            && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (1)'),
-        'the daily digest should contain every requested reminder category.'
+            && str_contains($message['body'], 'DASHBOARD SUMMARY')
+            && str_contains($message['body'], '- My active work: 6')
+            && str_contains($message['body'], '- My overdue work: 1')
+            && str_contains($message['body'], '- Due today: 1')
+            && str_contains($message['body'], 'UPCOMING ENGAGEMENTS (')
+            && str_contains($message['body'], 'MY WORK (6)')
+            && str_contains($message['body'], 'EVENT READINESS (')
+            && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (')
+            && str_contains($message['body'], $eventTitle)
+            && str_contains($message['body'], 'Digest far future')
+            && str_contains($message['body'], 'Digest undated')
+            && is_string($message['html_body'])
+            && str_starts_with($message['html_body'], '<!doctype html>')
+            && str_contains($message['html_body'], 'name="color-scheme" content="light only"')
+            && str_contains($message['html_body'], '6 active tasks, 1 overdue, and 1 due today.')
+            && str_contains($message['html_body'], 'Upcoming Engagements')
+            && str_contains($message['html_body'], 'My Work')
+            && str_contains($message['html_body'], 'Needs Attention')
+            && str_contains($message['html_body'], 'Digest overdue')
+            && str_contains($message['html_body'], 'Digest far future')
+            && str_contains($message['html_body'], 'Digest undated')
+            && str_contains($message['html_body'], 'bgcolor="#ffe8ee"')
+            && str_contains($message['html_body'], 'bgcolor="#d92d20"')
+            && str_contains($message['html_body'], 'bgcolor="#e4f2ff"')
+            && str_contains($message['html_body'], 'bgcolor="#2563eb"')
+            && str_contains($message['html_body'], 'edit_task.php?id='),
+        'the daily digest should retain its text fallback and an encrypted linked Dashboard HTML alternative.'
     );
     completeQueuedNotificationEmail($conn, (int) $claimed['id']);
     $completed = $conn->query(

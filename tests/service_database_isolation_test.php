@@ -32,6 +32,11 @@ $mailIngestGrantSection = explode(
     explode("CREATE USER IF NOT EXISTS '\${mail_ingest_user}'", $grants, 2)[1] ?? '',
     2
 )[0];
+$mailDispatchGrantSection = explode(
+    "CREATE USER IF NOT EXISTS '\${maintenance_user}'",
+    explode("CREATE USER IF NOT EXISTS '\${mail_dispatch_user}'", $grants, 2)[1] ?? '',
+    2
+)[0];
 $inboundTargetValidationSection = explode(
     'function processInboundEmailMessage',
     explode('function inboundEmailActiveTargetIds', $inboundEmailHelpers, 2)[1] ?? '',
@@ -84,6 +89,39 @@ expectServiceDatabaseIsolation(
         && str_contains($grants, '.notification_outbox TO')
         && str_contains($grants, "TO '\${mail_dispatch_user}'@'%';"),
     'only the outbound-mail identity should schedule and mutate the notification outbox.'
+);
+expectServiceDatabaseIsolation(
+    str_contains(
+        $mailDispatchGrantSection,
+        'subject_type, engagement_id, organization_id, contact_id'
+    )
+        && str_contains(
+            $mailDispatchGrantSection,
+            'event_title, event_start_date, event_end_date'
+        )
+        && str_contains($mailDispatchGrantSection, 'confirmation_status')
+        && str_contains(
+            $mailDispatchGrantSection,
+            'event_address_line_1, event_address_line_2, event_city, event_state'
+        )
+        && str_contains($mailDispatchGrantSection, 'event_zipcode, event_country')
+        && str_contains($mailDispatchGrantSection, 'GRANT SELECT (engagement_id, is_archived)')
+        && str_contains($mailDispatchGrantSection, '.presentations TO')
+        && str_contains($mailDispatchGrantSection, 'GRANT SELECT (engagement_id, contact_id)')
+        && str_contains($mailDispatchGrantSection, '.engagement_contacts TO')
+        && str_contains(
+            $mailDispatchGrantSection,
+            'GRANT SELECT (id, organization_id, contact_first_name, contact_last_name, is_deleted)'
+        )
+        && str_contains($mailDispatchGrantSection, '.contacts TO')
+        && str_contains($mailDispatchGrantSection, 'GRANT SELECT (status)')
+        && str_contains($mailDispatchGrantSection, '.inbound_email_messages TO')
+        && !str_contains($mailDispatchGrantSection, 'body_text')
+        && !str_contains(
+            $mailDispatchGrantSection,
+            'GRANT SELECT ON `${MYSQL_DATABASE}`.inbound_email_messages'
+        ),
+    'the outbound-mail identity should read only the Dashboard fields needed to assemble linked digests.'
 );
 expectServiceDatabaseIsolation(
     str_contains($backupGrantSection, "GRANT SELECT ON \`\${MYSQL_DATABASE}\`.*")
