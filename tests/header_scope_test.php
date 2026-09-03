@@ -154,6 +154,12 @@ expectHeaderScope(
     'The footer author should safely open the GitHub profile in a new tab.'
 );
 expectHeaderScope(
+    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition">Moed&nbsp;&nbsp;<span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time<\/p>/s', $footer_source) === 1
+        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*0\.5;)[^}]*\}/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
+    'The shared footer should show a larger Hebrew name in a half-opacity definition one blank line below the copyright notice.'
+);
+expectHeaderScope(
     preg_match('/\.footer-link\s*\{[^}]*text-decoration:\s*none;/s', $modern_styles) === 1,
     'Footer links should not be underlined.'
 );
