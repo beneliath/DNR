@@ -374,7 +374,7 @@ $closed_timestamp = $is_correction
 
         <div class="form-group">
             <label for="notes">Closeout notes</label>
-            <textarea id="notes" name="notes" rows="5" placeholder="Optional context, payment references, or correction reason"><?php echo htmlspecialchars((string) ($form_values['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+            <textarea id="notes" name="notes" rows="6" placeholder="Optional context, payment references, or correction reason"><?php echo htmlspecialchars((string) ($form_values['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
         <?php if (!$is_correction): ?>

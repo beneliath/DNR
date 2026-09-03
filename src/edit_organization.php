@@ -313,7 +313,7 @@ try {
 
         <div class="form-group">
             <label>Notes</label>
-            <textarea name="notes" rows="4"><?php echo htmlspecialchars($organization['notes']); ?></textarea>
+            <textarea name="notes" rows="6"><?php echo htmlspecialchars($organization['notes']); ?></textarea>
         </div>
 
         <div class="form-group">

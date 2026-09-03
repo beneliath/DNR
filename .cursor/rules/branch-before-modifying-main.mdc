@@ -1,0 +1,12 @@
+---
+description: Confirm whether to create a branch before changing files on main
+alwaysApply: true
+---
+
+# Confirm a Branch Before File Changes on Main
+
+- Before modifying files, check the current Git branch.
+- If the current branch is `main` and the requested work will modify files, ask the user whether they want to create a new branch before making any file changes.
+- Do not make file changes until the user answers, unless the user already explicitly requested a branch for that work.
+- If the current branch is not `main`, continue on that branch without asking this question.
+- Read-only inspection and explanation do not require a branch prompt.

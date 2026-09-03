@@ -221,7 +221,7 @@ if (isset($_SESSION['success_message'])) {
 
         <div class="form-group">
             <label>Notes</label>
-            <textarea name="notes" rows="4"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
+            <textarea name="notes" rows="6"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
         </div>
 
         <div class="form-group">
@@ -383,7 +383,7 @@ if (isset($_SESSION['success_message'])) {
 
                         <div class="form-group">
                             <label for="contact_notes">Notes</label>
-                            <textarea name="contact_notes" id="contact_notes" rows="4" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($_POST['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+                            <textarea name="contact_notes" id="contact_notes" rows="6" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($_POST['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
                     </div>
                 </div>
@@ -440,7 +440,7 @@ if (isset($_SESSION['success_message'])) {
                         </div>
                         <div class="form-group">
                             <label>Notes</label>
-                            <textarea name="contacts[__CONTACT_INDEX__][notes]" rows="4" placeholder="Add incidental notes about this person."></textarea>
+                            <textarea name="contacts[__CONTACT_INDEX__][notes]" rows="6" placeholder="Add incidental notes about this person."></textarea>
                         </div>
                     </div>
                     <button type="button" data-remove-contact class="remove-contact-btn">Remove</button>

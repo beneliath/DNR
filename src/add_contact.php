@@ -273,7 +273,7 @@ $cancel_url = $requested_organization_id !== null
 
         <div class="form-group">
             <label for="contact_notes">Notes</label>
-            <textarea name="contact_notes" id="contact_notes" rows="5" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($_POST['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
+            <textarea name="contact_notes" id="contact_notes" rows="6" placeholder="Add incidental notes about this person."><?php echo htmlspecialchars($_POST['contact_notes'] ?? '', ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
         <div class="form-group contact-photo-field">
