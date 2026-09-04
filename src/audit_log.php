@@ -310,20 +310,23 @@ if ($retention_requested && $retention_days === null) {
         ->sub(new DateInterval("P{$retention_days}D"))
         ->format('Y-m-d H:i:s');
     $retention_statement = $conn->prepare(
-        'SELECT COUNT(*) AS entry_count FROM security_audit_log WHERE created_at < ?'
+        'SELECT COUNT(CASE WHEN created_at < ? THEN 1 END) AS entry_count,
+                COUNT(*) AS total_entry_count
+         FROM security_audit_log'
     );
     if (!$retention_statement) {
         abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
     }
     $retention_statement->bind_param('s', $retention_cutoff);
     $retention_statement->execute();
-    $retention_count = (int) (
-        $retention_statement->get_result()->fetch_assoc()['entry_count'] ?? 0
-    );
+    $retention_counts = $retention_statement->get_result()->fetch_assoc() ?: [];
+    $retention_count = (int) ($retention_counts['entry_count'] ?? 0);
+    $retention_total_count = (int) ($retention_counts['total_entry_count'] ?? 0);
     $retention_statement->close();
     $retention_preview = [
         'cutoff_utc' => $retention_cutoff,
         'entry_count' => $retention_count,
+        'total_entry_count' => $retention_total_count,
     ];
     $_SESSION['_audit_log_prune_preview'] = [
         'retention_days' => $retention_days,
@@ -432,10 +435,11 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <p class="error audit-retention-feedback"><?php echo htmlspecialchars($retention_validation_error, ENT_QUOTES, 'UTF-8'); ?></p>
         <?php elseif (is_array($retention_preview)): ?>
             <?php $preview_count = (int) $retention_preview['entry_count']; ?>
+            <?php $preview_total_count = (int) $retention_preview['total_entry_count']; ?>
             <div class="audit-retention-preview" role="status">
                 <div>
                     <span>Entries to permanently delete</span>
-                    <strong><?php echo number_format($preview_count); ?></strong>
+                    <strong><?php echo number_format($preview_count); ?><span class="audit-retention-preview-total">&nbsp; of <?php echo number_format($preview_total_count); ?></span></strong>
                 </div>
                 <p>
                     Entries before
