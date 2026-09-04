@@ -14,6 +14,49 @@ function expectExport($condition, $message) {
     }
 }
 
+class RecordingEngagementPdf extends DnrEngagementPdf {
+    public array $multi_cell_pages = [];
+
+    public function MultiCell(
+        $w,
+        $h,
+        $txt,
+        $border = 0,
+        $align = 'J',
+        $fill = false,
+        $ln = 1,
+        $x = null,
+        $y = null,
+        $reseth = true,
+        $stretch = 0,
+        $ishtml = false,
+        $autopadding = true,
+        $maxh = 0,
+        $valign = 'T',
+        $fitcell = false
+    ) {
+        $this->multi_cell_pages[(string) $txt][] = $this->PageNo();
+        return parent::MultiCell(
+            $w,
+            $h,
+            $txt,
+            $border,
+            $align,
+            $fill,
+            $ln,
+            $x,
+            $y,
+            $reseth,
+            $stretch,
+            $ishtml,
+            $autopadding,
+            $maxh,
+            $valign,
+            $fitcell
+        );
+    }
+}
+
 $engagement = [
     'id' => 42,
     'event_title' => 'Summer *Summit*',
@@ -226,6 +269,33 @@ $pagination_pdf->AddPage();
 expectExport(
     engagementPdfSectionMinimumStartHeight($pagination_pdf, $task_section) > 24,
     'task sections reserve room for both the heading and first card before choosing a page.'
+);
+
+$entry_pagination_pdf = new RecordingEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
+$entry_pagination_pdf->SetMargins(18, 23, 18);
+$entry_pagination_pdf->SetAutoPageBreak(true, 18);
+$entry_pagination_pdf->AddPage();
+$entry_caption = 'August 28, 2026 at 7:13 AM CDT - Email Gateway';
+$entry = [
+    'title' => $entry_caption,
+    'fields' => [[
+        'label' => 'Entry',
+        'value' => "Email captured by MOED\n\nA message body that belongs with its caption.",
+    ]],
+];
+$entry_minimum_height = engagementPdfEntryMinimumStartHeight($entry_pagination_pdf, $entry);
+$entry_margins = $entry_pagination_pdf->getMargins();
+$entry_pagination_pdf->SetY(
+    $entry_pagination_pdf->GetPageHeight()
+        - $entry_margins['bottom']
+        - $entry_minimum_height
+        + 1
+);
+addEngagementPdfEntry($entry_pagination_pdf, $entry);
+expectExport(
+    ($entry_pagination_pdf->multi_cell_pages[$entry_caption][0] ?? 0) === 2
+        && ($entry_pagination_pdf->multi_cell_pages['ENTRY'][0] ?? 0) === 2,
+    'entry captions move to the next page with their associated content.'
 );
 
 $pdf_contents = renderEngagementPdf(

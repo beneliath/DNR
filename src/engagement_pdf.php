@@ -122,7 +122,7 @@ class DnrEngagementPdf extends TCPDF {
             $label_x = $logo_x + $logo_width + 5;
         } else {
             $this->SetXY($logo_x, 9);
-            $this->SetFont('dejavusans', 'B', 8.5);
+            $this->SetFont('dejavusans', 'B', 8);
             $this->SetTextColor(36, 87, 214);
             $brand = engagementPdfText(applicationBrandName());
             $brand_width = min(80.0, max(11.0, $this->GetStringWidth($brand) + 3.0));
@@ -131,7 +131,7 @@ class DnrEngagementPdf extends TCPDF {
         }
 
         $this->SetXY($label_x, 9.4);
-        $this->SetFont('dejavusans', '', 7.5);
+        $this->SetFont('dejavusans', '', 7);
         $this->SetTextColor(102, 112, 133);
         $this->Cell(
             $this->GetPageWidth() - $this->rMargin - $label_x,
@@ -148,7 +148,7 @@ class DnrEngagementPdf extends TCPDF {
         $this->SetDrawColor(210, 216, 224);
         $this->Line($this->lMargin, $this->GetY(), $this->w - $this->rMargin, $this->GetY());
         $this->Ln(2);
-        $this->SetFont('dejavusans', '', 8);
+        $this->SetFont('dejavusans', '', 7.5);
         $this->SetTextColor(100, 108, 118);
         $available_width = $this->w - $this->lMargin - $this->rMargin;
         $date_width = 68;
@@ -356,10 +356,10 @@ function engagementPdfTaskStatusPalette($status) {
 function engagementPdfTaskEntryLayout(DnrEngagementPdf $pdf, array $entry) {
     $available_width = engagementPdfAvailableWidth($pdf);
     $status = engagementPdfEntryFieldValue($entry, 'Status', 'Open');
-    $pdf->SetFont('dejavusans', 'B', 7.25);
+    $pdf->SetFont('dejavusans', 'B', 7);
     $status_width = min(38, max(20, $pdf->GetStringWidth(mb_strtoupper($status, 'UTF-8')) + 8));
     $title_width = max(45, $available_width - $status_width - 14);
-    $pdf->SetFont('dejavusans', 'B', 10);
+    $pdf->SetFont('dejavusans', 'B', 9.5);
     $title_height = max(5.5, $pdf->getStringHeight(
         $title_width,
         engagementPdfText($entry['title'] ?? 'Follow-up task'),
@@ -373,7 +373,7 @@ function engagementPdfTaskEntryLayout(DnrEngagementPdf $pdf, array $entry) {
     $assignee = engagementPdfEntryFieldValue($entry, 'Assigned To', 'Unassigned');
     $priority = engagementPdfEntryFieldValue($entry, 'Priority', 'Normal');
     $meta = $due . '  |  Owner: ' . $assignee . '  |  ' . $priority . ' priority';
-    $pdf->SetFont('dejavusans', '', 8);
+    $pdf->SetFont('dejavusans', '', 7.5);
     $meta_height = max(4.5, $pdf->getStringHeight(
         $available_width - 10,
         $meta,
@@ -387,7 +387,7 @@ function engagementPdfTaskEntryLayout(DnrEngagementPdf $pdf, array $entry) {
     $waiting_text = $waiting === '' ? '' : 'Waiting on: ' . $waiting;
     $waiting_height = 0;
     if ($waiting_text !== '') {
-        $pdf->SetFont('dejavusans', 'B', 8);
+        $pdf->SetFont('dejavusans', 'B', 7.5);
         $waiting_height = 1.5 + max(4.5, $pdf->getStringHeight(
             $available_width - 10,
             $waiting_text,
@@ -433,7 +433,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
     $pdf->SetFillColor(...$status_palette['fill']);
     $pdf->RoundedRect($status_x, $content_y, $layout['status_width'], 6.2, 3.1, '1111', 'F');
     $pdf->SetXY($status_x, $content_y + 0.4);
-    $pdf->SetFont('dejavusans', 'B', 7.25);
+    $pdf->SetFont('dejavusans', 'B', 7);
     $pdf->SetTextColor(...$status_palette['text']);
     $pdf->Cell(
         $layout['status_width'],
@@ -444,7 +444,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
         'C'
     );
 
-    $pdf->SetFont('dejavusans', 'B', 10);
+    $pdf->SetFont('dejavusans', 'B', 9.5);
     $pdf->SetTextColor(23, 32, 51);
     $pdf->MultiCell(
         $layout['title_width'],
@@ -460,7 +460,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
 
     $meta_y = $content_y + max($layout['title_height'], 6.2) + 1.5;
     $pdf->SetXY($content_x, $meta_y);
-    $pdf->SetFont('dejavusans', 'B', 8);
+    $pdf->SetFont('dejavusans', 'B', 7.5);
     $pdf->SetTextColor(...$palette['due_text']);
     $pdf->MultiCell(
         $card_width - 10,
@@ -474,7 +474,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
 
     if ($layout['waiting_text'] !== '') {
         $pdf->SetX($content_x);
-        $pdf->SetFont('dejavusans', 'B', 8);
+        $pdf->SetFont('dejavusans', 'B', 7.5);
         $pdf->SetTextColor(132, 54, 0);
         $pdf->MultiCell(
             $card_width - 10,
@@ -549,7 +549,7 @@ function ensureEngagementPdfSpace(DnrEngagementPdf $pdf, $required_height) {
 
 function engagementPdfCardHeight(DnrEngagementPdf $pdf, array $field, $width) {
     $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
-    $pdf->SetFont('dejavusans', '', 9.5);
+    $pdf->SetFont('dejavusans', '', 9);
     return max(16, 9 + $pdf->getStringHeight(max(10, $width - 7), $value, false, true, '', 0));
 }
 
@@ -578,7 +578,7 @@ function addEngagementPdfSummaryGrid(DnrEngagementPdf $pdf, array $fields) {
 
             $label = mb_strtoupper(engagementPdfText($field['label'] ?? ''), 'UTF-8');
             $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
-            $pdf->SetFont('dejavusans', 'B', 7.25);
+            $pdf->SetFont('dejavusans', 'B', 7);
             $pdf->SetTextColor(102, 112, 133);
             $pdf->MultiCell(
                 $column_width - 7,
@@ -591,7 +591,7 @@ function addEngagementPdfSummaryGrid(DnrEngagementPdf $pdf, array $fields) {
                 $card_x + 3.5,
                 $row_y + 2.5
             );
-            $pdf->SetFont('dejavusans', '', 9.5);
+            $pdf->SetFont('dejavusans', '', 9);
             $pdf->SetTextColor(23, 32, 51);
             $pdf->MultiCell(
                 $column_width - 7,
@@ -621,7 +621,7 @@ function addEngagementPdfNarrativeField(DnrEngagementPdf $pdf, array $field) {
     $label = mb_strtoupper(engagementPdfText($field['label'] ?? ''), 'UTF-8');
     $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
     $available_width = engagementPdfAvailableWidth($pdf);
-    $pdf->SetFont('dejavusans', '', 9.5);
+    $pdf->SetFont('dejavusans', '', 9);
     $value_height = $pdf->getStringHeight($available_width - 8, $value, false, true, '', 0);
     $card_height = 11 + $value_height;
     $margins = $pdf->getMargins();
@@ -634,7 +634,7 @@ function addEngagementPdfNarrativeField(DnrEngagementPdf $pdf, array $field) {
         $pdf->SetFillColor(255, 255, 255);
         $pdf->SetDrawColor(223, 228, 236);
         $pdf->RoundedRect($card_x, $card_y, $available_width, $card_height, 2, '1111', 'DF');
-        $pdf->SetFont('dejavusans', 'B', 7.25);
+        $pdf->SetFont('dejavusans', 'B', 7);
         $pdf->SetTextColor(102, 112, 133);
         $pdf->MultiCell(
             $available_width - 8,
@@ -647,7 +647,7 @@ function addEngagementPdfNarrativeField(DnrEngagementPdf $pdf, array $field) {
             $card_x + 4,
             $card_y + 2.5
         );
-        $pdf->SetFont('dejavusans', '', 9.5);
+        $pdf->SetFont('dejavusans', '', 9);
         $pdf->SetTextColor(54, 60, 68);
         $pdf->MultiCell(
             $available_width - 8,
@@ -665,10 +665,10 @@ function addEngagementPdfNarrativeField(DnrEngagementPdf $pdf, array $field) {
     }
 
     ensureEngagementPdfSpace($pdf, 20);
-    $pdf->SetFont('dejavusans', 'B', 7.25);
+    $pdf->SetFont('dejavusans', 'B', 7);
     $pdf->SetTextColor(102, 112, 133);
     $pdf->MultiCell(0, 4, $label, 0, 'L', false, 1);
-    $pdf->SetFont('dejavusans', '', 9.5);
+    $pdf->SetFont('dejavusans', '', 9);
     $pdf->SetTextColor(54, 60, 68);
     $pdf->MultiCell(0, 5, $value, 0, 'L', false, 1);
     $pdf->Ln(3);
@@ -688,16 +688,33 @@ function addEngagementPdfFields(DnrEngagementPdf $pdf, array $fields) {
     addEngagementPdfSummaryGrid($pdf, $summary_fields);
 }
 
+function estimateEngagementPdfEntryTitleHeight(DnrEngagementPdf $pdf, $title) {
+    $title = engagementPdfText($title);
+    if ($title === '') {
+        return 0;
+    }
+
+    $pdf->SetFont('dejavusans', 'B', 9.5);
+    return 1.5 + max(5.25, $pdf->getStringHeight(
+        engagementPdfAvailableWidth($pdf) - 4,
+        $title,
+        false,
+        true,
+        '',
+        0
+    ));
+}
+
 function addEngagementPdfEntryTitle(DnrEngagementPdf $pdf, $title) {
-    ensureEngagementPdfSpace($pdf, 12);
+    ensureEngagementPdfSpace($pdf, estimateEngagementPdfEntryTitleHeight($pdf, $title));
     $title = engagementPdfText($title);
     $title_x = $pdf->GetX();
     $title_y = $pdf->GetY();
     $pdf->SetFillColor(36, 87, 214);
-    $pdf->Rect($title_x, $title_y + 0.5, 1.2, 5.5, 'F');
-    $pdf->SetFont('dejavusans', 'B', 10);
+    $pdf->Rect($title_x, $title_y + 0.5, 1.2, 5.25, 'F');
+    $pdf->SetFont('dejavusans', 'B', 9.5);
     $pdf->SetTextColor(23, 32, 51);
-    $pdf->MultiCell(0, 5.5, $title, 0, 'L', false, 1, $title_x + 4, $title_y);
+    $pdf->MultiCell(0, 5.25, $title, 0, 'L', false, 1, $title_x + 4, $title_y);
     $pdf->Ln(1.5);
 }
 
@@ -706,7 +723,7 @@ function addEngagementPdfSectionHeading(DnrEngagementPdf $pdf, $heading) {
     $heading = mb_strtoupper(engagementPdfText($heading), 'UTF-8');
     $heading_x = $pdf->GetX();
     $heading_y = $pdf->GetY();
-    $pdf->SetFont('dejavusans', 'B', 9.5);
+    $pdf->SetFont('dejavusans', 'B', 9);
     $pdf->SetTextColor(36, 87, 214);
     $pdf->Cell(0, 5, $heading, 0, 1, 'L');
     $line_start = min(
@@ -750,7 +767,7 @@ function estimateEngagementPdfFieldsHeight(DnrEngagementPdf $pdf, array $fields)
         $height += estimateEngagementPdfSummaryGridHeight($pdf, $summary_fields);
         $summary_fields = [];
         $value = engagementPdfDisplayValue($field['label'] ?? '', $field['value'] ?? '');
-        $pdf->SetFont('dejavusans', '', 9.5);
+        $pdf->SetFont('dejavusans', '', 9);
         $height += 14 + $pdf->getStringHeight(
             engagementPdfAvailableWidth($pdf) - 8,
             $value,
@@ -764,6 +781,76 @@ function estimateEngagementPdfFieldsHeight(DnrEngagementPdf $pdf, array $fields)
     return $height + estimateEngagementPdfSummaryGridHeight($pdf, $summary_fields);
 }
 
+function estimateEngagementPdfFirstFieldsBlockHeight(DnrEngagementPdf $pdf, array $fields) {
+    if ($fields === []) {
+        return 0;
+    }
+
+    $first_field = $fields[0];
+    if (engagementPdfFieldIsNarrative(
+        $first_field['label'] ?? '',
+        $first_field['value'] ?? ''
+    )) {
+        $value = engagementPdfDisplayValue(
+            $first_field['label'] ?? '',
+            $first_field['value'] ?? ''
+        );
+        $pdf->SetFont('dejavusans', '', 9);
+        return 14 + $pdf->getStringHeight(
+            engagementPdfAvailableWidth($pdf) - 8,
+            $value,
+            false,
+            true,
+            '',
+            0
+        );
+    }
+
+    $summary_fields = [];
+    foreach ($fields as $field) {
+        if (engagementPdfFieldIsNarrative($field['label'] ?? '', $field['value'] ?? '')) {
+            break;
+        }
+        $summary_fields[] = $field;
+        if (count($summary_fields) === 2) {
+            break;
+        }
+    }
+
+    return estimateEngagementPdfSummaryGridHeight($pdf, $summary_fields);
+}
+
+function engagementPdfEntryMinimumStartHeight(DnrEngagementPdf $pdf, array $entry) {
+    $title_height = estimateEngagementPdfEntryTitleHeight($pdf, $entry['title'] ?? '');
+    if ($title_height === 0) {
+        return 0;
+    }
+
+    $fields = $entry['fields'] ?? [];
+    $fields_height = estimateEngagementPdfFieldsHeight($pdf, $fields);
+    $maximum_height = $pdf->GetPageHeight()
+        - $pdf->getMargins()['top']
+        - $pdf->getMargins()['bottom'];
+    if ($title_height + $fields_height <= $maximum_height) {
+        return $title_height + $fields_height;
+    }
+
+    $first_block_height = estimateEngagementPdfFirstFieldsBlockHeight($pdf, $fields);
+    if ($title_height + $first_block_height <= $maximum_height) {
+        return $title_height + $first_block_height;
+    }
+
+    return min($maximum_height, $title_height + 20);
+}
+
+function addEngagementPdfEntry(DnrEngagementPdf $pdf, array $entry) {
+    if (!empty($entry['title'])) {
+        ensureEngagementPdfSpace($pdf, engagementPdfEntryMinimumStartHeight($pdf, $entry));
+        addEngagementPdfEntryTitle($pdf, $entry['title']);
+    }
+    addEngagementPdfFields($pdf, $entry['fields'] ?? []);
+}
+
 function estimateEngagementPdfSectionHeight(DnrEngagementPdf $pdf, array $section) {
     $height = 10.5;
     foreach ($section['entries'] ?? [] as $entry_index => $entry) {
@@ -774,23 +861,13 @@ function estimateEngagementPdfSectionHeight(DnrEngagementPdf $pdf, array $sectio
         if ($entry_index > 0) {
             $height += 2;
         }
-        if (!empty($entry['title'])) {
-            $pdf->SetFont('dejavusans', 'B', 10);
-            $height += 1.5 + $pdf->getStringHeight(
-                engagementPdfAvailableWidth($pdf) - 4,
-                engagementPdfText($entry['title']),
-                false,
-                true,
-                '',
-                0
-            );
-        }
+        $height += estimateEngagementPdfEntryTitleHeight($pdf, $entry['title'] ?? '');
         $height += estimateEngagementPdfFieldsHeight($pdf, $entry['fields'] ?? []);
     }
 
     $notice = trim(engagementPdfText($section['notice'] ?? ''));
     if ($notice !== '') {
-        $pdf->SetFont('dejavusans', '', 8);
+        $pdf->SetFont('dejavusans', '', 7.5);
         $height += max(
             9,
             5 + $pdf->getStringHeight(
@@ -814,7 +891,7 @@ function addEngagementPdfSectionNotice(DnrEngagementPdf $pdf, $notice) {
     }
 
     $available_width = engagementPdfAvailableWidth($pdf);
-    $pdf->SetFont('dejavusans', '', 8);
+    $pdf->SetFont('dejavusans', '', 7.5);
     $notice_height = max(
         9,
         5 + $pdf->getStringHeight($available_width - 10, $notice, false, true, '', 0)
@@ -871,10 +948,7 @@ function addEngagementPdfSection(DnrEngagementPdf $pdf, array $section) {
         if ($entry_index > 0) {
             $pdf->Ln(2);
         }
-        if (!empty($entry['title'])) {
-            addEngagementPdfEntryTitle($pdf, $entry['title']);
-        }
-        addEngagementPdfFields($pdf, $entry['fields'] ?? []);
+        addEngagementPdfEntry($pdf, $entry);
     }
 
     addEngagementPdfSectionNotice($pdf, $section['notice'] ?? '');
@@ -930,10 +1004,10 @@ function renderEngagementPdf(
     $pdf->SetAutoPageBreak(true, 18);
     $pdf->AddPage();
 
-    $pdf->SetFont('dejavusans', 'B', 7.5);
+    $pdf->SetFont('dejavusans', 'B', 7);
     $pdf->SetTextColor(102, 112, 133);
     $pdf->Cell(0, 4, engagementPdfText('ENGAGEMENT'), 0, 1, 'L');
-    $pdf->SetFont('dejavusans', 'B', 20);
+    $pdf->SetFont('dejavusans', 'B', 18.5);
     $pdf->SetTextColor(23, 32, 51);
     $pdf->MultiCell(0, 8.5, engagementPdfText($title), 0, 'L', false, 1);
     $pdf->Ln(5);
