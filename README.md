@@ -574,9 +574,10 @@ After the final `main` GitHub Actions run succeeds, deploy that exact commit wit
 The guarded command defaults to `dgilmore@192.168.1.150`, the checkout at
 `/home/dgilmore/moed`, the `production-ubuntu-proton-mattermost` Compose mode, and
 `https://moed.beneliath.com`. It refuses a dirty or non-`main` local or remote checkout, requires
-`origin/main` and a successful GitHub CI run to match the requested commit, fast-forwards the
-remote checkout without rewriting history, rebuilds with provenance, and verifies the migration
-gate, expected services, container version/commit, and public health/readiness responses. The
+the checked-in Daily Digest preview to match the release, requires `origin/main` and a successful
+GitHub CI run to match the requested commit, fast-forwards the remote checkout without rewriting
+history, rebuilds with provenance, and verifies the migration gate, expected services, container
+version/commit, and public health/readiness responses. The
 `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR`, `DNR_S1_COMPOSE_MODE`,
 `DNR_S1_PUBLIC_BASE_URL`, and `DNR_S1_GITHUB_REPOSITORY` variables exist for an intentional future
 infrastructure change; the topology guard prevents accidentally deploying s1 with a partial mode.

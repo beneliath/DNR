@@ -258,6 +258,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
         <form method="get" action="organizations.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <label class="visually-hidden" for="organization-search">Search organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
@@ -355,12 +356,20 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($cursor !== null || $next_cursor !== null): ?>
-        <nav class="pagination" aria-label="Organization pages">
+    <?php if ($organizations !== [] || $cursor !== null): ?>
+        <nav class="pagination pagination-with-size" aria-label="Organization pages">
+            <div class="page-size-selector" aria-label="Organizations per page">
+                <span class="page-size-label">Rows per page:</span>
+                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
+                    <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $allowed_page_size), ENT_QUOTES, 'UTF-8'); ?>"
+                       class="sort-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
+                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
+                <?php endforeach; ?>
+            </div>
             <span class="pagination-status">Showing up to <?php echo $page_size; ?> organizations</span>
             <div class="pagination-actions">
-                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $next_cursor, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+                <?php if ($cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $next_cursor, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>
