@@ -157,7 +157,7 @@ try {
             <h2 id="contact-notes-heading">Notes</h2>
             <div class="contact-notes-content">
                 <?php echo $contact_notes !== ''
-                    ? nl2br(htmlspecialchars($contact_notes, ENT_QUOTES, 'UTF-8'))
+                    ? renderTextWithLinks($contact_notes)
                     : 'No notes'; ?>
             </div>
         </section>

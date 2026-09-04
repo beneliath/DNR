@@ -35,8 +35,8 @@ $view_contact = $read('src/view_contact.php');
 expectContactNotesFeature(
     str_contains($view_contact, 'id="contact-notes-heading">Notes</h2>')
         && str_contains($view_contact, 'class="contact-details contact-notes-panel"')
-        && str_contains($view_contact, "nl2br(htmlspecialchars(\$contact_notes"),
-    'contact details should safely display multiline notes.'
+        && str_contains($view_contact, 'renderTextWithLinks($contact_notes)'),
+    'contact details should safely display multiline notes with linked URLs.'
 );
 
 $contacts = $read('src/contacts.php');

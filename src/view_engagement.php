@@ -465,7 +465,7 @@ $presentation_stmt->close();
                 <?php endif; ?>
             </p>
             <?php if (!empty($financial_report['notes'])): ?>
-                <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo nl2br(htmlspecialchars((string) $financial_report['notes'], ENT_QUOTES, 'UTF-8')); ?></p></div>
+                <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo renderTextWithLinks($financial_report['notes']); ?></p></div>
             <?php endif; ?>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
                 <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct final report</a>

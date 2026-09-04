@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/text_rendering_helpers.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
 require_once __DIR__ . '/app/Http/ClientAddress.php';
 
