@@ -1,0 +1,11 @@
+---
+description: Standing authorization for the configured GitLab mirror during requested release workflows
+alwaysApply: true
+---
+
+# GitLab Release Authorization
+
+- When the user requests a release workflow that includes committing, pushing, merging, or deploying, treat that request as explicit authorization to push the requested branch and the final `main` commit to every configured repository remote, including the remote named `gitlab`.
+- Do not pause for another confirmation solely because `gitlab` is a private mirror or a second remote.
+- Resolve destinations from the repository's configured remotes. Do not add or push to a new, unconfigured remote without explicit authorization.
+- This standing authorization applies only to user-requested push/release workflows. It does not authorize pushes during read-only, review, or diagnostic work.
