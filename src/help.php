@@ -155,7 +155,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
 
                 <section class="manual-table-wrap" tabindex="0" aria-label="Role permissions table">
-                    <table class="manual-table manual-role-table">
+                    <table class="manual-table manual-role-table data-table">
                         <thead><tr><th>Capability</th><th>Reviewer</th><th>Editor</th><th>Administrator</th></tr></thead>
                         <tbody>
                             <tr><td>View records, Chron, work, map, and exports</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
@@ -415,7 +415,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-table-wrap" tabindex="0" aria-label="Task status reference">
-                    <table class="manual-table">
+                    <table class="manual-table data-table">
                         <thead><tr><th>Status</th><th>Use It When</th><th>What Happens Next</th></tr></thead>
                         <tbody>
                             <tr><td><span class="manual-status-pill status-open">Open</span></td><td>The task is known but not started.</td><td>Start it, complete it, or edit the owner/timing.</td></tr>
@@ -553,7 +553,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Choose What the Month Calendar Shows</h3>
                     <section class="manual-table-wrap" tabindex="0" aria-label="Calendar display selector reference">
-                        <table class="manual-table">
+                        <table class="manual-table data-table">
                             <thead><tr><th>Selector</th><th>Calendar Content</th><th>Color Coding</th></tr></thead>
                             <tbody>
                                 <tr><td><strong>Events</strong></td><td>Engagements that overlap the displayed dates.</td><td>Event color, with distinct border tones for tentative/postponed, canceled, and completed events.</td></tr>
@@ -627,8 +627,8 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Commands</h3>
-                    <div class="responsive-table-wrapper">
-                        <table>
+                    <div class="manual-table-wrap" tabindex="0" aria-label="Mattermost command reference">
+                        <table class="manual-table data-table">
                             <thead><tr><th>Command</th><th>What It Does</th><th>Who Can Use It</th></tr></thead>
                             <tbody>
                                 <tr><td><code>/moed help</code></td><td>Shows the command reference and account-linking reminder.</td><td>Everyone</td></tr>

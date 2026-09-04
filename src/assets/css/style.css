@@ -20,6 +20,9 @@
   --font-size-heading: 1.5rem;
   --font-size-display: 3rem;
   --font-size-login-control: 1.25rem;
+  --table-body-font-size: var(--font-size-base);
+  --table-header-font-size: 0.78rem;
+  --table-numeric-font-size: 0.9rem;
   --font-weight-light: 300;
   --font-weight-normal: 400;
   --font-weight-semibold: 600;

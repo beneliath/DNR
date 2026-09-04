@@ -2277,7 +2277,6 @@ html body .chron-restore-page-actions a:focus-visible {
 .task-table th {
   background: var(--surface-subtle) !important;
   color: var(--text-muted) !important;
-  font-size: 0.78rem;
   font-weight: 700;
   letter-spacing: 0.025em;
   text-transform: uppercase;
@@ -2631,6 +2630,7 @@ html body .task-action-button:focus-visible {
 }
 
 .engagement-dates {
+  font-size: var(--table-numeric-font-size);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -3468,6 +3468,15 @@ input[type="radio"] {
   font-weight: 620;
 }
 
+/* One typography contract for every record/reference table. */
+.data-table {
+  font-size: var(--table-body-font-size);
+}
+
+.data-table th {
+  font-size: var(--table-header-font-size);
+}
+
 .engagement-table,
 .organization-table,
 .contact-table,
@@ -3510,7 +3519,6 @@ input[type="radio"] {
 .task-table th {
   background: var(--surface-subtle) !important;
   color: var(--text-muted) !important;
-  font-size: 0.78rem;
   font-weight: 700 !important;
   letter-spacing: 0.025em;
   text-transform: uppercase;

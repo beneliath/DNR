@@ -123,7 +123,7 @@ try {
             <p>No Mattermost account is linked.</p>
         <?php else: ?>
             <div class="responsive-table-wrapper mattermost-links-table-wrapper">
-                <table class="mattermost-links-table">
+                <table class="mattermost-links-table data-table">
                     <thead><tr><th>Account</th><th>Instance</th><th>Linked</th><th>Last Used</th><th>Action</th></tr></thead>
                     <tbody>
                     <?php foreach ($links as $link): ?>

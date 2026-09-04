@@ -785,7 +785,6 @@ kbd {
   border: 0;
   border-bottom: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: .79rem;
   line-height: 1.45;
   text-align: left;
 }
@@ -793,7 +792,6 @@ kbd {
 .manual-table th {
   background: var(--surface-subtle) !important;
   color: var(--text);
-  font-size: .7rem;
   font-weight: 780;
   letter-spacing: .04em;
   text-transform: uppercase;

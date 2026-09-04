@@ -270,7 +270,7 @@ $webcal_url = $calendar_url === null
             <p>No subscriptions have been created.</p>
         <?php else: ?>
             <div class="responsive-table-wrapper calendar-subscription-table-wrapper">
-                <table class="calendar-subscription-table">
+                <table class="calendar-subscription-table data-table">
                     <colgroup>
                         <col class="calendar-subscription-label-column">
                         <col class="calendar-subscription-created-column">

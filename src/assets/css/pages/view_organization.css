@@ -141,7 +141,6 @@
         }
         .financial-history-table th {
             color: var(--text-muted);
-            font-size: var(--font-size-small);
         }
         .financial-history-table td:first-child {
             min-width: 190px;

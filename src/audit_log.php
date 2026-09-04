@@ -509,7 +509,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     <?php endif; ?>
 
     <div class="audit-table-wrapper">
-        <table class="audit-table">
+        <table class="audit-table data-table">
             <thead>
                 <tr>
                     <th>Timestamp</th>
