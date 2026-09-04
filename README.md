@@ -588,6 +588,7 @@ infrastructure change; the topology guard prevents accidentally deploying s1 wit
 - Five failed password or second-factor attempts temporarily lock that factor for 15 minutes.
 - Recovery codes are single-use. DNR stores only a keyed HMAC lookup value, never the code itself.
 - Administrators are required to use 2FA and cannot disable it themselves.
+- Administrators can use **Preview access** in the sidebar to navigate with Editor or Reviewer permissions. A persistent banner identifies the active preview and returns the session to Administrator access; actions taken during a preview still affect live data under the administrator's identity.
 - An administrator can reset another user's 2FA from **Manage Users**. Resetting or replacing a factor invalidates that user's other sessions.
 - An administrator can set a temporary password for another user from **Manage Users**. The control appears only during a five-minute sensitive-action window opened with the administrator's password plus a fresh authenticator or recovery code. The route rechecks that elevation, invalidates the target user's sessions, and forces the target to choose a private password after login.
 - Users can change their own password from **Account Security**; doing so invalidates their other sessions.

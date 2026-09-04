@@ -1,6 +1,9 @@
 (function () {
     const body = document.body;
     body.classList.add('has-app-shell');
+    if (document.querySelector('[data-role-preview-banner]')) {
+        body.classList.add('role-preview-active');
+    }
     const toggle = document.querySelector('[data-nav-toggle]');
     const backdrop = document.querySelector('[data-nav-backdrop]');
 

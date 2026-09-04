@@ -47,6 +47,41 @@ expectTrue(canArchiveEntries('editor'), 'Editors should be allowed to archive an
 expectTrue(!canDeleteEntries('editor'), 'Editors must not permanently delete entries.');
 expectTrue(canArchiveEntries('admin'), 'Administrators should be allowed to archive and restore entries.');
 expectTrue(canDeleteEntries('admin'), 'Administrators should be allowed to permanently delete entries.');
+
+$_SESSION = [
+    'role' => 'admin',
+    'authenticated_role' => 'admin',
+];
+expectTrue(activeRolePreview() === null, 'Administrators should begin with their assigned role.');
+expectTrue(setRolePreview('editor'), 'Administrators should be able to preview Editor access.');
+expectTrue(
+    authenticatedRole() === 'admin'
+        && activeRolePreview() === 'editor'
+        && checkRole('editor')
+        && !checkRole('admin'),
+    'A preview should preserve the authenticated administrator while exposing the selected effective role.'
+);
+expectTrue(setRolePreview('reviewer'), 'An administrator should be able to switch directly to Reviewer access.');
+expectTrue(
+    activeRolePreview() === 'reviewer' && !hasRole(['admin', 'editor']),
+    'Reviewer preview should exercise the existing read-only role checks.'
+);
+expectTrue(!setRolePreview('owner'), 'Unknown roles must not be accepted for preview.');
+expectTrue(activeRolePreview() === 'reviewer', 'A rejected preview role must not change the active role.');
+expectTrue(setRolePreview('admin'), 'An administrator should be able to stop a role preview.');
+expectTrue(
+    activeRolePreview() === null && checkRole('admin') && !isset($_SESSION['_role_preview']),
+    'Stopping a preview should restore Administrator access and clear the preview state.'
+);
+$_SESSION = [
+    'role' => 'editor',
+    'authenticated_role' => 'editor',
+];
+expectTrue(
+    !setRolePreview('reviewer') && activeRolePreview() === null && checkRole('editor'),
+    'Non-administrators must not be able to start a role preview.'
+);
+$_SESSION = ['role' => 'editor'];
 expectTrue(
     organizationArchiveDependencyMessage(['contacts' => 2, 'engagements' => 1])
         === 'This organization cannot be archived while it has 2 active contacts and 1 active engagement. Archive those related records first, or move them to another organization.',

@@ -78,6 +78,54 @@ expectHeaderScope(
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
 expectHeaderScope(
+    str_contains($header_markup, 'class="role-preview-control"')
+        && str_contains($header_markup, '<option value="editor">Editor</option>')
+        && str_contains($header_markup, '<option value="reviewer">Reviewer</option>')
+        && !str_contains($header_markup, 'data-role-preview-banner'),
+    'Administrators should be able to choose an access preview without seeing a false active-preview banner.'
+);
+
+$_SESSION = [
+    'username' => 'Test User',
+    'role' => 'reviewer',
+    'authenticated_role' => 'admin',
+    '_role_preview' => 'reviewer',
+];
+ob_start();
+include __DIR__ . '/../src/templates/header.php';
+$reviewer_preview_markup = ob_get_clean();
+expectHeaderScope(
+    str_contains($reviewer_preview_markup, 'data-role-preview-banner')
+        && str_contains($reviewer_preview_markup, '<strong>Viewing as Reviewer</strong>')
+        && str_contains($reviewer_preview_markup, 'Actions still affect live data.')
+        && str_contains($reviewer_preview_markup, '>Return to Administrator</button>'),
+    'Reviewer preview should show a persistent warning and a direct way back to Administrator access.'
+);
+expectHeaderScope(
+    !str_contains($reviewer_preview_markup, '<span>Inbound Mail</span>')
+        && !str_contains($reviewer_preview_markup, '<span>Users</span>')
+        && !str_contains($reviewer_preview_markup, '<span>Database</span>')
+        && str_contains($reviewer_preview_markup, '<option value="reviewer" selected>Reviewer</option>'),
+    'Reviewer preview should hide Editor and Administrator navigation while retaining the preview control.'
+);
+
+$_SESSION = [
+    'username' => 'Test User',
+    'role' => 'editor',
+    'authenticated_role' => 'admin',
+    '_role_preview' => 'editor',
+];
+ob_start();
+include __DIR__ . '/../src/templates/header.php';
+$editor_preview_markup = ob_get_clean();
+expectHeaderScope(
+    str_contains($editor_preview_markup, '<strong>Viewing as Editor</strong>')
+        && str_contains($editor_preview_markup, '<span>Inbound Mail</span>')
+        && !str_contains($editor_preview_markup, '<span>Users</span>')
+        && !str_contains($editor_preview_markup, '<span>Database</span>'),
+    'Editor preview should retain Editor navigation while hiding Administrator-only areas.'
+);
+expectHeaderScope(
     str_contains($header_markup, 'href="help.php"')
         && str_contains($header_markup, '<span>User Manual</span>'),
     'The in-app user manual should be available from the shared utility navigation.'
@@ -201,6 +249,11 @@ expectHeaderScope(
         && preg_match('/\.nav-link\.admin-nav-link\s*\{[^}]*color:\s*var\(--admin-nav\)\s*!important;/s', $modern_styles) === 1
         && str_contains($modern_styles, 'html.dark-mode .app-sidebar .nav-link.admin-nav-link.active'),
     'Admin navigation should use accessible burnt-orange colors in light and dark themes.'
+);
+expectHeaderScope(
+    preg_match('/html body \.role-preview-control \.role-preview-fields select,\s*html body \.role-preview-control \.role-preview-fields button\s*\{[^}]*height:\s*36px\s*!important;[^}]*align-self:\s*center;/s', $modern_styles) === 1
+        && preg_match('/html body \.role-preview-control \.role-preview-fields button\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s', $modern_styles) === 1,
+    'The role-preview Apply button should match the adjacent dropdown height and center its label.'
 );
 expectHeaderScope(
     str_contains($theme_source, "document.querySelectorAll('[data-theme-logo]')")
