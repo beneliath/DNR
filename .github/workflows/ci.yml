@@ -7,9 +7,87 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
+        with:
+          php-version: '8.4'
+          coverage: none
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Validate Composer metadata
+        run: composer validate --strict --no-check-publish
+      - name: Audit Composer dependencies
+        timeout-minutes: 4
+        run: |
+          audit_output="$(mktemp)"
+          trap 'rm -f "$audit_output"' EXIT
+          attempt=1
+          while [ "$attempt" -le 3 ]; do
+            if timeout 45s composer audit --locked --no-interaction --format=json > "$audit_output"; then
+              jq . "$audit_output"
+              exit 0
+            else
+              audit_status=$?
+            fi
+            if jq --exit-status 'type == "object" and (has("advisories") or has("abandoned"))' "$audit_output" >/dev/null 2>&1; then
+              jq . "$audit_output"
+              echo "Composer audit completed and found a dependency policy violation." >&2
+              exit "$audit_status"
+            fi
+            cat "$audit_output"
+            if [ "$attempt" -eq 3 ]; then
+              echo "Composer advisory service failed after $attempt attempts." >&2
+              exit 1
+            fi
+            echo "Composer advisory service attempt $attempt failed; retrying in 5 seconds." >&2
+            attempt=$((attempt + 1))
+            sleep 5
+          done
+      - name: Audit npm dependencies
+        timeout-minutes: 4
+        run: |
+          audit_output="$(mktemp)"
+          trap 'rm -f "$audit_output"' EXIT
+          attempt=1
+          while [ "$attempt" -le 3 ]; do
+            if timeout 45s npm audit --package-lock-only --audit-level=high \
+              --fetch-timeout=30000 \
+              --fetch-retries=0 \
+              --json > "$audit_output"; then
+              jq . "$audit_output"
+              exit 0
+            else
+              audit_status=$?
+            fi
+            if jq --exit-status 'type == "object" and has("metadata") and (.metadata | has("vulnerabilities"))' "$audit_output" >/dev/null 2>&1; then
+              jq . "$audit_output"
+              echo "npm audit completed and found vulnerabilities at or above the configured threshold." >&2
+              exit "$audit_status"
+            fi
+            cat "$audit_output"
+            if [ "$attempt" -eq 3 ]; then
+              echo "npm advisory service failed after $attempt attempts." >&2
+              exit 1
+            fi
+            echo "npm advisory service attempt $attempt failed; retrying in 5 seconds." >&2
+            attempt=$((attempt + 1))
+            sleep 5
+          done
+
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
@@ -21,32 +99,43 @@ jobs:
           php-version: ${{ matrix.php-version }}
           extensions: curl, gd, mbstring, mysqli, sodium
           coverage: none
+      - run: composer install --no-interaction --no-progress --prefer-dist
+      - run: composer check
+
+  frontend-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
           cache: npm
-      - run: composer install --no-interaction --no-progress --prefer-dist
-      - run: npm ci
-      - run: composer validate --strict --no-check-publish
-      - run: composer audit --no-interaction
-      - run: npm audit --audit-level=high
-      - run: composer check
-      - run: npm test
-      - run: git diff --exit-code -- src/assets
+      - name: Install frontend dependencies
+        run: >-
+          npm ci
+          --no-audit
+          --prefer-offline
+          --fetch-timeout=60000
+          --fetch-retries=1
+          --fetch-retry-mintimeout=5000
+          --fetch-retry-maxtimeout=10000
+      - name: Build and test application frontend
+        run: npm test
+      - name: Build Mattermost plugin webapp
+        run: make -C mattermost-plugin webapp
+      - name: Verify frontend builds leave no tracked drift
+        run: git diff --exit-code -- src/assets mattermost-plugin
 
   mattermost-plugin:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: mattermost-plugin/go.mod
           cache-dependency-path: mattermost-plugin/go.sum
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
       - name: Verify plugin module graph is tidy
         working-directory: mattermost-plugin
         run: |
@@ -61,10 +150,6 @@ jobs:
       - name: Scan plugin dependencies
         working-directory: mattermost-plugin
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.7.0 ./...
-      - name: Build plugin webapp
-        run: make -C mattermost-plugin webapp
-      - name: Verify plugin build leaves no tracked drift
-        run: git diff --exit-code -- mattermost-plugin
 
   integration:
     runs-on: ubuntu-latest
