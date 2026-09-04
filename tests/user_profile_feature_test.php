@@ -57,6 +57,7 @@ try {
 unlink($invalid_path);
 
 $profile_page = $read('src/profile.php');
+$profile_styles = $read('src/assets/css/pages/profile.css');
 expectUserProfile(
     str_contains($profile_page, 'enctype="multipart/form-data"')
         && str_contains($profile_page, 'requireValidCsrfToken()')
@@ -70,10 +71,28 @@ expectUserProfile(
 );
 expectUserProfile(
     str_contains($profile_page, "'path' => 'assets/js/profile.min.js'")
+        && str_contains($profile_page, 'assets/css/pages/profile.min.css')
         && str_contains($profile_page, 'data-profile-picture-preview')
         && str_contains($profile_page, 'data-profile-picture-input')
         && str_contains($profile_page, 'aria-live="polite"'),
     'the profile page should load an accessible immediate picture preview.'
+);
+expectUserProfile(
+    str_contains($profile_page, '<body class="profile-page">')
+        && str_contains($profile_page, '<main class="container profile-container">')
+        && str_contains($profile_page, 'page-heading profile-heading')
+        && preg_match('/\.profile-page \.profile-container\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $profile_styles) === 1
+        && preg_match('/\.profile-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $profile_styles) === 1
+        && preg_match('/\.profile-page \.profile-form\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);[^}]*align-items:\s*stretch;/s', $profile_styles) === 1
+        && preg_match('/html body\.profile-page \.profile-container > \.profile-form\s*\{[^}]*padding:\s*0 !important;[^}]*border:\s*0 !important;[^}]*background:\s*transparent !important;[^}]*box-shadow:\s*none !important;/s', $profile_styles) === 1
+        && preg_match('/\.profile-page \.profile-form > \.profile-card\s*\{[^}]*height:\s*100%;/s', $profile_styles) === 1
+        && preg_match('/\.profile-page \.profile-picture-card\s*\{[^}]*align-items:\s*start;/s', $profile_styles) === 1
+        && preg_match('/\.profile-page \.profile-form > \.profile-actions\s*\{[^}]*grid-column:\s*1 \/ -1;/s', $profile_styles) === 1
+        && str_contains($profile_page, 'class="form-group profile-email-field"')
+        && str_contains($profile_page, 'class="form-group profile-phone-field"')
+        && preg_match('/\.profile-page :is\(\.profile-email-field, \.profile-phone-field\)\s*\{[^}]*grid-column:\s*1 \/ -1;/s', $profile_styles) === 1
+        && preg_match('/\.profile-page \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $profile_styles) === 1,
+    'My Profile should use the Dashboard canvas and arrange its three equal-height settings panes in one row without an outer form pane.'
 );
 expectUserProfile(
     str_contains($profile_page, 'form="profile-resend-verification-form"')
@@ -110,6 +129,29 @@ expectUserProfile(
 );
 
 $users_page = $read('src/users.php');
+$users_styles = $read('src/assets/css/pages/users.css');
+expectUserProfile(
+    str_contains($users_page, 'class="users-body"')
+        && str_contains($users_page, 'class="container users-page"')
+        && str_contains($users_page, 'class="page-heading users-heading"')
+        && preg_match('/\.users-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $users_styles) === 1
+        && preg_match('/\.users-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $users_styles) === 1
+        && preg_match('/\.users-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $users_styles) === 1,
+    'the Users page should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+expectUserProfile(
+    str_contains($users_page, 'class="users-admin-grid"')
+        && str_contains($users_page, 'class="users-admin-actions"')
+        && strpos($users_page, 'class="page-heading users-heading"') < strpos($users_page, 'class="users-admin-grid"')
+        && strpos($users_page, 'class="security-card admin-elevation-card"') < strpos($users_page, 'class="users-admin-actions"')
+        && preg_match('/\.users-admin-grid,[^{]*\.users-list\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s', $users_styles) === 1
+        && preg_match('/\.admin-elevation-card\s*\{[^}]*margin:\s*0 !important;/s', $users_styles) === 1
+        && preg_match('/\.users-list > \.user-details\s*\{[^}]*height:\s*100%;[^}]*margin-bottom:\s*0 !important;/s', $users_styles) === 1
+        && preg_match('/\.users-admin-actions\s*\{[^}]*justify-content:\s*flex-start;/s', $users_styles) === 1
+        && preg_match('/@media \(max-width:\s*760px\)\s*\{\s*\.users-admin-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $users_styles) === 1
+        && preg_match('/@media \(max-width:\s*1180px\)\s*\{\s*\.users-list\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $users_styles) === 1,
+    'the Users page should keep admin actions in the right column until the mobile breakpoint while allowing user cards to stack sooner.'
+);
 expectUserProfile(
     !str_contains($users_page, 'profile_picture_thumbnail')
         && !str_contains($users_page, 'uploadedImageDataUrl(')
@@ -117,7 +159,7 @@ expectUserProfile(
         && str_contains($users_page, 'profile_picture.php?id=')
         && str_contains($users_page, 'decodePaginationCursor(')
         && str_contains($users_page, 'LIMIT ?')
-        && str_contains($users_page, 'First page')
+        && str_contains($users_page, 'First Page')
         && str_contains($picture_endpoint, 'profile_picture_thumbnail_size')
         && str_contains($picture_endpoint, 'profile_picture_sha256 = UNHEX(?)')
         && strpos($picture_endpoint, 'HTTP_IF_NONE_MATCH')
@@ -152,6 +194,7 @@ expectUserProfile(
 
 $styles = $read('src/assets/css/modern.css');
 $account_security_page = $read('src/two_factor_settings.php');
+$account_security_styles = $read('src/assets/css/pages/two_factor_settings.css');
 expectUserProfile(
     str_contains($styles, '.sidebar-account-link')
         && str_contains($styles, '.profile-picture-preview')
@@ -163,10 +206,16 @@ expectUserProfile(
 expectUserProfile(
     str_contains($account_security_page, '<body class="two-factor-settings-page">')
         && str_contains($account_security_page, '<main class="container security-container">')
+        && str_contains($account_security_page, 'assets/css/pages/two_factor_settings.min.css')
+        && str_contains($account_security_page, 'page-heading two-factor-settings-heading')
+        && str_contains($account_security_page, '<div class="account-security-grid">')
         && preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $styles) === 1
         && preg_match('/\.security-card,[^{]*\{[^}]*background:\s*var\(--surface\)\s*!important;/s', $styles) === 1
-        && preg_match('/\.two-factor-settings-page \.app-footer\s*\{[^}]*width:\s*min\(100%, 960px\);[^}]*max-width:\s*960px;/s', $styles) === 1,
-    'Account Security should use a transparent page root, preserve intentional security-card surfaces, and align its footer with those cards.'
+        && preg_match('/\.two-factor-settings-page \.security-container\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $account_security_styles) === 1
+        && preg_match('/\.two-factor-settings-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $account_security_styles) === 1
+        && preg_match('/\.account-security-grid\s*\{[^}]*grid-template-columns:\s*repeat\(3,\s*minmax\(0,\s*1fr\)\);/s', $account_security_styles) === 1
+        && preg_match('/\.two-factor-settings-page \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $account_security_styles) === 1,
+    'Account Security should use the Dashboard canvas, preserve intentional security-card surfaces, and arrange its settings cards in three columns.'
 );
 
 echo "User profile feature tests passed.\n";

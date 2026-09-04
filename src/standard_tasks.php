@@ -134,20 +134,21 @@ $priority_labels = followUpTaskPriorities();
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/standard_tasks.min.css',
   ),
 )); ?>
-<body>
+<body class="standard-tasks-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<main class="container standard-tasks-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><span>Standard Event Tasks</span></nav>
-    <div class="page-heading">
+    <div class="page-heading standard-tasks-heading">
         <div>
             <h1><?php echo $show_archived ? 'Archived Standard Event Tasks' : 'Standard Event Tasks'; ?></h1>
             <p class="page-intro">Control the reusable work assigned automatically when new events are created.</p>
         </div>
         <div class="page-heading-actions">
             <a href="tasks.php" class="button-secondary">Back to Work Queue</a>
-            <?php if (canManageFollowUpTasks($user_role)): ?><a href="add_standard_task.php" class="button-add">+ New standard task</a><?php endif; ?>
+            <?php if (canManageFollowUpTasks($user_role)): ?><a href="add_standard_task.php" class="button-add">+ New Standard Task</a><?php endif; ?>
         </div>
     </div>
 
@@ -197,7 +198,7 @@ $priority_labels = followUpTaskPriorities();
         <?php endforeach; ?>
         </tbody>
     </table>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

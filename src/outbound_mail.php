@@ -34,10 +34,30 @@ if ($message === null) {
     http_response_code(404);
     exit('Outbound message not found.');
 }
+$isInquiryMessage = !empty($message['booking_inquiry_id']);
+$inquiryActive = $isInquiryMessage && in_array((string) ($message['inquiry_stage'] ?? ''), [
+    'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent',
+], true);
+$parentUnavailable = $isInquiryMessage
+    ? !$inquiryActive
+    : !empty($message['engagement_deleted']);
+$parentId = (int) ($isInquiryMessage
+    ? $message['booking_inquiry_id']
+    : $message['engagement_id']);
+$parentLabel = $isInquiryMessage ? 'Inquiry' : 'Engagement';
+$parentTitle = trim((string) ($isInquiryMessage
+    ? ($message['inquiry_title'] ?? '')
+    : ($message['event_title'] ?? '')));
+if ($parentTitle === '') {
+    $parentTitle = (string) $message['organization_name'];
+}
+$parentUrl = $isInquiryMessage
+    ? 'view_inquiry.php?id=' . $parentId . '#correspondence'
+    : 'view_engagement.php?id=' . $parentId . '#correspondence';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
-    if (!in_array($userRole, ['admin', 'editor'], true) || !empty($message['engagement_deleted'])) {
+    if (!in_array($userRole, ['admin', 'editor'], true) || $parentUnavailable) {
         http_response_code(403);
         exit('Forbidden.');
     }
@@ -70,7 +90,15 @@ $statusLabels = [
     'pending' => 'Delivery Pending',
 ];
 $templateDefinitions = engagementEmailTemplateDefinitions();
-$templateLabel = $templateDefinitions[(string) $message['template_key']]['label'] ?? 'Custom message';
+$inquiryTemplateLabels = [
+    'initial_response' => 'Initial Response',
+    'request_details' => 'Request Details',
+    'date_options' => 'Date Options',
+    'proposal_follow_up' => 'Proposal Follow-Up',
+];
+$templateLabel = $isInquiryMessage
+    ? ($inquiryTemplateLabels[(string) $message['template_key']] ?? 'Custom Message')
+    : ($templateDefinitions[(string) $message['template_key']]['label'] ?? 'Custom Message');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -85,8 +113,8 @@ $templateLabel = $templateDefinitions[(string) $message['template_key']]['label'
 <?php include 'templates/header.php'; ?>
 <main class="container engagement-email-page outbound-message-page">
     <nav class="breadcrumb" aria-label="Breadcrumb">
-        <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
-        <a href="view_engagement.php?id=<?php echo (int) $message['engagement_id']; ?>">Engagement Details</a><span aria-hidden="true">/</span>
+        <a href="<?php echo $isInquiryMessage ? 'inquiries.php' : 'engagements.php'; ?>"><?php echo $isInquiryMessage ? 'Booking Pipeline' : 'Engagements'; ?></a><span aria-hidden="true">/</span>
+        <a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo $parentLabel; ?> Details</a><span aria-hidden="true">/</span>
         <span>Outbound Message</span>
     </nav>
     <header class="page-heading">
@@ -103,12 +131,12 @@ $templateLabel = $templateDefinitions[(string) $message['template_key']]['label'
 
     <section class="outbound-message-summary">
         <dl>
-            <div><dt>Engagement</dt><dd><a href="view_engagement.php?id=<?php echo (int) $message['engagement_id']; ?>#correspondence"><?php echo htmlspecialchars(trim((string) $message['event_title']) !== '' ? (string) $message['event_title'] : (string) $message['organization_name'], ENT_QUOTES, 'UTF-8'); ?></a></dd></div>
+            <div><dt><?php echo $parentLabel; ?></dt><dd><a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($parentTitle, ENT_QUOTES, 'UTF-8'); ?></a></dd></div>
             <div><dt>Template</dt><dd><?php echo htmlspecialchars($templateLabel, ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Created</dt><dd><?php echo htmlspecialchars(applicationTimestampLabel($message['created_at'], 'F j, Y \a\t g:i A T'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Created by</dt><dd><?php echo htmlspecialchars((string) ($message['created_by_username'] ?: 'System'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Replies</dt><dd><?php echo !empty($message['reply_to']) ? 'Return to ' . htmlspecialchars((string) $message['reply_to'], ENT_QUOTES, 'UTF-8') : 'Return to the application sender'; ?></dd></div>
-            <div><dt>Event brief</dt><dd><?php echo !empty($message['included_event_brief']) ? 'Included' : 'Not included'; ?></dd></div>
+            <?php if (!$isInquiryMessage): ?><div><dt>Event Brief</dt><dd><?php echo !empty($message['included_event_brief']) ? 'Included' : 'Not Included'; ?></dd></div><?php endif; ?>
         </dl>
     </section>
 
@@ -137,11 +165,11 @@ $templateLabel = $templateDefinitions[(string) $message['template_key']]['label'
                 </article>
             <?php endforeach; ?>
         </div>
-        <?php if ((int) $message['failed_count'] > 0 && in_array($userRole, ['admin', 'editor'], true) && empty($message['engagement_deleted'])): ?>
+        <?php if ((int) $message['failed_count'] > 0 && in_array($userRole, ['admin', 'editor'], true) && !$parentUnavailable): ?>
             <form method="post" action="outbound_mail.php" class="outbound-retry-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="id" value="<?php echo $messageId; ?>">
-                <button type="submit" class="button-secondary" data-confirm="Re-queue every failed recipient for a fresh delivery attempt?">Retry failed deliveries</button>
+                <button type="submit" class="button-secondary" data-confirm="Re-queue every failed recipient for a fresh delivery attempt?">Retry Failed Deliveries</button>
             </form>
         <?php endif; ?>
     </section>
@@ -152,8 +180,8 @@ $templateLabel = $templateDefinitions[(string) $message['template_key']]['label'
     </section>
 
     <div class="email-compose-actions">
-        <a href="view_engagement.php?id=<?php echo (int) $message['engagement_id']; ?>#correspondence" class="button-secondary">Back to Engagement</a>
-        <?php if (in_array($userRole, ['admin', 'editor'], true) && empty($message['engagement_deleted'])): ?><a href="compose_engagement_email.php?id=<?php echo (int) $message['engagement_id']; ?>" class="button-add">New Message</a><?php endif; ?>
+        <a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Back to <?php echo $parentLabel; ?></a>
+        <?php if (in_array($userRole, ['admin', 'editor'], true) && !$parentUnavailable): ?><a href="<?php echo $isInquiryMessage ? 'compose_inquiry_email.php' : 'compose_engagement_email.php'; ?>?id=<?php echo $parentId; ?>" class="button-add">New Message</a><?php endif; ?>
     </div>
 </main>
 <?php include 'templates/footer.php'; ?>

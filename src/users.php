@@ -103,17 +103,11 @@ if ($has_next_page && $users !== []) {
     2 => 'assets/css/pages/users.min.css',
   ),
 )); ?>
-<body>
+<body class="users-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
-    <div class="page-heading">
+<main class="container users-page">
+    <div class="page-heading users-heading">
         <div><h1>Users</h1><p class="page-intro">Manage invitations, account access, verified recovery email, roles, passwords, and two-factor authentication.</p></div>
-        <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
-        <?php if ($admin_actions_unlocked): ?>
-            <a href="register.php" class="button-add">+ Invite user</a>
-        <?php else: ?>
-            <span class="button-add sensitive-action-locked" aria-disabled="true" title="Unlock sensitive administrator actions first">+ Invite user (locked)</span>
-        <?php endif; ?>
     </div>
 
     <?php if (isset($_GET['two_factor_reset'])): ?>
@@ -135,27 +129,33 @@ if ($has_next_page && $users !== []) {
         <p class="error"><?php echo htmlspecialchars($lifecycle_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <section class="security-card admin-elevation-card" aria-labelledby="admin-elevation-title">
-        <h2 id="admin-elevation-title">Sensitive Administrator Actions</h2>
-        <?php if ($admin_actions_unlocked): ?>
-            <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
-        <?php else: ?>
-            <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
-            <form method="post" action="users.php" class="security-form">
-                <?php echo csrfInput(); ?>
-                <input type="hidden" name="action" value="elevate">
-                <div class="form-group">
-                    <label for="admin_password">Administrator Password</label>
-                    <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" maxlength="72" required>
-                </div>
-                <div class="form-group">
-                    <label for="admin_code">Fresh Authentication Code</label>
-                    <input type="text" id="admin_code" name="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
-                </div>
-                <button type="submit" class="security-button">Unlock for Five Minutes</button>
-            </form>
-        <?php endif; ?>
-    </section>
+    <div class="users-admin-grid">
+        <section class="security-card admin-elevation-card" aria-labelledby="admin-elevation-title">
+            <h2 id="admin-elevation-title">Sensitive Administrator Actions</h2>
+            <?php if ($admin_actions_unlocked): ?>
+                <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
+            <?php else: ?>
+                <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
+                <form method="post" action="users.php" class="security-form">
+                    <?php echo csrfInput(); ?>
+                    <input type="hidden" name="action" value="elevate">
+                    <div class="form-group">
+                        <label for="admin_password">Administrator Password</label>
+                        <input type="password" id="admin_password" name="admin_password" autocomplete="current-password" maxlength="72" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="admin_code">Fresh Authentication Code</label>
+                        <input type="text" id="admin_code" name="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
+                    </div>
+                    <button type="submit" class="security-button">Unlock for Five Minutes</button>
+                </form>
+            <?php endif; ?>
+        </section>
+        <div class="users-admin-actions" aria-label="User administration actions">
+            <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
+            <a href="register.php" class="button-add"<?php echo !$admin_actions_unlocked ? ' title="Preview the invitation form; administrator confirmation is required before sending"' : ''; ?>>+ Invite User</a>
+        </div>
+    </div>
 
     <div class="users-list">
         <?php foreach ($users as $user) { ?>
@@ -181,17 +181,17 @@ if ($has_next_page && $users !== []) {
                             <div class="user-account-heading">
                                 <strong class="user-display-name"><?php echo htmlspecialchars($display_name, ENT_QUOTES, 'UTF-8'); ?></strong>
                                 <?php if ($has_personal_name): ?><span class="user-username">@<?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
-                                <span>(<?php echo htmlspecialchars($user['role'], ENT_QUOTES, 'UTF-8'); ?>)</span>
+                                <span>(<?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($user['role']), ENT_QUOTES, 'UTF-8'); ?>)</span>
                                 &mdash;
                                 <span class="account-status account-status-<?php echo htmlspecialchars($user['account_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(userAccountStatusLabel($user['account_status']), ENT_QUOTES, 'UTF-8'); ?></span>
                                 &mdash;
                                 <?php if (!empty($user['two_factor_enabled'])): ?>
-                                    <span class="two-factor-status-enabled">2FA enabled</span>
+                                    <span class="two-factor-status-enabled">2FA Enabled</span>
                                 <?php else: ?>
-                                    <span class="two-factor-status-disabled">2FA not enabled</span>
+                                    <span class="two-factor-status-disabled">2FA Not Enabled</span>
                                 <?php endif; ?>
                                 <?php if (!empty($user['must_change_password'])): ?>
-                                    &mdash; <span class="password-change-required">password change required</span>
+                                    &mdash; <span class="password-change-required">Password Change Required</span>
                                 <?php endif; ?>
                             </div>
                             <div class="user-contact-details">
@@ -220,7 +220,7 @@ if ($has_next_page && $users !== []) {
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="resend_invitation">
-                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend invitation</button>
+                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend Invitation</button>
                                 <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
                                     <span class="invitation-submit-spinner" aria-hidden="true"></span>
                                     Emailing a new activation link&hellip;
@@ -271,14 +271,14 @@ if ($has_next_page && $users !== []) {
     <?php if ($cursor !== null || $next_cursor !== null): ?>
         <nav class="pagination" aria-label="User pages">
             <?php if ($cursor !== null): ?>
-                <a href="users.php" class="pagination-link">First page</a>
+                <a href="users.php" class="pagination-link">First Page</a>
             <?php endif; ?>
             <?php if ($next_cursor !== null): ?>
                 <a href="users.php?cursor=<?php echo rawurlencode($next_cursor); ?>" class="pagination-link">Next</a>
             <?php endif; ?>
         </nav>
     <?php endif; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

@@ -42,6 +42,13 @@ if ($result->num_rows === 0) {
 
 $engagement = $result->fetch_assoc();
 $is_archived = !empty($engagement['is_deleted']);
+$source_inquiry_stmt = $conn->prepare(
+    'SELECT id, title FROM booking_inquiries WHERE converted_engagement_id = ? LIMIT 1'
+);
+$source_inquiry_stmt->bind_param('i', $engagement_id);
+$source_inquiry_stmt->execute();
+$source_inquiry = $source_inquiry_stmt->get_result()->fetch_assoc() ?: null;
+$source_inquiry_stmt->close();
 
 try {
     $financial_report = fetchEngagementFinancialReport($conn, $engagement_id);
@@ -52,7 +59,8 @@ try {
     ]);
 }
 $financial_report_message = (string) ($_SESSION['financial_report_message'] ?? '');
-unset($_SESSION['financial_report_message']);
+$engagement_action_message = (string) ($_SESSION['engagement_action_message'] ?? '');
+unset($_SESSION['financial_report_message'], $_SESSION['engagement_action_message']);
 
 try {
     $contacts = fetchEngagementContacts($conn, $engagement_id);
@@ -173,19 +181,20 @@ $presentation_stmt->close();
     3 => 'assets/css/pages/engagement_contacts.min.css',
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
     5 => 'assets/css/pages/engagement_email.min.css',
+    6 => 'assets/css/pages/booking_inquiries.min.css',
   ),
 )); ?>
-<body>
+<body class="view-engagement-body">
 <?php include 'templates/header.php'; ?>
-<div class="view-container">
+<div class="view-container view-engagement-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Engagements</a><span aria-hidden="true">/</span><span>Engagement Details</span></nav>
-    <div class="page-heading record-page-heading">
+    <div class="page-heading record-page-heading view-engagement-heading">
         <?php $event_type_label = $engagement['event_type'] === 'other' && !empty($engagement['event_type_other']) ? $engagement['event_type_other'] : $engagement['event_type']; ?>
         <div><h1><?php echo htmlspecialchars($engagement['event_title'] ?: $engagement['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?> <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span></h1><p class="page-intro"><?php echo htmlspecialchars($engagement['organization_name']); ?> · <?php echo htmlspecialchars(ucwords($event_type_label)); ?></p></div>
         <?php if (!$is_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
             <div class="page-heading-actions">
-                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-secondary">Send email</a>
-                <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit engagement</a>
+                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-secondary">Send Email</a>
+                <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>" class="button-add">Edit Engagement</a>
             </div>
         <?php endif; ?>
     </div>
@@ -193,6 +202,8 @@ $presentation_stmt->close();
     <?php if ($financial_report_message !== ''): ?>
         <p class="success" role="status"><?php echo htmlspecialchars($financial_report_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
+    <?php if ($engagement_action_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($engagement_action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($source_inquiry): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked from Inquiry #<?php echo (int) $source_inquiry['id']; ?></strong><span>The pre-booking history remains on the read-only source record.</span></div><a href="view_inquiry.php?id=<?php echo (int) $source_inquiry['id']; ?>" class="button-secondary">Open Source Inquiry</a></div><?php endif; ?>
 
     <div class="detail-group">
         <?php if (!empty($engagement['event_title'])): ?>
@@ -462,7 +473,7 @@ $presentation_stmt->close();
         <?php elseif ($financial_closeout_applicable): ?>
             <p class="financial-empty">No actual received amounts have been finalized for this event.</p>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
-                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button save-button">Close out event</a>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button save-button">Close Out Event</a>
             <?php endif; ?>
         <?php else: ?>
             <p class="financial-empty">Financial closeout is unavailable while this engagement is <?php echo htmlspecialchars(strtolower(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active')), ENT_QUOTES, 'UTF-8'); ?>.</p>
@@ -485,7 +496,7 @@ $presentation_stmt->close();
                 <p>Tracked outbound email for this engagement.</p>
             </div>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
-                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-add">Send message</a>
+                <a href="compose_engagement_email.php?id=<?php echo $engagement_id; ?>" class="button-add">Send Message</a>
             <?php endif; ?>
         </div>
         <div class="engagement-email-history">
@@ -517,7 +528,7 @@ $presentation_stmt->close();
                 <p>Entries are shown newest first.</p>
             </div>
             <?php if ($archived_chron_count > 0): ?>
-                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>
+                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore Archived Entries (<?php echo $archived_chron_count; ?>)</a>
             <?php endif; ?>
         </div>
 
@@ -540,7 +551,7 @@ $presentation_stmt->close();
                             <small>Last updated <time datetime="<?php echo htmlspecialchars($updated_timestamp['iso']); ?>"><?php echo htmlspecialchars($updated_timestamp['display']); ?></time><?php if (!empty($chron_entry['updated_by_username'])): ?> by <?php echo htmlspecialchars($chron_entry['updated_by_username']); ?><?php endif; ?></small>
                         <?php endif; ?>
                         <?php if (!empty($chron_entry['outbound_email_message_id'])): ?>
-                            <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
+                            <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View Outbound Message</a></small>
                         <?php endif; ?>
                     </div>
                     <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($chron_entry['entry_text']); ?></div>

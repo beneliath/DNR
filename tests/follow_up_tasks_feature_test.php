@@ -40,12 +40,29 @@ $subject_search = $read('src/task_subject_search.php');
 $section = $read('src/templates/follow_up_task_section.php');
 $header = $read('src/templates/header.php');
 $styles = $read('src/assets/css/modern.css');
+$taskPageStyles = $read('src/assets/css/pages/tasks.css');
 $pdf_download = $read('src/download_engagement_pdf.php');
 $pdf_renderer = $read('src/engagement_pdf.php');
 
 expectFollowUpTaskFeature(
-    str_contains($queue, "'my' => 'My work'") === false
-        && str_contains($helpers, "'my' => 'My work'")
+    str_contains($queue, "'assets/css/pages/tasks.min.css'")
+        && str_contains($queue, 'class="tasks-body"')
+        && str_contains($queue, 'class="container tasks-page"')
+        && str_contains($queue, 'class="page-heading tasks-heading"')
+        && preg_match('/\.tasks-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $taskPageStyles) === 1
+        && preg_match('/\.tasks-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $taskPageStyles) === 1,
+    'the Work Queue should use the Dashboard canvas width and heading scale.'
+);
+expectFollowUpTaskFeature(
+    preg_match('/\.tasks-page \.task-summary-grid \.summary-card small\s*\{[^}]*font-size:\s*\.9rem;/s', $taskPageStyles) === 1
+        && preg_match('/\.tasks-page \.task-summary-grid \.summary-card strong\s*\{[^}]*font-size:\s*1\.75rem;/s', $taskPageStyles) === 1
+        && preg_match('/\.tasks-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $taskPageStyles) === 1,
+    'the Work Queue summary typography and footer should align with the Dashboard.'
+);
+
+expectFollowUpTaskFeature(
+    str_contains($queue, "'my' => 'My Active Work'") === false
+        && str_contains($helpers, "'my' => 'My Active Work'")
         && str_contains($helpers, "'overdue' => 'Overdue'")
         && str_contains($helpers, "'today' => 'Due today'")
         && str_contains($helpers, "'upcoming' => 'Next ' . \$upcomingDays . ' days'")
@@ -53,6 +70,12 @@ expectFollowUpTaskFeature(
         && str_contains($queue, 'assigned_to IS NULL')
         && str_contains($queue, "t.status = 'waiting'"),
     'the queue should expose personal, due-date, waiting, and unassigned work views from one allowlist.'
+);
+expectFollowUpTaskFeature(
+    str_contains($queue, "? 'My Overdue Work'")
+        && str_contains($queue, "? \$personal_reminders['overdue'] : \$summary['overdue']")
+        && str_contains($queue, '<small>My Active Work</small>'),
+    'personal dashboard links should show matching My Active Work and My Overdue Work filters and counts.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, "['my', 'overdue', 'today', 'upcoming', 'waiting', 'unassigned']"),
@@ -152,7 +175,7 @@ expectFollowUpTaskFeature(
 );
 expectFollowUpTaskFeature(
     str_contains($edit_task, "'duplicate_from' => \$task_id")
-        && str_contains($form, 'Duplicate to another event')
+        && str_contains($form, 'Duplicate to Another Event')
         && str_contains($add_task, 'followUpTaskDuplicateFormValues($duplicate_source)')
         && str_contains($add_task, 'requireDifferentEngagementForTaskDuplicate($duplicate_source, $task)')
         && str_contains($add_task, "'Task duplicated.'")
@@ -177,7 +200,7 @@ expectFollowUpTaskFeature(
     str_contains($helpers, 'generateEngagementFollowUpChecklist')
         && str_contains($helpers, 'INSERT IGNORE INTO follow_up_tasks')
         && str_contains($queue, 'generate_engagement_checklist')
-        && str_contains($section, 'Add missing checklist tasks'),
+        && str_contains($section, 'Add Missing Checklist Tasks'),
     'standard engagement checklist generation should be optional and idempotent.'
 );
 expectFollowUpTaskFeature(

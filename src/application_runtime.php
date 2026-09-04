@@ -122,6 +122,42 @@ function applicationInboundMarker(int $engagementId): string
         . applicationInboundMarkerTag($engagementId, $prefix) . ']';
 }
 
+function applicationInquiryInboundMarkerTag(int $inquiryId, string $prefix): string
+{
+    if ($inquiryId < 1) {
+        throw new InvalidArgumentException('The Inquiry routing marker requires a valid ID.');
+    }
+    $normalizedPrefix = strtolower(trim($prefix));
+    if ($normalizedPrefix === '') {
+        throw new InvalidArgumentException('The Inquiry routing marker requires a prefix.');
+    }
+    $digest = hash_hmac(
+        'sha256',
+        "dnr-inbound-inquiry-routing-v1\0{$normalizedPrefix}\0{$inquiryId}",
+        \Dnr\Security\InboundRoutingKey::bytes(),
+        true
+    );
+    return rtrim(strtr(base64_encode(substr($digest, 0, 16)), '+/', '-_'), '=');
+}
+
+function applicationInquiryInboundMarker(int $inquiryId): string
+{
+    $prefix = deploymentConfig()->string('inbound_email.emitted_marker_prefix');
+    return '[' . $prefix . '-I#' . $inquiryId . '.'
+        . applicationInquiryInboundMarkerTag($inquiryId, $prefix) . ']';
+}
+
+function applicationInquiryInboundMarkerIsValid(
+    string $prefix,
+    int $inquiryId,
+    string $tag
+): bool {
+    if ($inquiryId < 1 || preg_match('/\A[A-Za-z0-9_-]{22}\z/D', $tag) !== 1) {
+        return false;
+    }
+    return hash_equals(applicationInquiryInboundMarkerTag($inquiryId, $prefix), $tag);
+}
+
 function applicationInboundMarkerIsValid(string $prefix, int $engagementId, string $tag): bool
 {
     if ($engagementId < 1 || preg_match('/\A[A-Za-z0-9_-]{22}\z/D', $tag) !== 1) {

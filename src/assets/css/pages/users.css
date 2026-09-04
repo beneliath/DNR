@@ -1,3 +1,51 @@
+.users-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            padding-inline: var(--app-content-padding);
+        }
+        .users-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+.users-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
+        }
+        .users-admin-grid,
+        .users-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1.15rem;
+            align-items: stretch;
+        }
+        .users-admin-grid {
+            margin-bottom: 1.15rem;
+            align-items: start;
+        }
+        .admin-elevation-card {
+            width: 100%;
+            margin: 0 !important;
+        }
+        .users-admin-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: .75rem;
+        }
+        .users-list > .user-details {
+            display: flex;
+            min-width: 0;
+            height: 100%;
+            flex-direction: column;
+            margin-bottom: 0 !important;
+        }
+        .users-list > .user-details .user-timestamps {
+            margin-top: auto !important;
+        }
+
 .page-heading {
             display: grid;
             grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
@@ -13,24 +61,18 @@
         .audit-log-link {
             justify-self: center;
         }
-        .sensitive-action-locked {
-            justify-self: end;
-            opacity: 0.55;
-            cursor: not-allowed;
-            pointer-events: none;
-        }
         .user-details {
             margin-bottom: 20px;
             padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
         }
         .user-details:hover {
-            background-color: #f9f9f9;
+            background-color: var(--surface-hover);
         }
         .dark-mode .user-details:hover,
         .dark-mode .user-details:hover div:not(.user-actions) {
-            background-color: #333 !important;
+            background-color: var(--surface-hover) !important;
         }
         .user-main {
             display: flex;
@@ -40,10 +82,10 @@
         }
         .user-timestamps {
             font-size: var(--font-size-small);
-            color: #666;
+            color: var(--text-muted);
             margin-left: 20px;
             padding-top: 5px;
-            border-top: 1px solid #eee;
+            border-top: 1px solid var(--border);
         }
         .timestamp {
             display: inline-block;
@@ -162,10 +204,18 @@
             }
         }
         @media (max-width: 760px) {
+            .users-admin-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
             .user-main {
                 gap: 16px;
             }
             .user-actions {
                 align-self: flex-end;
+            }
+        }
+        @media (max-width: 1180px) {
+            .users-list {
+                grid-template-columns: minmax(0, 1fr);
             }
         }

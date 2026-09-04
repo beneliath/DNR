@@ -1,7 +1,21 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 .map-page {
-  max-width: 1440px;
+  width: min(100%, var(--app-content-max));
+  max-width: var(--app-content-max);
+  padding-inline: var(--app-content-padding);
+}
+
+.map-heading h1 {
+  font-size: clamp(1.8rem, 3vw, 2.3rem);
+}
+
+.map-body .app-footer {
+  width: min(100%, var(--app-content-max));
+  max-width: var(--app-content-max);
+  margin-inline: auto !important;
+  padding-inline: var(--app-content-padding);
+  text-align: left !important;
 }
 
 .map-filters {

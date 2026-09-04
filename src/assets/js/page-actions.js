@@ -563,7 +563,7 @@
     }
 
     function initializeEngagementForm() {
-        const form = document.querySelector('.engagement-form, #engagement-edit-form, [data-chron-form]');
+        const form = document.querySelector('.engagement-form, #engagement-edit-form, .inquiry-form, [data-chron-form]');
         if (!form) return;
         const startDate = document.getElementById('event_start_date');
         const endDate = document.getElementById('event_end_date');
@@ -576,6 +576,33 @@
             endDate.addEventListener('input', function () { endDate.setCustomValidity(''); });
             synchronizeEndDateCalendar();
         }
+        const inquiryDateRanges = [
+            {
+                start: document.getElementById('preferred-start'),
+                end: document.getElementById('preferred-end'),
+                label: 'Preferred range'
+            },
+            {
+                start: document.getElementById('alternate-start'),
+                end: document.getElementById('alternate-end'),
+                label: 'Alternate range'
+            }
+        ].filter(function (range) { return range.start && range.end; });
+        inquiryDateRanges.forEach(function (range) {
+            range.synchronize = function () {
+                if (range.start.value) range.end.min = range.start.value;
+                else range.end.removeAttribute('min');
+                const invalid = Boolean(
+                    range.start.value && range.end.value && range.end.value < range.start.value
+                );
+                range.end.setCustomValidity(
+                    invalid ? range.label + ' end date must be on or after its start date.' : ''
+                );
+            };
+            range.start.addEventListener('input', range.synchronize);
+            range.end.addEventListener('input', range.synchronize);
+            range.synchronize();
+        });
         const eventType = document.getElementById('event_type');
         const compensation = document.getElementById('compensation_type');
         const housing = document.getElementById('housing_type');
@@ -610,6 +637,16 @@
                 endDate.setCustomValidity('End date must be on or after the start date.');
                 endDate.reportValidity();
                 endDate.focus();
+                return;
+            }
+            const invalidInquiryRange = inquiryDateRanges.find(function (range) {
+                range.synchronize();
+                return !range.end.checkValidity();
+            });
+            if (invalidInquiryRange) {
+                event.preventDefault();
+                invalidInquiryRange.end.reportValidity();
+                invalidInquiryRange.end.focus();
                 return;
             }
             if (typeof window.validateEngagementPresentations === 'function' && !window.validateEngagementPresentations()) {
@@ -854,7 +891,125 @@
         });
     }
 
+    function initializeInquiryTabs() {
+        document.querySelectorAll('[data-inquiry-tabs]').forEach(function (group) {
+            const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
+            const panels = tabs.map(function (tab) {
+                return document.getElementById(tab.getAttribute('aria-controls') || '');
+            });
+            if (tabs.length === 0 || panels.some(function (panel) { return !panel; })) return;
+
+            const activate = function (index, focus) {
+                tabs.forEach(function (tab, tabIndex) {
+                    const selected = tabIndex === index;
+                    tab.setAttribute('aria-selected', String(selected));
+                    tab.tabIndex = selected ? 0 : -1;
+                    panels[tabIndex].hidden = !selected;
+                });
+                if (focus) tabs[index].focus();
+            };
+
+            tabs.forEach(function (tab, index) {
+                tab.addEventListener('click', function () { activate(index, false); });
+                tab.addEventListener('keydown', function (event) {
+                    let next = null;
+                    if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
+                    if (event.key === 'ArrowLeft') next = (index - 1 + tabs.length) % tabs.length;
+                    if (event.key === 'Home') next = 0;
+                    if (event.key === 'End') next = tabs.length - 1;
+                    if (next === null) return;
+                    event.preventDefault();
+                    activate(next, true);
+                });
+            });
+
+            const requestedPanel = panels.findIndex(function (panel) {
+                return window.location.hash !== '' && '#' + panel.id === window.location.hash;
+            });
+            const selectedTab = tabs.findIndex(function (tab) {
+                return tab.getAttribute('aria-selected') === 'true';
+            });
+            activate(requestedPanel >= 0 ? requestedPanel : Math.max(0, selectedTab), false);
+
+            const openNoteButton = group.querySelector('[data-inquiry-open-note]');
+            const addNote = group.querySelector('.inquiry-add-note');
+            if (openNoteButton && addNote) {
+                openNoteButton.addEventListener('click', function () {
+                    activate(0, false);
+                    addNote.open = true;
+                    const textarea = addNote.querySelector('textarea');
+                    if (textarea) textarea.focus();
+                });
+            }
+        });
+
+        document.querySelectorAll('[data-inquiry-stage-target]').forEach(function (trigger) {
+            trigger.addEventListener('click', function () {
+                const select = document.getElementById('inquiry-stage');
+                const reason = document.getElementById('inquiry-stage-reason');
+                const target = trigger.dataset.inquiryStageTarget || '';
+                if (!select || !Array.from(select.options).some(function (option) { return option.value === target; })) return;
+                select.value = target;
+                window.setTimeout(function () { (reason || select).focus(); }, 0);
+            });
+        });
+
+        document.querySelectorAll('[data-inquiry-filter]').forEach(function (form) {
+            form.querySelectorAll('select').forEach(function (select) {
+                select.addEventListener('change', function () { form.requestSubmit(); });
+            });
+        });
+    }
+
+    function initializeDisclosurePopovers() {
+        const disclosures = Array.from(document.querySelectorAll('details[data-disclosure-popover]'));
+        if (disclosures.length === 0) return;
+
+        function closeDisclosure(disclosure, restoreFocus) {
+            if (!disclosure.open) return;
+            disclosure.open = false;
+            if (restoreFocus) {
+                const summary = disclosure.querySelector(':scope > summary');
+                if (summary) summary.focus();
+            }
+        }
+
+        disclosures.forEach(function (disclosure) {
+            disclosure.addEventListener('toggle', function () {
+                if (!disclosure.open) return;
+                disclosures.forEach(function (candidate) {
+                    if (candidate !== disclosure) closeDisclosure(candidate, false);
+                });
+            });
+            disclosure.querySelectorAll('[data-disclosure-popover-close]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    closeDisclosure(disclosure, true);
+                });
+            });
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') return;
+            const openDisclosure = disclosures.find(function (disclosure) {
+                return disclosure.open;
+            });
+            if (!openDisclosure) return;
+            event.preventDefault();
+            closeDisclosure(openDisclosure, true);
+        });
+    }
+
+    function initializeStatusMessages() {
+        document.querySelectorAll('.error:not([role]), .dialog-inline-error:not([role])').forEach(function (message) {
+            message.setAttribute('role', 'alert');
+        });
+        document.querySelectorAll('.success:not([role]), .warning:not([role])').forEach(function (message) {
+            message.setAttribute('role', 'status');
+        });
+    }
+
     function initialize() {
+        initializeStatusMessages();
         initializeContactRole();
         initializeMailingAddress();
         initializeAddressCountries();
@@ -868,9 +1023,13 @@
         initializeQrCopy();
         initializeEngagementCopy();
         initializeInvitationSubmission();
+        initializeInquiryTabs();
+        initializeDisclosurePopovers();
         const success = document.querySelector('.success');
         if (success && document.querySelector('.engagement-form')) {
-            success.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            const reduceMotion = window.matchMedia
+                && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            success.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
         }
     }
 

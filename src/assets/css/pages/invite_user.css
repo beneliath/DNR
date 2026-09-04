@@ -1,0 +1,200 @@
+.invite-user-page {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    padding-inline: var(--app-content-padding);
+}
+
+.invite-user-heading h1 {
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
+}
+
+.invite-user-eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--primary);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.invite-user-body .app-footer {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    margin-inline: auto !important;
+    padding-inline: var(--app-content-padding);
+    text-align: left !important;
+}
+
+.invite-user-access-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: 1.15rem;
+    padding: 1rem 1.15rem;
+    border: 1px solid color-mix(in srgb, var(--warning) 38%, var(--border));
+    border-radius: var(--radius-md);
+    background: var(--warning-subtle) !important;
+    color: var(--warning);
+}
+
+.invite-user-access-notice p {
+    margin: 0.2rem 0 0;
+    color: inherit;
+    font-size: 0.86rem;
+}
+
+.invite-user-access-notice .button-secondary {
+    flex: 0 0 auto;
+}
+
+.invite-user-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    gap: 1.15rem;
+    align-items: stretch;
+}
+
+html body .invite-user-page > .invite-user-layout > .invite-user-form,
+.invite-user-guidance {
+    min-width: 0;
+    height: 100%;
+    margin: 0;
+    padding: clamp(20px, 3vw, 28px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface) !important;
+    box-shadow: var(--shadow-sm);
+}
+
+.invite-user-form-heading,
+.invite-user-form-heading > div,
+.invite-user-guidance > div:first-child {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.invite-user-form-heading {
+    justify-content: space-between;
+    margin-bottom: 1.4rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.invite-user-form-heading > div > span,
+.invite-user-guidance > div:first-child > span {
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.invite-user-form-heading h2,
+.invite-user-guidance h2,
+.invite-user-form-heading p,
+.invite-user-guidance > div:first-child p {
+    margin: 0;
+}
+
+.invite-user-form-heading h2,
+.invite-user-guidance h2 {
+    font-size: 1.14rem;
+}
+
+.invite-user-form-heading p,
+.invite-user-guidance > div:first-child p {
+    margin-top: 0.2rem;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.invite-user-form-heading small {
+    color: var(--danger);
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.invite-user-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 1rem;
+}
+
+.invite-user-role-field {
+    grid-column: 1 / -1;
+}
+
+.invite-user-form .field-help {
+    margin: 0.45rem 0 0;
+}
+
+.invite-user-actions {
+    justify-content: flex-end;
+    margin-top: 0.5rem;
+}
+
+.invite-user-guidance {
+    display: flex;
+    flex-direction: column;
+}
+
+.invite-user-guidance ol {
+    display: grid;
+    gap: 0;
+    margin: 1.35rem 0;
+    padding: 0;
+    list-style: none;
+}
+
+.invite-user-guidance li {
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.8rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.invite-user-guidance li:first-child {
+    padding-top: 0;
+}
+
+.invite-user-guidance li span,
+.invite-user-role-guide p {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.invite-user-role-guide {
+    margin-top: auto;
+    padding: 1rem;
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle) !important;
+}
+
+.invite-user-role-guide h3 {
+    margin: 0 0 0.65rem;
+    font-size: 0.9rem;
+}
+
+.invite-user-role-guide p {
+    margin: 0.4rem 0 0;
+}
+
+@media (max-width: 960px) {
+    .invite-user-layout,
+    .invite-user-field-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .invite-user-access-notice {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

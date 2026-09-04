@@ -306,6 +306,7 @@ $task_digest_day_options = [
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/profile.min.css',
   ),
   'scripts' =>
   array (
@@ -318,7 +319,7 @@ $task_digest_day_options = [
 <body class="profile-page">
 <?php include 'templates/header.php'; ?>
 <main class="container profile-container">
-    <div class="page-heading"><div><h1>My Profile</h1><p class="page-intro">Manage your personal details and profile picture.</p></div></div>
+    <div class="page-heading profile-heading"><div><h1>My Profile</h1><p class="page-intro">Manage your personal details and profile picture.</p></div></div>
 
     <?php if (isset($error)): ?>
         <p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
@@ -367,12 +368,12 @@ $task_digest_day_options = [
                     <label for="last_name">Last name</label>
                     <input type="text" id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="<?php echo htmlspecialchars((string) ($user['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
-                <div class="form-group">
+                <div class="form-group profile-email-field">
                     <label for="email">Email address</label>
                     <input type="email" id="email" name="email" maxlength="254" autocomplete="email" value="<?php echo htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <?php if (!empty($user['email'])): ?><p class="field-help"><?php echo !empty($user['email_verified_at']) ? 'Verified for password recovery.' : 'Unverified. Password recovery remains unavailable until verification.'; ?></p><?php endif; ?>
                 </div>
-                <div class="form-group">
+                <div class="form-group profile-phone-field">
                     <label for="phone">Phone number</label>
                     <div class="phone-input-group" data-phone-input-group>
                         <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Phone country code'); ?>

@@ -58,13 +58,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_POST,
                 'engagement_ids'
             );
+            $inquiryIds = \Dnr\Http\RequestInput::positiveIntList(
+                $_POST,
+                'inquiry_ids'
+            );
             processInboundEmailMessage(
                 $conn,
                 $messageId,
                 $contactIds,
                 $organizationIds,
                 (int) $_SESSION['user_id'],
-                $engagementIds
+                $engagementIds,
+                $inquiryIds
             );
             $_SESSION['inbound_mail_message'] = 'The email was added to the selected Chron logs.';
         } elseif ($action === 'retry') {
@@ -194,10 +199,10 @@ $statusLabels = [
     ],
     'scripts' => ['assets/js/inbound-mail.min.js'],
 ]); ?>
-<body>
+<body class="inbound-mail-body">
 <?php include 'templates/header.php'; ?>
 <main class="container inbound-mail-page">
-    <div class="page-heading">
+    <div class="page-heading inbound-mail-heading">
         <div>
             <h1>Inbound Mail</h1>
             <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured ' . applicationBrandName() . ' mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact, Organization, and Engagement Chron logs.</p>
@@ -260,6 +265,7 @@ $statusLabels = [
                     </div>
                     <div class="inbound-detail-actions">
                         <small>Inbound message #<?php echo (int) $selectedMessage['id']; ?></small>
+                        <?php if (in_array((string) $selectedMessage['status'], ['pending', 'review', 'failed'], true)): ?><a href="add_inquiry.php?inbound_email_message_id=<?php echo (int) $selectedMessage['id']; ?>" class="button-secondary">Create Inquiry</a><?php endif; ?>
                         <?php if (canDeleteEntries($userRole)): ?>
                             <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
                                 <?php echo csrfInput(); ?>
@@ -290,6 +296,12 @@ $statusLabels = [
                                 <span><?php echo htmlspecialchars((string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></span>
                             </a>
                         <?php endforeach; ?>
+                        <?php foreach ($selectedRouting['inquiries'] as $inquiry): ?>
+                            <a class="inbound-engagement-route" href="view_inquiry.php?id=<?php echo (int) $inquiry['id']; ?>">
+                                <code><?php echo htmlspecialchars((string) $inquiry['marker'], ENT_QUOTES, 'UTF-8'); ?></code>
+                                <span><?php echo htmlspecialchars((string) $inquiry['label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </a>
+                        <?php endforeach; ?>
                         <?php if ($selectedRouting['reasons']): ?>
                             <ul><?php foreach ($selectedRouting['reasons'] as $reason): ?><li><?php echo htmlspecialchars($reason, ENT_QUOTES, 'UTF-8'); ?></li><?php endforeach; ?></ul>
                         <?php else: ?>
@@ -316,6 +328,13 @@ $statusLabels = [
                                 <label><input type="checkbox" name="organization_ids[]" value="<?php echo (int) $organization['id']; ?>" checked> <?php echo htmlspecialchars((string) $organization['label'], ENT_QUOTES, 'UTF-8'); ?></label>
                             <?php endforeach; ?>
                             <?php if (!$selectedRouting['organizations']): ?><p>No matching active Organizations.</p><?php endif; ?>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Inquiry Chron Log</legend>
+                            <?php foreach ($selectedRouting['inquiries'] as $inquiry): ?>
+                                <label><input type="checkbox" name="inquiry_ids[]" value="<?php echo (int) $inquiry['id']; ?>" checked> <?php echo htmlspecialchars((string) $inquiry['label'], ENT_QUOTES, 'UTF-8'); ?></label>
+                            <?php endforeach; ?>
+                            <?php if (!$selectedRouting['inquiries']): ?><p>No signed active Inquiry route.</p><?php endif; ?>
                         </fieldset>
                         <fieldset>
                             <legend>Engagement Chron Log</legend>

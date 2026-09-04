@@ -15,7 +15,7 @@ final class ArchiveService
     ];
 
     /**
-     * @return array{contacts: int, engagements: int}|null
+     * @return array{contacts: int, engagements: int, inquiries: int}|null
      */
     public static function organizationActiveDependencyCounts(
         \mysqli $connection,
@@ -30,13 +30,18 @@ final class ArchiveService
                 (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
                   AS active_contacts,
                 (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
-                  AS active_engagements'
+                  AS active_engagements,
+                (SELECT COUNT(*) FROM booking_inquiries
+                 WHERE organization_id = ?
+                   AND stage IN (
+                     \'new\', \'contacted\', \'qualified\', \'awaiting_details\', \'proposal_sent\'
+                   )) AS active_inquiries'
         );
         if (!$statement) {
             return null;
         }
 
-        $statement->bind_param('ii', $organizationId, $organizationId);
+        $statement->bind_param('iii', $organizationId, $organizationId, $organizationId);
         if (!$statement->execute()) {
             $statement->close();
             return null;
@@ -51,7 +56,37 @@ final class ArchiveService
         return [
             'contacts' => (int) ($dependencies['active_contacts'] ?? 0),
             'engagements' => (int) ($dependencies['active_engagements'] ?? 0),
+            'inquiries' => (int) ($dependencies['active_inquiries'] ?? 0),
         ];
+    }
+
+    public static function contactActiveInquiryCount(
+        \mysqli $connection,
+        int $contactId
+    ): ?int {
+        if ($contactId < 1) {
+            return null;
+        }
+        $statement = $connection->prepare(
+            "SELECT COUNT(*) AS active_inquiries
+             FROM booking_inquiries
+             WHERE primary_contact_id = ?
+               AND stage IN (
+                 'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
+               )"
+        );
+        if (!$statement) {
+            return null;
+        }
+        $statement->bind_param('i', $contactId);
+        if (!$statement->execute()) {
+            $statement->close();
+            return null;
+        }
+        $result = $statement->get_result();
+        $row = $result ? $result->fetch_assoc() : null;
+        $statement->close();
+        return $row ? (int) ($row['active_inquiries'] ?? 0) : null;
     }
 
     public static function setArchived(
@@ -116,7 +151,17 @@ final class ArchiveService
                 if ($dependencies === null
                     || $dependencies['contacts'] > 0
                     || $dependencies['engagements'] > 0
+                    || $dependencies['inquiries'] > 0
                 ) {
+                    $connection->rollback();
+                    $transactionStarted = false;
+                    return false;
+                }
+            }
+
+            if ($entity === 'contact' && $isArchived) {
+                $activeInquiryCount = self::contactActiveInquiryCount($connection, $id);
+                if ($activeInquiryCount === null || $activeInquiryCount > 0) {
                     $connection->rollback();
                     $transactionStarted = false;
                     return false;

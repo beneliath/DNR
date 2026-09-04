@@ -37,6 +37,7 @@
 - [x] build out profiles for users
 - [x] build email subsystem for invitations, verified addresses, and password reset
 - [x] add role-targeted outbound Engagement correspondence with templates, delivery tracking, and Chron links
+- [x] add a first-class inquiry and booking pipeline with next actions, Chron, correspondence, inbound-mail capture, tasks, stage history, conflict review, and transactional Engagement conversion
 - [x] add functionality to activate/deactivate users with coordinated access revocation
 - [x] build out for Contact(s): Admin, Pastor, and Other
 - [x] build out Anticipated Compensation

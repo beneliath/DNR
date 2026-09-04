@@ -40,6 +40,15 @@ expectMapFeature(
     'the application sidebar should expose an active Map destination.'
 );
 expectMapFeature(
+    str_contains($map_page, 'class="map-body"')
+        && str_contains($map_page, '<main class="container map-page">')
+        && str_contains($map_page, 'class="page-heading map-heading"')
+        && preg_match('/\.map-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $map_styles) === 1
+        && preg_match('/\.map-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $map_styles) === 1
+        && preg_match('/\.map-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $map_styles) === 1,
+    'the Map page should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+expectMapFeature(
     str_contains($map_page, "e.confirmation_status = ?")
         && str_contains($map_page, "e.lifecycle_status = ?")
         && str_contains($map_page, 'e.event_end_date >= ?')

@@ -25,6 +25,16 @@ expectEngagementLocationFeature(
 );
 
 expectEngagementLocationFeature(
+    str_contains($edit_engagement, '<body class="edit-engagement-body">')
+        && str_contains($edit_engagement, '<div class="container edit-engagement-page" role="main">')
+        && str_contains($edit_engagement, 'form-page-heading edit-engagement-heading')
+        && preg_match('/\.edit-engagement-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $edit_styles) === 1
+        && preg_match('/\.edit-engagement-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $edit_styles) === 1
+        && preg_match('/\.edit-engagement-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $edit_styles) === 1,
+    'Edit Engagement should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+
+expectEngagementLocationFeature(
     preg_match(
         '/class="address-row event-address-row".*event_city.*event_state.*event_zipcode.*event_country/s',
         $edit_engagement

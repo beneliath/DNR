@@ -1,13 +1,49 @@
+.view-organization-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            padding-inline: var(--app-content-padding);
+        }
+        .view-organization-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+        .view-organization-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
+        }
+
 .organization-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 20px;
             margin-bottom: 20px;
         }
+        .organization-overview-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+            gap: 1.15rem;
+            align-items: stretch;
+            margin-bottom: 20px;
+        }
+        .organization-overview-grid > .organization-details {
+            min-width: 0;
+            height: 100%;
+            margin-bottom: 0;
+        }
+        .organization-notes-panel h2 {
+            margin: 0 0 1rem;
+            font-size: 1.15rem;
+        }
+        .organization-notes-content {
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
         .dark-mode .organization-details {
-            background-color: #1e1e1e;
-            border-color: #444;
+            background-color: var(--surface);
+            border-color: var(--border);
         }
         .detail-row {
             margin-bottom: 15px;
@@ -19,16 +55,24 @@
         .contacts-section {
             margin-top: 30px;
         }
+        .organization-contact-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+            align-items: stretch;
+        }
         .contact-card {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            min-width: 0;
+            height: 100%;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 15px;
-            margin-bottom: 15px;
+            margin-bottom: 0;
         }
         .dark-mode .contact-card {
-            background-color: #1e1e1e;
-            border-color: #444;
+            background-color: var(--surface);
+            border-color: var(--border);
         }
         .contact-header {
             display: flex;
@@ -150,6 +194,12 @@
             margin-left: 6px;
         }
         @media (max-width: 900px) {
+            .organization-overview-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+            .organization-overview-grid > .organization-details {
+                height: auto;
+            }
             .financial-summary-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
@@ -160,5 +210,10 @@
             }
             .section-heading-row {
                 flex-direction: column;
+            }
+        }
+        @media (max-width: 760px) {
+            .organization-contact-grid {
+                grid-template-columns: minmax(0, 1fr);
             }
         }

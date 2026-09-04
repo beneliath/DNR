@@ -137,6 +137,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.calendar_subscript
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.calendar_feed_revision TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.organizations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagements TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_stage_history TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_chron_entries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
@@ -180,9 +183,11 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_ingest_user}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_chron_entries TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.booking_inquiry_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.contact_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.organization_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${mail_ingest_user}'@'%';
@@ -204,7 +209,7 @@ GRANT SELECT (
 ) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, title, status, priority, due_date, waiting_on, assigned_to,
-    subject_type, engagement_id, organization_id, contact_id
+    subject_type, engagement_id, organization_id, contact_id, inquiry_id
 ) ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, organization_id, event_title, event_start_date, event_end_date,
@@ -212,6 +217,8 @@ GRANT SELECT (
     event_address_line_1, event_address_line_2, event_city, event_state,
     event_zipcode, event_country, is_deleted, lifecycle_status
 ) ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (id, title)
+    ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id, organization_name, is_deleted)
     ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (engagement_id)

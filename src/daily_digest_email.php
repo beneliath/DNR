@@ -129,14 +129,14 @@ function renderDailyTaskDigestText(
             . digestDisplayDate($businessDate) . '.',
         '',
         'DASHBOARD SUMMARY',
-        '- Events, next ' . $dashboardDays . ' days: ' . $upcomingCount,
-        '- My active work: ' . (int) ($taskSummary['active'] ?? 0),
-        '- My overdue work: ' . (int) ($taskSummary['overdue'] ?? 0),
-        '- Due today: ' . (int) ($taskSummary['today'] ?? 0),
-        '- Financial closeouts due: ' . $closeoutCount,
+        '- Engagements, Next ' . $dashboardDays . ' Days: ' . $upcomingCount,
+        '- My Active Work: ' . (int) ($taskSummary['active'] ?? 0),
+        '- My Overdue Work: ' . (int) ($taskSummary['overdue'] ?? 0),
+        '- Due Today: ' . (int) ($taskSummary['today'] ?? 0),
+        '- Financial Closeouts: ' . $closeoutCount,
     ];
     if ($canManage) {
-        $lines[] = '- Mail awaiting review: ' . $inboundCount;
+        $lines[] = '- Mail For Review: ' . $inboundCount;
     }
 
     $lines[] = '';
@@ -436,10 +436,10 @@ function renderDailyTaskDigestHtml(
                             <h1 style="margin:0;color:#172033;font-size:28px;line-height:1.22;letter-spacing:-0.025em;">Good day, <?php echo dailyTaskDigestHtmlEscape($name); ?></h1>
                             <p style="margin:7px 0 0;color:#667085;font-size:14px;line-height:1.55;">Your operations view for <?php echo dailyTaskDigestHtmlEscape($displayDate); ?>:</p>
                             <div style="margin-top:15px;">
-                                <a href="<?php echo $taskQueueUrl; ?>" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">Open my work</a>
+                                <a href="<?php echo $taskQueueUrl; ?>" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">Open My Work</a>
                                 <?php if ($canManage): ?>
-                                    <a href="<?php echo $newTaskUrl; ?>" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">+ New task</a>
-                                    <a href="<?php echo $newEngagementUrl; ?>" style="display:inline-block;margin:0 0 7px;padding:9px 12px;border:1px solid #2457d6;border-radius:9px;background:#2457d6;color:#ffffff;font-size:11px;font-weight:700;">+ New engagement</a>
+                                    <a href="<?php echo $newTaskUrl; ?>" style="display:inline-block;margin:0 7px 7px 0;padding:9px 12px;border:1px solid #c8d0dc;border-radius:9px;background:#ffffff;color:#2457d6;font-size:11px;font-weight:700;">+ New Task</a>
+                                    <a href="<?php echo $newEngagementUrl; ?>" style="display:inline-block;margin:0 0 7px;padding:9px 12px;border:1px solid #2457d6;border-radius:9px;background:#2457d6;color:#ffffff;font-size:11px;font-weight:700;">+ New Engagement</a>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -452,21 +452,21 @@ function renderDailyTaskDigestHtml(
                                     <td width="33.333%" class="summary-cell" style="width:33.333%;padding-right:6px;vertical-align:top;">
                                         <a href="<?php echo $engagementsUrl; ?>" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
                                             <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#eff4ff;color:#2457d6;font-size:17px;font-weight:800;line-height:27px;text-align:center;">◇</span>
-                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">Events, next <?php echo $dashboardUpcomingDays; ?> days</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">Engagements, Next <?php echo $dashboardUpcomingDays; ?> Days</span>
                                             <strong style="display:block;margin-top:3px;color:#172033;font-size:24px;line-height:1;"><?php echo $upcomingCount; ?></strong>
                                         </a>
                                     </td>
                                     <td width="33.333%" class="summary-cell" style="width:33.333%;padding:0 3px;vertical-align:top;">
                                         <a href="<?php echo $taskQueueUrl; ?>" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
                                             <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#e7f6ef;color:#137a55;font-size:16px;font-weight:800;line-height:27px;text-align:center;">✓</span>
-                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My active work</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My Active Work</span>
                                             <strong style="display:block;margin-top:3px;color:#172033;font-size:24px;line-height:1;"><?php echo (int) ($taskSummary['active'] ?? 0); ?></strong>
                                         </a>
                                     </td>
                                     <td width="33.333%" class="summary-cell" style="width:33.333%;padding-left:6px;vertical-align:top;">
                                         <a href="<?php echo $taskQueueUrl; ?>" class="email-surface" style="display:block;min-height:92px;padding:15px;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;box-sizing:border-box;">
                                             <span style="display:inline-block;width:27px;height:27px;border-radius:8px;background:#fff0ee;color:#b42318;font-size:17px;font-weight:800;line-height:27px;text-align:center;">!</span>
-                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My overdue work</span>
+                                            <span style="display:block;margin-top:11px;color:#667085;font-size:11px;line-height:1.3;">My Overdue Work</span>
                                             <strong style="display:block;margin-top:3px;color:#b42318;font-size:24px;line-height:1;"><?php echo (int) ($taskSummary['overdue'] ?? 0); ?></strong>
                                         </a>
                                     </td>
@@ -482,7 +482,7 @@ function renderDailyTaskDigestHtml(
                                     <td width="<?php echo $canManage ? '50' : '100'; ?>%" class="summary-cell" style="width:<?php echo $canManage ? '50' : '100'; ?>%;padding-right:<?php echo $canManage ? '5' : '0'; ?>px;vertical-align:top;">
                                         <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;">
                                             <tr>
-                                                <td style="vertical-align:middle;"><a href="<?php echo $closeoutsUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#9a5b05;font-size:16px;font-weight:800;">$</span><span style="color:#667085;font-size:11px;">Financial closeouts due</span></a></td>
+                                                <td style="vertical-align:middle;"><a href="<?php echo $closeoutsUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#9a5b05;font-size:16px;font-weight:800;">$</span><span style="color:#667085;font-size:11px;">Financial Closeouts</span></a></td>
                                                 <td align="right" width="52" style="width:52px;vertical-align:middle;"><a href="<?php echo $closeoutsUrl; ?>" style="display:block;padding:14px 16px 14px 0;"><strong style="color:#9a5b05;font-size:18px;"><?php echo $financialCloseoutCount; ?></strong></a></td>
                                             </tr>
                                         </table>
@@ -491,7 +491,7 @@ function renderDailyTaskDigestHtml(
                                         <td width="50%" class="summary-cell" style="width:50%;padding-left:5px;vertical-align:top;">
                                             <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;">
                                                 <tr>
-                                                    <td style="vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#2457d6;font-size:16px;font-weight:800;">@</span><span style="color:#667085;font-size:11px;">Mail awaiting review</span></a></td>
+                                                    <td style="vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#2457d6;font-size:16px;font-weight:800;">@</span><span style="color:#667085;font-size:11px;">Mail For Review</span></a></td>
                                                     <td align="right" width="52" style="width:52px;vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 16px 14px 0;"><strong style="color:<?php echo $inboundReviewCount > 0 ? '#9a5b05' : '#172033'; ?>;font-size:18px;"><?php echo $inboundReviewCount; ?></strong></a></td>
                                                 </tr>
                                             </table>
@@ -516,7 +516,7 @@ function renderDailyTaskDigestHtml(
                                                     <h2 style="margin:0;color:#172033;font-size:17px;line-height:1.3;">Upcoming Engagements</h2>
                                                     <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Active events beginning or continuing during the next <?php echo $dashboardUpcomingDays; ?> days.</p>
                                                 </td>
-                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="<?php echo $engagementsUrl; ?>" style="color:#2457d6;font-size:12px;font-weight:700;">View all</a></td>
+                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="<?php echo $engagementsUrl; ?>" style="color:#2457d6;font-size:12px;font-weight:700;">View All</a></td>
                                             </tr>
                                         </table>
                                     </td>
@@ -565,7 +565,7 @@ function renderDailyTaskDigestHtml(
                                                     <h2 style="margin:0;color:#172033;font-size:17px;line-height:1.3;">My Work</h2>
                                                     <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;"><?php echo (int) ($taskSummary['today'] ?? 0); ?> due today, ordered by urgency and due date.</p>
                                                 </td>
-                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="<?php echo $taskQueueUrl; ?>" style="color:#2457d6;font-size:12px;font-weight:700;">Open queue</a></td>
+                                                <td align="right" style="padding-left:12px;white-space:nowrap;"><a href="<?php echo $taskQueueUrl; ?>" style="color:#2457d6;font-size:12px;font-weight:700;">Open Queue</a></td>
                                             </tr>
                                         </table>
                                     </td>
@@ -698,8 +698,8 @@ function renderDailyTaskDigestHtml(
 
                     <tr>
                         <td align="center" class="content-padding" style="padding:26px 20px 10px;">
-                            <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;padding:11px 17px;border-radius:9px;background:#2457d6;color:#ffffff;font-size:13px;font-weight:700;">Open your Dashboard</a>
-                            <div style="margin-top:16px;color:#8992a3;font-size:11px;line-height:1.6;">This is your scheduled <?php echo dailyTaskDigestHtmlEscape($brandName); ?> Daily Digest. <a href="<?php echo $profileUrl; ?>" style="color:#667085;text-decoration:underline;">Manage delivery settings</a>.</div>
+                            <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;padding:11px 17px;border-radius:9px;background:#2457d6;color:#ffffff;font-size:13px;font-weight:700;">Open Your Dashboard</a>
+                            <div style="margin-top:16px;color:#8992a3;font-size:11px;line-height:1.6;">This is your scheduled <?php echo dailyTaskDigestHtmlEscape($brandName); ?> Daily Digest. <a href="<?php echo $profileUrl; ?>" style="color:#667085;text-decoration:underline;">Manage Delivery Settings</a>.</div>
                         </td>
                     </tr>
                     <tr>

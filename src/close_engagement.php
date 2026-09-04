@@ -287,7 +287,7 @@ $closed_timestamp = $is_correction
 ]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container closeout-container">
+<div class="container closeout-container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
         <a href="view_engagement.php?id=<?php echo $engagement_id; ?>">Engagement Details</a><span aria-hidden="true">/</span>
@@ -332,7 +332,7 @@ $closed_timestamp = $is_correction
                 <?php endforeach; ?>
             </ul>
             <div class="form-actions">
-                <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#follow-up-work" class="action-button back-button">Back to event tasks</a>
+                <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#follow-up-work" class="action-button back-button">Back to Event Tasks</a>
             </div>
         </section>
     <?php else: ?>

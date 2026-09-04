@@ -86,8 +86,8 @@ expectFollowUpTaskHelper(
     'safe in-application task return URLs should be preserved.'
 );
 expectFollowUpTaskHelper(
-    safeFollowUpTaskReturnUrl('calendar_subscription.php?month=2026-08&show=everything#event-calendar')
-        === 'calendar_subscription.php?month=2026-08&show=everything#event-calendar',
+    safeFollowUpTaskReturnUrl('view_calendar.php?month=2026-08&show=everything#event-calendar')
+        === 'view_calendar.php?month=2026-08&show=everything#event-calendar',
     'task edits opened from the calendar should return to the same month and view.'
 );
 foreach ([

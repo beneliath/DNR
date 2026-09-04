@@ -159,15 +159,15 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
     ],
     'scripts' => ['assets/js/engagement-email.min.js'],
 ]); ?>
-<body>
+<body class="compose-engagement-email-body">
 <?php include 'templates/header.php'; ?>
-<main class="container engagement-email-page">
+<main class="container engagement-email-page compose-engagement-email-page">
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
         <a href="view_engagement.php?id=<?php echo $engagementId; ?>">Engagement Details</a><span aria-hidden="true">/</span>
         <span>Send Email</span>
     </nav>
-    <header class="page-heading">
+    <header class="page-heading compose-engagement-email-heading">
         <div>
             <p class="eyebrow">Outbound Correspondence</p>
             <h1>Send an Engagement Email</h1>
@@ -260,7 +260,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <span><strong>Append the share-safe event brief</strong><small>Includes schedule, venue, description, and presentations. It excludes Chron, internal notes, compensation, and financial information.</small></span>
             </label>
             <details class="email-brief-preview">
-                <summary>Preview event brief</summary>
+                <summary>Preview Event Brief</summary>
                 <pre><?php echo htmlspecialchars($safeBrief, ENT_QUOTES, 'UTF-8'); ?></pre>
             </details>
         </section>

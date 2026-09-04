@@ -125,6 +125,10 @@ function chronLogEntityConfiguration($entity_type) {
             'table' => 'organization_chron_entries',
             'parent_column' => 'organization_id',
         ],
+        'inquiry' => [
+            'table' => 'booking_inquiry_chron_entries',
+            'parent_column' => 'booking_inquiry_id',
+        ],
     ];
 
     $entity_type = (string) $entity_type;

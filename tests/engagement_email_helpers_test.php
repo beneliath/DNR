@@ -86,6 +86,15 @@ try {
 } catch (InvalidArgumentException) {
     // Expected.
 }
+try {
+    normalizeEngagementEmailSubject(
+        'Wrong record type ' . applicationInquiryInboundMarker(42),
+        42
+    );
+    expectEngagementEmailHelper(false, 'an Inquiry marker should be rejected in engagement email.');
+} catch (InvalidArgumentException) {
+    // Expected.
+}
 
 $templates = engagementEmailTemplates($engagement, $presentations);
 expectEngagementEmailHelper(

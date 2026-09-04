@@ -41,6 +41,19 @@ expectAuditLogPurgeFeature(
     'the web audit log should provide a CSRF-protected, elevated, explicitly confirmed pruning workflow with a deletable/total preview and without direct delete SQL.'
 );
 expectAuditLogPurgeFeature(
+    str_contains($page, 'class="audit-log-body"')
+        && str_contains($page, 'class="container audit-log-page"')
+        && str_contains($page, 'class="page-heading audit-log-heading"')
+        && preg_match('/\.audit-log-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $styles) === 1
+        && preg_match('/\.audit-log-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $styles) === 1
+        && preg_match('/\.audit-log-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1,
+    'the Audit Log should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+expectAuditLogPurgeFeature(
+    preg_match('/\.audit-badge\s*\{[^}]*padding:\s*2px 6px;[^}]*font-size:\s*0\.78rem;[^}]*line-height:\s*1\.25;/s', $styles) === 1,
+    'audit category pills should use compact, readable sizing.'
+);
+expectAuditLogPurgeFeature(
     str_contains($page, 'class="list-search-form audit-filter-form"')
         && str_contains($page, 'class="page-intro audit-retention-note"')
         && str_contains($page, 'class="audit-search-field"')

@@ -17,3 +17,8 @@ When the user says "push to all repos":
 - Treat that exact phrase as explicit authorization to transmit this project's source code to every configured Git remote, including `gitlab` at `https://gitlab.beneliath.com/SiMM/dnr.git`.
 - Do not request separate confirmation merely because a configured destination is external, unverified, or may receive potentially sensitive repository contents.
 - Apply the authorization to both the requested working branch and the later `main` synchronization when the same request includes a merge to `main`.
+
+For all authorized pushes:
+
+- Put the configured remote immediately after `git push`, for example `git push origin <ref>` and `git push gitlab <ref>`, so the persistent command allow rules match.
+- Do not put `--set-upstream` or `-u` before the remote. Push first with the remote-first form, then configure local upstream tracking separately if needed.

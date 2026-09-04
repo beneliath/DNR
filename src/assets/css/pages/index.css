@@ -41,18 +41,11 @@
     .event-group input[type="text"] {
         height: 35px;
         padding: 0 8px;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        border: 1px solid #ccc;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
         box-sizing: border-box;
-    }
-
-    .dark-mode .event-group select,
-    .dark-mode .event-group input[type="text"] {
-        background-color: var(--dark-input-bg);
-        color: var(--dark-text-color);
-        border-color: #333;
     }
 
     .event-group select {
@@ -65,11 +58,6 @@
 
     #other_event_type_div input[type="text"] {
         width: 300px;
-    }
-
-    .dark-mode #other_event_type_div input[type="text"] {
-        background-color: var(--dark-input-bg);
-        border-color: #666;
     }
 
     .checkbox-row {
@@ -85,14 +73,10 @@
     }
 
     .presentation-entry {
-        border: 1px solid #ddd;
+        border: 1px solid var(--border);
         padding: 15px;
         margin-bottom: 15px;
-        border-radius: 4px;
-    }
-
-    .dark-mode .presentation-entry {
-        border-color: #333;
+        border-radius: var(--radius-md);
     }
 
     .presentation-fields {
@@ -190,18 +174,10 @@
     .form-field input[type="number"],
     .form-field input[type="date"] {
         padding: 8px;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        border: 1px solid #ccc;
-        border-radius: 4px;
-    }
-
-    .dark-mode .form-field input[type="text"],
-    .dark-mode .form-field input[type="number"],
-    .dark-mode .form-field input[type="date"] {
-        background-color: var(--dark-input-bg);
-        color: var(--dark-text-color);
-        border-color: #666;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
     }
 
     /* Reset and contain all event field styles in a single block */
@@ -262,11 +238,11 @@
 
     /* Add new styles for presentations outer box */
     .presentations-outer-box {
-        border: 1px solid #444;
-        border-radius: 8px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
         padding: 20px;
         margin-bottom: 20px;
-        background-color: rgba(255, 255, 255, 0.02);
+        background-color: var(--surface-subtle);
     }
 
     .presentations-inner-container {
@@ -274,11 +250,11 @@
     }
 
     .presentation-entry {
-        background-color: rgba(255, 255, 255, 0.05);
-        border: 1px solid #444;
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border);
         padding: 20px;
         margin-bottom: 15px;
-        border-radius: 4px;
+        border-radius: var(--radius-md);
         max-width: 100%;
         overflow: visible;
     }

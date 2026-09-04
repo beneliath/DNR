@@ -59,7 +59,9 @@ expectStandardEventTaskFeature(
 $helpers = $read('src/follow_up_task_helpers.php');
 $queue = $read('src/tasks.php');
 $list = $read('src/standard_tasks.php');
+$listStyles = $read('src/assets/css/pages/standard_tasks.css');
 $add = $read('src/add_standard_task.php');
+$addStyles = $read('src/assets/css/pages/add_standard_task.css');
 $view = $read('src/view_standard_task.php');
 $edit = $read('src/edit_standard_task.php');
 $new_engagement = $read('src/index.php');
@@ -92,12 +94,32 @@ expectStandardEventTaskFeature(
     'the Work Queue should expose archive, restore, and guarded permanent deletion workflows.'
 );
 expectStandardEventTaskFeature(
+    str_contains($list, "'assets/css/pages/standard_tasks.min.css'")
+        && str_contains($list, '<body class="standard-tasks-body">')
+        && str_contains($list, '<main class="container standard-tasks-page">')
+        && str_contains($list, 'class="page-heading standard-tasks-heading"')
+        && preg_match('/\.standard-tasks-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $listStyles) === 1
+        && preg_match('/\.standard-tasks-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $listStyles) === 1
+        && preg_match('/\.standard-tasks-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $listStyles) === 1,
+    'the Standard Event Tasks page should use the Dashboard content width, heading scale, and footer alignment.'
+);
+expectStandardEventTaskFeature(
     str_contains($add, 'createStandardEventTask')
         && str_contains($helpers, "'custom.' . bin2hex(random_bytes(16))")
         && str_contains($helpers, 'INSERT INTO standard_event_tasks')
         && str_contains($helpers, 'created_by')
         && str_contains($add, "'Add standard task'"),
     'authorized users should be able to add stable, audited standard-task definitions.'
+);
+expectStandardEventTaskFeature(
+    str_contains($add, "'assets/css/pages/add_standard_task.min.css'")
+        && str_contains($add, '<body class="add-standard-task-body">')
+        && str_contains($add, '<main class="container add-standard-task-page">')
+        && str_contains($add, 'form-page-heading add-standard-task-heading')
+        && preg_match('/\.add-standard-task-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $addStyles) === 1
+        && preg_match('/\.add-standard-task-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $addStyles) === 1
+        && preg_match('/\.add-standard-task-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $addStyles) === 1,
+    'the Add Standard Event Task page should use the Dashboard content width, heading scale, and footer alignment.'
 );
 expectStandardEventTaskFeature(
     str_contains($new_engagement, "include 'follow_up_task_helpers.php'")

@@ -30,14 +30,14 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>">Standard Event Tasks</a><span aria-hidden="true">/</span><span>Task Details</span></nav>
     <div class="page-heading record-page-heading">
         <div>
             <h1><?php echo htmlspecialchars($standard_task['title'], ENT_QUOTES, 'UTF-8'); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
             <p class="page-intro"><?php echo $is_required_standard_task ? 'Required work for every event checklist.' : 'Reusable work definition for event checklists.'; ?></p>
         </div>
-        <?php if (!$is_archived && !$is_required_standard_task && canManageFollowUpTasks($user_role)): ?><a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="button-add">Edit standard task</a><?php endif; ?>
+        <?php if (!$is_archived && !$is_required_standard_task && canManageFollowUpTasks($user_role)): ?><a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="button-add">Edit Standard Task</a><?php endif; ?>
     </div>
 
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
@@ -61,7 +61,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
         : 'Active definitions are copied automatically when new events are created. Edits affect future copies only; existing event tasks are independent.'; ?></p>
 
     <div class="engagement-page-actions standard-task-page-actions">
-        <a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>" class="cancel-button">Back to standard tasks</a>
+        <a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>" class="cancel-button">Back to Standard Tasks</a>
         <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $is_archived)): ?>
             <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $is_archived ? 'archived' : 'active'; ?>"><input type="hidden" name="action" value="<?php echo $is_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="<?php echo $is_archived ? 'restore-button' : 'archive-button'; ?>"><?php echo $is_archived ? 'Restore standard task' : 'Archive standard task'; ?></button></form>
         <?php endif; ?>

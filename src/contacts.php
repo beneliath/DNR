@@ -24,6 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_id = filter_input(INPUT_POST, 'contact_id', FILTER_VALIDATE_INT);
     $action = \Dnr\Http\RequestInput::string($_POST, 'action');
     $action_succeeded = false;
+    $action_error = '';
 
     if (in_array($action, ['archive', 'restore'], true) && !canArchiveEntries($user_role)) {
         http_response_code(403);
@@ -38,7 +39,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($contact_id && $action === 'archive') {
-        $action_succeeded = archiveEntity($conn, 'contact', $contact_id);
+        $active_inquiry_count = contactActiveInquiryCount($conn, $contact_id);
+        if ($active_inquiry_count === null) {
+            $action_error = 'Unable to verify the Contact dependencies. Please try again.';
+        } elseif ($active_inquiry_count > 0) {
+            $action_error = 'This Contact cannot be archived while linked to '
+                . $active_inquiry_count . ' active '
+                . ($active_inquiry_count === 1 ? 'Inquiry' : 'Inquiries')
+                . '. Reassign or resolve the related work first.';
+        } else {
+            $action_succeeded = archiveEntity($conn, 'contact', $contact_id);
+        }
         $action_message = 'Contact archived.';
     } elseif ($contact_id && $action === 'restore') {
         $action_succeeded = restoreEntity($conn, 'contact', $contact_id);
@@ -54,7 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action_succeeded) {
         $_SESSION['contact_action_message'] = $action_message;
     } else {
-        $_SESSION['contact_action_error'] = 'Unable to update the contact. Please try again.';
+        $_SESSION['contact_action_error'] = $action_error !== ''
+            ? $action_error
+            : 'Unable to update the Contact. Please try again.';
     }
 
     header('Location: contacts.php?' . http_build_query(['status' => $list_status]));
@@ -245,13 +258,13 @@ function contactsPageUrl(
     2 => 'assets/css/pages/contacts.min.css',
   ),
 )); ?>
-<body>
+<body class="contacts-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
-    <div class="page-heading">
+<main class="container contacts-page">
+    <div class="page-heading contacts-heading">
         <div><h1><?php echo $show_archived ? 'Archived Contacts' : 'Contacts'; ?></h1><p class="page-intro">Find the people connected to every organization and engagement.</p></div>
         <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="add_contact.php" class="button-add">+ New contact</a>
+            <a href="add_contact.php" class="button-add">+ New Contact</a>
         <?php endif; ?>
     </div>
 
@@ -431,7 +444,7 @@ function contactsPageUrl(
             </div>
         </nav>
     <?php endif; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

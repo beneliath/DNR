@@ -96,14 +96,14 @@ $contact_stmt->close();
     2 => 'assets/css/pages/view_organization.min.css',
   ),
 )); ?>
-<body>
+<body class="view-organization-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container view-organization-page" role="main">
     <?php if ($success_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Organizations</a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
-    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit organization</a><?php endif; ?></div>
+    <div class="page-heading record-page-heading view-organization-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Organization profile, addresses, and contacts.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="edit_organization.php?id=<?php echo $org_id; ?>&from=view" class="button-add">Edit Organization</a><?php endif; ?></div>
 
     <section class="organization-financials" aria-labelledby="organization-financial-heading">
         <div class="section-heading-row">
@@ -177,71 +177,75 @@ $contact_stmt->close();
         <?php endif; ?>
     </section>
 
-    <div class="organization-details">
-        <div class="detail-row">
-            <strong>Affiliation</strong>
-            <?php echo !empty($organization['affiliation']) ? htmlspecialchars($organization['affiliation']) : 'Not specified'; ?>
+    <div class="organization-overview-grid">
+        <div class="organization-details">
+            <div class="detail-row">
+                <strong>Affiliation</strong>
+                <?php echo !empty($organization['affiliation']) ? htmlspecialchars($organization['affiliation']) : 'Not specified'; ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Distinctives</strong>
+                <?php echo !empty($organization['distinctives']) ? htmlspecialchars($organization['distinctives']) : 'Not specified'; ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Website</strong>
+                <?php $safe_website_url = normalizedHttpUrl($organization['website_url'] ?? ''); ?>
+                <?php if ($safe_website_url): ?>
+                    <a href="<?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?></a>
+                <?php else: ?>
+                    Not specified
+                <?php endif; ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Phone</strong>
+                <?php echo !empty($organization['phone']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['phone']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Fax</strong>
+                <?php echo !empty($organization['fax']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['fax']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Physical Address</strong>
+                <?php
+                $address_parts = [];
+                if (!empty($organization['physical_address_line_1'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_1']);
+                if (!empty($organization['physical_address_line_2'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_2']);
+                if (!empty($organization['physical_city'])) $address_parts[] = htmlspecialchars($organization['physical_city']);
+                if (!empty($organization['physical_state'])) $address_parts[] = htmlspecialchars(addressRegionName($organization['physical_country'], $organization['physical_state']));
+                if (!empty($organization['physical_zipcode'])) $address_parts[] = htmlspecialchars($organization['physical_zipcode']);
+                if (!empty($organization['physical_country'])) $address_parts[] = htmlspecialchars(addressCountryName($organization['physical_country']));
+
+                echo !empty($address_parts) ? implode(', ', $address_parts) : 'Not specified';
+                ?>
+            </div>
+
+            <div class="detail-row">
+                <strong>Mailing Address</strong>
+                <?php
+                $mailing_parts = [];
+                if (!empty($organization['mailing_address_line_1'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_1']);
+                if (!empty($organization['mailing_address_line_2'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_2']);
+                if (!empty($organization['mailing_city'])) $mailing_parts[] = htmlspecialchars($organization['mailing_city']);
+                if (!empty($organization['mailing_state'])) $mailing_parts[] = htmlspecialchars(addressRegionName($organization['mailing_country'], $organization['mailing_state']));
+                if (!empty($organization['mailing_zipcode'])) $mailing_parts[] = htmlspecialchars($organization['mailing_zipcode']);
+                if (!empty($organization['mailing_country'])) $mailing_parts[] = htmlspecialchars(addressCountryName($organization['mailing_country']));
+
+                echo !empty($mailing_parts) ? implode(', ', $mailing_parts) : 'Not specified';
+                ?>
+            </div>
         </div>
 
-        <div class="detail-row">
-            <strong>Distinctives</strong>
-            <?php echo !empty($organization['distinctives']) ? htmlspecialchars($organization['distinctives']) : 'Not specified'; ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Website</strong>
-            <?php $safe_website_url = normalizedHttpUrl($organization['website_url'] ?? ''); ?>
-            <?php if ($safe_website_url): ?>
-                <a href="<?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($safe_website_url, ENT_QUOTES, 'UTF-8'); ?></a>
-            <?php else: ?>
-                Not specified
-            <?php endif; ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Phone</strong>
-            <?php echo !empty($organization['phone']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['phone']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Fax</strong>
-            <?php echo !empty($organization['fax']) ? htmlspecialchars(formatPhoneNumberForDisplay($organization['fax']), ENT_QUOTES, 'UTF-8') : 'Not specified'; ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Physical Address</strong>
-            <?php
-            $address_parts = [];
-            if (!empty($organization['physical_address_line_1'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_1']);
-            if (!empty($organization['physical_address_line_2'])) $address_parts[] = htmlspecialchars($organization['physical_address_line_2']);
-            if (!empty($organization['physical_city'])) $address_parts[] = htmlspecialchars($organization['physical_city']);
-            if (!empty($organization['physical_state'])) $address_parts[] = htmlspecialchars(addressRegionName($organization['physical_country'], $organization['physical_state']));
-            if (!empty($organization['physical_zipcode'])) $address_parts[] = htmlspecialchars($organization['physical_zipcode']);
-            if (!empty($organization['physical_country'])) $address_parts[] = htmlspecialchars(addressCountryName($organization['physical_country']));
-
-            echo !empty($address_parts) ? implode(', ', $address_parts) : 'Not specified';
-            ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Mailing Address</strong>
-            <?php
-            $mailing_parts = [];
-            if (!empty($organization['mailing_address_line_1'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_1']);
-            if (!empty($organization['mailing_address_line_2'])) $mailing_parts[] = htmlspecialchars($organization['mailing_address_line_2']);
-            if (!empty($organization['mailing_city'])) $mailing_parts[] = htmlspecialchars($organization['mailing_city']);
-            if (!empty($organization['mailing_state'])) $mailing_parts[] = htmlspecialchars(addressRegionName($organization['mailing_country'], $organization['mailing_state']));
-            if (!empty($organization['mailing_zipcode'])) $mailing_parts[] = htmlspecialchars($organization['mailing_zipcode']);
-            if (!empty($organization['mailing_country'])) $mailing_parts[] = htmlspecialchars(addressCountryName($organization['mailing_country']));
-
-            echo !empty($mailing_parts) ? implode(', ', $mailing_parts) : 'Not specified';
-            ?>
-        </div>
-
-        <div class="detail-row">
-            <strong>Notes</strong>
-            <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
-        </div>
+        <section class="organization-details organization-notes-panel" aria-labelledby="organization-notes-heading">
+            <h2 id="organization-notes-heading">Notes</h2>
+            <div class="organization-notes-content">
+                <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
+            </div>
+        </section>
     </div>
 
     <?php
@@ -256,10 +260,11 @@ $contact_stmt->close();
         <div class="section-heading-row">
             <h3>Contacts</h3>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
-                <a href="add_contact.php?organization_id=<?php echo $org_id; ?>" class="button-add">+ New contact</a>
+                <a href="add_contact.php?organization_id=<?php echo $org_id; ?>" class="button-add">+ New Contact</a>
             <?php endif; ?>
         </div>
         <?php if ($contacts_result->num_rows > 0): ?>
+            <div class="organization-contact-grid">
             <?php while ($contact = $contacts_result->fetch_assoc()): ?>
                 <div class="contact-card">
                     <div class="contact-header">
@@ -287,6 +292,7 @@ $contact_stmt->close();
                     </div>
                 </div>
             <?php endwhile; ?>
+            </div>
         <?php else: ?>
             <p>No contacts found for this organization.</p>
         <?php endif; ?>

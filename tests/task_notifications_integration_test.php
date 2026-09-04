@@ -143,9 +143,9 @@ try {
     expectTaskNotificationIntegration(
         $message['recipient'] === $email
             && str_contains($message['body'], 'DASHBOARD SUMMARY')
-            && str_contains($message['body'], '- My active work: 6')
-            && str_contains($message['body'], '- My overdue work: 1')
-            && str_contains($message['body'], '- Due today: 1')
+            && str_contains($message['body'], '- My Active Work: 6')
+            && str_contains($message['body'], '- My Overdue Work: 1')
+            && str_contains($message['body'], '- Due Today: 1')
             && str_contains($message['body'], 'UPCOMING ENGAGEMENTS (')
             && str_contains($message['body'], 'MY WORK (6)')
             && str_contains($message['body'], 'EVENT READINESS (')

@@ -197,10 +197,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     2 => 'assets/css/pages/database_maintenance.min.css',
   ),
 )); ?>
-<body>
+<body class="database-maintenance-body">
 <?php include 'templates/header.php'; ?>
-<main class="container">
-    <div class="page-heading">
+<main class="container database-maintenance-page">
+    <div class="page-heading database-maintenance-heading">
         <div>
             <h1>Database Backup</h1>
             <p class="page-intro">Download a password-encrypted snapshot. Restore access is isolated from the web application.</p>
@@ -229,16 +229,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="backup">
 
-                <label for="backup_admin_password">Your administrator password</label>
+                <label for="backup_admin_password">Your Administrator Password</label>
                 <input type="password" name="admin_password" id="backup_admin_password" autocomplete="current-password" maxlength="72" required>
 
-                <label for="backup_admin_code">Fresh authenticator code or recovery code</label>
+                <label for="backup_admin_code">Fresh Authenticator Code or Recovery Code</label>
                 <input type="text" name="admin_code" id="backup_admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
 
-                <label for="backup_password">New backup encryption password</label>
+                <label for="backup_password">New Backup Encryption Password</label>
                 <input type="password" name="backup_password" id="backup_password" autocomplete="new-password" minlength="<?php echo DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES; ?>" required>
 
-                <label for="backup_password_confirmation">Confirm backup encryption password</label>
+                <label for="backup_password_confirmation">Confirm Backup Encryption Password</label>
                 <input type="password" name="backup_password_confirmation" id="backup_password_confirmation" autocomplete="new-password" minlength="<?php echo DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES; ?>" required>
 
                 <button type="submit" class="button-add">Encrypt and Download Backup</button>

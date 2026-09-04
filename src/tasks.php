@@ -18,7 +18,7 @@ $subject_filter_type = \Dnr\Http\RequestInput::string($_GET, 'subject_type');
 $subject_filter_id = filter_input(INPUT_GET, 'subject_id', FILTER_VALIDATE_INT);
 $has_subject_filter = in_array(
     $subject_filter_type,
-    ['engagement', 'organization', 'contact'],
+    ['engagement', 'organization', 'contact', 'inquiry'],
     true
 ) && $subject_filter_id;
 $view = array_key_exists($requested_view, followUpTaskQueueViews())
@@ -250,12 +250,17 @@ if ($fulltext_query !== '') {
             c.contact_first_name, c.contact_last_name, c.contact_email,
             c.contact_phone, c.contact_role_other, c.contact_notes
         ) AGAINST (? IN BOOLEAN MODE)
+        OR MATCH(
+            inquiry.title, inquiry.request_summary, inquiry.source_detail,
+            inquiry.event_city, inquiry.event_state
+        ) AGAINST (? IN BOOLEAN MODE)
     )";
-    $bind_types .= 'ssssss';
+    $bind_types .= 'sssssss';
     array_push(
         $bind_values,
         $fulltext_query,
         $search . '%',
+        $fulltext_query,
         $fulltext_query,
         $fulltext_query,
         $fulltext_query,
@@ -351,6 +356,9 @@ if ($has_subject_filter) {
 }
 $new_task_url = 'add_task.php?' . http_build_query($new_task_parameters);
 $view_labels = followUpTaskQueueViews();
+$view_heading = $view === 'overdue' && $owner_filter === 'me'
+    ? 'My Overdue Work'
+    : $view_labels[$view];
 $status_labels = followUpTaskStatuses();
 $priority_labels = followUpTaskPriorities();
 $active_task_statuses = followUpTaskActiveStatuses();
@@ -362,20 +370,21 @@ $active_task_statuses = followUpTaskActiveStatuses();
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/tasks.min.css',
   ),
 )); ?>
-<body>
+<body class="tasks-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
-    <div class="page-heading">
+<main class="container tasks-page">
+    <div class="page-heading tasks-heading">
         <div>
             <h1>Work Queue</h1>
             <p class="page-intro">Make the next action, owner, and due date visible.</p>
         </div>
         <div class="page-heading-actions">
-            <a href="standard_tasks.php" class="button-secondary">Standard event tasks</a>
+            <a href="standard_tasks.php" class="button-secondary">Standard Event Tasks</a>
             <?php if ($can_manage_tasks): ?>
-                <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New task</a>
+                <a href="<?php echo htmlspecialchars($new_task_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ New Task</a>
             <?php endif; ?>
         </div>
     </div>
@@ -403,8 +412,8 @@ $active_task_statuses = followUpTaskActiveStatuses();
     </section>
 
     <div class="summary-grid task-summary-grid" aria-label="Work queue summary">
-        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My work</small><strong><?php echo $summary['my']; ?></strong></span></a>
-        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Overdue</small><strong><?php echo $summary['overdue']; ?></strong></span></a>
+        <a class="summary-card<?php echo $view === 'my' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'my', 'owner' => '']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>My Active Work</small><strong><?php echo $summary['my']; ?></strong></span></a>
+        <a class="summary-card summary-danger<?php echo $view === 'overdue' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'overdue']), ENT_QUOTES, 'UTF-8'); ?>"><span><small><?php echo $owner_filter === 'me' ? 'My Overdue Work' : 'Overdue'; ?></small><strong><?php echo $owner_filter === 'me' ? $personal_reminders['overdue'] : $summary['overdue']; ?></strong></span></a>
         <a class="summary-card summary-review<?php echo $view === 'today' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'today']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Due today</small><strong><?php echo $summary['today']; ?></strong></span></a>
         <a class="summary-card summary-confirmed<?php echo $view === 'upcoming' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'upcoming']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Next <?php echo $task_upcoming_days; ?> days</small><strong><?php echo $summary['upcoming']; ?></strong></span></a>
         <a class="summary-card<?php echo $view === 'waiting' ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => 'waiting']), ENT_QUOTES, 'UTF-8'); ?>"><span><small>Waiting</small><strong><?php echo $summary['waiting']; ?></strong></span></a>
@@ -438,7 +447,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <p class="result-context">Showing tasks assigned to you. <a href="<?php echo htmlspecialchars($queue_url(['owner' => '']), ENT_QUOTES, 'UTF-8'); ?>">Show all owners</a>.</p>
     <?php endif; ?>
     <div class="task-view-heading">
-        <h2><?php echo htmlspecialchars($view_labels[$view], ENT_QUOTES, 'UTF-8'); ?></h2>
+        <h2><?php echo htmlspecialchars($view_heading, ENT_QUOTES, 'UTF-8'); ?></h2>
         <div class="task-view-meta">
             <div class="task-priority-legend" aria-label="Priority color legend">
                 <span class="task-priority-legend-title">Priority:</span>
@@ -488,9 +497,6 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     <?php if ($can_manage_tasks): ?>
                     <div class="task-actions">
                         <a href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button action-icon-button edit-button" aria-label="Edit task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
-                        <?php if ($task['assigned_to'] === null): ?>
-                            <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="assign_to_me"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="task-action-button">Assign to me</button></form>
-                        <?php endif; ?>
                         <?php if (in_array($task['status'], ['completed', 'canceled'], true)): ?>
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="open"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button restore-button" aria-label="Reopen task" title="Reopen" data-tooltip="Reopen"><?php echo actionIconSvg('restore'); ?></button></form>
                         <?php else: ?>
@@ -499,6 +505,9 @@ $active_task_statuses = followUpTaskActiveStatuses();
                         <?php endif; ?>
                         <?php if (canDeleteEntries($user_role)): ?>
                             <form method="post" action="tasks.php" data-confirm="Permanently delete this task?"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
+                        <?php endif; ?>
+                        <?php if ($task['assigned_to'] === null): ?>
+                            <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="assign_to_me"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="task-action-button">Assign to Me</button></form>
                         <?php endif; ?>
                     </div>
                     <?php else: ?><span class="task-read-only-label">Read only</span><?php endif; ?>
@@ -515,7 +524,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php if ($next_cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
     </nav>
     <?php endif; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

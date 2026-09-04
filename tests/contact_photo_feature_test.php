@@ -66,6 +66,7 @@ try {
 unlink($invalid_path);
 
 $add_contact = $read('src/add_contact.php');
+$add_contact_styles = $read('src/assets/css/pages/add_contact.css');
 $edit_contact = $read('src/edit_contact.php');
 expectContactPhoto(
     str_contains($add_contact, 'enctype="multipart/form-data"')
@@ -75,6 +76,16 @@ expectContactPhoto(
         && str_contains($edit_contact, 'remove_contact_photo')
         && str_contains($edit_contact, 'contactPhotoFromUpload('),
     'contact create and edit forms should securely save and remove optional photos.'
+);
+
+expectContactPhoto(
+    str_contains($add_contact, '<body class="add-contact-body">')
+        && str_contains($add_contact, '<main class="container add-contact-page">')
+        && str_contains($add_contact, 'form-page-heading add-contact-heading')
+        && preg_match('/\.add-contact-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $add_contact_styles) === 1
+        && preg_match('/\.add-contact-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $add_contact_styles) === 1
+        && preg_match('/\.add-contact-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $add_contact_styles) === 1,
+    'the Add Contact page should use the Dashboard content width, heading scale, and footer alignment.'
 );
 
 expectContactPhoto(

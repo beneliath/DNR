@@ -1,5 +1,25 @@
 .engagement-email-page {
-    max-width: 960px;
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    padding-inline: var(--app-content-padding);
+}
+
+.engagement-email-page.compose-engagement-email-page {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    padding-inline: var(--app-content-padding);
+}
+
+.compose-engagement-email-heading h1 {
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
+}
+
+.compose-engagement-email-body .app-footer {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    margin-inline: auto !important;
+    padding-inline: var(--app-content-padding);
+    text-align: left !important;
 }
 
 .engagement-email-page .page-heading {

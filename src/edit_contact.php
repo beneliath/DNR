@@ -441,11 +441,11 @@ try {
     ),
   ),
 )); ?>
-<body>
+<body class="edit-contact-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container edit-contact-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit Contact</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
+    <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
 
     <?php if ($error_messages): ?>
         <p class="error"><?php echo implode(

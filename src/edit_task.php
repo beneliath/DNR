@@ -48,7 +48,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             throw new InvalidArgumentException('That task is no longer available.');
         }
         if ((int) ($locked_task['engagement_id'] ?? 0)
-            !== (int) ($task['engagement_id'] ?? 0)
+                !== (int) ($task['engagement_id'] ?? 0)
+            || followUpTaskSubjectValue($locked_task) !== followUpTaskSubjectValue($task)
         ) {
             throw new InvalidArgumentException(
                 'This task changed in another session. Reload it and review the latest version before saving.'
@@ -84,7 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             'UPDATE follow_up_tasks
              SET title = ?, details = ?, status = ?, priority = ?, due_date = ?,
                  waiting_on = ?, subject_type = ?, engagement_id = ?,
-                 organization_id = ?, contact_id = ?, assigned_to = ?,
+                 organization_id = ?, contact_id = ?, inquiry_id = ?, assigned_to = ?,
                  completed_by = ?, completed_at = ?, due_date_overridden = ?
              WHERE id = ?'
         );
@@ -92,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             throw new RuntimeException('Unable to prepare the task update.');
         }
         $stmt->bind_param(
-            'sssssssiiiiisii',
+            'sssssssiiiiiisii',
             $normalized['title'],
             $normalized['details'],
             $normalized['status'],
@@ -103,6 +104,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             $normalized['engagement_id'],
             $normalized['organization_id'],
             $normalized['contact_id'],
+            $normalized['inquiry_id'],
             $normalized['assigned_to'],
             $completed_by,
             $completed_at,
@@ -166,7 +168,7 @@ $task_duplicate_url = 'add_task.php?' . http_build_query([
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><span>Edit Task</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit Task</h1><p class="page-intro">Update the next action, owner, timing, or status.</p></div></div>
     <?php if ($error_message !== ''): ?>

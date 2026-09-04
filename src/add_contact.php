@@ -184,9 +184,9 @@ $cancel_url = $requested_organization_id !== null
     ),
   ),
 )); ?>
-<body>
+<body class="add-contact-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<main class="container add-contact-page">
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
@@ -195,7 +195,7 @@ $cancel_url = $requested_organization_id !== null
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
+    <div class="page-heading form-page-heading add-contact-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
         ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
         : 'Connect a person with an organization and their role.'; ?></p></div></div>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
@@ -294,7 +294,7 @@ $cancel_url = $requested_organization_id !== null
             <input type="submit" name="save_contact" value="Create contact" class="save-button save-button-flush">
         </div>
     </form>
-</div>
+</main>
 
 <?php include 'templates/footer.php'; ?>
 </body>

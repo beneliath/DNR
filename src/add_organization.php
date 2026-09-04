@@ -204,13 +204,13 @@ if (isset($_SESSION['success_message'])) {
     2 => 'assets/css/pages/add_organization.min.css',
   ),
 )); ?>
-<body>
+<body class="add-organization-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container add-organization-page" role="main">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
     <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New Organization</h1><p class="page-intro">Add organization details, addresses, and contacts.</p></div></div>
+    <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Add organization details, addresses, and contacts.</p></div></div>
     <form method="post" action="add_organization.php" class="organization-form">
         <?php echo csrfInput(); ?>
         <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>

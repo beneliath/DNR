@@ -1,3 +1,19 @@
+.add-organization-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            padding-inline: var(--app-content-padding);
+        }
+        .add-organization-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+        .add-organization-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
+        }
+
 .form-group {
             margin-bottom: 15px;
         }
@@ -17,10 +33,10 @@
         .form-group select {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background-color: var(--surface);
+            color: var(--text);
             margin: 0;
             box-sizing: border-box;
             -webkit-appearance: none;
@@ -35,9 +51,9 @@
         .dark-mode .form-group input[type="tel"],
         .dark-mode .form-group textarea,
         .dark-mode .form-group select {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
+            background-color: var(--surface);
+            color: var(--text);
+            border-color: var(--border-strong);
         }
 
         .form-group input[type="text"]:focus,
@@ -53,12 +69,8 @@
         .address-section {
             margin: 20px 0;
             padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-
-        .dark-mode .address-section {
-            border-color: #444;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
         }
 
         .address-grid {
@@ -166,10 +178,10 @@
         .form-group select {
             width: 100%;
             padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #fff;
-            color: #000;
+            border: 1px solid var(--border-strong);
+            border-radius: var(--radius-sm);
+            background-color: var(--surface);
+            color: var(--text);
             margin: 0;
             box-sizing: border-box;
             -webkit-appearance: none;
@@ -184,9 +196,9 @@
 
         /* Dark mode styles */
         .dark-mode .form-group select {
-            background-color: #1e1e1e;
-            color: #fff;
-            border-color: #444;
+            background-color: var(--surface);
+            color: var(--text);
+            border-color: var(--border-strong);
             background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
         }
 
@@ -240,6 +252,6 @@
         .contact-entry {
             margin-bottom: 15px;
             padding: 15px;
-            border: 1px solid #444;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
         }

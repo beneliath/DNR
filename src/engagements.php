@@ -280,16 +280,16 @@ $format_date_range = static function ($start, $end) {
     3 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
 )); ?>
-<body>
+<body class="engagements-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
-    <div class="page-heading">
+<main class="container engagements-page">
+    <div class="page-heading engagements-heading">
         <div>
             <h1><?php echo $show_archived ? 'Archived Engagements' : 'Engagements'; ?></h1>
             <p class="page-intro">Manage event lifecycle, confirmation, schedules, and speaking commitments.</p>
         </div>
         <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="index.php" class="button-add">+ New engagement</a>
+            <a href="index.php" class="button-add">+ New Engagement</a>
         <?php endif; ?>
     </div>
 
@@ -451,7 +451,7 @@ $format_date_range = static function ($start, $end) {
             </div>
         </nav>
     <?php endif; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

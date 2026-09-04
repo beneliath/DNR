@@ -111,5 +111,19 @@ expectDatabaseBackupFeature(
     preg_match('/\.database-maintenance-card\s*\{[^}]*background:\s*transparent\s*!important;/s', $styles) === 1,
     'database-maintenance cards should reveal the shared page background instead of a legacy black fill.'
 );
+expectDatabaseBackupFeature(
+    str_contains($page, '<body class="database-maintenance-body">')
+        && str_contains($page, '<main class="container database-maintenance-page">')
+        && str_contains($page, 'page-heading database-maintenance-heading')
+        && preg_match('/\.database-maintenance-page\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1
+        && preg_match('/\.database-maintenance-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $styles) === 1
+        && preg_match('/\.database-maintenance-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1,
+    'database maintenance should use the Dashboard browsing width, heading scale, and footer alignment.'
+);
+expectDatabaseBackupFeature(
+    preg_match('/\.database-maintenance-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s', $styles) === 1
+        && preg_match('/@media \(max-width:\s*1000px\)\s*\{\s*\.database-maintenance-grid\s*\{[^}]*grid-template-columns:\s*1fr;/s', $styles) === 1,
+    'Export Backup and Restore Procedure should share a responsive two-column row.'
+);
 
 echo "Database backup feature tests passed.\n";

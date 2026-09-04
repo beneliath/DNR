@@ -1546,6 +1546,7 @@ function organizationArchiveDependencyMessage(array $dependencies) {
     $parts = [];
     $contacts = max(0, (int) ($dependencies['contacts'] ?? 0));
     $engagements = max(0, (int) ($dependencies['engagements'] ?? 0));
+    $inquiries = max(0, (int) ($dependencies['inquiries'] ?? 0));
 
     if ($contacts > 0) {
         $parts[] = $contacts . ' active contact' . ($contacts === 1 ? '' : 's');
@@ -1553,17 +1554,33 @@ function organizationArchiveDependencyMessage(array $dependencies) {
     if ($engagements > 0) {
         $parts[] = $engagements . ' active engagement' . ($engagements === 1 ? '' : 's');
     }
+    if ($inquiries > 0) {
+        $parts[] = $inquiries . ' active ' . ($inquiries === 1 ? 'inquiry' : 'inquiries');
+    }
 
     if (!$parts) {
         return '';
     }
 
-    $dependency_summary = count($parts) === 2
-        ? $parts[0] . ' and ' . $parts[1]
-        : $parts[0];
+    $last_part = array_pop($parts);
+    $dependency_summary = $parts === []
+        ? $last_part
+        : implode(', ', $parts) . (count($parts) === 1 ? ' and ' : ', and ') . $last_part;
 
     return 'This organization cannot be archived while it has ' . $dependency_summary
         . '. Archive those related records first, or move them to another organization.';
+}
+
+function contactActiveInquiryCount(mysqli $conn, $contact_id) {
+    try {
+        return ArchiveService::contactActiveInquiryCount($conn, (int) $contact_id);
+    } catch (Throwable $exception) {
+        applicationLog('error', 'Unable to count active contact inquiries', [
+            'contact_id' => (int) $contact_id,
+            'error' => $exception->getMessage(),
+        ]);
+        return null;
+    }
 }
 
 function setEntityArchived(mysqli $conn, $entity, $id, $is_archived) {

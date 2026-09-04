@@ -7,7 +7,7 @@ function expectCalendarSubscriptionPurge($condition, $message) {
     }
 }
 
-$page = file_get_contents(__DIR__ . '/../src/calendar_subscription.php');
+$page = file_get_contents(__DIR__ . '/../src/view_calendar.php');
 $helpers = file_get_contents(__DIR__ . '/../src/calendar_helpers.php');
 $audit_log = file_get_contents(__DIR__ . '/../src/audit_log.php');
 

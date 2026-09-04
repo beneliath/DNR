@@ -842,7 +842,8 @@ html.dark-mode .fullscreen-center {
   color: var(--dark-text-color);
 }
 
-/* Ensure all containers and sections are covered - exclude error/success messages */
+/* Structural wrappers inherit the app canvas. Surfaced cards and sections are
+   themed by the component layer instead of being painted by a broad element rule. */
 .dark-mode .container,
 .dark-mode header,
 .dark-mode footer,
@@ -850,15 +851,8 @@ html.dark-mode .fullscreen-center {
 .dark-mode .fullscreen-center,
 .dark-mode .left-column,
 .dark-mode .right-column,
-.dark-mode main,
-.dark-mode section {
-  background-color: var(--dark-bg-color);
-  color: var(--dark-text-color);
-}
-
-/* Separate rule for divs to properly handle exclusions */
-.dark-mode div:not(.error):not(.success):not(.login-container):not(.login-container *) {
-  background-color: var(--dark-bg-color);
+.dark-mode main {
+  background-color: transparent;
   color: var(--dark-text-color);
 }
 

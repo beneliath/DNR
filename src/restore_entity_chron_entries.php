@@ -14,7 +14,7 @@ $entity_type = is_scalar($_GET['entity_type'] ?? null)
     ? (string) $_GET['entity_type']
     : '';
 $entity_id = filter_input(INPUT_GET, 'entity_id', FILTER_VALIDATE_INT);
-if (!in_array($entity_type, ['contact', 'organization'], true) || !$entity_id) {
+if (!in_array($entity_type, ['contact', 'organization', 'inquiry'], true) || !$entity_id) {
     header('Location: organizations.php');
     exit();
 }
@@ -31,7 +31,7 @@ if ($entity_type === 'contact') {
     $list_url = 'contacts.php';
     $edit_url = 'edit_contact.php?id=' . $entity_id;
     $view_url = 'view_contact.php?id=' . $entity_id;
-} else {
+} elseif ($entity_type === 'organization') {
     $entity_stmt = $conn->prepare(
         'SELECT id, organization_name
          FROM organizations
@@ -41,6 +41,16 @@ if ($entity_type === 'contact') {
     $list_url = 'organizations.php';
     $edit_url = 'edit_organization.php?id=' . $entity_id;
     $view_url = 'view_organization.php?id=' . $entity_id;
+} else {
+    $entity_stmt = $conn->prepare(
+        "SELECT id, title
+         FROM booking_inquiries
+         WHERE id = ? AND stage <> 'booked'"
+    );
+    $entity_label = 'Inquiry';
+    $list_url = 'inquiries.php';
+    $edit_url = 'edit_inquiry.php?id=' . $entity_id;
+    $view_url = 'view_inquiry.php?id=' . $entity_id;
 }
 if (!$entity_stmt) {
     abortApplication(503, 'The Chron log owner is temporarily unavailable.', [
@@ -58,9 +68,13 @@ if (!$entity) {
     exit();
 }
 
-$entity_name = $entity_type === 'contact'
-    ? trim((string) $entity['contact_first_name'] . ' ' . (string) $entity['contact_last_name'])
-    : (string) $entity['organization_name'];
+$entity_name = match ($entity_type) {
+    'contact' => trim(
+        (string) $entity['contact_first_name'] . ' ' . (string) $entity['contact_last_name']
+    ),
+    'organization' => (string) $entity['organization_name'],
+    default => (string) $entity['title'],
+};
 $restore_error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_selected'])) {
@@ -125,7 +139,7 @@ $restore_query = http_build_query([
 <?php renderPageHead(applicationPageTitle('Restore Chron Entries')); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="<?php echo htmlspecialchars($list_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($entity_label . 's', ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span>
         <a href="<?php echo htmlspecialchars($edit_url, ENT_QUOTES, 'UTF-8'); ?>">Edit <?php echo htmlspecialchars($entity_label, ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span>
@@ -154,7 +168,7 @@ $restore_query = http_build_query([
                     <input type="checkbox" id="select-all-chron-entries">
                     Select all archived entries
                 </label>
-                <button type="submit" name="restore_selected" value="1" class="restore-button">Restore selected</button>
+                <button type="submit" name="restore_selected" value="1" class="restore-button">Restore Selected</button>
             </div>
 
             <div class="chron-entry-list">

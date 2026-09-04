@@ -285,9 +285,9 @@ try {
     2 => 'assets/css/pages/edit_organization.min.css',
   ),
 )); ?>
-<body>
+<body class="edit-organization-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container edit-organization-page" role="main">
     <?php if (!empty($errorMessages)): ?>
         <p class="error"><?php echo implode('<br>', array_map(
             fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'),
@@ -302,7 +302,7 @@ try {
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>Edit Organization</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
+    <div class="page-heading form-page-heading edit-organization-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
     <form id="organization-edit-form" method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form" data-chron-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="organization_version" value="<?php echo htmlspecialchars((string) $organization['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">

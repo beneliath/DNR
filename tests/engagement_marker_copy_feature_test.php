@@ -44,4 +44,14 @@ expectEngagementMarkerCopy(
     'the marker and copy icon should stay together and expose a visual copied state.'
 );
 
+expectEngagementMarkerCopy(
+    str_contains($page, '<body class="view-engagement-body">')
+        && str_contains($page, '<div class="view-container view-engagement-page" role="main">')
+        && str_contains($page, 'record-page-heading view-engagement-heading')
+        && preg_match('/\.view-engagement-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1
+        && preg_match('/\.view-engagement-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $styles) === 1
+        && preg_match('/\.view-engagement-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1,
+    'View Engagement should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+
 echo "Engagement marker copy feature tests passed.\n";

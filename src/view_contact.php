@@ -89,74 +89,78 @@ try {
     2 => 'assets/css/pages/view_contact.min.css',
   ),
 )); ?>
-<body>
+<body class="view-contact-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container view-contact-page" role="main">
     <?php if ($success_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php<?php echo $is_archived ? '?status=archived' : ''; ?>">Contacts</a><span aria-hidden="true">/</span><span>Contact Details</span></nav>
-    <div class="page-heading record-page-heading"><div><h1><?php echo htmlspecialchars(
+    <div class="page-heading record-page-heading view-contact-heading"><div><h1><?php echo htmlspecialchars(
             $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
             ENT_QUOTES,
             'UTF-8'
-        ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?><?php if ($contact['organization_id'] !== null): ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p></div><?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_contact.php?id=<?php echo $contact_id; ?>&amp;from=view" class="button-add">Edit contact</a><?php endif; ?></div>
+        ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?><?php if ($contact['organization_id'] !== null): ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p></div><?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="edit_contact.php?id=<?php echo $contact_id; ?>&amp;from=view" class="button-add">Edit Contact</a><?php endif; ?></div>
 
-    <div class="contact-details contact-details-layout">
-        <div class="contact-details-photo">
-            <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;size=full&amp;v=<?php echo $contact_photo_version; ?>" alt="Contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>">
-        </div>
-        <div>
-            <div class="detail-row">
-                <strong>Organization</strong>
-                <?php if ($contact['organization_id'] !== null): ?>
-                    <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
-                        <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
+    <div class="contact-overview-grid">
+        <div class="contact-details contact-details-layout">
+            <div class="contact-details-photo">
+                <img src="contact_photo.php?id=<?php echo $contact_id; ?>&amp;size=full&amp;v=<?php echo $contact_photo_version; ?>" alt="Contact photo for <?php echo htmlspecialchars($contact['contact_first_name'] . ' ' . $contact['contact_last_name'], ENT_QUOTES, 'UTF-8'); ?>">
+            </div>
+            <div>
+                <div class="detail-row">
+                    <strong>Organization</strong>
+                    <?php if ($contact['organization_id'] !== null): ?>
+                        <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
+                            <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
+                        </a>
+                    <?php else: ?>
+                        Not specified
+                    <?php endif; ?>
+                    <?php if (!empty($contact['organization_is_archived'])): ?>
+                        <span class="archive-status">Archived</span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Role</strong>
+                    <?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Email</strong>
+                    <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
                     </a>
-                <?php else: ?>
-                    Not specified
-                <?php endif; ?>
-                <?php if (!empty($contact['organization_is_archived'])): ?>
-                    <span class="archive-status">Archived</span>
-                <?php endif; ?>
-            </div>
+                </div>
 
-            <div class="detail-row">
-                <strong>Role</strong>
-                <?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?>
-            </div>
+                <div class="detail-row">
+                    <strong>Phone</strong>
+                    <?php echo htmlspecialchars(
+                        !empty($contact['contact_phone'])
+                            ? formatPhoneNumberForDisplay($contact['contact_phone'])
+                            : 'Not specified',
+                        ENT_QUOTES,
+                        'UTF-8'
+                    ); ?>
+                </div>
 
-            <div class="detail-row">
-                <strong>Email</strong>
-                <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
-                    <?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>
-                </a>
+                <div class="detail-row">
+                    <strong>Birthday</strong>
+                    <?php echo htmlspecialchars($contact_birthday_display, ENT_QUOTES, 'UTF-8'); ?>
+                </div>
             </div>
+        </div>
 
-            <div class="detail-row">
-                <strong>Phone</strong>
-                <?php echo htmlspecialchars(
-                    !empty($contact['contact_phone'])
-                        ? formatPhoneNumberForDisplay($contact['contact_phone'])
-                        : 'Not specified',
-                    ENT_QUOTES,
-                    'UTF-8'
-                ); ?>
-            </div>
-
-            <div class="detail-row">
-                <strong>Birthday</strong>
-                <?php echo htmlspecialchars($contact_birthday_display, ENT_QUOTES, 'UTF-8'); ?>
-            </div>
-
-            <div class="detail-row">
-                <strong>Notes</strong>
+        <section class="contact-details contact-notes-panel" aria-labelledby="contact-notes-heading">
+            <h2 id="contact-notes-heading">Notes</h2>
+            <div class="contact-notes-content">
                 <?php echo $contact_notes !== ''
                     ? nl2br(htmlspecialchars($contact_notes, ENT_QUOTES, 'UTF-8'))
                     : 'No notes'; ?>
             </div>
-        </div>
+        </section>
     </div>
 
     <?php

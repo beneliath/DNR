@@ -17,9 +17,12 @@ $migration = file_get_contents(
     $root . '/migrations/20260823_add_contact_organization_chron_entries.sql'
 );
 $editContact = file_get_contents($root . '/src/edit_contact.php');
+$editContactStyles = file_get_contents($root . '/src/assets/css/pages/edit_contact.css');
 $editOrganization = file_get_contents($root . '/src/edit_organization.php');
 $viewContact = file_get_contents($root . '/src/view_contact.php');
+$viewContactStyles = file_get_contents($root . '/src/assets/css/pages/view_contact.css');
 $viewOrganization = file_get_contents($root . '/src/view_organization.php');
+$viewOrganizationStyles = file_get_contents($root . '/src/assets/css/pages/view_organization.css');
 $restore = file_get_contents($root . '/src/restore_entity_chron_entries.php');
 $editTemplate = file_get_contents($root . '/src/templates/entity_chron_log_edit_section.php');
 $viewTemplate = file_get_contents($root . '/src/templates/entity_chron_log_view_section.php');
@@ -66,6 +69,15 @@ expectEntityChronFeature(
     'Edit Contact should add and update contact-owned Chron entries.'
 );
 expectEntityChronFeature(
+    str_contains($editContact, '<body class="edit-contact-body">')
+        && str_contains($editContact, '<div class="container edit-contact-page" role="main">')
+        && str_contains($editContact, 'form-page-heading edit-contact-heading')
+        && preg_match('/\.edit-contact-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $editContactStyles) === 1
+        && preg_match('/\.edit-contact-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $editContactStyles) === 1
+        && preg_match('/\.edit-contact-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $editContactStyles) === 1,
+    'Edit Contact should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+expectEntityChronFeature(
     is_string($editOrganization)
         && str_contains($editOrganization, "require_once __DIR__ . '/two_factor_helpers.php';")
         && str_contains($editOrganization, 'requireRecentAdminElevation(')
@@ -100,14 +112,46 @@ expectEntityChronFeature(
         && str_contains($viewTemplate, 'id="chron-log"'),
     'contact and organization detail pages should display their independently loaded histories.'
 );
+expectEntityChronFeature(
+    str_contains($viewContact, '<body class="view-contact-body">')
+        && str_contains($viewContact, '<div class="container view-contact-page" role="main">')
+        && str_contains($viewContact, 'record-page-heading view-contact-heading')
+        && str_contains($viewContact, 'class="contact-overview-grid"')
+        && str_contains($viewContact, 'class="contact-details contact-notes-panel"')
+        && preg_match('/\.view-contact-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $viewContactStyles) === 1
+        && preg_match('/\.view-contact-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $viewContactStyles) === 1
+        && preg_match('/\.contact-overview-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(0,\s*3fr\);[^}]*align-items:\s*stretch;/s', $viewContactStyles) === 1
+        && preg_match('/\.contact-overview-grid\s*>\s*\.contact-details\s*\{[^}]*height:\s*100%;/s', $viewContactStyles) === 1
+        && preg_match('/@media\s*\(max-width:\s*900px\)\s*\{.*?\.contact-overview-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $viewContactStyles) === 1
+        && preg_match('/\.view-contact-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $viewContactStyles) === 1,
+    'View Contact should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+expectEntityChronFeature(
+    str_contains($viewOrganization, '<body class="view-organization-body">')
+        && str_contains($viewOrganization, '<div class="container view-organization-page" role="main">')
+        && str_contains($viewOrganization, 'record-page-heading view-organization-heading')
+        && str_contains($viewOrganization, 'class="organization-overview-grid"')
+        && str_contains($viewOrganization, 'class="organization-details organization-notes-panel"')
+        && preg_match('/\.view-organization-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $viewOrganizationStyles) === 1
+        && preg_match('/\.view-organization-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $viewOrganizationStyles) === 1
+        && preg_match('/\.organization-overview-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*2fr\)\s+minmax\(0,\s*3fr\);[^}]*align-items:\s*stretch;/s', $viewOrganizationStyles) === 1
+        && preg_match('/\.organization-overview-grid\s*>\s*\.organization-details\s*\{[^}]*height:\s*100%;/s', $viewOrganizationStyles) === 1
+        && preg_match('/@media\s*\(max-width:\s*900px\)\s*\{.*?\.organization-overview-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $viewOrganizationStyles) === 1
+        && str_contains($viewOrganization, '<div class="organization-contact-grid">')
+        && preg_match('/\.organization-contact-grid\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);[^}]*align-items:\s*stretch;/s', $viewOrganizationStyles) === 1
+        && preg_match('/\.contact-card\s*\{[^}]*height:\s*100%;/s', $viewOrganizationStyles) === 1
+        && preg_match('/@media \(max-width:\s*760px\)\s*\{\s*\.organization-contact-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $viewOrganizationStyles) === 1
+        && preg_match('/\.view-organization-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $viewOrganizationStyles) === 1,
+    'View Organization should use the Dashboard canvas and arrange contact cards side by side with equal heights.'
+);
 
 expectEntityChronFeature(
     is_string($restore)
-        && str_contains($restore, "in_array(\$entity_type, ['contact', 'organization'], true)")
+        && str_contains($restore, "['contact', 'organization', 'inquiry']")
         && str_contains($restore, 'restoreEntityChronLogEntries(')
         && str_contains($restore, 'name="chron_entry_ids[]"')
         && str_contains($restore, 'canArchiveEntries($user_role)'),
-    'the restore route should accept only contact and organization owners and remain editor-protected.'
+    'the shared restore route should retain contact and organization support and remain editor-protected.'
 );
 
 expectEntityChronFeature(

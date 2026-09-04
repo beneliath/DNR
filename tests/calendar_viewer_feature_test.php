@@ -9,10 +9,11 @@ function expectCalendarViewerFeature(bool $condition, string $message): void
 }
 
 $root = dirname(__DIR__);
-$page = file_get_contents($root . '/src/calendar_subscription.php');
+$page = file_get_contents($root . '/src/view_calendar.php');
 $viewer = file_get_contents($root . '/src/templates/calendar_month_viewer.php');
 $helpers = file_get_contents($root . '/src/calendar_helpers.php');
 $styles = file_get_contents($root . '/src/assets/css/modern.css');
+$page_styles = file_get_contents($root . '/src/assets/css/pages/calendar_subscription.css');
 
 expectCalendarViewerFeature(
     str_contains($page, '<h1>Calendar</h1>')
@@ -82,6 +83,16 @@ expectCalendarViewerFeature(
         && preg_match('/\.calendar-today-label\s*\{[^}]*background:\s*var\(--calendar-today\);[^}]*color:\s*var\(--surface\);/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 860px)'),
     'the calendar should use responsive color-coded items, a mobile daily agenda, and a distinct current-day treatment.'
+);
+
+expectCalendarViewerFeature(
+    str_contains($page, 'assets/css/pages/calendar_subscription.min.css')
+        && str_contains($page, '<body class="calendar-subscription-body">')
+        && str_contains($page, 'page-heading calendar-subscription-heading')
+        && preg_match('/\.calendar-subscription\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $page_styles) === 1
+        && preg_match('/\.calendar-subscription-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $page_styles) === 1
+        && preg_match('/\.calendar-subscription-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $page_styles) === 1,
+    'the Calendar page should use the Dashboard browsing width, heading scale, and footer alignment.'
 );
 
 echo "Calendar viewer feature tests passed.\n";

@@ -382,10 +382,10 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
     2 => 'assets/css/pages/audit_log.min.css',
   ),
 )); ?>
-<body>
+<body class="audit-log-body">
 <?php include 'templates/header.php'; ?>
-<main class="container">
-    <div class="page-heading">
+<main class="container audit-log-page">
+    <div class="page-heading audit-log-heading">
         <div>
             <h1>Audit Log</h1>
             <p class="page-intro">Login, logout, and database activity. Newest entries appear first.</p>
