@@ -243,7 +243,7 @@ $contact_stmt->close();
         <section class="organization-details organization-notes-panel" aria-labelledby="organization-notes-heading">
             <h2 id="organization-notes-heading">Notes</h2>
             <div class="organization-notes-content">
-                <?php echo !empty($organization['notes']) ? nl2br(htmlspecialchars($organization['notes'])) : 'No notes'; ?>
+                <?php echo !empty($organization['notes']) ? renderTextWithLinks($organization['notes']) : 'No notes'; ?>
             </div>
         </section>
     </div>
