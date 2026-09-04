@@ -31,4 +31,14 @@ expectOrganizationListLayout(
     'The Organizations footer should align with the Dashboard-width page canvas.'
 );
 
+expectOrganizationListLayout(
+    str_contains($source, 'name="per_page" value="<?php echo $page_size; ?>"')
+        && str_contains($source, 'class="pagination pagination-with-size"')
+        && str_contains($source, 'aria-label="Organizations per page"')
+        && str_contains($source, '<span class="page-size-label">Rows per page:</span>')
+        && str_contains($source, 'foreach ($allowed_page_sizes as $allowed_page_size)')
+        && str_contains($source, '$organizations !== [] || $cursor !== null'),
+    'The Organizations list should expose persistent rows-per-page controls whenever results are shown.'
+);
+
 echo "Organization list layout tests passed.\n";

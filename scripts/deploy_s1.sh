@@ -15,7 +15,7 @@ if ! printf '%s\n' "$expected_commit" | grep -Eq '^[0-9A-Fa-f]{40}$'; then
 fi
 expected_commit=$(printf '%s' "$expected_commit" | tr 'A-F' 'a-f')
 
-for command_name in git gh ssh curl; do
+for command_name in git gh ssh curl php; do
     command -v "$command_name" >/dev/null 2>&1 || {
         echo "$command_name is required." >&2
         exit 1
@@ -41,6 +41,7 @@ if ! printf '%s\n' "$expected_version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; th
     echo "VERSION must use the project [super].[major].[minor] x.y.z format." >&2
     exit 1
 fi
+php "$project_directory/scripts/generate_daily_digest_preview.php" --check
 
 origin_main_sha=$(git -C "$project_directory" ls-remote --exit-code origin refs/heads/main \
     | awk 'NR == 1 { print tolower($1) }')

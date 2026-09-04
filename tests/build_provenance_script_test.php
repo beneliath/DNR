@@ -96,6 +96,7 @@ expectBuildProvenanceScript(
 );
 expectBuildProvenanceScript(
     str_contains($s1_deploy, 'status --porcelain --untracked-files=normal')
+        && str_contains($s1_deploy, 'generate_daily_digest_preview.php" --check')
         && str_contains($s1_deploy, 'merge --ff-only origin/main')
         && str_contains($s1_deploy, 'DNR_BUILD_COMMIT')
         && str_contains($s1_deploy, 'State.Health.Status')
@@ -104,7 +105,7 @@ expectBuildProvenanceScript(
         && str_contains($s1_deploy, 'State.ExitCode')
         && str_contains($s1_deploy, '/ready.php')
         && str_contains($s1_deploy, '/health.php'),
-    'the s1 workflow should reject ambiguous source and verify provenance, migrations, health, and readiness.'
+    'the s1 workflow should reject ambiguous source and stale previews, then verify provenance, migrations, health, and readiness.'
 );
 expectBuildProvenanceScript(
     str_contains($readme, '`[super].[major].[minor]` = `x.y.z`')
