@@ -817,6 +817,61 @@ function isLoggedIn() {
         && ($_SESSION['auth_complete'] ?? false) === true;
 }
 
+/**
+ * Return the role assigned to the signed-in account, independent of an active
+ * administrator role preview.
+ */
+function authenticatedRole() {
+    return (string) ($_SESSION['authenticated_role'] ?? $_SESSION['role'] ?? '');
+}
+
+/**
+ * Normalize the only roles an administrator may preview.
+ */
+function rolePreviewRole($role) {
+    if (!is_scalar($role)) {
+        return null;
+    }
+
+    $role = (string) $role;
+    return in_array($role, ['editor', 'reviewer'], true) ? $role : null;
+}
+
+function activeRolePreview() {
+    if (authenticatedRole() !== 'admin') {
+        return null;
+    }
+
+    return rolePreviewRole($_SESSION['_role_preview'] ?? null);
+}
+
+/**
+ * Apply or stop an administrator role preview. Authorization checks continue
+ * to read $_SESSION['role'], so existing page and action guards exercise the
+ * selected role exactly as they do for that type of account.
+ */
+function setRolePreview($role) {
+    if (authenticatedRole() !== 'admin' || !is_scalar($role)) {
+        return false;
+    }
+
+    $role = (string) $role;
+    if ($role === 'admin') {
+        unset($_SESSION['_role_preview']);
+        $_SESSION['role'] = 'admin';
+        return true;
+    }
+
+    $preview_role = rolePreviewRole($role);
+    if ($preview_role === null) {
+        return false;
+    }
+
+    $_SESSION['_role_preview'] = $preview_role;
+    $_SESSION['role'] = $preview_role;
+    return true;
+}
+
 function isApplicationRootRequest(array $server) {
     $request_path = parse_url((string) ($server['REQUEST_URI'] ?? ''), PHP_URL_PATH);
     if (!is_string($request_path)) {
@@ -870,7 +925,15 @@ function requireLogin() {
     }
 
     $_SESSION['username'] = (string) $user['username'];
-    $_SESSION['role'] = (string) $user['role'];
+    $authenticated_role = (string) $user['role'];
+    $_SESSION['authenticated_role'] = $authenticated_role;
+    $preview_role = $authenticated_role === 'admin'
+        ? rolePreviewRole($_SESSION['_role_preview'] ?? null)
+        : null;
+    if ($preview_role === null) {
+        unset($_SESSION['_role_preview']);
+    }
+    $_SESSION['role'] = $preview_role ?? $authenticated_role;
     $_SESSION['profile_first_name'] = trim((string) ($user['first_name'] ?? ''));
     $profile_display_name = trim(
         trim((string) ($user['first_name'] ?? ''))
@@ -913,10 +976,12 @@ function beginPendingAuthentication(array $user) {
         $_SESSION['user_id'],
         $_SESSION['username'],
         $_SESSION['role'],
+        $_SESSION['authenticated_role'],
         $_SESSION['auth_version'],
         $_SESSION['auth_complete'],
         $_SESSION['two_factor_verified_at'],
-        $_SESSION['must_change_password']
+        $_SESSION['must_change_password'],
+        $_SESSION['_role_preview']
     );
 
     $_SESSION['_pending_auth'] = [
@@ -961,11 +1026,13 @@ function beginPasswordRecovery($eligible_user = null, $attempted_username = '') 
         $_SESSION['user_id'],
         $_SESSION['username'],
         $_SESSION['role'],
+        $_SESSION['authenticated_role'],
         $_SESSION['auth_version'],
         $_SESSION['auth_complete'],
         $_SESSION['two_factor_verified_at'],
         $_SESSION['_pending_auth'],
-        $_SESSION['_two_factor_enrollment']
+        $_SESSION['_two_factor_enrollment'],
+        $_SESSION['_role_preview']
     );
 
     $_SESSION['_password_recovery'] = [
@@ -1053,11 +1120,16 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     ]);
 
     session_regenerate_id(true);
-    unset($_SESSION['_pending_auth'], $_SESSION['_two_factor_enrollment']);
+    unset(
+        $_SESSION['_pending_auth'],
+        $_SESSION['_two_factor_enrollment'],
+        $_SESSION['_role_preview']
+    );
 
     $_SESSION['user_id'] = $user_id;
     $_SESSION['username'] = (string) $user['username'];
     $_SESSION['role'] = (string) $user['role'];
+    $_SESSION['authenticated_role'] = (string) $user['role'];
     $_SESSION['auth_version'] = (int) $user['auth_version'];
     $_SESSION['auth_complete'] = true;
     $_SESSION['two_factor_verified_at'] = $two_factor_verified ? time() : null;

@@ -47,6 +47,12 @@ if ($shell_current_page === 'restore_entity_chron_entries.php'
 $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
+$authenticated_user_role = (string) ($_SESSION['authenticated_role'] ?? $user_role);
+$role_preview = $authenticated_user_role === 'admin'
+    && in_array($user_role, ['editor', 'reviewer'], true)
+        ? $user_role
+        : null;
+$role_preview_label = $role_preview === null ? '' : ucfirst($role_preview);
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
@@ -84,6 +90,20 @@ if (!empty($_SESSION['user_id'])) {
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
         </button>
     </div>
+
+    <?php if ($role_preview !== null): ?>
+        <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator role preview">
+            <div class="role-preview-banner-copy">
+                <strong>Viewing as <?php echo htmlspecialchars($role_preview_label, ENT_QUOTES, 'UTF-8'); ?></strong>
+                <span>Navigation and permissions reflect this role. Actions still affect live data.</span>
+            </div>
+            <form method="post" action="role_preview.php" class="role-preview-return-form">
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="role" value="admin">
+                <button type="submit">Return to Administrator</button>
+            </form>
+        </section>
+    <?php endif; ?>
 
     <div class="app-sidebar" id="app-sidebar">
         <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
@@ -130,6 +150,22 @@ if (!empty($_SESSION['user_id'])) {
             </ul>
         </nav>
 
+        <?php if ($authenticated_user_role === 'admin'): ?>
+            <form method="post" action="role_preview.php" class="role-preview-control">
+                <?php echo csrfInput(); ?>
+                <label for="role-preview-role">Preview access</label>
+                <div class="role-preview-fields">
+                    <select name="role" id="role-preview-role" aria-describedby="role-preview-help">
+                        <option value="admin"<?php echo $role_preview === null ? ' selected' : ''; ?>>Administrator</option>
+                        <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
+                        <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>
+                    </select>
+                    <button type="submit">Apply</button>
+                </div>
+                <small id="role-preview-help">Check menus and access as another role.</small>
+            </form>
+        <?php endif; ?>
+
         <nav class="utility-navigation" aria-label="Account and application">
             <a href="view_calendar.php" class="nav-link<?php echo $shell_current_page === 'view_calendar.php' ? ' active' : ''; ?>"<?php echo $shell_current_page === 'view_calendar.php' ? ' aria-current="page"' : ''; ?>>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendar</span>
@@ -152,7 +188,7 @@ if (!empty($_SESSION['user_id'])) {
         <div class="sidebar-account">
             <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
                 <img class="account-avatar" src="profile_picture.php?v=<?php echo $profile_picture_version; ?>" alt="">
-                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars(ucfirst($user_role)); ?></small></span>
+                <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? ucfirst($user_role) : $role_preview_label . ' preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
             </a>
             <form method="post" action="logout.php" id="logout-form" class="sidebar-logout-form">
                 <?php echo csrfInput(); ?>

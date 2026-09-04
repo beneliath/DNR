@@ -388,6 +388,59 @@ status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html"
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'
 
+# Administrators can exercise the existing Editor and Reviewer authorization
+# paths without losing their authenticated identity. Every preview remains
+# conspicuous and provides a direct return to Administrator access.
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-dashboard.html" \
+    "$base_url/dashboard.php"
+grep -q 'class="role-preview-control"' "$temporary_directory/admin-dashboard.html"
+admin_csrf=$(csrf_from "$temporary_directory/admin-dashboard.html")
+status=$(curl -sS -b "$admin_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode 'role=editor' \
+    "$base_url/role_preview.php")
+expect_status "$status" '400' 'role preview without CSRF token'
+status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
+    -D "$temporary_directory/admin-preview-editor.headers" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode 'role=editor' \
+    "$base_url/role_preview.php")
+expect_status "$status" '302' 'administrator Editor preview'
+expect_location "$temporary_directory/admin-preview-editor.headers" 'dashboard.php' \
+    'administrator Editor preview'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-editor.html" \
+    "$base_url/dashboard.php"
+grep -q '<strong>Viewing as Editor</strong>' "$temporary_directory/admin-as-editor.html"
+grep -q 'Actions still affect live data.' "$temporary_directory/admin-as-editor.html"
+grep -q '<span>Inbound Mail</span>' "$temporary_directory/admin-as-editor.html"
+! grep -q '<span>Users</span>' "$temporary_directory/admin-as-editor.html"
+status=$(curl -sS -b "$admin_cookies" -o /dev/null -w '%{http_code}' "$base_url/users.php")
+expect_status "$status" '403' 'Editor preview administrator route'
+
+admin_csrf=$(csrf_from "$temporary_directory/admin-as-editor.html")
+status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
+    -D "$temporary_directory/admin-preview-reviewer.headers" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode 'role=reviewer' \
+    "$base_url/role_preview.php")
+expect_status "$status" '302' 'administrator Reviewer preview'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-reviewer.html" \
+    "$base_url/dashboard.php"
+grep -q '<strong>Viewing as Reviewer</strong>' "$temporary_directory/admin-as-reviewer.html"
+! grep -q '<span>Inbound Mail</span>' "$temporary_directory/admin-as-reviewer.html"
+! grep -q '>+ New Engagement</a>' "$temporary_directory/admin-as-reviewer.html"
+
+admin_csrf=$(csrf_from "$temporary_directory/admin-as-reviewer.html")
+status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
+    -D "$temporary_directory/admin-preview-stop.headers" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$admin_csrf" \
+    --data-urlencode 'role=admin' \
+    "$base_url/role_preview.php")
+expect_status "$status" '302' 'stop administrator role preview'
+curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-after-preview.html" \
+    "$base_url/dashboard.php"
+! grep -q 'data-role-preview-banner' "$temporary_directory/admin-after-preview.html"
+grep -q '<span>Users</span>' "$temporary_directory/admin-after-preview.html"
+
 # Audit retention previews are available to administrators, but pruning must
 # reject missing CSRF and redirect to fresh administrator confirmation.
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-preview.html" \
