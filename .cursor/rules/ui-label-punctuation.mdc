@@ -1,0 +1,20 @@
+---
+description: Keep UI labels free of final punctuation except for question marks and colons
+alwaysApply: true
+---
+
+# UI Label Punctuation
+
+- Do not end labels or label-like interface text with sentence punctuation.
+- This applies to form and control labels, checkbox or option labels, compact helper labels, filter and pagination labels, and accessibility labels such as `aria-label`.
+- Final question marks (`?`) and colons (`:`) are allowed.
+- Remove final periods, semicolons, exclamation marks, and ellipses from label-like text.
+- Keep normal punctuation in body copy, explanatory prose, validation messages, and other complete sentences that are not functioning as labels.
+
+Examples:
+
+- `Sort:` and `Rows per page:` may retain their final colons
+- Use `I confirm these amounts are final`, not `I confirm these amounts are final.`
+- Use `What Is Being Requested?` when the label is intentionally a question
+
+Run `php tests/label_punctuation_test.php` after changing UI labels.

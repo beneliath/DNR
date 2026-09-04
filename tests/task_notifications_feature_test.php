@@ -163,7 +163,7 @@ expectTaskNotificationsFeature(
         && str_contains($profile, 'Verify your email address to enable daily digests.')
         && str_contains($profile, 'Dashboard-style snapshot of upcoming engagements')
         && str_contains($profile, ', plus inbound mail awaiting review')
-        && str_contains($profile, 'Overdue and due-today tasks are highlighted.')
+        && str_contains($profile, 'Overdue and due-today tasks are highlighted</small>')
         && str_contains($help, 'Dashboard-style Daily Digest of upcoming engagements')
         && str_contains($help, 'editor/admin digests also include inbound mail awaiting review')
         && str_contains($profile, 'task_digest_enabled = ?')

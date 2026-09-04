@@ -20,6 +20,7 @@ if (authenticatedRole() !== 'admin') {
 }
 
 $requested_role = is_string($_POST['role'] ?? null) ? $_POST['role'] : '';
+$requested_return_url = $_POST['return_to'] ?? 'dashboard.php';
 $previous_role = activeRolePreview() ?? 'admin';
 if (!setRolePreview($requested_role)) {
     http_response_code(400);
@@ -53,5 +54,5 @@ session_regenerate_id(true);
 $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
 
 header('Cache-Control: no-store, max-age=0');
-header('Location: dashboard.php');
+header('Location: ' . safeRolePreviewReturnUrl($requested_return_url, $current_role));
 exit();

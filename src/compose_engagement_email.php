@@ -257,7 +257,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
             </div>
             <label class="email-brief-option">
                 <input type="checkbox" name="include_event_brief" value="1"<?php echo $includeEventBrief ? ' checked' : ''; ?>>
-                <span><strong>Append the share-safe event brief</strong><small>Includes schedule, venue, description, and presentations. It excludes Chron, internal notes, compensation, and financial information.</small></span>
+                <span><strong>Append the share-safe event brief</strong><small>Includes schedule, venue, description, and presentations. It excludes Chron, internal notes, compensation, and financial information</small></span>
             </label>
             <details class="email-brief-preview">
                 <summary>Preview Event Brief</summary>

@@ -73,14 +73,49 @@ expectTrue(
     activeRolePreview() === null && checkRole('admin') && !isset($_SESSION['_role_preview']),
     'Stopping a preview should restore Administrator access and clear the preview state.'
 );
-$_SESSION = [
-    'role' => 'editor',
-    'authenticated_role' => 'editor',
-];
+foreach (['editor', 'reviewer'] as $non_admin_role) {
+    $_SESSION = [
+        'role' => $non_admin_role,
+        'authenticated_role' => $non_admin_role,
+    ];
+    expectTrue(
+        !setRolePreview('editor')
+            && !setRolePreview('reviewer')
+            && activeRolePreview() === null
+            && checkRole($non_admin_role),
+        ucfirst($non_admin_role) . ' accounts must not be able to start a role preview.'
+    );
+}
 expectTrue(
-    !setRolePreview('reviewer') && activeRolePreview() === null && checkRole('editor'),
-    'Non-administrators must not be able to start a role preview.'
+    safeRolePreviewReturnUrl('contacts.php?status=archived#results', 'reviewer')
+        === 'contacts.php?status=archived#results',
+    'Role preview should preserve a shared local page, query string, and fragment.'
 );
+expectTrue(
+    safeRolePreviewReturnUrl('edit_engagement.php?id=42', 'editor') === 'edit_engagement.php?id=42',
+    'Editor preview should return to an Editor-accessible workflow page.'
+);
+expectTrue(
+    safeRolePreviewReturnUrl('edit_engagement.php?id=42', 'reviewer') === 'dashboard.php'
+        && safeRolePreviewReturnUrl('users.php', 'editor') === 'dashboard.php'
+        && safeRolePreviewReturnUrl('https://example.test/contacts.php', 'admin') === 'dashboard.php'
+        && safeRolePreviewReturnUrl('../contacts.php', 'admin') === 'dashboard.php',
+    'Role preview should send restricted, external, and non-local destinations to the Dashboard.'
+);
+
+$role_preview_ui_pages = [];
+foreach (glob(__DIR__ . '/../src/*.php') ?: [] as $page_path) {
+    $page_source = (string) file_get_contents($page_path);
+    if (str_contains($page_source, "include 'templates/header.php'")) {
+        $role_preview_ui_pages[] = basename($page_path);
+    }
+}
+foreach ($role_preview_ui_pages as $page) {
+    expectTrue(
+        safeRolePreviewReturnUrl($page, 'admin') === $page,
+        $page . ' must be classified before it can be used as a role-preview return page.'
+    );
+}
 $_SESSION = ['role' => 'editor'];
 expectTrue(
     organizationArchiveDependencyMessage(['contacts' => 2, 'engagements' => 1])

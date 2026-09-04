@@ -53,6 +53,11 @@ $role_preview = $authenticated_user_role === 'admin'
         ? $user_role
         : null;
 $role_preview_label = $role_preview === null ? '' : ucfirst($role_preview);
+$role_preview_return_url = safeRolePreviewReturnUrl(
+    $shell_current_page
+        . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
+    $user_role
+);
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
@@ -100,6 +105,7 @@ if (!empty($_SESSION['user_id'])) {
             <form method="post" action="role_preview.php" class="role-preview-return-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="role" value="admin">
+                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                 <button type="submit">Return to Administrator</button>
             </form>
         </section>
@@ -153,6 +159,7 @@ if (!empty($_SESSION['user_id'])) {
         <?php if ($authenticated_user_role === 'admin'): ?>
             <form method="post" action="role_preview.php" class="role-preview-control">
                 <?php echo csrfInput(); ?>
+                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                 <label for="role-preview-role">Preview access</label>
                 <div class="role-preview-fields">
                     <select name="role" id="role-preview-role" aria-describedby="role-preview-help">
@@ -162,7 +169,7 @@ if (!empty($_SESSION['user_id'])) {
                     </select>
                     <button type="submit">Apply</button>
                 </div>
-                <small id="role-preview-help">Check menus and access as another role.</small>
+                <small id="role-preview-help">menus/access as another role</small>
             </form>
         <?php endif; ?>
 

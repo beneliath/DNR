@@ -872,6 +872,120 @@ function setRolePreview($role) {
     return true;
 }
 
+/**
+ * Return a local UI destination only when the selected preview role may open
+ * that page. Unknown, external, and role-restricted destinations fall back to
+ * the Dashboard.
+ */
+function safeRolePreviewReturnUrl($return_url, $role) {
+    $fallback = 'dashboard.php';
+    if (!is_scalar($return_url) || !is_scalar($role)) {
+        return $fallback;
+    }
+
+    $return_url = trim((string) $return_url);
+    $role = (string) $role;
+    if ($return_url === ''
+        || !in_array($role, ['admin', 'editor', 'reviewer'], true)
+        || preg_match('/[\x00-\x1F\x7F]/', $return_url) === 1
+        || str_contains($return_url, '\\')
+    ) {
+        return $fallback;
+    }
+
+    $parts = parse_url($return_url);
+    if (!is_array($parts)
+        || isset($parts['scheme'])
+        || isset($parts['host'])
+        || isset($parts['user'])
+        || isset($parts['pass'])
+        || isset($parts['port'])
+    ) {
+        return $fallback;
+    }
+
+    $page = (string) ($parts['path'] ?? '');
+    if ($page === ''
+        || basename($page) !== $page
+        || preg_match('/\A[a-z0-9_]+\.php\z/i', $page) !== 1
+    ) {
+        return $fallback;
+    }
+
+    $shared_pages = [
+        'contacts.php',
+        'dashboard.php',
+        'engagements.php',
+        'help.php',
+        'inquiries.php',
+        'map.php',
+        'mattermost.php',
+        'organizations.php',
+        'outbound_mail.php',
+        'profile.php',
+        'setup_2fa.php',
+        'standard_tasks.php',
+        'tasks.php',
+        'two_factor_recovery_codes.php',
+        'two_factor_settings.php',
+        'view_calendar.php',
+        'view_contact.php',
+        'view_engagement.php',
+        'view_inquiry.php',
+        'view_organization.php',
+        'view_standard_task.php',
+    ];
+    $editor_pages = [
+        'add_contact.php',
+        'add_inquiry.php',
+        'add_organization.php',
+        'add_standard_task.php',
+        'add_task.php',
+        'close_engagement.php',
+        'compose_engagement_email.php',
+        'compose_inquiry_email.php',
+        'convert_inquiry.php',
+        'edit_contact.php',
+        'edit_engagement.php',
+        'edit_inquiry.php',
+        'edit_organization.php',
+        'edit_standard_task.php',
+        'edit_task.php',
+        'inbound_mail.php',
+        'index.php',
+        'restore_chron_entries.php',
+        'restore_entity_chron_entries.php',
+        'restore_presentations.php',
+    ];
+    $administrator_pages = [
+        'admin_elevation.php',
+        'audit_log.php',
+        'database_maintenance.php',
+        'edit_user.php',
+        'operations.php',
+        'register.php',
+        'reset_user_password.php',
+        'users.php',
+    ];
+
+    $allowed = in_array($page, $shared_pages, true)
+        || ($role === 'editor' && in_array($page, $editor_pages, true))
+        || ($role === 'admin'
+            && (in_array($page, $editor_pages, true) || in_array($page, $administrator_pages, true)));
+    if (!$allowed) {
+        return $fallback;
+    }
+
+    $destination = $page;
+    if (array_key_exists('query', $parts)) {
+        $destination .= '?' . $parts['query'];
+    }
+    if (array_key_exists('fragment', $parts)) {
+        $destination .= '#' . $parts['fragment'];
+    }
+    return $destination;
+}
+
 function isApplicationRootRequest(array $server) {
     $request_path = parse_url((string) ($server['REQUEST_URI'] ?? ''), PHP_URL_PATH);
     if (!is_string($request_path)) {

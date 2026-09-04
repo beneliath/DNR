@@ -198,7 +198,7 @@ $task_digest_day_options = [
                     <?php echo !empty($user['task_digest_enabled']) ? 'checked' : ''; ?>>
                 <span>
                     <strong>Enable daily work digest</strong>
-                    <small>Delivery requires an active account with a verified email address<?php echo empty($user['email_verified_at']) ? '; this user’s email is not currently verified' : ''; ?>.</small>
+                    <small>Delivery requires an active account with a verified email address<?php echo empty($user['email_verified_at']) ? '; this user’s email is not currently verified' : ''; ?></small>
                 </span>
             </label>
             <div class="profile-notification-schedule" data-task-digest-schedule>

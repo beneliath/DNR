@@ -127,6 +127,12 @@ status=$(curl -sS -b "$reviewer_cookies" -o /dev/null -w '%{http_code}' "$base_u
 expect_status "$status" '403' 'reviewer administrator route'
 curl -fsS -b "$reviewer_cookies" -o "$temporary_directory/reviewer-organizations.html" "$base_url/organizations.php"
 reviewer_csrf=$(csrf_from "$temporary_directory/reviewer-organizations.html")
+! grep -q 'class="role-preview-control"' "$temporary_directory/reviewer-organizations.html"
+status=$(curl -sS -b "$reviewer_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$reviewer_csrf" \
+    --data-urlencode 'role=editor' \
+    "$base_url/role_preview.php")
+expect_status "$status" '403' 'reviewer role preview request'
 status=$(curl -sS -b "$reviewer_cookies" -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$reviewer_csrf" \
     --data-urlencode 'organization_id=1' \
@@ -156,6 +162,12 @@ editor_cookies="$temporary_directory/editor.cookies"
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-profile.html" \
     "$base_url/profile.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-profile.html")
+! grep -q 'class="role-preview-control"' "$temporary_directory/editor-profile.html"
+status=$(curl -sS -b "$editor_cookies" -o /dev/null -w '%{http_code}' \
+    --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode 'role=reviewer' \
+    "$base_url/role_preview.php")
+expect_status "$status" '403' 'editor role preview request'
 grep -q 'name="task_digest_enabled"' "$temporary_directory/editor-profile.html"
 grep -q 'name="task_digest_time"' "$temporary_directory/editor-profile.html"
 grep -Fq 'name="task_digest_days[]"' "$temporary_directory/editor-profile.html"
@@ -403,9 +415,10 @@ status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
     -D "$temporary_directory/admin-preview-editor.headers" -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$admin_csrf" \
     --data-urlencode 'role=editor' \
+    --data-urlencode 'return_to=contacts.php?status=archived' \
     "$base_url/role_preview.php")
 expect_status "$status" '302' 'administrator Editor preview'
-expect_location "$temporary_directory/admin-preview-editor.headers" 'dashboard.php' \
+expect_location "$temporary_directory/admin-preview-editor.headers" 'contacts.php?status=archived' \
     'administrator Editor preview'
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-editor.html" \
     "$base_url/dashboard.php"
@@ -421,8 +434,11 @@ status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
     -D "$temporary_directory/admin-preview-reviewer.headers" -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$admin_csrf" \
     --data-urlencode 'role=reviewer' \
+    --data-urlencode 'return_to=inbound_mail.php' \
     "$base_url/role_preview.php")
 expect_status "$status" '302' 'administrator Reviewer preview'
+expect_location "$temporary_directory/admin-preview-reviewer.headers" 'dashboard.php' \
+    'Reviewer preview restricted return page'
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-reviewer.html" \
     "$base_url/dashboard.php"
 grep -q '<strong>Viewing as Reviewer</strong>' "$temporary_directory/admin-as-reviewer.html"
@@ -434,8 +450,11 @@ status=$(curl -sS -b "$admin_cookies" -c "$admin_cookies" \
     -D "$temporary_directory/admin-preview-stop.headers" -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$admin_csrf" \
     --data-urlencode 'role=admin' \
+    --data-urlencode 'return_to=contacts.php?status=archived' \
     "$base_url/role_preview.php")
 expect_status "$status" '302' 'stop administrator role preview'
+expect_location "$temporary_directory/admin-preview-stop.headers" 'contacts.php?status=archived' \
+    'stop administrator role preview on the current page'
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-after-preview.html" \
     "$base_url/dashboard.php"
 ! grep -q 'data-role-preview-banner' "$temporary_directory/admin-after-preview.html"

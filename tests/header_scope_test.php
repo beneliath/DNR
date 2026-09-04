@@ -24,7 +24,13 @@ function assetUrl($path)
     return $path . (str_contains($path, '?') ? '&' : '?') . 'v=test';
 }
 
+function safeRolePreviewReturnUrl($return_url, $role)
+{
+    return (string) $return_url;
+}
+
 $_SERVER['PHP_SELF'] = '/contacts.php';
+$_SERVER['QUERY_STRING'] = 'status=archived&cursor=example';
 $_SESSION = [
     'username' => 'Test User',
     'role' => 'admin',
@@ -81,9 +87,26 @@ expectHeaderScope(
     str_contains($header_markup, 'class="role-preview-control"')
         && str_contains($header_markup, '<option value="editor">Editor</option>')
         && str_contains($header_markup, '<option value="reviewer">Reviewer</option>')
+        && str_contains($header_markup, 'name="return_to" value="contacts.php?status=archived&amp;cursor=example"')
+        && str_contains($header_markup, '>menus/access as another role</small>')
         && !str_contains($header_markup, 'data-role-preview-banner'),
     'Administrators should be able to choose an access preview without seeing a false active-preview banner.'
 );
+
+foreach (['editor', 'reviewer'] as $non_admin_role) {
+    $_SESSION = [
+        'username' => 'Test User',
+        'role' => $non_admin_role,
+        'authenticated_role' => $non_admin_role,
+    ];
+    ob_start();
+    include __DIR__ . '/../src/templates/header.php';
+    $non_admin_markup = ob_get_clean();
+    expectHeaderScope(
+        !str_contains($non_admin_markup, 'class="role-preview-control"'),
+        ucfirst($non_admin_role) . ' accounts must not see the Administrator role-preview control.'
+    );
+}
 
 $_SESSION = [
     'username' => 'Test User',
@@ -98,8 +121,12 @@ expectHeaderScope(
     str_contains($reviewer_preview_markup, 'data-role-preview-banner')
         && str_contains($reviewer_preview_markup, '<strong>Viewing as Reviewer</strong>')
         && str_contains($reviewer_preview_markup, 'Actions still affect live data.')
+        && preg_match(
+            '/class="role-preview-return-form".*name="role" value="admin".*name="return_to" value="contacts\.php\?status=archived&amp;cursor=example".*>Return to Administrator<\/button>/s',
+            $reviewer_preview_markup
+        ) === 1
         && str_contains($reviewer_preview_markup, '>Return to Administrator</button>'),
-    'Reviewer preview should show a persistent warning and a direct way back to Administrator access.'
+    'Reviewer preview should show a persistent warning and return to the current page with Administrator access.'
 );
 expectHeaderScope(
     !str_contains($reviewer_preview_markup, '<span>Inbound Mail</span>')
@@ -252,7 +279,8 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match('/html body \.role-preview-control \.role-preview-fields select,\s*html body \.role-preview-control \.role-preview-fields button\s*\{[^}]*height:\s*36px\s*!important;[^}]*align-self:\s*center;/s', $modern_styles) === 1
-        && preg_match('/html body \.role-preview-control \.role-preview-fields button\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s', $modern_styles) === 1,
+        && preg_match('/html body \.role-preview-control \.role-preview-fields button\s*\{[^}]*align-items:\s*center;[^}]*justify-content:\s*center;/s', $modern_styles) === 1
+        && preg_match('/\.role-preview-control small\s*\{[^}]*text-align:\s*left;/s', $modern_styles) === 1,
     'The role-preview Apply button should match the adjacent dropdown height and center its label.'
 );
 expectHeaderScope(
