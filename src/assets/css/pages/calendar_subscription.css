@@ -10,7 +10,7 @@
 
 .calendar-subscription-management-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.75fr) minmax(0, 1.25fr);
+    grid-template-columns: minmax(320px, 0.625fr) minmax(0, 1.375fr);
     gap: 1.15rem;
     align-items: stretch;
 }

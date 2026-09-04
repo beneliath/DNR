@@ -27,11 +27,11 @@ expectCalendarSubscriptionLayout(
 );
 expectCalendarSubscriptionLayout(
     str_contains($page, '<div class="calendar-subscription-management-grid">')
-        && preg_match('/\.calendar-subscription-management-grid\s*\{[^}]*grid-template-columns:\s*minmax\(320px,\s*0\.75fr\)\s*minmax\(0,\s*1\.25fr\);/s', $pageStyles) === 1
+        && preg_match('/\.calendar-subscription-management-grid\s*\{[^}]*grid-template-columns:\s*minmax\(320px,\s*0\.625fr\)\s*minmax\(0,\s*1\.375fr\);/s', $pageStyles) === 1
         && preg_match('/\.calendar-subscription-management-grid\s*\{[^}]*align-items:\s*stretch;/s', $pageStyles) === 1
         && preg_match('/\.calendar-subscription-management-grid > \.calendar-card\s*\{[^}]*height:\s*100%;/s', $pageStyles) === 1
         && preg_match('/@media \(max-width:\s*1100px\)\s*\{\s*\.calendar-subscription-management-grid\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $pageStyles) === 1,
-    'Create Subscription and Existing Subscriptions should share a responsive equal-height two-column row.'
+    'Existing Subscriptions should receive 10% more width in the responsive equal-height two-column row.'
 );
 
 echo "Calendar subscription layout tests passed.\n";
