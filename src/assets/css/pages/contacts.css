@@ -74,7 +74,7 @@
         }
         @media (min-width: 761px) {
             .contact-phone-link {
-                font-size: 0.9rem;
+                font-size: var(--table-numeric-font-size);
                 font-variant-numeric: tabular-nums;
                 white-space: nowrap;
             }

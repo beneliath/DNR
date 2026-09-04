@@ -366,7 +366,7 @@ $format_date_range = static function ($start, $end) {
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
-    <table class="engagement-table">
+    <table class="engagement-table data-table">
         <thead>
             <tr>
                 <th>Event Title</th>

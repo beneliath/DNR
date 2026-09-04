@@ -43,7 +43,7 @@ expectContactListColumns(
 );
 
 expectContactListColumns(
-    str_contains($desktop_phone_rule, 'font-size: 0.9rem;')
+    str_contains($desktop_phone_rule, 'font-size: var(--table-numeric-font-size);')
         && str_contains($desktop_phone_rule, 'font-variant-numeric: tabular-nums;')
         && str_contains($desktop_phone_rule, 'white-space: nowrap;'),
     'desktop contact phone links should use modestly smaller, non-wrapping text without changing mobile typography.'

@@ -304,7 +304,7 @@ function contactsPageUrl(
     <?php endif; ?>
 
     <div class="contact-table-wrapper">
-        <table class="contact-table">
+        <table class="contact-table data-table">
             <thead>
                 <tr>
                     <th>Contact</th>

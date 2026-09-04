@@ -144,7 +144,7 @@ $contact_stmt->close();
                 <p class="financial-history-empty">Showing the <?php echo count($financial_history); ?> most recent finalized event reports.</p>
             <?php endif; ?>
             <div class="financial-history-table-wrap">
-                <table class="financial-history-table">
+                <table class="financial-history-table data-table">
                     <thead>
                         <tr>
                             <th>Event</th>

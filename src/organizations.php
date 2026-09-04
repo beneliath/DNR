@@ -282,7 +282,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
         <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
-    <table class="organization-table">
+    <table class="organization-table data-table">
         <thead>
             <tr>
                 <th>Organization</th>

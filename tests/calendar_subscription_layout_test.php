@@ -12,7 +12,7 @@ $stylesheet = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
 
 expectCalendarSubscriptionLayout(
     str_contains($page, 'class="responsive-table-wrapper calendar-subscription-table-wrapper"')
-        && str_contains($page, 'class="calendar-subscription-table"')
+        && str_contains($page, 'class="calendar-subscription-table data-table"')
         && substr_count($page, '<col class="calendar-subscription-') === 5,
     'the subscriptions table should expose a responsive wrapper and five explicit columns.'
 );

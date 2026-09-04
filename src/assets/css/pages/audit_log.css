@@ -222,7 +222,6 @@
         .audit-table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 75%;
         }
         .audit-table th,
         .audit-table td {
@@ -250,7 +249,6 @@
             border-radius: 999px;
             background: var(--button-neutral-color);
             color: #fff;
-            font-size: inherit;
         }
         .audit-badge-login { background: #2e7d32; }
         .audit-badge-database_change { background: #1565c0; }
@@ -259,7 +257,6 @@
             display: block;
             margin-top: 4px;
             color: #666;
-            font-size: inherit;
         }
         .dark-mode .audit-detail {
             color: #bbb;

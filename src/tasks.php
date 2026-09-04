@@ -450,7 +450,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         </div>
     </div>
 
-    <table class="task-table">
+    <table class="task-table data-table">
         <thead><tr><th>Due</th><th>Task</th><th>Related record</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
         <?php if (!$tasks): ?><tr><td colspan="6" class="empty-state">No tasks match this work queue.</td></tr><?php endif; ?>

@@ -163,7 +163,7 @@ $priority_labels = followUpTaskPriorities();
 
     <p class="result-context">Every active definition is added and assigned to the creator automatically with each new event. “Add missing checklist tasks” remains available for older events. Existing event tasks remain unchanged.</p>
 
-    <table class="task-table standard-task-table">
+    <table class="task-table standard-task-table data-table">
         <thead><tr><th>Order</th><th>Standard task</th><th>Due rule</th><th>Priority</th><th>Generated</th><th>Actions</th></tr></thead>
         <tbody>
         <?php if (!$standard_tasks): ?><tr><td colspan="6" class="empty-state">No <?php echo $show_archived ? 'archived' : 'active'; ?> standard event tasks.</td></tr><?php endif; ?>
