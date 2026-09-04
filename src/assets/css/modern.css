@@ -873,6 +873,11 @@ html body .container > .profile-form {
   text-align: left;
 }
 
+.two-factor-settings-page .app-footer {
+  width: min(100%, 960px);
+  max-width: 960px;
+}
+
 .app-footer p {
   margin: 0;
   font-size: 0.78rem;

@@ -33,8 +33,12 @@ expectAuditLogPurgeFeature(
         && str_contains($page, 'append-only')
         && str_contains($page, 'id="audit-retention"')
         && str_contains($page, 'Preview Pruning')
+        && str_contains($page, 'COUNT(*) AS total_entry_count')
+        && str_contains($page, "'total_entry_count' => \$retention_total_count")
+        && str_contains($page, 'class="audit-retention-preview-total">&nbsp; of <?php echo number_format($preview_total_count)')
+        && preg_match('/\.audit-retention-preview-total\s*\{[^}]*font-size:\s*0\.75em;[^}]*font-weight:\s*400;[^}]*opacity:\s*0\.25;/s', $styles) === 1
         && str_contains($page, 'Unlock Pruning'),
-    'the web audit log should provide a CSRF-protected, elevated, explicitly confirmed pruning workflow without direct delete SQL.'
+    'the web audit log should provide a CSRF-protected, elevated, explicitly confirmed pruning workflow with a deletable/total preview and without direct delete SQL.'
 );
 expectAuditLogPurgeFeature(
     str_contains($page, 'class="list-search-form audit-filter-form"')

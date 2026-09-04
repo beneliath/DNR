@@ -237,6 +237,18 @@ expectUserManual(
 
 expectUserManual(
     preg_match(
+        '/\.user-manual-page \.app-footer\s*\{[^}]*width:\s*min\(100%, 1440px\);[^}]*padding-left:\s*calc\(clamp\(24px, 4vw, 56px\) \+ 216px \+ clamp\(30px, 5vw, 72px\)\);/s',
+        $styles
+    ) === 1
+        && preg_match(
+            '/@media \(max-width: 900px\).*?\.user-manual-page \.app-footer\s*\{[^}]*padding-left:\s*clamp\(24px, 4vw, 56px\);/s',
+            $styles
+        ) === 1,
+    'the manual footer should align with the content-card column on wide screens and return to the page edge when the manual collapses to one column.'
+);
+
+expectUserManual(
+    preg_match(
         '/@media \(forced-colors: active\)\s*\{\s*\.manual-search-control:focus-within\s*\{[^}]*outline:\s*2px solid Highlight;[^}]*outline-offset:\s*2px;/s',
         $styles
     ) === 1,

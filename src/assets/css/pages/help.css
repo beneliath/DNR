@@ -4,6 +4,12 @@
   padding-top: 28px;
 }
 
+.user-manual-page .app-footer {
+  width: min(100%, 1440px);
+  max-width: 1440px;
+  padding-left: calc(clamp(24px, 4vw, 56px) + 216px + clamp(30px, 5vw, 72px));
+}
+
 .manual-hero {
   position: relative;
   display: grid;
@@ -1147,6 +1153,10 @@ kbd {
 }
 
 @media (max-width: 900px) {
+  .user-manual-page .app-footer {
+    padding-left: clamp(24px, 4vw, 56px);
+  }
+
   .manual-hero {
     grid-template-columns: minmax(0, 1fr);
   }
