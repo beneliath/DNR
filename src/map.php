@@ -303,7 +303,7 @@ $map_payload = [
             <span><i class="map-legend-dot status-under-review-pin" aria-hidden="true"></i>Under review</span>
             <span><i class="map-legend-dot status-confirmed-pin" aria-hidden="true"></i>Confirmed</span>
         </div>
-        <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan."></div>
+        <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
         <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a background worker, cached, and added to the open map automatically.</p>
     </section>
