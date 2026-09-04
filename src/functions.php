@@ -157,8 +157,8 @@ function startSecureSession() {
     session_start();
 
     $now = time();
-    $idle_timeout = max(300, (int) (getenv('DNR_SESSION_IDLE_SECONDS') ?: 1800));
-    $absolute_timeout = max($idle_timeout, (int) (getenv('DNR_SESSION_ABSOLUTE_SECONDS') ?: 43200));
+    $idle_timeout = max(300, (int) (getenv('DNR_SESSION_IDLE_SECONDS') ?: 43200));
+    $absolute_timeout = max($idle_timeout, (int) (getenv('DNR_SESSION_ABSOLUTE_SECONDS') ?: 86400));
     $rotation_interval = max(300, (int) (getenv('DNR_SESSION_ROTATION_SECONDS') ?: 900));
     $started_at = (int) ($_SESSION['_session_started_at'] ?? $now);
     $last_seen_at = (int) ($_SESSION['_session_last_seen_at'] ?? $now);
