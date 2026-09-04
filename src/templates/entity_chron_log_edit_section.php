@@ -13,14 +13,14 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
             <p>Communication history for this <?php echo htmlspecialchars($chron_entity_label, ENT_QUOTES, 'UTF-8'); ?> only. Entries are shown newest first.</p>
         </div>
         <?php if ($archived_chron_count > 0): ?>
-            <a href="<?php echo htmlspecialchars($chron_restore_url, ENT_QUOTES, 'UTF-8'); ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>
+            <a href="<?php echo htmlspecialchars($chron_restore_url, ENT_QUOTES, 'UTF-8'); ?>" class="restore-button">Restore Archived Entries (<?php echo $archived_chron_count; ?>)</a>
         <?php endif; ?>
     </div>
 
     <div class="chron-add-form">
         <label for="new-chron-entry">New Chron entry</label>
         <textarea name="new_chron_entry" id="new-chron-entry" rows="6" maxlength="100000" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Record a call, email, meeting, or other communication."><?php echo htmlspecialchars(is_scalar($_POST['new_chron_entry'] ?? null) ? (string) $_POST['new_chron_entry'] : '', ENT_QUOTES, 'UTF-8'); ?></textarea>
-        <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>" data-add-chron-entry>Add entry</button>
+        <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>" data-add-chron-entry>Add Entry</button>
     </div>
 
     <div class="chron-entry-list">
@@ -52,7 +52,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                         <small><a href="inbound_mail.php?status=all&amp;id=<?php echo (int) $chron_entry['inbound_email_message_id']; ?>">View source email</a></small>
                     <?php endif; ?>
                     <?php if (!empty($chron_entry['outbound_email_message_id'])): ?>
-                        <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View outbound message</a></small>
+                        <small><a href="outbound_mail.php?id=<?php echo (int) $chron_entry['outbound_email_message_id']; ?>">View Outbound Message</a></small>
                     <?php endif; ?>
                 </div>
                 <div class="chron-entry-editor">

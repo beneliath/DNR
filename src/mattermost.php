@@ -74,10 +74,10 @@ try {
         'assets/css/pages/mattermost.min.css?rev=linked-columns-1',
     ],
 ]); ?>
-<body>
+<body class="mattermost-body">
 <?php include 'templates/header.php'; ?>
-<main class="container">
-    <div class="page-heading">
+<main class="container mattermost-page">
+    <div class="page-heading mattermost-heading">
         <div>
             <h1>Mattermost</h1>
             <p class="page-intro">Link your Mattermost identity to use MOED summaries, engagement cards, and follow-up actions in chat.</p>

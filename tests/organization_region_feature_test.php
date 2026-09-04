@@ -12,7 +12,9 @@ function expectOrganizationRegionFeature(bool $condition, string $message): void
 
 $root = dirname(__DIR__);
 $add_organization = file_get_contents($root . '/src/add_organization.php');
+$add_organization_styles = file_get_contents($root . '/src/assets/css/pages/add_organization.css');
 $edit_organization = file_get_contents($root . '/src/edit_organization.php');
+$edit_organization_styles = file_get_contents($root . '/src/assets/css/pages/edit_organization.css');
 $page_actions = file_get_contents($root . '/src/assets/js/page-actions.js');
 $modern_styles = file_get_contents($root . '/src/assets/css/modern.css');
 $us_regions = addressRegionChoices('US');
@@ -42,6 +44,26 @@ foreach ([$add_organization, $edit_organization] as $page) {
         'organization create and edit pages should expose both address pairs to the shared region control.'
     );
 }
+
+expectOrganizationRegionFeature(
+    str_contains($add_organization, '<body class="add-organization-body">')
+        && str_contains($add_organization, '<div class="container add-organization-page" role="main">')
+        && str_contains($add_organization, 'form-page-heading add-organization-heading')
+        && preg_match('/\.add-organization-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $add_organization_styles) === 1
+        && preg_match('/\.add-organization-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $add_organization_styles) === 1
+        && preg_match('/\.add-organization-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $add_organization_styles) === 1,
+    'New Organization should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
+
+expectOrganizationRegionFeature(
+    str_contains($edit_organization, '<body class="edit-organization-body">')
+        && str_contains($edit_organization, '<div class="container edit-organization-page" role="main">')
+        && str_contains($edit_organization, 'form-page-heading edit-organization-heading')
+        && preg_match('/\.edit-organization-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $edit_organization_styles) === 1
+        && preg_match('/\.edit-organization-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $edit_organization_styles) === 1
+        && preg_match('/\.edit-organization-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $edit_organization_styles) === 1,
+    'Edit Organization should use the Dashboard canvas width, heading scale, and footer alignment.'
+);
 
 expectOrganizationRegionFeature(
     str_contains($page_actions, 'function initializeAddressCountries()')

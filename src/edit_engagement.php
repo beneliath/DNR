@@ -697,11 +697,11 @@ try {
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
 )); ?>
-<body>
+<body class="edit-engagement-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container edit-engagement-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
+    <div class="page-heading form-page-heading edit-engagement-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
     <?php if (!empty($error_message)): ?>
         <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
     <?php endif; ?>
@@ -970,14 +970,14 @@ try {
                 <p>Entries are shown newest first. Archived entries are removed from this page.</p>
             </div>
             <?php if ($archived_chron_count > 0): ?>
-                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore archived entries (<?php echo $archived_chron_count; ?>)</a>
+                <a href="restore_chron_entries.php?engagement_id=<?php echo $engagement_id; ?>" class="restore-button">Restore Archived Entries (<?php echo $archived_chron_count; ?>)</a>
             <?php endif; ?>
         </div>
 
         <div class="chron-add-form">
             <label for="new-chron-entry">New Chron entry</label>
             <textarea name="new_chron_entry" id="new-chron-entry" rows="6" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
-            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add entry</button>
+            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add Entry</button>
         </div>
 
         <div class="chron-entry-list">

@@ -32,7 +32,7 @@ Genesis 49:9,10 ... Revelation 5:5
     <p id="logout-confirmation-message">You’ll need to sign in again to manage <?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?> records.</p>
     <div class="confirmation-dialog-actions">
         <button type="button" id="cancel-logout" class="button-secondary">Cancel</button>
-        <button type="button" id="confirm-logout" class="danger-button">Log out</button>
+        <button type="button" id="confirm-logout" class="danger-button">Log Out</button>
     </div>
 </dialog>
 
@@ -42,8 +42,8 @@ Genesis 49:9,10 ... Revelation 5:5
     <p class="dialog-supporting-text">Archive it instead to keep the record available for later restoration.</p>
     <div class="confirmation-dialog-actions">
         <button type="button" id="cancel-delete" class="button-secondary" autofocus>Cancel</button>
-        <button type="button" id="archive-instead" class="archive-button">Archive instead</button>
-        <button type="button" id="confirm-delete" class="danger-button">Delete permanently</button>
+        <button type="button" id="archive-instead" class="archive-button">Archive Instead</button>
+        <button type="button" id="confirm-delete" class="danger-button">Delete Permanently</button>
     </div>
 </dialog>
 

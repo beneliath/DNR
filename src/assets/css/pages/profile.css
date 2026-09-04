@@ -1,0 +1,64 @@
+.profile-page .profile-container {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    padding-inline: var(--app-content-padding);
+}
+
+.profile-heading h1 {
+    font-size: clamp(1.8rem, 3vw, 2.3rem);
+}
+
+.profile-page .profile-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.15rem;
+    align-items: stretch;
+}
+
+html body.profile-page .profile-container > .profile-form {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.profile-page .profile-form > .profile-card {
+    min-width: 0;
+    height: 100%;
+}
+
+.profile-page .profile-picture-card {
+    align-items: start;
+}
+
+.profile-page .profile-form > .profile-actions {
+    grid-column: 1 / -1;
+}
+
+.profile-page :is(.profile-email-field, .profile-phone-field) {
+    grid-column: 1 / -1;
+}
+
+.profile-page .app-footer {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    margin-inline: auto !important;
+    padding-inline: var(--app-content-padding);
+    text-align: left !important;
+}
+
+@media (max-width: 1400px) {
+    .profile-page .profile-form {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 800px) {
+    .profile-page .profile-form {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .profile-page .profile-form > .profile-card {
+        height: auto;
+    }
+}

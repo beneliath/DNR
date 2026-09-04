@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <input type="password" name="admin_password" id="admin_password" autocomplete="current-password" maxlength="72" required autofocus>
             <label for="admin_code">Fresh authenticator code or recovery code</label>
             <input type="text" name="admin_code" id="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
-            <button type="submit" class="security-button">Unlock sensitive actions</button>
+            <button type="submit" class="security-button">Unlock Sensitive Actions</button>
             <a href="<?php echo htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Cancel</a>
         </form>
     </section>

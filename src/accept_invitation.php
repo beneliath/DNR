@@ -124,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
     'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]],
 ]); ?>
 <body class="fullscreen-center">
-<div class="login-container recovery-container">
+<div class="login-container recovery-container" role="main">
     <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Accept Invitation</h1>
     <?php if (isset($error)): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
@@ -134,11 +134,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
             <?php echo csrfInput(); ?>
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="form-group"><label for="password">Password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus></div>
-            <div class="form-group"><label for="password_confirmation">Confirm password</label><input type="password" name="password_confirmation" id="password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required></div>
+            <div class="form-group"><label for="password_confirmation">Confirm Password</label><input type="password" name="password_confirmation" id="password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required></div>
             <button type="submit" class="login-button">Activate account</button>
         </form>
     <?php endif; ?>
-    <p class="login-secondary-link"><a href="login.php">Back to login</a></p>
+    <p class="login-secondary-link"><a href="login.php">Back to Login</a></p>
 </div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
 </body>

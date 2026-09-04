@@ -1,11 +1,22 @@
-.view-container {
-            max-width: 800px;
+.view-engagement-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
             margin: 0 auto;
-            padding: 20px;
+            padding: 44px var(--app-content-padding) 36px;
+        }
+        .view-engagement-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+        .view-engagement-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
         }
         .detail-group {
             margin-bottom: 20px;
-            border-bottom: 1px solid #ddd;
+            border-bottom: 1px solid var(--border);
             padding-bottom: 15px;
         }
         .detail-group:last-child {
@@ -126,24 +137,26 @@
         }
         /* Contact styles */
         .contacts-list {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
             margin-top: 10px;
             margin-bottom: 20px;
         }
         .contact-item {
-            background-color: var(--light-bg-color);
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            min-width: 0;
+            height: 100%;
+            background-color: var(--surface-subtle);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 15px;
-            margin-bottom: 10px;
+            margin-bottom: 0;
         }
         .presentation-item {
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
             padding: 12px;
             margin-bottom: 10px;
-        }
-        .dark-mode .presentation-item {
-            border-color: #444;
         }
         .presentation-view-assets {
             display: grid;
@@ -227,6 +240,7 @@
             color: var(--danger);
         }
         @media (max-width: 720px) {
+            .contacts-list,
             .presentation-view-qr-grid {
                 grid-template-columns: 1fr;
             }

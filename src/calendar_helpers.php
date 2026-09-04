@@ -146,7 +146,7 @@ function calendarViewerPageUrl($month = null, $mode = 'everything', $day = null)
         $parameters['day'] = $day;
     }
 
-    return 'calendar_subscription.php'
+    return 'view_calendar.php'
         . ($parameters === [] ? '' : '?' . http_build_query($parameters))
         . '#event-calendar';
 }
@@ -944,7 +944,7 @@ function calendarSubscriptionUrl(array $server, $token = null) {
         $host = 'localhost';
     }
 
-    $script_name = str_replace('\\', '/', (string) ($server['SCRIPT_NAME'] ?? '/calendar_subscription.php'));
+    $script_name = str_replace('\\', '/', (string) ($server['SCRIPT_NAME'] ?? '/calendar.php'));
     $base_path = rtrim(dirname($script_name), '/.');
 
     $calendar_url = "{$scheme}://{$host}" . ($base_path !== '' ? $base_path : '') . '/calendar.php';

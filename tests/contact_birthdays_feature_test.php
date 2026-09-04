@@ -18,7 +18,7 @@ $edit_contact = $read('src/edit_contact.php');
 $add_organization = $read('src/add_organization.php');
 $view_contact = $read('src/view_contact.php');
 $calendar = $read('src/calendar.php');
-$calendar_page = $read('src/calendar_subscription.php');
+$calendar_page = $read('src/view_calendar.php');
 $calendar_helpers = $read('src/calendar_helpers.php');
 
 expectContactBirthdayFeature(

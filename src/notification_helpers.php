@@ -287,8 +287,8 @@ function fetchDailyTaskDigestData(
 
     $taskStatement = $conn->prepare(
         "SELECT id, title, status, priority, due_date, waiting_on,
-                subject_type, engagement_id, organization_id, contact_id,
-                engagement_label, organization_label, contact_label,
+                subject_type, engagement_id, organization_id, contact_id, inquiry_id,
+                engagement_label, organization_label, contact_label, inquiry_label,
                 digest_section
          FROM (
             SELECT categorized.*,
@@ -301,12 +301,14 @@ function fetchDailyTaskDigestData(
                 SELECT task.id, task.title, task.status, task.priority,
                        task.due_date, task.waiting_on, task.subject_type,
                        task.engagement_id, task.organization_id, task.contact_id,
+                       task.inquiry_id,
                        COALESCE(NULLIF(TRIM(engagement.event_title), ''),
                                 engagement_organization.organization_name)
                            AS engagement_label,
                        organization.organization_name AS organization_label,
                        CONCAT(contact.contact_last_name, ', ', contact.contact_first_name)
                            AS contact_label,
+                       inquiry.title AS inquiry_label,
                        CASE
                            WHEN task.status = 'waiting' THEN 'waiting'
                            WHEN task.due_date IS NULL THEN 'undated'
@@ -326,6 +328,8 @@ function fetchDailyTaskDigestData(
                   ON organization.id = task.organization_id
                 LEFT JOIN contacts contact
                   ON contact.id = task.contact_id
+                LEFT JOIN booking_inquiries inquiry
+                  ON inquiry.id = task.inquiry_id
                 WHERE task.assigned_to = ?
                   AND task.status IN ('open', 'in_progress', 'waiting')
             ) categorized

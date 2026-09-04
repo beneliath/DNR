@@ -30,6 +30,7 @@ $chapters = [
     'orientation',
     'roles',
     'dashboard',
+    'booking-pipeline',
     'engagements',
     'organizations-contacts',
     'work-queue',
@@ -57,6 +58,7 @@ expectUserManual(
 
 foreach ([
     'dashboard.php',
+    'inquiries.php',
     'engagements.php',
     'organizations.php',
     'contacts.php',
@@ -64,7 +66,7 @@ foreach ([
     'standard_tasks.php',
     'inbound_mail.php',
     'map.php',
-    'calendar_subscription.php',
+    'view_calendar.php',
     'profile.php',
     'two_factor_settings.php',
     'mattermost.php',
@@ -87,6 +89,16 @@ expectUserManual(
         && str_contains($manual, 'applicationInboundMarkerExample(123)')
         && str_contains($manual, 'Permanent Means Permanent'),
     'the manual should explain role boundaries, event state, email routing, and destructive actions.'
+);
+
+expectUserManual(
+    str_contains($manual, 'Inquiry and Booking Pipeline')
+        && str_contains($manual, 'New Inquiry')
+        && str_contains($manual, 'next action')
+        && str_contains($manual, 'Review the booking')
+        && str_contains($manual, 'read-only')
+        && str_contains($manual, 'source record'),
+    'the manual should give users a concise, high-level path from inquiry capture through booking.'
 );
 
 expectUserManual(
@@ -143,7 +155,7 @@ expectUserManual(
         && str_contains($manual, 'Every unique address receives a separate email')
         && str_contains($manual, 'share-safe brief')
         && str_contains($manual, 'Queue Email')
-        && str_contains($manual, 'Retry failed deliveries')
+        && str_contains($manual, 'Retry Failed Deliveries')
         && str_contains($manual, 'Automatic Chron History')
         && str_contains($manual, 'Sending a booking, reconfirmation, or thank-you message')
         && str_contains($manual, 'How Inbound Email Finds Its Records')
@@ -181,7 +193,7 @@ expectUserManual(
 
 expectUserManual(
     str_contains($manual, 'Duplicate a Task to Another Event')
-        && str_contains($manual, '<strong>Duplicate to another event</strong>')
+        && str_contains($manual, '<strong>Duplicate to Another Event</strong>')
         && str_contains($manual, '<strong>Search events</strong>')
         && str_contains($manual, 'source event cannot be selected as its own destination')
         && str_contains($manual, 'duplicate starts <strong>Open</strong>')
@@ -236,8 +248,9 @@ expectUserManual(
 );
 
 expectUserManual(
-    preg_match(
-        '/\.user-manual-page \.app-footer\s*\{[^}]*width:\s*min\(100%, 1440px\);[^}]*padding-left:\s*calc\(clamp\(24px, 4vw, 56px\) \+ 216px \+ clamp\(30px, 5vw, 72px\)\);/s',
+    preg_match('/\.manual-container\s*\{[^}]*width:\s*min\(100%, var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);/s', $styles) === 1
+        && preg_match(
+        '/\.user-manual-page \.app-footer\s*\{[^}]*width:\s*min\(100%, var\(--app-content-max\)\);[^}]*padding-left:\s*calc\(clamp\(24px, 4vw, 56px\) \+ 216px \+ clamp\(30px, 5vw, 72px\)\);/s',
         $styles
     ) === 1
         && preg_match(

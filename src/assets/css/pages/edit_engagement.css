@@ -1,3 +1,19 @@
+.edit-engagement-page {
+        width: min(100%, var(--app-content-max));
+        max-width: var(--app-content-max);
+        padding-inline: var(--app-content-padding);
+    }
+    .edit-engagement-heading h1 {
+        font-size: clamp(1.8rem, 3vw, 2.3rem);
+    }
+    .edit-engagement-body .app-footer {
+        width: min(100%, var(--app-content-max));
+        max-width: var(--app-content-max);
+        margin-inline: auto !important;
+        padding-inline: var(--app-content-padding);
+        text-align: left !important;
+    }
+
 .cancel-button {
         padding: 8px 15px;
         background-color: var(--button-cancel-color);
@@ -43,10 +59,10 @@
     .event-group input[type="text"] {
         height: 35px;
         padding: 0 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
         box-sizing: border-box;
     }
     .checkbox-row {
@@ -62,7 +78,7 @@
         display: flex;
         align-items: center;
         gap: 5px;
-        color: white;
+        color: var(--text);
     }
     .date-fields {
         display: flex;
@@ -76,24 +92,24 @@
     }
     .date-field input[type="date"] {
         padding: 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
     }
     textarea {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
         padding: 8px;
         margin: 5px 0 15px;
     }
     select {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
         padding: 8px;
     }
     .form-field {
@@ -103,7 +119,7 @@
     }
     .form-field label {
         white-space: nowrap;
-        color: white;
+        color: var(--text);
     }
     .radio-row {
         display: flex;
@@ -145,16 +161,16 @@
     .currency-input input {
         width: 100px;
         padding: 8px;
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
     }
     .address-section {
         margin: 20px 0;
     }
     .address-section h3 {
-        color: white;
+        color: var(--text);
         margin-bottom: 15px;
     }
     .address-fields {
@@ -224,10 +240,10 @@
         width: 200px;
     }
     input[type="text"] {
-        background-color: #333;
-        color: white;
-        border: 1px solid #666;
-        border-radius: 4px;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-strong);
+        border-radius: var(--radius-sm);
         padding: 8px;
         width: 100%;
     }

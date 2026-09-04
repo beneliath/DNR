@@ -67,7 +67,7 @@ expectConfirmationHandler(
         && str_contains($modernStyles, 'background: var(--dialog-backdrop);')
         && str_contains($modernStyles, '.confirmation-dialog-input')
         && str_contains($modernStyles, '.dialog-inline-error')
-        && str_contains($modernStyles, ':not(.qr-code-preview-frame)')
+        && !str_contains($modernStyles, 'html.dark-mode body div:not(')
         && preg_match(
             '/\.qr-code-preview-frame\s*\{[^}]*background:\s*#ffffff !important;/s',
             $modernStyles

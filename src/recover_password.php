@@ -168,7 +168,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
     <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
 </button>
-<div class="login-container recovery-container">
+<div class="login-container recovery-container" role="main">
     <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Recover Password</h1>
     <?php if (isset($requested)): ?>
@@ -185,20 +185,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="reset">
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
-            <div class="form-group"><label for="new_password">New password</label><input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus></div>
-            <div class="form-group"><label for="new_password_confirmation">Confirm new password</label><input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required></div>
-            <button type="submit" class="login-button">Reset password</button>
+            <div class="form-group"><label for="new_password">New Password</label><input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus></div>
+            <div class="form-group"><label for="new_password_confirmation">Confirm New Password</label><input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required></div>
+            <button type="submit" class="login-button">Reset Password</button>
         </form>
     <?php else: ?>
         <?php if (!isset($requested)): ?><p class="login-help">Enter the verified email address on your active account.</p><?php endif; ?>
         <form method="post" action="recover_password.php">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="request">
-            <div class="form-group"><label for="email">Email address</label><input type="email" name="email" id="email" maxlength="254" autocomplete="email" required autofocus></div>
-            <button type="submit" class="login-button">Send recovery link</button>
+            <div class="form-group"><label for="email">Email Address</label><input type="email" name="email" id="email" maxlength="254" autocomplete="email" required autofocus></div>
+            <button type="submit" class="login-button">Send Recovery Link</button>
         </form>
     <?php endif; ?>
-    <p class="login-secondary-link"><a href="login.php">Back to login</a></p>
+    <p class="login-secondary-link"><a href="login.php">Back to Login</a></p>
 </div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
 </body>

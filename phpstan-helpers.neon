@@ -4,6 +4,7 @@ parameters:
         - src/config.php
         - src/functions.php
         - src/calendar_helpers.php
+        - src/booking_inquiry_helpers.php
         - src/chron_log_helpers.php
         - src/contact_photo_helpers.php
         - src/database_backup_helpers.php

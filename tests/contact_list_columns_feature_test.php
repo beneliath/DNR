@@ -21,6 +21,20 @@ if (preg_match(
 }
 
 expectContactListColumns(
+    str_contains($contacts_page, 'class="contacts-body"')
+        && str_contains($contacts_page, 'class="container contacts-page"')
+        && str_contains($contacts_page, 'class="page-heading contacts-heading"')
+        && preg_match('/\.contacts-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $contact_styles) === 1
+        && preg_match('/\.contacts-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $contact_styles) === 1,
+    'the Contacts page should use the Dashboard canvas width and heading scale.'
+);
+
+expectContactListColumns(
+    preg_match('/\.contacts-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $contact_styles) === 1,
+    'the Contacts footer should align with the Dashboard-width page canvas.'
+);
+
+expectContactListColumns(
     str_contains($contacts_page, 'c.contact_phone,')
         && str_contains($contacts_page, 'c.contact_email,'),
     'the contact list query should fetch phone numbers and email addresses.'

@@ -260,7 +260,7 @@ if ($engagement_title === '') {
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
         <a href="edit_engagement.php?id=<?php echo $engagement_id; ?>">Edit Engagement</a><span aria-hidden="true">/</span>

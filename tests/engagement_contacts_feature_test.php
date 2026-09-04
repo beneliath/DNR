@@ -17,6 +17,7 @@ $order = $read('migrations/order.txt');
 $create = $read('src/index.php');
 $edit = $read('src/edit_engagement.php');
 $view = $read('src/view_engagement.php');
+$viewStyles = $read('src/assets/css/pages/view_engagement.css');
 $pdf = $read('src/download_engagement_pdf.php');
 $editContact = $read('src/edit_contact.php');
 $template = $read('src/templates/engagement_contact_form.php');
@@ -52,9 +53,11 @@ expectEngagementContactsFeature(
 expectEngagementContactsFeature(
     str_contains($view, 'fetchEngagementContacts')
         && str_contains($view, 'engagement_contact_roles')
+        && preg_match('/\.contacts-list\s*\{[^}]*grid-template-columns:\s*repeat\(2,\s*minmax\(0,\s*1fr\)\);/s', $viewStyles) === 1
+        && preg_match('/@media \(max-width:\s*720px\)\s*\{\s*\.contacts-list,/s', $viewStyles) === 1
         && str_contains($pdf, 'fetchEngagementContacts')
         && !str_contains($pdf, 'WHERE organization_id = ? AND is_deleted = 0'),
-    'detail and export routes should use only explicitly assigned event contacts.'
+    'detail and export routes should use only explicitly assigned event contacts, with detail cards arranged responsively side by side.'
 );
 expectEngagementContactsFeature(
     str_contains($privileges, '.engagement_contacts')

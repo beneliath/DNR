@@ -140,11 +140,17 @@ expectMattermost(
         && str_contains($accountPage, 'revokeMattermostLink')
         && str_contains($accountPage, '/moed connect')
         && str_contains($accountPage, 'assets/css/pages/mattermost.min.css?rev=linked-columns-1')
+        && str_contains($accountPage, '<body class="mattermost-body">')
+        && str_contains($accountPage, '<main class="container mattermost-page">')
+        && str_contains($accountPage, 'page-heading mattermost-heading')
         && str_contains($accountPage, 'mattermost-links-table')
         && str_contains($accountPageStyles, 'width: 100%')
         && str_contains($accountPageStyles, 'table-layout: fixed')
-        && str_contains($accountPageStyles, 'overflow-x: auto'),
-    'the authenticated account page should protect generation and revocation, explain the private linking command, and spread linked-account columns across the card responsively.'
+        && str_contains($accountPageStyles, 'overflow-x: auto')
+        && preg_match('/\.mattermost-page\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $accountPageStyles) === 1
+        && preg_match('/\.mattermost-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $accountPageStyles) === 1
+        && preg_match('/\.mattermost-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $accountPageStyles) === 1,
+    'the authenticated account page should protect generation and revocation, explain the private linking command, use the Dashboard canvas, and spread linked-account columns across the card responsively.'
 );
 
 $manifest = json_decode((string) $manifestRaw, true);

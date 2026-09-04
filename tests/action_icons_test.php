@@ -49,6 +49,10 @@ expectActionIcon(
 
 $task_source = file_get_contents(__DIR__ . '/../src/tasks.php');
 expectActionIcon(str_contains($task_source, 'aria-label="Start task"'), 'Start task controls should have an accessible name.');
+expectActionIcon(
+    strpos($task_source, 'aria-label="Delete task"') < strpos($task_source, '>Assign to Me</button>'),
+    'Assign to Me should appear after the Work Queue action icons.'
+);
 expectActionIcon(str_contains($task_source, "actionIconSvg('start')"), 'Start task controls should render the shared play icon.');
 expectActionIcon(str_contains($task_source, 'aria-label="Complete task"'), 'Complete task controls should have an accessible name.');
 expectActionIcon(str_contains($task_source, "actionIconSvg('complete')"), 'Complete task controls should render the shared completion icon.');

@@ -119,12 +119,13 @@ $remaining_codes = !empty($user['two_factor_enabled'])
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/two_factor_settings.min.css',
   ),
 )); ?>
 <body class="two-factor-settings-page">
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">
-    <div class="page-heading"><div><h1>Account Security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
+    <div class="page-heading two-factor-settings-heading"><div><h1>Account Security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
 
     <?php if (isset($error)): ?>
         <p class="error"><?php echo htmlspecialchars($error); ?></p>
@@ -138,6 +139,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
         <p class="success">Two-factor authentication was disabled.</p>
     <?php endif; ?>
 
+    <div class="account-security-grid">
     <?php if (!$must_change_password): ?>
     <section class="security-card">
         <h2>Two-Factor Authentication</h2>
@@ -146,12 +148,12 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <?php if (twoFactorRequiredForRole($user['role'])): ?>
                 <p>Two-factor authentication is required for administrators.</p>
             <?php endif; ?>
-            <p><a href="setup_2fa.php" class="security-button">Set up 2FA</a></p>
+            <p><a href="setup_2fa.php" class="security-button">Set Up 2FA</a></p>
         <?php else: ?>
             <p><strong>Status:</strong> Enabled</p>
             <p><strong>Enrolled:</strong> <?php echo htmlspecialchars($user['totp_confirmed_at'] ?? 'Unknown'); ?></p>
             <p><strong>Unused recovery codes:</strong> <?php echo $remaining_codes; ?></p>
-            <p><a href="setup_2fa.php" class="security-button">Replace authenticator</a></p>
+            <p><a href="setup_2fa.php" class="security-button">Replace Authenticator</a></p>
         <?php endif; ?>
     </section>
     <?php endif; ?>
@@ -162,13 +164,13 @@ $remaining_codes = !empty($user['two_factor_enabled'])
         <form method="post" action="two_factor_settings.php" class="security-form">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="change_password">
-            <label for="password_change_current">Current password</label>
+            <label for="password_change_current">Current Password</label>
             <input type="password" name="password" id="password_change_current" autocomplete="current-password" maxlength="72" required>
-            <label for="password_change_new">New password</label>
+            <label for="password_change_new">New Password</label>
             <input type="password" name="new_password" id="password_change_new" autocomplete="new-password" minlength="12" maxlength="72" required>
-            <label for="password_change_confirmation">Confirm new password</label>
+            <label for="password_change_confirmation">Confirm New Password</label>
             <input type="password" name="new_password_confirmation" id="password_change_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
-            <button type="submit" class="security-button">Change password</button>
+            <button type="submit" class="security-button">Change Password</button>
         </form>
     </section>
 
@@ -203,6 +205,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             </section>
         <?php endif; ?>
     <?php endif; ?>
+    </div>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

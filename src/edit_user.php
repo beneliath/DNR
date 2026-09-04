@@ -177,7 +177,7 @@ $task_digest_day_options = [
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit User</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change account access and daily work digest settings.</p></div></div>
 

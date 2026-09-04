@@ -81,7 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $verification) {
     'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]],
 ]); ?>
 <body class="fullscreen-center">
-<div class="login-container recovery-container">
+<div class="login-container recovery-container" role="main">
     <div class="auth-brand"><strong><?php echo htmlspecialchars(applicationBrandName(), ENT_QUOTES, 'UTF-8'); ?><?php if (applicationBrandNativeName() !== ''): ?> <bdi dir="auto"><?php echo htmlspecialchars(applicationBrandNativeName(), ENT_QUOTES, 'UTF-8'); ?></bdi><?php endif; ?></strong></div>
     <h1>Verify Email</h1>
     <?php if (isset($verified)): ?>
@@ -94,7 +94,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $verification) {
         <form method="post" action="verify_email.php">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
-            <button type="submit" class="login-button">Verify email address</button>
+            <button type="submit" class="login-button">Verify Email Address</button>
         </form>
     <?php endif; ?>
     <p class="login-secondary-link"><a href="<?php echo isLoggedIn() ? 'profile.php' : 'login.php'; ?>">Continue</a></p>

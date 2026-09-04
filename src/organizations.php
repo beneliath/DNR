@@ -237,13 +237,13 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
     2 => 'assets/css/pages/organizations.min.css',
   ),
 )); ?>
-<body>
+<body class="organizations-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
-    <div class="page-heading">
+<main class="container organizations-page">
+    <div class="page-heading organizations-heading">
         <div><h1><?php echo $show_archived ? 'Archived Organizations' : 'Organizations'; ?></h1><p class="page-intro">Keep organization details, locations, and related contacts together.</p></div>
         <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-            <a href="add_organization.php" class="button-add">+ New organization</a>
+            <a href="add_organization.php" class="button-add">+ New Organization</a>
         <?php endif; ?>
     </div>
 
@@ -364,7 +364,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
             </div>
         </nav>
     <?php endif; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

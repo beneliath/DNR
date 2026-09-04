@@ -27,7 +27,12 @@ $functions = $read('src/functions.php');
 $task_helpers = $read('src/follow_up_task_helpers.php');
 $styles = $read('src/assets/css/pages/dashboard.css');
 $modern_styles = $read('src/assets/css/modern.css');
-$my_work_list_start = strpos($dashboard, '<ul class="dashboard-record-list dashboard-task-list">');
+$my_work_panel_start = strpos($dashboard, 'id="my-work"');
+$my_work_list_start = $my_work_panel_start === false
+    ? false
+    : strpos($dashboard, '<ul class="dashboard-record-list dashboard-task-list">', $my_work_panel_start);
+$booking_panel_position = strpos($dashboard, 'id="booking-inquiries"');
+$summary_grid_position = strpos($dashboard, 'class="summary-grid dashboard-summary-grid"');
 $my_work_due_state = $my_work_list_start === false
     ? false
     : strpos($dashboard, "followUpTaskDueState(\$task['due_date'], \$business_date)", $my_work_list_start);
@@ -50,12 +55,39 @@ expectDashboardFeature(
 );
 
 expectDashboardFeature(
+    $booking_panel_position !== false
+        && $summary_grid_position !== false
+        && $booking_panel_position < $summary_grid_position
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>')
+        && str_contains($dashboard, '<small>Booking Inquiries</small>')
+        && str_contains($dashboard, '<small>All Active Work</small>')
+        && str_contains($dashboard, '<small>Mail For Review</small>')
+        && str_contains($dashboard, '<small>Financial Closeouts</small>'),
+    'the inquiry next-actions panel should appear immediately above the dashboard count cards.'
+);
+
+expectDashboardFeature(
     str_contains($dashboard, 'fetchDashboardUpcomingEngagements')
         && str_contains($dashboard, 'fetchDashboardTaskSummary')
         && str_contains($dashboard, 'fetchDashboardMyTasks')
+        && str_contains($dashboard, 'fetchDashboardOpenBookingInquiryCount')
+        && str_contains($dashboard, 'fetchDashboardBookingPipelineHealth')
         && str_contains($dashboard, 'fetchDashboardFinancialCloseouts')
         && str_contains($dashboard, 'dashboardEngagementReadinessIssues'),
     'the dashboard should combine schedule, personal work, readiness, and closeout data.'
+);
+
+expectDashboardFeature(
+    str_contains(
+        $dashboard,
+        '<a class="summary-card dashboard-summary-card" href="inquiries.php?view=active">'
+    )
+        && str_contains($helpers, 'function fetchDashboardOpenBookingInquiryCount(')
+        && str_contains($helpers, "'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'")
+        && str_contains($helpers, "inquiry.stage = 'booked'")
+        && str_contains($helpers, 'inquiry.converted_at >= ?')
+        && str_contains($helpers, 'inquiry.converted_at < ?'),
+    'the Booking Inquiries card should count and open the complete active pipeline, including bookings from this month.'
 );
 
 expectDashboardFeature(
@@ -105,9 +137,24 @@ expectDashboardFeature(
 expectDashboardFeature(
     str_contains(
         $dashboard,
-        '<a class="summary-card dashboard-summary-card" href="engagements.php?sort_by=date&amp;date_sort=asc">'
-    ),
-    'the upcoming-events summary card should open the date-sorted engagements list.'
+        '<a class="summary-card dashboard-summary-card" href="tasks.php?view=all">'
+    )
+        && str_contains($dashboard, '<small>All Active Work</small><strong><?php echo $task_summary[\'all\']; ?></strong>')
+        && str_contains($helpers, 'COUNT(*) AS all_active_count')
+        && str_contains($helpers, "status IN ('open', 'in_progress', 'waiting')"),
+    'the All Active Work card should count and open every active Work Queue item.'
+);
+
+expectDashboardFeature(
+    str_contains(
+        $dashboard,
+        '<a class="summary-card dashboard-summary-card" href="tasks.php?view=my">'
+    )
+        && str_contains(
+            $dashboard,
+            '<a class="summary-card dashboard-summary-card summary-danger" href="tasks.php?view=overdue&amp;owner=me">'
+        ),
+    'the personal task summary cards should open their matching active and overdue Work Queue filters.'
 );
 
 expectDashboardFeature(
@@ -121,10 +168,29 @@ expectDashboardFeature(
 expectDashboardFeature(
     str_contains($dashboard, 'assets/css/pages/dashboard.min.css')
         && str_contains($styles, '.dashboard-primary-grid')
+        && str_contains($styles, '.dashboard-inquiry-grid')
+        && str_contains($styles, 'grid-template-columns: repeat(6, minmax(0, 1fr));')
+        && str_contains($styles, 'grid-column: span 4;')
+        && str_contains($styles, 'grid-column: span 2;')
+        && str_contains($styles, '.dashboard-health-list')
+        && str_contains($dashboard, 'Pipeline Health')
+        && str_contains($dashboard, 'Missing Next Action')
+        && str_contains($styles, 'width: min(100%, var(--app-content-max));')
+        && str_contains($styles, 'font-size: clamp(1.8rem, 3vw, 2.3rem);')
+        && str_contains($styles, 'font-size: 1.75rem;')
+        && str_contains($styles, 'font-variant-numeric: tabular-nums;')
+        && str_contains($styles, 'gap: .2rem;')
+        && preg_match('/\.dashboard-summary-card > span:last-child\s*\{[^}]*min-height:\s*56px;[^}]*align-self:\s*center;[^}]*justify-content:\s*center;/s', $styles) === 1
+        && str_contains($styles, 'border-radius: 11px;')
+        && str_contains($styles, 'font-size: .88rem;')
         && preg_match('/html body main\.container,[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1
         && preg_match('/\.dashboard-summary-card small\s*\{[^}]*text-overflow:\s*clip;[^}]*white-space:\s*normal;/s', $styles) === 1
         && preg_match('/\.dashboard-page a,[^{]*\{[^}]*text-decoration:\s*none;/s', $styles) === 1
         && preg_match('/\.dashboard-panel-heading > a:hover,[^{]*\{[^}]*background:\s*var\(--primary-subtle\);[^}]*transform:\s*translateY\(-1px\);/s', $styles) === 1
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Review All</a>')
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">View All</a>')
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Queue</a>')
+        && preg_match('/\.dashboard-panel-heading > a\.dashboard-panel-button:hover,[^{]*\{[^}]*transform:\s*none;/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 760px)')
         && str_contains($styles, 'grid-template-columns: 1fr;'),
     'the dashboard should use a transparent page root and responsive styles with multiline summary labels and underline-free interactive links.'

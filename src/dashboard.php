@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/dashboard_helpers.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
+require_once __DIR__ . '/booking_inquiry_helpers.php';
 $conn = applicationDatabaseConnection();
 startSecureSession();
 requireLogin();
@@ -15,6 +16,18 @@ $can_manage = in_array($user_role, ['admin', 'editor'], true);
 $business_date = applicationBusinessDate();
 $dashboard_upcoming_days = applicationWorkflowSetting('dashboard_upcoming_days');
 $upcoming_window_end = applicationBusinessDateOffset($dashboard_upcoming_days);
+$business_timezone = new DateTimeZone(applicationTimezoneName());
+$booking_month_start = new DateTimeImmutable(
+    substr($business_date, 0, 7) . '-01 00:00:00',
+    $business_timezone
+);
+$booking_next_month_start = $booking_month_start->modify('+1 month');
+$booking_month_start_utc = $booking_month_start
+    ->setTimezone(new DateTimeZone('UTC'))
+    ->format('Y-m-d H:i:s');
+$booking_next_month_start_utc = $booking_next_month_start
+    ->setTimezone(new DateTimeZone('UTC'))
+    ->format('Y-m-d H:i:s');
 
 try {
     $upcoming_engagements = fetchDashboardUpcomingEngagements(
@@ -24,6 +37,17 @@ try {
     );
     $task_summary = fetchDashboardTaskSummary($conn, $user_id, $business_date);
     $my_tasks = fetchDashboardMyTasks($conn, $user_id);
+    $booking_inquiries = fetchDashboardBookingInquiries($conn, $user_id);
+    $booking_inquiry_count = fetchDashboardOpenBookingInquiryCount(
+        $conn,
+        $booking_month_start_utc,
+        $booking_next_month_start_utc
+    );
+    $booking_pipeline_health = fetchDashboardBookingPipelineHealth(
+        $conn,
+        $business_date,
+        applicationBusinessDateOffset(7)
+    );
     $financial_closeouts = fetchDashboardFinancialCloseouts($conn, $business_date);
     $inbound_review_count = $can_manage
         ? fetchDashboardInboundReviewCount($conn)
@@ -36,9 +60,6 @@ try {
     abortApplication(503, 'The dashboard is temporarily unavailable.');
 }
 
-$upcoming_count = $upcoming_engagements === []
-    ? 0
-    : (int) $upcoming_engagements[0]['dashboard_total'];
 $financial_closeout_count = $financial_closeouts === []
     ? 0
     : (int) $financial_closeouts[0]['dashboard_total'];
@@ -72,7 +93,7 @@ $task_status_labels = followUpTaskStatuses();
         'assets/css/pages/dashboard.min.css',
     ],
 ]); ?>
-<body>
+<body class="dashboard-body">
 <?php include 'templates/header.php'; ?>
 <main class="container dashboard-page">
     <div class="page-heading dashboard-heading">
@@ -81,42 +102,81 @@ $task_status_labels = followUpTaskStatuses();
             <p class="page-intro">Your operations view for <?php echo htmlspecialchars($business_date_label, ENT_QUOTES, 'UTF-8'); ?>:</p>
         </div>
         <div class="page-heading-actions">
-            <a href="tasks.php?view=my" class="button-secondary">Open my work</a>
+            <a href="tasks.php?view=my" class="button-secondary">Open My Work</a>
             <?php if ($can_manage): ?>
-                <a href="add_task.php?return_to=dashboard.php" class="button-secondary">+ New task</a>
-                <a href="index.php" class="button-add">+ New engagement</a>
+                <a href="add_inquiry.php" class="button-secondary">+ New Inquiry</a>
+                <a href="add_task.php?return_to=dashboard.php" class="button-secondary">+ New Task</a>
+                <a href="index.php" class="button-add">+ New Engagement</a>
             <?php endif; ?>
         </div>
     </div>
 
+    <div class="dashboard-inquiry-grid">
+    <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
+        <div class="dashboard-panel-heading">
+            <div><h2 id="booking-inquiries-heading">Inquiry Next Actions</h2><p>Active opportunities owned by you or waiting for an owner.</p></div>
+            <a href="inquiries.php?view=active" class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>
+        </div>
+        <?php if ($booking_inquiries === []): ?>
+            <div class="dashboard-empty-state"><strong>No inquiry actions waiting</strong><span>The active pipeline is clear for you.</span></div>
+        <?php else: ?>
+            <ul class="dashboard-record-list dashboard-task-list">
+                <?php foreach ($booking_inquiries as $inquiry): ?>
+                    <?php $inquiry_due = followUpTaskDueState($inquiry['next_action_due_date'], $business_date); ?>
+                    <li class="task-row-<?php echo htmlspecialchars($inquiry_due['key'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <div class="dashboard-record-main"><a class="record-link" href="view_inquiry.php?id=<?php echo (int) $inquiry['id']; ?>"><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></a><span><?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'Set the next action'), ENT_QUOTES, 'UTF-8'); ?></span></div>
+                        <div class="dashboard-record-meta"><span class="task-due task-due-<?php echo htmlspecialchars($inquiry_due['key'], ENT_QUOTES, 'UTF-8'); ?> task-priority-<?php echo htmlspecialchars($inquiry['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($inquiry_due['label'], ENT_QUOTES, 'UTF-8'); ?></span><span class="dashboard-status"><?php echo htmlspecialchars(bookingInquiryStages()[$inquiry['stage']], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </section>
+    <section class="dashboard-panel dashboard-pipeline-health" aria-labelledby="pipeline-health-heading">
+        <div class="dashboard-panel-heading">
+            <div><h2 id="pipeline-health-heading">Pipeline Health</h2><p>Active inquiry gaps that need attention.</p></div>
+            <a href="inquiries.php?view=active" class="button-secondary dashboard-panel-button">Review All</a>
+        </div>
+        <nav class="dashboard-health-list" aria-label="Pipeline Health Filters">
+            <a href="inquiries.php?view=active&amp;owner=unassigned"><span>Unassigned Inquiries</span><strong><?php echo $booking_pipeline_health['unassigned']; ?></strong></a>
+            <a href="inquiries.php?view=active&amp;timing=overdue"><span>Overdue Next Actions</span><strong><?php echo $booking_pipeline_health['overdue']; ?></strong></a>
+            <a href="inquiries.php?view=active&amp;timing=next_7_days"><span>Due in 7 Days</span><strong><?php echo $booking_pipeline_health['due_next_7_days']; ?></strong></a>
+            <a href="inquiries.php?view=active&amp;timing=missing_action"><span>Missing Next Action</span><strong><?php echo $booking_pipeline_health['missing_next_action']; ?></strong></a>
+        </nav>
+    </section>
+    </div>
+
     <div class="summary-grid dashboard-summary-grid" aria-label="Daily operations summary">
-        <a class="summary-card dashboard-summary-card" href="engagements.php?sort_by=date&amp;date_sort=asc">
-            <span class="summary-icon" aria-hidden="true">◇</span>
-            <span><small>Events, next <?php echo $dashboard_upcoming_days; ?> days</small><strong><?php echo $upcoming_count; ?></strong></span>
+        <a class="summary-card dashboard-summary-card" href="tasks.php?view=all">
+            <span class="summary-icon" aria-hidden="true">≡</span>
+            <span><small>All Active Work</small><strong><?php echo $task_summary['all']; ?></strong></span>
         </a>
         <a class="summary-card dashboard-summary-card" href="tasks.php?view=my">
             <span class="summary-icon" aria-hidden="true">✓</span>
-            <span><small>My active work</small><strong><?php echo $task_summary['active']; ?></strong></span>
+            <span><small>My Active Work</small><strong><?php echo $task_summary['active']; ?></strong></span>
         </a>
-        <a class="summary-card dashboard-summary-card summary-danger" href="tasks.php?view=my">
+        <a class="summary-card dashboard-summary-card summary-danger" href="tasks.php?view=overdue&amp;owner=me">
             <span class="summary-icon" aria-hidden="true">!</span>
-            <span><small>My overdue work</small><strong><?php echo $task_summary['overdue']; ?></strong></span>
+            <span><small>My Overdue Work</small><strong><?php echo $task_summary['overdue']; ?></strong></span>
+        </a>
+        <a class="summary-card dashboard-summary-card" href="inquiries.php?view=active">
+            <span class="summary-icon" aria-hidden="true">↗</span>
+            <span><small>Booking Inquiries</small><strong><?php echo $booking_inquiry_count; ?></strong></span>
         </a>
         <?php if ($financial_closeout_count > 0): ?>
             <a class="summary-card dashboard-summary-card summary-review" href="#financial-closeouts">
                 <span class="summary-icon" aria-hidden="true">$</span>
-                <span><small>Financial closeouts due</small><strong><?php echo $financial_closeout_count; ?></strong></span>
+                <span><small>Financial Closeouts</small><strong><?php echo $financial_closeout_count; ?></strong></span>
             </a>
         <?php else: ?>
             <div class="summary-card dashboard-summary-card summary-review dashboard-summary-card-disabled" aria-disabled="true">
                 <span class="summary-icon" aria-hidden="true">$</span>
-                <span><small>Financial closeouts due</small><strong>0</strong></span>
+                <span><small>Financial Closeouts</small><strong>0</strong></span>
             </div>
         <?php endif; ?>
         <?php if ($can_manage): ?>
             <a class="summary-card dashboard-summary-card<?php echo $inbound_review_count > 0 ? ' summary-review' : ''; ?>" href="inbound_mail.php?status=review">
                 <span class="summary-icon" aria-hidden="true">@</span>
-                <span><small>Mail awaiting review</small><strong><?php echo $inbound_review_count; ?></strong></span>
+                <span><small>Mail For Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
             </a>
         <?php endif; ?>
     </div>
@@ -128,7 +188,7 @@ $task_status_labels = followUpTaskStatuses();
                     <h2 id="upcoming-engagements-heading">Upcoming Engagements</h2>
                     <p>Active events beginning or continuing during the next <?php echo $dashboard_upcoming_days; ?> days.</p>
                 </div>
-                <a href="engagements.php?sort_by=date&amp;date_sort=asc">View all</a>
+                <a href="engagements.php?sort_by=date&amp;date_sort=asc" class="button-secondary dashboard-panel-button">View All</a>
             </div>
             <?php if ($displayed_upcoming_engagements === []): ?>
                 <div class="dashboard-empty-state"><strong>No upcoming engagements</strong><span>The next <?php echo $dashboard_upcoming_days; ?> days are clear.</span></div>
@@ -160,7 +220,7 @@ $task_status_labels = followUpTaskStatuses();
                     <h2 id="my-work-heading">My Work</h2>
                     <p><?php echo $task_summary['today']; ?> due today, ordered by urgency and due date.</p>
                 </div>
-                <a href="tasks.php?view=my">Open queue</a>
+                <a href="tasks.php?view=my" class="button-secondary dashboard-panel-button">Open Queue</a>
             </div>
             <?php if ($my_tasks === []): ?>
                 <div class="dashboard-empty-state"><strong>No active assigned work</strong><span>You are caught up.</span></div>

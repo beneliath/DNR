@@ -310,7 +310,7 @@ try {
 <body>
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
-<div class="container">
+<div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>New Engagement</span></nav>
     <div class="page-heading form-page-heading">
         <div>

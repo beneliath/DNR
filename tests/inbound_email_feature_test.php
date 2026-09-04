@@ -100,9 +100,16 @@ expectInboundFeature(
     'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
 );
 expectInboundFeature(
-    str_contains($review, '<main class="container inbound-mail-page">')
-        && preg_match('/\.inbound-mail-page,[^{]*\.inbound-mail-page > \.inbound-mail-layout > section\s*\{[^}]*background:\s*transparent\s*!important;/s', $reviewStyles) === 1,
-    'the Inbound Mail page and its layout sections should not paint a legacy black surface over the app background.'
+    str_contains($review, 'class="inbound-mail-body"')
+        && str_contains($review, '<main class="container inbound-mail-page">')
+        && str_contains($review, 'class="page-heading inbound-mail-heading"')
+        && preg_match('/\.inbound-mail-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $reviewStyles) === 1
+        && preg_match('/\.inbound-mail-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $reviewStyles) === 1
+        && preg_match('/\.inbound-mail-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $reviewStyles) === 1
+        && preg_match('/\.inbound-mail-page,[^{]*\.inbound-mail-page > \.inbound-mail-layout > section\s*\{[^}]*background:\s*transparent\s*!important;/s', $reviewStyles) === 1
+        && preg_match('/html\.dark-mode \.inbound-message-card\s*\{[^}]*background:\s*var\(--surface\)\s*!important;[^}]*color:\s*var\(--text\)\s*!important;/s', $reviewStyles) === 1
+        && preg_match('/html\.dark-mode \.inbound-message-card:hover,[^{]*html\.dark-mode \.inbound-message-card\.selected\s*\{[^}]*background:\s*var\(--surface-subtle\)\s*!important;/s', $reviewStyles) === 1,
+    'the Inbound Mail page should use the Dashboard canvas and typography without painting a legacy black surface over the app background.'
 );
 expectInboundFeature(
     preg_match('/\\.inbound-message-detail > \\.inbound-routing-summary,[^{]*\\.inbound-message-detail > \\.inbound-message-body\\s*\\{[^}]*background:\\s*transparent\\s*!important;/s', $reviewStyles) === 1,

@@ -54,3 +54,4 @@
 20260902_bound_audit_pruning.sql
 20260902_add_mail_history_retention.sql
 20260903_add_mattermost_email_reaction_notifications.sql
+20260904_add_inquiry_booking_pipeline.sql

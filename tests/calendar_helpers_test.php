@@ -191,15 +191,15 @@ expectCalendar(
 );
 expectCalendar(
     calendarViewerPageUrl('2026-09', 'everything')
-        === 'calendar_subscription.php?month=2026-09#event-calendar'
+        === 'view_calendar.php?month=2026-09#event-calendar'
         && calendarViewerPageUrl(null, 'my_tasks')
-        === 'calendar_subscription.php?show=my_tasks#event-calendar'
+        === 'view_calendar.php?show=my_tasks#event-calendar'
         && calendarViewerPageUrl(null, 'everything', '2026-08-26')
-        === 'calendar_subscription.php?day=2026-08-26#event-calendar'
+        === 'view_calendar.php?day=2026-08-26#event-calendar'
         && calendarViewerPageUrl(null, 'events', 'invalid')
-        === 'calendar_subscription.php?show=events#event-calendar'
+        === 'view_calendar.php?show=events#event-calendar'
         && calendarViewerPageUrl('invalid', 'events')
-        === 'calendar_subscription.php?show=events#event-calendar',
+        === 'view_calendar.php?show=events#event-calendar',
     'Calendar navigation should preserve selected content without accepting invalid month or day values.'
 );
 
@@ -339,7 +339,7 @@ $calendar_token = str_repeat('a', 32);
 $url = calendarSubscriptionUrl([
     'HTTP_X_FORWARDED_PROTO' => 'https',
     'HTTP_HOST' => 'dnr.example.org',
-    'SCRIPT_NAME' => '/calendar_subscription.php',
+    'SCRIPT_NAME' => '/view_calendar.php',
 ], $calendar_token);
 expectCalendar(
     $url === 'https://calendar.example.org/dnr/calendar.php?token=' . $calendar_token,
@@ -374,7 +374,7 @@ expectCalendar(
     str_starts_with(calendarSubscriptionUrl([
         'HTTP_X_FORWARDED_PROTO' => 'https',
         'HTTP_HOST' => 'localhost:8080',
-        'SCRIPT_NAME' => '/calendar_subscription.php',
+        'SCRIPT_NAME' => '/view_calendar.php',
     ], $calendar_token), 'http://localhost:8080/'),
     'an untrusted forwarded protocol should not change development link schemes.'
 );

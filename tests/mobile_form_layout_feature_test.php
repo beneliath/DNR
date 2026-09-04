@@ -13,10 +13,7 @@ $modern_styles = file_get_contents($root . '/src/assets/css/modern.css');
 $engagement_styles = file_get_contents($root . '/src/assets/css/pages/index.css');
 
 expectMobileFormLayoutFeature(
-    str_contains(
-        $modern_styles,
-        ':not(.address-region-menu):not(.phone-country-menu):not(.app-sidebar):not(.mobile-app-bar)'
-    )
+    !str_contains($modern_styles, 'html.dark-mode body div:not(')
         && preg_match(
             '/html body \.address-region-menu\s*\{[^}]*background:\s*var\(--surface\)\s*!important;/s',
             $modern_styles

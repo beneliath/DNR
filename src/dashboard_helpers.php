@@ -148,25 +148,33 @@ function fetchDashboardUpcomingEngagements(
     return $engagements;
 }
 
-/** @return array{active: int, overdue: int, today: int} */
+/** @return array{all: int, active: int, overdue: int, today: int} */
 function fetchDashboardTaskSummary(mysqli $conn, int $user_id, string $business_date): array
 {
     $stmt = $conn->prepare(
-        "SELECT COUNT(*) AS active_count,
-                SUM(due_date < ?) AS overdue_count,
-                SUM(due_date = ?) AS today_count
+        "SELECT COUNT(*) AS all_active_count,
+                COALESCE(SUM(assigned_to = ?), 0) AS active_count,
+                COALESCE(SUM(assigned_to = ? AND due_date < ?), 0) AS overdue_count,
+                COALESCE(SUM(assigned_to = ? AND due_date = ?), 0) AS today_count
          FROM follow_up_tasks
-         WHERE assigned_to = ?
-           AND status IN ('open', 'in_progress', 'waiting')"
+         WHERE status IN ('open', 'in_progress', 'waiting')"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare dashboard task totals.');
     }
-    $stmt->bind_param('ssi', $business_date, $business_date, $user_id);
+    $stmt->bind_param(
+        'iisis',
+        $user_id,
+        $user_id,
+        $business_date,
+        $user_id,
+        $business_date
+    );
     $stmt->execute();
     $row = $stmt->get_result()->fetch_assoc() ?: [];
     $stmt->close();
     return [
+        'all' => (int) ($row['all_active_count'] ?? 0),
         'active' => (int) ($row['active_count'] ?? 0),
         'overdue' => (int) ($row['overdue_count'] ?? 0),
         'today' => (int) ($row['today_count'] ?? 0),
@@ -180,15 +188,18 @@ function fetchDashboardMyTasks(mysqli $conn, int $user_id, int $limit = 8): arra
     $stmt = $conn->prepare(
         "SELECT t.id, t.title, t.status, t.priority, t.due_date,
                 t.subject_type, t.engagement_id, t.organization_id, t.contact_id,
+                t.inquiry_id,
                 COALESCE(NULLIF(TRIM(e.event_title), ''), eo.organization_name)
                     AS engagement_label,
                 o.organization_name AS organization_label,
-                CONCAT(c.contact_last_name, ', ', c.contact_first_name) AS contact_label
+                CONCAT(c.contact_last_name, ', ', c.contact_first_name) AS contact_label,
+                inquiry.title AS inquiry_label
          FROM follow_up_tasks t
          LEFT JOIN engagements e ON e.id = t.engagement_id
          LEFT JOIN organizations eo ON eo.id = e.organization_id
          LEFT JOIN organizations o ON o.id = t.organization_id
          LEFT JOIN contacts c ON c.id = t.contact_id
+         LEFT JOIN booking_inquiries inquiry ON inquiry.id = t.inquiry_id
          WHERE t.assigned_to = ?
            AND t.status IN ('open', 'in_progress', 'waiting')
          ORDER BY COALESCE(t.due_date, '9999-12-31'),
@@ -204,6 +215,104 @@ function fetchDashboardMyTasks(mysqli $conn, int $user_id, int $limit = 8): arra
     $tasks = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
     return $tasks;
+}
+
+/** @return list<array<string, mixed>> */
+function fetchDashboardBookingInquiries(
+    mysqli $conn,
+    int $userId,
+    int $limit = 8
+): array {
+    $limit = max(1, min(50, $limit));
+    $stmt = $conn->prepare(
+        "SELECT inquiry.id, inquiry.title, inquiry.stage, inquiry.priority,
+                inquiry.next_action, inquiry.next_action_due_date,
+                inquiry.preferred_start_date, inquiry.preferred_end_date,
+                organization.organization_name, owner.username AS owner_username,
+                COUNT(*) OVER() AS dashboard_total
+         FROM booking_inquiries inquiry
+         LEFT JOIN organizations organization ON organization.id = inquiry.organization_id
+         LEFT JOIN users owner ON owner.id = inquiry.owner_user_id
+         WHERE inquiry.stage IN (
+            'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
+         )
+           AND (inquiry.owner_user_id = ? OR inquiry.owner_user_id IS NULL)
+         ORDER BY
+            (inquiry.next_action_due_date IS NULL), inquiry.next_action_due_date,
+            FIELD(inquiry.priority, 'urgent', 'high', 'normal', 'low'), inquiry.id
+         LIMIT {$limit}"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare dashboard inquiries.');
+    }
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $inquiries = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $inquiries;
+}
+
+function fetchDashboardOpenBookingInquiryCount(
+    mysqli $conn,
+    string $monthStartUtc,
+    string $nextMonthStartUtc
+): int {
+    $stmt = $conn->prepare(
+        "SELECT COUNT(*) AS total
+         FROM booking_inquiries inquiry
+         WHERE inquiry.stage IN (
+            'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
+         )
+            OR (
+                inquiry.stage = 'booked'
+                AND inquiry.converted_at >= ?
+                AND inquiry.converted_at < ?
+            )"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare dashboard booking inquiry count.');
+    }
+    $stmt->bind_param('ss', $monthStartUtc, $nextMonthStartUtc);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: [];
+    $stmt->close();
+    return (int) ($row['total'] ?? 0);
+}
+
+/** @return array{unassigned: int, overdue: int, due_next_7_days: int, missing_next_action: int} */
+function fetchDashboardBookingPipelineHealth(
+    mysqli $conn,
+    string $businessDate,
+    string $sevenDayWindowEnd
+): array {
+    $stmt = $conn->prepare(
+        "SELECT
+            COALESCE(SUM(inquiry.owner_user_id IS NULL), 0) AS unassigned_count,
+            COALESCE(SUM(inquiry.next_action_due_date < ?), 0) AS overdue_count,
+            COALESCE(SUM(inquiry.next_action_due_date BETWEEN ? AND ?), 0)
+                AS due_next_7_days_count,
+            COALESCE(SUM(
+                inquiry.next_action IS NULL OR TRIM(inquiry.next_action) = ''
+            ), 0) AS missing_next_action_count
+         FROM booking_inquiries inquiry
+         WHERE inquiry.stage IN (
+            'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
+         )"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare dashboard pipeline health.');
+    }
+    $stmt->bind_param('sss', $businessDate, $businessDate, $sevenDayWindowEnd);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc() ?: [];
+    $stmt->close();
+
+    return [
+        'unassigned' => (int) ($row['unassigned_count'] ?? 0),
+        'overdue' => (int) ($row['overdue_count'] ?? 0),
+        'due_next_7_days' => (int) ($row['due_next_7_days_count'] ?? 0),
+        'missing_next_action' => (int) ($row['missing_next_action_count'] ?? 0),
+    ];
 }
 
 /** @return list<array<string, mixed>> */

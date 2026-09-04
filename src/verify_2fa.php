@@ -106,7 +106,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
         <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
     </button>
-    <div class="login-container">
+    <div class="login-container" role="main">
         <div class="auth-brand">
             <img class="auth-brand-logo" src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('light') . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl(applicationBrandLogo('dark') . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="<?php echo htmlspecialchars(applicationBrandLabel(), ENT_QUOTES, 'UTF-8'); ?>" width="320" height="55">
         </div>
@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </form>
         <form method="post" action="logout.php" class="login-cancel-form">
             <?php echo csrfInput(); ?>
-            <button type="submit" class="login-cancel-button">Cancel login</button>
+            <button type="submit" class="login-cancel-button">Cancel Login</button>
         </form>
         <p class="auth-assurance">
             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>

@@ -4,6 +4,10 @@ require_once __DIR__ . '/../application_runtime.php';
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
     'dashboard' => ['dashboard.php'],
+    'inquiries' => [
+        'inquiries.php', 'add_inquiry.php', 'edit_inquiry.php',
+        'view_inquiry.php', 'convert_inquiry.php', 'compose_inquiry_email.php',
+    ],
     'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'close_engagement.php', 'restore_chron_entries.php'],
     'tasks' => [
         'tasks.php',
@@ -30,6 +34,15 @@ foreach ($nav_groups as $group => $pages) {
         $active_nav = $group;
         break;
     }
+}
+if ($shell_current_page === 'restore_entity_chron_entries.php'
+    && is_scalar($_GET['entity_type'] ?? null)
+) {
+    $active_nav = match ((string) $_GET['entity_type']) {
+        'inquiry' => 'inquiries',
+        'contact' => 'contacts',
+        default => 'organizations',
+    };
 }
 $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
@@ -82,6 +95,9 @@ if (!empty($_SESSION['user_id'])) {
                 <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
                 </a></li>
+                <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>
+                </a></li>
                 <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
                 </a></li>
@@ -115,7 +131,7 @@ if (!empty($_SESSION['user_id'])) {
         </nav>
 
         <nav class="utility-navigation" aria-label="Account and application">
-            <a href="calendar_subscription.php" class="nav-link<?php echo $shell_current_page === 'calendar_subscription.php' ? ' active' : ''; ?>"<?php echo $shell_current_page === 'calendar_subscription.php' ? ' aria-current="page"' : ''; ?>>
+            <a href="view_calendar.php" class="nav-link<?php echo $shell_current_page === 'view_calendar.php' ? ' active' : ''; ?>"<?php echo $shell_current_page === 'view_calendar.php' ? ' aria-current="page"' : ''; ?>>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendar</span>
             </a>
             <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>

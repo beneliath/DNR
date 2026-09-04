@@ -27,6 +27,7 @@ $grants = $read('scripts/configure_database_privileges.sh');
 $compose = $read('docker-compose.smtp.yaml');
 $mailCompose = $read('docker-compose.mail.yaml');
 $javascript = $read('src/assets/js/engagement-email.js');
+$emailStyles = $read('src/assets/css/pages/engagement_email.css');
 $package = $read('package.json');
 $environment = $read('.env.example');
 $readme = $read('README.md');
@@ -97,7 +98,7 @@ expectEngagementEmailFeature(
         && str_contains($composer, 'data-select-recipient-role')
         && str_contains($composer, 'include_event_brief')
         && str_contains($composer, 'excludes Chron, internal notes, compensation, and financial information')
-        && str_contains($detail, 'Retry failed deliveries')
+        && str_contains($detail, 'Retry Failed Deliveries')
         && str_contains($detail, 'engagementEmailAggregateStatus')
         && str_contains($view, 'compose_engagement_email.php?id=')
         && str_contains($view, 'fetchEngagementEmailMessages')
@@ -105,9 +106,18 @@ expectEngagementEmailFeature(
     'editors should compose by event role and inspect or retry delivery from the engagement workflow.'
 );
 expectEngagementEmailFeature(
-    str_contains($chronView, 'View outbound message')
-        && str_contains($chronEdit, 'View outbound message')
-        && str_contains($view, 'View outbound message')
+    str_contains($composer, '<body class="compose-engagement-email-body">')
+        && str_contains($composer, 'class="container engagement-email-page compose-engagement-email-page"')
+        && str_contains($composer, 'class="page-heading compose-engagement-email-heading"')
+        && preg_match('/\.engagement-email-page\.compose-engagement-email-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $emailStyles) === 1
+        && preg_match('/\.compose-engagement-email-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $emailStyles) === 1
+        && preg_match('/\.compose-engagement-email-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $emailStyles) === 1,
+    'the engagement email composer should use the Dashboard content width, heading scale, and footer alignment.'
+);
+expectEngagementEmailFeature(
+    str_contains($chronView, 'View Outbound Message')
+        && str_contains($chronEdit, 'View Outbound Message')
+        && str_contains($view, 'View Outbound Message')
         && substr_count($helpers, 'outbound_email_message_id') >= 3,
     'outbound source links should appear in engagement, contact, and organization Chron logs.'
 );

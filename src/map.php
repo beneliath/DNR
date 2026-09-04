@@ -239,10 +239,10 @@ $map_payload = [
     2 => 'assets/css/map.min.css?rev=maplibre-theme-surfaces-3',
   ),
 )); ?>
-<body>
+<body class="map-body">
 <?php include 'templates/header.php'; ?>
 <main class="container map-page">
-    <div class="page-heading">
+    <div class="page-heading map-heading">
         <div>
             <h1>Map</h1>
             <p class="page-intro">Explore engagement locations by lifecycle, confirmation, and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
@@ -285,7 +285,7 @@ $map_payload = [
             </div>
         </fieldset>
         <div class="map-filter-actions">
-            <button type="submit" class="button-add">Apply filters</button>
+            <button type="submit" class="button-add">Apply Filters</button>
             <a href="map.php" class="button-secondary map-clear-button">Clear</a>
         </div>
     </form>

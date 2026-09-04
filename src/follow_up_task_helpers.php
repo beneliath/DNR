@@ -27,7 +27,7 @@ function followUpTaskQueueViews()
 {
     $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
     return [
-        'my' => 'My work',
+        'my' => 'My Active Work',
         'overdue' => 'Overdue',
         'today' => 'Due today',
         'upcoming' => 'Next ' . $upcomingDays . ' days',
@@ -88,6 +88,36 @@ function lockFollowUpTaskEngagements(mysqli $conn, array $engagement_ids): void
     $stmt->close();
 }
 
+/** @param array<int, int|null> $inquiryIds */
+function lockFollowUpTaskInquiries(mysqli $conn, array $inquiryIds): void
+{
+    $inquiryIds = array_values(array_unique(array_filter(
+        array_map(
+            static fn($inquiryId): int => (int) $inquiryId,
+            $inquiryIds
+        ),
+        static fn(int $inquiryId): bool => $inquiryId > 0
+    )));
+    sort($inquiryIds, SORT_NUMERIC);
+    if ($inquiryIds === []) {
+        return;
+    }
+
+    $stmt = $conn->prepare('SELECT id FROM booking_inquiries WHERE id = ? FOR UPDATE');
+    if (!$stmt) {
+        throw new RuntimeException('Unable to lock the task inquiry.');
+    }
+    foreach ($inquiryIds as $inquiryId) {
+        $stmt->bind_param('i', $inquiryId);
+        $stmt->execute();
+        if ($stmt->get_result()->num_rows !== 1) {
+            $stmt->close();
+            throw new InvalidArgumentException('The task inquiry is no longer available.');
+        }
+    }
+    $stmt->close();
+}
+
 function parseFollowUpTaskSubject($value)
 {
     $value = trim((string) $value);
@@ -98,10 +128,11 @@ function parseFollowUpTaskSubject($value)
             'engagement_id' => null,
             'organization_id' => null,
             'contact_id' => null,
+            'inquiry_id' => null,
         ];
     }
 
-    if (!preg_match('/\A(engagement|organization|contact):([1-9][0-9]*)\z/', $value, $matches)) {
+    if (!preg_match('/\A(engagement|organization|contact|inquiry):([1-9][0-9]*)\z/', $value, $matches)) {
         throw new InvalidArgumentException('Select a valid related record.');
     }
 
@@ -113,6 +144,7 @@ function parseFollowUpTaskSubject($value)
         'engagement_id' => $subject_type === 'engagement' ? $subject_id : null,
         'organization_id' => $subject_type === 'organization' ? $subject_id : null,
         'contact_id' => $subject_type === 'contact' ? $subject_id : null,
+        'inquiry_id' => $subject_type === 'inquiry' ? $subject_id : null,
     ];
 }
 
@@ -201,6 +233,13 @@ function followUpTaskSubjectRecord(mysqli $conn, $subject_type, $subject_id = nu
              WHERE c.id = ?"
         );
         $url = 'view_contact.php?id=' . $subject_id;
+    } elseif ($subject_type === 'inquiry') {
+        $stmt = $conn->prepare(
+            "SELECT id, title AS label,
+                    (stage NOT IN ('booked', 'declined')) AS is_active
+             FROM booking_inquiries WHERE id = ?"
+        );
+        $url = 'view_inquiry.php?id=' . $subject_id;
     } else {
         return null;
     }
@@ -235,6 +274,7 @@ function followUpTaskSubjectOptions(mysqli $conn)
         'engagement' => [],
         'organization' => [],
         'contact' => [],
+        'inquiry' => [],
     ];
 
     $options['general'][] = [
@@ -293,6 +333,20 @@ function followUpTaskSubjectOptions(mysqli $conn)
         }
     }
 
+    $inquiries = $conn->query(
+        "SELECT id, title, stage FROM booking_inquiries
+         WHERE stage NOT IN ('booked', 'declined')
+         ORDER BY updated_at DESC, id DESC"
+    );
+    if ($inquiries) {
+        while ($row = $inquiries->fetch_assoc()) {
+            $options['inquiry'][] = [
+                'value' => 'inquiry:' . (int) $row['id'],
+                'label' => $row['title'] . ' · ' . ucwords(str_replace('_', ' ', $row['stage'])),
+            ];
+        }
+    }
+
     return $options;
 }
 
@@ -300,7 +354,7 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20, $subject
 {
     $search = trim(substr((string) $search, 0, 100));
     $limit = max(1, min(50, (int) $limit));
-    $subject_type = in_array($subject_type, ['engagement', 'organization', 'contact'], true)
+    $subject_type = in_array($subject_type, ['engagement', 'organization', 'contact', 'inquiry'], true)
         ? $subject_type
         : null;
     $options = $subject_type === null
@@ -318,7 +372,7 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20, $subject
     if ($fulltext === '') {
         return $options;
     }
-    $per_type_limit = max(3, (int) ceil($limit / 3));
+    $per_type_limit = max(3, (int) ceil($limit / 4));
 
     if ($subject_type === null || $subject_type === 'engagement') {
         $engagement_stmt = $conn->prepare(
@@ -399,6 +453,27 @@ function searchFollowUpTaskSubjects(mysqli $conn, $search, $limit = 20, $subject
         $contact_stmt->close();
     }
 
+    if ($subject_type === null || $subject_type === 'inquiry') {
+        $inquiry_stmt = $conn->prepare(
+            "SELECT id, CONCAT(title, ' · ', REPLACE(stage, '_', ' ')) AS label
+             FROM booking_inquiries
+             WHERE stage NOT IN ('booked', 'declined')
+               AND MATCH(title, request_summary, source_detail, event_city, event_state)
+                   AGAINST (? IN BOOLEAN MODE)
+             ORDER BY updated_at DESC, id DESC LIMIT ?"
+        );
+        $inquiry_stmt->bind_param('si', $fulltext, $per_type_limit);
+        $inquiry_stmt->execute();
+        foreach ($inquiry_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $options[] = [
+                'value' => 'inquiry:' . (int) $row['id'],
+                'label' => $row['label'],
+                'type' => 'inquiry',
+            ];
+        }
+        $inquiry_stmt->close();
+    }
+
     return array_slice($options, 0, $limit + ($subject_type === null ? 1 : 0));
 }
 
@@ -459,6 +534,10 @@ function normalizeFollowUpTaskInput(
     $existing_subject = $existing_subject_value === null
         ? null
         : parseFollowUpTaskSubject($existing_subject_value);
+    lockFollowUpTaskInquiries($conn, [
+        $existing_subject['inquiry_id'] ?? null,
+        $subject['inquiry_id'] ?? null,
+    ]);
     lockFollowUpTaskEngagements($conn, [
         $existing_subject['engagement_id'] ?? null,
         $subject['engagement_id'] ?? null,
@@ -515,21 +594,22 @@ function normalizeFollowUpTaskInput(
 
 function insertFollowUpTask(mysqli $conn, array $task, int $created_by): int
 {
+    lockFollowUpTaskInquiries($conn, [$task['inquiry_id'] ?? null]);
     lockFollowUpTaskEngagements($conn, [$task['engagement_id'] ?? null]);
     $completed_by = $task['status'] === 'completed' ? $created_by : null;
     $completed_at = $task['status'] === 'completed' ? gmdate('Y-m-d H:i:s') : null;
     $stmt = $conn->prepare(
         'INSERT INTO follow_up_tasks
             (title, details, status, priority, due_date, waiting_on,
-             subject_type, engagement_id, organization_id, contact_id,
+             subject_type, engagement_id, organization_id, contact_id, inquiry_id,
              assigned_to, created_by, completed_by, completed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the task.');
     }
     $stmt->bind_param(
-        'sssssssiiiiiis',
+        'sssssssiiiiiiis',
         $task['title'],
         $task['details'],
         $task['status'],
@@ -540,6 +620,7 @@ function insertFollowUpTask(mysqli $conn, array $task, int $created_by): int
         $task['engagement_id'],
         $task['organization_id'],
         $task['contact_id'],
+        $task['inquiry_id'],
         $task['assigned_to'],
         $created_by,
         $completed_by,
@@ -577,7 +658,8 @@ function safeFollowUpTaskReturnUrl($value, $fallback = 'tasks.php')
         'view_engagement.php',
         'view_organization.php',
         'view_contact.php',
-        'calendar_subscription.php',
+        'view_inquiry.php',
+        'view_calendar.php',
     ];
     if (!in_array($path, $allowed_pages, true)) {
         return $fallback;
@@ -601,6 +683,10 @@ function followUpTaskSubjectFromRow(array $task)
         $label = $task['contact_label'] ?? 'Contact';
         $id = (int) ($task['contact_id'] ?? 0);
         $url = 'view_contact.php?id=' . $id;
+    } elseif ($subject_type === 'inquiry') {
+        $label = $task['inquiry_label'] ?? 'Inquiry';
+        $id = (int) ($task['inquiry_id'] ?? 0);
+        $url = 'view_inquiry.php?id=' . $id;
     } else {
         return [
             'type' => 'general',
@@ -625,7 +711,8 @@ function followUpTaskSelectSql()
                 completer.username AS completer_username,
                 COALESCE(NULLIF(TRIM(e.event_title), ''), eo.organization_name) AS engagement_label,
                 o.organization_name AS organization_label,
-                CONCAT(c.contact_last_name, ', ', c.contact_first_name) AS contact_label
+                CONCAT(c.contact_last_name, ', ', c.contact_first_name) AS contact_label,
+                inquiry.title AS inquiry_label
             FROM follow_up_tasks t
             LEFT JOIN users assignee ON assignee.id = t.assigned_to
             LEFT JOIN users creator ON creator.id = t.created_by
@@ -633,7 +720,8 @@ function followUpTaskSelectSql()
             LEFT JOIN engagements e ON e.id = t.engagement_id
             LEFT JOIN organizations eo ON eo.id = e.organization_id
             LEFT JOIN organizations o ON o.id = t.organization_id
-            LEFT JOIN contacts c ON c.id = t.contact_id";
+            LEFT JOIN contacts c ON c.id = t.contact_id
+            LEFT JOIN booking_inquiries inquiry ON inquiry.id = t.inquiry_id";
 }
 
 function fetchFollowUpTask(mysqli $conn, $task_id, $lock = false)
@@ -800,7 +888,7 @@ function fetchFollowUpTasksForSubject(
     if ($subject_type === 'general') {
         $where = "t.subject_type = 'general'";
         $bind = false;
-    } elseif (in_array($subject_type, ['engagement', 'organization', 'contact'], true)
+    } elseif (in_array($subject_type, ['engagement', 'organization', 'contact', 'inquiry'], true)
         && (int) $subject_id > 0
     ) {
         $where = 't.' . $subject_type . '_id = ?';

@@ -875,8 +875,30 @@ exports, maps, calendar feeds, and detail screens expose lifecycle and confirmat
 daily operational queues default to active events so postponed, canceled, and completed records do
 not appear as current work.
 
+## Inquiry and booking pipeline
+
+Potential events begin as first-class **Inquiries** instead of incomplete Engagements. The Booking
+Pipeline organizes active records across **New**, **Contacted**, **Qualified**, **Awaiting Details**,
+and **Proposal Sent**, with separate **Booked** and **Declined** outcomes. Each Inquiry can retain an
+optional Organization and primary Contact, preferred and alternate date ranges, request and location
+details, source, owner, priority, next action, Chron, outbound correspondence, stage history, and
+linked follow-up work. Declining requires a reason and remains reversible until the Inquiry is booked.
+
+Inbound Mail offers **Create Inquiry**, which prefills the source message and preserves it as the
+first Inquiry Chron entry. Inquiry email templates cover the initial response, request for details,
+date options, and proposal follow-up. Messages use the existing isolated delivery worker and add a
+signed Inquiry reply marker; matching replies return to the active Inquiry Chron. Delivery history is
+visible on the Inquiry and is also recorded on the selected Contact and Organization when present.
+
+**Review booking** validates the required Organization, title, and preferred dates; surfaces
+overlapping active Engagements and qualified Inquiries; and lets the user choose which open Inquiry
+tasks should move. Acknowledged warnings do not become unexplained hard blocks. Conversion runs in
+one transaction: it creates the Engagement, assigns the primary Contact as Primary host when
+available, moves selected tasks, generates the standard event checklist, marks the Inquiry Booked,
+and preserves the Inquiry as a read-only source record linked to the new Engagement.
+
 Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
-general or linked to one engagement, organization, or contact. Each task supports an owner,
+general or linked to one inquiry, engagement, organization, or contact. Each task supports an owner,
 due date, priority, notes, and the states **Open**, **In progress**, **Waiting**, **Completed**,
 and **Canceled**. The queue provides personal, overdue, due-today, next-seven-days, waiting,
 unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and

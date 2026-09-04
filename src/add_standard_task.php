@@ -56,16 +56,17 @@ $standard_task_form_submit_label = 'Add standard task';
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/add_standard_task.min.css',
   ),
 )); ?>
-<body>
+<body class="add-standard-task-body">
 <?php include 'templates/header.php'; ?>
-<div class="container">
+<main class="container add-standard-task-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><a href="standard_tasks.php">Standard Event Tasks</a><span aria-hidden="true">/</span><span>New Task</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>New Standard Event Task</h1><p class="page-intro">Add reusable work that will be assigned automatically when a new event is created.</p></div></div>
+    <div class="page-heading form-page-heading add-standard-task-heading"><div><h1>New Standard Event Task</h1><p class="page-intro">Add reusable work that will be assigned automatically when a new event is created.</p></div></div>
     <?php if ($error_message !== ''): ?><p class="error"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php include 'templates/standard_event_task_form.php'; ?>
-</div>
+</main>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

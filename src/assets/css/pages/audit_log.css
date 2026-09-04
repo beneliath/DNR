@@ -1,3 +1,19 @@
+.audit-log-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            padding-inline: var(--app-content-padding);
+        }
+        .audit-log-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+        .audit-log-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
+        }
+
 .page-heading,
         .audit-filters,
         .audit-page-size,
@@ -234,27 +250,22 @@
             padding: 10px;
             text-align: left;
             vertical-align: top;
-            border-bottom: 1px solid #ddd;
-        }
-        .dark-mode .audit-table th,
-        .dark-mode .audit-table td {
-            border-bottom-color: #444;
+            border-bottom: 1px solid var(--border);
         }
         .audit-table th {
-            background: #f5f5f5;
+            background: var(--surface-subtle);
         }
         .audit-timestamp {
             white-space: nowrap;
         }
-        .dark-mode .audit-table th {
-            background: #2d2d2d;
-        }
         .audit-badge {
             display: inline-block;
-            padding: 3px 7px;
+            padding: 2px 6px;
             border-radius: 999px;
             background: var(--button-neutral-color);
             color: #fff;
+            font-size: 0.78rem;
+            line-height: 1.25;
         }
         .audit-badge-login { background: #2e7d32; }
         .audit-badge-database_change { background: #1565c0; }
@@ -262,10 +273,7 @@
         .audit-detail {
             display: block;
             margin-top: 4px;
-            color: #666;
-        }
-        .dark-mode .audit-detail {
-            color: #bbb;
+            color: var(--text-muted);
         }
         .pagination {
             justify-content: center;

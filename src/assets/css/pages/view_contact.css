@@ -1,13 +1,49 @@
+.view-contact-page {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            padding-inline: var(--app-content-padding);
+        }
+        .view-contact-heading h1 {
+            font-size: clamp(1.8rem, 3vw, 2.3rem);
+        }
+        .view-contact-body .app-footer {
+            width: min(100%, var(--app-content-max));
+            max-width: var(--app-content-max);
+            margin-inline: auto !important;
+            padding-inline: var(--app-content-padding);
+            text-align: left !important;
+        }
+
 .contact-details {
-            background-color: #fff;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
             padding: 20px;
             margin-bottom: 20px;
         }
+        .contact-overview-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+            gap: 1.15rem;
+            align-items: stretch;
+            margin-bottom: 20px;
+        }
+        .contact-overview-grid > .contact-details {
+            min-width: 0;
+            height: 100%;
+            margin-bottom: 0;
+        }
+        .contact-notes-panel h2 {
+            margin: 0 0 1rem;
+            font-size: 1.15rem;
+        }
+        .contact-notes-content {
+            color: var(--text);
+            overflow-wrap: anywhere;
+        }
         .dark-mode .contact-details {
-            background-color: #1e1e1e;
-            border-color: #444;
+            background-color: var(--surface);
+            border-color: var(--border);
         }
         .detail-row {
             margin-bottom: 15px;
@@ -31,4 +67,14 @@
         }
         .back-button {
             background-color: var(--button-neutral-color);
+        }
+
+        @media (max-width: 900px) {
+            .contact-overview-grid {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .contact-overview-grid > .contact-details {
+                height: auto;
+            }
         }

@@ -11,6 +11,7 @@ function expectDarkModeBackgroundFeature(bool $condition, string $message): void
 }
 
 $modernStyles = file_get_contents(__DIR__ . '/../src/assets/css/modern.css');
+$legacyStyles = file_get_contents(__DIR__ . '/../src/assets/css/style.css');
 
 expectDarkModeBackgroundFeature(
     preg_match(
@@ -20,11 +21,10 @@ expectDarkModeBackgroundFeature(
     'legacy dark-mode layout backgrounds should resolve to the shared application canvas.'
 );
 expectDarkModeBackgroundFeature(
-    preg_match(
-        '/html\.dark-mode body div[^{]*\{[^}]*background-color:\s*transparent\s*!important;/s',
-        $modernStyles
-    ) === 1,
-    'legacy div wrappers should continue to reveal the shared application canvas.'
+    !str_contains($modernStyles, 'html.dark-mode body div:not(')
+        && !str_contains($legacyStyles, '.dark-mode div:not(')
+        && str_contains($legacyStyles, ".dark-mode main {\n  background-color: transparent;"),
+    'structural wrappers should reveal the shared canvas without flattening surfaced cards.'
 );
 expectDarkModeBackgroundFeature(
     str_contains($modernStyles, '--surface: #171d27;')

@@ -52,13 +52,13 @@ $manual_access_summary = match ($manual_role) {
                 <input type="search" id="manual-search-input" placeholder="Try “financial closeout”, “recovery codes”, or “archive”" autocomplete="off" data-manual-search>
                 <button type="button" data-manual-clear hidden>Clear</button>
             </section>
-            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 12 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
+            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 13 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
         </form>
         <nav class="manual-quick-links" aria-label="Popular help topics">
-            <a href="#engagements"><span>01</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
-            <a href="#work-queue"><span>02</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
-            <a href="#chron-mail"><span>03</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
-            <a href="#mattermost"><span>04</span><strong>Use Mattermost</strong><small>Cards, channel links, tasks, email</small></a>
+            <a href="#booking-pipeline"><span>01</span><strong>Qualify an Inquiry</strong><small>Stages, next actions, booking</small></a>
+            <a href="#engagements"><span>02</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
+            <a href="#work-queue"><span>03</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
+            <a href="#chron-mail"><span>04</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
         </nav>
     </section>
 
@@ -69,15 +69,16 @@ $manual_access_summary = match ($manual_role) {
                 <a href="#orientation" data-manual-toc><span>01</span>Getting Oriented</a>
                 <a href="#roles" data-manual-toc><span>02</span>Roles and Access</a>
                 <a href="#dashboard" data-manual-toc><span>03</span>Daily Dashboard</a>
-                <a href="#engagements" data-manual-toc><span>04</span>Engagements</a>
-                <a href="#organizations-contacts" data-manual-toc><span>05</span>Organizations and Contacts</a>
-                <a href="#work-queue" data-manual-toc><span>06</span>Work Queue</a>
-                <a href="#chron-mail" data-manual-toc><span>07</span>Chron and Email</a>
-                <a href="#map-calendar" data-manual-toc><span>08</span>Map and Calendar</a>
-                <a href="#profile-security" data-manual-toc><span>09</span>Profile and Security</a>
-                <a href="#mattermost" data-manual-toc><span>10</span>Mattermost</a>
-                <a href="#administration" data-manual-toc><span>11</span>Administration</a>
-                <a href="#troubleshooting" data-manual-toc><span>12</span>Troubleshooting</a>
+                <a href="#booking-pipeline" data-manual-toc><span>04</span>Booking Pipeline</a>
+                <a href="#engagements" data-manual-toc><span>05</span>Engagements</a>
+                <a href="#organizations-contacts" data-manual-toc><span>06</span>Organizations and Contacts</a>
+                <a href="#work-queue" data-manual-toc><span>07</span>Work Queue</a>
+                <a href="#chron-mail" data-manual-toc><span>08</span>Chron and Email</a>
+                <a href="#map-calendar" data-manual-toc><span>09</span>Map and Calendar</a>
+                <a href="#profile-security" data-manual-toc><span>10</span>Profile and Security</a>
+                <a href="#mattermost" data-manual-toc><span>11</span>Mattermost</a>
+                <a href="#administration" data-manual-toc><span>12</span>Administration</a>
+                <a href="#troubleshooting" data-manual-toc><span>13</span>Troubleshooting</a>
             </nav>
         </aside>
 
@@ -93,7 +94,7 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">◇</span>
                     <div class="manual-callout-body">
                         <h3>The Record Model at a Glance</h3>
-                        <p>An <strong>Organization</strong> contains its <strong>Contacts</strong>. An <strong>Engagement</strong> belongs to one organization and can assign those contacts to event-specific roles. Any of those records can carry <strong>Chron Log</strong> history and <strong>Follow-Up Work</strong>.</p>
+                        <p>An <strong>Inquiry</strong> holds a possible booking while it is being qualified. Once booked, it creates an <strong>Engagement</strong> linked to an <strong>Organization</strong> and its <strong>Contacts</strong>. These records can carry <strong>Chron Log</strong> history and <strong>Follow-Up Work</strong>.</p>
                     </div>
                 </article>
 
@@ -160,7 +161,7 @@ $manual_access_summary = match ($manual_role) {
                         <tbody>
                             <tr><td>View records, Chron, work, map, and exports</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage own profile, calendar links, and security</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
-                            <tr><td>Create and edit engagements, organizations, and contacts</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
+                            <tr><td>Create and edit inquiries, engagements, organizations, and contacts</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage tasks, Chron entries, closeouts, and engagement email</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Archive and restore shared records</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage users, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
@@ -198,12 +199,12 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Scan</span>
                         <h3>Daily Summary</h3>
-                        <p>The top cards link to engagements in the next <?php echo $manual_dashboard_days; ?> days, your active and overdue work, open financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
+                        <p>The top cards link to engagements in the next <?php echo $manual_dashboard_days; ?> days, your active and overdue work, active inquiries owned by you or unassigned, open financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Act</span>
                         <h3>Primary Panels</h3>
-                        <p><strong>Upcoming Engagements</strong> shows the next active events and any missing details. <strong>My Work</strong> orders assigned tasks by urgency and due date.</p>
+                        <p><strong>Upcoming Engagements</strong> shows the next active events and any missing details. <strong>My Work</strong> orders assigned tasks by urgency and due date. <strong>Inquiry Next Actions</strong> surfaces opportunities that need movement.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Prepare</span>
@@ -219,9 +220,41 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
+            <section class="manual-chapter" id="booking-pipeline" data-manual-section data-keywords="inquiry booking pipeline new contacted qualified awaiting details proposal sent booked declined next action owner priority source inbound email conversion schedule conflicts tasks chron reopen">
                 <header class="manual-chapter-heading">
                     <span>Chapter 04</span>
+                    <h2>Inquiry and Booking Pipeline</h2>
+                    <p>Use an Inquiry for a possible event that is not booked yet. It keeps early communication and follow-up visible without creating a partly known Engagement.</p>
+                </header>
+
+                <article class="manual-callout manual-callout-accent">
+                    <span class="manual-callout-icon" aria-hidden="true">↗</span>
+                    <div class="manual-callout-body"><h3>Inquiry First, Engagement After Booking</h3><p>The Inquiry is the source record for qualification. Converting it creates the Engagement once an organization, title, and preferred date range are known. The original Inquiry then becomes read-only and remains linked for reference.</p></div>
+                </article>
+
+                <section class="manual-subsection">
+                    <h3>Work the Pipeline</h3>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Capture the request.</strong><p>Select <strong>New Inquiry</strong>, or use <strong>Create Inquiry</strong> while reviewing an inbound email. Add the organization and contact when known; they can remain blank during early triage. Saving from Mail preserves the source message in Chron and clears it from review.</p></section></li>
+                        <li><span>02</span><section><strong>Assign the next action.</strong><p>Choose an owner and priority, then state the concrete next step and its due date. The pipeline cards and Dashboard emphasize this action.</p></section></li>
+                        <li><span>03</span><section><strong>Move the stage.</strong><p>Use <strong>New → Contacted → Qualified → Awaiting Details → Proposal Sent</strong> as the normal path. Move backward when the facts warrant it. Declining requires a reason and can be reopened later.</p></section></li>
+                        <li><span>04</span><section><strong>Keep the history together.</strong><p>Open the Inquiry and use the <strong>Activity</strong>, <strong>Correspondence</strong>, and <strong>Tasks</strong> tabs to keep decisions, email, and follow-up work together. Open a message from Correspondence to review delivery or retry a failed delivery while the Inquiry is active.</p></section></li>
+                        <li><span>05</span><section><strong>Review the booking.</strong><p>Select <strong>Convert to Engagement</strong> when the request is ready. Check the imported engagement details, availability warnings, and which open tasks should move. Warnings require acknowledgement but remain a deliberate, auditable decision.</p></section></li>
+                        <li><span>06</span><section><strong>Continue in the Engagement.</strong><p>Conversion creates the Engagement, assigns the Inquiry’s primary contact as Primary Host when available, moves selected work, and adds the standard event checklist. Replies to earlier Inquiry correspondence continue into the converted Engagement.</p></section></li>
+                    </ol>
+                </section>
+
+                <section class="manual-card-grid manual-card-grid-three">
+                    <article class="manual-card"><span class="manual-kicker">Triage</span><h3>Filter the Board</h3><p>Search request text, organizations, contacts, and locations. Narrow the board to your inquiries, unassigned work, or a priority level. Booked and Declined records have their own views.</p></article>
+                    <article class="manual-card"><span class="manual-kicker">Communicate</span><h3>Use the Starting Templates</h3><p>Initial response, request details, date options, and proposal follow-up templates are editable before sending. Sent messages appear in Correspondence and Chron with delivery status.</p></article>
+                    <article class="manual-card"><span class="manual-kicker">Protect History</span><h3>Keep the Source Record</h3><p>Do not copy pre-booking notes by hand. The booked Inquiry retains its source email, stage history, Chron, correspondence, and any work not moved to the Engagement. Resolve or reassign active Inquiries before archiving their Contact or Organization.</p></article>
+                </section>
+                <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
+            </section>
+
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF slide deck upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
+                <header class="manual-chapter-heading">
+                    <span>Chapter 05</span>
                     <h2>Engagements</h2>
                     <p>An engagement is the operational record for one event: the schedule, assigned people, presentations, logistics, planning state, communication history, work, and final receipts.</p>
                 </header>
@@ -297,17 +330,17 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Send and Track Event Email</h3>
-                    <p>Editors and administrators can send email from an active engagement. Use <strong>Send email</strong> near the page heading or <strong>Send message</strong> in the Correspondence section. Every message remains easy to find there afterward.</p>
+                    <p>Editors and administrators can send email from an active engagement. Use <strong>Send Email</strong> near the page heading or <strong>Send Message</strong> in the Correspondence section. Every message remains easy to find there afterward.</p>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Choose a starting template.</strong><p>Use Booking confirmation, Travel and lodging request, Final-detail reconfirmation, Presentation schedule, Post-event thank-you, or Custom message. Template text is only a starting point; edit the subject and body before sending.</p></section></li>
                         <li><span>02</span><section><strong>Select event contacts.</strong><p>Use the Primary host, On-site contact, Billing, Travel, or Materials shortcuts, or select individual assigned contacts. Only active assigned contacts with an email address can receive the message. Every unique address receives a separate email, so recipients never see one another.</p></section></li>
                         <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every built-in subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
                         <li><span>04</span><section><strong>Optionally append the event brief.</strong><p>The share-safe brief includes the public event schedule, venue, description, and presentations. It deliberately excludes Chron, internal notes, compensation, giving, and financial-closeout information. Preview it before queuing.</p></section></li>
-                        <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry failed deliveries</strong>.</p></section></li>
+                        <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry Failed Deliveries</strong>.</p></section></li>
                     </ol>
                     <section class="manual-card-grid manual-card-grid-two">
                         <article class="manual-card"><h4>One Place to Check</h4><p>Open the outbound message to review what was sent, who it was sent to, and the result for each address.</p></article>
-                        <article class="manual-card"><h4>Automatic Chron History</h4><p>The message is added to the Engagement, Organization, and selected Contact Chron logs. Select <strong>View outbound message</strong> from a Chron entry to return to its delivery record.</p></article>
+                        <article class="manual-card"><h4>Automatic Chron History</h4><p>The message is added to the Engagement, Organization, and selected Contact Chron logs. Select <strong>View Outbound Message</strong> from a Chron entry to return to its delivery record.</p></article>
                     </section>
                 </section>
 
@@ -331,7 +364,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact optional address country international flag state province Canada United States affiliation distinctives website phone fax email financial history giving photo role pastor admin other describe notes search archive dependencies move active">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 05</span>
+                    <span>Chapter 06</span>
                     <h2>Organizations and Contacts</h2>
                     <p>Organization records hold the durable relationship; contacts identify the people within it. Engagements reuse both rather than duplicating them.</p>
                 </header>
@@ -388,9 +421,9 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen duplicate copy another event destination">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 06</span>
+                    <span>Chapter 07</span>
                     <h2>Work Queue</h2>
-                    <p>Tasks turn relationship context into an explicit next action with an owner, timing, priority, and state.</p>
+                    <p>Tasks turn relationship context into an explicit next action with an owner, timing, priority, and state. They may stay attached to an Inquiry until selected work moves during booking.</p>
                 </header>
 
                 <section class="manual-card-grid manual-card-grid-two">
@@ -400,7 +433,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                     <article class="manual-card">
                         <h3>Queue Views</h3>
-                        <p>Use My work, Overdue, Due today, Next <?php echo $manual_task_days; ?> days, Waiting, Unassigned, Completed, or All active. Search matches task content, related records, and assignees.</p>
+                        <p>Use My Active Work, Overdue, Due Today, Next <?php echo $manual_task_days; ?> Days, Waiting, Unassigned, Completed, or All Active. The Dashboard’s My Overdue Work card opens Overdue limited to your assignments. Search matches task content, related records, and assignees.</p>
                     </article>
                 </section>
 
@@ -430,7 +463,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Duplicate a Task to Another Event</h3>
                     <ol class="manual-steps manual-steps-compact">
-                        <li><span>01</span><section><strong>Open the task for editing.</strong><p>Select <strong>Duplicate to another event</strong> at the bottom of the Edit Task page.</p></section></li>
+                        <li><span>01</span><section><strong>Open the task for editing.</strong><p>Select <strong>Duplicate to Another Event</strong> at the bottom of the Edit Task page.</p></section></li>
                         <li><span>02</span><section><strong>Choose the destination event.</strong><p>Enter at least three characters in <strong>Search events</strong>, then select a different event from the results. The source event cannot be selected as its own destination.</p></section></li>
                         <li><span>03</span><section><strong>Review the copied work.</strong><p>The title, notes, assignee, due date, and priority are copied so you can adjust them before saving. The duplicate starts <strong>Open</strong>, and any “Waiting on” text is cleared.</p></section></li>
                         <li><span>04</span><section><strong>Create the duplicate.</strong><p>Select <strong>Duplicate task</strong> to add a new task to the destination event. The original task remains unchanged.</p></section></li>
@@ -447,7 +480,7 @@ $manual_access_summary = match ($manual_role) {
                     <p>Standard tasks are reusable definitions copied when a new active engagement is first saved. Each has content, priority, display order, and a due date offset from event start or end.</p>
                     <p>If the new engagement has a selected <strong>Caller</strong>, every initial standard task is assigned to that Caller. If no Caller is selected, the tasks are assigned to the user creating the engagement. This ownership decision happens only once: changing the engagement’s Caller later does not reassign its initial tasks, which remain independently editable.</p>
                     <p>Changing an engagement’s dates reschedules its active generated tasks from the standard schedule. A task whose due date was manually overridden keeps that date. Editing a standard definition does not rewrite an existing task’s title, notes, priority, or current due date.</p>
-                    <p>Editors and administrators manage reusable definitions from <strong>Standard Event Tasks</strong>. Use <strong>Add missing checklist tasks</strong> on an active engagement to generate any standard items that are absent; tasks added this way are assigned to the user performing the action. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
+                    <p>Editors and administrators manage reusable definitions from <strong>Standard Event Tasks</strong>. Use <strong>Add Missing Checklist Tasks</strong> on an active engagement to generate any standard items that are absent; tasks added this way are assigned to the user performing the action. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
                     <p>Sending a booking, reconfirmation, or thank-you message from an engagement does not complete its related checklist task automatically. Check the Correspondence result, then complete the task when the follow-up itself is finished.</p>
                     <?php if ($manual_can_manage): ?><p><a href="standard_tasks.php" class="manual-inline-link">Manage Standard Event Tasks</a></p><?php endif; ?>
                 </section>
@@ -456,7 +489,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="chron-mail" data-manual-section data-keywords="chron log communication call email meeting history archive restore outbound correspondence send template recipient delivery pending processing retry sent failed partial event brief inbound mail mailbox marker <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> routing approve reject processed source email purge Bcc Cc sender review attachment">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 07</span>
+                    <span>Chapter 08</span>
                     <h2>Chron and Email</h2>
                     <p>Chron is the durable communication history. Add concise human notes directly, send tracked engagement correspondence, or route copied inbound email into the relevant records.</p>
                 </header>
@@ -476,7 +509,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Send</span>
                         <h3>Start from an Engagement</h3>
-                        <p>Open an active engagement and select <strong>Send message</strong>. Choose assigned contacts, review the message, and send. The engagement marker and related Chron history are handled for you. Check the Correspondence section for the result.</p>
+                        <p>Open an active engagement and select <strong>Send Message</strong>. Choose assigned contacts, review the message, and send. The engagement marker and related Chron history are handled for you. Check the Correspondence section for the result.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Receive</span>
@@ -520,7 +553,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="map-calendar" data-manual-section data-keywords="map location geocode pins lifecycle confirmation filters dates fit visible OpenStreetMap calendar month previous next today selector Events My Tasks All Tasks Everything color due date subscription private link webcal device revoke purge presentations one hour schedule privacy">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 08</span>
+                    <span>Chapter 09</span>
                     <h2>Map and Calendar</h2>
                     <p>Use the map for geographic planning, the graphical month calendar for events and due work, and private subscription links for an external calendar application.</p>
                 </header>
@@ -539,14 +572,14 @@ $manual_access_summary = match ($manual_role) {
                         <p>The Calendar page opens to the current month. Use <strong>Previous</strong> and <strong>Next</strong> to move one month at a time, or <strong>Today</strong> to return to the current month.</p>
                         <p>The current day has its own rose-colored cell and <strong>Today</strong> badge, distinct from every event and task color.</p>
                         <p>Select an event to open its details. Tasks with due dates link to task work; editors and administrators return to the same calendar view after editing.</p>
-                        <a href="calendar_subscription.php#event-calendar" class="manual-inline-link">Open the month view</a>
+                        <a href="view_calendar.php#event-calendar" class="manual-inline-link">Open the month view</a>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
                         <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. The feed contains all-day engagement blocks plus timed presentation entries using each presentation’s recorded duration.</p>
                         <p>Revoke one link without affecting the others. Revoked token records can be purged. Never share a subscription URL: it grants access to schedule data, though not contacts, Chron, travel, lodging, or compensation.</p>
-                        <a href="calendar_subscription.php" class="manual-inline-link">Manage calendar links</a>
+                        <a href="view_calendar.php" class="manual-inline-link">Manage calendar links</a>
                     </article>
                 </section>
 
@@ -569,7 +602,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="profile-security" data-manual-section data-keywords="profile picture name email verified password recovery notification digest dashboard snapshot upcoming engagement my work readiness closeout inbound mail review delivery time weekdays weekends phone security two factor 2FA authenticator QR setup key recovery codes change password disable login invitation reset theme">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 09</span>
+                    <span>Chapter 10</span>
                     <h2>Profile and Security</h2>
                     <p>Your profile makes ownership recognizable; the security controls protect your identity and provide safe recovery paths.</p>
                 </header>
@@ -612,7 +645,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement indicator chain card routing marker copy context menu create task save chron send email template recipient post thread preview delivery reply notification reaction receipt memo button assign start complete reopen permission reviewer editor administrator open in moed privacy">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 10</span>
+                    <span>Chapter 11</span>
                     <h2>Mattermost</h2>
                     <p>The MOED plugin brings daily summaries, engagement context, follow-up actions, and carefully reviewed engagement email into Mattermost while MOED remains the system of record.</p>
                 </header>
@@ -735,7 +768,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 11</span>
+                    <span>Chapter 12</span>
                     <h2>Administration</h2>
                     <p>Administrator tools control identity, accountability, continuity, and deployment health. Use them deliberately and keep a second administrator available.</p>
                 </header>
@@ -790,7 +823,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 12</span>
+                    <span>Chapter 13</span>
                     <h2>Troubleshooting and Good Practice</h2>
                     <p>Most surprises come from role limits, archived parent records, delayed background work, or intentionally strict safety checks.</p>
                 </header>
@@ -818,7 +851,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Outbound Email Failed or Cannot Be Queued</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm that the engagement has at least one assigned contact with a valid email address. Open the outbound message to see which recipient failed. Correct the address if needed, then select <strong>Retry failed deliveries</strong>. If sending is unavailable for every message, ask an administrator to check the mail setup.</p>
+                        <p>Confirm that the Engagement has at least one assigned Contact with a valid email address. Open the outbound message to see which recipient failed. Correct the address if needed, then select <strong>Retry Failed Deliveries</strong>. If sending is unavailable for every message, ask an administrator to check the mail setup.</p>
                     </details>
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>

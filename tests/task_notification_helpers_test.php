@@ -154,7 +154,7 @@ expectTaskNotificationHelper(
         && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (1)')
         && str_contains($message['body'], 'Waiting on: the event coordinator')
         && str_contains($message['body'], 'Call <the> host & confirm — Overdue · 2026-08-22')
-        && str_contains($message['body'], 'Mail awaiting review: 2')
+        && str_contains($message['body'], 'Mail For Review: 2')
         && str_contains($message['body'], 'https://moed.example.test/tasks.php?view=my')
         && str_contains($message['body'], 'https://moed.example.test/dashboard.php')
         && str_contains($message['body'], 'https://moed.example.test/profile.php'),
@@ -216,7 +216,7 @@ expectTaskNotificationHelper(
             $reviewerMessage['body'],
             'Open: https://moed.example.test/view_engagement.php?id=11'
         )
-        && !str_contains($reviewerMessage['body'], 'Mail awaiting review')
+        && !str_contains($reviewerMessage['body'], 'Mail For Review')
         && !str_contains($reviewerMessage['body'], 'close_engagement.php')
         && str_contains(
             $reviewerMessage['html_body'],
@@ -230,8 +230,8 @@ expectTaskNotificationHelper(
         && !str_contains($reviewerMessage['html_body'], 'edit_engagement.php')
         && !str_contains($reviewerMessage['html_body'], 'close_engagement.php')
         && !str_contains($reviewerMessage['html_body'], 'inbound_mail.php')
-        && !str_contains($reviewerMessage['html_body'], '+ New task')
-        && !str_contains($reviewerMessage['html_body'], '+ New engagement'),
+        && !str_contains($reviewerMessage['html_body'], '+ New Task')
+        && !str_contains($reviewerMessage['html_body'], '+ New Engagement'),
     'reviewer digests should preserve Dashboard visibility while linking only to pages that role can use.'
 );
 

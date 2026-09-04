@@ -1,12 +1,12 @@
 .manual-container {
-  width: min(100%, 1440px);
-  max-width: 1440px;
+  width: min(100%, var(--app-content-max));
+  max-width: var(--app-content-max);
   padding-top: 28px;
 }
 
 .user-manual-page .app-footer {
-  width: min(100%, 1440px);
-  max-width: 1440px;
+  width: min(100%, var(--app-content-max));
+  max-width: var(--app-content-max);
   padding-left: calc(clamp(24px, 4vw, 56px) + 216px + clamp(30px, 5vw, 72px));
 }
 

@@ -61,10 +61,10 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<span>Dashboard<\/span>.*<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
+        '/<span>Dashboard<\/span>.*<span>Booking Pipeline<\/span>.*<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
         $header_markup
     ) === 1,
-    'The primary navigation should lead with the dashboard and keep inbound mail immediately above the map.'
+    'The primary navigation should place the booking pipeline immediately after the dashboard and keep inbound mail immediately above the map.'
 );
 expectHeaderScope(
     str_contains($header_markup, '<a class="app-brand" href="dashboard.php"')
@@ -183,8 +183,9 @@ expectHeaderScope(
     'The responsive mobile application bar should override the desktop hidden state with a solid theme surface.'
 );
 expectHeaderScope(
-    preg_match('/html\.dark-mode body div[^\{]*:not\(\.app-sidebar\):not\(\.mobile-app-bar\):not\(\.qr-code-preview-frame\)\s*\{[^}]*background-color:\s*transparent\s*!important;/s', $modern_styles) === 1,
-    'The dark-theme transparency reset should preserve the mobile shell and white QR scan surface.'
+    !str_contains($modern_styles, 'html.dark-mode body div:not(')
+        && preg_match('/\.qr-code-preview-frame\s*\{[^}]*background:\s*#ffffff\s*!important;/s', $modern_styles) === 1,
+    'Dark mode should preserve surfaced components while retaining the white QR scan surface.'
 );
 expectHeaderScope(
     preg_match('/\.app-brand-logo\s*\{[^}]*width:\s*100%;[^}]*max-width:\s*100%;[^}]*height:\s*auto;/s', $modern_styles) === 1

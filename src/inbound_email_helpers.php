@@ -574,6 +574,92 @@ function inboundEmailMessageEngagementMarkers(array $message): array
     );
 }
 
+/** @return array{ids: list<int>, invalid: list<string>} */
+function parseInboundEmailInquiryMarkers(string $text): array
+{
+    $matches = [];
+    $prefixPattern = inboundEmailMarkerPrefixPattern();
+    preg_match_all('/\[(' . $prefixPattern . ')-I#([^\]\r\n]*)\]/i', $text, $matches, PREG_SET_ORDER);
+    $ids = [];
+    $invalid = [];
+    foreach ($matches as $match) {
+        $marker = (string) $match[0];
+        $prefix = (string) $match[1];
+        $candidate = (string) $match[2];
+        if (!preg_match('/^([1-9][0-9]{0,9})\.([A-Za-z0-9_-]{22})$/D', $candidate, $parts)) {
+            $invalid[$marker] = true;
+            continue;
+        }
+        $id = (int) $parts[1];
+        if ($id < 1 || $id > 2147483647
+            || !applicationInquiryInboundMarkerIsValid($prefix, $id, (string) $parts[2])
+        ) {
+            $invalid[$marker] = true;
+            continue;
+        }
+        $ids[$id] = true;
+    }
+    return [
+        'ids' => array_map('intval', array_keys($ids)),
+        'invalid' => array_map('strval', array_keys($invalid)),
+    ];
+}
+
+/** @param array<string, mixed> $message */
+function inboundEmailMessageInquiryMarkers(array $message): array
+{
+    return parseInboundEmailInquiryMarkers(
+        (string) ($message['subject'] ?? '') . "\n" . (string) ($message['body_text'] ?? '')
+    );
+}
+
+/** @return array<string, mixed>|null */
+function inboundEmailInquiryMatch(mysqli $conn, int $inquiryId): ?array
+{
+    if ($inquiryId < 1) {
+        return null;
+    }
+    $stmt = $conn->prepare(
+        "SELECT inquiry.id, inquiry.organization_id, inquiry.title,
+                inquiry.preferred_start_date, inquiry.preferred_end_date,
+                inquiry.stage, inquiry.converted_engagement_id,
+                organization.organization_name AS organization_label
+         FROM booking_inquiries inquiry
+         LEFT JOIN organizations organization ON organization.id = inquiry.organization_id
+         WHERE inquiry.id = ?
+           AND inquiry.stage IN (
+             'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent', 'booked'
+           ) LIMIT 1"
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare inbound Inquiry matching.');
+    }
+    $stmt->bind_param('i', $inquiryId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$row) {
+        return null;
+    }
+    $dates = trim((string) ($row['preferred_start_date'] ?? ''));
+    if (!empty($row['preferred_end_date']) && $row['preferred_end_date'] !== $dates) {
+        $dates .= ' – ' . $row['preferred_end_date'];
+    }
+    return [
+        'id' => (int) $row['id'],
+        'organization_id' => (int) ($row['organization_id'] ?? 0),
+        'label' => implode(' · ', array_filter([
+            (string) $row['title'], (string) ($row['organization_label'] ?? ''), $dates,
+        ])),
+        'title' => (string) $row['title'],
+        'organization_label' => (string) ($row['organization_label'] ?? ''),
+        'date_label' => $dates,
+        'stage' => (string) $row['stage'],
+        'converted_engagement_id' => (int) ($row['converted_engagement_id'] ?? 0),
+        'marker' => applicationInquiryInboundMarker((int) $row['id']),
+    ];
+}
+
 /**
  * @param array<string, mixed> $row
  * @return array{
@@ -723,13 +809,15 @@ function searchInboundEmailEngagements(
  * @param array<string, mixed> $message
  * @return array{
  *   automatic: bool, authoritative_engagement: bool,
+ *   authoritative_inquiry: bool,
  *   sender_authentication_required: bool, sender_authenticated: bool,
  *   authentication_server: ?string,
  *   reasons: list<string>, sender: array<string, mixed>,
  *   participants: list<array<string, mixed>>,
  *   contacts: list<array{id: int, label: string}>,
  *   organizations: list<array{id: int, label: string}>,
- *   engagements: list<array<string, mixed>>
+ *   engagements: list<array<string, mixed>>,
+ *   inquiries: list<array<string, mixed>>
  * }
  */
 function routeInboundEmailMessage(mysqli $conn, array $message): array
@@ -775,6 +863,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
     }
 
     $engagements = [];
+    $inquiries = [];
     $markers = inboundEmailMessageEngagementMarkers($message);
     $authoritativeEngagement = false;
     if ($markers['invalid'] !== []) {
@@ -792,6 +881,46 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
             $engagements[$engagement['id']] = $engagement;
             $authoritativeEngagement = $markers['invalid'] === [];
         }
+    }
+
+    $inquiryMarkers = inboundEmailMessageInquiryMarkers($message);
+    $authoritativeInquiry = false;
+    if ($inquiryMarkers['invalid'] !== []) {
+        $reasons[] = 'The message contains an invalid Inquiry marker.';
+    }
+    if (count($inquiryMarkers['ids']) > 1) {
+        $reasons[] = 'The message contains more than one Inquiry marker.';
+    } elseif (count($inquiryMarkers['ids']) === 1) {
+        $inquiry = inboundEmailInquiryMatch($conn, $inquiryMarkers['ids'][0]);
+        if ($inquiry === null) {
+            $reasons[] = applicationInquiryInboundMarker($inquiryMarkers['ids'][0])
+                . ' does not identify an active Inquiry.';
+        } elseif ($inquiry['stage'] === 'booked') {
+            $convertedEngagement = inboundEmailEngagementMatch(
+                $conn,
+                (int) ($inquiry['converted_engagement_id'] ?? 0)
+            );
+            if ($convertedEngagement === null) {
+                $reasons[] = applicationInquiryInboundMarker($inquiryMarkers['ids'][0])
+                    . ' identifies a Booked Inquiry whose converted Engagement is unavailable.';
+            } elseif ($engagements !== []
+                && !isset($engagements[$convertedEngagement['id']])
+            ) {
+                $reasons[] = 'The Engagement and Booked Inquiry markers identify different Engagements.';
+                $authoritativeEngagement = false;
+            } else {
+                $engagements[$convertedEngagement['id']] = $convertedEngagement;
+                $authoritativeEngagement = $inquiryMarkers['invalid'] === [];
+            }
+        } else {
+            $inquiries[$inquiry['id']] = $inquiry;
+            $authoritativeInquiry = $inquiryMarkers['invalid'] === [];
+        }
+    }
+    if ($authoritativeEngagement && $authoritativeInquiry) {
+        $reasons[] = 'The message contains both an Engagement and an Inquiry marker.';
+        $authoritativeEngagement = false;
+        $authoritativeInquiry = false;
     }
 
     $participantAddresses = array_values(array_unique(array_merge([$senderAddress], $to, $cc)));
@@ -862,22 +991,31 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
                     . ' belongs to an Organization not identified by the message participants.';
             }
         }
+        foreach ($inquiries as $inquiry) {
+            $inquiryOrganizationId = $inquiry['organization_id'];
+            if ($inquiryOrganizationId > 0 && !isset($organizations[$inquiryOrganizationId])) {
+                $reasons[] = (string) $inquiry['marker']
+                    . ' belongs to an Organization not identified by the message participants.';
+            }
+        }
     }
 
-    if (!$contacts && !$organizations && !$engagements) {
-        $reasons[] = 'No active Contact, Organization, or Engagement was matched.';
+    if (!$contacts && !$organizations && !$engagements && !$inquiries) {
+        $reasons[] = 'No active Contact, Organization, Inquiry, or Engagement was matched.';
     }
     $reasons = array_values(array_unique($reasons));
     ksort($contacts);
     ksort($organizations);
     ksort($engagements);
+    ksort($inquiries);
 
     $recognizedSender = in_array($sender['type'], ['user', 'contact', 'organization'], true);
     return [
-        'automatic' => $authoritativeEngagement
+        'automatic' => ($authoritativeEngagement || $authoritativeInquiry)
             && $recognizedSender
             && (!$senderAuthentication['required'] || $senderAuthentication['trusted']),
         'authoritative_engagement' => $authoritativeEngagement,
+        'authoritative_inquiry' => $authoritativeInquiry,
         'sender_authentication_required' => $senderAuthentication['required'],
         'sender_authenticated' => $senderAuthentication['trusted'],
         'authentication_server' => $senderAuthentication['authentication_server'],
@@ -887,6 +1025,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         'contacts' => array_values($contacts),
         'organizations' => array_values($organizations),
         'engagements' => array_values($engagements),
+        'inquiries' => array_values($inquiries),
     ];
 }
 
@@ -949,6 +1088,8 @@ function inboundEmailActiveTargetIds(mysqli $conn, string $type, array $ids): ar
         $table = 'organizations';
     } elseif ($type === 'engagement') {
         $table = 'engagements';
+    } elseif ($type === 'inquiry') {
+        $table = 'booking_inquiries';
     } else {
         throw new InvalidArgumentException('Invalid inbound email target type.');
     }
@@ -958,7 +1099,11 @@ function inboundEmailActiveTargetIds(mysqli $conn, string $type, array $ids): ar
            INNER JOIN organizations organization ON organization.id = target.organization_id
            WHERE target.is_deleted = 0 AND organization.is_deleted = 0
              AND target.id IN ({$placeholders})"
-        : "SELECT id FROM {$table} WHERE is_deleted = 0 AND id IN ({$placeholders})";
+        : ($type === 'inquiry'
+            ? "SELECT id FROM booking_inquiries
+               WHERE stage IN ('new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent')
+                 AND id IN ({$placeholders})"
+            : "SELECT id FROM {$table} WHERE is_deleted = 0 AND id IN ({$placeholders})");
     $stmt = $conn->prepare($sql);
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare inbound target validation.');
@@ -998,6 +1143,7 @@ function requireInboundEmailProcessableStatus(string $status, bool $manual): voi
  * @param list<int>|null $contactIds
  * @param list<int>|null $organizationIds
  * @param list<int>|null $engagementIds
+ * @param list<int>|null $inquiryIds
  */
 function processInboundEmailMessage(
     mysqli $conn,
@@ -1005,12 +1151,14 @@ function processInboundEmailMessage(
     ?array $contactIds = null,
     ?array $organizationIds = null,
     ?int $processedBy = null,
-    ?array $engagementIds = null
+    ?array $engagementIds = null,
+    ?array $inquiryIds = null
 ): string {
     if ($messageId < 1) {
         throw new InvalidArgumentException('Select a valid inbound message.');
     }
-    $manual = $contactIds !== null || $organizationIds !== null || $engagementIds !== null;
+    $manual = $contactIds !== null || $organizationIds !== null
+        || $engagementIds !== null || $inquiryIds !== null;
     $conn->begin_transaction();
     try {
         $stmt = $conn->prepare('SELECT * FROM inbound_email_messages WHERE id = ? FOR UPDATE');
@@ -1051,6 +1199,7 @@ function processInboundEmailMessage(
         if ($manual) {
             $candidateContactIds = array_map('intval', array_column($routing['contacts'], 'id'));
             $candidateOrganizationIds = array_map('intval', array_column($routing['organizations'], 'id'));
+            $candidateInquiryIds = array_map('intval', array_column($routing['inquiries'], 'id'));
             $contactIds = array_values(array_intersect(
                 array_map('intval', $contactIds ?? []),
                 $candidateContactIds
@@ -1063,21 +1212,33 @@ function processInboundEmailMessage(
             if (count($engagementIds) > 1) {
                 throw new InvalidArgumentException('Select no more than one Engagement.');
             }
-        } elseif ($routing['authoritative_engagement'] && $routing['reasons'] !== []) {
+            $inquiryIds = array_values(array_intersect(
+                array_map('intval', $inquiryIds ?? []),
+                $candidateInquiryIds
+            ));
+            if (count($inquiryIds) > 1) {
+                throw new InvalidArgumentException('Select no more than one Inquiry.');
+            }
+        } elseif (($routing['authoritative_engagement'] || $routing['authoritative_inquiry'])
+            && $routing['reasons'] !== []
+        ) {
             $contactIds = [];
             $organizationIds = [];
             $engagementIds = array_map('intval', array_column($routing['engagements'], 'id'));
+            $inquiryIds = array_map('intval', array_column($routing['inquiries'], 'id'));
         } else {
             $contactIds = array_map('intval', array_column($routing['contacts'], 'id'));
             $organizationIds = array_map('intval', array_column($routing['organizations'], 'id'));
             $engagementIds = array_map('intval', array_column($routing['engagements'], 'id'));
+            $inquiryIds = array_map('intval', array_column($routing['inquiries'], 'id'));
         }
         $contactIds = inboundEmailActiveTargetIds($conn, 'contact', $contactIds);
         $organizationIds = inboundEmailActiveTargetIds($conn, 'organization', $organizationIds);
         $engagementIds = inboundEmailActiveTargetIds($conn, 'engagement', $engagementIds);
-        if (!$contactIds && !$organizationIds && !$engagementIds) {
+        $inquiryIds = inboundEmailActiveTargetIds($conn, 'inquiry', $inquiryIds);
+        if (!$contactIds && !$organizationIds && !$engagementIds && !$inquiryIds) {
             throw new InvalidArgumentException(
-                'Select at least one active Contact, Organization, or Engagement.'
+                'Select at least one active Contact, Organization, Inquiry, or Engagement.'
             );
         }
 
@@ -1165,9 +1326,36 @@ function processInboundEmailMessage(
         }
         $engagementInsert->close();
 
+        $inquiryInsert = $conn->prepare(
+            'INSERT INTO booking_inquiry_chron_entries
+                (booking_inquiry_id, inbound_email_message_id, entry_text, created_by,
+                 created_by_username_snapshot, updated_by, created_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE id = id'
+        );
+        if (!$inquiryInsert) {
+            throw new RuntimeException('Unable to prepare Inquiry Chron email routing.');
+        }
+        foreach ($inquiryIds as $inquiryId) {
+            $inquiryInsert->bind_param(
+                'iisisiss',
+                $inquiryId,
+                $messageId,
+                $entryText,
+                $creatorId,
+                $creatorName,
+                $creatorId,
+                $createdAt,
+                $createdAt
+            );
+            $inquiryInsert->execute();
+        }
+        $inquiryInsert->close();
+
         $routing['applied_contacts'] = $contactIds;
         $routing['applied_organizations'] = $organizationIds;
         $routing['applied_engagements'] = $engagementIds;
+        $routing['applied_inquiries'] = $inquiryIds;
         $routingJson = inboundEmailJson($routing);
         $update = $conn->prepare(
             "UPDATE inbound_email_messages

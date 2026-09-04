@@ -81,7 +81,7 @@ try {
             <div><dt>Highest geocoding attempt count</dt><dd><?php echo (int) ($geocoding['maximum_attempts'] ?? 0); ?></dd></div>
             <div><dt>Inbound mail queued / review</dt><dd><?php echo (int) ($inboundMail['queued_count'] ?? 0); ?> / <?php echo (int) ($inboundMail['review_count'] ?? 0); ?></dd></div>
         </dl>
-        <p><a href="ready.php" class="button-secondary">View readiness response</a></p>
+        <p><a href="ready.php" class="button-secondary">View Readiness Response</a></p>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

@@ -56,6 +56,15 @@ expectTrue(
     organizationArchiveDependencyMessage(['contacts' => 0, 'engagements' => 0]) === '',
     'Organizations without active dependencies should not receive an archive blocker message.'
 );
+expectTrue(
+    organizationArchiveDependencyMessage([
+        'contacts' => 2,
+        'engagements' => 1,
+        'inquiries' => 3,
+    ])
+        === 'This organization cannot be archived while it has 2 active contacts, 1 active engagement, and 3 active inquiries. Archive those related records first, or move them to another organization.',
+    'Organization archive blockers should include active Inquiries.'
+);
 
 $original_trusted_proxies = getenv('DNR_TRUSTED_PROXY_IPS');
 $original_cloudflare_proxies = getenv('DNR_TRUSTED_CLOUDFLARE_PROXY_IPS');

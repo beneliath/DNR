@@ -226,6 +226,12 @@ function normalizeEngagementEmailSubject(mixed $subject, int $engagementId): str
         deploymentConfig()->list('inbound_email.accepted_marker_prefixes')
     ));
     $markerPattern = '/\[(?:' . $prefixPattern . ')#([^\]\r\n]*)\]/i';
+    $inquiryMarkerPattern = '/\[(?:' . $prefixPattern . ')-I#([^\]\r\n]*)\]/i';
+    if (preg_match($inquiryMarkerPattern, $subject) === 1) {
+        throw new InvalidArgumentException(
+            'Remove the Inquiry routing marker before sending from an engagement.'
+        );
+    }
     preg_match_all($markerPattern, $subject, $matches, PREG_SET_ORDER);
     foreach ($matches as $match) {
         if (preg_match('/\A([1-9][0-9]{0,9})(?:\.[A-Za-z0-9_-]+)?\z/D', (string) $match[1], $parts) !== 1) {
@@ -917,10 +923,12 @@ function fetchEngagementEmailMessage(mysqli $conn, int $messageId): ?array
 {
     $stmt = $conn->prepare(
         'SELECT message.*, engagement.event_title, engagement.is_deleted AS engagement_deleted,
+                inquiry.title AS inquiry_title, inquiry.stage AS inquiry_stage,
                 organization.organization_name,
                 COALESCE(creator.username, message.created_by_username_snapshot) AS created_by_username
          FROM engagement_email_messages message
-         INNER JOIN engagements engagement ON engagement.id = message.engagement_id
+         LEFT JOIN engagements engagement ON engagement.id = message.engagement_id
+         LEFT JOIN booking_inquiries inquiry ON inquiry.id = message.booking_inquiry_id
          INNER JOIN organizations organization ON organization.id = message.organization_id
          LEFT JOIN users creator ON creator.id = message.created_by
          WHERE message.id = ?'
@@ -968,6 +976,23 @@ function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId): int
         $message = fetchEngagementEmailMessage($conn, $messageId);
         if ($message === null) {
             throw new InvalidArgumentException('That outbound message is no longer available.');
+        }
+        if (!empty($message['engagement_id'])) {
+            if (!empty($message['engagement_deleted'])) {
+                throw new InvalidArgumentException(
+                    'Failed deliveries cannot be retried for an archived Engagement.'
+                );
+            }
+        } elseif (!empty($message['booking_inquiry_id'])) {
+            if (!in_array((string) ($message['inquiry_stage'] ?? ''), [
+                'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent',
+            ], true)) {
+                throw new InvalidArgumentException(
+                    'Failed deliveries can be retried only while the Inquiry is active.'
+                );
+            }
+        } else {
+            throw new InvalidArgumentException('The outbound message has no available parent record.');
         }
         $stmt = $conn->prepare(
             "UPDATE engagement_email_deliveries

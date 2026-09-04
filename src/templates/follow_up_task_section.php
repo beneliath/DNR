@@ -35,9 +35,9 @@ $context_status_labels = followUpTaskStatuses();
             <p>Open commitments connected to this record.</p>
         </div>
         <div class="context-task-heading-actions">
-            <a href="<?php echo htmlspecialchars($context_task_list_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">View in work queue</a>
+            <a href="<?php echo htmlspecialchars($context_task_list_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">View in Work Queue</a>
             <?php if ($context_task_can_manage && $context_task_subject_active): ?>
-                <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ Add task</a>
+                <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ Add Task</a>
             <?php endif; ?>
         </div>
     </div>
@@ -56,7 +56,7 @@ $context_status_labels = followUpTaskStatuses();
             <input type="hidden" name="engagement_id" value="<?php echo (int) $context_task_subject_id; ?>">
             <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
             <div><strong>Standard engagement checklist</strong><span>Preparation, host reconfirmation, thank-you, outcomes, and financial closeout.</span></div>
-            <button type="submit" class="button-secondary">Add missing checklist tasks</button>
+            <button type="submit" class="button-secondary">Add Missing Checklist Tasks</button>
         </form>
     <?php endif; ?>
 
