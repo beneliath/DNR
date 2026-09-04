@@ -20,9 +20,10 @@ expectCiWorkflowFeature(
 );
 expectCiWorkflowFeature(
     substr_count($workflow, 'npm ci') === 1
+        && substr_count($workflow, '--no-audit') === 1
         && substr_count($workflow, 'timeout 45s npm audit ') === 1
         && substr_count($workflow, 'timeout 45s composer audit ') === 1,
-    'frontend installation and dependency audits should not be duplicated across matrix jobs.'
+    'frontend installation should skip its implicit audit and explicit dependency audits should not be duplicated.'
 );
 expectCiWorkflowFeature(
     str_contains($workflow, 'dependency-audit:')
