@@ -17,6 +17,8 @@ jobs:
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: '8.4'
@@ -94,6 +96,8 @@ jobs:
         php-version: ['8.4', '8.5']
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
       - uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # 2.37.2
         with:
           php-version: ${{ matrix.php-version }}
@@ -101,12 +105,22 @@ jobs:
           coverage: none
       - run: composer install --no-interaction --no-progress --prefer-dist
       - run: composer check
+      - name: Check release and runtime metadata
+        run: |
+          git fetch --no-tags origin main
+          base=$(git merge-base HEAD origin/main)
+          if [ "$base" = "$(git rev-parse HEAD)" ]; then base=$(git rev-parse HEAD^); fi
+          scripts/prepare_release check --base-ref "$base"
+          python3 scripts/check_runtime_support.py
+          python3 -m unittest discover -s tests -p '*_test.py'
 
   frontend-quality:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: '22'
@@ -132,6 +146,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
         with:
           go-version-file: mattermost-plugin/go.mod
@@ -156,6 +172,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
       - name: Create disposable secrets
         run: |
           mkdir -p secrets backups
@@ -182,8 +200,17 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.smtp.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.smtp.yaml -f docker-compose.smtp-ca.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.smtp-ca.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.smtp.yaml -f docker-compose.smtp-ca.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.smtp-ca.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.mattermost.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mattermost.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.ubuntu.yaml -f docker-compose.mattermost.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.ubuntu.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.proton-bridge.yaml -f docker-compose.ubuntu.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.proton-bridge.yaml -f docker-compose.ubuntu.yaml -f docker-compose.mattermost.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.ci-image.yaml config --quiet
           docker compose --profile maintenance -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml -f docker-compose.smtp-ca.yaml -f docker-compose.proton-bridge.yaml -f docker-compose.ubuntu.yaml config --format json |
             jq --exit-status 'all(.services[]; .labels["com.centurylinklabs.watchtower.enable"] == "false")' >/dev/null
       - name: Exercise the documented fresh-install path
@@ -191,6 +218,15 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --build --wait
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml run --rm migrator
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml stop geocoder
+      - name: Verify migration concurrency and connection failure handling
+        env:
+          DNR_MIGRATION_TEST_CONTAINER: placeholder
+        run: |
+          export DNR_MIGRATION_TEST_CONTAINER=$(docker compose ps -q db)
+          export DNR_MIGRATION_TEST_PASSWORD=$(cat secrets/mysql_root_password)
+          docker exec "$DNR_MIGRATION_TEST_CONTAINER" mkdir -p /opt/dnr
+          docker cp scripts "$DNR_MIGRATION_TEST_CONTAINER:/opt/dnr/bin"
+          python3 tests/migration_concurrency_test.py
       - name: Exercise HTTP boundaries
         run: |
           sh tests/http_smoke_test.sh
@@ -203,3 +239,78 @@ jobs:
       - name: Remove disposable environment
         if: always()
         run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down -v
+
+  release-image:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [dependency-audit, quality, frontend-quality, mattermost-plugin, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: mattermost-plugin/go.mod
+          cache-dependency-path: mattermost-plugin/go.sum
+      - name: Log in to the image registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$REGISTRY_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+      - name: Build or reuse immutable candidates
+        run: sh scripts/build_release_images.sh
+      - name: Scan images and retain software inventories
+        run: sh scripts/scan_release_images.sh
+      - name: Build plugin artifact
+        run: |
+          npm ci --no-audit
+          make -C mattermost-plugin dist
+          cp mattermost-plugin/dist/*.tar.gz release/
+      - name: Exercise the exact application image
+        run: |
+          mkdir -p secrets backups
+          for secret in mysql_root_password mysql_app_password mysql_backup_password mysql_maintenance_password mysql_geocoder_password mysql_mail_ingest_password mysql_mail_dispatch_password; do
+            openssl rand -hex 32 > "secrets/$secret"
+          done
+          openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
+          openssl rand -base64 32 > secrets/dnr_inbound_routing_key
+          printf '%s' 'integration backup password' > secrets/backup_password
+          cp .env.example .env
+          set -a
+          . release/images.env
+          set +a
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.ci-image.yaml up -d --no-build --wait
+          sh tests/http_smoke_test.sh
+          sh tests/http_authenticated_test.sh
+          for suite in account_security inbound_email user_lifecycle booking_inquiry; do
+            docker compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/tests/${suite}_integration_test.php"
+          done
+      - name: Rehearse the deployment backup and restore gate
+        run: |
+          docker compose stop web geocoder
+          export DNR_INTEGRATION_TARGET=disposable
+          export DNR_DEPLOYMENT_BACKUP_CONTAINER=$(docker compose ps -q db)
+          export DNR_DEPLOYMENT_BACKUP_APP_IMAGE=$(cat release/app.digest)
+          export DNR_DEPLOYMENT_BACKUP_PASSWORD_FILE="$PWD/secrets/backup_password"
+          python3 tests/deployment_backup_integration_test.py
+      - name: Write qualified release manifest
+        run: |
+          plugin=$(find release -maxdepth 1 -name '*.tar.gz' -print)
+          python3 scripts/release_manifest.py create --images release/images.json --plugin "$plugin" --run-id "$GITHUB_RUN_ID" --output release/manifest.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-${{ github.sha }}
+          path: release/
+          retention-days: 90
+          if-no-files-found: error
+          overwrite: true
+      - name: Clean up fixture
+        if: always()
+        run: docker compose -f docker-compose.yaml -f docker-compose.dev.yaml down --volumes --remove-orphans

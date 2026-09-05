@@ -148,26 +148,26 @@ $cursor_types = '';
 $cursor_values = [];
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
-    if ($sort_column === 'organization') {
-        $cursor_filter = " AND (COALESCE(o.organization_name, ''), c.contact_last_name,
-            c.contact_first_name, c.id) {$comparison} (?, ?, ?, ?)";
-        $cursor_types = 'sssi';
-        $cursor_values = [
-            (string) $cursor['organization'],
-            (string) $cursor['last_name'],
-            (string) $cursor['first_name'],
-            (int) $cursor['id'],
-        ];
-    } else {
-        $cursor_filter = " AND (c.contact_last_name, c.contact_first_name, c.id)
-            {$comparison} (?, ?, ?)";
-        $cursor_types = 'ssi';
-        $cursor_values = [
-            (string) $cursor['last_name'],
-            (string) $cursor['first_name'],
-            (int) $cursor['id'],
-        ];
+    $columns = $sort_column === 'organization'
+        ? ["COALESCE(o.organization_name, '')", 'c.contact_last_name', 'c.contact_first_name', 'c.id']
+        : ['c.contact_last_name', 'c.contact_first_name', 'c.id'];
+    $values = $sort_column === 'organization'
+        ? [(string) $cursor['organization'], (string) $cursor['last_name'], (string) $cursor['first_name'], (int) $cursor['id']]
+        : [(string) $cursor['last_name'], (string) $cursor['first_name'], (int) $cursor['id']];
+    $terms = [];
+    foreach ($columns as $index => $column) {
+        $term = [];
+        for ($previous = 0; $previous < $index; $previous++) {
+            $term[] = $columns[$previous] . ' = ?';
+            $cursor_values[] = $values[$previous];
+            $cursor_types .= 's';
+        }
+        $term[] = $column . " {$comparison} ?";
+        $cursor_values[] = $values[$index];
+        $cursor_types .= $index === count($columns) - 1 ? 'i' : 's';
+        $terms[] = '(' . implode(' AND ', $term) . ')';
     }
+    $cursor_filter = ' AND (' . implode(' OR ', $terms) . ')';
 } else {
     $cursor = null;
 }

@@ -1,0 +1,14 @@
+# Apply after dev.yaml: tests exercise the image's PHP source, migrations and ini.
+services:
+  web:
+    volumes: !override
+      - ./tests:/opt/dnr/tests:ro
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+  geocoder:
+    volumes: !override
+      - ./tests:/opt/dnr/tests:ro
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+  maintenance:
+    volumes: !override
+      - ./tests:/opt/dnr/tests:ro
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro

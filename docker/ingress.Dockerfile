@@ -3,7 +3,12 @@ FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad
 # The public edge contains only Apache's reverse-proxy configuration. It does
 # not contain application source, Composer dependencies, migrations, database
 # clients, or application secrets.
-RUN a2enmod headers proxy proxy_http deflate expires \
+RUN apt-get update \
+    && apt-get upgrade -y \
+    && apt-mark auto $PHPIZE_DEPS \
+    && apt-get autoremove -y --purge \
+    && rm -rf /var/lib/apt/lists/* \
+    && a2enmod headers proxy proxy_http deflate expires \
     && a2disconf other-vhosts-access-log \
     && rm -rf /var/www/html/*
 

@@ -33,15 +33,20 @@ To set up the project on your local machine, follow these steps:
    openssl rand -hex 32 > secrets/mysql_mail_dispatch_password
    openssl rand -base64 32 > secrets/dnr_2fa_encryption_key
    openssl rand -base64 32 > secrets/dnr_inbound_routing_key
+   openssl rand -hex 32 > secrets/deployment_backup_password
    : > secrets/backup_password
    chmod 600 secrets/*
    ```
 
-   Store a protected offline copy of `dnr_2fa_encryption_key` separately from database backups and do not rotate it casually. Enrolled authenticator secrets cannot be recovered without it. The empty `backup_password` file is populated only for a one-shot restore and is removed afterward.
+   Store protected offline copies of `dnr_2fa_encryption_key` and `deployment_backup_password` separately from database backups. Do not rotate these keys casually: enrolled factors and encrypted deployment archives depend on them. The separate empty `backup_password` file is populated only for a one-shot browser-format restore and is removed afterward.
 
 4. **Build and run the application using Docker Compose**
 
    ```sh
+   # Load the images.env from the qualified release artifact first.
+   set -a
+   . /path/to/release/images.env
+   set +a
    ./scripts/compose_with_provenance.sh production
    ```
 
@@ -73,14 +78,7 @@ To set up the project on your local machine, follow these steps:
 
 ### Upgrading an existing database
 
-Create the secrets shown above before running Docker Compose commands with the updated configuration. Back up the database, then start the release through the wrapper. Its migrator applies pending schema changes and reasserts every service-specific grant before application traffic starts:
-
-```sh
-mkdir -p backups
-docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysqldump --single-transaction --routines --triggers --no-tablespaces -uroot dnr' > backups/dnr-before-upgrade.sql
-chmod 600 backups/dnr-before-upgrade.sql
-./scripts/compose_with_provenance.sh production
-```
+Follow the [release and recovery workflow](docs/release-workflow.md). On s1, `scripts/deploy_s1.sh` pauses writers, creates and restore-verifies a fresh encrypted database backup, and only then advances the application checkout, database image and schema. Manual upgrades must enforce the same [backup-before-upgrade directive](.cursor/rules/backup-before-database-upgrade.mdc). Verify the recovery copy before changing any active version; a successful dump command alone is not a restore test.
 
 For the one-time upgrade from a legacy installation that still exposes database
 passwords through container environment variables, run:
@@ -102,6 +100,7 @@ the two recognized legacy MySQL password variables. The file is never sourced:
 only an explicit allowlist of non-secret application settings is copied to the
 replacement. Deprecated password and calendar-token values are discarded. The
 helper refuses an already-secured, unrecognized, or partially migrated setup.
+This legacy credential-conversion helper is not the release deployment command. Before using it for a structural or database-version upgrade, complete the fresh, restore-verified backup procedure in the runbook; do not rely on its unverified SQL dump alone.
 
 The migration runner obtains database-administrator access only in the isolated migrator/database services. It holds a MySQL advisory lock, records `applying`, `applied`, or `failed` state plus each filename and SHA-256 checksum, and refuses to guess after interrupted DDL. Fresh installs and upgrades both start with `migrations/20260813_baseline.sql` and then follow the same ordered forward migrations. Add a new migration instead of editing an applied file. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
 
@@ -157,7 +156,7 @@ Database integration suites are discovered automatically from `tests/*_integrati
 `VERSION` is the single source of release-version metadata. DNR uses the project ontology
 `[super].[major].[minor]` = `x.y.z`: a minor release is `[x].[y].[z+1]` (for example,
 `1.10.3` becomes `1.10.4`), a major release is `[x].[y+1].0`, and a super release is
-`[x+1].0.0`. Update it once when preparing a release; runtime responses, asset cache keys, the
+`[x+1].0.0`. Update it once when preparing a release; runtime responses, fallback asset cache keys, the
 footer, backups, and container images read that value automatically.
 
 ### Health and operations
@@ -166,9 +165,7 @@ footer, backups, and container images read that value automatically.
 - `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
 - Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
 
-Every DNR Compose service opts out of host-wide Watchtower polling. The application and worker
-images are built from the checked-out source tree, and third-party images are digest-pinned, so
-deploy updates with `git pull` followed by the appropriate `compose_with_provenance.sh` mode.
+Every DNR Compose service opts out of host-wide Watchtower polling. Production images are built and qualified by CI on the final merged commit, then promoted by digest through the [guarded deployment workflow](docs/release-workflow.md).
 The opt-out prevents Watchtower from treating Compose's local `project-service:latest` image names
 as Docker Hub repositories or trying to update dependencies outside the reviewed deployment path.
 
@@ -502,7 +499,7 @@ Configure these values as needed:
 - `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.254`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
 - `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
 - `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, `DNR_PDF_MAX_CHRON_ENTRIES`, and `DNR_PDF_MAX_TASKS`: optional overrides for validated workflow windows and PDF export limits normally read from YAML.
-- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `268435456` bytes (256 MB), leaving room for the base64 representation of the documented 100 MB PDF upload plus normal application data. Backup and restore plaintext exists only in the relevant container's memory-backed `/tmp`.
+- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `536870912` bytes (512 MiB), with coordinated temporary-storage and worker memory budgets. The maintenance page estimates capacity; larger databases use the native encrypted deployment backup. Backup and restore plaintext exists only in the relevant container's memory-backed `/tmp`.
 - `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
@@ -565,24 +562,26 @@ be supplied together.
 
 ### Deploying the tracked MOED release to s1
 
-After the final `main` GitHub Actions run succeeds, deploy that exact commit with:
+Follow [Release and recovery workflow](docs/release-workflow.md) to prepare the version, merge through the six protected checks, qualify immutable images, and verify main and the release tag on both remotes. Then deploy the exact final commit:
 
 ```sh
 ./scripts/deploy_s1.sh "$(git rev-parse HEAD)"
 ```
 
-The guarded command defaults to `dgilmore@192.168.1.150`, the checkout at
-`/home/dgilmore/moed`, the `production-ubuntu-proton-mattermost` Compose mode, and
-`https://moed.beneliath.com`. It refuses a dirty or non-`main` local or remote checkout, requires
-the checked-in Daily Digest preview to match the release, requires `origin/main` and a successful
-GitHub CI run to match the requested commit, fast-forwards the remote checkout without rewriting
-history, rebuilds with provenance, and verifies the migration gate, expected services, container
-version/commit, and public health/readiness responses. The
-`DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR`, `DNR_S1_COMPOSE_MODE`,
-`DNR_S1_PUBLIC_BASE_URL`, and `DNR_S1_GITHUB_REPOSITORY` variables exist for an intentional future
-infrastructure change; the topology guard prevents accidentally deploying s1 with a partial mode.
+The command defaults to `dgilmore@192.168.1.150`, `/home/dgilmore/moed`, the complete
+`production-ubuntu-proton-mattermost` topology, and `https://moed.beneliath.com`.
+It creates and restore-verifies a fresh encrypted database backup before changing the checkout,
+database image/schema, or application version. This is a standing [deployment directive](.cursor/rules/backup-before-database-upgrade.mdc), including for manual structural/version upgrades.
+
+Configure the private s1 backup password file first (`DNR_S1_BACKUP_PASSWORD_FILE`, default
+`/home/dgilmore/moed/secrets/deployment_backup_password`). Deployment holds a host lock through backup,
+migration and public readiness; it uses CI-qualified digests with rebuilding disabled and retains
+an explicit recovery record. `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR` and
+`DNR_S1_PUBLIC_BASE_URL` can override the documented host identity when intentionally needed.
 
 ### Two-factor authentication
+
+Recovery-email changes are separate from ordinary profile edits. They require the current password and a fresh authenticator code when enabled. The old verified address remains active until the new address is verified, an old-address notice is queued, and successful promotion revokes existing sessions.
 
 - TOTP authenticator codes use a 30-second time step and tolerate one neighboring time step for clock drift.
 - A successful code cannot be reused.
@@ -606,7 +605,7 @@ infrastructure change; the topology guard prevents accidentally deploying s1 wit
 ### User lifecycle and invitations
 
 - Freshly invited accounts cannot authenticate. The seven-day invitation link lets the recipient choose a private password, verifies the invited email address, and activates the account.
-- Changing an account email clears its verified status and sends a new 24-hour verification link. Only verified addresses can receive password-recovery links.
+- A self-service email change retains the current verified address while a new 24-hour verification link is pending. Successful verification promotes the new address and revokes existing sessions. Only verified addresses can receive password-recovery links.
 - Deactivation retains the user and every audit reference while incrementing the authentication version, revoking all calendar subscriptions, invalidating outstanding email links, removing task assignments, and making any session-held administrator elevation unusable.
 - Reactivation restores sign-in access only. Revoked calendar links and prior task assignments are intentionally not restored.
 

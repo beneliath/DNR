@@ -290,7 +290,7 @@ function replaceRecoveryCodes(mysqli $conn, $user_id, array $codes) {
     }
 }
 
-function enableTwoFactorForUser(mysqli $conn, $user_id, $secret, $first_step) {
+function enableTwoFactorForUser(mysqli $conn, $user_id, $secret, $first_step, int $expected_auth_version) {
     $encrypted = encryptTwoFactorSecret($secret);
     $codes = generateRecoveryCodes();
     $conn->begin_transaction();
@@ -305,10 +305,14 @@ function enableTwoFactorForUser(mysqli $conn, $user_id, $secret, $first_step) {
                  auth_version = auth_version + 1,
                  two_factor_failed_attempts = 0,
                  two_factor_locked_until = NULL
-             WHERE id = ?'
+             WHERE id = ? AND auth_version = ? AND account_status = \'active\''
         );
-        $stmt->bind_param('sii', $encrypted, $first_step, $user_id);
+        $stmt->bind_param('siii', $encrypted, $first_step, $user_id, $expected_auth_version);
         $stmt->execute();
+        if ($stmt->affected_rows !== 1) {
+            throw new RuntimeException('Authentication changed after enrollment began.');
+        }
+        $stmt->close();
         replaceRecoveryCodes($conn, $user_id, $codes);
         $conn->commit();
     } catch (Throwable $exception) {

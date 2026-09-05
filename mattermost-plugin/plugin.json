@@ -5,7 +5,7 @@
   "homepage_url": "https://github.com/beneliath/DNR",
   "support_url": "https://github.com/beneliath/DNR/issues",
   "icon_path": "assets/moed-icon.svg",
-  "version": "0.4.6",
+  "version": "0.4.7",
   "min_server_version": "9.0.0",
   "server": {
     "executables": {
@@ -52,7 +52,7 @@
         "key": "RequestTimeoutSeconds",
         "display_name": "Request Timeout (seconds):",
         "type": "number",
-        "help_text": "Maximum time to wait for MOED. Allowed range: 2–30 seconds.",
+        "help_text": "Maximum time to wait for MOED. Allowed range: 2\u201330 seconds.",
         "placeholder": "10",
         "default": 10
       },

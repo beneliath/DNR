@@ -68,7 +68,7 @@ expectDashboardFeature(
 
 expectDashboardFeature(
     str_contains($dashboard, 'fetchDashboardUpcomingEngagements')
-        && str_contains($dashboard, 'fetchDashboardTaskSummary')
+        && str_contains($dashboard, 'fetchTaskReminderCounts')
         && str_contains($dashboard, 'fetchDashboardMyTasks')
         && str_contains($dashboard, 'fetchDashboardOpenBookingInquiryCount')
         && str_contains($dashboard, 'fetchDashboardBookingPipelineHealth')

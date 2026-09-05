@@ -19,8 +19,8 @@ expectCiWorkflowFeature(
     'superseded runs for the same branch or pull request should be cancelled.'
 );
 expectCiWorkflowFeature(
-    substr_count($workflow, 'npm ci') === 1
-        && substr_count($workflow, '--no-audit') === 1
+    substr_count($workflow, 'npm ci') === 2
+        && substr_count($workflow, '--no-audit') === 2
         && substr_count($workflow, 'timeout 45s npm audit ') === 1
         && substr_count($workflow, 'timeout 45s composer audit ') === 1,
     'frontend installation should skip its implicit audit and explicit dependency audits should not be duplicated.'

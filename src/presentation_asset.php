@@ -16,6 +16,10 @@ if (!$presentation_id || $presentation_id < 1 || $definition === null) {
     exit;
 }
 
+// Keep metadata and all chunks in one consistent snapshot during replacement.
+$conn->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
+$conn->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
+
 $select_columns = ['HEX(' . $definition['sha_column'] . ') AS asset_sha256'];
 if ($definition['mime_column']) {
     $select_columns[] = $definition['mime_column'] . ' AS asset_mime';
@@ -100,38 +104,18 @@ try {
 
 $representation_condition = 'id = ? AND ' . $definition['sha_column']
     . ' = UNHEX(?) AND ' . str_replace(' AS asset_size', '', $asset_size_expression) . ' = ?';
-$data_sql = $range === null
-    ? 'SELECT ' . $definition['data_column'] . ' AS asset_data FROM presentations WHERE '
-        . $representation_condition
-    : 'SELECT SUBSTRING(' . $definition['data_column'] . ', ?, ?) AS asset_data '
-        . 'FROM presentations WHERE ' . $representation_condition;
-$data_stmt = $conn->prepare($data_sql);
-if (!$data_stmt) {
-    http_response_code(503);
-    exit;
-}
-if ($range === null) {
-    $data_stmt->bind_param('isi', $presentation_id, $asset_hash, $asset_size);
-} else {
-    $range_position = $range['start'] + 1;
-    $range_length = $range['length'];
-    $data_stmt->bind_param(
-        'iiisi',
-        $range_position,
-        $range_length,
-        $presentation_id,
-        $asset_hash,
-        $asset_size
-    );
-}
-if (!$data_stmt->execute()) {
-    $data_stmt->close();
-    http_response_code(503);
-    exit;
-}
+$data_stmt = $conn->prepare(
+    'SELECT SUBSTRING(' . $definition['data_column'] . ', ?, ?) AS asset_data '
+    . 'FROM presentations WHERE ' . $representation_condition
+);
+$range_position = ($range['start'] ?? 0) + 1;
+$remaining = $range['length'] ?? $asset_size;
+$chunk_length = min(1048576, $remaining);
+$data_stmt->bind_param('iiisi', $range_position, $chunk_length, $presentation_id, $asset_hash, $asset_size);
+// Fetch the first chunk before sending download headers, so errors stay ordinary HTTP errors.
+$data_stmt->execute();
 $data = $data_stmt->get_result()->fetch_assoc()['asset_data'] ?? null;
-$data_stmt->close();
-if (!is_string($data) || strlen($data) !== ($range['length'] ?? $asset_size)) {
+if (!is_string($data) || strlen($data) !== $chunk_length) {
     http_response_code(404);
     exit;
 }
@@ -142,7 +126,7 @@ if ($range !== null) {
     http_response_code(206);
     header('Content-Range: bytes ' . $range['start'] . '-' . $range['end'] . '/' . $asset_size);
 }
-header('Content-Length: ' . strlen($data));
+header('Content-Length: ' . $remaining);
 if ($definition['kind'] === 'pdf') {
     // Uploaded PDFs are opaque active-content containers. Downloading them
     // avoids running viewer features in the authenticated application origin.
@@ -151,4 +135,19 @@ if ($definition['kind'] === 'pdf') {
 } else {
     header('Content-Disposition: inline; filename="' . addcslashes($filename, '"\\') . '"');
 }
-echo $data;
+while (true) {
+    echo $data;
+    unset($data);
+    $remaining -= $chunk_length;
+    if ($remaining === 0 || connection_aborted()) break;
+    $range_position += $chunk_length;
+    $chunk_length = min(1048576, $remaining);
+    $data_stmt->execute();
+    $data = $data_stmt->get_result()->fetch_assoc()['asset_data'] ?? null;
+    if (!is_string($data) || strlen($data) !== $chunk_length) {
+        applicationLog('error', 'Presentation download was interrupted', ['presentation_id' => $presentation_id]);
+        break;
+    }
+}
+$data_stmt->close();
+$conn->commit();

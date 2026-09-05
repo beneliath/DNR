@@ -36,12 +36,14 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 }
 
 do {
+    $pass_succeeded = true;
     $processed = 0;
     $smtpSession = null;
     if (!$loop || time() - $lastScheduleCheck >= $scheduleInterval) {
         try {
             $processed += queueDueDailyTaskDigests($conn);
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             applicationLog('error', 'Unable to schedule daily work digests', [
                 'error' => $exception->getMessage(),
             ]);
@@ -60,6 +62,7 @@ do {
             // rather than repeating table-wide maintenance before every claim.
             $maintainQueue();
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             applicationLog('error', 'Unable to maintain outbound queue leases', [
                 'queue' => $queueName,
                 'error' => $exception->getMessage(),
@@ -93,10 +96,12 @@ do {
                 );
                 $conn->commit();
             } catch (Throwable $exception) {
+            $pass_succeeded = false;
                 $conn->rollback();
                 throw $exception;
             }
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             try {
                 failQueuedAccountEmail(
                     $conn,
@@ -106,6 +111,7 @@ do {
                     $exception instanceof DomainException
                 );
             } catch (Throwable $recordException) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to record account-email delivery failure', [
                     'outbox_id' => $queued['id'],
                     'error' => $recordException->getMessage(),
@@ -117,6 +123,7 @@ do {
                 'error' => $exception->getMessage(),
             ]);
         }
+        recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
         $processed++;
     }
 
@@ -137,6 +144,7 @@ do {
             );
             completeQueuedNotificationEmail($conn, $queued['id']);
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             try {
                 failQueuedNotificationEmail(
                     $conn,
@@ -145,6 +153,7 @@ do {
                     $exception instanceof DomainException
                 );
             } catch (Throwable $recordException) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to record notification delivery failure', [
                     'outbox_id' => $queued['id'],
                     'error' => $recordException->getMessage(),
@@ -156,6 +165,7 @@ do {
                 'error' => $exception->getMessage(),
             ]);
         }
+        recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
         $processed++;
     }
 
@@ -175,6 +185,7 @@ do {
             );
             completeQueuedEngagementEmail($conn, $queued['id']);
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             try {
                 failQueuedEngagementEmail(
                     $conn,
@@ -184,6 +195,7 @@ do {
                     $exception instanceof DomainException
                 );
             } catch (Throwable $recordException) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to record engagement-email delivery failure', [
                     'delivery_id' => $queued['id'],
                     'error' => $recordException->getMessage(),
@@ -195,6 +207,7 @@ do {
                 'error' => $exception->getMessage(),
             ]);
         }
+        recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
         $processed++;
     }
 
@@ -202,6 +215,8 @@ do {
         $smtpSession->close();
         $smtpSession = null;
     }
+
+    recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
 
     if ($loop && $processed === 0) {
         sleep($idleSeconds);

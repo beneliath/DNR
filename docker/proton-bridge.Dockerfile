@@ -8,6 +8,7 @@ LABEL org.opencontainers.image.title="DNR Proton Mail Bridge sidecar" \
       org.opencontainers.image.version="${PROTON_BRIDGE_VERSION}"
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         curl \

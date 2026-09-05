@@ -66,6 +66,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['engagement_action_message'] ?? '';
 $action_error = $_SESSION['engagement_action_error'] ?? '';
 unset($_SESSION['engagement_action_message'], $_SESSION['engagement_action_error']);
+generateCsrfToken();
+releaseApplicationSessionLock();
 
 // Retrieve engagements with organization name. Every value is allowlisted
 // before it is used in SQL or reflected into a link.
@@ -316,6 +318,7 @@ $format_date_range = static function ($start, $end) {
             <input type="hidden" name="lifecycle_sort" value="<?php echo htmlspecialchars($lifecycle_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <label class="visually-hidden" for="engagement-search">title, organization, contact, chron log text, "and"/or user</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
@@ -442,8 +445,16 @@ $format_date_range = static function ($start, $end) {
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($cursor !== null || $next_cursor !== null): ?>
+    <?php if ($engagement_rows !== [] || $cursor !== null): ?>
         <nav class="pagination pagination-with-size" aria-label="Engagement pages">
+            <div class="page-size-selector" aria-label="Engagements per page">
+                <span class="page-size-label">Rows per page:</span>
+                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
+                    <a href="<?php echo htmlspecialchars($list_url(['per_page' => $allowed_page_size, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+                       class="sort-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
+                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
+                <?php endforeach; ?>
+            </div>
             <span class="pagination-status">Showing up to <?php echo $page_size; ?> engagements</span>
             <div class="pagination-actions">
                 <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>

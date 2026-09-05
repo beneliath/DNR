@@ -26,7 +26,7 @@ Usage:
   scripts/compose_with_provenance.sh production-ubuntu-proton-mattermost [COMPOSE_ARGUMENTS...]
   scripts/compose_with_provenance.sh --print-metadata
 
-With no Compose arguments, development and production run: up -d --build
+With no arguments, development builds locally; production requires DNR_APP_IMAGE and uses --no-build.
 EOF
 }
 
@@ -85,7 +85,12 @@ if [ -z "$mode" ]; then
 fi
 shift
 if [ "$#" -eq 0 ]; then
-    set -- up -d --build
+    case "$mode" in
+        production*|prod*)
+            case "${DNR_APP_IMAGE:-}" in *@sha256:*) ;; *) echo 'Production requires a qualified image digest.' >&2; exit 1 ;; esac
+            set -- up -d --no-build ;;
+        *) set -- up -d --build ;;
+    esac
 fi
 
 command -v docker >/dev/null 2>&1 || {

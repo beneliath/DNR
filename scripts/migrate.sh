@@ -24,39 +24,81 @@ if [ -z "$root_password" ]; then
 fi
 export MYSQL_PWD=$root_password
 
-mysql_root() {
+# One non-reconnecting client owns both the lock and every migration statement.
+# FIFO request/response framing keeps DDL on that connection without buffering
+# all migrations in memory or relying on a detached lock-holder process.
+umask 077
+migration_runtime=$(mktemp -d)
+mkfifo "$migration_runtime/input" "$migration_runtime/output"
+mysql_client() {
     if [ -n "$database_host" ]; then
         mysql --protocol=tcp -h "$database_host" -uroot "$@"
     else
         mysql --protocol=socket -uroot "$@"
     fi
 }
+mysql_client --batch --skip-column-names --raw --unbuffered --skip-reconnect \
+    < "$migration_runtime/input" > "$migration_runtime/output" &
+migration_client_pid=$!
+exec 3>"$migration_runtime/input"
+exec 4<"$migration_runtime/output"
 
-lock_name="dnr_${database_name}_migrations"
-lock_acquired=$(mysql_root -Nse "SELECT GET_LOCK('$lock_name', 60)")
-if [ "$lock_acquired" != "1" ]; then
-    echo "Could not obtain the database migration lock." >&2
-    exit 1
-fi
+mysql_root() {
+    query_database=
+    query_sql=
+    while [ "$#" -gt 0 ]; do
+        case "$1" in
+            -Nse|-e) query_sql=$2; shift 2 ;;
+            *) query_database=$1; shift ;;
+        esac
+    done
+    query_marker="dnr_end_$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n')"
+    {
+        [ -z "$query_database" ] || printf 'USE `%s`;\n' "$query_database"
+        if [ -n "$query_sql" ]; then printf '%s;\n' "$query_sql"; else cat; fi
+        printf '\nDELIMITER ;\nSELECT "%s";\n' "$query_marker"
+    } >&3 || return 1
+    while IFS= read -r query_line <&4; do
+        [ "$query_line" != "$query_marker" ] || return 0
+        printf '%s\n' "$query_line"
+    done
+    echo "Migration connection lost or SQL failed; no further migrations will run." >&2
+    return 1
+}
 
 migration_in_progress=
 cleanup() {
     status=$?
     trap - EXIT HUP INT TERM
+    # Close/stop the owning connection before recording failure separately.
+    # An 'applying' ledger row also blocks retries if interruption precedes this.
+    exec 3>&-
+    kill "$migration_client_pid" 2>/dev/null || true
+    wait "$migration_client_pid" 2>/dev/null || true
+    exec 4<&-
     if [ "$status" -ne 0 ] && [ -n "$migration_in_progress" ]; then
-        mysql_root "$database_name" -e "
+        mysql_client "$database_name" -e "
             UPDATE schema_migrations
             SET state = 'failed', migration_updated_at = CURRENT_TIMESTAMP
             WHERE migration_name = '$migration_in_progress' AND state = 'applying'" \
             >/dev/null 2>&1 || true
     fi
-    mysql_root -Nse "SELECT RELEASE_LOCK('$lock_name')" >/dev/null 2>&1 || true
+    rm -rf "$migration_runtime"
     exit "$status"
 }
 trap cleanup EXIT
 trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
+
+lock_name="dnr_${database_name}_migrations"
+lock_timeout=${DNR_MIGRATION_LOCK_TIMEOUT:-60}
+case "$lock_timeout" in ''|*[!0-9]*) echo "Invalid migration lock timeout" >&2; exit 1 ;; esac
+lock_acquired=$(mysql_root -Nse "SELECT GET_LOCK('$lock_name', $lock_timeout)")
+if [ "$lock_acquired" != "1" ]; then
+    echo "Could not obtain the database migration lock." >&2
+    exit 1
+fi
 
 mysql_root "$database_name" -e "
 CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -174,6 +216,8 @@ if [ ! -r "$privilege_script" ]; then
     echo "The database privilege script is unavailable: $privilege_script" >&2
     exit 1
 fi
-sh "$privilege_script"
+DNR_PRIVILEGE_SQL_FILE="$migration_runtime/grants.sql" sh "$privilege_script"
+mysql_root < "$migration_runtime/grants.sql"
+mysql_root -Nse "SELECT RELEASE_LOCK('$lock_name')" >/dev/null
 
 echo "Database migrations are current."

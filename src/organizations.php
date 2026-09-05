@@ -76,6 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['organization_action_message'] ?? '';
 $action_error = $_SESSION['organization_action_error'] ?? '';
 unset($_SESSION['organization_action_message'], $_SESSION['organization_action_error']);
+generateCsrfToken();
+releaseApplicationSessionLock();
 
 // Retrieve organizations using an allowlisted name-sort direction.
 $name_sort = strtolower(\Dnr\Http\RequestInput::string($_GET, 'name_sort')) === 'desc'
@@ -118,9 +120,9 @@ $cursor_values = [];
 $cursor_types = '';
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
-    $cursor_filter = " AND (o.organization_name, o.id) {$comparison} (?, ?)";
-    $cursor_values = [(string) $cursor['name'], (int) $cursor['id']];
-    $cursor_types = 'si';
+    $cursor_filter = " AND (o.organization_name {$comparison} ? OR (o.organization_name = ? AND o.id {$comparison} ?))";
+    $cursor_values = [(string) $cursor['name'], (string) $cursor['name'], (int) $cursor['id']];
+    $cursor_types = 'ssi';
 } else {
     $cursor = null;
 }

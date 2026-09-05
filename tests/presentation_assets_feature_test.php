@@ -133,8 +133,8 @@ expectPresentationAssetFeature(
         && str_contains($production_ini, 'upload_max_filesize=100M')
         && str_contains($development_ini, 'post_max_size=120M')
         && str_contains($development_ini, 'upload_max_filesize=100M')
-        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=640m')
-        && str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES:-268435456')
+        && str_contains($compose, '/tmp:rw,noexec,nosuid,size=1280m')
+        && str_contains($compose, 'DNR_DATABASE_BACKUP_MAX_BYTES:-536870912')
         && str_contains($compose, '--max-allowed-packet=128M'),
     'PDF validation, request handling, temporary storage, and database transport should accommodate the documented 100 MB limit.'
 );
@@ -244,7 +244,7 @@ expectPresentationAssetFeature(
         && str_contains($asset_route, 'HTTP_IF_NONE_MATCH')
         && str_contains($asset_route, 'HTTP_IF_RANGE')
         && str_contains($asset_route, 'hash_equals($etag, $if_range)')
-        && strpos($asset_route, 'HTTP_IF_NONE_MATCH') < strpos($asset_route, '$data_sql')
+        && strpos($asset_route, 'HTTP_IF_NONE_MATCH') < strpos($asset_route, '$data_stmt')
         && str_contains($asset_route, "' = UNHEX(?) AND '")
         && str_contains($asset_route, 'Content-Range: bytes '),
     'asset delivery should validate stable metadata and 304 responses before reading BLOB bytes, with range support.'

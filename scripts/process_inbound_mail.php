@@ -40,6 +40,7 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 setDatabaseAuditContext($conn, null, 'Email Gateway');
 
 do {
+    $pass_succeeded = true;
     $activity = 0;
     $client = new ImapClient(
         $host,
@@ -61,6 +62,7 @@ do {
                     quarantineInboundEmailMessage($conn, $uidValidity . ':' . $uid, $exception);
                     $quarantined = true;
                 } catch (Throwable $quarantineException) {
+            $pass_succeeded = false;
                     applicationLog('error', 'Unable to quarantine a rejected IMAP message', [
                         'uid_validity' => $uidValidity,
                         'uid' => $uid,
@@ -78,9 +80,11 @@ do {
                     }
                     if ($quarantined) {
                         $client->markSeen($uid);
-                        $activity++;
+                        recordWorkerHeartbeat('mail-ingest', $pass_succeeded);
+        $activity++;
                     }
                 } catch (Throwable $reconnectException) {
+            $pass_succeeded = false;
                     applicationLog('error', 'Unable to resume IMAP after rejecting a message', [
                         'uid_validity' => $uidValidity,
                         'uid' => $uid,
@@ -90,6 +94,7 @@ do {
                 }
                 continue;
             } catch (Throwable $exception) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to fetch an IMAP message', [
                     'uid_validity' => $uidValidity,
                     'uid' => $uid,
@@ -101,11 +106,14 @@ do {
             try {
                 $parsed = parseInboundEmail($rawMessage);
             } catch (Throwable $exception) {
+            $pass_succeeded = false;
                 try {
                     quarantineInboundEmailMessage($conn, $uidValidity . ':' . $uid, $exception);
                     $client->markSeen($uid);
-                    $activity++;
+                    recordWorkerHeartbeat('mail-ingest', $pass_succeeded);
+        $activity++;
                 } catch (Throwable $quarantineException) {
+            $pass_succeeded = false;
                     applicationLog('error', 'Unable to quarantine an unparseable IMAP message', [
                         'uid_validity' => $uidValidity,
                         'uid' => $uid,
@@ -123,8 +131,10 @@ do {
                     $parsed
                 );
                 $client->markSeen($uid);
-                $activity++;
+                recordWorkerHeartbeat('mail-ingest', $pass_succeeded);
+        $activity++;
             } catch (Throwable $exception) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to import an IMAP message', [
                     'uid_validity' => $uidValidity,
                     'uid' => $uid,
@@ -133,6 +143,7 @@ do {
             }
         }
     } catch (Throwable $exception) {
+            $pass_succeeded = false;
         applicationLog('error', 'Inbound IMAP polling failed', [
             'error' => $exception->getMessage(),
         ]);
@@ -148,9 +159,11 @@ do {
         try {
             processInboundEmailMessage($conn, $messageId);
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             try {
                 failInboundEmailMessage($conn, $messageId, $exception);
             } catch (Throwable $recordException) {
+            $pass_succeeded = false;
                 applicationLog('error', 'Unable to record inbound email failure', [
                     'message_id' => $messageId,
                     'error' => $recordException->getMessage(),
@@ -161,8 +174,11 @@ do {
                 'error' => $exception->getMessage(),
             ]);
         }
+        recordWorkerHeartbeat('mail-ingest', $pass_succeeded);
         $activity++;
     }
+
+    recordWorkerHeartbeat('mail-ingest', $pass_succeeded);
 
     if ($loop && $activity === 0) {
         sleep($idleSeconds);

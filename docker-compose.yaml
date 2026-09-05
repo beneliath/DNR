@@ -23,7 +23,7 @@ x-app-environment: &app-environment
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
   DNR_TIMEZONE: ${DNR_TIMEZONE:-}
-  DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-268435456}
+  DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-536870912}
   DNR_GITHUB_REPOSITORY: ${DNR_GITHUB_REPOSITORY:-beneliath/DNR}
   DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
   DNR_SESSION_IDLE_SECONDS: ${DNR_SESSION_IDLE_SECONDS:-43200}
@@ -48,6 +48,10 @@ x-watchtower-disabled-labels: &watchtower-disabled-labels
 
 services:
   web:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    mem_limit: 4g
+    cpus: 2.0
+    pids_limit: 128
     build:
       context: .
       args:
@@ -56,7 +60,7 @@ services:
     restart: unless-stopped
     read_only: true
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=640m
+      - /tmp:rw,noexec,nosuid,size=1280m
       - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
       - /var/lock/apache2:rw,noexec,nosuid,size=1m
       - /var/run/apache2:rw,noexec,nosuid,size=1m
@@ -85,6 +89,7 @@ services:
       start_period: 20s
 
   ingress:
+    image: ${DNR_INGRESS_IMAGE:-dnr-ingress:local}
     build:
       context: .
       dockerfile: docker/ingress.Dockerfile
@@ -116,6 +121,16 @@ services:
       start_period: 20s
 
   geocoder:
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "geocoder"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
     build:
       context: .
       args:
@@ -155,6 +170,10 @@ services:
     networks: [backend, egress]
 
   maintenance:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    mem_limit: 2g
+    cpus: 1.0
+    pids_limit: 128
     build:
       context: .
       args:
@@ -165,7 +184,7 @@ services:
     user: www-data
     entrypoint: ["php", "/opt/dnr/bin/restore_database.php"]
     tmpfs:
-      - /tmp:rw,noexec,nosuid,size=640m
+      - /tmp:rw,noexec,nosuid,size=1280m
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
@@ -188,12 +207,15 @@ services:
       MYSQL_BACKUP_USER: dnrbackup
       MYSQL_BACKUP_PASSWORD_FILE: /run/secrets/dnr_mysql_backup_password
       DNR_BACKUP_PASSWORD_FILE: /run/secrets/dnr_backup_password
-      DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-268435456}
+      DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-536870912}
       DNR_CONFIG_FILE: /run/dnr/config/application.yaml
     networks: [backend]
 
   db:
-    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    image: ${DNR_DATABASE_IMAGE:-dnr-database:local}
+    build:
+      context: .
+      dockerfile: docker/mysql.Dockerfile
     command: ["--max-allowed-packet=128M"]
     restart: unless-stopped
     security_opt:
@@ -237,7 +259,10 @@ services:
       start_period: 20s
 
   migrator:
-    image: mysql:8.0@sha256:7dcddc01f13bab2f15cde676d44d01f61fc9f99fe7785e86196dfc07d358ae2b
+    image: ${DNR_DATABASE_IMAGE:-dnr-database:local}
+    build:
+      context: .
+      dockerfile: docker/mysql.Dockerfile
     restart: "no"
     read_only: true
     tmpfs:

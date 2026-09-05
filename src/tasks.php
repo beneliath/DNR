@@ -140,8 +140,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $action_message = $_SESSION['task_action_message'] ?? '';
 $action_error = $_SESSION['task_action_error'] ?? '';
 unset($_SESSION['task_action_message'], $_SESSION['task_action_error']);
+generateCsrfToken();
+releaseApplicationSessionLock();
 $business_date = applicationBusinessDate();
-$personal_reminders = fetchTaskReminderCounts(
+$personal_reminders = $request_reminder_counts = fetchTaskReminderCounts(
     $conn,
     $current_user_id,
     (string) $user_role,

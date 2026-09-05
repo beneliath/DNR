@@ -19,7 +19,12 @@ use Dnr\Http\ClientAddress;
 function assetUrl($path) {
     $path = ltrim((string) $path, '/');
     $version = defined('APP_VERSION') ? APP_VERSION : 'dev';
-    $url = $path . (str_contains($path, '?') ? '&' : '?') . 'v=' . rawurlencode($version);
+    $fragment = '';
+    if (str_contains($path, '#')) {
+        [$path, $fragment] = explode('#', $path, 2);
+        $fragment = '#' . $fragment;
+    }
+    $identity = 'v=' . rawurlencode($version);
 
     // Static assets are cached as immutable. Prefer the build manifest so a
     // request does not re-read and hash large bundles; retain a development
@@ -45,11 +50,11 @@ function assetUrl($path) {
             }
         }
         if (is_string($fingerprint) && $fingerprint !== '') {
-            $url .= '&h=' . rawurlencode($fingerprint);
+            $identity = 'h=' . rawurlencode($fingerprint);
         }
     }
 
-    return $url;
+    return $path . (str_contains($path, '?') ? '&' : '?') . $identity . $fragment;
 }
 
 function renderPageHead($title, array $options = []) {

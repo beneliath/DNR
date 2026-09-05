@@ -89,6 +89,9 @@
   --status-pill-padding: 4px 9px;
   --status-pill-font-size: 0.75rem;
   --status-pill-font-weight: 700;
+  --status-open-bg: #15803d;
+  --status-closed-bg: #b42318;
+  --status-solid-fg: #ffffff;
   --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 4px rgba(16, 24, 40, 0.05);
   --shadow-md: 0 12px 28px rgba(16, 24, 40, 0.10);
   --dialog-backdrop: rgba(7, 13, 24, 0.62);
@@ -159,6 +162,8 @@ html.dark-mode {
   --danger: #ff8c82;
   --danger-hover: #ffaaa3;
   --danger-subtle: #47211f;
+  --status-open-bg: #178647;
+  --status-closed-bg: #d92d20;
   --task-overdue-row-bg: #42202b;
   --task-overdue-row-hover-bg: #361a23;
   --task-today-row-bg: #1d3150;
@@ -3867,6 +3872,31 @@ html body .register-button[disabled] {
   color: var(--text-muted) !important;
 }
 
+/* Use solid, contrast-tested colors for open and closed work in both themes. */
+.event-closeout-badge,
+.financial-status {
+  flex: 0 0 auto;
+}
+
+.event-closeout-badge.is-open,
+.financial-status.is-open,
+.task-status-open {
+  background: var(--status-open-bg);
+  color: var(--status-solid-fg);
+}
+
+.event-closeout-badge.is-closed,
+.financial-status.is-finalized {
+  background: var(--status-closed-bg);
+  color: var(--status-solid-fg);
+}
+
+.event-closeout-badge.is-not-applicable,
+.financial-status.is-not-applicable {
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+
 /* Shared geometry for semantic metadata pills. Color remains owned by each
    status component so meaning is preserved across light and dark themes. */
 :is(
@@ -3893,6 +3923,7 @@ html body .register-button[disabled] {
   .manual-status-pill
 ) {
   display: inline-flex !important;
+  width: fit-content !important;
   min-height: var(--status-pill-min-height) !important;
   align-items: center !important;
   justify-content: center !important;

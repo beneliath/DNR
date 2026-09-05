@@ -7,3 +7,7 @@
 /output/
 /operations-view-colon.png
 .DS_Store
+
+# Python release tooling caches and candidate release outputs
+__pycache__/
+/release/

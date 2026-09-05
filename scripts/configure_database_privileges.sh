@@ -114,6 +114,10 @@ if [ "${#mail_dispatch_password}" -lt 32 ]; then
 fi
 
 mysql_admin() {
+    if [ -n "${DNR_PRIVILEGE_SQL_FILE:-}" ]; then
+        cat > "$DNR_PRIVILEGE_SQL_FILE"
+        return
+    fi
     if [ -n "${DB_HOST:-}" ]; then
         MYSQL_PWD=$root_password mysql --protocol=tcp -h "$DB_HOST" -uroot "$@"
     else
@@ -179,7 +183,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geo
 CREATE USER IF NOT EXISTS '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 ALTER USER '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_ingest_user}'@'%';
-GRANT SELECT ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
+GRANT SELECT (id, username, verified_email, account_status)
+    ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_ingest_user}'@'%';

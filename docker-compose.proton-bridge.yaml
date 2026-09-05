@@ -1,5 +1,6 @@
 services:
   proton-bridge:
+    image: ${DNR_BRIDGE_IMAGE:-dnr-proton-bridge:local}
     platform: linux/amd64
     build:
       context: .
