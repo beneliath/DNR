@@ -1,0 +1,17 @@
+---
+description: Standing authority to review and administer DNR pull requests while preserving protected merges and user-controlled deployments
+alwaysApply: true
+---
+
+# Pull Request Administration Authority
+
+The user has granted standing authority to review and administer DNR pull requests:
+
+> Investigate and fix issues, merge suitable changes after required checks pass, and close obsolete or unsuitable PRs with an explanation. Maintain the dependency-update configuration to keep the queue manageable. Preserve branch protections. Deploy to production only when I request a deployment.
+
+- Review the actual diff and relevant compatibility evidence before merging. Passing checks alone do not replace review.
+- This authority includes preparing fixes on branches, committing and publishing those fixes, updating PRs, and posting explanations of review and closure decisions without separate approval for each PR.
+- Keep the required checks, strict up-to-date protection, and existing review requirements. Do not bypass protections or force a merge.
+- Keep related routine dependency updates grouped where appropriate; evaluate major upgrades separately.
+- Report merged, fixed, closed, and remaining PRs with concrete reasons for unresolved items.
+- PR maintenance does not authorize a production deployment. When the user requests one, follow the established [release workflow](../../docs/release-workflow.md) and the requested version-bump convention.
