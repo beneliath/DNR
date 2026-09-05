@@ -130,7 +130,7 @@ function calendarDayContext($requested_day = null, $today_date = null) {
     ];
 }
 
-function calendarViewerPageUrl($month = null, $mode = 'everything', $day = null) {
+function calendarViewerPageUrl($month = null, $mode = 'everything', $day = null, $focus_day = false) {
     $parameters = [];
     $month = trim((string) $month);
     if (preg_match('/\A\d{4}-(0[1-9]|1[0-2])\z/', $month) === 1) {
@@ -148,7 +148,7 @@ function calendarViewerPageUrl($month = null, $mode = 'everything', $day = null)
 
     return 'view_calendar.php'
         . ($parameters === [] ? '' : '?' . http_build_query($parameters))
-        . '#event-calendar';
+        . ($focus_day && isset($parameters['day']) ? '#calendar-agenda-title' : '#event-calendar');
 }
 
 /** @return list<array<string, mixed>> */

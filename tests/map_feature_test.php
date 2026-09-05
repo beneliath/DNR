@@ -153,10 +153,10 @@ expectMapFeature(
     'the basemap should use a lighter, lower-saturation treatment that matches the application theme.'
 );
 expectMapFeature(
-    preg_match('/@media \(max-width: 620px\).*?\.map-filters\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $map_styles) === 1
-        && preg_match('/@media \(max-width: 620px\).*?\.map-date-window\s*\{[^}]*display:\s*block;[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
-        && preg_match('/@media \(max-width: 620px\).*?\.map-date-window > \.map-filter-field\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
-        && preg_match('/@media \(max-width: 620px\).*?\.map-filter-field input\[type="date"\]\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;[^}]*appearance:\s*none;[^}]*-webkit-appearance:\s*none;/s', $map_styles) === 1,
+    preg_match('/@media \(max-width: 760px\).*?\.map-filters\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 760px\).*?\.map-date-window\s*\{[^}]*display:\s*block;[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 760px\).*?\.map-date-window > \.map-filter-field\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;/s', $map_styles) === 1
+        && preg_match('/@media \(max-width: 760px\).*?\.map-filter-field input\[type="date"\]\s*\{[^}]*width:\s*100%\s*!important;[^}]*max-width:\s*100%\s*!important;[^}]*inline-size:\s*100%\s*!important;[^}]*max-inline-size:\s*100%\s*!important;[^}]*appearance:\s*none;[^}]*-webkit-appearance:\s*none;/s', $map_styles) === 1,
     'phone filters should stay compact and date controls should remain inside the viewport.'
 );
 expectMapFeature(

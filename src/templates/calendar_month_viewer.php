@@ -101,11 +101,11 @@ $calendar_month_summary = match ($calendar_view_mode) {
             </a>
         </nav>
         <nav class="calendar-agenda-navigation" aria-label="Daily agenda navigation">
-            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['previous_day']), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['previous_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
+            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['previous_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['previous_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
                 <span aria-hidden="true">←</span>
             </a>
-            <a class="calendar-month-control calendar-month-today" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['today']), ENT_QUOTES, 'UTF-8'); ?>"<?php if ($calendar_day['is_today']): ?> aria-current="date"<?php endif; ?>>Today</a>
-            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['next_day']), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['next_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
+            <a class="calendar-month-control calendar-month-today" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['today'], true), ENT_QUOTES, 'UTF-8'); ?>"<?php if ($calendar_day['is_today']): ?> aria-current="date"<?php endif; ?>>Today</a>
+            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['next_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['next_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
                 <span aria-hidden="true">→</span>
             </a>
         </nav>

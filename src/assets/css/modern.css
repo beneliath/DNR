@@ -105,6 +105,7 @@ html.dark-mode {
   --dark-bg-color: var(--app-bg);
   --bg-color: var(--app-bg);
   --surface: #171d27;
+  --dark-input-bg: var(--surface);
   --surface-subtle: #1d2531;
   --surface-hover: #222c39;
   --border: #303b49;
@@ -809,7 +810,7 @@ html body .container > .profile-form {
 
 .profile-notification-schedule {
   display: grid;
-  grid-template-columns: minmax(150px, 180px) minmax(0, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 20px 28px;
   margin-top: 22px;
   padding: 20px;
@@ -1779,6 +1780,18 @@ html body #open-calendar-app.is-opening:focus-visible {
 
   .calendar-agenda-heading-copy {
     display: block;
+  }
+
+  html:has(.calendar-subscription-body) {
+    scroll-behavior: auto;
+  }
+
+  #calendar-agenda-title {
+    scroll-margin-top: 80px;
+  }
+
+  .role-preview-active #calendar-agenda-title {
+    scroll-margin-top: 164px;
   }
 
   .calendar-agenda-navigation {
@@ -3159,7 +3172,7 @@ textarea::placeholder {
   margin-bottom: 0;
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form),
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form),
 .security-card,
 .organization-details,
 .contact-details,
@@ -3172,7 +3185,7 @@ textarea::placeholder {
   box-shadow: var(--shadow-sm);
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form) {
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form) {
   padding: clamp(20px, 4vw, 32px);
 }
 
@@ -3216,7 +3229,11 @@ textarea::placeholder {
 
 .presentation-fields {
   display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: 15px;
+  padding: 0;
+  background: transparent;
 }
 
 .presentation-fields .form-field {
@@ -4547,7 +4564,7 @@ html.dark-mode .login-secondary-link a {
   .address-grid,
   .contact-grid,
   .form-row {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 
   .list-controls,
@@ -4771,7 +4788,7 @@ html.dark-mode .login-secondary-link a {
     padding-inline: 16px;
   }
 
-  .container > form:not(.footer-logout-form):not(.sidebar-logout-form),
+  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form),
   .security-card,
   .organization-details,
   .contact-details {
@@ -5298,12 +5315,152 @@ html body .phone-country-option[aria-selected="true"] {
   }
 
   html body :is(.container, .view-container) form:not(.footer-logout-form):not(.sidebar-logout-form) :is(
-    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.presentation-native-file),
     select,
     textarea
   ) {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+}
+
+/* Fit uploaded images inside the preview border rather than beneath it. */
+.profile-picture-preview img,
+.contact-photo-preview img,
+.contact-details-photo img {
+  width: 100%;
+  height: 100%;
+}
+
+/* A grid/flex child must be allowed to shrink before its own overflow wrapper
+   can contain a table, long URL, or nested form. */
+:where(.container, .view-container) :where(section, article, form, fieldset, dl,
+  .form-section, .presentation-assets, .presentations-inner-container,
+  .inquiry-detail-main, .inquiry-detail-sidebar, .inbound-message-detail) {
+  min-width: 0;
+}
+
+:where(.container, .view-container) :where(h1, h2, h3, p, dd, .detail-value,
+  .detail-row, .contact-card, .contact-item, .field-help, .presentation-selected-file) {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 860px) {
+  :root {
+    --app-content-padding: 20px;
+  }
+}
+
+@media (max-width: 760px) {
+  /* Later page styles still specify desktop rows with !important. Match the
+     form scope so new and dynamically added presentations stack consistently. */
+  html body .engagement-form .presentation-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  html body .engagement-form .presentation-fields :is(.speaker-row, .datetime-row, .attendance-row) {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+  }
+
+  html body .engagement-form .presentation-fields .form-field {
+    width: 100% !important;
+    flex: 0 1 auto !important;
+    margin: 0 !important;
+  }
+
+  html body :is(.container, .view-container) form :is(label, .label-container) {
+    min-width: 0 !important;
+    max-width: 100%;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  html body .time-input-container > input[type="text"] {
+    flex: 0 1 auto;
+  }
+
+  html body .engagement-form .presentations-outer-box {
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+  }
+
+  html body .engagement-form .presentation-entry {
+    padding: 12px;
+  }
+
+  html body :is(.container, .view-container) :is(button, .action-button, .button-secondary, .security-button, .presentation-file-picker) {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .address-grid > *,
+  .contact-grid > * {
+    min-width: 0;
+  }
+
+  .phone-input-group {
+    position: relative;
+    width: 100% !important;
+  }
+
+  .phone-country-picker {
+    position: static;
+  }
+
+  html body :is(.phone-country-menu, .address-country-menu) {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  /* Touch controls already have accessible names; off-screen hover bubbles
+     must not widen the page or cover adjacent controls. */
+  .action-icon-button::after {
+    display: none;
+  }
+
+  html body .container .create-form-actions {
+    flex-direction: column;
+    align-items: stretch !important;
+  }
+
+  html body .container .create-form-actions > * {
+    width: 100%;
+  }
+
+  .primary-actions,
+  .export-actions,
+  .user-actions {
+    min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  html body :is(.engagement-table, .organization-table, .contact-table, .audit-table, .task-table) td {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+
+  html body :is(.engagement-table, .organization-table, .contact-table, .audit-table, .task-table) td > * {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --app-content-padding: 16px;
+  }
+
+  .form-section {
+    padding: 16px;
   }
 }
