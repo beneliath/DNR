@@ -23,7 +23,7 @@ $linuxSecrets = file_get_contents($root . '/scripts/prepare_linux_secrets.sh');
 $example = file_get_contents($root . '/.env.example');
 
 expectProtonBridgeDeployment(
-    str_contains($dockerfile, 'FROM ubuntu:24.04@sha256:')
+    str_contains($dockerfile, 'FROM ubuntu:26.04@sha256:')
         && str_contains($dockerfile, 'PROTON_BRIDGE_VERSION=3.25.0-1')
         && str_contains($dockerfile, '6b0318f4f425ef1a19b63e2bd589bc1036d95f073cb9ac26b42c0fc63a8bc275')
         && str_contains($dockerfile, 'sha256sum --check --strict')
