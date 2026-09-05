@@ -88,6 +88,11 @@ html.dark-mode .tasks-page {
     50% { background-color: var(--task-overdue-alert-bg); }
 }
 
+/* Keep the animation clock running while interaction takes visual priority. */
+.task-table tbody tr.task-row-needs-attention:is(:hover, :focus-within) > td {
+    background-color: var(--task-overdue-row-hover-bg) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .task-table tbody tr.task-row-needs-attention > td {
         animation: none;

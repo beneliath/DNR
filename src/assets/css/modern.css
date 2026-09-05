@@ -2468,7 +2468,6 @@ html body .chron-restore-page-actions a:focus-visible {
   padding: 14px 16px;
   border: 0;
   border-bottom: 1px solid var(--border);
-  background: transparent !important;
   color: var(--text) !important;
   text-align: left;
   vertical-align: middle;
