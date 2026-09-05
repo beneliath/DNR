@@ -46,7 +46,9 @@ expectUiConsistency(
 );
 
 expectUiConsistency(
-    str_contains($modern, '--status-pill-min-height: 26px;')
+    str_contains($modern, '--status-pill-min-height: 22px;')
+        && str_contains($modern, '--status-pill-padding: 3px 7px;')
+        && str_contains($modern, '--status-pill-font-size: 0.68rem;')
         && str_contains($modern, '.inquiry-stage-badge,')
         && str_contains($modern, '.dashboard-status,')
         && str_contains($modern, '.audit-badge,')

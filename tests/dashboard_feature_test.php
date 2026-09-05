@@ -41,7 +41,7 @@ $my_work_row_class = $my_work_list_start === false
     : strpos($dashboard, 'class="task-row-<?php echo htmlspecialchars($due_state[\'key\']', $my_work_list_start);
 $my_work_due_label = $my_work_list_start === false
     ? false
-    : strpos($dashboard, "htmlspecialchars(\$due_state['label']", $my_work_list_start);
+    : strpos($dashboard, "htmlspecialchars(\$due_presentation['date_label']", $my_work_list_start);
 $my_work_list_end = $my_work_list_start === false
     ? false
     : strpos($dashboard, '</ul>', $my_work_list_start);
@@ -125,9 +125,8 @@ expectDashboardFeature(
         && $my_work_row_class < $my_work_due_label
         && $my_work_due_label < $my_work_list_end
         && preg_match('/\.dashboard-task-list > li\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-bg\)[^}]*\}/s', $styles) === 1
-        && preg_match('/\.dashboard-task-list > li\.task-row-overdue:hover,\s*\.dashboard-task-list > li\.task-row-overdue:focus-within\s*\{[^}]*var\(--task-overdue-row-hover-bg\)[^}]*\}/s', $styles) === 1
+        && preg_match('/\.dashboard-task-list > li:is\(:hover, :focus-within\)\s*\{[^}]*var\(--dashboard-task-hover-bg\) !important;[^}]*\}/s', $styles) === 1
         && preg_match('/\.dashboard-task-list > li\.task-row-today\s*\{[^}]*var\(--task-today-row-bg\)[^}]*\}/s', $styles) === 1
-        && preg_match('/\.dashboard-task-list > li\.task-row-today:hover,\s*\.dashboard-task-list > li\.task-row-today:focus-within\s*\{[^}]*var\(--task-today-row-hover-bg\)[^}]*\}/s', $styles) === 1
         && preg_match('/html:not\(\.dark-mode\) \.dashboard-task-list > li\.task-row-overdue,[^{]*\{[^}]*--warning:\s*#843600;/s', $styles) === 1
         && preg_match('/\.dashboard-task-list > li\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-accent\)[^}]*\}/s', $styles) === 1
         && preg_match('/\.dashboard-task-list > li\.task-row-today\s*\{[^}]*var\(--task-today-row-accent\)[^}]*\}/s', $styles) === 1,

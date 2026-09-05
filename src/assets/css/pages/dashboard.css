@@ -1,10 +1,15 @@
 .dashboard-page {
+    --dashboard-task-hover-bg: #ffd3a6;
     display: flex;
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);
     flex-direction: column;
     gap: 24px;
     padding-inline: var(--app-content-padding);
+}
+
+html.dark-mode .dashboard-page {
+    --dashboard-task-hover-bg: #713b10;
 }
 
 .dashboard-heading {
@@ -264,21 +269,39 @@ html body .dashboard-panel-heading > a.dashboard-panel-button:focus-visible {
 }
 
 .dashboard-task-list > li.task-row-overdue {
-    background: var(--task-overdue-row-bg) !important;
+    background: var(--task-overdue-row-bg);
 }
 
-.dashboard-task-list > li.task-row-overdue:hover,
-.dashboard-task-list > li.task-row-overdue:focus-within {
-    background: var(--task-overdue-row-hover-bg) !important;
+.dashboard-task-list > li.task-row-needs-attention {
+    background-color: var(--task-overdue-alert-bg);
+}
+
+.dashboard-task-list.task-attention-cascading > li.task-row-needs-attention {
+    background-color: var(--task-overdue-row-bg);
+}
+
+.dashboard-task-list > li.task-row-attention-current {
+    animation: task-overdue-attention var(--task-attention-step-duration, 1.44s) ease-in-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .dashboard-task-list > li.task-row-needs-attention {
+        animation: none;
+        background-color: var(--task-overdue-alert-bg) !important;
+    }
 }
 
 .dashboard-task-list > li.task-row-today {
     background: var(--task-today-row-bg) !important;
 }
 
-.dashboard-task-list > li.task-row-today:hover,
-.dashboard-task-list > li.task-row-today:focus-within {
-    background: var(--task-today-row-hover-bg) !important;
+.dashboard-task-list > li:is(:hover, :focus-within) {
+    background: var(--dashboard-task-hover-bg) !important;
+}
+
+html:not(.dark-mode) .dashboard-task-list > li:is(:hover, :focus-within) {
+    --text-muted: var(--task-highlight-row-muted);
+    --text-subtle: var(--task-highlight-row-muted);
 }
 
 html:not(.dark-mode) .dashboard-task-list > li.task-row-overdue,
@@ -324,12 +347,39 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     color: inherit;
 }
 
+.dashboard-record-badges {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
 .dashboard-record-meta {
     display: flex;
     flex: 0 0 auto;
     align-items: flex-end;
     flex-direction: column;
     gap: 6px;
+}
+
+.dashboard-due {
+    align-self: stretch;
+}
+
+.dashboard-due-date {
+    display: block;
+    color: var(--text);
+    font-size: 1rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.dashboard-due-detail {
+    display: block;
+    margin-top: 5px;
+    color: var(--text-muted);
+    font-size: .85rem;
+    white-space: nowrap;
 }
 
 .dashboard-status,

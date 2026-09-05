@@ -374,6 +374,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/tasks.min.css',
   ),
+  'scripts' => ['assets/js/task-attention.min.js'],
 )); ?>
 <body class="tasks-body">
 <?php include 'templates/header.php'; ?>
@@ -468,9 +469,12 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php foreach ($tasks as $task): ?>
             <?php
             $due = followUpTaskDueState($task['due_date'], $business_date);
+            $due_presentation = followUpTaskDuePresentation($task['due_date'], $task['status'], $business_date);
             $row_due_key = in_array($task['status'], $active_task_statuses, true)
                 ? $due['key']
                 : 'none';
+            $needs_overdue_attention = $row_due_key === 'overdue'
+                && $due_presentation['days_overdue'] > 3;
             $task_due_aria_label = match ($row_due_key) {
                 'overdue' => 'Overdue, due ' . $task['due_date'],
                 'today' => 'Due today, ' . $task['due_date'],
@@ -485,10 +489,18 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 'return_to' => $task_return_to,
             ]);
             ?>
-            <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?>">
-                <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></td>
+            <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
+                <td>
+                    <?php if (!empty($task['due_date'])): ?>
+                        <time class="task-due-date" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></time>
+                    <?php else: ?>
+                        <span class="task-due-date"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
+                    <?php if ($due_presentation['detail'] !== ''): ?><small class="task-due-detail"><?php echo htmlspecialchars($due_presentation['detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                </td>
                 <td>
                     <?php if ($can_manage_tasks): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
+                    <div class="task-record-priority"><span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     <?php if ($task['status'] === 'waiting' && !empty($task['waiting_on'])): ?><small class="task-waiting-on">Waiting on: <?php echo htmlspecialchars($task['waiting_on'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>

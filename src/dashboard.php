@@ -20,6 +20,7 @@ $business_date = applicationBusinessDate();
 $dashboard_upcoming_days = applicationWorkflowSetting('dashboard_upcoming_days');
 $upcoming_window_end = applicationBusinessDateOffset($dashboard_upcoming_days);
 $business_timezone = new DateTimeZone(applicationTimezoneName());
+$inquiry_attention_cutoff = applicationBusinessDateOffset(-3, new DateTimeImmutable($business_date, $business_timezone));
 $booking_month_start = new DateTimeImmutable(
     substr($business_date, 0, 7) . '-01 00:00:00',
     $business_timezone
@@ -106,6 +107,7 @@ $task_status_labels = followUpTaskStatuses();
         'assets/css/modern.min.css',
         'assets/css/pages/dashboard.min.css',
     ],
+    'scripts' => ['assets/js/task-attention.min.js'],
 ]); ?>
 <body class="dashboard-body">
 <?php include 'templates/header.php'; ?>
@@ -136,10 +138,31 @@ $task_status_labels = followUpTaskStatuses();
         <?php else: ?>
             <ul class="dashboard-record-list dashboard-task-list">
                 <?php foreach ($booking_inquiries as $inquiry): ?>
-                    <?php $inquiry_due = followUpTaskDueState($inquiry['next_action_due_date'], $business_date); ?>
-                    <li class="task-row-<?php echo htmlspecialchars($inquiry_due['key'], ENT_QUOTES, 'UTF-8'); ?>">
-                        <div class="dashboard-record-main"><a class="record-link" href="view_inquiry.php?id=<?php echo (int) $inquiry['id']; ?>"><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></a><span><?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'Set the next action'), ENT_QUOTES, 'UTF-8'); ?></span></div>
-                        <div class="dashboard-record-meta"><span class="task-due task-due-<?php echo htmlspecialchars($inquiry_due['key'], ENT_QUOTES, 'UTF-8'); ?> task-priority-<?php echo htmlspecialchars($inquiry['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($inquiry_due['label'], ENT_QUOTES, 'UTF-8'); ?></span><span class="dashboard-status"><?php echo htmlspecialchars(bookingInquiryStages()[$inquiry['stage']], ENT_QUOTES, 'UTF-8'); ?></span></div>
+                    <?php
+                    $inquiry_due = followUpTaskDueState($inquiry['next_action_due_date'], $business_date);
+                    $inquiry_due_presentation = followUpTaskDuePresentation($inquiry['next_action_due_date'], 'open', $business_date);
+                    $inquiry_needs_attention = $inquiry_due['key'] === 'overdue'
+                        && $inquiry['next_action_due_date'] < $inquiry_attention_cutoff;
+                    ?>
+                    <li class="task-row-<?php echo htmlspecialchars($inquiry_due['key'], ENT_QUOTES, 'UTF-8'); ?><?php echo $inquiry_needs_attention ? ' task-row-needs-attention' : ''; ?>">
+                        <div class="dashboard-record-main">
+                            <a class="record-link" href="view_inquiry.php?id=<?php echo (int) $inquiry['id']; ?>"><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></a>
+                            <span><?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'Set the next action'), ENT_QUOTES, 'UTF-8'); ?></span>
+                            <div class="dashboard-record-badges">
+                                <span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($inquiry['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']] . ' Priority', ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span class="dashboard-status"><?php echo htmlspecialchars(bookingInquiryStages()[$inquiry['stage']], ENT_QUOTES, 'UTF-8'); ?></span>
+                            </div>
+                        </div>
+                        <div class="dashboard-record-meta">
+                            <div class="dashboard-due">
+                                <?php if (!empty($inquiry['next_action_due_date'])): ?>
+                                    <time class="dashboard-due-date" datetime="<?php echo htmlspecialchars($inquiry['next_action_due_date'], ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars($inquiry['next_action_due_date'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($inquiry_due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></time>
+                                <?php else: ?>
+                                    <span class="dashboard-due-date"><?php echo htmlspecialchars($inquiry_due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <?php endif; ?>
+                                <?php if ($inquiry_due_presentation['detail'] !== ''): ?><small class="dashboard-due-detail"><?php echo htmlspecialchars($inquiry_due_presentation['detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                            </div>
+                        </div>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -243,6 +266,9 @@ $task_status_labels = followUpTaskStatuses();
                     <?php foreach ($my_tasks as $task): ?>
                         <?php
                         $due_state = followUpTaskDueState($task['due_date'], $business_date);
+                        $due_presentation = followUpTaskDuePresentation($task['due_date'], $task['status'], $business_date);
+                        $needs_overdue_attention = $due_state['key'] === 'overdue'
+                            && $due_presentation['days_overdue'] > 3;
                         $subject = followUpTaskSubjectFromRow($task);
                         $task_url = $can_manage
                             ? 'edit_task.php?' . http_build_query([
@@ -251,14 +277,24 @@ $task_status_labels = followUpTaskStatuses();
                             ])
                             : $subject['url'];
                         ?>
-                        <li class="task-row-<?php echo htmlspecialchars($due_state['key'], ENT_QUOTES, 'UTF-8'); ?>">
+                        <li class="task-row-<?php echo htmlspecialchars($due_state['key'], ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
                             <div class="dashboard-record-main">
                                 <a class="record-link" href="<?php echo htmlspecialchars($task_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
                                 <span><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a></span>
+                                <div class="dashboard-record-badges">
+                                    <span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars((string) $task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(followUpTaskPriorities()[$task['priority']] . ' Priority', ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <span class="task-status task-status-<?php echo htmlspecialchars((string) $task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_status_labels[$task['status']] ?? (string) $task['status'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                </div>
                             </div>
                             <div class="dashboard-record-meta">
-                                <span class="task-due task-due-<?php echo htmlspecialchars($due_state['key'], ENT_QUOTES, 'UTF-8'); ?> task-priority-<?php echo htmlspecialchars((string) $task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due_state['label'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                <span class="task-status task-status-<?php echo htmlspecialchars((string) $task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_status_labels[$task['status']] ?? (string) $task['status'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <div class="dashboard-due">
+                                    <?php if (!empty($task['due_date'])): ?>
+                                        <time class="dashboard-due-date" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" title="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></time>
+                                    <?php else: ?>
+                                        <span class="dashboard-due-date"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                    <?php endif; ?>
+                                    <?php if ($due_presentation['detail'] !== ''): ?><small class="dashboard-due-detail"><?php echo htmlspecialchars($due_presentation['detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                                </div>
                             </div>
                         </li>
                     <?php endforeach; ?>

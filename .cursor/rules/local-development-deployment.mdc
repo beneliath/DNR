@@ -1,0 +1,13 @@
+---
+description: Keep local DNR deployments fast for interactive development
+alwaysApply: true
+---
+
+# Local Development Deployment
+
+- Requests to deploy locally mean updating the local development app for rapid iteration. Use the active feature source, including uncommitted changes when appropriate.
+- For PHP/CSS/JavaScript source changes, use the development bind mounts, rebuild only the affected generated assets and their cache manifest, and refresh the local page. Rebuild or restart containers only when dependencies, runtime configuration, or image contents require it.
+- Run focused checks and verify the actual local page, including the requested visual behavior. Report the URL and distinguish a sample demo from the running application.
+- Local previews do not require a version bump, commit, remote push, PR merge, final-main CI, release images/tags, deployment notice, or countdown. PR administration can continue separately without delaying the preview. Preserve protected branch checks when merging.
+- Keep the local database and other projects intact. Do not run a database upgrade or a full backup/restore rehearsal for an ordinary UI update. The existing backup directive still applies to major schema changes or database-version changes.
+- Production deployment on s1 remains subject to the established release workflow and requires an explicit deployment request.

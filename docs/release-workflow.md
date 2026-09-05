@@ -2,6 +2,14 @@
 
 The standing [database-backup directive](../.cursor/rules/backup-before-database-upgrade.mdc) applies to automated and manual deployment. Major schema changes and database-version changes require a new, verified backup **before** the application checkout/version, database image, or schema advances. The s1 command performs this for every deployment, avoiding ambiguity over which migrations count as major.
 
+## Fast local development updates
+
+Local deployment is for rapid iteration on the active feature source, including uncommitted changes. It does not wait for a version bump, commit/push, PR merge, final-main CI, release tag/images, deployment notice, or countdown. Those release gates apply to s1; protected PR checks remain required when merging.
+
+Use the running development app's source bind mounts. For PHP source changes, refresh the page; for CSS/JavaScript changes, rebuild the affected assets and regenerate `src/assets/asset-manifest.php` before refreshing. Rebuild/recreate only the affected application services when dependencies, image contents, or runtime configuration change. Preserve the local database container and other development projects. An ordinary UI update does not run a full database backup/restore rehearsal; major schema or database-version changes still follow the backup directive.
+
+Run focused checks, confirm that the local server serves the updated asset fingerprints, and verify the requested behavior on the actual page before reporting it ready. A sample demo is not evidence that the local application has been updated. See the persistent [local development deployment rule](../.cursor/rules/local-development-deployment.mdc).
+
 ## Minor bump deployment shorthand
 
 Going forward, the instruction **"do a minor bump deployment"** means:

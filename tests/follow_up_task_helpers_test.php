@@ -11,6 +11,24 @@ function expectFollowUpTaskHelper($condition, $message)
     }
 }
 
+foreach ([
+    ['2026-09-01', 'open', '2026-09-05', 'Sep 1', '4 days overdue', 4],
+    ['2026-09-02', 'waiting', '2026-09-05', 'Sep 2', '3 days overdue', 3],
+    ['2026-09-04', 'in_progress', '2026-09-05', 'Sep 4', '1 day overdue', 1],
+    ['2026-09-05', 'open', '2026-09-05', 'Sep 5', 'Due today', 0],
+    ['2026-09-08', 'open', '2026-09-05', 'Sep 8', 'Upcoming', 0],
+    ['2025-12-31', 'open', '2026-01-04', 'Dec 31, 2025', '4 days overdue', 4],
+    ['2024-02-28', 'open', '2024-03-03', 'Feb 28', '4 days overdue', 4],
+    ['2026-03-06', 'open', '2026-03-10', 'Mar 6', '4 days overdue', 4],
+    ['2026-08-28', 'completed', '2026-09-05', 'Aug 28', 'Completed', 0],
+    ['2026-08-28', 'canceled', '2026-09-05', 'Aug 28', 'Canceled', 0],
+    [null, 'open', '2026-09-05', 'No due date', '', 0],
+] as [$date, $status, $today, $label, $detail, $days]) {
+    $presentation = followUpTaskDuePresentation($date, $status, $today);
+    expectFollowUpTaskHelper($presentation === ['date_label' => $label, 'detail' => $detail, 'days_overdue' => $days],
+        'due-date presentation must count calendar days and exclude inactive work from attention.');
+}
+
 $general = parseFollowUpTaskSubject('general');
 expectFollowUpTaskHelper(
     $general['subject_type'] === 'general'

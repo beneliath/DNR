@@ -82,16 +82,17 @@ expectFollowUpTaskFeature(
     'queue controls should omit Waiting and Unassigned buttons because their summary cards provide the same views.'
 );
 expectFollowUpTaskFeature(
-    str_contains($queue, '<time class="task-due task-priority-')
+    str_contains($queue, '<time class="task-due-date"')
         && str_contains($queue, 'datetime="<?php echo htmlspecialchars($task[\'due_date\']')
         && str_contains($queue, 'match ($row_due_key)')
         && str_contains($queue, "'overdue' => 'Overdue, due ' . \$task['due_date']")
         && str_contains($queue, "'today' => 'Due today, ' . \$task['due_date']")
         && str_contains($queue, "? 'Due ' . \$task['due_date']")
         && str_contains($queue, 'aria-label="<?php echo htmlspecialchars($task_due_aria_label')
-        && str_contains($queue, '><?php echo htmlspecialchars($task[\'due_date\']')
-        && !str_contains($queue, '<small class="task-priority'),
-    'dated queue badges should show only the date while exposing due state and color-coded priority to assistive technology.'
+        && str_contains($queue, "\$due_presentation['date_label']")
+        && str_contains($queue, 'class="task-due-detail"')
+        && str_contains($queue, 'class="task-record-priority"'),
+    'queue due dates should use readable date and relative timing, preserve machine-readable dates, and show priority beside the task.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, "followUpTaskDueState(\$task['due_date'], \$business_date)")
