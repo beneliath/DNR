@@ -326,9 +326,9 @@ try {
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
+    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
-        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
         <h2>Event Details</h2>
 <div class="organization-container">

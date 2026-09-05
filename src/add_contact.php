@@ -198,9 +198,9 @@ $cancel_url = $requested_organization_id !== null
     <div class="page-heading form-page-heading add-contact-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
         ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
         : 'Connect a person with an organization and their role.'; ?></p></div></div>
+    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
-        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="organization-container">
             <div class="form-group form-flex-one">
                 <label for="organization_id">Organization</label>

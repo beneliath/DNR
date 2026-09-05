@@ -11,13 +11,12 @@ $due_anchor_labels = standardEventTaskDueAnchors();
 $selected_priority = (string) ($standard_task_form_values['priority'] ?? 'normal');
 $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_start');
 ?>
+<p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($standard_task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="standard-event-task-form">
     <?php echo csrfInput(); ?>
     <?php if (!empty($standard_task_form_values['updated_at'])): ?>
         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($standard_task_form_values['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
     <?php endif; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-
     <section class="form-section">
         <h2>Task</h2>
         <div class="form-group">

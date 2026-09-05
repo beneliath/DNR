@@ -211,9 +211,9 @@ if (isset($_SESSION['success_message'])) {
     <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
     <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Add organization details, addresses, and contacts.</p></div></div>
+    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="add_organization.php" class="organization-form">
         <?php echo csrfInput(); ?>
-        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <div class="form-group">
             <label class="required">Organization Name</label>
             <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">

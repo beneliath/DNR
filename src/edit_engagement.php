@@ -711,10 +711,10 @@ try {
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
+    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
-        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
         <section class="form-section">
         <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
