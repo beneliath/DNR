@@ -10,6 +10,7 @@ import re
 import subprocess
 import sys
 from deployment_backup import create_verified_backup
+from release_timestamp import timestamp_utc
 
 
 def run(args, **kwargs):
@@ -52,7 +53,7 @@ def main():
         env.update({f'DNR_{kind.upper()}_IMAGE': image for kind, image in images.items()})
         # Set explicit provenance during the transition; the image itself contains this same SHA.
         env['DNR_BUILD_COMMIT'] = expected
-        env['DNR_BUILD_TIMESTAMP'] = run(['git', 'show', '-s', '--format=%cI', expected]).replace('+00:00', 'Z')
+        env['DNR_BUILD_TIMESTAMP'] = timestamp_utc(run(['git', 'show', '-s', '--format=%cI', expected]))
         mode = 'production-ubuntu-proton-mattermost'
         def compose(*args):
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
