@@ -7,7 +7,10 @@ LABEL org.opencontainers.image.title="DNR Proton Mail Bridge sidecar" \
       org.opencontainers.image.source="https://github.com/ProtonMail/proton-bridge" \
       org.opencontainers.image.version="${PROTON_BRIDGE_VERSION}"
 
-RUN apt-get update \
+# Ubuntu also bundles Pebble; this image uses Tini as its entrypoint.
+# Remove the unused, unmanaged Go binary rather than ship its vulnerable runtime.
+RUN rm -f /usr/bin/pebble \
+    && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
