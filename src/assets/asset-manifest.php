@@ -4,8 +4,8 @@
 return [
     "assets/css/map.css" => "460c9f6f3cea",
     "assets/css/map.min.css" => "b7a5cbae5a03",
-    "assets/css/modern.css" => "ca1897643b55",
-    "assets/css/modern.min.css" => "d211e5616e57",
+    "assets/css/modern.css" => "80a5f2afe883",
+    "assets/css/modern.min.css" => "188f688c4f79",
     "assets/css/pages/add_contact.css" => "e845c79f271f",
     "assets/css/pages/add_contact.min.css" => "1f3d2ef33a5c",
     "assets/css/pages/add_organization.css" => "43a9a04fbc78",

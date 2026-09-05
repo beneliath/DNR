@@ -3710,10 +3710,22 @@ input[type="radio"] {
   padding: 14px 16px !important;
   border: 0 !important;
   border-bottom: 1px solid var(--border) !important;
-  background: transparent !important;
   color: var(--text) !important;
   text-align: left;
   vertical-align: middle;
+}
+
+.engagement-table th,
+.engagement-table td,
+.organization-table th,
+.organization-table td,
+.contact-table th,
+.contact-table td,
+.audit-table th,
+.audit-table td,
+.task-table th,
+.task-table :where(tr:not(.task-row-needs-attention)) td {
+  background: transparent !important;
 }
 
 .engagement-table th,
