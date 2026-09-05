@@ -5,6 +5,8 @@ image=${1:?Usage: deployment_notice_ingress_test.sh INGRESS_IMAGE}
 root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
+# Match DeploymentNotice.locked(): Apache must traverse this public directory.
+chmod 0755 "$fixture"
 docker run --rm --network none --read-only \
     --tmpfs /tmp --tmpfs /var/run/apache2 --tmpfs /var/lock/apache2 \
     --mount "type=bind,src=$fixture,dst=/run/dnr/deployment" \
