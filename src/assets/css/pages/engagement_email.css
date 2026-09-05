@@ -27,6 +27,20 @@
     gap: 20px;
 }
 
+.inquiry-email-page > .page-heading {
+    padding: 0;
+    text-align: left;
+}
+
+html body main.container.engagement-email-page.inquiry-email-page > form.engagement-email-form,
+html body main.container.engagement-email-page.compose-engagement-email-page > form.engagement-email-form {
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
 .engagement-email-page .eyebrow {
     margin: 0 0 4px;
     color: var(--primary);
