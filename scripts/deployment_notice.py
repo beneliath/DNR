@@ -55,14 +55,14 @@ class DeploymentNotice:
             now = self.clock()
             notice = self.read()
             if notice and notice['id'] == identifier:
-                if notice['phase'] != 'pending' or notice['expires_at'] <= now:
+                if notice['phase'] not in ('preparing', 'pending') or notice['expires_at'] <= now:
                     raise ValueError('This notice has ended or expired; start a new workflow with a new ID')
-                return notice  # Retry preserves the original five-minute deadline.
+                return notice  # Retry preserves the current stage and any deadline.
             if notice and (notice['phase'] in ('deploying', 'failed') or
-                           (notice['phase'] == 'pending' and notice['expires_at'] > now)):
+                           (notice['phase'] in ('preparing', 'pending') and notice['expires_at'] > now)):
                 raise ValueError('Another deployment is active; cancel it or resolve its recovery record first')
-            notice = dict(id=identifier, phase='pending', started_at=now,
-                          not_before=now + SAVE_WINDOW_SECONDS,
+            notice = dict(id=identifier, phase='preparing', started_at=now,
+                          countdown_started_at=None, not_before=None,
                           expires_at=now + NOTICE_LIFETIME_SECONDS, updated_at=now)
             self.write(notice)
             return notice
@@ -72,9 +72,29 @@ class DeploymentNotice:
             notice = self.current(identifier)
             if notice['phase'] in ('deploying', 'failed'):
                 raise ValueError('Deployment has entered maintenance; use the recovery workflow')
-            if notice['phase'] == 'pending':
+            if notice['phase'] in ('preparing', 'pending'):
                 notice.update(phase='cancelled', updated_at=self.clock())
                 self.write(notice)
+            return notice
+
+    def begin_countdown(self, identifier, expected):
+        """Called only after host preflight and image downloads have succeeded."""
+        if not re.fullmatch(r'[a-f0-9]{40}', expected):
+            raise ValueError('Expected a full deployment commit SHA')
+        with self.locked():
+            notice = self.current(identifier)
+            now = self.clock()
+            if notice['phase'] not in ('preparing', 'pending') or notice['expires_at'] <= now:
+                raise ValueError('Deployment notice was cancelled or expired; no writers were stopped')
+            if notice.get('countdown_commit', expected) != expected:
+                raise ValueError('Countdown belongs to a different release commit')
+            if notice['phase'] == 'preparing':
+                notice.update(phase='pending', countdown_started_at=now,
+                              not_before=now + SAVE_WINDOW_SECONDS,
+                              expires_at=now + NOTICE_LIFETIME_SECONDS, updated_at=now)
+            # Preserve an existing countdown, including notices from the previous workflow.
+            notice['countdown_commit'] = expected
+            self.write(notice)
             return notice
 
     def wait_and_claim(self, identifier, expected):
@@ -87,8 +107,11 @@ class DeploymentNotice:
                 now = self.clock()
                 if notice['phase'] != 'pending' or notice['expires_at'] <= now:
                     raise ValueError('Deployment notice was cancelled or expired; no writers were stopped')
+                if notice.get('countdown_commit') != expected:
+                    raise ValueError('Countdown belongs to a different release commit')
                 # Validate the minimum even if a persisted notice was edited incorrectly.
-                if notice['not_before'] < notice['started_at'] + SAVE_WINDOW_SECONDS:
+                countdown_start = notice.get('countdown_started_at', notice['started_at'])
+                if countdown_start is None or countdown_start < notice['started_at'] or notice['not_before'] < countdown_start + SAVE_WINDOW_SECONDS:
                     raise ValueError('Invalid deployment save window')
                 remaining = max(0, notice['not_before'] - now)
                 if not remaining:

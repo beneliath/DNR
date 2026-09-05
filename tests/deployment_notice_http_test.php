@@ -31,8 +31,10 @@ checkNoticeHttp($body !== false, 'Ingress did not start.');
 $now = time();
 $state = ['id' => str_repeat('a', 32), 'phase' => 'pending', 'started_at' => $now - 180,
     'not_before' => $now + 120, 'expires_at' => $now + 21600, 'commit' => 'private-commit'];
-foreach (['pending', 'deploying', 'failed', 'complete', 'cancelled'] as $phase) {
+foreach (['preparing', 'pending', 'deploying', 'failed', 'complete', 'cancelled'] as $phase) {
     $state['phase'] = $phase;
+    $state['countdown_started_at'] = $phase === 'preparing' ? null : $now - 180;
+    $state['not_before'] = $phase === 'preparing' ? null : $now + 120;
     file_put_contents('/run/dnr/deployment/notice.json', json_encode($state));
     [$body, $headers] = noticeHttp();
     $payload = json_decode($body, true);

@@ -8,13 +8,13 @@ printf '%s\n' "$expected_commit" | grep -Eq '^[0-9a-f]{40}$' || {
 for command_name in git gh ssh scp python3; do command -v "$command_name" >/dev/null; done
 cd "$project_directory"
 # Reuse the notice started before release preparation. Direct invocations start
-# a new notice here and receive the same mandatory five-minute minimum.
+# a preparation notice here; host preflight starts the mandatory save countdown.
 notice_id=$(scripts/deployment_notice.sh start)
 release_directory=''
 cleanup() {
     exit_status=$?
     trap - EXIT
-    # Cancel pending notices on preflight failure; never clear active maintenance.
+    # Cancel preparation/pending notices on preflight failure; never clear active maintenance.
     if ! scripts/deployment_notice.sh cancel "$notice_id" >/dev/null; then
         echo 'Deployment notice remains active; check s1 deployment/recovery status.' >&2
     fi

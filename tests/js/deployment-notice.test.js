@@ -4,6 +4,18 @@ const vm = require('node:vm');
 const fs = require('node:fs');
 const { noticePresentation } = require('../../src/assets/js/deployment-notice.js');
 const notice = { id: 'a'.repeat(32), phase: 'pending', started_at: 1000, not_before: 1300, expires_at: 2000 };
+const preparing = { ...notice, phase: 'preparing', not_before: null, expires_at: 4000 };
+
+test('preparation remains informative without a countdown even after twenty minutes', () => {
+    for (const now of [1000, 2200, 2800]) {
+        const view = noticePresentation(preparing, now);
+        assert.equal(view.title, 'An update is being prepared');
+        assert.match(view.detail, /You can continue working/);
+        assert.equal(view.timer, '');
+    }
+    assert.equal(noticePresentation(preparing, 4000), null);
+    assert.equal(noticePresentation({ ...preparing, phase: 'pending', not_before: 3100 }, 2800).timer, '5:00');
+});
 
 test('shared countdown is normal, bounded, and never restarts for a newly opened page', () => {
     assert.equal(noticePresentation(notice, 1000).timer, '5:00');
@@ -12,7 +24,7 @@ test('shared countdown is normal, bounded, and never restarts for a newly opened
     assert.equal(noticePresentation(notice, 900).timer, '5:00');
 });
 
-test('zero and slow preparation say pending until the server actually begins deployment', () => {
+test('zero says pending until the server actually begins deployment', () => {
     for (const now of [1300, 1480]) {
         assert.equal(noticePresentation(notice, now).title, 'Update pending');
         assert.equal(noticePresentation(notice, now).timer, '');
@@ -35,7 +47,7 @@ test('browser polling updates the banner without credentials, preserves it on ou
     const intervals = [];
     const classes = new Set();
     const styles = {};
-    let payload = { server_now: 1120, notice };
+    let payload = { server_now: 1000, notice: preparing };
     let fail = false;
     const context = {
         document: { hidden: false, querySelector: () => banner,
@@ -56,7 +68,12 @@ test('browser polling updates the banner without credentials, preserves it on ou
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/deployment-notice.js'), 'utf8'), context);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(banner.hidden, false);
+    assert.equal(nodes.title.textContent, 'An update is being prepared');
+    assert.equal(nodes.timer.hidden, true);
+    payload = { server_now: 1120, notice };
+    await events.online();
     assert.equal(nodes.timer.textContent, '3:00');
+    assert.equal(nodes.timer.hidden, false);
     assert.equal(styles['--deployment-banner-height'], '74px');
     fail = true;
     await events.online();
