@@ -11,6 +11,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/bootstrap.php';
+require_once '/var/www/html/worker_health_helpers.php';
 require_once '/var/www/html/inbound_email_helpers.php';
 
 $loop = in_array('--loop', $argv, true);

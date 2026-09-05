@@ -8,6 +8,7 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/bootstrap.php';
+require_once '/var/www/html/worker_health_helpers.php';
 require_once '/var/www/html/email_helpers.php';
 require_once '/var/www/html/notification_helpers.php';
 require_once '/var/www/html/engagement_email_helpers.php';

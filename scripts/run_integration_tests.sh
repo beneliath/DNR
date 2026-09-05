@@ -49,6 +49,14 @@ cleanup_isolated_backup() {
 printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'mail_worker_bootstrap_integration_test.php' ]; then
+        # Allow the disposable test driver to launch PHP; child workers retain
+        # the image's normal disabled-functions policy.
+        compose exec -T \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            web php -d disable_functions= "/opt/dnr/${test_file}" </dev/null
+        continue
+    fi
     if [ "$test_name" = 'database_backup_integration_test.php' ]; then
         isolated_octet=$((($$ % 200) + 20))
         isolated_project="dnr-backup-test-$(date +%s)-$$"
