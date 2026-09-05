@@ -288,3 +288,23 @@ unlink($legacy_encrypted_path);
 unlink($legacy_decrypted['path']);
 
 echo "Database backup helper tests passed.\n";
+
+// Streaming rows must remain byte-compatible with the existing backup format.
+$row = ['null' => null, 'binary' => random_bytes(100003), 'text' => 'plain'];
+$columns = array_keys($row);
+$handle = fopen('php://temp', 'w+');
+$written = 0;
+$hash = hash_init('sha256');
+databaseBackupWriteRow($handle, 'fixture', $row, $columns, $written, 1000000, $hash);
+rewind($handle);
+$streamed = stream_get_contents($handle);
+$expected = databaseBackupJson(['type'=>'row','table'=>'fixture','values'=>databaseBackupEncodedValues($row,$columns)]) . "\n";
+expectDatabaseBackup($streamed === $expected && hash_final($hash) === hash('sha256',$expected), 'chunked base64 rows must preserve the backup format and integrity digest.');
+fclose($handle);
+$handle = fopen('php://temp', 'w+');
+$written = 0; $hash = hash_init('sha256');
+try {
+    databaseBackupWriteRow($handle,'fixture',$row,$columns,$written,strlen($expected)-1,$hash);
+    throw new LogicException('Backup size boundary was ignored');
+} catch (RuntimeException $exception) {}
+fclose($handle);

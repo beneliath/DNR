@@ -25,7 +25,7 @@ function userEmailTokenLifetime($purpose)
 {
     return match ((string) $purpose) {
         'invitation' => 7 * 24 * 60 * 60,
-        'verification' => 24 * 60 * 60,
+        'verification', 'security_notice' => 24 * 60 * 60,
         'recovery' => 60 * 60,
         default => throw new InvalidArgumentException('Invalid email-token purpose.'),
     };
@@ -67,7 +67,7 @@ function issueUserEmailToken(
         $expires_at = gmdate('Y-m-d H:i:s', time() + $lifetime_seconds);
 
         $version_stmt = $conn->prepare(
-            'SELECT auth_version, username FROM users WHERE id = ? FOR UPDATE'
+            'SELECT auth_version, username, email, pending_email FROM users WHERE id = ? FOR UPDATE'
         );
         if (!$version_stmt) {
             throw new RuntimeException('Unable to prepare the email-token owner lookup.');
@@ -78,6 +78,12 @@ function issueUserEmailToken(
         $version_stmt->close();
         if (!$owner) {
             throw new InvalidArgumentException('The email-token owner is unavailable.');
+        }
+        if ($purpose === 'verification'
+            && $email !== strtolower(trim((string) $owner['email']))
+            && $email !== (string) ($owner['pending_email'] ?? '')
+        ) {
+            throw new InvalidArgumentException('The pending email change is no longer valid.');
         }
         $auth_version = (int) $owner['auth_version'];
 
@@ -150,7 +156,7 @@ function findUserEmailToken(mysqli $conn, $purpose, $token, $lock = false)
     $sql =
         'SELECT token.id AS token_id, token.user_id, token.email AS token_email,
                 token.expires_at, token.auth_version AS token_auth_version,
-                user.username, user.email, user.email_verified_at,
+                user.username, user.email, user.pending_email, user.email_verified_at,
                 user.password, user.role, user.auth_version, user.must_change_password,
                 user.two_factor_enabled, user.account_status
          FROM user_email_tokens token
@@ -245,6 +251,15 @@ function accountTokenEmailMessage(string $purpose, string $email, string $userna
                 . 'This single-use link expires in 24 hours.',
         ];
     }
+    if ($purpose === 'security_notice') {
+        return [
+            'recipient' => $email,
+            'subject' => $brandName . ' recovery email change requested',
+            'body' => "Hello {$username},\n\nA change to your {$brandName} recovery email was requested. "
+                . "This address remains in use until the new address is verified.\n\n"
+                . "If you did not request this, contact your administrator and reset your password.\n",
+        ];
+    }
     if ($purpose === 'recovery') {
         return [
             'recipient' => $email,
@@ -308,6 +323,8 @@ function completeQueuedAccountEmail(
     }
     $complete->close();
 
+    if ($purpose === 'security_notice') return;
+
     $invalidate = $conn->prepare(
         'UPDATE user_email_tokens
          SET consumed_at = UTC_TIMESTAMP()
@@ -346,7 +363,7 @@ function maintainQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): void
                 OR token.purpose <> outbox.purpose
                 OR token.consumed_at IS NOT NULL
                 OR token.expires_at <= UTC_TIMESTAMP()
-                OR token.auth_version <> user.auth_version
+                OR (outbox.purpose <> 'security_notice' AND token.auth_version <> user.auth_version)
                 OR (outbox.purpose = 'invitation' AND user.account_status <> 'invited')
                 OR (outbox.purpose IN ('verification', 'recovery')
                     AND user.account_status <> 'active')
@@ -384,9 +401,10 @@ function claimQueuedAccountEmail(
                AND token.purpose = outbox.purpose
                AND token.consumed_at IS NULL
                AND token.expires_at > UTC_TIMESTAMP()
-               AND token.auth_version = user.auth_version
+               AND (outbox.purpose = 'security_notice' OR token.auth_version = user.auth_version)
                AND (
-                    (outbox.purpose = 'invitation' AND user.account_status = 'invited')
+                    outbox.purpose = 'security_notice'
+                    OR (outbox.purpose = 'invitation' AND user.account_status = 'invited')
                     OR (outbox.purpose IN ('verification', 'recovery')
                         AND user.account_status = 'active')
                )

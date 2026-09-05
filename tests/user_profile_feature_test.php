@@ -66,7 +66,8 @@ expectUserProfile(
         && str_contains($profile_page, 'first_name = ?')
         && str_contains($profile_page, 'last_name = ?')
         && str_contains($profile_page, 'phone = ?')
-        && str_contains($profile_page, 'email = ?'),
+        && str_contains($profile_page, 'requestAccountEmailChange(')
+        && !str_contains($profile_page, 'SET email = ?'),
     'the profile form should securely save every requested personal field and the uploaded picture.'
 );
 expectUserProfile(

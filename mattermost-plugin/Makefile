@@ -1,6 +1,6 @@
 GO ?= go
 PLUGIN_ID := org.moed.mattermost
-PLUGIN_VERSION := 0.4.6
+PLUGIN_VERSION := $(shell python3 -c 'import json; print(json.load(open("plugin.json"))["version"])')
 BUNDLE_NAME := $(PLUGIN_ID)-$(PLUGIN_VERSION).tar.gz
 SERVER_DIST := server/dist
 WEBAPP_DIST := webapp/dist

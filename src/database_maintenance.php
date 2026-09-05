@@ -186,6 +186,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+$estimated_backup_bytes = null;
+try {
+    $estimated_backup_bytes = databaseBackupEstimatedBytes($conn);
+} catch (Throwable $exception) {
+    applicationLog('warning', 'Backup size estimate unavailable');
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -221,6 +227,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="database-maintenance-grid">
         <section class="database-maintenance-card">
             <h2>Export Backup</h2>
+            <?php if ($estimated_backup_bytes !== null): ?>
+                <p class="<?php echo $estimated_backup_bytes >= $maximum_backup_bytes * 0.8 ? 'database-warning' : 'maintenance-note'; ?>">
+                    Estimated backup size: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($estimated_backup_bytes)); ?>
+                    of <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.
+                    This estimate uses database statistics; the actual export may be larger.
+                    <?php if ($estimated_backup_bytes >= $maximum_backup_bytes * 0.8): ?>
+                        Capacity is approaching the export limit. Arrange a database-native backup before adding more attachments.
+                    <?php endif; ?>
+                </p>
+            <?php endif; ?>
             <p>
                 Creates a consistent snapshot of every DNR table, encrypts and authenticates the
                 complete archive with your password, and downloads it as a <code>.dnrbackup</code> file.

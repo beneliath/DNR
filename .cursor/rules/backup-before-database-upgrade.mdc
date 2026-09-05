@@ -1,0 +1,14 @@
+---
+description: Back up the database before structural changes or database-version upgrades during deployment
+alwaysApply: true
+---
+
+# Back Up Before Database Upgrades
+
+- A deployment involving a major database-structure change or a database-version change must create a fresh database backup before proceeding with the application version update or upgrade.
+- Treat this as part of the deployment itself, not a separate optional reminder or a check that an older backup exists.
+- Finish and verify the backup before applying migrations, replacing the database image, or switching the application release/checkout.
+- Pause application writers when needed to obtain a consistent recovery point. Record the backup path, checksum, timestamp, current application commit/version, database image/version, and migration state with the deployment record.
+- If backup creation or verification fails, stop the deployment before changing the application or database. Preserve the previous release and report the failure.
+- Retain the pre-upgrade backup through successful deployment and recovery verification. Never treat reverting the database image tag as a substitute for restoring a compatible database backup.
+- Apply this directive to deployment scripts, CI release/deployment automation, runbooks, and manual deployment work.

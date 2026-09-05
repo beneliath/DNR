@@ -66,6 +66,12 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
             -v "${PWD}/src:/var/www/html:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
+        compose_isolated run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            -v "${PWD}/src:/var/www/html:ro" \
+            maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null
         cleanup_isolated_backup
         trap - EXIT HUP INT TERM
         continue
@@ -97,3 +103,10 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         -e DNR_TEST_SOURCE_DIR=/var/www/html \
         web php "/opt/dnr/${test_file}" </dev/null
 done
+
+# Verify the real parser identity has only the account columns routing needs.
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml \
+    run --rm --no-deps --entrypoint php \
+    -e DNR_INBOUND_PRIVILEGE_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+    -e DNR_TEST_SOURCE_DIR=/var/www/html -v "${PWD}/tests:/opt/dnr/tests:ro" \
+    mail-ingest /opt/dnr/tests/inbound_email_privileges_test.php

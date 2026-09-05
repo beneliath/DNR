@@ -8,7 +8,7 @@ const DNR_DATABASE_BACKUP_VERSION = 2;
 const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
-const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 256 * 1024 * 1024;
+const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 512 * 1024 * 1024;
 const DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES = 16;
 
 function databaseBackupConnection() {
@@ -37,10 +37,24 @@ function databaseBackupMaximumBytes() {
     $configured = filter_var(
         getenv('DNR_DATABASE_BACKUP_MAX_BYTES') ?: null,
         FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1048576, 'max_range' => 1073741824]]
+        ['options' => ['min_range' => 1048576, 'max_range' => 536870912]]
     );
 
+    if (getenv('DNR_DATABASE_BACKUP_MAX_BYTES') && $configured === false) {
+        throw new RuntimeException('Backup limit must be between 1 and 512 MiB; use a database-native backup beyond this capacity.');
+    }
     return $configured ?: DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES;
+}
+
+/** Approximate serialized size; InnoDB statistics are estimates, not an export guarantee. */
+function databaseBackupEstimatedBytes(mysqli $conn): int {
+    $result = $conn->query("SELECT COALESCE(SUM(DATA_LENGTH), 0) AS data_bytes,
+        COALESCE(SUM(TABLE_ROWS), 0) AS row_count FROM information_schema.tables
+        WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'");
+    $row = $result->fetch_assoc();
+    // Base64 plus JSON record/column overhead and the schema header.
+    return databaseBackupBase64EncodedBytes((int) $row['data_bytes'])
+        + (int) $row['row_count'] * 512 + 131072;
 }
 
 function databaseBackupBase64EncodedBytes(int $binary_bytes): int {
@@ -535,6 +549,35 @@ function databaseBackupWriteLine($handle, array $record, &$bytes_written, $maxim
     $bytes_written = $next_size;
 }
 
+/** Write the existing row format without materializing another BLOB-sized JSON/base64 string. */
+function databaseBackupWriteRow($handle, string $table, array $row, array $columns, int &$bytesWritten, int $maximumBytes, $hash): void {
+    $write = static function (string $bytes) use ($handle, &$bytesWritten, $maximumBytes, $hash): void {
+        $bytesWritten += strlen($bytes);
+        if ($bytesWritten > $maximumBytes) {
+            throw new RuntimeException('The database backup exceeds the configured size limit.');
+        }
+        databaseBackupWriteBytes($handle, $bytes);
+        hash_update($hash, $bytes);
+    };
+    $prefix = databaseBackupJson(['type' => 'row', 'table' => $table]);
+    $write(substr($prefix, 0, -1) . ',"values":[');
+    foreach ($columns as $index => $column) {
+        if ($index > 0) $write(',');
+        if ($row[$column] === null) {
+            $write('null');
+            continue;
+        }
+        $write('"');
+        $value = (string) $row[$column];
+        // A multiple of three preserves the canonical base64 representation across chunks.
+        for ($offset = 0, $length = strlen($value); $offset < $length; $offset += 49152) {
+            $write(base64_encode(substr($value, $offset, 49152)));
+        }
+        $write('"');
+    }
+    $write("]}\n");
+}
+
 function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes = null) {
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
     $temporary_path = tempnam(sys_get_temp_dir(), 'dnr-backup-');
@@ -601,16 +644,9 @@ function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes
                 throw new RuntimeException('Unable to read a database table for backup.');
             }
             while ($row = $rows->fetch_assoc()) {
-                databaseBackupWriteLine(
-                    $handle,
-                    [
-                        'type' => 'row',
-                        'table' => $table['name'],
-                        'values' => databaseBackupEncodedValues($row, $column_names),
-                    ],
-                    $bytes_written,
-                    $maximum_bytes,
-                    $hash
+                databaseBackupWriteRow(
+                    $handle, $table['name'], $row, $column_names,
+                    $bytes_written, $maximum_bytes, $hash
                 );
                 $written_rows++;
             }
@@ -766,7 +802,7 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
 
         while (($line = databaseBackupReadLine($handle, $bytes_read, $maximum_bytes)) !== false) {
             try {
-                $record = json_decode(trim($line), true, 512, JSON_THROW_ON_ERROR);
+                $record = json_decode($line, true, 512, JSON_THROW_ON_ERROR);
             } catch (Throwable $exception) {
                 throw new RuntimeException('The backup contains invalid data.');
             }
@@ -803,9 +839,11 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
             $total_rows++;
             hash_update($hash, $line);
 
+            unset($line, $record);
             if (is_callable($row_consumer)) {
                 $row_consumer($table, $column_names, $values);
             }
+            unset($values);
         }
 
         if (!is_array($footer)
@@ -932,6 +970,8 @@ function restoreDatabaseBackup(
                 if (!databaseBackupBindValues($stmt, $values) || !$stmt->execute()) {
                     throw new RuntimeException('A database row could not be restored.');
                 }
+                // mysqli retains bound references; release large BLOB parameters before decoding the next row.
+                databaseBackupBindValues($stmt, array_fill(0, count($values), null));
             }
         );
 

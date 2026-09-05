@@ -11,6 +11,8 @@ use ZBateson\MailMimeParser\IMessage;
 use ZBateson\MailMimeParser\Message;
 
 const INBOUND_EMAIL_MAX_RAW_BYTES = 10485760;
+const INBOUND_EMAIL_MAX_HEADER_BYTES = 32768;
+const INBOUND_EMAIL_MAX_PARTICIPANTS = 100;
 const INBOUND_EMAIL_MAX_CHRON_CHARACTERS = 100000;
 
 /** @return list<string> */
@@ -70,6 +72,9 @@ function inboundEmailHeaderAddresses(IMessage $message, string $headerName): arr
         $address = normalizeInboundEmailAddress($addressPart->getEmail());
         if ($address === '') {
             continue;
+        }
+        if (count($addresses) >= INBOUND_EMAIL_MAX_PARTICIPANTS && !isset($addresses[$address])) {
+            throw new InvalidArgumentException('The inbound message has too many participants.');
         }
         $name = trim(preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $addressPart->getName()) ?? '');
         $addresses[$address] = [
@@ -136,6 +141,15 @@ function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): arra
         throw new InvalidArgumentException('The inbound message exceeds the configured size limit.');
     }
 
+    $headerEnd = preg_match('/\r?\n\r?\n/', $rawMessage, $headerMatch, PREG_OFFSET_CAPTURE)
+        ? $headerMatch[0][1] : $rawLength;
+    if ($headerEnd > INBOUND_EMAIL_MAX_HEADER_BYTES) {
+        throw new InvalidArgumentException('The inbound message headers exceed the size limit.');
+    }
+    $rawHeaders = substr($rawMessage, 0, $headerEnd);
+    if (strlen(mb_decode_mimeheader($rawHeaders)) > INBOUND_EMAIL_MAX_HEADER_BYTES) {
+        throw new InvalidArgumentException('The decoded inbound headers exceed the size limit.');
+    }
     $message = Message::from($rawMessage, false);
     $from = inboundEmailHeaderAddresses($message, HeaderConsts::FROM);
     if (count($from) !== 1) {
@@ -143,6 +157,9 @@ function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): arra
     }
     $to = array_column(inboundEmailHeaderAddresses($message, HeaderConsts::TO), 'address');
     $cc = array_column(inboundEmailHeaderAddresses($message, HeaderConsts::CC), 'address');
+    if (count(array_unique(array_merge([$from[0]['address']], $to, $cc))) > INBOUND_EMAIL_MAX_PARTICIPANTS) {
+        throw new InvalidArgumentException('The inbound message has too many participants.');
+    }
     $subject = trim((string) ($message->getSubject() ?? ''));
     $subject = preg_replace('/[\x00-\x1F\x7F]+/u', ' ', $subject) ?? $subject;
     $messageId = trim((string) ($message->getHeaderValue(HeaderConsts::MESSAGE_ID) ?? ''));
@@ -163,9 +180,6 @@ function parseInboundEmail(string $rawMessage, ?string $receivedAt = null): arra
         }
     }
 
-    $headerSplit = preg_split("/\r?\n\r?\n/", $rawMessage, 2);
-    $rawHeaders = is_array($headerSplit) ? (string) $headerSplit[0] : '';
-    $rawHeaders = mb_substr($rawHeaders, 0, 1048576, 'UTF-8');
     $receivedAt = inboundEmailUtcDate($receivedAt ?? gmdate('c')) ?? gmdate('Y-m-d H:i:s');
     $deduplicationSource = $messageId !== ''
         ? 'message-id:' . strtolower($messageId)
@@ -442,6 +456,59 @@ function inboundEmailSenderAuthentication(array $message): array
         'trusted' => $dmarcPassed,
         'authentication_server' => $authservId,
     ];
+}
+
+/**
+ * @param list<string> $addresses
+ * @return array<string, array<string, list<array<string, mixed>>>>
+ */
+function inboundEmailBatchMatches(mysqli $conn, array $addresses): array
+{
+    $addresses = array_values(array_unique(array_filter($addresses)));
+    if (count($addresses) > INBOUND_EMAIL_MAX_PARTICIPANTS) {
+        throw new InvalidArgumentException('The inbound message has too many participants.');
+    }
+    $matches = ['users' => [], 'contacts' => [], 'organizations' => []];
+    if ($addresses === []) {
+        return $matches;
+    }
+    $placeholders = implode(',', array_fill(0, count($addresses), '?'));
+    $queries = [
+        'users' => "SELECT id, username, verified_email AS address FROM users
+            WHERE verified_email IN ($placeholders) AND account_status = 'active'",
+        'contacts' => "SELECT * FROM (
+            SELECT contact.id, contact.normalized_email AS address,
+                TRIM(CONCAT_WS(' ', contact.contact_first_name, contact.contact_last_name)) AS label,
+                organization.id AS organization_id,
+                COALESCE(organization.organization_name, '') AS organization_label,
+                ROW_NUMBER() OVER (PARTITION BY contact.normalized_email ORDER BY contact.id) AS match_number
+            FROM contacts contact
+            LEFT JOIN organizations organization ON organization.id = contact.organization_id
+            WHERE contact.is_deleted = 0 AND contact.normalized_email IN ($placeholders)
+                AND (organization.id IS NULL OR organization.is_deleted = 0)
+        ) matched WHERE match_number <= 25",
+        'organizations' => "SELECT * FROM (
+            SELECT id, normalized_email AS address, organization_name AS label,
+                ROW_NUMBER() OVER (PARTITION BY normalized_email ORDER BY id) AS match_number
+            FROM organizations WHERE is_deleted = 0 AND normalized_email IN ($placeholders)
+        ) matched WHERE match_number <= 25",
+    ];
+    foreach ($queries as $kind => $query) {
+        $stmt = $conn->prepare($query);
+        $stmt->bind_param(str_repeat('s', count($addresses)), ...$addresses);
+        $stmt->execute();
+        foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
+            $address = (string) $row['address'];
+            unset($row['address'], $row['match_number']);
+            $row['id'] = (int) $row['id'];
+            if ($kind === 'contacts') {
+                $row['organization_id'] = $row['organization_id'] === null ? null : (int) $row['organization_id'];
+            }
+            $matches[$kind][$address][] = $row;
+        }
+        $stmt->close();
+    }
+    return $matches;
 }
 
 /** @return list<array{id: int, username: string}> */
@@ -820,18 +887,45 @@ function searchInboundEmailEngagements(
  *   inquiries: list<array<string, mixed>>
  * }
  */
-function routeInboundEmailMessage(mysqli $conn, array $message): array
+function routeInboundEmailMessage(mysqli $conn, array $message, bool $automaticOnly = false): array
 {
     $senderAddress = normalizeInboundEmailAddress($message['sender_address'] ?? '');
     $gatewayAddress = normalizeInboundEmailAddress($message['gateway_address'] ?? '');
     $to = inboundEmailDecodeAddressList($message['to_addresses'] ?? '[]');
     $cc = inboundEmailDecodeAddressList($message['cc_addresses'] ?? '[]');
-    $senderUsers = $senderAddress !== '' ? inboundEmailUserMatches($conn, $senderAddress) : [];
-    $senderContacts = $senderAddress !== '' ? inboundEmailContactMatches($conn, $senderAddress) : [];
-    $senderOrganizations = $senderAddress !== ''
-        ? inboundEmailOrganizationMatches($conn, $senderAddress)
-        : [];
+    $participantAddresses = array_values(array_unique(array_merge([$senderAddress], $to, $cc)));
+    $participantAddresses = array_values(array_filter(
+        $participantAddresses,
+        static fn(string $address): bool => $address !== '' && $address !== $gatewayAddress
+    ));
+    if (count($participantAddresses) > INBOUND_EMAIL_MAX_PARTICIPANTS) {
+        throw new InvalidArgumentException('The inbound message has too many participants.');
+    }
     $senderAuthentication = inboundEmailSenderAuthentication($message);
+    // The review UI can request candidate matches later. Rejected automatic mail
+    // does not need participant queries while the worker holds its row lock.
+    $earlyReason = '';
+    if ($automaticOnly && $senderAuthentication['required'] && !$senderAuthentication['trusted']) {
+        $earlyReason = 'The visible sender does not have a trusted aligned DMARC pass from the mailbox provider.';
+    } elseif ($automaticOnly && inboundEmailMessageEngagementMarkers($message)['ids'] === []
+        && inboundEmailMessageInquiryMarkers($message)['ids'] === []) {
+        $earlyReason = 'No valid Engagement or Inquiry marker was provided.';
+    }
+    if ($earlyReason !== '') {
+        return [
+            'automatic' => false, 'authoritative_engagement' => false, 'authoritative_inquiry' => false,
+            'sender_authentication_required' => $senderAuthentication['required'],
+            'sender_authenticated' => $senderAuthentication['trusted'],
+            'authentication_server' => $senderAuthentication['authentication_server'],
+            'reasons' => [$earlyReason],
+            'sender' => ['type' => 'unknown', 'id' => null, 'label' => $senderAddress],
+            'participants' => [], 'contacts' => [], 'organizations' => [], 'engagements' => [], 'inquiries' => [],
+        ];
+    }
+    $matches = inboundEmailBatchMatches($conn, array_values(array_unique(array_merge($participantAddresses, [$senderAddress]))));
+    $senderUsers = $matches['users'][$senderAddress] ?? [];
+    $senderContacts = $matches['contacts'][$senderAddress] ?? [];
+    $senderOrganizations = $matches['organizations'][$senderAddress] ?? [];
 
     $sender = ['type' => 'unknown', 'id' => null, 'label' => $senderAddress];
     $reasons = [];
@@ -923,19 +1017,13 @@ function routeInboundEmailMessage(mysqli $conn, array $message): array
         $authoritativeInquiry = false;
     }
 
-    $participantAddresses = array_values(array_unique(array_merge([$senderAddress], $to, $cc)));
-    $participantAddresses = array_values(array_filter(
-        $participantAddresses,
-        static fn(string $address): bool => $address !== '' && $address !== $gatewayAddress
-    ));
-
     $contacts = [];
     $organizations = [];
     $participants = [];
     foreach ($participantAddresses as $address) {
-        $userMatches = inboundEmailUserMatches($conn, $address);
-        $contactMatches = inboundEmailContactMatches($conn, $address);
-        $organizationMatches = inboundEmailOrganizationMatches($conn, $address);
+        $userMatches = $matches['users'][$address] ?? [];
+        $contactMatches = $matches['contacts'][$address] ?? [];
+        $organizationMatches = $matches['organizations'][$address] ?? [];
         $isInternalUser = count($userMatches) === 1;
 
         if ($isInternalUser) {
@@ -1175,7 +1263,7 @@ function processInboundEmailMessage(
         $messageStatus = (string) ($message['status'] ?? '');
         requireInboundEmailProcessableStatus($messageStatus, $manual);
 
-        $routing = routeInboundEmailMessage($conn, $message);
+        $routing = routeInboundEmailMessage($conn, $message, !$manual);
         if (!$manual && !$routing['automatic']) {
             $routingJson = inboundEmailJson($routing);
             $reviewReason = implode(' ', $routing['reasons']);

@@ -7,6 +7,7 @@ if (PHP_SAPI !== 'cli') {
 
 require_once '/var/www/html/config.php';
 require_once '/var/www/html/functions.php';
+require_once '/var/www/html/worker_health_helpers.php';
 require_once '/var/www/html/map_helpers.php';
 
 $loop = in_array('--loop', $argv, true);
@@ -22,6 +23,7 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
 }
 
 do {
+    $pass_succeeded = true;
     $processed = 0;
     // A worker can disappear after consuming its final attempt. Reap those
     // expired leases (and any legacy exhausted ready rows) so they do not
@@ -87,6 +89,7 @@ do {
                 throw new RuntimeException('Unable to commit a geocoding-job claim: ' . $conn->error);
             }
         } catch (Throwable $claim_exception) {
+            $pass_succeeded = false;
             $conn->rollback();
             throw $claim_exception;
         }
@@ -100,6 +103,7 @@ do {
                 $coordinates
             );
         } catch (Throwable $exception) {
+            $pass_succeeded = false;
             $attempts = (int) $job['attempts'] + 1;
             $delay_minutes = min(1440, 2 ** min(10, $attempts));
             $error = substr($exception->getMessage(), 0, 255);
@@ -124,6 +128,7 @@ do {
                 $retry_recorded = true;
                 $retry->close();
             } catch (Throwable $retry_exception) {
+            $pass_succeeded = false;
                 $retry_record_error = substr($retry_exception->getMessage(), 0, 255);
             }
             applicationLog('error', 'Background geocoding failed', [
@@ -136,11 +141,14 @@ do {
             ]);
         }
 
+        recordWorkerHeartbeat('geocoder', $pass_succeeded);
         $processed++;
         if ($index + 1 < $batch_size) {
             usleep(1100000);
         }
     }
+
+    recordWorkerHeartbeat('geocoder', $pass_succeeded);
 
     if ($loop && $processed === 0) {
         sleep($idle_seconds);

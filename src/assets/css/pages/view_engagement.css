@@ -281,25 +281,6 @@
             margin: 4px 0 0;
             color: var(--text-muted);
         }
-        .financial-status {
-            flex: 0 0 auto;
-            padding: 5px 10px;
-            border-radius: 999px;
-            font-size: var(--font-size-small);
-            font-weight: var(--font-weight-bold);
-        }
-        .financial-status.is-finalized {
-            background: var(--success-subtle);
-            color: var(--success);
-        }
-        .financial-status.is-open {
-            background: var(--warning-subtle);
-            color: var(--warning);
-        }
-        .financial-status.is-not-applicable {
-            background: var(--surface-hover, #e5e7eb);
-            color: var(--text-muted, #4b5563);
-        }
         .financial-amount-grid {
             display: grid;
             grid-template-columns: repeat(4, minmax(0, 1fr));

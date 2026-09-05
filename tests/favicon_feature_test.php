@@ -31,7 +31,7 @@ $head = (string) ob_get_clean();
 
 expectFavicon(
     preg_match(
-        '/<title>Dashboard - MOED<\/title>\s*<link rel="icon" type="image\/svg\+xml" href="assets\/favicon\.svg\?v=dev&amp;h=[0-9a-f]{12}">/',
+        '/<title>Dashboard - MOED<\/title>\s*<link rel="icon" type="image\/svg\+xml" href="assets\/favicon\.svg\?h=[0-9a-f]{12}">/',
         $head
     ) === 1,
     'the shared page head should publish the fingerprinted SVG favicon on every rendered page.'

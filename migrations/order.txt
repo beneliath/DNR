@@ -55,3 +55,5 @@
 20260902_add_mail_history_retention.sql
 20260903_add_mattermost_email_reaction_notifications.sql
 20260904_add_inquiry_booking_pipeline.sql
+20260905_account_email_changes.sql
+20260905_inbound_email_indexes.sql

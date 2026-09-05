@@ -157,7 +157,7 @@ $manifest = json_decode((string) $manifestRaw, true);
 expectMattermost(
     is_array($manifest)
         && ($manifest['id'] ?? null) === 'org.moed.mattermost'
-        && ($manifest['version'] ?? null) === '0.4.6'
+        && preg_match('/^\d+\.\d+\.\d+$/', (string) ($manifest['version'] ?? '')) === 1
         && isset($manifest['server']['executables']['linux-amd64'])
         && ($manifest['webapp']['bundle_path'] ?? null) === 'webapp/dist/main.js'
         && ($manifest['settings_schema']['settings'][1]['secret'] ?? false) === true,

@@ -12,6 +12,7 @@ $is_pending_login = $pending !== null;
 if ($is_pending_login) {
     $user_id = (int) $pending['user_id'];
 } elseif (isLoggedIn()) {
+    requireLogin();
     $user_id = (int) $_SESSION['user_id'];
 } else {
     header('Location: login.php');
@@ -35,11 +36,12 @@ if ($is_pending_login && !empty($user['two_factor_enabled'])) {
     exit();
 }
 
-function currentTwoFactorEnrollment($user_id) {
+function currentTwoFactorEnrollment($user_id, $auth_version) {
     $enrollment = $_SESSION['_two_factor_enrollment'] ?? null;
 
     if (!is_array($enrollment)
         || (int) ($enrollment['user_id'] ?? 0) !== $user_id
+        || (int) ($enrollment['auth_version'] ?? 0) !== $auth_version
         || empty($enrollment['secret'])
         || !isset($enrollment['issued_at'])
         || (time() - (int) $enrollment['issued_at']) > 600
@@ -51,20 +53,21 @@ function currentTwoFactorEnrollment($user_id) {
     return $enrollment;
 }
 
-function beginTwoFactorEnrollment($user_id, $mode) {
+function beginTwoFactorEnrollment($user_id, $mode, $auth_version) {
     $_SESSION['_two_factor_enrollment'] = [
         'user_id' => $user_id,
+        'auth_version' => $auth_version,
         'secret' => generateTotpSecret(),
         'mode' => $mode,
         'issued_at' => time(),
     ];
 }
 
-if ($is_pending_login && currentTwoFactorEnrollment($user_id) === null) {
+if ($is_pending_login && currentTwoFactorEnrollment($user_id, (int) $user['auth_version']) === null) {
     try {
         // Fail before showing a QR code if the deployment encryption key is missing.
         twoFactorEncryptionKey();
-        beginTwoFactorEnrollment($user_id, 'enroll');
+        beginTwoFactorEnrollment($user_id, 'enroll', (int) $user['auth_version']);
     } catch (Throwable $exception) {
         applicationLog('error', 'Two-factor enrollment configuration error', ['error' => $exception->getMessage()]);
         $error = 'Two-factor enrollment is not configured on this server. Contact an administrator.';
@@ -111,7 +114,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 twoFactorEncryptionKey();
                 beginTwoFactorEnrollment(
                     $user_id,
-                    !empty($user['two_factor_enabled']) ? 'replace' : 'enroll'
+                    !empty($user['two_factor_enabled']) ? 'replace' : 'enroll',
+                    (int) $user['auth_version']
                 );
             } catch (Throwable $exception) {
                 applicationLog('error', 'Two-factor enrollment configuration error', ['error' => $exception->getMessage()]);
@@ -121,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'confirm') {
-        $enrollment = currentTwoFactorEnrollment($user_id);
+        $enrollment = currentTwoFactorEnrollment($user_id, (int) $user['auth_version']);
         $code = trim($_POST['authentication_code'] ?? '');
 
         if (!$enrollment) {
@@ -149,7 +153,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $conn,
                         $user_id,
                         $enrollment['secret'],
-                        $step
+                        $step,
+                        (int) $enrollment['auth_version']
                     );
                     logSecurityEvent(
                         $conn,
@@ -159,6 +164,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     );
 
                     $user = fetchAuthenticationUserById($conn, $user_id);
+                    if (!$user || $user['account_status'] !== 'active'
+                        || (int) $user['auth_version'] !== (int) $enrollment['auth_version'] + 1
+                    ) {
+                        session_unset();
+                        header('Location: login.php');
+                        exit();
+                    }
 
                     if ($is_pending_login) {
                         completeAuthentication($conn, $user, true);
@@ -173,6 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: two_factor_recovery_codes.php');
                     exit();
                 } catch (Throwable $exception) {
+                    unset($_SESSION['_two_factor_enrollment']);
                     applicationLog('error', 'Unable to enable two-factor authentication', ['error' => $exception->getMessage()]);
                     $error = 'Two-factor authentication could not be enabled.';
                 }
@@ -181,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$enrollment = currentTwoFactorEnrollment($user_id);
+$enrollment = currentTwoFactorEnrollment($user_id, (int) $user['auth_version']);
 $qr_data_uri = null;
 if ($enrollment) {
     try {

@@ -18,6 +18,7 @@ FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad
 # then retain only libraries referenced by the compiled modules.
 RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
@@ -27,6 +28,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && apt-mark auto '.*' >/dev/null \
     && apt-mark manual $dnr_saved_apt_mark \
+    && apt-mark auto $PHPIZE_DEPS \
     && find /usr/local/lib/php/extensions -type f -name '*.so' -exec ldd '{}' ';' \
         | awk '/=>/ { library = $(NF - 1); if (index(library, "/usr/local/") == 1) next; sub("^/(usr/)?", "", library); print library }' \
         | sort -u \
@@ -38,8 +40,9 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && rm -rf /var/lib/apt/lists/*
 
 COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf
+COPY docker/apache-php-capacity.conf /etc/apache2/conf-available/zz-dnr-capacity.conf
 COPY docker/php-production.ini /usr/local/etc/php/conf.d/dnr-production.ini
-RUN a2enconf zz-dnr-security \
+RUN a2enconf zz-dnr-security zz-dnr-capacity \
     && apachectl configtest
 
 # Keep dependencies outside Apache's document root so the development source
@@ -54,11 +57,13 @@ COPY --chmod=0755 scripts/password_cli_entrypoint.sh /usr/local/bin/dnr-password
 RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
     && ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-set-password
 COPY --chmod=0644 scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
+COPY --chmod=0644 scripts/check_worker_health.php /opt/dnr/bin/check_worker_health.php
 COPY --chmod=0644 scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY --chmod=0644 scripts/check_config.php /opt/dnr/bin/check_config.php
 COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
 COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
+COPY --chmod=0644 scripts/native_backup_crypto.php /opt/dnr/bin/native_backup_crypto.php
 COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
 COPY --chmod=0644 scripts/prune_audit_log.php /opt/dnr/bin/prune_audit_log.php
 COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php

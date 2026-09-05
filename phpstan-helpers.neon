@@ -16,6 +16,7 @@ parameters:
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/email_helpers.php
+        - src/account_email_change_helpers.php
         - src/follow_up_task_helpers.php
         - src/financial_report_helpers.php
         - src/github_version_helpers.php

@@ -11,6 +11,7 @@ $script_path = __DIR__ . '/../scripts/compose_with_provenance.sh';
 $script = file_get_contents($script_path);
 $s1_deploy_path = __DIR__ . '/../scripts/deploy_s1.sh';
 $s1_deploy = file_get_contents($s1_deploy_path);
+$s1_host = file_get_contents(__DIR__ . '/../scripts/deploy_release_host.py');
 $readme = file_get_contents(__DIR__ . '/../README.md');
 $secure_existing = file_get_contents(__DIR__ . '/../scripts/secure_existing_deployment.sh');
 $dockerfile = file_get_contents(__DIR__ . '/../Dockerfile');
@@ -90,21 +91,21 @@ expectBuildProvenanceScript(
         && is_executable($s1_deploy_path)
         && str_contains($s1_deploy, 'DNR_S1_HOST:-192.168.1.150')
         && str_contains($s1_deploy, 'DNR_S1_PROJECT_DIR:-/home/dgilmore/moed')
-        && str_contains($s1_deploy, 'DNR_S1_COMPOSE_MODE:-production-ubuntu-proton-mattermost')
-        && str_contains($s1_deploy, 'ci_state'),
+        && str_contains($s1_host, 'production-ubuntu-proton-mattermost')
+        && str_contains($s1_deploy, '--workflow CI'),
     'the s1 workflow should encode its stable endpoint, checkout, full topology, and CI gate.'
 );
 expectBuildProvenanceScript(
     str_contains($s1_deploy, 'status --porcelain --untracked-files=normal')
-        && str_contains($s1_deploy, 'generate_daily_digest_preview.php" --check')
-        && str_contains($s1_deploy, 'merge --ff-only origin/main')
-        && str_contains($s1_deploy, 'DNR_BUILD_COMMIT')
-        && str_contains($s1_deploy, 'State.Health.Status')
-        && str_contains($s1_deploy, 'did not become healthy within 60 seconds')
-        && str_contains($s1_deploy, 'sleep 2')
-        && str_contains($s1_deploy, 'State.ExitCode')
-        && str_contains($s1_deploy, '/ready.php')
-        && str_contains($s1_deploy, '/health.php'),
+        && str_contains($s1_deploy, 'scripts/prepare_release check')
+        && str_contains($s1_deploy, 'scripts/mirror_release.py')
+        && str_contains($s1_host, "'merge', '--ff-only', expected")
+        && str_contains($s1_host, 'fcntl.flock(lock, fcntl.LOCK_EX)')
+        && str_contains($s1_host, 'DNR_BUILD_COMMIT')
+        && str_contains($s1_host, "'--no-build', '--wait'")
+        && str_contains($s1_host, "compose('run', '--rm', '--no-deps', 'migrator')")
+        && str_contains($s1_host, '/ready.php')
+        && str_contains($s1_host, '/health.php'),
     'the s1 workflow should reject ambiguous source and stale previews, then verify provenance, migrations, health, and readiness.'
 );
 expectBuildProvenanceScript(

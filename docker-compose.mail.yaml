@@ -4,6 +4,16 @@ services:
       DNR_INBOUND_ADDRESS: ${DNR_INBOUND_ADDRESS:-}
 
   mail-ingest:
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "mail-ingest"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    mem_limit: 768m
+    cpus: 1.0
+    pids_limit: 128
     build:
       context: .
       args:

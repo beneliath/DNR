@@ -998,8 +998,8 @@ kbd {
 }
 
 .manual-status-pill.status-open {
-  background: var(--primary-subtle) !important;
-  color: var(--primary);
+  background: var(--status-open-bg) !important;
+  color: var(--status-solid-fg);
 }
 
 .manual-status-pill.status-progress {

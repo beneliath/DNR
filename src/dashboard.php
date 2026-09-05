@@ -6,9 +6,12 @@ require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/dashboard_helpers.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
 require_once __DIR__ . '/booking_inquiry_helpers.php';
+require_once __DIR__ . '/notification_helpers.php';
 $conn = applicationDatabaseConnection();
 startSecureSession();
 requireLogin();
+generateCsrfToken();
+releaseApplicationSessionLock();
 
 $user_id = (int) ($_SESSION['user_id'] ?? 0);
 $user_role = (string) ($_SESSION['role'] ?? '');
@@ -35,7 +38,7 @@ try {
         $business_date,
         $upcoming_window_end
     );
-    $task_summary = fetchDashboardTaskSummary($conn, $user_id, $business_date);
+
     $my_tasks = fetchDashboardMyTasks($conn, $user_id);
     $booking_inquiries = fetchDashboardBookingInquiries($conn, $user_id);
     $booking_inquiry_count = fetchDashboardOpenBookingInquiryCount(
@@ -49,6 +52,17 @@ try {
         applicationBusinessDateOffset(7)
     );
     $financial_closeouts = fetchDashboardFinancialCloseouts($conn, $business_date);
+    $request_reminder_counts = fetchTaskReminderCounts(
+        $conn, $user_id, $user_role, $business_date,
+        $financial_closeouts === [] ? 0 : (int) $financial_closeouts[0]['dashboard_total']
+    );
+    $all_tasks = $conn->query("SELECT COUNT(*) AS total FROM follow_up_tasks WHERE status IN ('open', 'in_progress', 'waiting')");
+    $task_summary = [
+        'all' => (int) $all_tasks->fetch_assoc()['total'],
+        'active' => $request_reminder_counts['active'],
+        'overdue' => $request_reminder_counts['dashboard_overdue'],
+        'today' => $request_reminder_counts['dashboard_today'],
+    ];
     $inbound_review_count = $can_manage
         ? fetchDashboardInboundReviewCount($conn)
         : 0;
@@ -115,7 +129,7 @@ $task_status_labels = followUpTaskStatuses();
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">
             <div><h2 id="booking-inquiries-heading">Inquiry Next Actions</h2><p>Active opportunities owned by you or waiting for an owner.</p></div>
-            <a href="inquiries.php?view=active" class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>
+            <a href="inquiries.php?view=active&amp;owner=mine_or_unassigned" class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>
         </div>
         <?php if ($booking_inquiries === []): ?>
             <div class="dashboard-empty-state"><strong>No inquiry actions waiting</strong><span>The active pipeline is clear for you.</span></div>
@@ -134,7 +148,7 @@ $task_status_labels = followUpTaskStatuses();
     <section class="dashboard-panel dashboard-pipeline-health" aria-labelledby="pipeline-health-heading">
         <div class="dashboard-panel-heading">
             <div><h2 id="pipeline-health-heading">Pipeline Health</h2><p>Active inquiry gaps that need attention.</p></div>
-            <a href="inquiries.php?view=active" class="button-secondary dashboard-panel-button">Review All</a>
+            <a href="inquiries.php?view=active&amp;owner=" class="button-secondary dashboard-panel-button">Review All</a>
         </div>
         <nav class="dashboard-health-list" aria-label="Pipeline Health Filters">
             <a href="inquiries.php?view=active&amp;owner=unassigned"><span>Unassigned Inquiries</span><strong><?php echo $booking_pipeline_health['unassigned']; ?></strong></a>

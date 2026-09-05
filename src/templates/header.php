@@ -66,7 +66,7 @@ $nav_reminder_count = 0;
 if (!empty($_SESSION['user_id'])) {
     try {
         require_once dirname(__DIR__) . '/notification_helpers.php';
-        $nav_reminders = fetchTaskReminderCounts(
+        $nav_reminders = $request_reminder_counts ?? fetchTaskReminderCounts(
             applicationDatabaseConnection(),
             (int) $_SESSION['user_id'],
             $user_role

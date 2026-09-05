@@ -110,7 +110,8 @@ expectUserLifecycle(
         && !str_contains($register, 'sendInvitationEmail(')
         && str_contains($accept_invitation, "require_once __DIR__ . '/user_lifecycle_helpers.php';")
         && str_contains($accept_invitation, "account_status = 'active'")
-        && str_contains($read('src/verify_email.php'), 'email_verified_at = UTC_TIMESTAMP()')
+        && str_contains($read('src/verify_email.php'), 'verifyAccountEmail(')
+        && str_contains($read('src/account_email_change_helpers.php'), 'email_verified_at = UTC_TIMESTAMP()')
         && str_contains($recovery, 'verified_email = LOWER(?)')
         && str_contains($recovery, 'password_recovered_by_email')
         && str_contains($recovery, 'auth_version = auth_version + 1'),
