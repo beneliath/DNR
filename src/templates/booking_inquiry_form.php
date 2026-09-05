@@ -10,13 +10,12 @@ $inquiry_priorities = bookingInquiryPriorities();
 $inquiry_event_types = \Dnr\Domain\ReferenceData::eventTypes();
 $value = static fn(string $key, string $fallback = ''): string => (string) ($inquiry_form_values[$key] ?? $fallback);
 ?>
+<p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form">
     <?php echo csrfInput(); ?>
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
     <?php if (!empty($inbound_email_message_id)): ?><input type="hidden" name="inbound_email_message_id" value="<?php echo (int) $inbound_email_message_id; ?>"><?php endif; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required Fields</p>
-
     <section class="form-section">
         <div class="inquiry-form-section-heading"><span>01</span><div><h2>Request</h2><p>Capture enough context to qualify the opportunity without inventing event details.</p></div></div>
         <div class="form-group">

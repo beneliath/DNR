@@ -306,6 +306,9 @@ footer .ascii-art-container pre {
   text-decoration: none;
   white-space: nowrap;
   cursor: pointer;
+  /* Keep action labels out of accidental text selections. */
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .login-button {

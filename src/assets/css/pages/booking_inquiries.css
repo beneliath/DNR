@@ -286,10 +286,6 @@ html body main.container.inquiry-form-page > form.inquiry-form.inquiry-form {
     box-shadow: none !important;
     outline: 0 !important;
 }
-.inquiry-form > .required-fields-note {
-    margin: 0 2px -.45rem;
-    border: 0 !important;
-}
 .inquiry-form .form-section {
     margin: 0;
     padding: clamp(1.25rem, 2.5vw, 1.65rem);

@@ -21,14 +21,13 @@ $task_subject_search_placeholder = $task_require_engagement_subject
 $task_subject_search_url = 'task_subject_search.php'
     . ($task_require_engagement_subject ? '?type=engagement' : '');
 ?>
+<p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
     <?php echo csrfInput(); ?>
     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
     <?php if (!empty($task_form_values['updated_at'])): ?>
         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task_form_values['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
     <?php endif; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-
     <section class="form-section">
         <h2>Task</h2>
         <div class="form-group">
