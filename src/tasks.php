@@ -143,6 +143,8 @@ unset($_SESSION['task_action_message'], $_SESSION['task_action_error']);
 generateCsrfToken();
 releaseApplicationSessionLock();
 $business_date = applicationBusinessDate();
+$overdue_attention_before = (new DateTimeImmutable($business_date, applicationTimezone()))
+    ->modify('-3 days')->format('Y-m-d');
 $personal_reminders = $request_reminder_counts = fetchTaskReminderCounts(
     $conn,
     $current_user_id,
@@ -374,6 +376,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/tasks.min.css',
   ),
+  'scripts' => ['assets/js/task-attention.min.js'],
 )); ?>
 <body class="tasks-body">
 <?php include 'templates/header.php'; ?>
@@ -471,6 +474,8 @@ $active_task_statuses = followUpTaskActiveStatuses();
             $row_due_key = in_array($task['status'], $active_task_statuses, true)
                 ? $due['key']
                 : 'none';
+            $needs_overdue_attention = $row_due_key === 'overdue'
+                && $task['due_date'] < $overdue_attention_before;
             $task_due_aria_label = match ($row_due_key) {
                 'overdue' => 'Overdue, due ' . $task['due_date'],
                 'today' => 'Due today, ' . $task['due_date'],
@@ -485,7 +490,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
                 'return_to' => $task_return_to,
             ]);
             ?>
-            <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?>">
+            <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
                 <td><?php if (!empty($task['due_date'])): ?><time class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?></time><?php else: ?><span class="task-due task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>; <?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due['label'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></td>
                 <td>
                     <?php if ($can_manage_tasks): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>

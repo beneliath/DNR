@@ -36,3 +36,36 @@
     padding-inline: var(--app-content-padding);
     text-align: left !important;
 }
+
+.tasks-page {
+    --task-overdue-alert-bg: #ffb8ca;
+}
+
+html.dark-mode .tasks-page {
+    --task-overdue-alert-bg: #733349;
+}
+
+/* Animate cell backgrounds so the existing row highlight and text stay intact. */
+.task-table tbody tr.task-row-needs-attention > td {
+    background-color: var(--task-overdue-alert-bg);
+}
+
+.task-table.task-table-cascading tbody tr.task-row-needs-attention > td {
+    background-color: var(--task-overdue-row-bg);
+}
+
+.task-table tbody tr.task-row-attention-current > td {
+    animation: task-overdue-attention var(--task-attention-step-duration, 1.8s) ease-in-out;
+}
+
+@keyframes task-overdue-attention {
+    0%, 100% { background-color: var(--task-overdue-row-bg); }
+    50% { background-color: var(--task-overdue-alert-bg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .task-table tbody tr.task-row-needs-attention > td {
+        animation: none;
+        background-color: var(--task-overdue-alert-bg) !important;
+    }
+}
