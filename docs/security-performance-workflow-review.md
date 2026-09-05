@@ -6,7 +6,7 @@ This records the original repository-wide review of the PHP application, JavaScr
 
 ## Implementation status — 2026-09-05
 
-All fourteen findings have corresponding changes in the working tree on `rollingImprovements001`. Release operations and the standing backup requirement are documented in [Release and recovery workflow](release-workflow.md) and [.cursor/rules/backup-before-database-upgrade.mdc](../.cursor/rules/backup-before-database-upgrade.mdc). These changes are prepared for application `1.11.7` and plugin `0.4.7`. Deployment status is recorded by the guarded release workflow; this review does not by itself assert a production rollout.
+All fourteen findings have corresponding changes merged from `rollingImprovements001`. Release operations and the standing backup requirement are documented in [Release and recovery workflow](release-workflow.md) and [.cursor/rules/backup-before-database-upgrade.mdc](../.cursor/rules/backup-before-database-upgrade.mdc). These changes and the deployment timestamp correction are prepared for application `1.11.8` and plugin `0.4.7`. Deployment status is recorded by the guarded release workflow; this review does not by itself assert a production rollout.
 
 - **S1:** MFA enrollment is bound to the authentication version and updates the factor only through an active-account/version compare-and-set. Stale sessions cannot refresh their revoked authentication state.
 - **S2:** Recovery-email changes require the current password and fresh TOTP when enabled. Pending verification preserves the current recovery address, queues an old-address notice, and atomically promotes the new address while revoking sessions. Password resets and deactivation cancel pending changes.

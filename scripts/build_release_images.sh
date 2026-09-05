@@ -5,7 +5,7 @@ set -eu
 [ "$(git rev-parse HEAD)" = "$GITHUB_SHA" ]
 registry_repository=$(printf '%s' "$GITHUB_REPOSITORY" | tr '[:upper:]' '[:lower:]')
 version=$(cat VERSION)
-build_timestamp=$(git show -s --format=%cI "$GITHUB_SHA" | sed 's/+00:00$/Z/')
+build_timestamp=$(python3 scripts/release_timestamp.py "$(git show -s --format=%cI "$GITHUB_SHA")")
 mkdir -p release
 for kind in app ingress bridge database; do
     image="ghcr.io/$registry_repository/$kind:$GITHUB_SHA"

@@ -11,12 +11,28 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 import release_manifest
 import deploy_release_host
+from release_timestamp import timestamp_utc
 loader = importlib.machinery.SourceFileLoader('prepare', str(ROOT / 'scripts/prepare_release'))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 prepare = importlib.util.module_from_spec(spec)
 loader.exec_module(prepare)
 
 class ReleaseWorkflow(unittest.TestCase):
+    def test_commit_timezones_produce_identical_utc_provenance(self):
+        import os, subprocess
+        expected = '2026-09-05T13:51:40Z'
+        for value in ('2026-09-05T15:51:40+02:00', '2026-09-05T08:51:40-05:00',
+                      '2026-09-05T19:21:40+05:30', '2026-09-06T03:51:40+14:00',
+                      '2026-09-05T13:51:40+00:00', expected):
+            with self.subTest(timestamp=value):
+                normalized = timestamp_utc(value)
+                self.assertEqual(normalized, expected)
+                metadata = subprocess.check_output(['sh', str(ROOT/'scripts/compose_with_provenance.sh'), '--print-metadata'],
+                    env=dict(os.environ, DNR_BUILD_COMMIT='a'*40, DNR_BUILD_TIMESTAMP=normalized), text=True)
+                self.assertIn('DNR_BUILD_TIMESTAMP=' + expected, metadata.splitlines())
+        with self.assertRaisesRegex(ValueError, 'timezone'):
+            timestamp_utc('2026-09-05T13:51:40')
+
     def test_project_version_vocabulary(self):
         self.assertEqual(prepare.bump('1.11.6','minor'),'1.11.7')
         self.assertEqual(prepare.bump('1.11.6','major'),'1.12.0')
@@ -95,10 +111,11 @@ class DeploymentBackupGate(unittest.TestCase):
                 if args[:2]==['git','show']:
                     if args[-1].endswith(':VERSION'): return '1.11.7' if args[-1].startswith(expected) else '1.11.6'
                     if args[-1].endswith(':migrations/order.txt'): return '001.sql'
-                    return '2026-09-05T00:00:00Z'
+                    return '2026-09-05T15:51:40+02:00'
                 if args[:2]==['docker','inspect']:
                     return json.dumps([dict(Id='image-id',Image='image-id',Config={'Image':'mysql:8.4@sha256:'+'e'*64,'Labels':{'org.opencontainers.image.revision':expected}},State={'Health':{'Status':'healthy'}})])
                 if args[:3]==['sh','scripts/compose_with_provenance.sh','production-ubuntu-proton-mattermost']:
+                    self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]
                     if args[3:5]==['run','--rm']: raise ValueError('synthetic migration failure')
                     return ''
