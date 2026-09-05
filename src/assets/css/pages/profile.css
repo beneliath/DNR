@@ -15,6 +15,7 @@
 }
 
 html body.profile-page .profile-container > .profile-form {
+    margin-bottom: 1.15rem;
     padding: 0 !important;
     border: 0 !important;
     border-radius: 0 !important;

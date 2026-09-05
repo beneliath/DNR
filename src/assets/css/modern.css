@@ -2668,6 +2668,17 @@ html body .task-action-button:focus-visible {
   gap: 0 18px;
 }
 
+html body .container > .follow-up-task-form,
+html body .container > .standard-event-task-form,
+.follow-up-task-form > .engagement-page-actions,
+.standard-event-task-form > .engagement-page-actions {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+
 .follow-up-task-form #task-subject-search {
   display: block;
   width: 100%;
@@ -3219,7 +3230,7 @@ textarea::placeholder {
   margin-bottom: 0;
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form),
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form),
 .security-card,
 .organization-details,
 .contact-details,
@@ -3232,7 +3243,7 @@ textarea::placeholder {
   box-shadow: var(--shadow-sm);
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form) {
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form) {
   padding: clamp(20px, 4vw, 32px);
 }
 
@@ -4893,7 +4904,7 @@ html.dark-mode .login-secondary-link a {
     padding-inline: 16px;
   }
 
-  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form),
+  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form),
   .security-card,
   .organization-details,
   .contact-details {
