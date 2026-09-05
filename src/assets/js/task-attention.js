@@ -6,7 +6,7 @@
     if (!rows.length) return;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const stepDuration = 1800;
-    const stagger = rows.length > 1 ? stepDuration * 0.75 : stepDuration;
+    const stagger = rows.length > 1 ? stepDuration * 0.4 : stepDuration;
     const pulseTimers = new Map();
     table.style.setProperty('--task-attention-step-duration', `${stepDuration}ms`);
     let current = -1;
@@ -24,7 +24,10 @@
             row.classList.remove('task-row-attention-current');
             pulseTimers.delete(row);
         }, stepDuration));
-        timer = window.setTimeout(advance, stagger);
+        // A short queue must finish its first pulse before the next lap begins.
+        const delay = current === rows.length - 1
+            ? Math.max(stagger, stepDuration - stagger * (rows.length - 1)) : stagger;
+        timer = window.setTimeout(advance, delay);
     }
 
     function synchronize() {
