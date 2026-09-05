@@ -96,6 +96,16 @@ if (!empty($_SESSION['user_id'])) {
         </button>
     </div>
 
+    <?php if (!empty($_SESSION['user_id'])): ?>
+        <section class="deployment-notice-banner" data-deployment-notice data-status-url="deployment_status.php" aria-label="Deployment notice" hidden>
+            <div class="deployment-notice-heading">
+                <strong data-deployment-title role="status" aria-live="polite"></strong>
+                <span data-deployment-timer role="timer" aria-live="off"></span>
+            </div>
+            <span data-deployment-detail></span>
+        </section>
+    <?php endif; ?>
+
     <?php if ($role_preview !== null): ?>
         <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator role preview">
             <div class="role-preview-banner-copy">
@@ -209,4 +219,5 @@ if (!empty($_SESSION['user_id'])) {
 </header>
 <?php renderScript('assets/js/theme.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
+<?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>

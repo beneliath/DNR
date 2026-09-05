@@ -80,6 +80,7 @@ services:
     environment: *app-environment
     volumes:
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+      - ./var/deployment:/run/dnr/deployment:ro
     networks: [backend]
     healthcheck:
       test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
@@ -106,6 +107,8 @@ services:
     security_opt:
       - no-new-privileges:true
     labels: *watchtower-disabled-labels
+    volumes:
+      - ./var/deployment:/run/dnr/deployment:ro
     depends_on:
       web:
         condition: service_healthy
