@@ -331,6 +331,8 @@ function renderDailyTaskDigestHtml(
         (int) ($taskSummary['overdue'] ?? 0),
         (int) ($taskSummary['today'] ?? 0)
     );
+    // Inline equivalent of the app's compact pills for email clients.
+    $compactPillStyle = 'display:inline-block;box-sizing:border-box;min-height:22px;padding:3px 7px;border-radius:999px;font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif;font-size:10.88px;font-weight:700;line-height:16px;white-space:nowrap;';
     $dashboardUrl = dailyTaskDigestHtmlUrl('dashboard.php');
     $taskQueueUrl = dailyTaskDigestHtmlUrl('tasks.php', ['view' => 'my']);
     $engagementsUrl = dailyTaskDigestHtmlUrl('engagements.php', [
@@ -544,8 +546,8 @@ function renderDailyTaskDigestHtml(
                                                             <div style="margin-top:4px;color:#667085;font-size:11px;line-height:1.4;"><?php echo dailyTaskDigestHtmlEscape($engagement['organization_name'] ?? 'Organization'); ?> · <?php echo dailyTaskDigestHtmlEscape(dashboardDateRangeLabel($engagement['event_start_date'] ?? '', $engagement['event_end_date'] ?? '')); ?></div>
                                                         </td>
                                                         <td class="record-meta" align="right" width="110" style="width:110px;vertical-align:middle;">
-                                                            <?php if ($issues !== []): ?><span style="display:inline-block;margin-bottom:5px;padding:4px 8px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:10px;font-weight:700;line-height:1.2;"><?php echo count($issues); ?> detail<?php echo count($issues) === 1 ? '' : 's'; ?> needed</span><br><?php endif; ?>
-                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:<?php echo $confirmationStyle['background']; ?>;color:<?php echo $confirmationStyle['color']; ?>;font-size:10px;font-weight:700;line-height:1.2;"><?php echo dailyTaskDigestHtmlEscape(dashboardConfirmationStatusLabel($engagement['confirmation_status'] ?? '')); ?></span>
+                                                            <?php if ($issues !== []): ?><span style="<?php echo $compactPillStyle; ?>margin-bottom:5px;background:#fff0ee;color:#b42318;"><?php echo count($issues); ?> detail<?php echo count($issues) === 1 ? '' : 's'; ?> needed</span><br><?php endif; ?>
+                                                            <span style="<?php echo $compactPillStyle; ?>background:<?php echo $confirmationStyle['background']; ?>;color:<?php echo $confirmationStyle['color']; ?>;"><?php echo dailyTaskDigestHtmlEscape(dashboardConfirmationStatusLabel($engagement['confirmation_status'] ?? '')); ?></span>
                                                         </td>
                                                     </tr>
                                                 </table>
@@ -612,8 +614,8 @@ function renderDailyTaskDigestHtml(
                                                             <div style="margin-top:4px;color:#475467;font-size:11px;line-height:1.4;"><a href="<?php echo $subjectUrl; ?>" style="color:#475467;"><?php echo dailyTaskDigestHtmlEscape($subject['label'] ?? applicationGeneralWorkLabel()); ?></a></div>
                                                         </td>
                                                         <td class="record-meta" align="right" width="120" style="width:120px;vertical-align:middle;">
-                                                            <span style="display:inline-block;padding:4px 8px;border-radius:999px;background:<?php echo $priorityStyle['background']; ?>;color:<?php echo $priorityStyle['color']; ?>;font-size:10px;font-weight:700;line-height:1.2;"><?php echo dailyTaskDigestHtmlEscape($dueState['label']); ?></span><br>
-                                                            <span style="display:inline-block;margin-top:5px;padding:4px 8px;border-radius:999px;background:<?php echo $statusStyle['background']; ?>;color:<?php echo $statusStyle['color']; ?>;font-size:10px;font-weight:700;line-height:1.2;"><?php echo dailyTaskDigestHtmlEscape($statusLabels[$task['status'] ?? ''] ?? ($task['status'] ?? 'Open')); ?></span>
+                                                            <span style="<?php echo $compactPillStyle; ?>background:<?php echo $priorityStyle['background']; ?>;color:<?php echo $priorityStyle['color']; ?>;"><?php echo dailyTaskDigestHtmlEscape($dueState['label']); ?></span><br>
+                                                            <span style="<?php echo $compactPillStyle; ?>margin-top:5px;background:<?php echo $statusStyle['background']; ?>;color:<?php echo $statusStyle['color']; ?>;"><?php echo dailyTaskDigestHtmlEscape($statusLabels[$task['status'] ?? ''] ?? ($task['status'] ?? 'Open')); ?></span>
                                                         </td>
                                                     </tr>
                                                 </table>
@@ -637,7 +639,7 @@ function renderDailyTaskDigestHtml(
                                         <p style="margin:5px 0 0;color:#667085;font-size:12px;line-height:1.45;">Upcoming records and completed events that still need an operational decision.</p>
                                     </td>
                                     <?php if ($canManage && $inboundReviewCount > 0): ?>
-                                        <td align="right" class="hide-mobile" style="padding-left:12px;"><a href="<?php echo $inboundUrl; ?>" style="display:inline-block;padding:7px 10px;border:1px solid #d7b36a;border-radius:999px;background:#fff3d8;color:#843600;font-size:10px;font-weight:700;white-space:nowrap;"><?php echo $inboundReviewCount; ?> message<?php echo $inboundReviewCount === 1 ? '' : 's'; ?> awaiting review</a></td>
+                                        <td align="right" class="hide-mobile" style="padding-left:12px;"><a href="<?php echo $inboundUrl; ?>" style="<?php echo $compactPillStyle; ?>border:1px solid #d7b36a;background:#fff3d8;color:#843600;line-height:14px;"><?php echo $inboundReviewCount; ?> message<?php echo $inboundReviewCount === 1 ? '' : 's'; ?> awaiting review</a></td>
                                     <?php endif; ?>
                                 </tr>
                             </table>
@@ -664,7 +666,7 @@ function renderDailyTaskDigestHtml(
                                                         ? $engagement['readiness_issues']
                                                         : dashboardEngagementReadinessIssues($engagement);
                                                     ?>
-                                                    <tr><td style="padding:13px 16px;<?php echo $index + 1 < count($readinessItems) ? 'border-bottom:1px solid #dfe4ec;' : ''; ?>"><a href="<?php echo $readinessUrl; ?>" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;"><?php echo dailyTaskDigestHtmlEscape(dashboardEngagementLabel($engagement)); ?></a><div style="margin-top:7px;"><?php foreach ($issues as $issue): ?><span style="display:inline-block;margin:0 4px 4px 0;padding:4px 7px;border-radius:999px;background:#fff0ee;color:#b42318;font-size:9px;font-weight:700;line-height:1.2;"><?php echo dailyTaskDigestHtmlEscape($issue); ?></span><?php endforeach; ?></div></td></tr>
+                                                    <tr><td style="padding:13px 16px;<?php echo $index + 1 < count($readinessItems) ? 'border-bottom:1px solid #dfe4ec;' : ''; ?>"><a href="<?php echo $readinessUrl; ?>" style="color:#172033;font-size:12px;font-weight:700;line-height:1.35;"><?php echo dailyTaskDigestHtmlEscape(dashboardEngagementLabel($engagement)); ?></a><div style="margin-top:7px;"><?php foreach ($issues as $issue): ?><span style="<?php echo $compactPillStyle; ?>margin:0 4px 4px 0;background:#fff0ee;color:#b42318;"><?php echo dailyTaskDigestHtmlEscape($issue); ?></span><?php endforeach; ?></div></td></tr>
                                                 <?php endforeach; ?>
                                             <?php endif; ?>
                                         </table>

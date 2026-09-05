@@ -988,15 +988,6 @@ kbd {
   font-size: .75rem;
 }
 
-.manual-status-pill {
-  display: inline-flex;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: .67rem;
-  font-weight: 760;
-  white-space: nowrap;
-}
-
 .manual-status-pill.status-open {
   background: var(--status-open-bg) !important;
   color: var(--status-solid-fg);
