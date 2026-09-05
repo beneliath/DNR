@@ -296,6 +296,46 @@ p {
   gap: 1px;
 }
 
+.deployment-notice-banner {
+  position: fixed;
+  z-index: 87;
+  inset: 0 0 auto var(--sidebar-width);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 68px;
+  padding: 10px var(--app-content-padding);
+  border-bottom: 1px solid #991b1b;
+  background: #b91c1c !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-sm);
+  font-size: 0.84rem;
+  text-align: left;
+}
+
+html.dark-mode .deployment-notice-banner {
+  border-bottom-color: #f87171;
+  background: #dc2626 !important;
+}
+
+.deployment-notice-banner[hidden] { display: none !important; }
+.deployment-notice-heading { display: flex; flex-wrap: wrap; gap: 0.4em; font-size: 0.98rem; }
+.deployment-notice-heading strong { color: inherit; }
+[data-deployment-timer] { font-weight: 700; font-variant-numeric: tabular-nums; }
+body.has-app-shell.deployment-notice-active { padding-top: var(--deployment-banner-height); }
+body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: calc(var(--deployment-banner-height) + 68px); }
+.deployment-notice-active .role-preview-banner { top: var(--deployment-banner-height); }
+.deployment-notice-active #calendar-agenda-title { scroll-margin-top: calc(var(--deployment-banner-height) + 80px); }
+.deployment-notice-active.role-preview-active #calendar-agenda-title { scroll-margin-top: calc(var(--deployment-banner-height) + 164px); }
+
+@media (max-width: 860px) {
+  .deployment-notice-banner { inset: 64px 0 auto; padding: 9px 14px; }
+  body.has-app-shell.deployment-notice-active { padding-top: calc(64px + var(--deployment-banner-height)); }
+  body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: calc(148px + var(--deployment-banner-height)); }
+  .deployment-notice-active .role-preview-banner { top: calc(64px + var(--deployment-banner-height)); }
+  .deployment-notice-active .role-preview-return-form button { white-space: normal; }
+}
+
 .role-preview-banner-copy strong {
   color: var(--warning);
   font-size: 0.98rem;

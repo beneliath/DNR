@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 import release_manifest
 import deploy_release_host
+from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
 loader = importlib.machinery.SourceFileLoader('prepare', str(ROOT / 'scripts/prepare_release'))
 spec = importlib.util.spec_from_loader(loader.name, loader)
@@ -73,7 +74,7 @@ class ReleaseWorkflow(unittest.TestCase):
                 return ''
             previous=Path.cwd()
             try:
-                with patch.object(deploy_release_host,'run',side_effect=run), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/missing','https://example.test']), self.assertRaisesRegex(ValueError,'main moved'):
+                with patch.object(deploy_release_host,'run',side_effect=run), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/missing','https://example.test','e'*32]), self.assertRaisesRegex(ValueError,'main moved'):
                     deploy_release_host.main()
                 self.assertFalse(any('merge' in call or 'stop' in call for call in calls))
             finally:
@@ -102,6 +103,12 @@ class DeploymentBackupGate(unittest.TestCase):
                 migrations={'001.sql':hashlib.sha256(b'SELECT 1;').hexdigest()})))
             (root/'mirrors.json').write_text('{}')
             events=[]
+            clock=[1000.0]
+            def sleep(seconds):
+                clock[0] += seconds
+            notice=DeploymentNotice(root, clock=lambda:clock[0], sleep=sleep)
+            notice.start('e'*32)
+            clock[0]=1180.0  # Three minutes of release preparation already elapsed.
             def run(args,**kwargs):
                 events.append(args)
                 if args==['git','branch','--show-current']: return 'main'
@@ -117,6 +124,7 @@ class DeploymentBackupGate(unittest.TestCase):
                 if args[:3]==['sh','scripts/compose_with_provenance.sh','production-ubuntu-proton-mattermost']:
                     self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]
+                    if args[3]=='stop': self.assertGreaterEqual(clock[0],1300.0)
                     if args[3:5]==['run','--rm']: raise ValueError('synthetic migration failure')
                     return ''
                 return ''
@@ -126,10 +134,12 @@ class DeploymentBackupGate(unittest.TestCase):
                 return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True}
             cwd=Path.cwd()
             try:
-                with patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test']), self.assertRaisesRegex(ValueError,'synthetic'):
+                with patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32]), self.assertRaisesRegex(ValueError,'synthetic'):
                     deploy_release_host.main()
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
                 self.assertEqual(record['outcome'],'failed')
+                self.assertEqual(clock[0],1300.0, 'Only the remaining two minutes should be padded')
+                self.assertEqual(notice.read()['phase'],'failed')
                 merge=[i for i,event in enumerate(events) if event[:2]==['git','merge']]
                 backup_index=events.index(['backup'])
                 if backup_fails:

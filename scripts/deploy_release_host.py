@@ -7,9 +7,11 @@ import json
 import os
 from pathlib import Path
 import re
+import signal
 import subprocess
 import sys
 from deployment_backup import create_verified_backup
+from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
 
 
@@ -18,7 +20,7 @@ def run(args, **kwargs):
 
 
 def main():
-    project, expected, manifest_path, backup_password_file, public_url = sys.argv[1:]
+    project, expected, manifest_path, backup_password_file, public_url, notice_id = sys.argv[1:]
     root = Path(project)
     os.chdir(root)
     records = root / '.git/dnr-deploy'
@@ -34,7 +36,12 @@ def main():
         images = release['images']
         if set(images) != {'app', 'ingress', 'bridge', 'database'} or not all(re.fullmatch(r'ghcr\.io/[a-z0-9._/-]+@sha256:[0-9a-f]{64}', image) for image in images.values()):
             raise ValueError('Release images must be immutable GHCR digests')
-        if run(['git', 'branch', '--show-current']) != 'main' or run(['git', 'status', '--porcelain', '--untracked-files=normal']):
+        # The first rollout may publish a notice before the old checkout has its
+        # .gitignore entry. Exclude only these runtime files, not source changes.
+        clean_status = ['git', 'status', '--porcelain', '--untracked-files=normal', '--', '.',
+                        ':!var/deployment/notice.json', ':!var/deployment/notice.lock',
+                        ':!var/deployment/notice.tmp']
+        if run(['git', 'branch', '--show-current']) != 'main' or run(clean_status):
             raise ValueError('s1 must have a clean main checkout')
         previous_commit = run(['git', 'rev-parse', 'HEAD'])
         run(['git', 'fetch', 'origin', 'main'])
@@ -79,6 +86,16 @@ def main():
             temporary.write_text(json.dumps(record, indent=2) + '\n')
             temporary.replace(record_path)
         save('preflight')
+        notice = DeploymentNotice(root)
+        save('awaiting-save-window')
+        # Pulls and all non-disruptive preflight work count toward the window.
+        # Cancellation or interruption here must not stop application writers.
+        try:
+            record['notice'] = notice.wait_and_claim(notice_id, expected)
+        except BaseException as error:
+            record.update(outcome='failed', error=str(error))
+            save('awaiting-save-window')
+            raise
         try:
             compose('stop', 'web', 'geocoder', 'mail-ingest', 'mail-dispatch')
             save('backing-up')
@@ -120,9 +137,15 @@ def main():
             try: compose('stop', 'web', 'geocoder', 'mail-ingest', 'mail-dispatch')
             except subprocess.CalledProcessError: pass
             save(record['phase'])
+            notice.finish(notice_id, 'failed')
             print('Deployment failed; writers remain paused. Recovery record: ' + str(record_path), file=sys.stderr)
             raise
+        notice.finish(notice_id, 'complete')
 
 if __name__ == '__main__':
+    def interrupted(signum, frame):
+        raise RuntimeError('Deployment interrupted by signal ' + str(signum))
+    for signum in (signal.SIGHUP, signal.SIGINT, signal.SIGTERM):
+        signal.signal(signum, interrupted)
     try: main()
-    except (ValueError, OSError, subprocess.CalledProcessError) as error: sys.exit(str(error))
+    except (ValueError, OSError, RuntimeError, subprocess.CalledProcessError) as error: sys.exit(str(error))

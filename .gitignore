@@ -11,3 +11,5 @@
 # Python release tooling caches and candidate release outputs
 __pycache__/
 /release/
+/var/deployment/*
+!/var/deployment/.gitkeep

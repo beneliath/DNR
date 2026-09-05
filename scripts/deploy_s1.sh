@@ -7,6 +7,24 @@ printf '%s\n' "$expected_commit" | grep -Eq '^[0-9a-f]{40}$' || {
 }
 for command_name in git gh ssh scp python3; do command -v "$command_name" >/dev/null; done
 cd "$project_directory"
+# Reuse the notice started before release preparation. Direct invocations start
+# a new notice here and receive the same mandatory five-minute minimum.
+notice_id=$(scripts/deployment_notice.sh start)
+release_directory=''
+cleanup() {
+    exit_status=$?
+    trap - EXIT
+    # Cancel pending notices on preflight failure; never clear active maintenance.
+    if ! scripts/deployment_notice.sh cancel "$notice_id" >/dev/null; then
+        echo 'Deployment notice remains active; check s1 deployment/recovery status.' >&2
+    fi
+    if [ -n "$release_directory" ]; then rm -rf "$release_directory"; fi
+    exit "$exit_status"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 [ "$(git branch --show-current)" = main ] && [ "$(git rev-parse HEAD)" = "$expected_commit" ] || {
     echo 'Deploy the requested final commit from local main.' >&2; exit 1;
 }
@@ -17,7 +35,6 @@ run_id=$(gh run list --commit "$expected_commit" --branch main --event push --wo
 [ -n "$run_id" ] || { echo 'Successful final-main CI, including image qualification, is required.' >&2; exit 1; }
 umask 077
 release_directory=$(mktemp -d)
-trap 'rm -rf "$release_directory"' EXIT HUP INT TERM
 gh run download "$run_id" --name "release-$expected_commit" --dir "$release_directory"
 python3 scripts/release_manifest.py check "$release_directory/manifest.json" --commit "$expected_commit"
 python3 - "$release_directory/manifest.json" "$run_id" <<'PY'
@@ -40,6 +57,6 @@ printf '%s\n' "$public_base_url" | grep -Eq '^https://[A-Za-z0-9.:/_-]+$'
 remote="$s1_user@$s1_host"
 incoming="$s1_project_directory/.git/dnr-deploy/incoming/$expected_commit"
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" "umask 077; mkdir -p '$incoming'"
-scp -q "$release_directory/manifest.json" "$release_directory/mirrors.json" scripts/deploy_release_host.py scripts/deployment_backup.py scripts/release_timestamp.py "$remote:$incoming/"
+scp -q "$release_directory/manifest.json" "$release_directory/mirrors.json" scripts/deploy_release_host.py scripts/deployment_backup.py scripts/deployment_notice.py scripts/release_timestamp.py "$remote:$incoming/"
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" python3 "$incoming/deploy_release_host.py" \
-    "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}"
+    "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}" "$notice_id"

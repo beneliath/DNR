@@ -80,6 +80,7 @@ $development_ingress_guard = $read('docker/development-ingress-entrypoint.sh');
 $apache = $read('docker/apache-security.conf');
 $ingress = $read('docker/apache-ingress.conf');
 $ingress_dockerfile = $read('docker/ingress.Dockerfile');
+preg_match_all('/^COPY[^\n]*\bsrc\/[^\n]*$/m', $ingress_dockerfile, $ingress_source_copies);
 $web_service = substr(
     $compose,
     strpos($compose, "  web:\n"),
@@ -110,7 +111,7 @@ expectBetaReadiness(
         && str_contains($ingress, 'ProxyRequests Off')
         && str_contains($ingress, 'ProxyPass "/" "http://web:80/"')
         && str_contains($ingress_dockerfile, 'a2enmod headers proxy proxy_http')
-        && !str_contains($ingress_dockerfile, 'COPY src/')
+        && $ingress_source_copies[0] === ['COPY src/deployment_status.php src/deployment_notice_helpers.php /var/www/html/']
         && str_contains($compose, 'read_only: true')
         && !str_contains($compose, 'rootpassword')
         && !str_contains($compose, 'dnrpassword')

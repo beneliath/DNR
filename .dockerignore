@@ -5,6 +5,7 @@
 .env
 backups
 secrets
+var/deployment
 vendor
 node_modules
 tmp

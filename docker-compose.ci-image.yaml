@@ -4,6 +4,7 @@ services:
     volumes: !override
       - ./tests:/opt/dnr/tests:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+      - ./var/deployment:/run/dnr/deployment:ro
   geocoder:
     volumes: !override
       - ./tests:/opt/dnr/tests:ro
