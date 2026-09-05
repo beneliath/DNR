@@ -39,12 +39,14 @@
         }
         .engagement-email-marker-control {
             display: inline-flex;
-            flex: 0 0 auto;
+            min-width: 0;
+            max-width: 100%;
             align-items: center;
             gap: 6px;
-            white-space: nowrap;
         }
         .engagement-email-marker code {
+            min-width: 0;
+            overflow-wrap: anywhere;
             display: inline-flex;
             min-height: 40px;
             align-items: center;
@@ -287,12 +289,12 @@
             font-weight: var(--font-weight-bold);
         }
         .financial-status.is-finalized {
-            background: var(--success-bg-light);
-            color: var(--success-color);
+            background: var(--success-subtle);
+            color: var(--success);
         }
         .financial-status.is-open {
-            background: var(--warning-bg-light, #fff3cd);
-            color: var(--warning-color, #664d03);
+            background: var(--warning-subtle);
+            color: var(--warning);
         }
         .financial-status.is-not-applicable {
             background: var(--surface-hover, #e5e7eb);
@@ -347,3 +349,10 @@
                 grid-template-columns: 1fr;
             }
         }
+
+@media (max-width: 760px) {
+    .financial-closeout-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+}

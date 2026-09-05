@@ -440,7 +440,7 @@ html.dark-mode .maplibregl-ctrl-attrib-button {
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 760px) {
   .map-toolbar {
     flex-direction: column;
   }

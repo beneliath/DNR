@@ -305,8 +305,8 @@
 .email-status-pending,
 .email-status-processing,
 .email-status-retry {
-    background: var(--warning-bg-light, #fff3cd);
-    color: var(--warning-color, #664d03);
+    background: var(--warning-subtle);
+    color: var(--warning);
 }
 
 .outbound-message-summary dl {

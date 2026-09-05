@@ -120,7 +120,7 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
 .inquiry-kanban {
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(215px, 1fr);
+    grid-auto-columns: minmax(235px, 1fr);
     grid-template-rows: 1fr;
     gap: .75rem;
     align-items: stretch;
@@ -769,7 +769,7 @@ html body .inquiry-tab-list button[aria-selected="true"] { border-bottom-color: 
     .conversion-review-layout { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 760px) {
     .inquiry-form-grid,
     .inquiry-date-ranges,
     .inquiry-source-fields,
@@ -780,8 +780,18 @@ html body .inquiry-tab-list button[aria-selected="true"] { border-bottom-color: 
     .inquiry-filter-controls { display: grid; grid-template-columns: 1fr 1fr; }
     .inquiry-filter-controls label { min-width: 0; }
     .inquiry-filter-controls label:last-of-type { grid-column: 1 / -1; }
-    .inquiry-kanban { scroll-snap-type: x proximity; }
-    .inquiry-kanban-column { width: min(84vw, 320px); scroll-snap-align: start; }
+    .inquiry-kanban {
+        grid-auto-flow: row;
+        grid-auto-columns: auto;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
+        align-items: start;
+        overflow: visible;
+    }
+    .inquiry-kanban-column {
+        width: 100%;
+        min-width: 0;
+    }
     .inquiry-stage-path { grid-template-columns: repeat(7, minmax(85px, 1fr)); padding-inline: .8rem; }
     .inquiry-detail-list > div,
     .conversion-details-card > dl > div { grid-template-columns: 1fr; gap: .25rem; }

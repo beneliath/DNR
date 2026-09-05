@@ -198,3 +198,13 @@ html body .invite-user-page > .invite-user-layout > .invite-user-form,
         flex-direction: column;
     }
 }
+
+@media (max-width: 760px) {
+    .invite-user-form-heading {
+        flex-direction: column;
+    }
+
+    .invite-user-form-heading > div {
+        min-width: 0;
+    }
+}

@@ -500,9 +500,17 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 
 @media (max-width: 760px) {
     .dashboard-heading,
-    .dashboard-attention-heading {
+    .dashboard-attention-heading,
+    .dashboard-panel-heading {
         align-items: stretch;
         flex-direction: column;
+    }
+
+    .dashboard-panel-heading > a {
+        width: 100%;
+        margin: 0;
+        white-space: normal;
+        text-align: center;
     }
 
     .dashboard-heading .page-heading-actions {

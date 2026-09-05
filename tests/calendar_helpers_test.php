@@ -203,6 +203,16 @@ expectCalendar(
     'Calendar navigation should preserve selected content without accepting invalid month or day values.'
 );
 
+expectCalendar(
+    calendarViewerPageUrl(null, 'everything', '2026-08-26', true)
+        === 'view_calendar.php?day=2026-08-26#calendar-agenda-title'
+        && calendarViewerPageUrl(null, 'my_tasks', '2026-08-26', true)
+        === 'view_calendar.php?show=my_tasks&day=2026-08-26#calendar-agenda-title'
+        && calendarViewerPageUrl(null, 'events', 'invalid', true)
+        === 'view_calendar.php?show=events#event-calendar',
+    'Daily navigation should target the visible date, preserve filters, and reject invalid dates.'
+);
+
 $viewer_events = [
     [
         'id' => 1,
