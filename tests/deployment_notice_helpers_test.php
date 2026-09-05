@@ -21,6 +21,17 @@ try {
     expectDeploymentNotice(!isset($result['notice']['commit'], $result['notice']['backup']), 'Expose only public fields.');
     expectDeploymentNotice(deploymentNoticeStatus($path, 1500)['notice']['phase'] === 'pending', 'Zero is pending, not maintenance.');
     expectDeploymentNotice(deploymentNoticeStatus($path, 2000)['notice'] === null, 'Expired pending notices disappear.');
+    $preparing = array_replace($state, ['phase' => 'preparing', 'not_before' => null, 'countdown_started_at' => null]);
+    file_put_contents($path, json_encode($preparing));
+    expectDeploymentNotice(deploymentNoticeStatus($path, 1800)['notice']['phase'] === 'preparing', 'Preparation has no running deadline.');
+    expectDeploymentNotice(deploymentNoticeStatus($path, 2000)['notice'] === null, 'Abandoned preparation expires.');
+    $ready = array_replace($state, ['countdown_started_at' => 1800, 'not_before' => 2100, 'expires_at' => 3000,
+        'countdown_commit' => 'private-countdown-sha']);
+    file_put_contents($path, json_encode($ready));
+    expectDeploymentNotice(deploymentNoticeStatus($path, 1900)['notice']['not_before'] === 2100, 'Countdown starts after preparation.');
+    expectDeploymentNotice(!isset(deploymentNoticeStatus($path, 1900)['notice']['countdown_commit']), 'Countdown commit remains private.');
+    file_put_contents($path, json_encode(array_replace($ready, ['not_before' => 2099])));
+    expectDeploymentNotice(deploymentNoticeStatus($path, 1900)['notice'] === null, 'Reject a shortened window after long preparation.');
     foreach (['complete', 'cancelled', 'unknown'] as $phase) {
         file_put_contents($path, json_encode(array_replace($state, ['phase' => $phase])));
         expectDeploymentNotice(deploymentNoticeStatus($path, 1100)['notice'] === null, 'Inactive notices are hidden.');

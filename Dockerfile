@@ -12,8 +12,9 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     --ignore-platform-req=ext-mysqli \
     --classmap-authoritative
 
-FROM php:8.4-apache@sha256:5f8050825b2f3de4efb0d81149c86643a9ee9c0a74ed4595ca2ad69ebfeb35fb
+FROM php:8.5-apache@sha256:609de4eac65a03f20975441c9c3f313811d785575f0d02413c630753ab5c5532
 
+# PHP 8.5 includes OPcache in the binary; do not build it as a shared extension.
 # Install the extensions used by the database and PDF export dependencies,
 # then retain only libraries referenced by the compiled modules.
 RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
@@ -22,7 +23,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && apt-get install -y --no-install-recommends \
         libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli opcache \
+    && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli \
     && a2enmod headers proxy proxy_http deflate expires \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \

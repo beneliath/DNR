@@ -2,6 +2,10 @@ version: 2
 updates:
   - package-ecosystem: composer
     directory: /
+    # TCPDF 7 needs a coordinated font/rendering migration (PR #41).
+    ignore:
+      - dependency-name: tecnickcom/tcpdf
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -11,6 +15,10 @@ updates:
         update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /
+    # MapLibre 6 needs ESM/worker delivery and browser validation (PR #71).
+    ignore:
+      - dependency-name: maplibre-gl
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
@@ -38,6 +46,10 @@ updates:
         update-types: [minor, patch]
   - package-ecosystem: docker
     directory: /docker
+    # Database-series upgrades require a reviewed migration and support policy.
+    ignore:
+      - dependency-name: mysql
+        update-types: ["version-update:semver-major"]
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
