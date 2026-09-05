@@ -2,8 +2,11 @@
     'use strict';
 
     function noticePresentation(notice, serverNow) {
-        if (!notice || !['pending', 'deploying', 'failed'].includes(notice.phase)) return null;
-        if (notice.phase === 'pending' && notice.expires_at <= serverNow) return null;
+        if (!notice || !['preparing', 'pending', 'deploying', 'failed'].includes(notice.phase)) return null;
+        if (['preparing', 'pending'].includes(notice.phase) && notice.expires_at <= serverNow) return null;
+        if (notice.phase === 'preparing') {
+            return { title: 'An update is being prepared', detail: 'You can continue working. A five-minute save countdown will appear before maintenance starts.', timer: '' };
+        }
         if (notice.phase === 'deploying') {
             return { title: 'Deployment in progress', detail: 'The system is being updated. Please wait before making changes.', timer: '' };
         }
@@ -63,7 +66,7 @@
             if (!response.ok) throw new Error('Deployment status unavailable');
             const payload = await response.json();
             if (!Number.isFinite(payload.server_now) || !Object.hasOwn(payload, 'notice')) throw new Error('Invalid deployment status');
-            if (payload.notice && (!Number.isFinite(payload.notice.not_before)
+            if (payload.notice && ((payload.notice.phase !== 'preparing' && !Number.isFinite(payload.notice.not_before))
                 || !Number.isFinite(payload.notice.expires_at))) throw new Error('Invalid deployment deadline');
             clockOffset = Date.now() - payload.server_now * 1000;
             notice = payload.notice;

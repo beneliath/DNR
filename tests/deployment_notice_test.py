@@ -28,24 +28,66 @@ class NoticeLifecycle(unittest.TestCase):
         self.sleeps.append(seconds)
         self.now += seconds
 
-    def test_fast_preparation_waits_only_remaining_time(self):
+    def test_fast_preparation_still_gives_a_full_save_window(self):
         self.now += 180
+        self.notice.begin_countdown(self.identifier, self.commit)
         result = self.notice.wait_and_claim(self.identifier, self.commit)
-        self.assertEqual(sum(self.sleeps), 120)
+        self.assertEqual(sum(self.sleeps), 300)
         self.assertEqual(result['phase'], 'deploying')
         self.assertEqual(result['commit'], self.commit)
-        self.assertEqual(self.now, 1300)
+        self.assertEqual(self.now, 1480)
 
-    def test_slow_preparation_and_exact_deadline_do_not_wait(self):
+    def test_long_preparation_has_no_countdown_and_then_gives_five_minutes(self):
+        self.now += 1800
+        self.assertEqual(self.notice.read()['phase'], 'preparing')
+        self.assertIsNone(self.notice.read()['not_before'])
+        with self.assertRaises(ValueError):
+            self.notice.wait_and_claim(self.identifier, self.commit)
+        self.notice.begin_countdown(self.identifier, self.commit)
+        result = self.notice.wait_and_claim(self.identifier, self.commit)
+        self.assertEqual(sum(self.sleeps), 300)
+        self.assertEqual(result['countdown_started_at'], 2800)
+        self.assertEqual(self.now, 3100)
+
+    def test_countdown_retry_waits_only_remaining_time(self):
+        before = self.notice.begin_countdown(self.identifier, self.commit)
+        self.now += 120
+        self.assertEqual(self.notice.start(self.identifier), before)
+        self.assertEqual(self.notice.begin_countdown(self.identifier, self.commit), before)
+        self.notice.wait_and_claim(self.identifier, self.commit)
+        self.assertEqual(sum(self.sleeps), 180)
+
+    def test_exact_deadline_and_late_retry_do_not_add_another_window(self):
+        before = self.notice.begin_countdown(self.identifier, self.commit)
         for elapsed in (300, 480):
             with self.subTest(elapsed=elapsed):
+                self.notice.write(dict(before))
                 self.now = 1000 + elapsed
+                self.notice.begin_countdown(self.identifier, self.commit)
                 self.notice.wait_and_claim(self.identifier, self.commit)
                 self.assertEqual(self.sleeps, [])
-                # Restore the pending fixture for the second independent boundary.
-                state = self.notice.read()
-                state['phase'] = 'pending'
-                self.notice.write(state)
+
+    def test_countdown_is_bound_to_the_qualified_commit(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
+        for action in (self.notice.begin_countdown, self.notice.wait_and_claim):
+            with self.assertRaisesRegex(ValueError, 'different release commit'):
+                action(self.identifier, 'f' * 40)
+
+    def test_legacy_pending_notice_keeps_its_original_deadline(self):
+        state = self.notice.read()
+        state.update(phase='pending', not_before=1300)
+        del state['countdown_started_at']
+        self.notice.write(state)
+        self.now += 180
+        self.notice.begin_countdown(self.identifier, self.commit)
+        self.notice.wait_and_claim(self.identifier, self.commit)
+        self.assertEqual(sum(self.sleeps), 120)
+
+    def test_ready_near_preparation_expiry_still_has_full_save_window(self):
+        self.now += NOTICE_LIFETIME_SECONDS - 60
+        self.notice.begin_countdown(self.identifier, self.commit)
+        self.notice.wait_and_claim(self.identifier, self.commit)
+        self.assertEqual(sum(self.sleeps), 300)
 
     def test_retry_keeps_original_deadline_and_id(self):
         before = self.notice.read()
@@ -58,6 +100,7 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(self.notice.read()['id'], self.identifier)
 
     def test_cancel_during_wait_prevents_maintenance(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
         def cancel(seconds):
             self.sleep(seconds)
             self.notice.cancel(self.identifier)
@@ -67,6 +110,7 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(self.notice.read()['phase'], 'cancelled')
 
     def test_cancellation_cannot_clear_active_or_failed_maintenance(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
         self.now += 300
         self.notice.wait_and_claim(self.identifier, self.commit)
         for phase in ('deploying', 'failed'):
@@ -77,6 +121,7 @@ class NoticeLifecycle(unittest.TestCase):
             self.assertEqual(self.notice.read()['phase'], phase)
 
     def test_success_allows_next_workflow_without_reusing_old_deadline(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
         self.now += 300
         self.notice.wait_and_claim(self.identifier, self.commit)
         self.notice.finish(self.identifier, 'complete')
@@ -84,12 +129,16 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(self.notice.read()['phase'], 'complete')
         self.now += 30
         state = self.notice.start('c' * 32)
-        self.assertEqual(state['not_before'], 1630)
+        self.assertIsNone(state['not_before'])
+        self.assertEqual(state['phase'], 'preparing')
+        self.assertEqual(self.notice.begin_countdown('c' * 32, self.commit)['not_before'], 1630)
 
     def test_missing_mismatched_and_expired_notices_cannot_deploy(self):
         with self.assertRaises(ValueError):
             self.notice.wait_and_claim('d' * 32, self.commit)
         self.now += NOTICE_LIFETIME_SECONDS
+        with self.assertRaisesRegex(ValueError, 'expired'):
+            self.notice.begin_countdown(self.identifier, self.commit)
         with self.assertRaisesRegex(ValueError, 'expired'):
             self.notice.wait_and_claim(self.identifier, self.commit)
         with self.assertRaises(ValueError):
@@ -100,8 +149,10 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(self.sleeps, [])
 
     def test_shortened_window_is_rejected(self):
+        self.now += 1800
+        self.notice.begin_countdown(self.identifier, self.commit)
         state = self.notice.read()
-        state['not_before'] = state['started_at']
+        state['not_before'] = state['countdown_started_at'] + 299
         self.notice.write(state)
         with self.assertRaisesRegex(ValueError, 'save window'):
             self.notice.wait_and_claim(self.identifier, self.commit)
@@ -113,6 +164,7 @@ class NoticeLifecycle(unittest.TestCase):
         self.assertEqual(json.loads(self.notice.path.read_text())['id'], self.identifier)
 
     def test_recovery_resolution_refuses_running_deployment(self):
+        self.notice.begin_countdown(self.identifier, self.commit)
         self.now += 300
         self.notice.wait_and_claim(self.identifier, self.commit)
         lock_path = self.root / '.git/dnr-deploy/deploy.lock'
@@ -160,7 +212,7 @@ class NoticeCommand(unittest.TestCase):
             self.assertEqual(DeploymentNotice(host).read()['phase'], 'cancelled')
             second = command('start')
             self.assertNotEqual(second, first)
-            self.assertEqual(DeploymentNotice(host).read()['phase'], 'pending')
+            self.assertEqual(DeploymentNotice(host).read()['phase'], 'preparing')
 
 
 if __name__ == '__main__':

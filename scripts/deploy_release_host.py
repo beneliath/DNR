@@ -88,9 +88,10 @@ def main():
         save('preflight')
         notice = DeploymentNotice(root)
         save('awaiting-save-window')
-        # Pulls and all non-disruptive preflight work count toward the window.
+        # CI and image downloads finish before starting the five-minute save window.
         # Cancellation or interruption here must not stop application writers.
         try:
+            notice.begin_countdown(notice_id, expected)
             record['notice'] = notice.wait_and_claim(notice_id, expected)
         except BaseException as error:
             record.update(outcome='failed', error=str(error))

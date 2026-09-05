@@ -105,12 +105,16 @@ class DeploymentBackupGate(unittest.TestCase):
             events=[]
             clock=[1000.0]
             def sleep(seconds):
+                self.assertEqual(len([event for event in events if event[:2] == ['docker', 'pull']]), 4,
+                                 'Download all qualified images before the countdown')
                 clock[0] += seconds
             notice=DeploymentNotice(root, clock=lambda:clock[0], sleep=sleep)
             notice.start('e'*32)
             clock[0]=1180.0  # Three minutes of release preparation already elapsed.
             def run(args,**kwargs):
                 events.append(args)
+                if args[:2] == ['docker', 'pull']:
+                    self.assertEqual(notice.read()['phase'], 'preparing')
                 if args==['git','branch','--show-current']: return 'main'
                 if args[:2]==['git','status']: return ''
                 if args==['git','rev-parse','HEAD']: return previous
@@ -124,7 +128,7 @@ class DeploymentBackupGate(unittest.TestCase):
                 if args[:3]==['sh','scripts/compose_with_provenance.sh','production-ubuntu-proton-mattermost']:
                     self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]
-                    if args[3]=='stop': self.assertGreaterEqual(clock[0],1300.0)
+                    if args[3]=='stop': self.assertGreaterEqual(clock[0],1480.0)
                     if args[3:5]==['run','--rm']: raise ValueError('synthetic migration failure')
                     return ''
                 return ''
@@ -138,7 +142,7 @@ class DeploymentBackupGate(unittest.TestCase):
                     deploy_release_host.main()
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
                 self.assertEqual(record['outcome'],'failed')
-                self.assertEqual(clock[0],1300.0, 'Only the remaining two minutes should be padded')
+                self.assertEqual(clock[0],1480.0, 'Give a full five-minute window after host preflight')
                 self.assertEqual(notice.read()['phase'],'failed')
                 merge=[i for i,event in enumerate(events) if event[:2]==['git','merge']]
                 backup_index=events.index(['backup'])
