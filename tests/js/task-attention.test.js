@@ -7,6 +7,7 @@ function queueFixture(count, reduced = false) {
     const events = {};
     const timers = new Map();
     let nextTimer = 0;
+    let now = 0;
     const row = () => {
         const classes = new Set();
         return { classes, offsetWidth: 100, classList: {
@@ -21,24 +22,45 @@ function queueFixture(count, reduced = false) {
         addEventListener: (name, callback) => { events[name] = callback; } };
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/task-attention.js'), 'utf8'), {
         document, window: { matchMedia: () => motion,
-            setTimeout: callback => { timers.set(++nextTimer, callback); return nextTimer; },
+            setTimeout: (callback, delay) => { timers.set(++nextTimer, { callback, due: now + delay }); return nextTimer; },
             clearTimeout: id => timers.delete(id) },
     });
     return { document, motion, events, timers,
         active: () => rows.flatMap((item, index) => item.classes.has('task-row-attention-current') ? [index] : []),
-        advance: () => { const [id, callback] = timers.entries().next().value; timers.delete(id); callback(); },
+        advance: milliseconds => {
+            const end = now + milliseconds;
+            while (timers.size) {
+                const [id, next] = Array.from(timers).sort((a, b) => a[1].due - b[1].due || a[0] - b[0])[0];
+                if (next.due > end) break;
+                now = next.due;
+                timers.delete(id);
+                next.callback();
+            }
+            now = end;
+        },
     };
 }
 
-test('eligible rows highlight one at a time in DOM order and wrap', () => {
-    for (const count of [1, 4, 50]) {
+test('successive pulses overlap for the final quarter of each pulse and wrap in DOM order', () => {
+    for (const count of [2, 4, 50]) {
         const fixture = queueFixture(count);
-        for (let step = 0; step < count * 2; step++) {
-            assert.deepEqual(fixture.active(), [step % count]);
-            assert.equal(fixture.timers.size, 1);
-            fixture.advance();
+        assert.deepEqual(fixture.active(), [0]);
+        fixture.advance(1349);
+        assert.deepEqual(fixture.active(), [0]);
+        fixture.advance(1);
+        assert.deepEqual(fixture.active(), [0, 1]);
+        for (let step = 2; step < count * 2; step++) {
+            fixture.advance(1350);
+            assert.deepEqual(fixture.active(), [(step - 1) % count, step % count].sort((a, b) => a - b));
+            assert.equal(fixture.timers.size, 3);
         }
     }
+    const single = queueFixture(1);
+    single.advance(900);
+    assert.deepEqual(single.active(), [0]);
+    single.advance(900);
+    assert.deepEqual(single.active(), [0]);
+    assert.equal(single.timers.size, 2);
 });
 
 test('reduced motion and hidden pages stop the cascade without accumulating timers', () => {
@@ -55,6 +77,6 @@ test('reduced motion and hidden pages stop the cascade without accumulating time
     fixture.document.hidden = false;
     fixture.events.visibilitychange();
     assert.deepEqual(fixture.active(), [0]);
-    assert.equal(fixture.timers.size, 1);
+    assert.equal(fixture.timers.size, 2);
     assert.equal(queueFixture(0).timers.size, 0);
 });

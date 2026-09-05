@@ -6,21 +6,31 @@
     if (!rows.length) return;
     const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
     const stepDuration = 1800;
+    const stagger = rows.length > 1 ? stepDuration * 0.75 : stepDuration;
+    const pulseTimers = new Map();
     table.style.setProperty('--task-attention-step-duration', `${stepDuration}ms`);
     let current = -1;
     let timer;
 
     function advance() {
-        if (current >= 0) rows[current].classList.remove('task-row-attention-current');
         current = (current + 1) % rows.length;
+        const row = rows[current];
+        window.clearTimeout(pulseTimers.get(row));
+        row.classList.remove('task-row-attention-current');
         // Restart the CSS animation when only one overdue row is present.
-        void rows[current].offsetWidth;
-        rows[current].classList.add('task-row-attention-current');
-        timer = window.setTimeout(advance, stepDuration);
+        void row.offsetWidth;
+        row.classList.add('task-row-attention-current');
+        pulseTimers.set(row, window.setTimeout(() => {
+            row.classList.remove('task-row-attention-current');
+            pulseTimers.delete(row);
+        }, stepDuration));
+        timer = window.setTimeout(advance, stagger);
     }
 
     function synchronize() {
         window.clearTimeout(timer);
+        pulseTimers.forEach(pulseTimer => window.clearTimeout(pulseTimer));
+        pulseTimers.clear();
         rows.forEach(row => row.classList.remove('task-row-attention-current'));
         current = -1;
         const animate = !motion.matches && !document.hidden;

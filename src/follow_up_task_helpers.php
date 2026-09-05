@@ -941,6 +941,28 @@ function followUpTaskDueState($due_date, $today = null)
     return ['key' => 'upcoming', 'label' => 'Due ' . $due_date];
 }
 
+function followUpTaskDuePresentation($due_date, $status, $today = null)
+{
+    $today = $today ?: applicationBusinessDate();
+    if ($due_date === null || trim((string) $due_date) === '') {
+        return ['date_label' => 'No due date', 'detail' => '', 'days_overdue' => 0];
+    }
+    $date = new DateTimeImmutable((string) $due_date, applicationTimezone());
+    $business_day = new DateTimeImmutable($today, applicationTimezone());
+    $days_overdue = $date < $business_day ? (int) $date->diff($business_day)->days : 0;
+    $active = in_array($status, followUpTaskActiveStatuses(), true);
+    $detail = !$active
+        ? (followUpTaskStatuses()[$status] ?? '')
+        : ($days_overdue > 0
+            ? $days_overdue . ' day' . ($days_overdue === 1 ? '' : 's') . ' overdue'
+            : ($due_date === $today ? 'Due today' : 'Upcoming'));
+    return [
+        'date_label' => $date->format($date->format('Y') === $business_day->format('Y') ? 'M j' : 'M j, Y'),
+        'detail' => $detail,
+        'days_overdue' => $active ? $days_overdue : 0,
+    ];
+}
+
 function standardEventTaskDueAnchors()
 {
     return [
