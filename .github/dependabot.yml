@@ -7,6 +7,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: npm
     directory: /
@@ -15,6 +16,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: gomod
     directory: /mattermost-plugin
@@ -23,6 +25,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: docker
     directory: /
@@ -31,6 +34,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: docker
     directory: /docker
@@ -39,6 +43,7 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
   - package-ecosystem: github-actions
     directory: /
@@ -47,4 +52,5 @@ updates:
     open-pull-requests-limit: 5
     groups:
       routine-updates:
+        patterns: ["*"]
         update-types: [minor, patch]
