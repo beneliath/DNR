@@ -224,8 +224,6 @@ jobs:
         run: |
           export DNR_MIGRATION_TEST_CONTAINER=$(docker compose ps -q db)
           export DNR_MIGRATION_TEST_PASSWORD=$(cat secrets/mysql_root_password)
-          docker exec "$DNR_MIGRATION_TEST_CONTAINER" mkdir -p /opt/dnr
-          docker cp scripts "$DNR_MIGRATION_TEST_CONTAINER:/opt/dnr/bin"
           python3 tests/migration_concurrency_test.py
       - name: Exercise HTTP boundaries
         run: |

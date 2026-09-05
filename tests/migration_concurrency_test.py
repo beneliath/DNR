@@ -22,20 +22,22 @@ class MigrationConcurrency(unittest.TestCase):
         self.command = ['docker','exec','-e','MYSQL_ROOT_PASSWORD='+os.environ['DNR_MIGRATION_TEST_PASSWORD'],
             '-e','MYSQL_DATABASE='+self.db,'-e','MYSQL_USER=dnruser',
             '-e','DNR_MIGRATION_DIRECTORY='+self.runtime,'-e','DNR_PRIVILEGE_SCRIPT='+self.runtime+'/grants.sh',
-            self.container,'sh','/opt/dnr/bin/migrate.sh']
+            self.container,'sh',os.getenv('DNR_MIGRATION_TEST_SCRIPT','/opt/dnr/bin/migrate')]
     def sql(self, value):
         return subprocess.check_output(self.prefix + ['mysql','-uroot','-Nse',value], text=True).strip()
     def write(self, name, value):
         subprocess.run(['docker','exec','-i',self.container,'sh','-c','cat > "$1"','fixture',self.runtime+'/'+name], input=value, text=True, check=True)
-    def waitApplying(self):
+    def waitApplying(self, process):
         for _ in range(60):
+            if process.poll() is not None:
+                self.fail('Migrator exited before entering its body: ' + process.communicate()[0])
             count=self.sql("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='"+self.db+"' AND table_name='marker'")
             if count == '1': return
             time.sleep(.1)
         self.fail('First migration did not enter body')
     def test_second_migrator_waits_and_does_not_repeat_ddl(self):
         first = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        self.waitApplying()
+        self.waitApplying(first)
         second = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
         time.sleep(.3)
         self.assertIsNone(second.poll(), 'Second migrator bypassed lock')
@@ -44,7 +46,7 @@ class MigrationConcurrency(unittest.TestCase):
         self.assertEqual(self.sql('SELECT COUNT(*) FROM '+self.db+'.marker'),'1')
     def test_timeout_refuses_body(self):
         first = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        self.waitApplying()
+        self.waitApplying(first)
         timed = self.command.copy(); timed[2:2] = ['-e','DNR_MIGRATION_LOCK_TIMEOUT=0']
         second = subprocess.run(timed, capture_output=True, text=True)
         self.assertNotEqual(second.returncode,0)
@@ -52,7 +54,7 @@ class MigrationConcurrency(unittest.TestCase):
         self.assertEqual(first.wait(timeout=15),0,first.communicate()[0])
     def test_connection_loss_stops_and_blocks_retry(self):
         first = subprocess.Popen(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-        self.waitApplying()
+        self.waitApplying(first)
         holder = self.sql("SELECT IS_USED_LOCK('dnr_"+self.db+"_migrations')")
         self.sql('KILL '+holder)
         first.communicate(timeout=15)
