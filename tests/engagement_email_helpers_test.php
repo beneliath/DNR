@@ -49,6 +49,28 @@ expectEngagementEmailHelper(
         && !str_contains($brief, 'PRIVATE COMPENSATION'),
     'the share-safe brief should include public logistics but exclude internal and financial fields.'
 );
+$partialPresentation = [
+    'topic_title' => '',
+    'presentation_date' => null,
+    'presentation_time' => null,
+    'duration_minutes' => null,
+    'speaker_name' => 'Example Speaker',
+];
+$partialBrief = engagementEmailSafeEventBrief($engagement, [$partialPresentation]);
+$partialTemplates = engagementEmailTemplates($engagement, [$partialPresentation]);
+expectEngagementEmailHelper(
+    str_contains($partialBrief, '- Presentation — Example Speaker')
+        && !str_contains($partialBrief, 'minutes')
+        && str_contains($partialTemplates['presentation_schedule']['body'], '- Presentation'),
+    'unfinished presentation details should produce readable email copy without an invented duration.'
+);
+$durationOnlyBrief = engagementEmailSafeEventBrief($engagement, [
+    array_replace($partialPresentation, ['duration_minutes' => 45]),
+]);
+expectEngagementEmailHelper(
+    str_contains($durationOnlyBrief, '- Presentation — 45 minutes — Example Speaker'),
+    'a known duration without a date or time should remain readable in the event brief.'
+);
 
 $mattermostBody = mattermostEmailBodyWithContext(
     'Approved message.',

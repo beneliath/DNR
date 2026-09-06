@@ -142,18 +142,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $presentation_id = (int) $selected_presentation['id'];
                 $submitted_date = $_POST['presentation_dates'][$presentation_id] ?? $selected_presentation['presentation_date'];
                 $submitted_time = $_POST['presentation_times'][$presentation_id] ?? $selected_presentation['presentation_time'];
-                if (!is_scalar($submitted_date) || !is_scalar($submitted_time)) {
+                if (($submitted_date !== null && !is_scalar($submitted_date))
+                    || ($submitted_time !== null && !is_scalar($submitted_time))
+                ) {
                     throw new InvalidArgumentException('Invalid restored presentation schedule.');
                 }
                 $presentation_date = trim((string) $submitted_date);
+                $presentation_date = $presentation_date === '' ? null : $presentation_date;
                 $presentation_time = normalizePresentationTime((string) $submitted_time);
                 try {
-                    requirePresentationDateWithinEngagement(
-                        $selected_presentation['topic_title'],
-                        $presentation_date,
-                        $locked_engagement['event_start_date'],
-                        $locked_engagement['event_end_date']
-                    );
+                    if ($presentation_date !== null) {
+                        requirePresentationDateWithinEngagement(
+                            $selected_presentation['topic_title'],
+                            $presentation_date,
+                            $locked_engagement['event_start_date'],
+                            $locked_engagement['event_end_date']
+                        );
+                    }
                 } catch (InvalidArgumentException $exception) {
                     throw new InvalidArgumentException(
                         "Presentation '{$selected_presentation['topic_title']}' falls outside the current engagement dates. Edit its date before restoring it."
@@ -300,7 +305,7 @@ if ($engagement_title === '') {
                             <input type="checkbox" name="presentation_ids[]" value="<?php echo (int) $presentation['id']; ?>">
                             <span>Select This Presentation</span>
                         </label>
-                        <strong><?php echo htmlspecialchars($presentation['topic_title']); ?></strong>
+                        <strong><?php echo htmlspecialchars(trim((string) $presentation['topic_title']) ?: 'Presentation'); ?></strong>
                         <?php
                         $presentation_id = (int) $presentation['id'];
                         $restore_date_value = $_POST['presentation_dates'][$presentation_id] ?? $presentation['presentation_date'];
@@ -314,20 +319,22 @@ if ($engagement_title === '') {
                                        name="presentation_dates[<?php echo $presentation_id; ?>]"
                                        min="<?php echo htmlspecialchars($engagement['event_start_date']); ?>"
                                        max="<?php echo htmlspecialchars($engagement['event_end_date']); ?>"
-                                       value="<?php echo htmlspecialchars((string) $restore_date_value); ?>" required>
+                                       value="<?php echo htmlspecialchars((string) $restore_date_value); ?>">
                             </div>
                             <div class="date-field">
                                 <label for="restore-presentation-time-<?php echo $presentation_id; ?>">Presentation time</label>
                                 <input type="text" id="restore-presentation-time-<?php echo $presentation_id; ?>"
                                        name="presentation_times[<?php echo $presentation_id; ?>]"
                                        value="<?php echo htmlspecialchars((string) $restore_time_value); ?>"
-                                       placeholder="09:30 AM" required>
+                                       placeholder="09:30 AM">
                             </div>
                         </div>
                         <?php if ($presentation['speaker_name'] !== ''): ?>
                             <div>Speaker: <?php echo htmlspecialchars($presentation['speaker_name']); ?></div>
                         <?php endif; ?>
-                        <div>Duration: <?php echo (int) ($presentation['duration_minutes'] ?? 60); ?> minutes</div>
+                        <?php if ($presentation['duration_minutes'] !== null): ?>
+                        <div>Duration: <?php echo (int) $presentation['duration_minutes']; ?> minutes</div>
+                        <?php endif; ?>
                         <?php if ($presentation['expected_attendance'] !== null): ?>
                             <div>Expected Attendance: <?php echo (int) $presentation['expected_attendance']; ?></div>
                         <?php endif; ?>

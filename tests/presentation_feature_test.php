@@ -43,6 +43,66 @@ $blank_presentations = normalizeEngagementPresentations(
     'Default Speaker'
 );
 expectPresentationFeature($blank_presentations === [], 'the initial blank presentation row should remain optional.');
+expectPresentationFeature(
+    normalizeEngagementPresentations(
+        [['speaker_name' => 'Default Speaker', 'duration_minutes' => '60']],
+        '2026-08-20',
+        '2026-08-22',
+        'Default Speaker'
+    ) === [],
+    'the untouched default speaker and duration should not create an empty presentation.'
+);
+
+foreach ([
+    ['topic_title' => 'Details to follow'],
+    ['presentation_date' => '2026-08-21'],
+    ['presentation_time' => '09:30 AM'],
+    ['duration_minutes' => '45'],
+    ['speaker_name' => 'Guest Speaker'],
+    ['actual_attendance' => '0'],
+] as $partial_submission) {
+    $partial_submission += ['duration_minutes' => ''];
+    $partial = normalizeEngagementPresentations(
+        [$partial_submission], '2026-08-20', '2026-08-22', 'Default Speaker'
+    );
+    expectPresentationFeature(count($partial) === 1, 'partially entered presentations should be saved.');
+    expectPresentationFeature(
+        $partial[0]['topic_title'] === ($partial_submission['topic_title'] ?? '')
+            && $partial[0]['presentation_date'] === ($partial_submission['presentation_date'] ?? null)
+            && $partial[0]['presentation_time'] === normalizePresentationTime($partial_submission['presentation_time'] ?? '')
+            && $partial[0]['duration_minutes'] === ($partial_submission['duration_minutes'] === '' ? null : 45),
+        'unspecified presentation details should remain blank while entered details are preserved.'
+    );
+    requirePresentationForConfirmedEngagement('confirmed', $partial);
+}
+
+$cleared_presentation = normalizeEngagementPresentations(
+    [['id' => '12', 'duration_minutes' => '']],
+    '2026-08-20', '2026-08-22', 'Default Speaker', true
+);
+expectPresentationFeature(
+    count($cleared_presentation) === 1
+        && $cleared_presentation[0]['id'] === 12
+        && $cleared_presentation[0]['presentation_date'] === null
+        && $cleared_presentation[0]['duration_minutes'] === null,
+    'clearing optional details must preserve the saved presentation identity.'
+);
+expectPresentationFeature(
+    engagementPresentationMatches($cleared_presentation[0], $cleared_presentation[0])
+        && !engagementPresentationMatches(
+            array_replace($cleared_presentation[0], ['duration_minutes' => 60]),
+            $cleared_presentation[0]
+        ),
+    'unchanged blank durations should compare equally, while clearing a known duration is a change.'
+);
+$asset_only_presentation = normalizeEngagementPresentations(
+    [3 => ['duration_minutes' => '']],
+    '2026-08-20', '2026-08-22', 'Default Speaker', false, ['3' => true]
+);
+expectPresentationFeature(
+    count($asset_only_presentation) === 1 && $asset_only_presentation[0]['_form_key'] === '3',
+    'files attached before presentation details are known must retain their presentation row.'
+);
 
 $default_duration_presentation = normalizeEngagementPresentations(
     [[
@@ -85,10 +145,13 @@ expectPresentationFeature(
 );
 
 foreach ([
-    [[['topic_title' => '', 'presentation_date' => '2026-08-21']], 'topic/title'],
+    [[['topic_title' => str_repeat('x', 256)]], '255 characters'],
+    [[['presentation_date' => '2026-02-30']], 'valid date'],
     [[['topic_title' => 'Bad date', 'presentation_date' => '2026-08-23']], 'between'],
-    [[['topic_title' => 'Missing date', 'presentation_time' => '09:30 AM']], 'enter a date'],
-    [[['topic_title' => 'Missing time', 'presentation_date' => '2026-08-21']], 'enter a time'],
+    [[['presentation_time' => '25:00']], 'valid presentation time'],
+    [[['duration_minutes' => '0']], 'between 1 and 1440'],
+    [[['duration_minutes' => '1441']], 'between 1 and 1440'],
+    [[['duration_minutes' => '1.5']], 'between 1 and 1440'],
     [[['topic_title' => 'Bad time', 'presentation_date' => '2026-08-21', 'presentation_time' => '25:00']], 'valid presentation time'],
     [[['topic_title' => 'Bad attendance', 'presentation_date' => '2026-08-21', 'presentation_time' => '09:30 AM', 'expected_attendance' => '0']], 'at least 1'],
     [[['topic_title' => 'Bad duration', 'presentation_date' => '2026-08-21', 'presentation_time' => '09:30 AM', 'duration_minutes' => '0']], 'between 1 and 1440'],
@@ -117,6 +180,7 @@ $presentation_script = file_get_contents(__DIR__ . '/../src/assets/js/presentati
 $restore_presentations = file_get_contents(__DIR__ . '/../src/restore_presentations.php');
 $presentation_migration = file_get_contents(__DIR__ . '/../migrations/20260817_add_presentation_archiving.sql');
 $duration_migration = file_get_contents(__DIR__ . '/../migrations/20260830_add_presentation_duration_attendance.sql');
+$optional_duration_migration = file_get_contents(__DIR__ . '/../migrations/20260906_optional_presentation_duration.sql');
 $calendar_source = file_get_contents(__DIR__ . '/../src/calendar.php');
 $view_source = file_get_contents(__DIR__ . '/../src/view_engagement.php');
 $pdf_source = file_get_contents(__DIR__ . '/../src/download_engagement_pdf.php');
@@ -144,26 +208,28 @@ expectPresentationFeature(
 expectPresentationFeature(
     str_contains($presentation_template, '>Add Presentation</button>')
         && str_contains($presentation_template, 'name="presentations[')
-        && substr_count($presentation_template, '<span class="required">*</span>') >= 3,
-    'the shared form should render presentation inputs, required markers, and an add button.'
+        && !str_contains($presentation_template, '<span class="required">*</span>')
+        && !str_contains($presentation_script, '<span class="required">*</span>'),
+    'existing and added presentation fields should be displayed as optional.'
 );
 expectPresentationFeature(
     str_contains($presentation_template, '[duration_minutes]')
         && str_contains($presentation_template, '[actual_attendance]')
         && str_contains($presentation_script, 'validWholeNumber(durationInput.value, 1, 1440)')
         && str_contains($duration_migration, 'duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 60')
+        && str_contains($optional_duration_migration, 'MODIFY COLUMN duration_minutes SMALLINT UNSIGNED NULL DEFAULT 60')
         && str_contains($duration_migration, 'actual_attendance INT NULL'),
     'presentation duration and actual attendance should be captured and constrained throughout the form and schema.'
 );
 expectPresentationFeature(
-    str_contains($presentation_script, 'confirmedOption.disabled = !hasCompletePresentation()')
-        && str_contains($presentation_script, 'status.value === "confirmed" && !hasCompletePresentation()')
+    str_contains($presentation_script, 'confirmedOption.disabled = !hasPresentation()')
+        && str_contains($presentation_script, 'status.value === "confirmed" && !hasPresentation()')
         && !str_contains($presentation_template, 'data-require-presentation-on-save')
         && !str_contains($presentation_script, 'requiresPresentationOnSave')
-        && str_contains($presentation_script, 'Enter a date for this presentation.')
-        && str_contains($presentation_script, 'Enter a time for this presentation.')
+        && !str_contains($presentation_script, 'Enter a date for this presentation.')
+        && !str_contains($presentation_script, 'Enter a time for this presentation.')
         && str_contains($presentation_script, 'for (var existingEntry of entries)')
-        && str_contains($presentation_script, 'validatePresentationEntry(existingEntry, startInput, endInput, true)')
+        && str_contains($presentation_script, 'validatePresentationEntry(existingEntry, startInput, endInput)')
         && str_contains($presentation_script, 'function compact24HourTime(time)')
         && str_contains($presentation_script, 'compactValue.charAt(0) !== "0"')
         && str_contains($presentation_script, 'parseInt(compactValue, 10) < 1300')

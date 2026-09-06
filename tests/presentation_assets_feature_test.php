@@ -196,22 +196,22 @@ try {
     unlink($truncated_pdf_path);
 }
 
-try {
-    normalizeEngagementPresentations(
-        [7 => ['topic_title' => '', 'speaker_name' => 'Default Speaker']],
-        '2026-08-20',
-        '2026-08-22',
-        'Default Speaker',
-        false,
-        ['7' => true]
-    );
-    expectPresentationAssetFeature(false, 'an upload-only blank presentation should require core fields.');
-} catch (InvalidArgumentException $exception) {
-    expectPresentationAssetFeature(
-        str_contains($exception->getMessage(), 'topic/title'),
-        'an upload-only presentation should explain its missing topic/title.'
-    );
-}
+$upload_only_presentations = normalizeEngagementPresentations(
+    [7 => ['topic_title' => '', 'speaker_name' => 'Default Speaker']],
+    '2026-08-20',
+    '2026-08-22',
+    'Default Speaker',
+    false,
+    ['7' => true]
+);
+expectPresentationAssetFeature(
+    count($upload_only_presentations) === 1
+        && $upload_only_presentations[0]['_form_key'] === '7'
+        && $upload_only_presentations[0]['topic_title'] === ''
+        && $upload_only_presentations[0]['presentation_date'] === null
+        && $upload_only_presentations[0]['presentation_time'] === null,
+    'an upload-only presentation should be retained so details can be filled in later.'
+);
 
 expectPresentationAssetFeature(
     str_contains($presentation_helper, 'applyPresentationAssetChanges')

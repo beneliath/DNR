@@ -892,7 +892,7 @@
     }
 
     function initializeInquiryTabs() {
-        document.querySelectorAll('[data-inquiry-tabs]').forEach(function (group) {
+        document.querySelectorAll('[data-inquiry-tabs], [data-record-tabs]').forEach(function (group) {
             const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
             const panels = tabs.map(function (tab) {
                 return document.getElementById(tab.getAttribute('aria-controls') || '');
@@ -923,13 +923,38 @@
                 });
             });
 
-            const requestedPanel = panels.findIndex(function (panel) {
-                return window.location.hash !== '' && '#' + panel.id === window.location.hash;
-            });
+            const hashTarget = function (hash) {
+                let id = hash.slice(1);
+                if (!id) return null;
+                try { id = decodeURIComponent(id); } catch (error) { /* Keep literal malformed fragments. */ }
+                return document.getElementById(id);
+            };
+            const panelForTarget = function (target) {
+                return target ? panels.findIndex(function (panel) {
+                    return panel === target || panel.contains(target);
+                }) : -1;
+            };
+            const requestedPanel = panelForTarget(hashTarget(window.location.hash));
             const selectedTab = tabs.findIndex(function (tab) {
                 return tab.getAttribute('aria-selected') === 'true';
             });
             activate(requestedPanel >= 0 ? requestedPanel : Math.max(0, selectedTab), false);
+
+            window.addEventListener('hashchange', function () {
+                const target = hashTarget(window.location.hash);
+                const index = panelForTarget(target);
+                if (index < 0) return;
+                activate(index, false);
+                target.scrollIntoView({ block: 'start' });
+            });
+
+            document.addEventListener('click', function (event) {
+                if (event.defaultPrevented || event.button > 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                const link = event.target.closest('a[href^="#"]');
+                if (!link) return;
+                const index = panelForTarget(hashTarget(link.getAttribute('href')));
+                if (index >= 0) activate(index, false);
+            });
 
             const openNoteButton = group.querySelector('[data-inquiry-open-note]');
             const addNote = group.querySelector('.inquiry-add-note');

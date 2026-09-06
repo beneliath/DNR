@@ -235,16 +235,13 @@ foreach (['view_engagement.php', 'view_organization.php', 'view_contact.php'] as
 }
 
 $view_engagement = $read('src/view_engagement.php');
-$chron_log_position = strpos($view_engagement, 'class="detail-group chron-log-section"');
-$engagement_actions_position = strpos($view_engagement, 'class="action-buttons"', $chron_log_position);
-$follow_up_work_position = strpos($view_engagement, "include 'templates/follow_up_task_section.php'", $engagement_actions_position);
 expectFollowUpTaskFeature(
-    $chron_log_position !== false
-        && $engagement_actions_position !== false
-        && $follow_up_work_position !== false
-        && $chron_log_position < $engagement_actions_position
-        && $engagement_actions_position < $follow_up_work_position,
-    'View Engagement should place its navigation and export action row after Chron Log and before Follow-Up Work.'
+    str_contains($view_engagement, 'data-record-tabs')
+        && str_contains($view_engagement, 'aria-controls="engagement-tasks"')
+        && str_contains($view_engagement, 'id="engagement-tasks" role="tabpanel"')
+        && str_contains($view_engagement, '<?php echo $engagement_task_html; ?>')
+        && str_contains($view_engagement, "\$next_task = \$context_tasks[0] ?? null;"),
+    'View Engagement should show existing follow-up controls in Tasks and reuse the first open task as the next action.'
 );
 
 echo "Follow-up task feature tests passed.\n";

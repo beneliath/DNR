@@ -1,4 +1,4 @@
-<section class="form-section engagement-contacts-section"
+<section class="form-section engagement-contacts-section" id="engagement-contact-selector"
          data-engagement-contact-picker
          data-contact-options-url="organization_contacts.php">
     <div class="engagement-contacts-heading">

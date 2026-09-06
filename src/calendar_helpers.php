@@ -671,16 +671,19 @@ function calendarPresentationEventLines(
     $duration_minutes = null
 ) {
     $start = calendarPresentationStart($presentation, $timezone_name);
-    $topic_title = trim((string) ($presentation['topic_title'] ?? ''));
-    if (!$start || $topic_title === '') {
+    $topic_title = trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation';
+    if (!$start) {
         return [];
     }
 
     if ($duration_minutes === null) {
-        $duration_minutes = $presentation['duration_minutes'] ?? 60;
+        $duration_minutes = array_key_exists('duration_minutes', $presentation)
+            ? $presentation['duration_minutes']
+            : 60;
     }
-    $duration_minutes = max(1, (int) $duration_minutes);
-    $end = $start->modify('+' . $duration_minutes . ' minutes');
+    $end = $duration_minutes === null
+        ? null
+        : $start->modify('+' . max(1, (int) $duration_minutes) . ' minutes');
     $utc = new DateTimeZone('UTC');
     $organization = trim((string) ($presentation['organization_name'] ?? 'Unknown organization'));
     $event_title = trim((string) ($presentation['event_title'] ?? ''));
@@ -702,8 +705,10 @@ function calendarPresentationEventLines(
         'SEQUENCE:' . calendarPresentationSequence($updated_timestamp),
         'SUMMARY:' . calendarEscapeText($summary),
         'DTSTART:' . $start->setTimezone($utc)->format('Ymd\THis\Z'),
-        'DTEND:' . $end->setTimezone($utc)->format('Ymd\THis\Z'),
     ];
+    if ($end !== null) {
+        $lines[] = 'DTEND:' . $end->setTimezone($utc)->format('Ymd\THis\Z');
+    }
 
     $location = calendarLocation($presentation);
     if ($location !== '') {

@@ -2098,6 +2098,77 @@ html body .container > [data-chron-form] + .chron-log-section {
   border-top: 1px solid var(--border);
 }
 
+/* Compact Chron controls on record views share the existing action icons. */
+html body :is(.container, .view-container) .chron-view-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+html body .chron-view-actions > form {
+  display: flex;
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.chron-view-actions > a {
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+
+html body .chron-view-editor {
+  display: grid;
+  min-width: 0;
+  gap: 10px;
+  margin: 12px 0 0;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-subtle);
+  box-shadow: none;
+}
+
+.chron-view-editor > label {
+  margin: 0;
+  color: var(--text);
+  font-size: .82rem;
+  font-weight: 700;
+}
+
+.chron-view-editor > textarea {
+  width: 100%;
+  min-width: 0;
+  min-height: 140px;
+  margin: 0;
+  font-size: .875rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  resize: vertical;
+}
+
+.chron-view-editor-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chron-view-editor-actions > :is(a, button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  text-decoration: none;
+}
+
 .chron-empty-state {
   margin: 0;
   padding: 22px;
@@ -3454,6 +3525,13 @@ html body .presentation-paste-button:focus-visible {
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+.presentation-qr-actions > :is(.presentation-paste-button, .presentation-file-picker) {
+  margin: 0;
+  min-height: 40px !important;
+  font-size: .875rem;
+  line-height: 1.25;
 }
 
 .presentation-paste-button {

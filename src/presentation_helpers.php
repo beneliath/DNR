@@ -134,10 +134,23 @@ function normalizeEngagementPresentations(
         $expected_attendance_raw = presentationScalarValue($submitted_presentation, 'expected_attendance');
         $actual_attendance_raw = presentationScalarValue($submitted_presentation, 'actual_attendance');
 
+        $presentation_id = null;
+        if ($allow_existing_ids && array_key_exists('id', $submitted_presentation)) {
+            $submitted_id = presentationScalarValue($submitted_presentation, 'id');
+            if ($submitted_id !== '') {
+                $presentation_id = filter_var($submitted_id, FILTER_VALIDATE_INT);
+                if ($presentation_id === false || $presentation_id < 1) {
+                    throw new InvalidArgumentException('Invalid presentation submission.');
+                }
+            }
+        }
+
         $has_nondefault_speaker = $speaker_name !== '' && $speaker_name !== (string) $default_speaker;
-        $has_presentation_content = $topic_title !== ''
+        $has_presentation_content = $presentation_id !== null
+            || $topic_title !== ''
             || $presentation_date !== ''
             || $presentation_time !== ''
+            || ($duration_minutes_raw !== '' && $duration_minutes_raw !== '60')
             || $expected_attendance_raw !== ''
             || $actual_attendance_raw !== ''
             || $has_nondefault_speaker
@@ -147,26 +160,17 @@ function normalizeEngagementPresentations(
             continue;
         }
 
-        if ($topic_title === '') {
-            throw new InvalidArgumentException('Enter a topic/title for each presentation.');
-        }
-
         if (mb_strlen($topic_title, 'UTF-8') > 255) {
             throw new InvalidArgumentException('Presentation topic/title must be 255 characters or fewer.');
         }
 
-        if ($presentation_date === '') {
-            throw new InvalidArgumentException("Enter a date for presentation '{$topic_title}'.");
-        }
-        requirePresentationDateWithinEngagement(
-            $topic_title,
-            $presentation_date,
-            $event_start_date,
-            $event_end_date
-        );
-
-        if ($presentation_time === '') {
-            throw new InvalidArgumentException("Enter a time for presentation '{$topic_title}'.");
+        if ($presentation_date !== '') {
+            requirePresentationDateWithinEngagement(
+                $topic_title,
+                $presentation_date,
+                $event_start_date,
+                $event_end_date
+            );
         }
         $normalized_presentation_time = normalizePresentationTime($presentation_time);
 
@@ -175,7 +179,7 @@ function normalizeEngagementPresentations(
             throw new InvalidArgumentException('Presentation speaker name must be 255 characters or fewer.');
         }
 
-        $duration_minutes = 60;
+        $duration_minutes = array_key_exists('duration_minutes', $submitted_presentation) ? null : 60;
         if ($duration_minutes_raw !== '') {
             $duration_minutes = filter_var($duration_minutes_raw, FILTER_VALIDATE_INT);
             if ($duration_minutes === false || $duration_minutes < 1 || $duration_minutes > 1440) {
@@ -203,22 +207,11 @@ function normalizeEngagementPresentations(
             }
         }
 
-        $presentation_id = null;
-        if ($allow_existing_ids && array_key_exists('id', $submitted_presentation)) {
-            $submitted_id = presentationScalarValue($submitted_presentation, 'id');
-            if ($submitted_id !== '') {
-                $presentation_id = filter_var($submitted_id, FILTER_VALIDATE_INT);
-                if ($presentation_id === false || $presentation_id < 1) {
-                    throw new InvalidArgumentException('Invalid presentation submission.');
-                }
-            }
-        }
-
         $normalized_presentations[] = [
             '_form_key' => (string) $presentation_form_key,
             'id' => $presentation_id,
             'topic_title' => $topic_title,
-            'presentation_date' => $presentation_date,
+            'presentation_date' => $presentation_date !== '' ? $presentation_date : null,
             'presentation_time' => $normalized_presentation_time,
             'speaker_name' => $speaker_name,
             'duration_minutes' => $duration_minutes,
@@ -306,6 +299,8 @@ function fetchArchivedEngagementPresentations(mysqli $conn, $engagement_id)
 
 function engagementPresentationMatches(array $current, array $submitted)
 {
+    $current_duration = array_key_exists('duration_minutes', $current) ? $current['duration_minutes'] : 60;
+    $submitted_duration = array_key_exists('duration_minutes', $submitted) ? $submitted['duration_minutes'] : 60;
     $current_expected_attendance = $current['expected_attendance'] === null
         ? null
         : (int) $current['expected_attendance'];
@@ -317,7 +312,8 @@ function engagementPresentationMatches(array $current, array $submitted)
         && ($current['presentation_date'] ?: null) === $submitted['presentation_date']
         && ($current['presentation_time'] ?: null) === $submitted['presentation_time']
         && (string) $current['speaker_name'] === (string) $submitted['speaker_name']
-        && (int) ($current['duration_minutes'] ?? 60) === (int) ($submitted['duration_minutes'] ?? 60)
+        && ($current_duration === null ? null : (int) $current_duration)
+            === ($submitted_duration === null ? null : (int) $submitted_duration)
         && $current_expected_attendance === $submitted['expected_attendance']
         && $current_actual_attendance === ($submitted['actual_attendance'] ?? null);
 }

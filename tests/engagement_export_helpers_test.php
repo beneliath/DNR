@@ -192,6 +192,20 @@ expectExport(
     str_contains($plain_text, "Duration: 75 minutes\nExpected Attendance: 250\nActual Attendance: 225"),
     'presentation exports should include duration and both attendance figures.'
 );
+$partial_presentation_export = buildEngagementExport($engagement, [], [[
+    'topic_title' => '',
+    'presentation_date' => null,
+    'presentation_time' => null,
+    'duration_minutes' => null,
+    'speaker_name' => 'Jordan Speaker',
+]], []);
+$partial_presentation_text = renderEngagementPlainText($partial_presentation_export);
+expectExport(
+    str_contains($partial_presentation_text, "Presentation\nSpeaker: Jordan Speaker")
+        && !str_contains($partial_presentation_text, 'Duration:')
+        && !str_contains($partial_presentation_text, 'Date and Time:'),
+    'unfinished presentations should export their saved details without inventing a schedule or duration.'
+);
 expectExport(
     str_contains($plain_text, "August 15, 2026 at 11:00 AM CDT - Jordan Admin\nEntry: Newest line\n  Second [line]"),
     'Plain text includes the Chron timestamp, creator, and multiline entry.'

@@ -35,13 +35,13 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     );
 }
 
-foreach (['Topic/Title', 'Date', 'Time'] as $presentation_required_label) {
+foreach (['Topic/Title', 'Date', 'Time', 'Duration (minutes)'] as $presentation_label) {
     expectRequiredLabelStyle(
-        str_contains(
+        !str_contains(
             $presentation_form_source,
-            $presentation_required_label . '<span class="required">*</span></label>'
+            $presentation_label . '<span class="required">*</span></label>'
         ),
-        "Presentation {$presentation_required_label} should use the red required-label marker."
+        "Optional presentation {$presentation_label} should not use the red required-label marker."
     );
 }
 

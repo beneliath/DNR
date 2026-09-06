@@ -99,9 +99,9 @@ expectChronFeature(
     'the restore page should let editor+ users restore one or more entries for one engagement.'
 );
 expectChronFeature(
-    strrpos($view_engagement, 'id="chron-log"')
-        > strrpos($view_engagement, '<div class="detail-label">Location</div>'),
-    'Chron should be the final details section on the engagement view.'
+    str_contains($view_engagement, 'aria-controls="chron-log"')
+        && str_contains($view_engagement, 'id="chron-log" role="tabpanel" aria-labelledby="engagement-activity-tab"'),
+    'Chron entries should appear in the Activity tab and preserve the chron-log anchor.'
 );
 expectChronFeature(
     !str_contains($view_engagement, 'name="chron_q"')
