@@ -160,7 +160,7 @@ expectUserProfile(
         && str_contains($users_page, 'profile_picture.php?id=')
         && str_contains($users_page, 'decodePaginationCursor(')
         && str_contains($users_page, 'LIMIT ?')
-        && str_contains($users_page, 'First Page')
+        && substr_count($users_page, 'renderPagination(') === 2
         && str_contains($picture_endpoint, 'profile_picture_thumbnail_size')
         && str_contains($picture_endpoint, 'profile_picture_sha256 = UNHEX(?)')
         && strpos($picture_endpoint, 'HTTP_IF_NONE_MATCH')

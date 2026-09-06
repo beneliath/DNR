@@ -38,7 +38,9 @@ if ($filters['date_to'] !== '') {
     $parameter_types .= 's';
 }
 
-$map_event_limit = applicationWorkflowSetting('map_max_events');
+$map_default_limit = applicationWorkflowSetting('map_max_events');
+$map_page_sizes = array_values(array_unique(array_filter([20, 50, 100, $map_default_limit], static fn(int $size): bool => $size <= $map_default_limit)));
+$map_event_limit = paginationPageSizePreference('map', $_GET['per_page'] ?? null, $map_default_limit, $map_page_sizes);
 $usable_address_clause = "COALESCE(
     NULLIF(TRIM(e.event_address_line_1), ''),
     NULLIF(TRIM(e.event_address_line_2), ''),
@@ -65,6 +67,7 @@ $map_offset = ($map_page - 1) * $map_event_limit;
 $map_context = array_intersect_key($filters, array_flip(['lifecycle', 'status', 'date_from', 'date_to']));
 $map_context['location'] = $location_filter;
 $map_context['page'] = $map_page;
+$map_context['per_page'] = $map_event_limit;
 $map_return = 'map.php?' . http_build_query($map_context);
 $can_edit_map = in_array((string) ($_SESSION['role'] ?? ''), ['admin', 'editor'], true);
 $engagement_sql = "SELECT
@@ -225,6 +228,7 @@ $map_payload = [
     <?php endforeach; ?>
 
     <form method="get" action="map.php" class="map-filters" aria-label="Map filters">
+        <input type="hidden" name="per_page" value="<?php echo $map_event_limit; ?>">
         <div class="map-filter-field map-lifecycle-filter">
             <label for="map-lifecycle">Lifecycle</label>
             <select name="lifecycle" id="map-lifecycle">
@@ -265,6 +269,7 @@ $map_payload = [
         </div>
     </form>
 
+    <?php renderPagination($map_total, $map_page, $map_event_limit, 'map.php?' . http_build_query($map_context), 'engagements', 'Map pages', 'page', 'per_page', $map_page_sizes); ?>
     <section class="map-shell" aria-labelledby="map-region-title">
         <div class="map-toolbar">
             <div>
@@ -318,10 +323,7 @@ $map_payload = [
         </ul>
         <p id="map-list-empty"<?php echo $map_events !== [] ? ' hidden' : ''; ?> role="status"><?php echo $map_events === [] ? htmlspecialchars($empty_description, ENT_QUOTES, 'UTF-8') : 'No engagements match this location view'; ?></p>
         <p id="map-retry-feedback" class="map-feedback" role="status" aria-live="polite"></p>
-        <nav class="map-pagination" aria-label="Map pages">
-        <?php if ($map_page > 1): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['page' => $map_page - 1])), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-        <?php if ($map_page < $map_pages): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['page' => $map_page + 1])), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
-        </nav>
+        <?php renderPagination($map_total, $map_page, $map_event_limit, 'map.php?' . http_build_query($map_context), 'engagements', 'Map pages', 'page', 'per_page', $map_page_sizes); ?>
     </section>
 </main>
 

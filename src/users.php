@@ -35,7 +35,7 @@ $current_user_id = (int) $_SESSION['user_id'];
 generateCsrfToken();
 releaseApplicationSessionLock();
 
-$page_size = 50;
+$page_size = paginationPageSizePreference('users', $_GET['per_page'] ?? null, 50);
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['username', 'id']
@@ -47,12 +47,15 @@ if (is_array($cursor)
     && is_string($cursor['username'])
     && filter_var($cursor['id'], FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) !== false
 ) {
-    $cursor_filter = 'WHERE (username, id) > (?, ?)';
+    $cursor_filter = ' AND (username, id) > (?, ?)';
     $cursor_values = [(string) $cursor['username'], (int) $cursor['id']];
     $cursor_types = 'si';
 } else {
     $cursor = null;
 }
+$pagination = queryPagination($conn, 'FROM users WHERE 1 = 1', '', [], $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
+$current_page = $pagination['page'];
+$page_offset = $pagination['offset'];
 $users_stmt = $conn->prepare(
     "SELECT id, username, first_name, last_name, phone, email,
             profile_picture_mime, profile_picture_updated_at,
@@ -60,37 +63,16 @@ $users_stmt = $conn->prepare(
             email_verified_at, two_factor_enabled,
             created_at, last_updated_at, last_login_at, must_change_password
      FROM users
-     {$cursor_filter}
      ORDER BY username, id
-     LIMIT ?"
+     LIMIT ? OFFSET ?"
 );
 if (!$users_stmt) {
     abortApplication(503, 'The user list is temporarily unavailable.', ['error' => $conn->error]);
 }
-$query_limit = $page_size + 1;
-$cursor_values[] = $query_limit;
-$cursor_types .= 'i';
-$users_bind = [$cursor_types];
-foreach ($cursor_values as &$cursor_value) {
-    $users_bind[] = &$cursor_value;
-}
-unset($cursor_value);
-$users_stmt->bind_param(...$users_bind);
+$users_stmt->bind_param('ii', $page_size, $page_offset);
 $users_stmt->execute();
 $users = $users_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $users_stmt->close();
-$has_next_page = count($users) > $page_size;
-if ($has_next_page) {
-    array_pop($users);
-}
-$next_cursor = null;
-if ($has_next_page && $users !== []) {
-    $last_user = $users[array_key_last($users)];
-    $next_cursor = encodePaginationCursor([
-        'username' => (string) $last_user['username'],
-        'id' => (int) $last_user['id'],
-    ]);
-}
 ?>
 
 <!DOCTYPE html>
@@ -157,6 +139,7 @@ if ($has_next_page && $users !== []) {
         </div>
     </div>
 
+    <?php renderPagination($pagination['total'], $current_page, $page_size, 'users.php', 'users', 'User pages'); ?>
     <div class="users-list">
         <?php foreach ($users as $user) { ?>
             <?php
@@ -268,16 +251,7 @@ if ($has_next_page && $users !== []) {
             </div>
         <?php } ?>
     </div>
-    <?php if ($cursor !== null || $next_cursor !== null): ?>
-        <nav class="pagination" aria-label="User pages">
-            <?php if ($cursor !== null): ?>
-                <a href="users.php" class="pagination-link">First Page</a>
-            <?php endif; ?>
-            <?php if ($next_cursor !== null): ?>
-                <a href="users.php?cursor=<?php echo rawurlencode($next_cursor); ?>" class="pagination-link">Next</a>
-            <?php endif; ?>
-        </nav>
-    <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, 'users.php', 'users', 'User pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

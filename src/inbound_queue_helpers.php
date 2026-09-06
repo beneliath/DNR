@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /** Fetch a complete, bounded queue page with literal-text search and stable ordering. */
-function fetchInboundMailQueue(mysqli $conn, string $statusFilter, string $queueSearch, string $queueSort, int $queuePage): array
+function fetchInboundMailQueue(mysqli $conn, string $statusFilter, string $queueSearch, string $queueSort, int $queuePage, int $queuePageSize = 25): array
 {
     if (!in_array($statusFilter, ['review', 'pending', 'processing', 'failed', 'processed', 'rejected', 'all'], true)) {
         throw new InvalidArgumentException('Choose a valid inbox status.');
@@ -29,7 +29,7 @@ function fetchInboundMailQueue(mysqli $conn, string $statusFilter, string $queue
     $queueCountStmt->execute();
     $queueTotal = (int) $queueCountStmt->get_result()->fetch_assoc()['total'];
     $queueCountStmt->close();
-    $queuePageSize = 25;
+    $queuePageSize = in_array($queuePageSize, [20, 25, 50, 100], true) ? $queuePageSize : 25;
     $queuePages = max(1, (int) ceil($queueTotal / $queuePageSize));
     $queuePage = min($queuePage, $queuePages);
     $queueOffset = ($queuePage - 1) * $queuePageSize;

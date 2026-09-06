@@ -157,10 +157,7 @@ $ip_filter = filter_var(
     FILTER_VALIDATE_IP
 ) ?: '';
 
-$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
-$page_size = in_array($requested_page_size, $allowed_page_sizes, true)
-    ? $requested_page_size
-    : 20;
+$page_size = paginationPageSizePreference('audit_log', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
 
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
@@ -197,6 +194,9 @@ if ($ip_filter !== '') {
     $filter_types .= 's';
     $filter_values[] = $ip_filter;
 }
+$pagination_where = $where_parts;
+$pagination_types = $filter_types;
+$pagination_values = $filter_values;
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $where_parts[] = '(created_at < ? OR (created_at = ? AND id < ?))';
     $filter_types .= 'ssi';
@@ -207,39 +207,34 @@ if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $cursor = null;
 }
 $where_clause = $where_parts ? ' WHERE ' . implode(' AND ', $where_parts) : '';
-$query_limit = $page_size + 1;
+$query_limit = $page_size;
+$base_where = $pagination_where ? ' WHERE ' . implode(' AND ', $pagination_where) : ' WHERE 1 = 1';
+$legacy_where = $cursor !== null ? ' AND (created_at < ? OR (created_at = ? AND id < ?))' : '';
+$pagination = queryPagination($conn, 'FROM security_audit_log' . $base_where, $pagination_types, $pagination_values, $page_size, $_GET['page'] ?? null, $legacy_where, substr($filter_types, strlen($pagination_types)), array_slice($filter_values, count($pagination_values)));
+$current_page = $pagination['page'];
+$page_offset = $pagination['offset'];
+$where_clause = $base_where;
+$filter_types = $pagination_types;
+$filter_values = $pagination_values;
 
 $entries_stmt = $conn->prepare(
     "SELECT id, actor_username, target_username, event_category, event_type,
             entity_type, entity_id, entity_label, details, ip_address, created_at
      FROM security_audit_log{$where_clause}
      ORDER BY created_at DESC, id DESC
-     LIMIT ?"
+     LIMIT ? OFFSET ?"
 );
 if (!$entries_stmt) {
     abortApplication(503, 'The audit log is temporarily unavailable.', ['error' => $conn->error]);
 }
-$entry_types = $filter_types . 'i';
-$entry_values = array_merge($filter_values, [$query_limit]);
+$entry_types = $filter_types . 'ii';
+$entry_values = array_merge($filter_values, [$query_limit, $page_offset]);
 $entry_bind = [$entry_types];
 foreach ($entry_values as &$entry_value) $entry_bind[] = &$entry_value;
 unset($entry_value);
 $entries_stmt->bind_param(...$entry_bind);
 $entries_stmt->execute();
 $entries = $entries_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$has_older_entries = count($entries) > $page_size;
-if ($has_older_entries) {
-    array_pop($entries);
-}
-$next_cursor = null;
-if ($has_older_entries && $entries !== []) {
-    $last_entry = $entries[array_key_last($entries)];
-    $next_cursor = encodePaginationCursor([
-        'created_at' => (string) $last_entry['created_at'],
-        'id' => (int) $last_entry['id'],
-    ]);
-}
-
 $category_labels = [
     'login' => 'Login',
     'database_change' => 'Database',
@@ -513,6 +508,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         <p class="result-context">Showing matching entries for “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
+    <?php renderPagination($pagination['total'], $current_page, $page_size, auditLogPageUrl(null, $category, $page_size, $search, $from_date, $to_date, $ip_filter), 'entries', 'Audit log pages'); ?>
     <div class="audit-table-wrapper">
         <table class="audit-table data-table">
             <thead>
@@ -588,27 +584,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
         </table>
     </div>
 
-    <?php if ($entries !== [] || $cursor !== null): ?>
-        <nav class="pagination pagination-with-size" aria-label="Audit log pages">
-            <div class="page-size-selector" aria-label="Audit log entries per page">
-                <span class="page-size-label">Rows per page:</span>
-                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl(null, $category, $allowed_page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"
-                       class="filter-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
-                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
-                <?php endforeach; ?>
-            </div>
-            <span class="pagination-status">Showing up to <?php echo $page_size; ?> entries</span>
-            <div class="pagination-actions">
-                <?php if ($cursor !== null): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl(null, $category, $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Newest</a>
-                <?php endif; ?>
-                <?php if ($next_cursor !== null): ?>
-                    <a href="<?php echo htmlspecialchars(auditLogPageUrl($next_cursor, $category, $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>" class="filter-button">Older</a>
-                <?php endif; ?>
-            </div>
-        </nav>
-    <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, auditLogPageUrl(null, $category, $page_size, $search, $from_date, $to_date, $ip_filter), 'entries', 'Audit log pages'); ?>
 
 </main>
 <?php include 'templates/footer.php'; ?>

@@ -75,11 +75,11 @@ if (!empty($contact['contact_birthday'])) {
 }
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 try {
-    $chron_page_size = 20;
+    $chron_page_size = paginationPageSizePreference('view_contact_chron', $_GET['chron_per_page'] ?? null, 20);
     $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
     $chron_page = min(
-        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        (\Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page') ?? 1),
         $chron_total_pages
     );
     $chron_entries = fetchEntityChronLogEntries(

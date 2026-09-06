@@ -31,7 +31,8 @@ $queueInput = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
 $queueSearch = is_scalar($queueInput['q'] ?? null) ? mb_substr(trim((string) $queueInput['q']), 0, 200) : '';
 $queueSort = \Dnr\Http\RequestInput::enum($queueInput, 'sort', ['oldest', 'newest'], $statusFilter === 'review' ? 'oldest' : 'newest');
 $queuePage = max(1, (int) filter_var($queueInput['page'] ?? 1, FILTER_VALIDATE_INT));
-$queueContext = ['status' => $statusFilter, 'q' => $queueSearch, 'sort' => $queueSort, 'page' => $queuePage];
+$queuePageSize = paginationPageSizePreference('inbound_mail', $queueInput['per_page'] ?? null);
+$queueContext = ['status' => $statusFilter, 'q' => $queueSearch, 'sort' => $queueSort, 'page' => $queuePage, 'per_page' => $queuePageSize];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
@@ -128,7 +129,7 @@ while ($countResult && ($row = $countResult->fetch_assoc())) {
 }
 
 
-$queueResult = fetchInboundMailQueue($conn, $statusFilter, $queueSearch, $queueSort, $queuePage);
+$queueResult = fetchInboundMailQueue($conn, $statusFilter, $queueSearch, $queueSort, $queuePage, $queuePageSize);
 $messages = $queueResult['messages'];
 $queueTotal = $queueResult['total'];
 $queuePage = $queueResult['page'];
@@ -209,17 +210,14 @@ $statusLabels = [
     </nav>
 
     <form method="get" action="inbound_mail.php" class="inbound-queue-search">
+        <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
         <div><label for="inbox-search">Search messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Subject, sender, or message content"></div>
         <div><label for="inbox-sort">Order</label><select name="sort" id="inbox-sort"><option value="oldest"<?php echo $queueSort === 'oldest' ? ' selected' : ''; ?>>Oldest first</option><option value="newest"<?php echo $queueSort === 'newest' ? ' selected' : ''; ?>>Newest first</option></select></div>
         <button type="submit" class="button-primary">Search</button>
         <?php if ($queueSearch !== ''): ?><a class="button-secondary" href="inbound_mail.php?status=<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">Clear search</a><?php endif; ?>
     </form>
-    <nav class="inbound-queue-pagination" aria-label="Message pages">
-        <span><?php echo $queueTotal === 0 ? '0 messages' : ($queueOffset + 1) . '–' . min($queueTotal, $queueOffset + $queuePageSize) . ' of ' . $queueTotal . ' messages'; ?> · Page <?php echo $queuePage; ?> of <?php echo $queuePages; ?></span>
-        <?php if ($queuePage > 1): ?><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['page' => $queuePage - 1])), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
-        <?php if ($queuePage < $queuePages): ?><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['page' => $queuePage + 1])), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
-    </nav>
+    <?php renderPagination($queueTotal, $queuePage, $queuePageSize, 'inbound_mail.php?' . http_build_query($queueContext), 'messages', 'Message pages'); ?>
     <div class="inbound-mail-layout">
         <section class="inbound-message-list" aria-label="Inbound messages">
             <?php foreach ($messages as $message): ?>
@@ -270,6 +268,7 @@ $statusLabels = [
                         <input type="hidden" name="q" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="sort" value="<?php echo htmlspecialchars($queueSort, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="page" value="<?php echo $queuePage; ?>">
+                        <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
                                 <input type="hidden" name="action" value="purge">
                                 <button type="submit" class="danger-button">Purge Mail Entry</button>
                             </form>
@@ -324,6 +323,7 @@ $statusLabels = [
                         <input type="hidden" name="q" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="sort" value="<?php echo htmlspecialchars($queueSort, ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="page" value="<?php echo $queuePage; ?>">
+                        <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
                         <fieldset>
                             <legend>Contact Chron Logs</legend>
                             <?php foreach ($selectedRouting['contacts'] as $contact): ?>
@@ -373,6 +373,7 @@ $statusLabels = [
             <?php endif; ?>
         </section>
     </div>
+    <?php renderPagination($queueTotal, $queuePage, $queuePageSize, 'inbound_mail.php?' . http_build_query($queueContext), 'messages', 'Message pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

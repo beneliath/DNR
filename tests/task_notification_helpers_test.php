@@ -194,11 +194,15 @@ expectTaskNotificationHelper(
             'https://moed.example.test/inbound_mail.php?status=review'
         )
         && str_contains($message['html_body'], 'aria-label="ASCII art cat"')
-        && str_contains($message['html_body'], 'Genesis 49:9,10 ... Revelation 5:5')
-        && str_contains($message['html_body'], '<br>Do you see Him?</div>')
+        && str_contains(strip_tags($message['html_body'], '<br>'), 'Genesis 49: 9, 10 ... Revelation 5:5<br>Do you see Him?')
+        && str_contains($message['html_body'], 'appointment, appointed time')
+        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/"')
+        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009"')
+        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005"')
+        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/faq/knowgod.cfm"')
         && str_contains($message['html_body'], 'display:inline-block')
         && str_contains($message['html_body'], 'text-align:left;white-space:pre')
-        && str_contains($message['html_body'], 'opacity:0.5')
+        && substr_count($message['html_body'], 'opacity:0.35;filter:alpha(opacity=35);') === 3
         && str_contains($message['html_body'], 'Call &lt;the&gt; host &amp; confirm')
         && !str_contains($message['html_body'], 'Call <the> host & confirm'),
     'the HTML alternative should mirror the light Dashboard, link its records, escape data, and preserve the exact due-date highlights.'

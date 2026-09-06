@@ -254,11 +254,11 @@ $chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
 unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
 
 try {
-    $chron_page_size = 20;
+    $chron_page_size = paginationPageSizePreference('edit_organization_chron', $_GET['chron_per_page'] ?? null, 20);
     $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
     $chron_page = min(
-        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        (\Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page') ?? 1),
         $chron_total_pages
     );
     $chron_entries = fetchEntityChronLogEntries(

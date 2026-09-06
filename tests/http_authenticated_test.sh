@@ -196,7 +196,24 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.ht
     "$base_url/tasks.php"
 grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
 grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
-grep -q 'href="tasks.php?view=overdue&amp;scope=mine"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=50"' "$temporary_directory/editor-task-reminders.html"
+
+# Each page remembers its own row limit across authenticated visits. Empty
+# searches keep both size selectors and counts, without a one-page navigator.
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
+    "$base_url/contacts.php?per_page=50"
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
+    "$base_url/organizations.php?per_page=100"
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/contact-page-size.html" \
+    "$base_url/contacts.php?q=NoPaginationMatch$fixture_suffix"
+test "$(grep -c 'aria-current="true">50</a>' "$temporary_directory/contact-page-size.html")" -eq 2
+grep -q 'Showing 0 of 0 contacts' "$temporary_directory/contact-page-size.html"
+! grep -q 'class="pagination-bar"' "$temporary_directory/contact-page-size.html"
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/organization-page-size.html" \
+    "$base_url/organizations.php?q=NoPaginationMatch$fixture_suffix"
+test "$(grep -c 'aria-current="true">100</a>' "$temporary_directory/organization-page-size.html")" -eq 2
+grep -q 'Showing 0 of 0 organizations' "$temporary_directory/organization-page-size.html"
+! grep -q 'class="pagination-bar"' "$temporary_directory/organization-page-size.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add.html")

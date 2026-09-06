@@ -58,11 +58,11 @@ try {
 }
 
 try {
-    $chron_page_size = 20;
+    $chron_page_size = paginationPageSizePreference('view_organization_chron', $_GET['chron_per_page'] ?? null, 20);
     $chron_entry_count = countEntityChronLogEntries($conn, 'organization', $org_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
     $chron_page = min(
-        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        (\Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page') ?? 1),
         $chron_total_pages
     );
     $chron_entries = fetchEntityChronLogEntries(
@@ -101,14 +101,22 @@ $event_count_stmt->bind_param('i', $org_id);
 $event_count_stmt->execute();
 $organization_event_count = (int) $event_count_stmt->get_result()->fetch_assoc()['total'];
 $event_count_stmt->close();
-$organization_event_pages = max(1, (int) ceil($organization_event_count / 25));
-$organization_event_page = min($organization_event_pages, max(1, (int) ($_GET['events_page'] ?? 1)));
-$event_offset = ($organization_event_page - 1) * 25;
-$event_stmt = $conn->prepare('SELECT id, event_title, event_start_date, event_end_date, lifecycle_status, confirmation_status, is_deleted FROM engagements WHERE organization_id = ? ORDER BY event_start_date DESC, id DESC LIMIT 25 OFFSET ?');
-$event_stmt->bind_param('ii', $org_id, $event_offset);
+$organization_event_size = paginationPageSizePreference('view_organization_events', $_GET['events_per_page'] ?? null);
+$event_pagination = paginationState($organization_event_count, $organization_event_size, $_GET['events_page'] ?? null);
+$organization_event_pages = $event_pagination['pages'];
+$organization_event_page = $event_pagination['page'];
+$event_offset = $event_pagination['offset'];
+$event_stmt = $conn->prepare('SELECT id, event_title, event_start_date, event_end_date, lifecycle_status, confirmation_status, is_deleted FROM engagements WHERE organization_id = ? ORDER BY event_start_date DESC, id DESC LIMIT ? OFFSET ?');
+$event_stmt->bind_param('iii', $org_id, $organization_event_size, $event_offset);
 $event_stmt->execute();
 $organization_events = $event_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $event_stmt->close();
+$record_pagination_url = recordUrlWithQuery($record_view_url, [
+    'chron_page' => $chron_page,
+    'chron_per_page' => $chron_page_size,
+    'events_page' => $organization_event_page,
+    'events_per_page' => $organization_event_size,
+]);
 $next_event_stmt = $conn->prepare("SELECT id, event_title, event_start_date, event_end_date FROM engagements WHERE organization_id = ? AND is_deleted = 0 AND lifecycle_status = 'active' AND COALESCE(event_end_date, event_start_date) >= ? ORDER BY event_start_date, id LIMIT 1");
 $event_today = applicationBusinessDate();
 $next_event_stmt->bind_param('is', $org_id, $event_today);
@@ -144,7 +152,7 @@ $contact_stmt->close();
 
     <div class="record-related-summary">
         <div><span>Contacts</span><strong><a href="#organization-contacts"><?php echo count($organization_contacts); ?> people</a></strong><?php if ($organization_contacts !== []): ?><a href="view_contact.php?id=<?php echo (int) $organization_contacts[0]['id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-contacts'); ?>"><?php echo htmlspecialchars(trim($organization_contacts[0]['contact_first_name'] . ' ' . $organization_contacts[0]['contact_last_name'])); ?></a><?php endif; ?></div>
-        <div><span>Next engagement</span><?php if ($next_organization_event): ?><strong><a href="view_engagement.php?id=<?php echo (int) $next_organization_event['id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-events'); ?>"><?php echo htmlspecialchars($next_organization_event['event_title'] ?: 'Upcoming engagement'); ?></a></strong><?php echo htmlspecialchars(engagementViewDateRange($next_organization_event['event_start_date'], $next_organization_event['event_end_date'])); ?><?php else: ?><strong>No upcoming engagement</strong><?php endif; ?></div>
+        <div><span>Next engagement</span><?php if ($next_organization_event): ?><strong><a href="view_engagement.php?id=<?php echo (int) $next_organization_event['id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>"><?php echo htmlspecialchars($next_organization_event['event_title'] ?: 'Upcoming engagement'); ?></a></strong><?php echo htmlspecialchars(engagementViewDateRange($next_organization_event['event_start_date'], $next_organization_event['event_end_date'])); ?><?php else: ?><strong>No upcoming engagement</strong><?php endif; ?></div>
         <div><span>Follow-up</span><strong><a href="#organization-tasks">Open tasks</a></strong><?php if ($record_can_add_note): ?><a href="#add-note">Record a conversation</a><?php else: ?><a href="#chron-log">Read activity</a><?php endif; ?></div>
     </div>
     <details class="record-form-section" open><summary>Profile, addresses, and notes</summary>
@@ -231,7 +239,7 @@ $contact_stmt->close();
     <?php
     $chron_tab_id = 'organization-activity-tab';
     $chron_entity_label = 'organization';
-    $chron_view_url = $record_view_url;
+    $chron_view_url = $record_pagination_url;
     $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
     $chron_can_restore = !$is_archived;
     include 'templates/entity_chron_log_view_section.php';
@@ -278,19 +286,20 @@ $contact_stmt->close();
     <section id="organization-events" role="tabpanel" aria-labelledby="organization-events-tab">
         <h2>Engagements <span><?php echo $organization_event_count; ?></span></h2>
         <p>Upcoming and historical engagements, including archived records.</p>
+        <?php renderPagination($organization_event_count, $organization_event_page, $organization_event_size, $record_pagination_url . '#organization-events', 'engagements', 'Organization engagement pages', 'events_page', 'events_per_page'); ?>
         <div class="responsive-table-wrapper"><table class="data-table relationship-events"><thead><tr><th scope="col">Engagement</th><th scope="col">Event dates</th><th scope="col">Lifecycle</th><th scope="col">Confirmation</th></tr></thead><tbody>
         <?php foreach ($organization_events as $event): ?>
-            <tr><td><div class="relationship-event-title"><a href="<?php echo htmlspecialchars(recordUrlWithQuery('view_engagement.php?id=' . $event['id'], ['return_to' => recordUrlWithQuery($record_view_url, ['events_page' => $organization_event_page > 1 ? $organization_event_page : null]) . '#organization-events']), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['event_title'] ?: 'Untitled engagement', ENT_QUOTES, 'UTF-8'); ?></a><?php if ($event['is_deleted']): ?><span class="archive-status">Archived</span><?php endif; ?></div></td><td><?php echo htmlspecialchars(engagementViewDateRange($event['event_start_date'], $event['event_end_date'])); ?></td><td><?php echo htmlspecialchars(engagementLifecycleLabel($event['lifecycle_status'])); ?></td><td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $event['confirmation_status']))); ?></td></tr>
+            <tr><td><div class="relationship-event-title"><a href="<?php echo htmlspecialchars(recordUrlWithQuery('view_engagement.php?id=' . $event['id'], ['return_to' => $record_pagination_url . '#organization-events']), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['event_title'] ?: 'Untitled engagement', ENT_QUOTES, 'UTF-8'); ?></a><?php if ($event['is_deleted']): ?><span class="archive-status">Archived</span><?php endif; ?></div></td><td><?php echo htmlspecialchars(engagementViewDateRange($event['event_start_date'], $event['event_end_date'])); ?></td><td><?php echo htmlspecialchars(engagementLifecycleLabel($event['lifecycle_status'])); ?></td><td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $event['confirmation_status']))); ?></td></tr>
         <?php endforeach; ?>
         <?php if ($organization_events === []): ?><tr><td colspan="4">No engagements recorded</td></tr><?php endif; ?>
         </tbody></table></div>
-        <?php if ($organization_event_pages > 1): ?><nav class="pagination" aria-label="Organization engagement pages"><span>Page <?php echo $organization_event_page; ?> of <?php echo $organization_event_pages; ?></span><div class="pagination-actions"><?php if ($organization_event_page > 1): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery($record_view_url, ['events_page' => $organization_event_page - 1]) . '#organization-events', ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?><?php if ($organization_event_page < $organization_event_pages): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery($record_view_url, ['events_page' => $organization_event_page + 1]) . '#organization-events', ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?></div></nav><?php endif; ?>
+        <?php renderPagination($organization_event_count, $organization_event_page, $organization_event_size, $record_pagination_url . '#organization-events', 'engagements', 'Organization engagement pages', 'events_page', 'events_per_page'); ?>
     </section>
 <div id="organization-tasks" role="tabpanel" aria-labelledby="organization-tasks-tab">    <?php
     $context_task_subject_type = 'organization';
     $context_task_subject_id = $org_id;
     $context_task_subject_active = !$is_archived;
-    $context_task_return_to = recordUrlWithQuery($record_view_url, ['events_page' => $organization_event_page > 1 ? $organization_event_page : null]) . '#follow-up-work';
+    $context_task_return_to = $record_pagination_url . '#follow-up-work';
     include 'templates/follow_up_task_section.php';
     ?>
 
@@ -311,7 +320,7 @@ $contact_stmt->close();
                 <small>Last event giving</small>
                 <strong><?php echo $financial_summary['last_event_giving'] === null ? '—' : formatFinancialAmount($financial_summary['last_event_giving']); ?></strong>
                 <?php if ($financial_summary['last_event_id'] !== null): ?>
-                    <a href="view_engagement.php?id=<?php echo (int) $financial_summary['last_event_id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($financial_summary['last_event_title'] ?: 'Most recent event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                    <a href="view_engagement.php?id=<?php echo (int) $financial_summary['last_event_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($financial_summary['last_event_title'] ?: 'Most recent event'), ENT_QUOTES, 'UTF-8'); ?></a>
                 <?php endif; ?>
             </article>
             <article class="financial-summary-card">
@@ -348,7 +357,7 @@ $contact_stmt->close();
                         <?php foreach ($financial_history as $history_report): ?>
                             <tr>
                                 <td>
-                                    <a href="view_engagement.php?id=<?php echo (int) $history_report['engagement_id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($history_report['event_title'] ?: 'Untitled event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <a href="view_engagement.php?id=<?php echo (int) $history_report['engagement_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($history_report['event_title'] ?: 'Untitled event'), ENT_QUOTES, 'UTF-8'); ?></a>
                                     <?php if (!empty($history_report['is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars((string) $history_report['event_end_date'], ENT_QUOTES, 'UTF-8'); ?></td>

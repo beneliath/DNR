@@ -23,6 +23,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
         <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="<?php echo htmlspecialchars($chron_edit_form_id, ENT_QUOTES, 'UTF-8'); ?>" data-add-chron-entry>Add Chron Log Entry</button>
     </div>
 
+    <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, ($chron_edit_url) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
     <div class="chron-entry-list">
         <?php foreach ($chron_entries as $chron_entry): ?>
             <?php
@@ -83,13 +84,5 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
         <?php endif; ?>
     </div>
 
-    <?php if ($chron_total_pages > 1): ?>
-        <nav class="pagination" aria-label="Chron log pages">
-            <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
-            <div class="pagination-actions">
-                <?php if ($chron_page > 1): ?><a href="<?php echo htmlspecialchars($chron_edit_url . '&chron_page=' . ($chron_page - 1) . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>">Newer</a><?php endif; ?>
-                <?php if ($chron_page < $chron_total_pages): ?><a href="<?php echo htmlspecialchars($chron_edit_url . '&chron_page=' . ($chron_page + 1) . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>">Older</a><?php endif; ?>
-            </div>
-        </nav>
-    <?php endif; ?>
+    <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, ($chron_edit_url) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
 </section>
