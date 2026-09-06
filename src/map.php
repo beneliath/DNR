@@ -38,9 +38,9 @@ if ($filters['date_to'] !== '') {
     $parameter_types .= 's';
 }
 
-$map_default_limit = applicationWorkflowSetting('map_max_events');
-$map_page_sizes = array_values(array_unique(array_filter([20, 50, 100, $map_default_limit], static fn(int $size): bool => $size <= $map_default_limit)));
-$map_event_limit = paginationPageSizePreference('map', $_GET['per_page'] ?? null, $map_default_limit, $map_page_sizes);
+$map_max_limit = applicationWorkflowSetting('map_max_events');
+$map_page_sizes = array_values(array_filter([20, 50, 100], static fn(int $size): bool => $size <= $map_max_limit));
+$map_event_limit = paginationPageSizePreference('map', $_GET['per_page'] ?? null, 20, $map_page_sizes);
 $usable_address_clause = "COALESCE(
     NULLIF(TRIM(e.event_address_line_1), ''),
     NULLIF(TRIM(e.event_address_line_2), ''),
@@ -269,7 +269,6 @@ $map_payload = [
         </div>
     </form>
 
-    <?php renderPagination($map_total, $map_page, $map_event_limit, 'map.php?' . http_build_query($map_context), 'engagements', 'Map pages', 'page', 'per_page', $map_page_sizes); ?>
     <section class="map-shell" aria-labelledby="map-region-title">
         <div class="map-toolbar">
             <div>
@@ -309,6 +308,7 @@ $map_payload = [
             <button type="button" data-location-filter="<?php echo $key; ?>" aria-pressed="false"><?php echo $label; ?> <span data-location-count="<?php echo $key; ?>"><?php echo count(array_filter($map_events, static fn ($event) => $event['locationState'] === $key || ($key === 'not_found' && $event['locationState'] === 'failed'))); ?></span></button>
             <?php endforeach; ?>
         </nav>
+        <?php renderPagination($map_total, $map_page, $map_event_limit, 'map.php?' . http_build_query($map_context), 'engagements', 'Map pages', 'page', 'per_page', $map_page_sizes); ?>
         <ul class="map-location-rows">
             <?php foreach ($map_events as $event): ?>
             <li data-location-id="<?php echo $event['id']; ?>" data-location-state="<?php echo $event['locationState']; ?>">

@@ -35,7 +35,7 @@ $current_user_id = (int) $_SESSION['user_id'];
 generateCsrfToken();
 releaseApplicationSessionLock();
 
-$page_size = paginationPageSizePreference('users', $_GET['per_page'] ?? null, 50);
+$page_size = paginationPageSizePreference('users', $_GET['per_page'] ?? null);
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['username', 'id']

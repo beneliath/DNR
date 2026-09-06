@@ -29,7 +29,7 @@ $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$page_size = paginationPageSizePreference('tasks', $_GET['per_page'] ?? null, 50);
+$page_size = paginationPageSizePreference('tasks_' . $scope, $_GET['per_page'] ?? null);
 $cursor_keys = $view === 'completed'
     ? ['updated_at', 'id']
     : ['due_date', 'priority_rank', 'id'];
@@ -310,7 +310,12 @@ $task_stmt->execute();
 $tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $task_stmt->close();
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
-    return 'tasks.php?' . http_build_query(array_merge($queue_parameters, $overrides));
+    $parameters = array_merge($queue_parameters, $overrides);
+    if ($parameters['scope'] !== $queue_parameters['scope']) {
+        // Let the destination ownership view restore its own saved row count.
+        unset($parameters['per_page']);
+    }
+    return 'tasks.php?' . http_build_query($parameters);
 };
 $subject_filter_record = $has_subject_filter
     ? followUpTaskSubjectRecord($conn, $subject_filter_type, $subject_filter_id)

@@ -893,8 +893,7 @@ optional Organization and primary Contact, preferred and alternate date ranges, 
 details, source, owner, priority, next action, Chron, outbound correspondence, stage history, and
 linked follow-up work. Declining requires a reason and remains reversible until the Inquiry is booked.
 
-Inbound Mail offers **Create Inquiry**, which prefills the source message and preserves it as the
-first Inquiry Chron entry. Inquiry email templates cover the initial response, request for details,
+Create inquiries with **New Inquiry** in the Booking Pipeline. Inquiry email templates cover the initial response, request for details,
 date options, and proposal follow-up. Messages use the existing isolated delivery worker and add a
 signed Inquiry reply marker; matching replies return to the active Inquiry Chron. Delivery history is
 visible on the Inquiry and is also recorded on the selected Contact and Organization when present.

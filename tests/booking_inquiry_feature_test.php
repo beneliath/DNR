@@ -202,7 +202,7 @@ expectBookingInquiryFeature(
         && str_contains($outboundMessage, '$isInquiryMessage = !empty($message[\'booking_inquiry_id\']);')
         && str_contains($outboundMessage, 'compose_inquiry_email.php')
         && str_contains($view, 'outbound_mail.php?id=')
-        && str_contains($inboundReview, 'Create Inquiry')
+        && !str_contains($inboundReview, 'add_inquiry.php')
         && str_contains($inboundReview, 'inquiry_ids[]'),
     'outbound templates and signed replies should preserve correspondence on the inquiry.'
 );
