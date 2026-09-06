@@ -82,6 +82,7 @@ if (!empty($_SESSION['user_id'])) {
 ?>
 
 <header class="app-shell-header">
+    <a class="skip-link" href="#app-content-start" data-skip-link>Skip to main content</a>
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
             <span class="visually-hidden">Open Navigation</span>
@@ -121,52 +122,76 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <div class="app-sidebar" id="app-sidebar">
+    <div class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
+        <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close navigation</button>
         <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
         <nav class="site-navigation" aria-label="Primary">
-            <ul>
-                <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
+            <section class="nav-group" aria-labelledby="nav-work">
+                <h2 class="nav-group-heading" id="nav-work">Work</h2>
+                <ul>
+                    <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
                 </a></li>
-                <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>
-                </a></li>
-                <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
-                </a></li>
-                <li><a href="organizations.php" class="nav-link<?php echo $active_nav === 'organizations' ? ' active' : ''; ?>"<?php echo $active_nav === 'organizations' ? ' aria-current="page"' : ''; ?>>
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 21V6l8-3v18M12 9h8v12M8 8v.01M8 12v.01M8 16v.01M16 13v.01M16 17v.01M2 21h20"/></svg><span>Organizations</span>
-                </a></li>
-                <li><a href="contacts.php" class="nav-link<?php echo $active_nav === 'contacts' ? ' active' : ''; ?>"<?php echo $active_nav === 'contacts' ? ' aria-current="page"' : ''; ?>>
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Contacts</span>
-                </a></li>
-                <li><a href="tasks.php" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
-                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>Work Queue</span>
+                    <li><a href="tasks.php?owner=me" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>My Work</span>
                     <?php if ($nav_reminder_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_reminder_count; ?> work reminders"><?php echo $nav_reminder_count > 99 ? '99+' : $nav_reminder_count; ?></span><?php endif; ?>
                 </a></li>
-                <?php if (in_array($user_role, ['admin', 'editor'], true)) : ?>
+                    <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>
+                </a></li>
+                    <?php if (in_array($user_role, ['admin', 'editor'], true)): ?>
                     <li><a href="inbound_mail.php" class="nav-link<?php echo $active_nav === 'inbound_mail' ? ' active' : ''; ?>"<?php echo $active_nav === 'inbound_mail' ? ' aria-current="page"' : ''; ?>>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 3v4M17 3v4"/></svg><span>Inbound Mail</span>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 3v4M17 3v4"/></svg><span>Inbox</span>
                     </a></li>
-                <?php endif; ?>
-                <li><a href="map.php" class="nav-link<?php echo $active_nav === 'map' ? ' active' : ''; ?>"<?php echo $active_nav === 'map' ? ' aria-current="page"' : ''; ?>>
+                    <?php endif; ?>
+                </ul>
+            </section>
+            <section class="nav-group" aria-labelledby="nav-schedule">
+                <h2 class="nav-group-heading" id="nav-schedule">Schedule</h2>
+                <ul>
+                    <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
+                </a></li>
+                    <li><a href="view_calendar.php" class="nav-link<?php echo $shell_current_page === 'view_calendar.php' ? ' active' : ''; ?>"<?php echo $shell_current_page === 'view_calendar.php' ? ' aria-current="page"' : ''; ?>>
+                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendar</span>
+            </a></li>
+                    <li><a href="map.php" class="nav-link<?php echo $active_nav === 'map' ? ' active' : ''; ?>"<?php echo $active_nav === 'map' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/><circle cx="15" cy="11" r="2"/></svg><span>Map</span>
                 </a></li>
-                <?php if ($user_role === 'admin') : ?>
+                </ul>
+            </section>
+            <section class="nav-group" aria-labelledby="nav-relationships">
+                <h2 class="nav-group-heading" id="nav-relationships">Relationships</h2>
+                <ul>
+                    <li><a href="organizations.php" class="nav-link<?php echo $active_nav === 'organizations' ? ' active' : ''; ?>"<?php echo $active_nav === 'organizations' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 21V6l8-3v18M12 9h8v12M8 8v.01M8 12v.01M8 16v.01M16 13v.01M16 17v.01M2 21h20"/></svg><span>Organizations</span>
+                </a></li>
+                    <li><a href="contacts.php" class="nav-link<?php echo $active_nav === 'contacts' ? ' active' : ''; ?>"<?php echo $active_nav === 'contacts' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Contacts</span>
+                </a></li>
+                </ul>
+            </section>
+            <?php if ($user_role === 'admin'): ?>
+            <section class="nav-group" aria-labelledby="nav-administration">
+                <h2 class="nav-group-heading" id="nav-administration">Administration</h2>
+                <ul>
                     <li><a href="users.php" class="nav-link admin-nav-link<?php echo $active_nav === 'users' ? ' active' : ''; ?>"<?php echo $active_nav === 'users' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span>
                     </a></li>
                     <li><a href="database_maintenance.php" class="nav-link admin-nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
                     </a></li>
-                <?php endif; ?>
-            </ul>
+                </ul>
+            </section>
+            <?php endif; ?>
         </nav>
 
         <?php if ($authenticated_user_role === 'admin'): ?>
+            <details class="role-preview-disclosure">
+            <summary>Preview access</summary>
             <form method="post" action="role_preview.php" class="role-preview-control">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
@@ -181,12 +206,10 @@ if (!empty($_SESSION['user_id'])) {
                 </div>
                 <small id="role-preview-help">menus/access as another role</small>
             </form>
+            </details>
         <?php endif; ?>
 
         <nav class="utility-navigation" aria-label="Account and application">
-            <a href="view_calendar.php" class="nav-link<?php echo $shell_current_page === 'view_calendar.php' ? ' active' : ''; ?>"<?php echo $shell_current_page === 'view_calendar.php' ? ' aria-current="page"' : ''; ?>>
-                <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg><span>Calendar</span>
-            </a>
             <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>
                 <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-4.5A2 2 0 0 1 3 15V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 14h5"/></svg><span>Mattermost</span>
             </a>
@@ -215,8 +238,9 @@ if (!empty($_SESSION['user_id'])) {
             </form>
         </div>
     </div>
-    <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close Navigation"></button>
+    <button type="button" class="sidebar-backdrop" data-nav-backdrop aria-label="Close Navigation" tabindex="-1"></button>
 </header>
+<div id="app-content-start" tabindex="-1"></div>
 <?php renderScript('assets/js/theme.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>

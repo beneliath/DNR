@@ -235,9 +235,7 @@ if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
 
 $byStage = array_fill_keys(array_keys(bookingInquiryStages()), []);
 foreach ($inquiries as $inquiry) {
-    $boardStage = $view === 'active' && $inquiry['stage'] === 'qualified'
-        ? 'awaiting_details'
-        : (string) $inquiry['stage'];
+    $boardStage = (string) $inquiry['stage'];
     $byStage[$boardStage][] = $inquiry;
 }
 $displayCounts = array_map(
@@ -245,7 +243,7 @@ $displayCounts = array_map(
     $byStage
 );
 $displayStages = $view === 'active'
-    ? ['new', 'contacted', 'awaiting_details', 'proposal_sent', 'booked']
+    ? ['new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent', 'booked']
     : ($view === 'booked' ? ['booked'] : ($view === 'declined' ? ['declined'] : array_keys(bookingInquiryStages())));
 $stageIcons = [
     'new' => '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
@@ -284,7 +282,7 @@ $exportQuery = http_build_query(array_filter([
         <label class="inquiry-search-field"><span class="visually-hidden">Search inquiries</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search inquiries, organizations, or contacts"></label>
         <div class="inquiry-filter-controls">
             <label><span class="visually-hidden">Owner</span><select name="owner" aria-label="Owner"><option value="">All</option><option value="mine_or_unassigned"<?php echo $owner === 'mine_or_unassigned' ? ' selected' : ''; ?>>Mine &amp; Unassigned</option><option value="me"<?php echo $owner === 'me' ? ' selected' : ''; ?>>My Inquiries</option><option value="unassigned"<?php echo $owner === 'unassigned' ? ' selected' : ''; ?>>Unassigned</option></select></label>
-            <label><span class="visually-hidden">Target Date</span><select name="timing" aria-label="Target Date"><option value="">Target Date</option><option value="overdue"<?php echo $timing === 'overdue' ? ' selected' : ''; ?>>Overdue</option><option value="today"<?php echo $timing === 'today' ? ' selected' : ''; ?>>Due Today</option><option value="next_7_days"<?php echo $timing === 'next_7_days' ? ' selected' : ''; ?>>Next 7 Days</option><option value="unscheduled"<?php echo $timing === 'unscheduled' ? ' selected' : ''; ?>>No Target Date</option><option value="missing_action"<?php echo $timing === 'missing_action' ? ' selected' : ''; ?>>Missing Next Action</option></select></label>
+            <label><span class="visually-hidden">Next action due</span><select name="timing" aria-label="Next action due"><option value="">Next action due</option><option value="overdue"<?php echo $timing === 'overdue' ? ' selected' : ''; ?>>Overdue</option><option value="today"<?php echo $timing === 'today' ? ' selected' : ''; ?>>Due Today</option><option value="next_7_days"<?php echo $timing === 'next_7_days' ? ' selected' : ''; ?>>Next 7 Days</option><option value="unscheduled"<?php echo $timing === 'unscheduled' ? ' selected' : ''; ?>>No action due date</option><option value="missing_action"<?php echo $timing === 'missing_action' ? ' selected' : ''; ?>>Missing Next Action</option></select></label>
             <label><span class="visually-hidden">Stage</span><select name="view" aria-label="Stage"><option value="active"<?php echo $view === 'active' ? ' selected' : ''; ?>>Stage</option><option value="booked"<?php echo $view === 'booked' ? ' selected' : ''; ?>>Booked</option><option value="declined"<?php echo $view === 'declined' ? ' selected' : ''; ?>>Declined</option><option value="all"<?php echo $view === 'all' ? ' selected' : ''; ?>>All Stages</option></select></label>
             <button type="submit" class="visually-hidden inquiry-filter-submit">Apply Filters</button>
             <?php if ($search !== '' || $owner !== '' || $priority !== '' || $timing !== '' || $view !== 'active'): ?><a href="inquiries.php" class="clear-search">Clear</a><?php endif; ?>
@@ -306,7 +304,7 @@ $exportQuery = http_build_query(array_filter([
                             <p class="inquiry-card-relationship"><?php echo htmlspecialchars((string) (bookingInquiryDisplayLabel($inquiry['organization_name']) ?: 'Organization not identified'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($inquiry['contact_name'])): ?><span><?php echo htmlspecialchars($inquiry['contact_name'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></p>
                             <?php if (!empty($inquiry['preferred_start_date'])): ?><p class="inquiry-card-date"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><?php echo htmlspecialchars(bookingInquiryDateLabel($inquiry), ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
                             <div class="inquiry-card-owner"><span class="inquiry-owner-avatar" aria-hidden="true"><?php echo htmlspecialchars(bookingInquiryInitials($inquiry['owner_username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></span><small><?php echo (int) $inquiry['days_in_stage']; ?>d</small></div>
-                            <footer><span class="inquiry-card-next<?php echo $stage === 'booked' ? '' : $dueClass; ?>"><?php if ($stage === 'booked'): ?>Booked<?php if (!empty($inquiry['converted_at'])): ?> <?php echo htmlspecialchars(bookingInquirySingleDateLabel(substr((string) $inquiry['converted_at'], 0, 10)), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?><?php else: ?>Next: <?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'set next action'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span><span class="inquiry-priority"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']], ENT_QUOTES, 'UTF-8'); ?></span></footer>
+                            <footer><span class="inquiry-card-next<?php echo $stage === 'booked' ? '' : $dueClass; ?>"><?php if ($stage === 'booked'): ?>Booked<?php if (!empty($inquiry['converted_at'])): ?> <?php echo htmlspecialchars(applicationTimestampLabel($inquiry['converted_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?><?php else: ?>Next: <?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'set next action'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span><span class="inquiry-priority"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']], ENT_QUOTES, 'UTF-8'); ?></span></footer>
                             <?php if ((int) $inquiry['open_task_count'] > 0): ?><a class="inquiry-card-task-count" href="tasks.php?view=all&amp;subject_type=inquiry&amp;subject_id=<?php echo (int) $inquiry['id']; ?>"><?php echo (int) $inquiry['open_task_count']; ?> open task<?php echo (int) $inquiry['open_task_count'] === 1 ? '' : 's'; ?></a><?php endif; ?>
                             <?php if ($canManage && $stage !== 'booked'): ?>
                                 <details class="inquiry-card-stage-menu" data-disclosure-popover>

@@ -176,7 +176,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php elseif (isset($token_error)): ?>
         <p class="error"><?php echo htmlspecialchars($token_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php elseif (isset($error)): ?>
-        <p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php echo formErrorSummary($error); ?>
     <?php endif; ?>
 
     <?php if ($recovery): ?>

@@ -109,20 +109,7 @@ final class OrganizationInput
         } else {
             $data['website_url'] = $normalized_url;
         }
-        foreach (['address_line_1', 'city', 'state', 'zipcode', 'country'] as $part) {
-            if ($data['physical_' . $part] === '') {
-                $errors[] = 'A complete physical address is required.';
-                break;
-            }
-        }
-        if (!$data['same_address']) {
-            foreach (['address_line_1', 'city', 'state', 'zipcode', 'country'] as $part) {
-                if ($data['mailing_' . $part] === '') {
-                    $errors[] = 'A complete mailing address is required when it differs from the physical address.';
-                    break;
-                }
-            }
-        }
+        // Relationship intake may precede a venue or mailing address. Validate supplied parts only.
         foreach ([['phone', 'phone_country_code', 'Organization phone'], ['fax', 'fax_country_code', 'Organization fax']] as [$field, $country, $label]) {
             try {
                 $data[$field] = \normalizePhoneNumber($data[$country], $data[$field], $label);

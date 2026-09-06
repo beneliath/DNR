@@ -11,7 +11,7 @@ $inquiry_event_types = \Dnr\Domain\ReferenceData::eventTypes();
 $value = static fn(string $key, string $fallback = ''): string => (string) ($inquiry_form_values[$key] ?? $fallback);
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-<form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form">
+<form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form" data-inquiry-draft-key="<?php echo (int) ($_SESSION['user_id'] ?? 0); ?>:<?php echo !empty($inquiry_id) ? (int) $inquiry_id : 'new'; ?>" data-inquiry-form-submitted="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>">
     <?php echo csrfInput(); ?>
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
@@ -25,6 +25,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
         <div class="inquiry-form-grid">
             <div class="form-group">
                 <label for="inquiry-organization">Organization</label>
+                <label class="visually-hidden" for="inquiry-organization-search">Search organizations</label><input type="search" id="inquiry-organization-search" placeholder="Search organizations" autocomplete="off">
                 <select id="inquiry-organization" name="organization_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_organizations as $organization): ?>
@@ -34,15 +35,18 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             </div>
             <div class="form-group">
                 <label for="inquiry-contact">Primary Contact</label>
+                <label class="visually-hidden" for="inquiry-contact-search">Search compatible contacts</label><input type="search" id="inquiry-contact-search" placeholder="Search compatible contacts" autocomplete="off">
                 <select id="inquiry-contact" name="primary_contact_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_contacts as $contact): ?>
                         <?php $contact_label = trim($contact['contact_last_name'] . ', ' . $contact['contact_first_name']) . (!empty($contact['organization_name']) ? ' · ' . $contact['organization_name'] : ' · Standalone'); ?>
-                        <option value="<?php echo (int) $contact['id']; ?>"<?php echo (int) $value('primary_contact_id') === (int) $contact['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($contact_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option data-organization-id="<?php echo (int) ($contact['organization_id'] ?? 0); ?>" value="<?php echo (int) $contact['id']; ?>"<?php echo (int) $value('primary_contact_id') === (int) $contact['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($contact_label, ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
         </div>
+        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create contact</a></div>
+        <p class="field-help" id="inquiry-relationship-status" role="status">Choose an organization to narrow contacts. Standalone contacts can be selected when no organization is chosen. Creating a related record keeps this inquiry draft.</p>
         <div class="form-group inquiry-request-summary">
             <label for="inquiry-summary">What Is Being Requested?</label>
             <textarea id="inquiry-summary" name="request_summary" rows="8" maxlength="100000" placeholder="Audience, goals, event shape, presentation requests, constraints, and open questions"><?php echo htmlspecialchars($value('request_summary'), ENT_QUOTES, 'UTF-8'); ?></textarea>
@@ -117,7 +121,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             <div class="form-group inquiry-source-detail-field"><label for="inquiry-source-detail">Source Detail</label><input id="inquiry-source-detail" name="source_detail" maxlength="255" value="<?php echo htmlspecialchars($value('source_detail'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Referrer, mailbox, form, or campaign"></div>
         </div>
         <div class="inquiry-next-action-fields">
-            <div class="form-group inquiry-next-action-detail-field"><label for="inquiry-next-action">Next Action</label><input id="inquiry-next-action" name="next_action" maxlength="255" value="<?php echo htmlspecialchars($value('next_action'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call host, request venue details, send proposal…"></div>
+            <div class="form-group inquiry-next-action-detail-field"><label for="inquiry-next-action">Next Action</label><input id="inquiry-next-action" name="next_action" maxlength="255" value="<?php echo htmlspecialchars($value('next_action'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call host, request venue details, send proposal"></div>
             <div class="form-group"><label for="inquiry-next-action-due">Due</label><input type="date" id="inquiry-next-action-due" name="next_action_due_date" value="<?php echo htmlspecialchars($value('next_action_due_date'), ENT_QUOTES, 'UTF-8'); ?>"></div>
         </div>
     </section>
@@ -131,3 +135,5 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
     addressRegionClientData(),
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
 ); ?></script>
+
+<?php renderScript('assets/js/inquiry-workflow.min.js'); ?>

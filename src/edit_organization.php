@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 include 'chron_log_helpers.php';
 startSecureSession();
@@ -15,6 +16,7 @@ if ($user_role !== 'admin' && $user_role !== 'editor') {
 }
 
 $org_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+$record_edit_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, 'organizations.php');
 if ($org_id === null) {
     header("Location: organizations.php");
     exit();
@@ -78,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
             ? $exception->getMessage()
             : 'Unable to update the Chron log. Please try again.';
     }
-    header('Location: edit_organization.php?id=' . $org_id . '#chron-log');
+    header('Location: ' . recordUrlWithQuery('edit_organization.php?id=' . $org_id, ['return_to' => $record_edit_return]) . '#chron-log');
     exit();
 }
 
@@ -205,7 +207,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
             $conn->commit();
             $_SESSION['success_message'] = "Organization updated successfully.";
-            header("Location: view_organization.php?id=$org_id");
+            header('Location: ' . $record_edit_return);
             exit();
         }
         throw new RuntimeException('Unable to update the organization.');
@@ -275,24 +277,23 @@ try {
     ]);
 }
 ?>
+<?php $cancel_url = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, $cancel_url); ?>
 <!DOCTYPE html>
 <html lang="en">
 <?php renderPageHead(applicationPageTitle('Edit Organization'), array (
   'styles' =>
   array (
-    0 => 'assets/css/style.min.css',
-    1 => 'assets/css/modern.min.css',
-    2 => 'assets/css/pages/edit_organization.min.css',
+    'assets/css/style.min.css',
+    'assets/css/modern.min.css',
+    'assets/css/pages/record_workspace.min.css',
+    'assets/css/pages/edit_organization.min.css',
   ),
 )); ?>
 <body class="edit-organization-body">
 <?php include 'templates/header.php'; ?>
 <div class="container edit-organization-page" role="main">
     <?php if (!empty($errorMessages)): ?>
-        <p class="error"><?php echo implode('<br>', array_map(
-            fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'),
-            $errorMessages
-        )); ?></p>
+        <?php echo formErrorSummary($errorMessages); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
@@ -305,73 +306,79 @@ try {
     <div class="page-heading form-page-heading edit-organization-heading"><div><h1>Edit Organization</h1><p class="page-intro">Update organization information and addresses.</p></div></div>
     <form id="organization-edit-form" method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $org_id); ?>" class="organization-form" data-chron-form>
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="organization_version" value="<?php echo htmlspecialchars((string) $organization['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
-            <label class="required">Organization Name</label>
-            <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($organization['organization_name']); ?>">
+            <label class="required" for="organization_name">Organization Name</label>
+            <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($organization['organization_name'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Notes</label>
-            <textarea name="notes" rows="6"><?php echo htmlspecialchars($organization['notes']); ?></textarea>
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="6"><?php echo htmlspecialchars($organization['notes'] ?? ''); ?></textarea>
         </div>
 
         <div class="form-group">
-            <label>Affiliation</label>
-            <input type="text" name="affiliation" value="<?php echo htmlspecialchars($organization['affiliation']); ?>">
+            <label for="affiliation">Affiliation</label>
+            <input type="text" id="affiliation" name="affiliation" value="<?php echo htmlspecialchars($organization['affiliation'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Distinctives</label>
-            <input type="text" name="distinctives" value="<?php echo htmlspecialchars($organization['distinctives']); ?>">
+            <label for="distinctives">Distinctives</label>
+            <input type="text" id="distinctives" name="distinctives" value="<?php echo htmlspecialchars($organization['distinctives'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Website URL</label>
-            <input type="url" name="website_url" value="<?php echo htmlspecialchars($organization['website_url']); ?>">
+            <label for="website_url">Website URL</label>
+            <input type="url" id="website_url" name="website_url" value="<?php echo htmlspecialchars($organization['website_url'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Phone</label>
+            <label for="phone">Phone</label>
             <div class="phone-input-group" data-phone-input-group>
                 <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
-                <input type="tel" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
             </div>
         </div>
 
         <div class="form-group">
-            <label>Fax</label>
+            <label for="fax">Fax</label>
             <div class="phone-input-group" data-phone-input-group>
                 <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
-                <input type="tel" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+                <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
             </div>
         </div>
 
-        <div class="radio-group">
-            <label class="required">Mailing and Physical Address the Same</label>
+        <fieldset class="radio-group">
+            <legend>Mailing and Physical Address the Same</legend>
             <div>
                 <label><input type="radio" name="same_address" value="yes" <?php echo $same_address ? 'checked' : ''; ?>> Yes</label>
                 <label><input type="radio" name="same_address" value="no" <?php echo !$same_address ? 'checked' : ''; ?>> No</label>
             </div>
-        </div>
+        </fieldset>
 
         <div class="address-section" id="physical_address_section">
-            <h3 class="required">Physical Address</h3>
+            <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['physical_address_line_1']); ?>">
+                    <label for="physical_address_line_1">Address line 1</label>
+                    <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['physical_address_line_2']); ?>">
+                    <label for="physical_address_line_2">Address line 2</label>
+                    <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city']); ?>">
+                    <label for="physical_city">City</label>
+                    <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city'] ?? ''); ?>">
                 </div>
-                <div data-address-region-control data-address-region-for="physical" data-region-required="true">
-                    <input type="text" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state']); ?>" data-address-region-input>
+                <div data-address-region-control data-address-region-for="physical" data-region-required="false">
+                    <label for="physical_state">State / province</label>
+                    <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <input type="text" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode']); ?>">
+                    <label for="physical_zipcode">Postal code</label>
+                    <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
                     <?php echo addressCountryPicker(
@@ -383,23 +390,28 @@ try {
             </div>
         </div>
 
-        <div class="address-section" id="mailing_address_section">
+        <div class="address-section" id="mailing_address_section" data-address-optional>
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['mailing_address_line_1']); ?>">
+                    <label for="mailing_address_line_1">Address line 1</label>
+                    <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['mailing_address_line_2']); ?>">
+                    <label for="mailing_address_line_2">Address line 2</label>
+                    <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city']); ?>">
+                    <label for="mailing_city">City</label>
+                    <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city'] ?? ''); ?>">
                 </div>
-                <div data-address-region-control data-address-region-for="mailing" data-region-required="true">
-                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state']); ?>" data-address-region-input>
+                <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
+                    <label for="mailing_state">State / province</label>
+                    <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode']); ?>">
+                    <label for="mailing_zipcode">Postal code</label>
+                    <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
                     <?php echo addressCountryPicker(
@@ -416,7 +428,7 @@ try {
     <?php
     $chron_entity_label = 'organization';
     $chron_edit_form_id = 'organization-edit-form';
-    $chron_edit_url = 'edit_organization.php?id=' . $org_id;
+    $chron_edit_url = recordUrlWithQuery('edit_organization.php?id=' . $org_id, ['return_to' => $record_edit_return]);
     $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=organization&entity_id=' . $org_id;
     include 'templates/entity_chron_log_edit_section.php';
     ?>
@@ -430,6 +442,7 @@ try {
     addressRegionClientData(),
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
 ); ?></script>
+<?php renderScript('assets/js/record-workspace.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

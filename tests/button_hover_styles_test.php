@@ -78,21 +78,22 @@ foreach ($source_paths as $source_path) {
     }
 }
 expectHoverStyle(
-    strpos($modern_stylesheet, '/* Safe actions share one quiet surface treatment across pages and dialogs. */') !== false
+    strpos($modern_stylesheet, '/* Primary actions share one filled treatment across pages and dialogs. */') !== false
         && strpos($modern_stylesheet, 'border: 1px solid var(--border-strong) !important;') !== false
         && strpos($modern_stylesheet, 'background: var(--surface) !important;') !== false
-        && strpos($modern_stylesheet, 'color: var(--text) !important;') !== false,
-    'Safe actions should use the shared outlined surface treatment.'
+        && strpos($modern_stylesheet, 'color: var(--primary-button-fg) !important;') !== false
+        && strpos($modern_stylesheet, 'background: var(--primary) !important;') !== false,
+    'Primary actions should use the shared filled treatment while secondary actions remain outlined.'
 );
 expectHoverStyle(
-    strpos($modern_stylesheet, '.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button') !== false,
+    strpos($modern_stylesheet, '.button-primary, .action-primary, .button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .add-org-button, button.security-button') !== false,
     'Creation, authentication, and security controls should use the same safe-action treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'background: var(--control-hover-bg) !important;') !== false
         && strpos($modern_stylesheet, 'border-color: var(--control-hover-border) !important;') !== false
         && strpos($modern_stylesheet, 'color: var(--control-hover-fg) !important;') !== false,
-    'Safe-action hover and keyboard-focus states should use the pale blue control treatment.'
+    'Secondary-action hover and keyboard-focus states should use the pale blue control treatment.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, 'html body :is(.sort-button, .filter-button):hover') !== false,

@@ -897,3 +897,9 @@ html body .inquiry-tab-list button[aria-selected="true"] { border-bottom-color: 
     .inquiry-title-meta { align-items: flex-start; flex-direction: column; }
     .conversion-stepper li strong { display: none; }
 }
+
+.inquiry-kanban-columns-6 { grid-template-columns: repeat(6, minmax(230px, 1fr)); overflow-x: auto; padding-bottom: .75rem; }
+.inquiry-related-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: .5rem; }
+.conversion-next-action { display: grid; gap: .75rem; padding: 1rem; margin-block: 1rem; border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
+.conversion-next-action label { display: flex; align-items: center; gap: .5rem; }
+@media (max-width: 680px) { .inquiry-kanban-columns-6 { grid-template-columns: minmax(0,1fr); overflow: visible; } }

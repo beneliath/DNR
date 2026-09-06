@@ -1,5 +1,7 @@
 (function () {
     const digestSchedule = document.querySelector('[data-task-digest-schedule]');
+    const digestEnabled = document.querySelector('[data-task-digest-enabled]');
+    const digestPaused = document.querySelector('[data-task-digest-paused]');
     if (digestSchedule) {
         const dayInputs = Array.from(
             digestSchedule.querySelectorAll('input[name="task_digest_days[]"]')
@@ -15,10 +17,16 @@
         }
 
         function updateDigestDayControls() {
+            const enabled = Boolean(digestEnabled && digestEnabled.checked && !digestEnabled.disabled);
+            digestSchedule.hidden = !enabled;
+            if (digestPaused) digestPaused.hidden = enabled;
+            digestSchedule.querySelectorAll('input, button, fieldset').forEach(function (control) {
+                control.disabled = !enabled;
+            });
             const selectedMask = selectedDaysMask();
             dayInputs.forEach(function (dayInput, index) {
                 dayInput.setCustomValidity(
-                    index === 0 && selectedMask === 0
+                    enabled && index === 0 && selectedMask === 0
                         ? 'Choose at least one daily work digest delivery day.'
                         : ''
                 );
@@ -34,6 +42,7 @@
         dayInputs.forEach(function (dayInput) {
             dayInput.addEventListener('change', updateDigestDayControls);
         });
+        if (digestEnabled) digestEnabled.addEventListener('change', updateDigestDayControls);
         presetButtons.forEach(function (button) {
             button.addEventListener('click', function () {
                 const requestedMask = Number(button.dataset.taskDigestDays);
@@ -44,6 +53,47 @@
             });
         });
         updateDigestDayControls();
+    }
+
+    const resendForm = document.getElementById('profile-resend-verification-form');
+    const resendButton = document.querySelector('[data-resend-verification]');
+    const resendStatus = document.querySelector('[data-verification-status]');
+    if (resendForm && resendButton && resendStatus && window.fetch) {
+        let resending = false;
+        resendForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+            if (resending) return;
+            resending = true;
+            resendButton.disabled = true;
+            resendButton.setAttribute('aria-busy', 'true');
+            resendStatus.hidden = false;
+            resendStatus.className = 'profile-verification-status';
+            resendStatus.textContent = 'Requesting a verification link…';
+            try {
+                const response = await fetch(resendForm.action, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    headers: { Accept: 'application/json' },
+                    body: new FormData(resendForm)
+                });
+                if (response.redirected || !response.headers.get('content-type')?.includes('application/json')) {
+                    throw new Error('Your session may have expired. Sign in in another tab and retry; your unsaved changes are still here.');
+                }
+                const result = await response.json();
+                if (!response.ok || !result.ok) throw new Error(result.message || 'The verification link could not be requested. Try again.');
+                resendStatus.className = 'profile-verification-status success';
+                resendStatus.textContent = result.message;
+            } catch (error) {
+                resendStatus.className = 'profile-verification-status error';
+                resendStatus.textContent = error instanceof TypeError
+                    ? 'The verification request could not be completed. Check your connection and retry; your unsaved changes are still here.'
+                    : error.message;
+            } finally {
+                resending = false;
+                resendButton.disabled = false;
+                resendButton.removeAttribute('aria-busy');
+            }
+        });
     }
 
     const input = document.querySelector('[data-profile-picture-input]');

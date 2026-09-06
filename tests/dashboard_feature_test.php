@@ -57,13 +57,15 @@ expectDashboardFeature(
 expectDashboardFeature(
     $booking_panel_position !== false
         && $summary_grid_position !== false
-        && $booking_panel_position < $summary_grid_position
+        && $booking_panel_position > $my_work_panel_start
+        && $my_work_panel_start < strpos($dashboard, 'id="upcoming-engagements"')
+        && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure">')
         && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>')
         && str_contains($dashboard, '<small>Booking Inquiries</small>')
         && str_contains($dashboard, '<small>All Active Work</small>')
         && str_contains($dashboard, '<small>Mail For Review</small>')
         && str_contains($dashboard, '<small>Financial Closeouts</small>'),
-    'the inquiry next-actions panel should appear immediately above the dashboard count cards.'
+    'daily work should lead the upcoming schedule and the secondary pipeline should be collapsed.'
 );
 
 expectDashboardFeature(

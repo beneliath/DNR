@@ -44,6 +44,8 @@ if (!$user) {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $profile_action = is_string($_POST['action'] ?? null) ? $_POST['action'] : 'save';
+    $profile_json_request = $profile_action === 'resend_verification'
+        && str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json');
 
     if ($profile_action === 'change_email') {
         try {
@@ -87,6 +89,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $issued = issueUserEmailToken($conn, $user_id, 'verification', $email, $user_id);
             logSecurityEvent($conn, 'email_verification_queued', $user_id, $user_id);
+            if ($profile_json_request) {
+                header('Content-Type: application/json; charset=UTF-8');
+                header('Cache-Control: no-store');
+                echo json_encode([
+                    'ok' => !empty($issued['queued']),
+                    'message' => !empty($issued['queued'])
+                        ? 'A verification link was queued for delivery. Your unsaved profile changes are still here.'
+                        : 'No external email was sent because the development test transport is active. Your unsaved profile changes are still here.',
+                ]);
+                exit();
+            }
             header(
                 'Location: profile.php?'
                 . (!empty($issued['queued'])
@@ -99,6 +112,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Throwable $exception) {
             applicationLog('error', 'Unable to resend email verification', ['error' => $exception->getMessage()]);
             $error = 'The verification message could not be queued. Check the address or contact an administrator.';
+        }
+        if ($profile_json_request) {
+            http_response_code(422);
+            header('Content-Type: application/json; charset=UTF-8');
+            header('Cache-Control: no-store');
+            echo json_encode(['ok' => false, 'message' => $error]);
+            exit();
         }
     } else {
     $first_name = trim((string) ($_POST['first_name'] ?? ''));
@@ -125,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new InvalidArgumentException('Verify your email address before enabling the daily work digest.');
         }
         $task_digest_enabled = $task_digest_enabled_requested ? 1 : 0;
-        if (isset($_POST['task_digest_schedule_present'])) {
+        if ($task_digest_enabled_requested && isset($_POST['task_digest_schedule_present'])) {
             $task_digest_time = taskDigestDeliveryTimeFromInput(
                 $_POST['task_digest_time'] ?? null
             );
@@ -312,7 +332,7 @@ $task_digest_day_options = [
     <div class="page-heading profile-heading"><div><h1>My Profile</h1><p class="page-intro">Manage your personal details and profile picture.</p></div></div>
 
     <?php if (isset($error)): ?>
-        <p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php echo formErrorSummary($error); ?>
     <?php elseif (isset($_GET['updated'])): ?>
         <p class="success">Your profile was updated.</p>
     <?php endif; ?>
@@ -419,6 +439,7 @@ $task_digest_day_options = [
                     </div>
                 </fieldset>
             </div>
+            <p class="field-help" data-task-digest-paused<?php echo !empty($user['task_digest_enabled']) ? ' hidden' : ''; ?>>Digest delivery is off. Your previous schedule is kept for when you turn it on.</p>
             <?php if (empty($user['email_verified_at'])): ?>
                 <p class="field-help">Verify your email address to enable daily digests.</p>
             <?php else: ?>
@@ -428,13 +449,14 @@ $task_digest_day_options = [
 
         <div class="action-buttons profile-actions">
             <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
-                <button type="submit" form="profile-resend-verification-form" class="security-button profile-verification-button">Resend email verification</button>
+                <button type="submit" form="profile-resend-verification-form" class="button-secondary profile-verification-button" data-resend-verification>Resend email verification</button>
             <?php endif; ?>
             <div class="profile-save-actions">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <button type="submit" class="save-button">Save Changes</button>
             </div>
         </div>
+        <p class="profile-verification-status" data-verification-status role="status" aria-live="polite" hidden></p>
     </form>
     <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
         <form id="profile-resend-verification-form" method="post" action="profile.php" hidden>

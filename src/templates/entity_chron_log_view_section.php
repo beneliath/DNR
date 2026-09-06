@@ -1,7 +1,7 @@
-<section class="detail-group chron-log-section" id="chron-log">
+<section class="detail-group chron-log-section" id="chron-log"<?php if (!empty($chron_tab_id)): ?> role="tabpanel" aria-labelledby="<?php echo htmlspecialchars($chron_tab_id, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>>
     <div class="chron-log-heading">
         <div>
-            <h2>Chron Log</h2>
+            <h2>Activity</h2>
             <p><?php echo htmlspecialchars(
                 $chron_log_description
                     ?? "Communication history for this {$chron_entity_label} only. Entries are shown newest first.",
@@ -14,6 +14,7 @@
         <?php endif; ?>
     </div>
 
+    <?php include __DIR__ . '/record_add_note.php'; ?>
     <div class="chron-entry-list">
         <?php foreach ($chron_entries as $chron_entry): ?>
             <?php
@@ -42,7 +43,7 @@
             </article>
         <?php endforeach; ?>
         <?php if (!$chron_entries): ?>
-            <p class="chron-empty-state">No Chron entries have been added for this <?php echo htmlspecialchars($chron_entity_label, ENT_QUOTES, 'UTF-8'); ?> yet.</p>
+            <p class="chron-empty-state">No Chron Log Entries have been added for this <?php echo htmlspecialchars($chron_entity_label, ENT_QUOTES, 'UTF-8'); ?> yet.</p>
         <?php endif; ?>
     </div>
 

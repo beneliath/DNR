@@ -96,7 +96,7 @@ expectInboundFeature(
         && str_contains($review, 'Associated Contact, Organization, and Engagement Chron Log entries will be preserved')
         && str_contains($engagementView, 'Email Routing Marker')
         && str_contains($engagementView, 'applicationInboundMarker($engagement_id)')
-        && str_contains($header, '<span>Inbound Mail</span>'),
+        && str_contains($header, '<span>Inbox</span>'),
     'editors and administrators should have a CSRF-protected review workflow, with elevated purge restricted to administrators.'
 );
 expectInboundFeature(

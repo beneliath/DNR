@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/engagement_view_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'engagement_search_helpers.php';
 include 'two_factor_helpers.php';
@@ -59,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['engagement_action_error'] = 'Unable to update the event. Please try again.';
     }
 
-    header('Location: engagements.php?' . http_build_query(['status' => $list_status]));
+    header('Location: ' . safeRecordReturnUrl($_POST['return_to'] ?? null, 'engagements.php?' . http_build_query(['status' => $list_status])));
     exit();
 }
 
@@ -262,14 +264,13 @@ if ($has_more_engagements && $engagement_rows !== []) {
     ]);
 }
 
-$format_date_range = static function ($start, $end) {
-    $start_timestamp = strtotime((string) $start);
-    $end_timestamp = strtotime((string) $end);
-    if (!$start_timestamp || !$end_timestamp) return trim((string) $start . ' – ' . (string) $end);
-    $formatted_start = date('Y.m.d', $start_timestamp);
-    if ($start === $end) return $formatted_start;
-    return $formatted_start . ' – ' . date('Y.m.d', $end_timestamp);
-};
+$format_date_range = static fn($start, $end) => engagementViewDateRange($start, $end);
+$list_current_url = recordCurrentUrl('engagements.php');
+$list_cursor_trail = recordCursorTrail($_GET['history'] ?? null);
+$list_previous_trail = $list_cursor_trail;
+$list_previous_cursor = array_pop($list_previous_trail);
+$list_previous_url = recordUrlWithQuery($list_current_url, ['cursor' => $list_previous_cursor, 'history' => recordEncodedCursorTrail($list_previous_trail)]);
+$list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor, 'history' => recordEncodedCursorTrail(array_merge($list_cursor_trail, [is_string($_GET['cursor'] ?? null) ? $_GET['cursor'] : '']))]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -386,7 +387,7 @@ $format_date_range = static function ($start, $end) {
             <?php endif; ?>
             <?php foreach ($engagement_rows as $row): ?>
                 <tr>
-                    <td class="engagement-title"><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
+                    <td class="engagement-title"><a class="record-link" href="view_engagement.php?id=<?php echo (int) $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($row['event_title'] ?: $row['organization_name']); ?></a></td>
                     <td class="engagement-dates"><?php echo htmlspecialchars($format_date_range($row['event_start_date'], $row['event_end_date'])); ?></td>
                     <td class="engagement-lifecycle"><span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) $row['lifecycle_status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($row['lifecycle_status']), ENT_QUOTES, 'UTF-8'); ?></span></td>
                     <td class="engagement-status"><?php
@@ -405,14 +406,15 @@ $format_date_range = static function ($start, $end) {
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="view_engagement.php?id=<?php echo $row['id']; ?>" class="action-button action-icon-button view-button" aria-label="View event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                            <a href="view_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit event" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit event" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
                                     <form method="post" action="engagements.php">
                                         <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                         <input type="hidden" name="list_status" value="archived">
                                         <input type="hidden" name="action" value="restore">
@@ -421,6 +423,7 @@ $format_date_range = static function ($start, $end) {
                                 <?php else: ?>
                                     <form method="post" action="engagements.php">
                                         <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                         <input type="hidden" name="list_status" value="active">
                                         <input type="hidden" name="action" value="archive">
@@ -433,6 +436,7 @@ $format_date_range = static function ($start, $end) {
                                       data-delete-confirmation="Permanently delete this event, its presentations, and its Chron entries?"
                                       <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                     <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                     <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                     <input type="hidden" name="action" value="delete">
@@ -455,10 +459,10 @@ $format_date_range = static function ($start, $end) {
                        <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
                 <?php endforeach; ?>
             </div>
-            <span class="pagination-status">Showing up to <?php echo $page_size; ?> engagements</span>
+            <span class="pagination-status">Showing <?php echo count($engagement_rows); ?> engagements</span>
             <div class="pagination-actions">
-                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_previous_url, ENT_QUOTES, 'UTF-8'); ?>">Previous</a><a class="filter-button" href="<?php echo htmlspecialchars($list_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_next_url, ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>

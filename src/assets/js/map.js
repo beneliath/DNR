@@ -178,9 +178,9 @@ import {
         const statusClass = pinClass(event.status);
         const markerElement = document.createElement('button');
         markerElement.type = 'button';
-        markerElement.className = 'engagement-map-pin ' + statusClass;
-        markerElement.setAttribute('aria-label', event.title + ' — ' + event.statusLabel);
-        markerElement.title = event.title + ' — ' + event.statusLabel;
+        markerElement.className = 'engagement-map-pin ' + statusClass + ' lifecycle-' + String(event.lifecycle || 'active');
+        markerElement.setAttribute('aria-label', event.title + ' — ' + event.statusLabel + ' · ' + event.lifecycleLabel);
+        markerElement.title = event.title + ' — ' + event.statusLabel + ' · ' + event.lifecycleLabel;
         markerElement.innerHTML = '<span class="engagement-map-pin-shape"><span class="engagement-map-pin-center"></span></span>';
         const popup = new Popup({offset: 30, maxWidth: '320px'}).setDOMContent(popupContent(event));
         const marker = new Marker({element: markerElement, anchor: 'bottom'})
@@ -230,6 +230,7 @@ import {
             if (result.status === 'found'
                 && addPin(event, Number(result.latitude), Number(result.longitude))
             ) {
+                document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: 'found'}}));
                 pendingEvents.delete(eventId);
                 pendingCount = Math.max(0, pendingCount - 1);
                 pinsChanged = true;
@@ -237,6 +238,7 @@ import {
                 || result.status === 'no_address'
                 || result.status === 'failed'
             ) {
+                document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: 'not_found'}}));
                 pendingEvents.delete(eventId);
                 pendingCount = Math.max(0, pendingCount - 1);
                 notFoundCount++;

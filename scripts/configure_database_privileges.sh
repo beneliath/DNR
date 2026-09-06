@@ -146,6 +146,7 @@ GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_stage_hist
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_chron_entries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT (

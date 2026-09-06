@@ -82,7 +82,31 @@ function renderPageHead($title, array $options = []) {
         $defer = !is_array($script) || !array_key_exists('defer', $script) || $script['defer'];
         renderScript((string) $path, $defer);
     }
+    renderScript('assets/js/form-ux.min.js');
     echo '</head>' . PHP_EOL;
+}
+
+/**
+ * Render linked errors only when the caller identifies the affected field.
+ * @param array<array-key, string>|string $errors
+ * @param array<array-key, string> $field_ids
+ */
+function formErrorSummary(array|string $errors, array $field_ids = []): string {
+    $errors = is_array($errors) ? $errors : [$errors];
+    $errors = array_filter($errors, static fn(string $message): bool => trim($message) !== '');
+    if ($errors === []) return '';
+    $escape = static fn($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+    $html = '<div class="error form-error-summary" data-form-errors role="alert" tabindex="-1">'
+        . '<h2>Check the Details Below</h2><ul>';
+    foreach ($errors as $key => $message) {
+        $field_id = $field_ids[$key] ?? '';
+        $html .= '<li' . ($field_id !== '' ? ' data-error-for="' . $escape($field_id) . '"' : '') . '>';
+        $html .= $field_id !== ''
+            ? '<a href="#' . $escape(rawurlencode($field_id)) . '">' . $escape($message) . '</a>'
+            : $escape($message);
+        $html .= '</li>';
+    }
+    return $html . '</ul></div>';
 }
 
 function renderScript($path, $defer = true) {
@@ -760,7 +784,7 @@ function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'P
     $html .= '<div class="phone-country-menu" role="listbox" hidden data-phone-country-menu>';
     foreach ($choices as $choice) {
         $is_selected = $choice['code'] === $selected_code;
-        $html .= '<button type="button" class="phone-country-option" role="option" aria-selected="'
+        $html .= '<button type="button" class="phone-country-option" role="option" tabindex="-1" aria-selected="'
             . ($is_selected ? 'true' : 'false') . '" data-phone-country-option data-country-code="'
             . $escape($choice['code']) . '" data-country-flag="' . $escape($choice['flag'])
             . '" data-country-name="' . $escape($choice['country']) . '">';

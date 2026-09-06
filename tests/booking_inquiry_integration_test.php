@@ -374,7 +374,8 @@ try {
         true,
         [$taskId],
         $userId,
-        $username
+        $username,
+        'carry_forward'
     );
     $engagementId = $conversion['engagement_id'];
     $booked = fetchBookingInquiry($conn, $inquiryId);
@@ -412,7 +413,8 @@ try {
             && $conversion['moved_task_count'] === 1
             && $conversion['checklist_count'] > 0
             && $primaryHostCount === 1
-            && $sourceChronCount === 1,
+            && $sourceChronCount === 1
+            && (int) $conversion['next_action_task_id'] > 0,
         'conversion should atomically create the engagement, move selected work, and preserve provenance.'
     );
     $conn->query(

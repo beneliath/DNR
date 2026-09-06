@@ -692,9 +692,35 @@ function bookingInquiryDateConflicts(
     return $conflicts;
 }
 
+/** Defaults apply only when opening the review; an omitted POST checkbox list means none. */
+function bookingInquirySelectedTaskIds(array $tasks, array $input, bool $submitted): array
+{
+    if (!$submitted) return array_map(static fn(array $task): int => (int) $task['id'], $tasks);
+    $selected = is_array($input['task_ids'] ?? null) ? $input['task_ids'] : [];
+    $available = array_fill_keys(array_map(static fn(array $task): int => (int) $task['id'], $tasks), true);
+    return array_values(array_unique(array_filter(array_map(static fn($id): int => is_scalar($id) && ctype_digit((string) $id) ? (int) $id : 0, $selected), static fn(int $id): bool => isset($available[$id]))));
+}
+
+function bookingInquiryNextActionResolution(array $inquiry, string $decision, string $reason = ''): string
+{
+    $action = trim((string) ($inquiry['next_action'] ?? ''));
+    if ($action === '') return '';
+    if (!in_array($decision, ['carry_forward', 'resolved'], true)) {
+        throw new InvalidArgumentException('Choose whether to carry forward or resolve the inquiry next action.');
+    }
+    $reason = trim($reason);
+    if ($decision === 'resolved' && $reason === '') {
+        throw new InvalidArgumentException('Explain why the next action is resolved or no longer needed.');
+    }
+    if (mb_strlen($reason, 'UTF-8') > 1000) throw new InvalidArgumentException('Use 1,000 characters or fewer for the resolution.');
+    return 'Next action ' . ($decision === 'carry_forward' ? 'carried forward as an engagement task' : 'resolved at booking')
+        . ': ' . $action . (!empty($inquiry['next_action_due_date']) ? ' (due ' . $inquiry['next_action_due_date'] . ')' : '')
+        . ($reason !== '' ? "\nResolution: " . $reason : '');
+}
+
 /**
  * @param list<int> $taskIds
- * @return array{engagement_id: int, moved_task_count: int, checklist_count: int}
+ * @return array{engagement_id: int, moved_task_count: int, checklist_count: int, next_action_task_id: int|null}
  */
 function convertBookingInquiry(
     mysqli $conn,
@@ -703,7 +729,9 @@ function convertBookingInquiry(
     bool $acknowledgeConflicts,
     array $taskIds,
     int $userId,
-    string $username
+    string $username,
+    string $nextActionDecision = '',
+    string $nextActionReason = ''
 ): array {
     $taskIds = array_values(array_unique(array_filter(array_map('intval', $taskIds),
         static fn(int $id): bool => $id > 0)));
@@ -717,6 +745,7 @@ function convertBookingInquiry(
         if ($expectedVersion === '' || !hash_equals((string) $inquiry['updated_at'], $expectedVersion)) {
             throw new InvalidArgumentException('That inquiry changed in another session. Reload before booking.');
         }
+        $nextActionResolution = bookingInquiryNextActionResolution($inquiry, $nextActionDecision, $nextActionReason);
         $readiness = bookingInquiryReadiness($inquiry);
         foreach (['organization', 'title', 'dates'] as $required) {
             if (!$readiness[$required]) {
@@ -810,8 +839,20 @@ function convertBookingInquiry(
             );
         }
 
+        $nextActionTaskId = null;
+        if ($nextActionResolution !== '' && $nextActionDecision === 'carry_forward') {
+            $nextActionTaskId = insertFollowUpTask($conn, [
+                'title' => (string) $inquiry['next_action'], 'details' => 'Carried forward from inquiry #' . $inquiryId,
+                'status' => 'open', 'priority' => (string) $inquiry['priority'],
+                'due_date' => $inquiry['next_action_due_date'], 'waiting_on' => null,
+                'subject_type' => 'engagement', 'engagement_id' => $engagementId,
+                'organization_id' => null, 'contact_id' => null, 'inquiry_id' => null,
+                'assigned_to' => $callerId,
+            ], $userId);
+        }
         $chronText = 'BOOKED FROM INQUIRY #' . $inquiryId
             . "\nThe inquiry remains the source record for pre-booking history."
+            . ($nextActionResolution !== '' ? "\n\n" . $nextActionResolution : '')
             . ($eventDescription !== '' ? "\n\nRequest summary:\n" . $eventDescription : '');
         $chron = $conn->prepare(
             'INSERT INTO engagement_chron_entries
@@ -883,7 +924,7 @@ function convertBookingInquiry(
             $inquiryId,
             (string) $inquiry['stage'],
             'booked',
-            'Converted to engagement #' . $engagementId . '.',
+            'Converted to engagement #' . $engagementId . '.' . ($nextActionResolution !== '' ? "\n" . $nextActionResolution : ''),
             $userId,
             $username
         );
@@ -892,6 +933,7 @@ function convertBookingInquiry(
             'engagement_id' => $engagementId,
             'moved_task_count' => $moved,
             'checklist_count' => $checklist,
+            'next_action_task_id' => $nextActionTaskId,
         ];
     } catch (Throwable $exception) {
         $conn->rollback();

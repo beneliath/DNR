@@ -194,7 +194,9 @@ test "$(fixture digest-schedule "$fixture_suffix" editor)" = '16:45:00|21'
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
     "$base_url/tasks.php"
-grep -q 'class="task-reminder-badges"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
+grep -q 'href="tasks.php?view=overdue&amp;scope=mine"' "$temporary_directory/editor-task-reminders.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add.html")
@@ -216,9 +218,10 @@ status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-create.he
     --data-urlencode 'physical_country=USA' \
     "$base_url/add_organization.php")
 expect_status "$status" '302' 'editor organization creation'
-expect_location "$temporary_directory/editor-create.headers" 'add_organization.php' 'editor organization creation'
 test "$(fixture organization-state "$fixture_suffix")" = '0'
 organization_id=$(fixture organization-id "$fixture_suffix")
+test "$organization_id" -gt 0
+expect_location "$temporary_directory/editor-create.headers" "view_organization.php?id=$organization_id" 'editor organization creation'
 
 # Exercise real contact and engagement creation, plus optimistic concurrency.
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-contact.html" "$base_url/add_contact.php"
@@ -424,7 +427,7 @@ curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-editor.html" \
     "$base_url/dashboard.php"
 grep -q '<strong>Viewing as Editor</strong>' "$temporary_directory/admin-as-editor.html"
 grep -q 'Actions still affect live data.' "$temporary_directory/admin-as-editor.html"
-grep -q '<span>Inbound Mail</span>' "$temporary_directory/admin-as-editor.html"
+grep -q 'href="inbound_mail.php"' "$temporary_directory/admin-as-editor.html"
 ! grep -q '<span>Users</span>' "$temporary_directory/admin-as-editor.html"
 status=$(curl -sS -b "$admin_cookies" -o /dev/null -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '403' 'Editor preview administrator route'
@@ -442,7 +445,7 @@ expect_location "$temporary_directory/admin-preview-reviewer.headers" 'dashboard
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-as-reviewer.html" \
     "$base_url/dashboard.php"
 grep -q '<strong>Viewing as Reviewer</strong>' "$temporary_directory/admin-as-reviewer.html"
-! grep -q '<span>Inbound Mail</span>' "$temporary_directory/admin-as-reviewer.html"
+! grep -q 'href="inbound_mail.php"' "$temporary_directory/admin-as-reviewer.html"
 ! grep -q '>+ New Engagement</a>' "$temporary_directory/admin-as-reviewer.html"
 
 admin_csrf=$(csrf_from "$temporary_directory/admin-as-reviewer.html")

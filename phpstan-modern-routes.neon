@@ -28,6 +28,9 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/engagement_view_helpers.php
+        - src/inbound_queue_helpers.php
+        - src/record_workspace_helpers.php
         - src/config.php
         - src/calendar_helpers.php
         - src/booking_inquiry_helpers.php

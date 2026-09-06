@@ -5,6 +5,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 $conn = applicationDatabaseConnection();
 require_once __DIR__ . '/inbound_email_helpers.php';
+require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/inbound_queue_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireLogin();
@@ -25,6 +27,12 @@ $statusFilter = \Dnr\Http\RequestInput::enum(
     \Dnr\Http\RequestInput::enum($_GET, 'status', $allowedStatuses, 'review')
 );
 
+$queueInput = $_SERVER['REQUEST_METHOD'] === 'POST' ? $_POST : $_GET;
+$queueSearch = is_scalar($queueInput['q'] ?? null) ? mb_substr(trim((string) $queueInput['q']), 0, 200) : '';
+$queueSort = \Dnr\Http\RequestInput::enum($queueInput, 'sort', ['oldest', 'newest'], $statusFilter === 'review' ? 'oldest' : 'newest');
+$queuePage = max(1, (int) filter_var($queueInput['page'] ?? 1, FILTER_VALIDATE_INT));
+$queueContext = ['status' => $statusFilter, 'q' => $queueSearch, 'sort' => $queueSort, 'page' => $queuePage];
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $messageId = filter_input(INPUT_POST, 'message_id', FILTER_VALIDATE_INT);
@@ -39,10 +47,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 http_response_code(403);
                 exit('Forbidden.');
             }
-            requireRecentAdminElevation('inbound_mail.php?' . http_build_query([
-                'status' => $statusFilter,
-                'id' => $messageId,
-            ]));
+            requireRecentAdminElevation('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['id' => $messageId])));
             if (!purgeInboundEmailMessage($conn, $messageId)) {
                 throw new InvalidArgumentException('That inbound message is no longer available.');
             }
@@ -93,9 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ? $exception->getMessage()
             : 'The inbound email could not be updated. Please try again.';
     }
-    $redirectParameters = [
-        'status' => $statusFilter,
-    ];
+    $redirectParameters = $queueContext;
     if ($redirectMessageId) {
         $redirectParameters['id'] = $redirectMessageId;
     }
@@ -124,31 +127,15 @@ while ($countResult && ($row = $countResult->fetch_assoc())) {
     }
 }
 
-if ($statusFilter === 'all') {
-    $messageStmt = $conn->prepare(
-        'SELECT id, sender_name, sender_address, subject, status, review_reason,
-                received_at, processed_at
-         FROM inbound_email_messages
-         ORDER BY received_at DESC, id DESC LIMIT 100'
-    );
-} else {
-    $messageStmt = $conn->prepare(
-        'SELECT id, sender_name, sender_address, subject, status, review_reason,
-                received_at, processed_at
-         FROM inbound_email_messages
-         WHERE status = ?
-         ORDER BY received_at DESC, id DESC LIMIT 100'
-    );
-}
-if (!$messageStmt) {
-    abortApplication(503, 'The inbound mail queue is temporarily unavailable.');
-}
-if ($statusFilter !== 'all') {
-    $messageStmt->bind_param('s', $statusFilter);
-}
-$messageStmt->execute();
-$messages = $messageStmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$messageStmt->close();
+
+$queueResult = fetchInboundMailQueue($conn, $statusFilter, $queueSearch, $queueSort, $queuePage);
+$messages = $queueResult['messages'];
+$queueTotal = $queueResult['total'];
+$queuePage = $queueResult['page'];
+$queuePages = $queueResult['pages'];
+$queueOffset = $queueResult['offset'];
+$queuePageSize = $queueResult['page_size'];
+$queueContext['page'] = $queuePage;
 
 $selectedId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
 $selectedMessage = null;
@@ -205,7 +192,7 @@ $statusLabels = [
     <div class="page-heading inbound-mail-heading">
         <div>
             <h1>Inbound Mail</h1>
-            <p class="page-intro">Email copied to <?php echo htmlspecialchars((string) (getenv('DNR_INBOUND_ADDRESS') ?: 'the configured ' . applicationBrandName() . ' mailbox'), ENT_QUOTES, 'UTF-8'); ?> and routed to Contact, Organization, and Engagement Chron logs.</p>
+            <p class="page-intro">Read incoming messages and choose where to keep the conversation.</p>
         </div>
     </div>
 
@@ -215,12 +202,24 @@ $statusLabels = [
     <nav class="inbound-status-filters" aria-label="Inbound message status">
         <?php foreach ($statusLabels as $status => $label): ?>
             <?php $count = $status === 'all' ? array_sum($counts) : ($counts[$status] ?? 0); ?>
-            <a class="filter-button<?php echo $statusFilter === $status ? ' active' : ''; ?>" href="inbound_mail.php?status=<?php echo urlencode($status); ?>">
+            <a class="filter-button<?php echo $statusFilter === $status ? ' active' : ''; ?>" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['status' => $status, 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">
                 <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> (<?php echo (int) $count; ?>)
             </a>
         <?php endforeach; ?>
     </nav>
 
+    <form method="get" action="inbound_mail.php" class="inbound-queue-search">
+        <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
+        <div><label for="inbox-search">Search messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Subject, sender, or message content"></div>
+        <div><label for="inbox-sort">Order</label><select name="sort" id="inbox-sort"><option value="oldest"<?php echo $queueSort === 'oldest' ? ' selected' : ''; ?>>Oldest first</option><option value="newest"<?php echo $queueSort === 'newest' ? ' selected' : ''; ?>>Newest first</option></select></div>
+        <button type="submit" class="button-primary">Search</button>
+        <?php if ($queueSearch !== ''): ?><a class="button-secondary" href="inbound_mail.php?status=<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">Clear search</a><?php endif; ?>
+    </form>
+    <nav class="inbound-queue-pagination" aria-label="Message pages">
+        <span><?php echo $queueTotal === 0 ? '0 messages' : ($queueOffset + 1) . '–' . min($queueTotal, $queueOffset + $queuePageSize) . ' of ' . $queueTotal . ' messages'; ?> · Page <?php echo $queuePage; ?> of <?php echo $queuePages; ?></span>
+        <?php if ($queuePage > 1): ?><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['page' => $queuePage - 1])), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
+        <?php if ($queuePage < $queuePages): ?><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['page' => $queuePage + 1])), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+    </nav>
     <div class="inbound-mail-layout">
         <section class="inbound-message-list" aria-label="Inbound messages">
             <?php foreach ($messages as $message): ?>
@@ -229,10 +228,7 @@ $statusLabels = [
                 if ($senderLabel === '') {
                     $senderLabel = (string) $message['sender_address'];
                 }
-                $detailUrl = 'inbound_mail.php?' . http_build_query([
-                    'status' => $statusFilter,
-                    'id' => (int) $message['id'],
-                ]);
+                $detailUrl = 'inbound_mail.php?' . http_build_query(array_merge($queueContext, ['id' => (int) $message['id']]));
                 ?>
                 <a class="inbound-message-card<?php echo (int) $selectedId === (int) $message['id'] ? ' selected' : ''; ?>" href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>">
                     <span class="inbound-message-card-heading">
@@ -240,17 +236,17 @@ $statusLabels = [
                         <span class="inbound-status inbound-status-<?php echo htmlspecialchars((string) $message['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusLabels[(string) $message['status']] ?? ucfirst((string) $message['status']), ENT_QUOTES, 'UTF-8'); ?></span>
                     </span>
                     <span><?php echo htmlspecialchars($senderLabel, ENT_QUOTES, 'UTF-8'); ?></span>
-                    <time datetime="<?php echo htmlspecialchars((string) $message['received_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $message['received_at'], ENT_QUOTES, 'UTF-8'); ?> UTC</time>
+                    <time datetime="<?php echo htmlspecialchars((string) $message['received_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(chronLogTimestampDetails($message['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></time>
                     <?php if (!empty($message['review_reason'])): ?><small><?php echo htmlspecialchars((string) $message['review_reason'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </a>
             <?php endforeach; ?>
-            <?php if (!$messages): ?><p class="inbound-empty-state">No messages have this status.</p><?php endif; ?>
+            <?php if (!$messages): ?><p class="inbound-empty-state">No messages match this view. Try a different status or clear your search.</p><?php endif; ?>
         </section>
 
         <section class="record-section inbound-message-detail" aria-label="Selected inbound message">
             <?php if (!$selectedMessage): ?>
                 <h2>Select a Message</h2>
-                <p>Choose a message to inspect its participants, routing decision, and retained plain-text content.</p>
+                <p>Choose a message to read it and review its destinations.</p>
             <?php else: ?>
                 <?php
                 $toAddresses = inboundEmailDecodeAddressList($selectedMessage['to_addresses']);
@@ -271,6 +267,9 @@ $statusLabels = [
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="message_id" value="<?php echo (int) $selectedMessage['id']; ?>">
                                 <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="q" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="sort" value="<?php echo htmlspecialchars($queueSort, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="page" value="<?php echo $queuePage; ?>">
                                 <input type="hidden" name="action" value="purge">
                                 <button type="submit" class="danger-button">Purge Mail Entry</button>
                             </form>
@@ -281,14 +280,20 @@ $statusLabels = [
                     <div><dt>From</dt><dd><?php echo htmlspecialchars(trim((string) $selectedMessage['sender_name']) !== '' ? $selectedMessage['sender_name'] . ' <' . $selectedMessage['sender_address'] . '>' : (string) $selectedMessage['sender_address'], ENT_QUOTES, 'UTF-8'); ?></dd></div>
                     <div><dt>To</dt><dd><?php echo htmlspecialchars($toAddresses ? implode(', ', $toAddresses) : 'None', ENT_QUOTES, 'UTF-8'); ?></dd></div>
                     <div><dt>Cc</dt><dd><?php echo htmlspecialchars($ccAddresses ? implode(', ', $ccAddresses) : 'None', ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                    <div><dt>Sent</dt><dd><?php echo htmlspecialchars((string) ($selectedMessage['sent_at'] ?: 'Not supplied'), ENT_QUOTES, 'UTF-8'); ?><?php echo $selectedMessage['sent_at'] ? ' UTC' : ''; ?></dd></div>
-                    <div><dt>Received</dt><dd><?php echo htmlspecialchars((string) $selectedMessage['received_at'], ENT_QUOTES, 'UTF-8'); ?> UTC</dd></div>
+                    <div><dt>Sent</dt><dd><?php echo htmlspecialchars($selectedMessage['sent_at'] ? chronLogTimestampDetails($selectedMessage['sent_at'])['display'] : 'Not supplied', ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                    <div><dt>Received</dt><dd><?php echo htmlspecialchars(chronLogTimestampDetails($selectedMessage['received_at'])['display'], ENT_QUOTES, 'UTF-8'); ?></dd></div>
                     <div><dt>Attachments</dt><dd><?php echo htmlspecialchars($attachmentNames ? implode(', ', $attachmentNames) : 'None', ENT_QUOTES, 'UTF-8'); ?></dd></div>
                 </dl>
 
+                <section class="inbound-message-body">
+                    <h3>Message</h3>
+                    <pre><?php echo htmlspecialchars($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', ENT_QUOTES, 'UTF-8'); ?></pre>
+                    <?php if (mb_strlen((string) $selectedMessage['body_text'], 'UTF-8') > 100000): ?><p class="field-help">The review preview is limited to 100,000 characters; the retained source text is longer.</p><?php endif; ?>
+                </section>
+
                 <?php if ($selectedRouting): ?>
-                    <section class="inbound-routing-summary">
-                        <h3>Routing</h3>
+                    <details class="inbound-routing-summary">
+                        <summary>Routing details</summary>
                         <p>Sender classification: <strong><?php echo htmlspecialchars(ucfirst((string) $selectedRouting['sender']['type']), ENT_QUOTES, 'UTF-8'); ?></strong> — <?php echo htmlspecialchars((string) $selectedRouting['sender']['label'], ENT_QUOTES, 'UTF-8'); ?></p>
                         <?php foreach ($selectedRouting['engagements'] as $engagement): ?>
                             <a class="inbound-engagement-route" href="view_engagement.php?id=<?php echo (int) $engagement['id']; ?>">
@@ -307,14 +312,18 @@ $statusLabels = [
                         <?php else: ?>
                             <p class="success">Every routing match is unique.</p>
                         <?php endif; ?>
-                    </section>
+                    </details>
                 <?php endif; ?>
 
                 <?php if (in_array($selectedMessage['status'], ['review', 'failed', 'pending'], true) && $selectedRouting): ?>
                     <form method="post" action="inbound_mail.php" class="inbound-review-form">
+                        <h3>Save This Conversation</h3>
                         <?php echo csrfInput(); ?>
                         <input type="hidden" name="message_id" value="<?php echo (int) $selectedMessage['id']; ?>">
                         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="q" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="sort" value="<?php echo htmlspecialchars($queueSort, ENT_QUOTES, 'UTF-8'); ?>">
+                        <input type="hidden" name="page" value="<?php echo $queuePage; ?>">
                         <fieldset>
                             <legend>Contact Chron Logs</legend>
                             <?php foreach ($selectedRouting['contacts'] as $contact): ?>
@@ -360,11 +369,7 @@ $statusLabels = [
                     </form>
                 <?php endif; ?>
 
-                <section class="inbound-message-body">
-                    <h3>Plain-Text Content</h3>
-                    <pre><?php echo htmlspecialchars($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', ENT_QUOTES, 'UTF-8'); ?></pre>
-                    <?php if (mb_strlen((string) $selectedMessage['body_text'], 'UTF-8') > 100000): ?><p class="field-help">The review preview is limited to 100,000 characters; the retained source text is longer.</p><?php endif; ?>
-                </section>
+
             <?php endif; ?>
         </section>
     </div>

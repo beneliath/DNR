@@ -128,7 +128,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
     <div class="page-heading two-factor-settings-heading"><div><h1>Account Security</h1><p class="page-intro">Manage your password, authenticator, and recovery options.</p></div></div>
 
     <?php if (isset($error)): ?>
-        <p class="error"><?php echo htmlspecialchars($error); ?></p>
+        <?php echo formErrorSummary($error); ?>
     <?php elseif ($must_change_password): ?>
         <p class="error">An administrator issued a temporary password for this account. Replace it before continuing.</p>
     <?php elseif (isset($_GET['password_recovered'])): ?>

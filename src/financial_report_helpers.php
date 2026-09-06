@@ -315,3 +315,73 @@ function fetchOrganizationFinancialHistory(
 
     return $history;
 }
+
+/** A draft retains unknown amounts as null; confirmed zero remains 0.00. */
+function normalizeFinancialDraftInput(array $input): array
+{
+    $unknown = [];
+    foreach (['giving_income_received', 'lodging_received', 'travel_received'] as $field) {
+        $value = $input[$field] ?? null;
+        if ($value === null || (is_scalar($value) && trim((string) $value) === '')) {
+            $unknown[] = $field;
+            $input[$field] = '0.00';
+        }
+    }
+    $normalized = FinancialReportInput::normalize($input);
+    foreach ($unknown as $field) $normalized[$field] = null;
+    return $normalized;
+}
+
+/** Drafts are deliberately separate from finalized reports and financial aggregates. */
+function fetchEngagementFinancialDraft(mysqli $conn, int $engagement_id, bool $lock = false): ?array
+{
+    $stmt = $conn->prepare('SELECT draft.*, updater.username AS updated_by_username
+        FROM engagement_financial_drafts draft LEFT JOIN users updater ON updater.id = draft.updated_by
+        WHERE draft.engagement_id = ?' . ($lock ? ' FOR UPDATE' : ''));
+    $stmt->bind_param('i', $engagement_id);
+    $stmt->execute();
+    $draft = $stmt->get_result()->fetch_assoc() ?: null;
+    $stmt->close();
+    return $draft;
+}
+
+function requireFinancialDraftVersion(?array $draft, string $expected_version): void
+{
+    if (($draft === null && $expected_version !== '')
+        || ($draft !== null && ($expected_version === '' || !hash_equals((string) $draft['updated_at'], $expected_version)))) {
+        throw new InvalidArgumentException('The receipt draft changed after you opened it. Copy your changes, then reload and review the latest draft before saving.');
+    }
+}
+
+function saveEngagementFinancialDraft(mysqli $conn, int $engagement_id, array $input, string $expected_version, int $user_id): void
+{
+    $draft = normalizeFinancialDraftInput($input);
+    $conn->begin_transaction();
+    try {
+        $parent = $conn->prepare('SELECT lifecycle_status FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE');
+        $parent->bind_param('i', $engagement_id);
+        $parent->execute();
+        $engagement = $parent->get_result()->fetch_assoc();
+        $parent->close();
+        if (!$engagement || in_array($engagement['lifecycle_status'], ['canceled', 'postponed'], true)) {
+            throw new InvalidArgumentException('Receipt drafts require an active or completed engagement.');
+        }
+        if (fetchEngagementFinancialReport($conn, $engagement_id) !== null) {
+            throw new InvalidArgumentException('This event already has a final report. Reload the page to make a correction.');
+        }
+        requireFinancialDraftVersion(fetchEngagementFinancialDraft($conn, $engagement_id, true), $expected_version);
+        $stmt = $conn->prepare('INSERT INTO engagement_financial_drafts
+            (engagement_id, giving_income_received, lodging_received, travel_received, notes, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE giving_income_received = VALUES(giving_income_received),
+            lodging_received = VALUES(lodging_received), travel_received = VALUES(travel_received),
+            notes = VALUES(notes), updated_by = VALUES(updated_by), updated_at = UTC_TIMESTAMP(6)');
+        $stmt->bind_param('issssi', $engagement_id, $draft['giving_income_received'], $draft['lodging_received'], $draft['travel_received'], $draft['notes'], $user_id);
+        $stmt->execute();
+        $stmt->close();
+        $conn->commit();
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}

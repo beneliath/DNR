@@ -602,3 +602,24 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
         flex-direction: column;
     }
 }
+
+/* The daily queue leads; secondary pipeline detail stays one click away. */
+.dashboard-page { gap: 20px; }
+.dashboard-summary-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.dashboard-summary-card { min-height: 84px; gap: 10px; padding: 14px; }
+.dashboard-summary-card .summary-icon { width: 32px; height: 32px; font-size: 1rem; }
+.dashboard-summary-card strong { font-size: 1.5rem; }
+.dashboard-summary-card small { font-size: .76rem; }
+.dashboard-empty-state { min-height: 76px; padding: 20px; }
+.dashboard-empty-success { align-items: flex-start; text-align: left; }
+.dashboard-pipeline-disclosure { border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.dashboard-pipeline-disclosure > summary { padding: 18px 22px; cursor: pointer; font-weight: 700; }
+.dashboard-pipeline-disclosure > summary span { margin-left: 12px; color: var(--text-muted); font-size: .85rem; font-weight: 400; }
+.dashboard-pipeline-disclosure[open] > summary { border-bottom: 1px solid var(--border); }
+.dashboard-pipeline-disclosure .dashboard-inquiry-grid { padding: 16px; }
+@media (max-width: 1200px) { .dashboard-summary-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+ .dashboard-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .dashboard-summary-card .summary-icon { display: none; }
+ .dashboard-pipeline-disclosure > summary span { display: block; margin: 8px 0 0; }
+}

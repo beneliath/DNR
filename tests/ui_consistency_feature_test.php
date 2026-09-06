@@ -152,7 +152,7 @@ expectUiConsistency(
 $titleCaseActions = [
     'src/view_contact.php' => ['Edit Contact'],
     'src/view_organization.php' => ['Edit Organization', '+ New Contact'],
-    'src/view_engagement.php' => ['Send Email', 'Edit Engagement', 'Open Source Inquiry', 'Close Out Event'],
+    'src/view_engagement.php' => ['Send Email', 'Edit Engagement', 'Open Source Inquiry', 'Record Receipts', 'Continue Receipt Draft'],
     'src/tasks.php' => ['Standard Event Tasks', '+ New Task'],
     'src/templates/follow_up_task_section.php' => ['View in Work Queue', 'Add Missing Checklist Tasks'],
 ];

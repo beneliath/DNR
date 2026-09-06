@@ -104,7 +104,7 @@ expectEntityChronFeature(
         && str_contains($viewContact, "fetchEntityChronLogEntries(\n        \$conn,\n        'contact'")
         && str_contains(
             $viewContact,
-            "Communication history for this contact only. Entries are shown newest first. Select 'Edit Contact' to add/edit Chron Log entry."
+            "Communication history for this contact, newest first."
         )
         && is_string($viewOrganization)
         && str_contains($viewOrganization, "fetchEntityChronLogEntries(\n        \$conn,\n        'organization'")

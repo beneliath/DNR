@@ -47,6 +47,27 @@ $usable_address_clause = "COALESCE(
     NULLIF(TRIM(e.event_zipcode), ''),
     NULLIF(TRIM(e.event_country), '')
 ) IS NOT NULL";
+$location_filter = \Dnr\Http\RequestInput::enum($_GET, 'location', ['all', 'needs_address', 'with_address'], 'all');
+if ($location_filter === 'needs_address') {
+    $clauses[] = "NOT ({$usable_address_clause})";
+} elseif ($location_filter === 'with_address') {
+    $clauses[] = $usable_address_clause;
+}
+$map_count_stmt = $conn->prepare('SELECT COUNT(*) AS total FROM engagements e WHERE ' . implode(' AND ', $clauses));
+if ($parameters !== []) {
+    $map_count_stmt->bind_param($parameter_types, ...$parameters);
+}
+$map_count_stmt->execute();
+$map_total = (int) $map_count_stmt->get_result()->fetch_assoc()['total'];
+$map_count_stmt->close();
+$map_pages = max(1, (int) ceil($map_total / $map_event_limit));
+$map_page = min($map_pages, max(1, (int) filter_var($_GET['page'] ?? 1, FILTER_VALIDATE_INT)));
+$map_offset = ($map_page - 1) * $map_event_limit;
+$map_context = array_intersect_key($filters, array_flip(['lifecycle', 'status', 'date_from', 'date_to']));
+$map_context['location'] = $location_filter;
+$map_context['page'] = $map_page;
+$map_return = 'map.php?' . http_build_query($map_context);
+$can_edit_map = in_array((string) ($_SESSION['role'] ?? ''), ['admin', 'editor'], true);
 $engagement_sql = "SELECT
         e.id,
         e.event_title,
@@ -64,9 +85,8 @@ $engagement_sql = "SELECT
     FROM engagements e
     LEFT JOIN organizations o ON o.id = e.organization_id
     WHERE " . implode(' AND ', $clauses) . "
-      AND {$usable_address_clause}
     ORDER BY e.event_start_date ASC, e.id ASC
-    LIMIT " . ($map_event_limit + 1);
+    LIMIT " . ($map_event_limit + 1) . " OFFSET " . $map_offset;
 
 $engagement_stmt = $conn->prepare($engagement_sql);
 if (!$engagement_stmt) {
@@ -97,16 +117,13 @@ while ($row = $engagement_result->fetch_assoc()) {
         break;
     }
     $address = engagementMapAddress($row);
-    if ($address === '') {
-        // The SQL predicate is intentionally permissive; retain this guard in
-        // case address normalization becomes stricter than candidate filtering.
-        continue;
-    }
     $address_hash = engagementMapAddressHash($address);
     $row['_map_address'] = $address;
     $row['_map_address_hash'] = $address_hash;
     $engagement_rows[] = $row;
-    $address_hashes[$address_hash] = true;
+    if ($address !== '') {
+        $address_hashes[$address_hash] = true;
+    }
 }
 $engagement_stmt->close();
 
@@ -170,16 +187,20 @@ $map_events = [];
 $cached_pin_count = 0;
 $pending_geocode_count = 0;
 $not_found_count = 0;
+$page_without_addresses = 0;
 foreach ($engagement_rows as $row) {
     $hash = $row['_map_address_hash'];
     $geocode = $geocodes[$hash] ?? null;
     $has_coordinates = is_array($geocode)
         && $geocode['lookup_status'] === 'found'
         && engagementMapCoordinatesAreValid($geocode['latitude'], $geocode['longitude']);
-    $needs_geocoding = $geocode === null
-        || ($geocode['lookup_status'] === 'found' && !$has_coordinates);
+    $has_address = $row['_map_address'] !== '';
+    $needs_geocoding = $has_address && ($geocode === null
+        || ($geocode['lookup_status'] === 'found' && !$has_coordinates));
 
-    if ($has_coordinates) {
+    if (!$has_address) {
+        $page_without_addresses++;
+    } elseif ($has_coordinates) {
         $cached_pin_count++;
     } elseif ($needs_geocoding) {
         $pending_geocode_count++;
@@ -191,6 +212,7 @@ foreach ($engagement_rows as $row) {
     $event_title = trim((string) ($row['event_title'] ?? ''));
     $map_events[] = [
         'id' => (int) $row['id'],
+        'locationState' => !$has_address ? 'needs_address' : ($has_coordinates ? 'found' : ($needs_geocoding ? 'pending' : 'not_found')),
         'title' => $event_title !== '' ? $event_title : ($organization_name !== '' ? $organization_name : 'Untitled engagement'),
         'organization' => $organization_name,
         'status' => (string) $row['confirmation_status'],
@@ -199,7 +221,7 @@ foreach ($engagement_rows as $row) {
         'lifecycleLabel' => $lifecycle_labels[$row['lifecycle_status']] ?? 'Unknown',
         'dateLabel' => engagementMapDateLabel($row['event_start_date'], $row['event_end_date']),
         'address' => $row['_map_address'],
-        'viewUrl' => 'view_engagement.php?id=' . (int) $row['id'],
+        'viewUrl' => 'view_engagement.php?' . http_build_query(['id' => (int) $row['id'], 'return_to' => $map_return]),
         'latitude' => $has_coordinates ? (float) $geocode['latitude'] : null,
         'longitude' => $has_coordinates ? (float) $geocode['longitude'] : null,
     ];
@@ -210,7 +232,7 @@ $map_payload = [
     'cachedPinCount' => $cached_pin_count,
     'pendingGeocodeCount' => $pending_geocode_count,
     'notFoundCount' => $not_found_count,
-    'withoutAddressCount' => $events_without_addresses,
+    'withoutAddressCount' => $page_without_addresses,
     'resultsTruncated' => $map_results_truncated,
     'mapProvider' => [
         'type' => 'openstreetmap',
@@ -245,7 +267,7 @@ $map_payload = [
     <div class="page-heading map-heading">
         <div>
             <h1>Map</h1>
-            <p class="page-intro">Explore engagement locations by lifecycle, confirmation, and event date. Up to <?php echo $map_event_limit; ?> engagements are shown at once.</p>
+            <p class="page-intro">Explore locations and resolve missing addresses. The map and list show the same <?php echo count($map_events); ?> engagements on this page.</p>
         </div>
     </div>
 
@@ -284,6 +306,10 @@ $map_payload = [
                 <input type="date" name="date_to" id="map-date-to" value="<?php echo htmlspecialchars($filters['date_to'], ENT_QUOTES, 'UTF-8'); ?>">
             </div>
         </fieldset>
+        <div class="map-filter-field">
+            <label for="map-location">Location</label>
+            <select name="location" id="map-location"><option value="all"<?php echo $location_filter === 'all' ? ' selected' : ''; ?>>All locations</option><option value="needs_address"<?php echo $location_filter === 'needs_address' ? ' selected' : ''; ?>>Needs address</option><option value="with_address"<?php echo $location_filter === 'with_address' ? ' selected' : ''; ?>>Has an address</option></select>
+        </div>
         <div class="map-filter-actions">
             <button type="submit" class="button-add">Apply Filters</button>
             <a href="map.php" class="button-secondary map-clear-button">Clear</a>
@@ -298,14 +324,40 @@ $map_payload = [
             </div>
             <button type="button" id="fit-map-pins" class="button-secondary">Fit visible pins</button>
         </div>
-        <div class="map-legend" aria-label="Engagement status colors">
+        <div class="map-legend" aria-label="Pin colors show confirmation; pin outlines show lifecycle">
             <span><i class="map-legend-dot status-work-in-progress-pin" aria-hidden="true"></i>Work in progress</span>
             <span><i class="map-legend-dot status-under-review-pin" aria-hidden="true"></i>Under review</span>
             <span><i class="map-legend-dot status-confirmed-pin" aria-hidden="true"></i>Confirmed</span>
         </div>
+        <p class="map-lifecycle-key">Pin color shows confirmation · Solid outline: active · Dashed: postponed · ×: canceled · ✓: completed</p>
         <div id="engagement-map" class="engagement-map" aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
         <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a background worker, cached, and added to the open map automatically.</p>
+    </section>
+
+    <section class="map-location-list" aria-labelledby="location-list-heading">
+        <div class="map-list-heading"><div><h2 id="location-list-heading">Locations to Review</h2><p><?php echo $map_total; ?> matching engagements · Page <?php echo $map_page; ?> of <?php echo $map_pages; ?></p></div>
+        <a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['location' => 'needs_address', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>#location-list-heading">Find missing addresses</a></div>
+        <nav class="map-list-filters" aria-label="Locations on this page">
+            <button type="button" data-location-filter="all" aria-pressed="true">All on this page <span data-location-count="all"><?php echo count($map_events); ?></span></button>
+            <?php foreach (['found' => 'On map', 'needs_address' => 'Needs address', 'pending' => 'Awaiting lookup', 'not_found' => 'Not located'] as $key => $label): ?>
+            <button type="button" data-location-filter="<?php echo $key; ?>" aria-pressed="false"><?php echo $label; ?> <span data-location-count="<?php echo $key; ?>"><?php echo count(array_filter($map_events, static fn ($event) => $event['locationState'] === $key)); ?></span></button>
+            <?php endforeach; ?>
+        </nav>
+        <ul class="map-location-rows">
+            <?php foreach ($map_events as $event): ?>
+            <li data-location-id="<?php echo $event['id']; ?>" data-location-state="<?php echo $event['locationState']; ?>">
+                <div><a href="<?php echo htmlspecialchars($event['viewUrl'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['title'], ENT_QUOTES, 'UTF-8'); ?></a><span><?php echo htmlspecialchars($event['dateLabel'] . ' · ' . $event['lifecycleLabel'] . ' · ' . $event['statusLabel'], ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo htmlspecialchars($event['address'] ?: 'No event address recorded', ENT_QUOTES, 'UTF-8'); ?></span></div>
+                <div><strong data-location-label><?php echo ['found' => 'On map', 'needs_address' => 'Needs address', 'pending' => 'Awaiting lookup', 'not_found' => 'Address not located'][$event['locationState']]; ?></strong>
+                <?php if ($can_edit_map): ?><a class="button-secondary" href="<?php echo htmlspecialchars('edit_engagement.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>">Edit location</a><?php endif; ?></div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <p id="map-list-empty"<?php echo $map_events !== [] ? ' hidden' : ''; ?> role="status">No engagements match this location view</p>
+        <nav class="map-pagination" aria-label="Map pages">
+        <?php if ($map_page > 1): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['page' => $map_page - 1])), ENT_QUOTES, 'UTF-8'); ?>">Previous</a><?php endif; ?>
+        <?php if ($map_page < $map_pages): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['page' => $map_page + 1])), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+        </nav>
     </section>
 </main>
 
@@ -313,6 +365,7 @@ $map_payload = [
     $map_payload,
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
+<?php renderScript('assets/js/map-list.min.js'); ?>
 <?php renderScript('assets/js/map.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>

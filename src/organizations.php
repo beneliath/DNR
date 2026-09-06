@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'two_factor_helpers.php';
@@ -69,7 +70,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : 'Unable to update the organization. Please try again.';
     }
 
-    header('Location: organizations.php?' . http_build_query(['status' => $list_status]));
+    header('Location: ' . safeRecordReturnUrl($_POST['return_to'] ?? null, 'organizations.php?' . http_build_query(['status' => $list_status])));
     exit();
 }
 
@@ -228,6 +229,12 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
     }
     return 'organizations.php?' . http_build_query($parameters);
 }
+$list_current_url = recordCurrentUrl('organizations.php');
+$list_cursor_trail = recordCursorTrail($_GET['history'] ?? null);
+$list_previous_trail = $list_cursor_trail;
+$list_previous_cursor = array_pop($list_previous_trail);
+$list_previous_url = recordUrlWithQuery($list_current_url, ['cursor' => $list_previous_cursor, 'history' => recordEncodedCursorTrail($list_previous_trail)]);
+$list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor, 'history' => recordEncodedCursorTrail(array_merge($list_cursor_trail, [is_string($_GET['cursor'] ?? null) ? $_GET['cursor'] : '']))]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -302,7 +309,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
             <?php endif; ?>
             <?php foreach ($organizations as $org): ?>
                 <tr>
-                    <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
+                    <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
                     <td>
                         <?php
                         $address_parts = [];
@@ -318,14 +325,15 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                     <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_giving']); ?></strong></td>
                     <td>
                         <div class="action-buttons">
-                            <a href="view_organization.php?id=<?php echo $org['id']; ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                            <a href="view_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&from=list" class="action-button action-icon-button edit-button" aria-label="Edit organization" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit organization" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
                                     <form method="post" action="organizations.php">
                                         <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="archived">
                                         <input type="hidden" name="action" value="restore">
@@ -334,6 +342,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                                 <?php else: ?>
                                     <form method="post" action="organizations.php">
                                         <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="active">
                                         <input type="hidden" name="action" value="archive">
@@ -346,6 +355,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                                       data-delete-confirmation="Permanently delete this organization and all of its contacts and events?"
                                       <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                     <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                     <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                     <input type="hidden" name="action" value="delete">
@@ -368,10 +378,10 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
                        <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
                 <?php endforeach; ?>
             </div>
-            <span class="pagination-status">Showing up to <?php echo $page_size; ?> organizations</span>
+            <span class="pagination-status">Showing <?php echo count($organizations); ?> organizations</span>
             <div class="pagination-actions">
-                <?php if ($cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-                <?php if ($next_cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, $next_cursor, $page_size), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
+                <?php if ($cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars($list_previous_url, ENT_QUOTES, 'UTF-8'); ?>">Previous</a><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
+                <?php if ($next_cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars($list_next_url, ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
             </div>
         </nav>
     <?php endif; ?>

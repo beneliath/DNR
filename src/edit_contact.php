@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 include 'contact_photo_helpers.php';
 include 'chron_log_helpers.php';
@@ -13,6 +14,7 @@ if ($user_role !== 'admin' && $user_role !== 'editor') {
 }
 
 $contact_id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+$record_edit_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, 'contacts.php');
 if (!$contact_id) {
     header('Location: contacts.php');
     exit();
@@ -89,7 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
             ? $exception->getMessage()
             : 'Unable to update the Chron log. Please try again.';
     }
-    header('Location: edit_contact.php?id=' . $contact_id . '#chron-log');
+    header('Location: ' . recordUrlWithQuery('edit_contact.php?id=' . $contact_id, ['return_to' => $record_edit_return]) . '#chron-log');
     exit();
 }
 
@@ -337,7 +339,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
             $conn->commit();
             $_SESSION['success_message'] = 'Contact updated successfully.';
-            header("Location: view_contact.php?id={$contact_id}");
+            header('Location: ' . $record_edit_return);
             exit();
         } catch (Throwable $exception) {
             $conn->rollback();
@@ -392,9 +394,7 @@ if (!$organizations_result) {
     abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
 }
 
-$cancel_url = ($_GET['from'] ?? '') === 'view'
-    ? "view_contact.php?id={$contact_id}"
-    : 'contacts.php';
+$cancel_url = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, ($_GET['from'] ?? '') === 'view' ? 'view_contact.php?id=' . $contact_id : 'contacts.php');
 $contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
 $chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
 $chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
@@ -429,9 +429,10 @@ try {
 <?php renderPageHead(applicationPageTitle('Edit Contact'), array (
   'styles' =>
   array (
-    0 => 'assets/css/style.min.css',
-    1 => 'assets/css/modern.min.css',
-    2 => 'assets/css/pages/edit_contact.min.css',
+    'assets/css/style.min.css',
+    'assets/css/modern.min.css',
+    'assets/css/pages/record_workspace.min.css',
+    'assets/css/pages/edit_contact.min.css',
   ),
   'scripts' =>
   array (
@@ -448,10 +449,7 @@ try {
     <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
 
     <?php if ($error_messages): ?>
-        <p class="error"><?php echo implode(
-            '<br>',
-            array_map(fn($message) => htmlspecialchars($message, ENT_QUOTES, 'UTF-8'), $error_messages)
-        ); ?></p>
+        <?php echo formErrorSummary($error_messages); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
@@ -462,6 +460,7 @@ try {
 
     <form id="contact-edit-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
@@ -507,10 +506,6 @@ try {
                 <label for="contact_email" class="required">Email</label>
                 <input type="email" name="contact_email" id="contact_email" required value="<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
             </div>
-            <div class="form-group">
-                <label for="contact_email_confirm" class="required">Confirm Email</label>
-                <input type="email" name="contact_email_confirm" id="contact_email_confirm" required value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? $contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>">
-            </div>
         </div>
 
         <div class="contact-phone-birthday-row">
@@ -555,7 +550,7 @@ try {
     <?php
     $chron_entity_label = 'contact';
     $chron_edit_form_id = 'contact-edit-form';
-    $chron_edit_url = 'edit_contact.php?id=' . $contact_id;
+    $chron_edit_url = recordUrlWithQuery('edit_contact.php?id=' . $contact_id, ['return_to' => $record_edit_return]);
     $chron_restore_url = 'restore_entity_chron_entries.php?entity_type=contact&entity_id=' . $contact_id;
     include 'templates/entity_chron_log_edit_section.php';
     ?>
@@ -566,6 +561,7 @@ try {
     </div>
 </div>
 
+<?php renderScript('assets/js/record-workspace.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

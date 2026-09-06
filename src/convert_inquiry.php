@@ -41,18 +41,9 @@ $conflicts = $readiness['dates'] ? bookingInquiryDateConflicts(
     $inquiryId
 ) : [];
 $tasks = fetchFollowUpTasksForSubject($conn, 'inquiry', $inquiryId);
-$selectedTaskIds = [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_array($_POST['task_ids'] ?? null)) {
-    foreach ($_POST['task_ids'] as $taskId) {
-        if (is_scalar($taskId) && ctype_digit((string) $taskId)) {
-            $selectedTaskIds[(int) $taskId] = true;
-        }
-    }
-} else {
-    foreach ($tasks as $task) {
-        $selectedTaskIds[(int) $task['id']] = true;
-    }
-}
+$selectedTaskIds = array_fill_keys(bookingInquirySelectedTaskIds($tasks, $_POST, $_SERVER['REQUEST_METHOD'] === 'POST'), true);
+$nextActionDecision = is_scalar($_POST['next_action_decision'] ?? null) ? (string) $_POST['next_action_decision'] : '';
+$nextActionReason = is_scalar($_POST['next_action_reason'] ?? null) ? (string) $_POST['next_action_reason'] : '';
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['convert_inquiry'])) {
     requireValidCsrfToken();
@@ -67,14 +58,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['convert_inquiry'])) {
             isset($_POST['acknowledge_conflicts']),
             array_keys($selectedTaskIds),
             (int) $_SESSION['user_id'],
-            (string) $_SESSION['username']
+            (string) $_SESSION['username'],
+            $nextActionDecision,
+            $nextActionReason
         );
         $_SESSION['engagement_action_message'] = 'Inquiry #' . $inquiryId
             . ' was booked and preserved as the source record. '
             . $result['moved_task_count'] . ' open task'
             . ($result['moved_task_count'] === 1 ? ' was' : 's were') . ' moved; '
             . $result['checklist_count'] . ' standard task'
-            . ($result['checklist_count'] === 1 ? ' was' : 's were') . ' added.';
+            . ($result['checklist_count'] === 1 ? ' was' : 's were') . ' added.'
+            . (!empty($result['next_action_task_id']) ? ' The next action was carried forward as a task.' : ($nextActionDecision === 'resolved' ? ' The next action resolution was recorded.' : ''));
         header('Location: view_engagement.php?id=' . $result['engagement_id']);
         exit();
     } catch (Throwable $exception) {
@@ -114,6 +108,15 @@ $eventLocation = trim(implode(', ', array_filter([
         <div class="conversion-review-layout">
             <section class="conversion-review-card conversion-details-card"><h2>Engagement Details</h2><dl><div><dt>Organization</dt><dd><?php echo htmlspecialchars((string) (bookingInquiryDisplayLabel($inquiry['organization_name']) ?: 'Missing'), ENT_QUOTES, 'UTF-8'); ?></dd></div><div><dt>Event Title</dt><dd><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></dd></div><div><dt>Start</dt><dd><?php echo htmlspecialchars(bookingInquirySingleDateLabel($inquiry['preferred_start_date']), ENT_QUOTES, 'UTF-8'); ?></dd></div><div><dt>End</dt><dd><?php echo htmlspecialchars(bookingInquirySingleDateLabel($inquiry['preferred_end_date']), ENT_QUOTES, 'UTF-8'); ?></dd></div><div><dt>Event Type</dt><dd><?php echo htmlspecialchars($inquiry['event_type'] === 'other' ? (string) $inquiry['event_type_other'] : ucwords($inquiry['event_type']), ENT_QUOTES, 'UTF-8'); ?></dd></div><div><dt>Caller / Owner</dt><dd><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: $_SESSION['username']), ENT_QUOTES, 'UTF-8'); ?></dd></div></dl>
                 <div class="conversion-host-card"><span class="inquiry-owner-avatar" aria-hidden="true"><?php echo htmlspecialchars(bookingInquiryInitials($inquiry['contact_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span><div><strong><?php echo htmlspecialchars((string) ($inquiry['contact_name'] ?: 'No primary host selected'), ENT_QUOTES, 'UTF-8'); ?></strong><span><?php echo $readiness['contact'] ? 'Primary host' : 'Follow-up required'; ?></span></div></div>
+                <?php if (trim((string) ($inquiry['next_action'] ?? '')) !== ''): ?>
+                <fieldset class="conversion-next-action"><legend>Reconcile the inquiry next action</legend>
+                    <p><strong><?php echo htmlspecialchars($inquiry['next_action'], ENT_QUOTES, 'UTF-8'); ?></strong> · Due <?php echo htmlspecialchars(bookingInquirySingleDateLabel($inquiry['next_action_due_date'] ?? null, 'date not set'), ENT_QUOTES, 'UTF-8'); ?></p>
+                    <label><input type="radio" name="next_action_decision" value="carry_forward" required<?php echo $nextActionDecision === 'carry_forward' ? ' checked' : ''; ?>> Carry forward as an engagement task</label>
+                    <label><input type="radio" name="next_action_decision" value="resolved" required<?php echo $nextActionDecision === 'resolved' ? ' checked' : ''; ?>> Resolve at booking</label>
+                    <label for="next-action-reason">Resolution reason if resolving</label><textarea name="next_action_reason" id="next-action-reason" rows="2" maxlength="1000"><?php echo htmlspecialchars($nextActionReason, ENT_QUOTES, 'UTF-8'); ?></textarea>
+                    <p>The action and your decision are retained in the inquiry history and engagement Activity.</p>
+                </fieldset>
+                <?php endif; ?>
                 <details class="conversion-task-section"<?php echo $tasks !== [] ? ' open' : ''; ?>><summary>Open Work Moving With the Engagement <span><?php echo count($tasks); ?></span></summary><p>Selected tasks will move to the Engagement. Unselected tasks remain linked to the source Inquiry for follow-up.</p><div class="conversion-task-list"><?php foreach ($tasks as $task): ?><label><input type="checkbox" name="task_ids[]" value="<?php echo (int) $task['id']; ?>"<?php echo isset($selectedTaskIds[(int) $task['id']]) ? ' checked' : ''; ?>><span><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars(bookingInquirySingleDateLabel($task['due_date'] ?? null, 'No due date') . ' · ' . ($task['assignee_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></small></span></label><?php endforeach; ?><?php if ($tasks === []): ?><p class="empty-state">There are no active Inquiry tasks to move. The standard event checklist will still be created.</p><?php endif; ?></div></details>
                 <p class="conversion-preservation-note"><span aria-hidden="true">✓</span>Inquiry activity, correspondence, stage history, and remaining tasks stay linked as read-only history.</p>
             </section>
@@ -125,9 +128,10 @@ $eventLocation = trim(implode(', ', array_filter([
                 <?php if ($conflicts !== []): ?><div class="conversion-success-panel"><span aria-hidden="true">✓</span><div><strong>Required booking details are present</strong><p>The conversion can proceed after the warning is acknowledged.</p></div></div><?php endif; ?>
             </section>
         </div>
-        <div class="conversion-actions"><a href="view_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-secondary conversion-back-action">‹ Back to Inquiry</a><p><span aria-hidden="true">ⓘ</span>Conversion preserves the original inquiry as read-only history.</p><button type="submit" name="convert_inquiry" value="1" class="save-button inquiry-primary-action"<?php echo $blocking ? ' disabled' : ''; ?> data-confirm="Create the engagement and mark this inquiry Booked?">Create Engagement</button></div>
+        <div class="conversion-actions"><a href="view_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-secondary conversion-back-action">‹ Back to Inquiry</a><p><span aria-hidden="true">ⓘ</span>Conversion preserves the original inquiry as read-only history.</p><button type="submit" name="convert_inquiry" value="1" class="save-button inquiry-primary-action"<?php echo $blocking ? ' disabled' : ''; ?> data-confirm="Create the engagement and mark this inquiry Booked?">Book engagement · move <span data-conversion-task-count><?php echo count($selectedTaskIds); ?></span> tasks</button></div>
     </form>
 </main>
+<?php renderScript('assets/js/inquiry-workflow.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

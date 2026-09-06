@@ -23,6 +23,19 @@ function followUpTaskPriorities()
     ];
 }
 
+/** Keep old deep links working while ownership is independent from due/status filters. */
+function followUpTaskQueueState(array $input, bool $hasSubject = false): array
+{
+    $view = is_scalar($input['view'] ?? null) ? (string) $input['view'] : '';
+    $scope = is_scalar($input['scope'] ?? null) ? (string) $input['scope'] : '';
+    if (!in_array($scope, ['mine', 'everyone', 'unassigned'], true)) {
+        $scope = ($input['owner'] ?? '') === 'me' || $view === 'my' ? 'mine'
+            : ($view === 'unassigned' ? 'unassigned' : ($view !== '' || $hasSubject ? 'everyone' : 'mine'));
+    }
+    if (!in_array($view, ['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed'], true)) $view = 'all';
+    return ['scope' => $scope, 'view' => $view];
+}
+
 function followUpTaskQueueViews()
 {
     $upcomingDays = applicationWorkflowSetting('task_upcoming_days');
@@ -660,6 +673,7 @@ function safeFollowUpTaskReturnUrl($value, $fallback = 'tasks.php')
         'view_contact.php',
         'view_inquiry.php',
         'view_calendar.php',
+        'close_engagement.php',
     ];
     if (!in_array($path, $allowed_pages, true)) {
         return $fallback;

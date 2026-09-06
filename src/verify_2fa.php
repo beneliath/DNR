@@ -112,7 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <h1>Verification</h1>
         <?php if (isset($error)): ?>
-            <p class="error"><?php echo htmlspecialchars($error); ?></p>
+            <?php echo formErrorSummary($error); ?>
         <?php endif; ?>
         <p class="login-help">Enter the six-digit code from your authenticator app or one unused recovery code.</p>
         <form method="post" action="verify_2fa.php">

@@ -139,7 +139,7 @@ expectBookingInquiryFeature(
         && str_contains($board, 'next_action_due_date')
         && str_contains($board, "'missing_action'")
         && str_contains($board, '<option value="">All</option>')
-        && str_contains($board, "['new', 'contacted', 'awaiting_details', 'proposal_sent', 'booked']")
+        && str_contains($board, "['new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent', 'booked']")
         && str_contains($board, '$displayCounts = array_map(')
         && str_contains($board, 'static fn(array $stageInquiries): int => count($stageInquiries)')
         && str_contains($board, '$displayCounts[$stage]')

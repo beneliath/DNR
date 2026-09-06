@@ -58,7 +58,7 @@ $manual_access_summary = match ($manual_role) {
             <a href="#booking-pipeline"><span>01</span><strong>Qualify an Inquiry</strong><small>Stages, next actions, booking</small></a>
             <a href="#engagements"><span>02</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
             <a href="#work-queue"><span>03</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
-            <a href="#chron-mail"><span>04</span><strong>Build the Chron</strong><small>Notes and tracked email</small></a>
+            <a href="#chron-mail"><span>04</span><strong>Build the Chron</strong><small>Chron Log Entries and tracked email</small></a>
         </nav>
     </section>
 
@@ -199,12 +199,12 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Scan</span>
                         <h3>Daily Summary</h3>
-                        <p>The top cards link to engagements in the next <?php echo $manual_dashboard_days; ?> days, your active and overdue work, active inquiries owned by you or unassigned, open financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
+                        <p>The compact top cards distinguish all active work from your own active and overdue work. Shared counts link to the booking pipeline, financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Act</span>
                         <h3>Primary Panels</h3>
-                        <p><strong>Upcoming Engagements</strong> shows the next active events and any missing details. <strong>My Work</strong> orders assigned tasks by urgency and due date. <strong>Inquiry Next Actions</strong> surfaces opportunities that need movement.</p>
+                        <p><strong>My Work</strong> leads with assigned tasks by urgency and due date, alongside <strong>Upcoming Engagements</strong>. Open the <strong>Booking pipeline</strong> disclosure below Needs Attention for inquiry next actions and pipeline health.</p>
                         <p>My Work and Inquiry Next Actions show a short due date with a second line such as <strong>1 day overdue</strong>, <strong>Due today</strong>, or <strong>Upcoming</strong>. Items more than 3 days overdue pulse red in a repeating cascade to draw your attention. For inquiries, this is based on the next-action due date.</p>
                     </article>
                     <article class="manual-card">
@@ -240,7 +240,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>02</span><section><strong>Assign the next action.</strong><p>Choose an owner and priority, then state the concrete next step and its due date. The pipeline cards and Dashboard emphasize this action.</p></section></li>
                         <li><span>03</span><section><strong>Move the stage.</strong><p>Use <strong>New → Contacted → Qualified → Awaiting Details → Proposal Sent</strong> as the normal path. Move backward when the facts warrant it. Declining requires a reason and can be reopened later.</p></section></li>
                         <li><span>04</span><section><strong>Keep the history together.</strong><p>Open the Inquiry and use the <strong>Activity</strong>, <strong>Correspondence</strong>, and <strong>Tasks</strong> tabs to keep decisions, email, and follow-up work together. Open a message from Correspondence to review delivery or retry a failed delivery while the Inquiry is active.</p></section></li>
-                        <li><span>05</span><section><strong>Review the booking.</strong><p>Select <strong>Convert to Engagement</strong> when the request is ready. Check the imported engagement details, availability warnings, and which open tasks should move. Warnings require acknowledgement but remain a deliberate, auditable decision.</p></section></li>
+                        <li><span>05</span><section><strong>Review the booking.</strong><p>Select <strong>Convert to Engagement</strong> when the request is ready. Check the imported engagement details, availability warnings, and which open tasks should move. Clearing every task checkbox moves none. If a next action remains, explicitly carry it forward as a task or resolve it with a reason; the original action and your decision remain in history. Warnings require acknowledgement but remain a deliberate, auditable decision.</p></section></li>
                         <li><span>06</span><section><strong>Continue in the Engagement.</strong><p>Conversion creates the Engagement, assigns the Inquiry’s primary contact as Primary Host when available, moves selected work, and adds the standard event checklist. Replies to earlier Inquiry correspondence continue into the converted Engagement.</p></section></li>
                     </ol>
                 </section>
@@ -248,7 +248,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-three">
                     <article class="manual-card"><span class="manual-kicker">Triage</span><h3>Filter the Board</h3><p>Search request text, organizations, contacts, and locations. Narrow the board to your inquiries, unassigned work, or a priority level. Booked and Declined records have their own views.</p></article>
                     <article class="manual-card"><span class="manual-kicker">Communicate</span><h3>Use the Starting Templates</h3><p>Initial response, request details, date options, and proposal follow-up templates are editable before sending. Sent messages appear in Correspondence and Chron with delivery status.</p></article>
-                    <article class="manual-card"><span class="manual-kicker">Protect History</span><h3>Keep the Source Record</h3><p>Do not copy pre-booking notes by hand. The booked Inquiry retains its source email, stage history, Chron, correspondence, and any work not moved to the Engagement. Resolve or reassign active Inquiries before archiving their Contact or Organization.</p></article>
+                    <article class="manual-card"><span class="manual-kicker">Protect History</span><h3>Keep the Source Record</h3><p>Do not copy pre-booking Chron Log Entries by hand. The booked Inquiry retains its source email, stage history, Chron, correspondence, and any work not moved to the Engagement. Resolve or reassign active Inquiries before archiving their Contact or Organization.</p></article>
                 </section>
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
@@ -353,7 +353,7 @@ $manual_access_summary = match ($manual_role) {
                         <article class="manual-card"><h4>Copy MD</h4><p>Copies a Markdown-formatted brief for systems that support structured text.</p></article>
                         <article class="manual-card"><h4>Download PDF</h4><p>Downloads a graphically branded event summary with its active follow-up work for sharing or offline reference. Overdue and due-today work uses the same labeled color treatment and semantic edge as the Work Queue.</p></article>
                     </section>
-                    <p>After the event, editors and administrators can open <strong>Financial Closeout</strong> and enter the actual giving/income, lodging, and travel received. Enter zero where nothing was received. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
+                    <p>Editors and administrators can use <strong>Financial Closeout</strong> to save a receipt draft while work is still pending. Leave unknown amounts blank; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; canceled tasks still block until truthfully resolved, while later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
@@ -375,13 +375,13 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Organization</span>
                         <h3>Relationship Record</h3>
                         <p>Store the organization name, notes, affiliation, distinctives, website, phone, fax, and physical and mailing addresses. You can use one address for both or maintain them separately.</p>
-                        <p>A new organization can create its first contact at the same time, and can add more contacts before saving.</p>
+                        <p>Only the organization name is required; add address and relationship details when known. A new organization can create its first contact at the same time, and can add more contacts before saving.</p>
                         <?php if ($manual_can_manage): ?><a href="add_organization.php" class="manual-inline-link">Add an organization</a><?php endif; ?>
                     </article>
                     <article class="manual-definition-panel">
                         <span class="manual-kicker">Contact</span>
                         <h3>Person Record</h3>
-                        <p>Store first and last name, optional organization, organization role, email entered twice to prevent mistyping, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization.</p>
+                        <p>Store first and last name, optional organization, organization role, email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization. Use Create Organization in the contact form to add a missing organization without losing the contact details or selected photo.</p>
                         <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Event-specific roles are assigned separately on each engagement.</p>
                         <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a contact</a><?php endif; ?>
                     </article>
@@ -430,11 +430,11 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>My Reminders</h3>
-                        <p>The reminder strip counts your overdue, due-today, next <?php echo $manual_task_days; ?> days, and waiting tasks. Editors and administrators also see financial closeouts. The sidebar badge is the combined reminder count.</p>
+                        <p>The sidebar badge and Dashboard personal cards always count your own reminders. In the queue, choose Mine, Everyone, or Unassigned; every queue summary count uses that same ownership scope, search, and related-record filter.</p>
                     </article>
                     <article class="manual-card">
                         <h3>Queue Views</h3>
-                        <p>Use My Active Work, Overdue, Due Today, Next <?php echo $manual_task_days; ?> Days, Waiting, Unassigned, Completed, or All Active. The Dashboard’s My Overdue Work card opens Overdue limited to your assignments. Search matches task content, related records, and assignees.</p>
+                        <p>Choose an ownership scope, then filter Active, Overdue, Due Today, Next <?php echo $manual_task_days; ?> Days, Waiting, or Completed. The Dashboard’s My Overdue Work card opens Overdue limited to your assignments. Search matches task content, related records, and assignees.</p>
                     </article>
                 </section>
 
@@ -500,13 +500,13 @@ $manual_access_summary = match ($manual_role) {
                 <header class="manual-chapter-heading">
                     <span>Chapter 08</span>
                     <h2>Chron and Email</h2>
-                    <p>Chron is the durable communication history. Add concise human notes directly, send tracked engagement correspondence, or route copied inbound email into the relevant records.</p>
+                    <p>Chron is the durable communication history. Add concise Chron Log Entries directly, send tracked engagement correspondence, or route copied inbound email into the relevant records.</p>
                 </header>
 
                 <section class="manual-subsection">
                     <h3>Use the Chron Log</h3>
                     <ul class="manual-check-list">
-                        <li>Contact Chron records communication with that person only; Organization Chron records organization-level history; Engagement Chron records event-specific planning.</li>
+                        <li>Use <strong>Add Chron Log Entry</strong> on an inquiry, engagement, organization, or contact to save activity without editing the full record. Contact Chron records communication with that person only; Organization Chron records organization-level history; Engagement Chron records event-specific planning.</li>
                         <li>Entries show created time and author, newest first. Edited entries also show the last update time and editor.</li>
                         <li>Editors and administrators add, edit, and archive entries from the record’s edit page. Administrators can permanently delete them.</li>
                         <li>Restore archived entries in batches from the Restore page. An archived parent record must be active before its Chron can be restored.</li>
@@ -547,7 +547,7 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Review the Inbound Queue</h3>
                     <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Without a valid signed marker, every message requires review. Unknown or ambiguous senders, shared addresses, messages with no unique target, and invalid, conflicting, unknown, or archived engagement markers also require review.</p>
                     <ol class="manual-steps manual-steps-compact">
-                        <li><span>01</span><section><strong>Inspect the source.</strong><p>Read the From, To, Cc, dates, attachment names, plain-text body, sender classification, suggested routes, and review reasons.</p></section></li>
+                        <li><span>01</span><section><strong>Inspect the source.</strong><p>Read the message before choosing its destinations. Search by subject, sender, or content; use Previous and Next to reach every result. Needs review starts oldest first. Open Routing details for classification and diagnostic reasons.</p></section></li>
                         <li><span>02</span><section><strong>Correct the targets.</strong><p>Select suggested Contact and Organization routes. Search any active engagement by marker, ID, title, or organization.</p></section></li>
                         <li><span>03</span><section><strong>Choose an outcome.</strong><p><strong>Approve selected routes</strong> writes Chron; <strong>Retry automatic routing</strong> checks again after record corrections; <strong>Reject</strong> preserves the source without changing Chron.</p></section></li>
                     </ol>
@@ -571,8 +571,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Explore</span>
                         <h3>Engagement Map</h3>
-                        <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation; select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
-                        <p>Use <strong>Fit visible pins</strong> after filtering. A new or changed location may take time to appear; if it is missing, verify the address and current filters, then revisit the map.</p>
+                        <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation, with lifecycle shown by the outline or symbol. Select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
+                        <p>Use <strong>Fit visible pins</strong> after filtering. The companion list includes On map, Needs address, Awaiting lookup, and Not located views for the current page, with Edit location links. Find missing addresses searches the selected date and lifecycle scope; Previous and Next reach additional pages. A new address may take time to resolve.</p>
                         <a href="map.php" class="manual-inline-link">Open the map</a>
                     </article>
                     <article class="manual-card">
@@ -619,7 +619,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>Profile and Notifications</h3>
-                        <p>Add your name, phone, email, and optional profile picture. Changing email clears its verified state and pauses the daily digest until the new address is verified.</p>
+                        <p>Add your name, phone, email, and optional profile picture. Changing email clears its verified state and pauses the daily digest until the new address is verified. Resending verification preserves the profile draft and chosen photo; disabled digest schedules do not require a delivery time or day.</p>
                         <p>A verified email enables password recovery and a Dashboard-style Daily Digest of upcoming engagements, My Work, event readiness, and financial closeouts. Overdue and due-today tasks are highlighted, and editor/admin digests also include inbound mail awaiting review. The digest defaults to enabled on weekdays at 7:00 a.m.; disable it or choose a different time and set of days at any time.</p>
                         <a href="profile.php" class="manual-inline-link">Open My Profile</a>
                     </article>
