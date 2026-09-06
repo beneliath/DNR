@@ -56,6 +56,7 @@ unset($_SESSION['record_note_message']);
 
 $can_manage_engagement = !$is_archived && in_array($user_role, ['admin', 'editor'], true);
 $chron_view_query = ['id' => $engagement_id, 'return_to' => $record_list_return];
+$chron_view_query['chron_per_page'] = paginationPageSizePreference('view_engagement_chron', $_GET['chron_per_page'] ?? null, 50);
 $requested_chron_page = \Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page');
 if ($requested_chron_page !== null && $requested_chron_page > 1) {
     $chron_view_query['chron_page'] = $requested_chron_page;
@@ -213,11 +214,11 @@ try {
 }
 
 try {
-    $chron_page_size = 50;
+    $chron_page_size = $chron_view_query['chron_per_page'];
     $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
     $chron_page = min(
-        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        (\Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page') ?? 1),
         $chron_total_pages
     );
     $chron_entries = fetchChronLogEntries(
@@ -392,6 +393,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             </div>
         <?php endif; ?>
         <?php include __DIR__ . '/templates/record_add_note.php'; ?>
+        <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, ($record_view_url) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
         <div class="chron-entry-list">
             <?php foreach ($chron_entries as $chron_entry): ?>
                 <?php
@@ -456,15 +458,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <p class="chron-empty-state">No Chron Log Entries have been added yet.</p>
             <?php endif; ?>
         </div>
-        <?php if ($chron_total_pages > 1): ?>
-            <nav class="pagination" aria-label="Chron log pages">
-                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
-                <div class="pagination-actions">
-                    <?php if ($chron_page > 1): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery($record_view_url, ['chron_page' => $chron_page - 1]) . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>">Newer</a><?php endif; ?>
-                    <?php if ($chron_page < $chron_total_pages): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery($record_view_url, ['chron_page' => $chron_page + 1]) . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>">Older</a><?php endif; ?>
-                </div>
-            </nav>
-        <?php endif; ?>
+        <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, ($record_view_url) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
         <?php if ($can_manage_engagement): ?>
         <?php endif; ?>
     </section>

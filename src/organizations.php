@@ -90,8 +90,7 @@ $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
-$page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
+$page_size = paginationPageSizePreference('organizations', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['name', 'id']
@@ -129,36 +128,28 @@ if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
 } else {
     $cursor = null;
 }
-$query_limit = $page_size + 1;
+$query_limit = $page_size;
+$organization_from = "FROM organizations o WHERE o.is_deleted = {$archive_value}{$search_filter}";
+$search_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
+$pagination = queryPagination($conn, $organization_from, $fulltext_query !== '' ? 'ss' : '', $search_values, $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
+$current_page = $pagination['page'];
+$page_offset = $pagination['offset'];
 
 $query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
                  '' AS contact_names
-          FROM organizations o
-          WHERE o.is_deleted = {$archive_value}{$search_filter}{$cursor_filter}
+          {$organization_from}
           ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
-          LIMIT ?";
+          LIMIT ? OFFSET ?";
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
-$query_types = ($fulltext_query !== '' ? 'ss' : '') . $cursor_types . 'i';
-$query_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
-$query_values = array_merge($query_values, $cursor_values, [$query_limit]);
+$query_types = ($fulltext_query !== '' ? 'ss' : '') . 'ii';
+$query_values = array_merge($search_values, [$query_limit, $page_offset]);
 $query_bind = [$query_types];
 foreach ($query_values as &$query_value) $query_bind[] = &$query_value;
 unset($query_value);
 $query_stmt->bind_param(...$query_bind);
 $query_stmt->execute();
 $organizations = $query_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$has_more_organizations = count($organizations) > $page_size;
-if ($has_more_organizations) array_pop($organizations);
-$next_cursor = null;
-if ($has_more_organizations && $organizations !== []) {
-    $last_organization = $organizations[array_key_last($organizations)];
-    $next_cursor = encodePaginationCursor([
-        'name' => (string) $last_organization['organization_name'],
-        'id' => (int) $last_organization['id'],
-    ]);
-}
-
 if ($organizations !== []) {
     $organization_ids = array_map(static fn($row) => (int) $row['id'], $organizations);
     $placeholders = implode(', ', array_fill(0, count($organization_ids), '?'));
@@ -232,12 +223,7 @@ function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null,
     }
     return 'organizations.php?' . http_build_query($parameters);
 }
-$list_current_url = recordCurrentUrl('organizations.php');
-$list_cursor_trail = recordCursorTrail($_GET['history'] ?? null);
-$list_previous_trail = $list_cursor_trail;
-$list_previous_cursor = array_pop($list_previous_trail);
-$list_previous_url = recordUrlWithQuery($list_current_url, ['cursor' => $list_previous_cursor, 'history' => recordEncodedCursorTrail($list_previous_trail)]);
-$list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor, 'history' => recordEncodedCursorTrail(array_merge($list_cursor_trail, [is_string($_GET['cursor'] ?? null) ? $_GET['cursor'] : '']))]);
+$list_current_url = paginationUrl(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), $current_page, $page_size);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -295,6 +281,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
         <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
     <table class="organization-table data-table">
         <thead>
             <tr>
@@ -371,23 +358,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($organizations !== [] || $cursor !== null): ?>
-        <nav class="pagination pagination-with-size" aria-label="Organization pages">
-            <div class="page-size-selector" aria-label="Organizations per page">
-                <span class="page-size-label">Rows per page:</span>
-                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                    <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $allowed_page_size), ENT_QUOTES, 'UTF-8'); ?>"
-                       class="sort-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
-                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
-                <?php endforeach; ?>
-            </div>
-            <span class="pagination-status">Showing <?php echo count($organizations); ?> organizations</span>
-            <div class="pagination-actions">
-                <?php if ($cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars($list_previous_url, ENT_QUOTES, 'UTF-8'); ?>">Previous</a><a class="sort-button" href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-                <?php if ($next_cursor !== null): ?><a class="sort-button" href="<?php echo htmlspecialchars($list_next_url, ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
-            </div>
-        </nav>
-    <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

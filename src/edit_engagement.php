@@ -684,11 +684,11 @@ unset(
     $_SESSION['presentation_action_error']
 );
 try {
-    $chron_page_size = 20;
+    $chron_page_size = paginationPageSizePreference('edit_engagement_chron', $_GET['chron_per_page'] ?? null, 20);
     $chron_entry_count = countActiveChronLogEntries($conn, $engagement_id);
     $chron_total_pages = max(1, (int) ceil($chron_entry_count / $chron_page_size));
     $chron_page = min(
-        filter_input(INPUT_GET, 'chron_page', FILTER_VALIDATE_INT) ?: 1,
+        (\Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page') ?? 1),
         $chron_total_pages
     );
     $chron_entries = fetchChronLogEntries(
@@ -1002,6 +1002,7 @@ try {
             <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add Chron Log Entry</button>
         </div>
 
+        <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
         <div class="chron-entry-list">
             <?php
 $submitted_chron_values = is_array($_POST['chron_entries'] ?? null)
@@ -1059,15 +1060,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                 <p class="chron-empty-state">No Chron entries have been added yet.</p>
             <?php endif; ?>
         </div>
-        <?php if ($chron_total_pages > 1): ?>
-            <nav class="pagination" aria-label="Chron log pages">
-                <span>Page <?php echo $chron_page; ?> of <?php echo $chron_total_pages; ?> · <?php echo $chron_entry_count; ?> entries</span>
-                <div class="pagination-actions">
-                    <?php if ($chron_page > 1): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page - 1; ?>#chron-log">Newer</a><?php endif; ?>
-                    <?php if ($chron_page < $chron_total_pages): ?><a href="edit_engagement.php?id=<?php echo $engagement_id; ?>&amp;chron_page=<?php echo $chron_page + 1; ?>#chron-log">Older</a><?php endif; ?>
-                </div>
-            </nav>
-        <?php endif; ?>
+        <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
     </section>
 
     <div class="engagement-page-actions" aria-label="Engagement form actions">

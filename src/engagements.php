@@ -128,8 +128,7 @@ $has_search_terms = $search_plan['sql'] !== '';
 if (!$has_search_terms) {
     $search = '';
 }
-$requested_page_size = filter_input(INPUT_GET, 'per_page', FILTER_VALIDATE_INT);
-$page_size = in_array($requested_page_size, $allowed_page_sizes, true) ? $requested_page_size : 20;
+$page_size = paginationPageSizePreference('engagements', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['value', 'id']
@@ -200,6 +199,9 @@ if ($has_search_terms) {
     $query_values = array_merge($query_values, $search_plan['patterns']);
     $bind_types .= str_repeat('s', count($search_plan['patterns']));
 }
+$pagination_where = $where;
+$pagination_types = $bind_types;
+$pagination_values = $query_values;
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
     $where .= " AND ({$order_by} {$comparison} ?
@@ -211,7 +213,14 @@ if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
 } else {
     $cursor = null;
 }
-$query_limit = $page_size + 1;
+$query_limit = $page_size;
+$pagination_from = "FROM engagements e LEFT JOIN organizations o ON e.organization_id = o.id WHERE {$pagination_where}";
+$pagination = queryPagination($conn, $pagination_from, $pagination_types, $pagination_values, $page_size, $_GET['page'] ?? null, substr($where, strlen($pagination_where)), substr($bind_types, strlen($pagination_types)), array_slice($query_values, count($pagination_values)));
+$current_page = $pagination['page'];
+$page_offset = $pagination['offset'];
+$where = $pagination_where;
+$bind_types = $pagination_types;
+$query_values = $pagination_values;
 
 $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                  e.event_type, e.event_type_other, e.confirmation_status,
@@ -225,7 +234,7 @@ $query = "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
           WHERE {$where}";
 $query .= "
           ORDER BY {$order_by} {$order_direction}, e.id {$order_direction}
-          LIMIT ?";
+          LIMIT ? OFFSET ?";
 
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) {
@@ -234,7 +243,8 @@ if (!$query_stmt) {
     exit('Engagements are temporarily unavailable.');
 }
 $query_values[] = $query_limit;
-$bind_types .= 'i';
+$query_values[] = $page_offset;
+$bind_types .= 'ii';
 $bind_params = [$bind_types];
 foreach ($query_values as &$query_value) $bind_params[] = &$query_value;
 unset($query_value);
@@ -245,32 +255,8 @@ if (!$query_stmt->execute()) {
     exit('Unable to retrieve engagements.');
 }
 $engagement_rows = $query_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$has_more_engagements = count($engagement_rows) > $page_size;
-if ($has_more_engagements) {
-    array_pop($engagement_rows);
-}
-$next_cursor = null;
-if ($has_more_engagements && $engagement_rows !== []) {
-    $last_engagement = $engagement_rows[array_key_last($engagement_rows)];
-    $cursor_field = match ($sort_column) {
-        'status' => 'confirmation_status',
-        'lifecycle' => 'lifecycle_status',
-        'org' => 'organization_name',
-        default => 'event_start_date',
-    };
-    $next_cursor = encodePaginationCursor([
-        'value' => (string) $last_engagement[$cursor_field],
-        'id' => (int) $last_engagement['id'],
-    ]);
-}
-
 $format_date_range = static fn($start, $end) => engagementViewDateRange($start, $end);
-$list_current_url = recordCurrentUrl('engagements.php');
-$list_cursor_trail = recordCursorTrail($_GET['history'] ?? null);
-$list_previous_trail = $list_cursor_trail;
-$list_previous_cursor = array_pop($list_previous_trail);
-$list_previous_url = recordUrlWithQuery($list_current_url, ['cursor' => $list_previous_cursor, 'history' => recordEncodedCursorTrail($list_previous_trail)]);
-$list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor, 'history' => recordEncodedCursorTrail(array_merge($list_cursor_trail, [is_string($_GET['cursor'] ?? null) ? $_GET['cursor'] : '']))]);
+$list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page, $page_size);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -370,6 +356,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
     <?php if ($search !== ''): ?>
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
     <table class="engagement-table data-table">
         <thead>
             <tr>
@@ -449,23 +436,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
             <?php endforeach; ?>
         </tbody>
     </table>
-    <?php if ($engagement_rows !== [] || $cursor !== null): ?>
-        <nav class="pagination pagination-with-size" aria-label="Engagement pages">
-            <div class="page-size-selector" aria-label="Engagements per page">
-                <span class="page-size-label">Rows per page:</span>
-                <?php foreach ($allowed_page_sizes as $allowed_page_size): ?>
-                    <a href="<?php echo htmlspecialchars($list_url(['per_page' => $allowed_page_size, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
-                       class="sort-button page-size-button<?php echo $page_size === $allowed_page_size ? ' active' : ''; ?>"
-                       <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
-                <?php endforeach; ?>
-            </div>
-            <span class="pagination-status">Showing <?php echo count($engagement_rows); ?> engagements</span>
-            <div class="pagination-actions">
-                <?php if ($cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_previous_url, ENT_QUOTES, 'UTF-8'); ?>">Previous</a><a class="filter-button" href="<?php echo htmlspecialchars($list_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-                <?php if ($next_cursor !== null): ?><a class="filter-button" href="<?php echo htmlspecialchars($list_next_url, ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
-            </div>
-        </nav>
-    <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

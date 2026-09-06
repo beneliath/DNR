@@ -29,7 +29,7 @@ $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
     $search = '';
 }
-$page_size = 50;
+$page_size = paginationPageSizePreference('tasks', $_GET['per_page'] ?? null, 50);
 $cursor_keys = $view === 'completed'
     ? ['updated_at', 'id']
     : ['due_date', 'priority_rank', 'id'];
@@ -39,6 +39,7 @@ $cursor = decodePaginationCursor($cursor_value, $cursor_keys);
 $queue_parameters = [
     'view' => $view,
     'scope' => $scope,
+    'per_page' => $page_size,
 ];
 if ($search !== '') {
     $queue_parameters['q'] = $search;
@@ -257,6 +258,8 @@ $order_sql = $view === 'completed'
     : "COALESCE(t.due_date, '9999-12-31') ASC,
        FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
        t.id ASC";
+$pagination_types = $bind_types;
+$pagination_values = $bind_values;
 $cursor_sql = '';
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     if ($view === 'completed') {
@@ -279,11 +282,17 @@ if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
 } else {
     $cursor = null;
 }
-$query_limit = $page_size + 1;
+$query_limit = $page_size;
+$pagination = queryPagination($conn, $summary_from . " WHERE {$where_sql}", $pagination_types, $pagination_values, $page_size, $_GET['page'] ?? null, $cursor_sql, substr($bind_types, strlen($pagination_types)), array_slice($bind_values, count($pagination_values)));
+$current_page = $pagination['page'];
+$page_offset = $pagination['offset'];
+$bind_types = $pagination_types;
+$bind_values = $pagination_values;
+$task_return_to = paginationUrl('tasks.php?' . http_build_query($queue_parameters), $current_page, $page_size);
 $task_sql = followUpTaskSelectSql()
-    . " WHERE {$where_sql}{$cursor_sql}
+    . " WHERE {$where_sql}
         ORDER BY {$order_sql}
-        LIMIT {$query_limit}";
+        LIMIT {$query_limit} OFFSET {$page_offset}";
 $task_stmt = $conn->prepare($task_sql);
 if (!$task_stmt) {
     http_response_code(500);
@@ -300,27 +309,6 @@ if ($bind_types !== '') {
 $task_stmt->execute();
 $tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $task_stmt->close();
-$has_more_tasks = count($tasks) > $page_size;
-if ($has_more_tasks) array_pop($tasks);
-$next_cursor = null;
-if ($has_more_tasks && $tasks !== []) {
-    $last_task = $tasks[array_key_last($tasks)];
-    $next_cursor = $view === 'completed'
-        ? encodePaginationCursor([
-            'updated_at' => (string) $last_task['updated_at'],
-            'id' => (int) $last_task['id'],
-        ])
-        : encodePaginationCursor([
-            'due_date' => (string) ($last_task['due_date'] ?: '9999-12-31'),
-            'priority_rank' => array_search(
-                (string) $last_task['priority'],
-                ['urgent', 'high', 'normal', 'low'],
-                true
-            ) + 1,
-            'id' => (int) $last_task['id'],
-        ]);
-}
-
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
     return 'tasks.php?' . http_build_query(array_merge($queue_parameters, $overrides));
 };
@@ -412,6 +400,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         </div>
     </div>
 
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
     <table class="task-table data-table">
         <thead><tr><th>Due</th><th>Task</th><th>Related record</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
@@ -481,13 +470,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         </tbody>
     </table>
 
-    <?php if ($cursor !== null || $next_cursor !== null): ?>
-    <nav class="pagination" aria-label="Work queue pages">
-        <?php if ($cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(), ENT_QUOTES, 'UTF-8'); ?>">First page</a><?php endif; ?>
-        <span>Showing up to <?php echo $page_size; ?> tasks</span>
-        <?php if ($next_cursor !== null): ?><a href="<?php echo htmlspecialchars($queue_url(['cursor' => $next_cursor]), ENT_QUOTES, 'UTF-8'); ?>">Next</a><?php endif; ?>
-    </nav>
-    <?php endif; ?>
+    <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

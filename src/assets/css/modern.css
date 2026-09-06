@@ -1068,7 +1068,7 @@ html body .container > .profile-form {
 
 .app-footer .footer-moed-definition {
   margin-top: 1lh;
-  opacity: 1;
+  opacity: 0.35;
 }
 
 .app-footer .footer-moed-hebrew {
@@ -1080,14 +1080,18 @@ html body .container > .profile-form {
   text-decoration: none;
 }
 
+.app-footer .footer-moed-translation,
+.app-footer .footer-ascii-cat {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: clamp(0.5rem, 2.15vw, 0.58rem);
+}
+
 .app-footer .footer-ascii-cat {
   max-width: 100%;
   margin: 2lh 0 0;
   overflow-x: auto;
   color: inherit;
-  opacity: 0.5;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: clamp(0.5rem, 2.15vw, 0.58rem);
+  opacity: 0.35;
   line-height: 1.15;
   white-space: pre;
 }
@@ -5973,4 +5977,150 @@ html body .task-scope-selector {
 }
 html body :is(.inbound-status-filters, .map-list-filters) {
   margin-block: 18px 24px;
+}
+
+/* Shared numbered pagination for every record list. */
+.pagination.numbered-pagination {
+    margin-bottom: 18px;
+    display: grid !important;
+    grid-template-columns: minmax(max-content, 1fr) max-content minmax(max-content, 1fr);
+    justify-content: stretch !important;
+    gap: 16px !important;
+    overflow-x: auto;
+    padding-block: 3px;
+}
+
+.numbered-pagination .page-size-selector {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: start;
+    width: auto;
+    flex-wrap: nowrap;
+}
+
+.numbered-pagination .pagination-status {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+    width: auto;
+    white-space: nowrap;
+}
+
+.numbered-pagination .pagination-bar {
+    grid-column: 2;
+    grid-row: 1;
+    justify-self: center;
+    display: inline-flex;
+    align-items: stretch;
+    max-width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.numbered-pagination .page-numbers {
+    display: flex;
+    align-items: stretch;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.numbered-pagination .page-numbers li {
+    display: flex;
+    margin: 0;
+    padding: 0;
+}
+
+.numbered-pagination .page-control,
+.numbered-pagination .page-ellipsis {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -1px 0;
+    padding: 8px 12px;
+    border: 1px solid transparent;
+    color: var(--text);
+    font-size: 0.9rem;
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+}
+
+.numbered-pagination .page-previous,
+.numbered-pagination .page-next {
+    position: relative;
+    gap: 8px;
+    padding-inline: 16px;
+    white-space: nowrap;
+}
+
+.numbered-pagination .page-previous {
+    border-radius: 8px 0 0 8px;
+}
+
+.numbered-pagination .page-next {
+    border-radius: 0 8px 8px 0;
+}
+
+.numbered-pagination .page-previous::after,
+.numbered-pagination .page-next::before {
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    width: 1px;
+    background: var(--border);
+    content: "";
+}
+
+.numbered-pagination .page-previous::after { right: 0; }
+.numbered-pagination .page-next::before { left: 0; }
+
+.numbered-pagination .page-previous > [aria-hidden],
+.numbered-pagination .page-next > [aria-hidden] {
+    font-size: 1.55rem;
+    font-weight: 700;
+    line-height: 0.7;
+}
+
+.numbered-pagination .page-control[aria-current="page"] {
+    position: relative;
+    border-color: var(--text);
+    box-shadow: 0 0 0 1px var(--text);
+    font-weight: 700;
+}
+
+.numbered-pagination a.page-control:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.numbered-pagination a.page-control:focus-visible {
+    position: relative;
+    z-index: 1;
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.numbered-pagination .page-control[aria-disabled="true"],
+.numbered-pagination .page-ellipsis {
+    color: var(--text-muted);
+}
+
+.numbered-pagination .page-control[aria-disabled="true"] {
+    opacity: 0.45;
+}
+
+@media (max-width: 480px) {
+    .numbered-pagination .page-direction-label { display: none; }
+    .numbered-pagination .page-control { min-width: 32px; padding-inline: 7px; }
+    .numbered-pagination .page-ellipsis { min-width: 20px; padding-inline: 2px; }
+    .numbered-pagination .page-previous,
+    .numbered-pagination .page-next { min-width: 36px; padding-inline: 9px; }
 }

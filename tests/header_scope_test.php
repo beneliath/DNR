@@ -229,8 +229,8 @@ expectHeaderScope(
     'The footer author should safely open the GitHub profile in a new tab.'
 );
 expectHeaderScope(
-    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time<\/p>/s', preg_replace('/<\/?a\b[^>]*>/', '', $footer_source)) === 1
-        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*1;)[^}]*\}/s', $modern_styles) === 1
+    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;<span class="footer-moed-translation">=&nbsp;&nbsp;appointment, appointed time<\/span><\/p>/s', preg_replace('/<\/?a\b[^>]*>/', '', $footer_source)) === 1
+        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*0\.35;)[^}]*\}/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
     'The shared footer should show a larger Hebrew name in a readable definition one blank line below the copyright notice.'
 );
@@ -249,9 +249,9 @@ expectHeaderScope(
     preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*margin:\s*2lh 0 0;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-family:\s*ui-monospace/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-size:\s*clamp\(0\.5rem, 2\.15vw, 0\.58rem\);/s', $modern_styles) === 1
-        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.5;/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.35;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*white-space:\s*pre;/s', $modern_styles) === 1,
-    'The ASCII cat should sit two lines below the copyright in a small, 50%-opacity, space-preserving monospace font.'
+    'The ASCII cat should sit two lines below the Hebrew definition in a small, 35%-opacity, space-preserving monospace font.'
 );
 expectHeaderScope(
     preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{(?=[^}]*display:\s*flex\s*!important)(?=[^}]*background:\s*var\(--surface\)\s*!important)(?![^}]*backdrop-filter)[^}]*\}/s', $modern_styles) === 1,

@@ -90,7 +90,7 @@ try {
     expectRecordHttp($newContact['status'] === 302 && preg_match('/Location: add_inquiry\.php\?created_contact_id=(\d+)/i', $newContact['headers'], $contactMatch) === 1, 'A single email contact form resumes the inquiry with its new ID');
     $contacts[] = (int) $contactMatch[1];
 
-    // Each filtered list has enough fixtures to traverse a real cursor boundary.
+    // Each filtered list has enough fixtures to traverse a real page boundary.
     $keyword = 'Recordnav' . $suffix;
     for ($n = 1; $n <= 27; $n++) {
         $conn->query("INSERT INTO organizations (organization_name) VALUES ('{$keyword} Organization {$n}')");
@@ -102,24 +102,55 @@ try {
     }
     foreach (['contacts.php', 'organizations.php', 'engagements.php'] as $list) {
         $first = recordHttp($list . '?q=' . $keyword . '&per_page=20', $editorSession);
-        expectRecordHttp($first['status'] === 200 && !str_contains($first['body'], '>Previous</a>'), 'First page must not display Previous: ' . $list);
+        expectRecordHttp($first['status'] === 200, 'First page renders successfully: ' . $list);
         $dom = new DOMDocument(); @$dom->loadHTML($first['body']); $xpath = new DOMXPath($dom);
-        $next = $xpath->query('//nav[contains(@class,"pagination")]//a[normalize-space(.)="Next"]')->item(0);
+        $pagers = $xpath->query('//nav[contains(@class,"numbered-pagination")]');
+        expectRecordHttp($pagers->length === 2 && $dom->saveHTML($pagers->item(0)) === $dom->saveHTML($pagers->item(1)),
+            'Lists have identical pagination controls above and below the records: ' . $list);
+        expectRecordHttp($xpath->query('//nav[contains(@class,"pagination")]//a[@rel="prev"]')->length === 0,
+            'First page has no enabled Previous link: ' . $list);
+        $next = $xpath->query('//nav[contains(@class,"pagination")]//a[@rel="next"]')->item(0);
         expectRecordHttp($next instanceof DOMElement, 'Filtered list should offer Next: ' . $list);
         $secondUrl = $next->getAttribute('href');
-        expectRecordHttp(str_contains($secondUrl, 'q=' . $keyword) && str_contains($secondUrl, 'history='), 'Next must preserve the filter and cursor history');
+        expectRecordHttp(str_contains($secondUrl, 'q=' . $keyword)
+            && str_contains($secondUrl, 'page=2'),
+            'Next must preserve the filter and page position');
         $second = recordHttp($secondUrl, $editorSession);
-        expectRecordHttp($second['status'] === 200 && substr_count($second['body'], '>Previous</a>') === 1, 'Later pages offer exactly one Previous: ' . $list);
+        expectRecordHttp($second['status'] === 200, 'Later pages render successfully: ' . $list);
         $dom = new DOMDocument(); @$dom->loadHTML($second['body']); $xpath = new DOMXPath($dom);
-        $previous = $xpath->query('//nav[contains(@class,"pagination")]//a[normalize-space(.)="Previous"]')->item(0);
+        $previousLinks = $xpath->query('//nav[contains(@class,"pagination")]//a[@rel="prev" or normalize-space(.)="Previous"]');
+        expectRecordHttp($previousLinks->length === 2, 'Both controls offer Previous on later pages: ' . $list);
+        $previous = $previousLinks->item(0);
         expectRecordHttp($previous instanceof DOMElement && !str_contains($previous->getAttribute('href'), 'cursor='), 'Previous from page two reaches filtered page one');
         $recordLink = $xpath->query('//tbody//a[starts-with(@href,"view_")]')->item(0);
         expectRecordHttp($recordLink instanceof DOMElement, 'List rows open record details');
         parse_str((string) parse_url($recordLink->getAttribute('href'), PHP_URL_QUERY), $detailQuery);
         expectRecordHttp(($detailQuery['return_to'] ?? '') === $secondUrl, 'Opening a record retains the exact filtered second page');
+        if ($list === 'contacts.php') {
+            expectRecordHttp($xpath->query('//nav[@aria-label="Contact pages"]//*[@aria-current="page" and normalize-space(.)="2"]')->length === 2,
+                'Contacts identify the current numbered page');
+            expectRecordHttp($xpath->query('//nav[@aria-label="Contact pages"]//a[@rel="next"]')->length === 0
+                && $xpath->query('//tbody//a[@class="record-link"]')->length === 7,
+                'The final contacts page has seven remaining records and a disabled Next control');
+            $last = recordHttp($list . '?q=' . $keyword . '&per_page=20&page=999999', $editorSession);
+            expectRecordHttp($last['status'] === 200 && str_contains($last['body'], 'Showing 21–27 of 27 contacts'),
+                'Out-of-range page numbers clamp to the last matching page');
+            foreach (['page=0', 'page=-2', 'page[]=2', 'page=invalid'] as $invalidPage) {
+                $invalid = recordHttp($list . '?q=' . $keyword . '&per_page=20&' . $invalidPage, $editorSession);
+                expectRecordHttp($invalid['status'] === 200 && str_contains($invalid['body'], 'Showing 1–20 of 27 contacts'),
+                    'Invalid page input falls back to the first page');
+            }
+            $empty = recordHttp($list . '?q=NoContact' . $suffix . '&page=5', $editorSession);
+            expectRecordHttp($empty['status'] === 200 && str_contains($empty['body'], 'Showing 0 of 0 contacts')
+                && !str_contains($empty['body'], 'rel="next"') && !str_contains($empty['body'], 'rel="prev"'),
+                'Empty searches have no enabled page navigation');
+            $larger = recordHttp($list . '?q=' . $keyword . '&per_page=50&page=2', $editorSession);
+            expectRecordHttp($larger['status'] === 200 && str_contains($larger['body'], 'Showing 1–27 of 27 contacts'),
+                'Changing the page size keeps the request within the available pages');
+        }
     }
     $organizationPageTwo = recordHttp('view_organization.php?id=' . $orgId . '&events_page=2', $editorSession);
-    expectRecordHttp($organizationPageTwo['status'] === 200 && str_contains($organizationPageTwo['body'], 'Page 2 of 2'), 'Organization history includes a reachable second page of related engagements');
+    expectRecordHttp($organizationPageTwo['status'] === 200 && substr_count($organizationPageTwo['body'], 'aria-label="Organization engagement pages"') === 2 && str_contains($organizationPageTwo['body'], 'Showing 21–28 of 28 engagements'), 'Organization history includes a reachable second page of related engagements');
 
     $conn->query('UPDATE organizations SET is_deleted = 1 WHERE id = ' . $orgId);
     $archived = recordHttp('view_contact.php?id=' . $contactId, $editorSession, ['csrf_token' => $csrf, 'action' => 'add_note', 'new_chron_entry' => 'Forbidden archived organization']);
