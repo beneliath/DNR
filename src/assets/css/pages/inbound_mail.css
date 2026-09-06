@@ -236,3 +236,47 @@ html.dark-mode .inbound-detail-heading small {
         gap: 4px;
     }
 }
+
+.inbound-queue-search { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.inbound-queue-search > div { display: grid; gap: 6px; }
+.inbound-queue-search > div:first-child { flex: 1 1 260px; }
+.inbound-queue-pagination { display: flex; gap: 12px; align-items: center; margin: 16px 0; }
+.inbound-queue-pagination > span { flex: 1; color: var(--text-muted); }
+.inbound-routing-summary > summary { cursor: pointer; font-weight: 600; }
+.inbound-message-detail { min-width: 0; }
+.inbound-message-body pre { max-height: 55vh; line-height: 1.6; }
+.inbound-message-list { max-height: 85vh; overflow-y: auto; padding: 2px; }
+.inbound-message-card.selected { border-left: 4px solid var(--primary); }
+@media (max-width: 900px) { .inbound-message-list { max-height: 280px; } }
+
+/* Keep the wide search field and its controls on a shared baseline. */
+html body .inbound-queue-search {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 190px auto;
+    align-items: end;
+    width: 100%;
+    max-width: none;
+    gap: 16px;
+}
+html body .inbound-queue-search:has(> .button-secondary) {
+    grid-template-columns: minmax(0, 1fr) 190px auto auto;
+}
+html body .inbound-queue-search > div { min-width: 0; gap: 8px; }
+html body .inbound-queue-search :is(input[type="search"], select) {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 44px;
+    margin: 0;
+}
+html body .inbound-queue-search > :is(button, a) {
+    height: 44px;
+    min-height: 44px;
+    margin: 0;
+    align-self: end;
+}
+@media (max-width: 760px) {
+    html body .inbound-queue-search,
+    html body .inbound-queue-search:has(> .button-secondary) { grid-template-columns: minmax(0, 1fr) auto; }
+    html body .inbound-queue-search > div:first-of-type { grid-column: 1 / -1; }
+}

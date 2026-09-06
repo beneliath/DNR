@@ -94,7 +94,7 @@ $organizations = $conn->query(
 );
 $inquiry_organizations = $organizations ? $organizations->fetch_all(MYSQLI_ASSOC) : [];
 $contacts = $conn->query(
-    "SELECT contact.id, contact.contact_first_name, contact.contact_last_name,
+    "SELECT contact.id, contact.organization_id, contact.contact_first_name, contact.contact_last_name,
             organization.organization_name
      FROM contacts contact
      LEFT JOIN organizations organization ON organization.id = contact.organization_id

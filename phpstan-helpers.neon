@@ -1,6 +1,8 @@
 parameters:
     level: 5
     paths:
+        - src/inbound_queue_helpers.php
+        - src/record_workspace_helpers.php
         - src/config.php
         - src/functions.php
         - src/calendar_helpers.php

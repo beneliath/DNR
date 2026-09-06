@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/chron_log_helpers.php';
+require_once __DIR__ . '/engagement_view_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
 require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 
@@ -50,6 +51,7 @@ if (!$engagement) {
 
 try {
     $financial_report = fetchEngagementFinancialReport($conn, $engagement_id);
+    $financial_draft = $financial_report ? null : fetchEngagementFinancialDraft($conn, $engagement_id);
 } catch (Throwable $exception) {
     abortApplication(503, 'The engagement closeout is temporarily unavailable.', [
         'engagement_id' => $engagement_id,
@@ -63,17 +65,27 @@ if ($financial_report === null
     exit('Postponed or canceled engagements cannot be financially closed.');
 }
 
-$form_values = $financial_report ?: [
-    'giving_income_received' => '0.00',
-    'lodging_received' => '0.00',
-    'travel_received' => '0.00',
+$form_values = $financial_report ?: $financial_draft ?: [
+    'giving_income_received' => null,
+    'lodging_received' => null,
+    'travel_received' => null,
     'notes' => '',
 ];
 $form_error = '';
+$draft_message = (string) ($_SESSION['financial_draft_message'] ?? '');
+unset($_SESSION['financial_draft_message']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
+    $form_values = array_merge($form_values, array_filter(array_intersect_key($_POST, array_flip(['giving_income_received', 'lodging_received', 'travel_received', 'notes'])), 'is_scalar'));
     try {
+        if (($_POST['action'] ?? '') === 'save_draft') {
+            saveEngagementFinancialDraft($conn, $engagement_id, $_POST,
+                is_scalar($_POST['draft_version'] ?? null) ? (string) $_POST['draft_version'] : '', (int) $_SESSION['user_id']);
+            $_SESSION['financial_draft_message'] = 'Receipt draft saved. The event is not financially finalized.';
+            header('Location: close_engagement.php?id=' . $engagement_id);
+            exit();
+        }
         $submitted = FinancialReportInput::normalize($_POST);
         $form_values = $submitted;
         $submitted_version = trim((string) ($_POST['report_version'] ?? ''));
@@ -160,6 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 $success_message = 'Final financial report corrected.';
             } else {
+                requireFinancialDraftVersion(fetchEngagementFinancialDraft($conn, $engagement_id, true),
+                    is_scalar($_POST['draft_version'] ?? null) ? (string) $_POST['draft_version'] : '');
                 $task_readiness = fetchEngagementCloseoutTaskReadiness(
                     $conn,
                     $engagement_id,
@@ -206,6 +220,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new RuntimeException('Unable to save the financial report.');
             }
             $save_stmt->close();
+            $delete_draft = $conn->prepare('DELETE FROM engagement_financial_drafts WHERE engagement_id = ?');
+            $delete_draft->bind_param('i', $engagement_id);
+            $delete_draft->execute();
+            $delete_draft->close();
             if (!$locked_report
                 && (string) $locked_engagement['lifecycle_status'] !== 'completed'
             ) {
@@ -272,6 +290,14 @@ $closeout_is_held = $task_hold_message !== '';
 if ($closeout_is_held && $form_error === $task_hold_message) {
     $form_error = '';
 }
+try {
+    $receipt_summary = normalizeFinancialDraftInput($form_values);
+    $receipt_total_label = 'Total entered: ' . formatFinancialAmount($receipt_summary['total_received']);
+    $receipt_entered_count = count(array_filter(array_intersect_key($receipt_summary, array_flip(['giving_income_received', 'lodging_received', 'travel_received'])), static fn($value) => $value !== null));
+} catch (InvalidArgumentException $exception) {
+    $receipt_total_label = 'Check receipt amounts';
+    $receipt_entered_count = 0;
+}
 $closed_timestamp = $is_correction
     ? chronLogTimestampDetails($financial_report['closed_at'])
     : null;
@@ -314,20 +340,21 @@ $closed_timestamp = $is_correction
         </p>
     <?php elseif ($closeout_is_held): ?>
         <section class="closeout-task-hold" aria-labelledby="closeout-task-hold-title">
-            <h2 id="closeout-task-hold-title">Complete Earlier Event Tasks First</h2>
+            <h2 id="closeout-task-hold-title">Finalization Prerequisites</h2>
+            <p>You can save receipt drafts now. Finalizing requires every task due through the last dated presentation to be Completed, including canceled tasks under the current closeout policy.</p>
             <p class="error" role="alert"><?php echo htmlspecialchars($task_hold_message, ENT_QUOTES, 'UTF-8'); ?></p>
             <ul class="closeout-blocking-task-list">
                 <?php foreach ($task_readiness['blocking_tasks'] as $blocking_task): ?>
                     <?php
                     $task_edit_url = 'edit_task.php?' . http_build_query([
                         'id' => (int) $blocking_task['id'],
-                        'return_to' => 'view_engagement.php?id=' . $engagement_id . '#financial-closeout',
+                        'return_to' => 'close_engagement.php?id=' . $engagement_id,
                     ]);
                     $task_status_label = ucfirst(str_replace('_', ' ', (string) $blocking_task['status']));
                     ?>
                     <li>
                         <a href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $blocking_task['title'], ENT_QUOTES, 'UTF-8'); ?></a>
-                        <span>Due <?php echo htmlspecialchars((string) $blocking_task['due_date'], ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars($task_status_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span>Due <?php echo htmlspecialchars(engagementViewDateRange($blocking_task['due_date'], $blocking_task['due_date']), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars($task_status_label, ENT_QUOTES, 'UTF-8'); ?></span>
                     </li>
                 <?php endforeach; ?>
             </ul>
@@ -345,14 +372,16 @@ $closed_timestamp = $is_correction
         <p class="error" role="alert"><?php echo htmlspecialchars($form_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <?php if (!$closeout_is_held): ?>
+    <?php if ($draft_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($draft_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($financial_draft): ?><p class="closeout-status">Receipt draft saved <?php echo htmlspecialchars(applicationTimestampLabel($financial_draft['updated_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?>. Draft amounts are excluded from finalized financial totals.</p><?php endif; ?>
     <form method="post" action="close_engagement.php?id=<?php echo $engagement_id; ?>" class="closeout-form">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="draft_version" value="<?php echo htmlspecialchars((string) ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['draft_version'] ?? null) ? $_POST['draft_version'] : ($financial_draft['updated_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="report_version" value="<?php echo htmlspecialchars((string) ($financial_report['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 
         <fieldset>
             <legend>Actual receipts</legend>
-            <p class="field-help">Enter 0 when no amount was received. Do not enter anticipated or outstanding amounts.</p>
+            <p class="field-help">Leave an amount blank when it is not known yet. Enter 0 only when you have confirmed no amount was received. Every category must be entered before finalizing.</p>
             <div class="financial-fields">
                 <?php foreach ([
                     'giving_income_received' => 'Giving / income received',
@@ -364,14 +393,15 @@ $closed_timestamp = $is_correction
                         <div class="money-field">
                             <span aria-hidden="true">$</span>
                             <input type="number" id="<?php echo $field_name; ?>" name="<?php echo $field_name; ?>"
-                                   min="0" max="9999999999.99" step="0.01" inputmode="decimal" required
-                                   value="<?php echo htmlspecialchars((string) ($form_values[$field_name] ?? '0.00'), ENT_QUOTES, 'UTF-8'); ?>">
+                                   min="0" max="9999999999.99" step="0.01" inputmode="decimal" placeholder="Not entered" required data-receipt-amount
+                                   value="<?php echo htmlspecialchars((string) ($form_values[$field_name] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
         </fieldset>
 
+        <div class="receipt-draft-total" role="status"><strong data-receipt-total><?php echo htmlspecialchars($receipt_total_label, ENT_QUOTES, 'UTF-8'); ?></strong><span data-receipt-completion><?php echo $receipt_entered_count; ?> of 3 categories entered</span></div>
         <div class="form-group">
             <label for="notes">Closeout notes</label>
             <textarea id="notes" name="notes" rows="6" placeholder="Optional context, payment references, or correction reason"><?php echo htmlspecialchars((string) ($form_values['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
@@ -385,12 +415,13 @@ $closed_timestamp = $is_correction
         <?php endif; ?>
 
         <div class="form-actions">
-            <button type="submit" class="action-button save-button"><?php echo $is_correction ? 'Save correction' : 'Finalize and close event'; ?></button>
+            <?php if (!$is_correction): ?><button type="submit" name="action" value="save_draft" formnovalidate class="button-secondary">Save draft</button><?php endif; ?>
+            <button type="submit" name="action" value="finalize" class="action-button save-button"<?php echo $closeout_is_held ? ' disabled' : ''; ?>><?php echo $is_correction ? 'Save correction' : 'Finalize and close event'; ?></button>
             <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#financial-closeout" class="action-button back-button">Cancel</a>
         </div>
     </form>
-    <?php endif; ?>
 </div>
+<?php renderScript('assets/js/financial-draft.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

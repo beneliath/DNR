@@ -113,12 +113,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php elseif (isset($_GET['password_recovered'])): ?>
       <p class="success">Your password was reset. Sign in with the new password.</p>
     <?php endif; ?>
-    <?php if (isset($error)) echo "<p class='error'>$error</p>"; ?>
+    <?php if (isset($error)) echo formErrorSummary($error); ?>
     <form method="post" action="login.php">
       <?php echo csrfInput(); ?>
       <div class="form-group">
         <label for="username">Username</label>
-        <input type="text" name="username" id="username" autocomplete="username" required autofocus>
+        <input type="text" name="username" id="username" autocomplete="username" value="<?php echo htmlspecialchars(is_string($_POST['username'] ?? null) ? $_POST['username'] : '', ENT_QUOTES, 'UTF-8'); ?>" required<?php if (!isset($error)) echo ' autofocus'; ?>>
       </div>
 
       <div class="form-group">

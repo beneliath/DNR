@@ -30,7 +30,8 @@ $inquiry_form_values = $inquiry;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
     requireValidCsrfToken();
     $inquiry_form_values = array_merge($inquiry, $_POST);
-    $inquiry_form_values['updated_at'] = $inquiry['updated_at'];
+    $inquiry_form_values['updated_at'] = is_scalar($_POST['inquiry_version'] ?? null)
+        ? (string) $_POST['inquiry_version'] : '';
     try {
         $data = normalizeBookingInquiryInput($conn, $_POST);
         updateBookingInquiry(
@@ -51,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
 $organizations = $conn->query('SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name, id');
 $inquiry_organizations = $organizations ? $organizations->fetch_all(MYSQLI_ASSOC) : [];
 $contacts = $conn->query(
-    "SELECT contact.id, contact.contact_first_name, contact.contact_last_name,
+    "SELECT contact.id, contact.organization_id, contact.contact_first_name, contact.contact_last_name,
             organization.organization_name
      FROM contacts contact LEFT JOIN organizations organization ON organization.id = contact.organization_id
      WHERE contact.is_deleted = 0 AND (organization.id IS NULL OR organization.is_deleted = 0)

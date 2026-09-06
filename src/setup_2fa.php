@@ -228,7 +228,7 @@ if ($enrollment) {
     <h1><?php echo !empty($user['two_factor_enabled']) ? 'Replace Authenticator' : 'Set Up Two-Factor Authentication'; ?></h1>
 
     <?php if (isset($error)): ?>
-        <p class="error"><?php echo htmlspecialchars($error); ?></p>
+        <?php echo formErrorSummary($error); ?>
     <?php endif; ?>
 
     <?php if (!$enrollment): ?>

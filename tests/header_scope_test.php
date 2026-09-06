@@ -67,10 +67,10 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<span>Dashboard<\/span>.*<span>Booking Pipeline<\/span>.*<span>Engagements<\/span>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*<span>Work Queue<\/span>.*<span>Inbound Mail<\/span>.*<span>Map<\/span>/s',
+        '/id="nav-work">Work<\/h2>.*<span>Dashboard<\/span>.*<span>My Work<\/span>.*<span>Booking Pipeline<\/span>.*<span>Inbox<\/span>.*id="nav-schedule">Schedule<\/h2>.*<span>Engagements<\/span>.*<span>Calendar<\/span>.*<span>Map<\/span>.*id="nav-relationships">Relationships<\/h2>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*id="nav-administration">Administration<\/h2>/s',
         $header_markup
     ) === 1,
-    'The primary navigation should place the booking pipeline immediately after the dashboard and keep inbound mail immediately above the map.'
+    'Navigation should group daily work, scheduling, relationships, and administration with Calendar in Schedule.'
 );
 expectHeaderScope(
     str_contains($header_markup, '<a class="app-brand" href="dashboard.php"')
@@ -129,7 +129,7 @@ expectHeaderScope(
     'Reviewer preview should show a persistent warning and return to the current page with Administrator access.'
 );
 expectHeaderScope(
-    !str_contains($reviewer_preview_markup, '<span>Inbound Mail</span>')
+    !str_contains($reviewer_preview_markup, '<span>Inbox</span>')
         && !str_contains($reviewer_preview_markup, '<span>Users</span>')
         && !str_contains($reviewer_preview_markup, '<span>Database</span>')
         && str_contains($reviewer_preview_markup, '<option value="reviewer" selected>Reviewer</option>'),
@@ -147,7 +147,7 @@ include __DIR__ . '/../src/templates/header.php';
 $editor_preview_markup = ob_get_clean();
 expectHeaderScope(
     str_contains($editor_preview_markup, '<strong>Viewing as Editor</strong>')
-        && str_contains($editor_preview_markup, '<span>Inbound Mail</span>')
+        && str_contains($editor_preview_markup, '<span>Inbox</span>')
         && !str_contains($editor_preview_markup, '<span>Users</span>')
         && !str_contains($editor_preview_markup, '<span>Database</span>'),
     'Editor preview should retain Editor navigation while hiding Administrator-only areas.'
@@ -159,10 +159,10 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/<span>Calendar<\/span>.*<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
+        '/<nav class="utility-navigation"[^>]*>\s*<a[^>]*>.*<span>Mattermost<\/span>.*<span>Account Security<\/span>.*<span>User Manual<\/span>.*<span class="theme-label">Dark Theme<\/span>/s',
         $header_markup
     ) === 1,
-    'The utility navigation should place Mattermost between Calendar and Account Security, with the user manual before the theme selector.'
+    'Utility navigation should retain integrations, account security, help, and appearance.'
 );
 
 foreach (['recover_password.php'] as $authentication_page) {
@@ -230,9 +230,9 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time<\/p>/s', $footer_source) === 1
-        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*0\.5;)[^}]*\}/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*1;)[^}]*\}/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
-    'The shared footer should show a larger Hebrew name in a half-opacity definition one blank line below the copyright notice.'
+    'The shared footer should show a larger Hebrew name in a readable definition one blank line below the copyright notice.'
 );
 expectHeaderScope(
     preg_match('/\.footer-link\s*\{[^}]*text-decoration:\s*none;/s', $modern_styles) === 1,

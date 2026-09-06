@@ -13,3 +13,6 @@ __pycache__/
 /release/
 /var/deployment/*
 !/var/deployment/.gitkeep
+
+# Local preview recovery archives contain private application data
+/var/uiux-preview-backups/

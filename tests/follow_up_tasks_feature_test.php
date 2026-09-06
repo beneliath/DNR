@@ -72,14 +72,12 @@ expectFollowUpTaskFeature(
     'the queue should expose personal, due-date, waiting, and unassigned work views from one allowlist.'
 );
 expectFollowUpTaskFeature(
-    str_contains($queue, "? 'My Overdue Work'")
-        && str_contains($queue, "? \$personal_reminders['overdue'] : \$summary['overdue']")
-        && str_contains($queue, '<small>My Active Work</small>'),
-    'personal dashboard links should show matching My Active Work and My Overdue Work filters and counts.'
-);
-expectFollowUpTaskFeature(
-    str_contains($queue, "['my', 'overdue', 'today', 'upcoming', 'waiting', 'unassigned']"),
-    'queue controls should omit Waiting and Unassigned buttons because their summary cards provide the same views.'
+    str_contains($queue, 'followUpTaskQueueState($_GET')
+        && str_contains($queue, '$summary_where = array_slice($where, 1)')
+        && str_contains($queue, "'scope' => \$scope")
+        && str_contains($queue, 'aria-label="Work ownership"')
+        && !str_contains($queue, 'class="task-reminder-panel"'),
+    'one ownership scope should drive both task counts and result destinations.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, '<time class="task-due-date"')
@@ -221,7 +219,8 @@ expectFollowUpTaskFeature(
         && str_contains($header, "'add_standard_task.php'")
         && str_contains($header, "'view_standard_task.php'")
         && str_contains($header, "'edit_standard_task.php'")
-        && str_contains($header, '<span>Work Queue</span>'),
+        && str_contains($header, '<span>My Work</span>')
+        && str_contains($header, 'href="tasks.php?owner=me"'),
     'the shared application shell should expose the work queue and mark all task pages active.'
 );
 

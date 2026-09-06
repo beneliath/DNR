@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 startSecureSession();
+$creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
 
 requireLogin();
 if (!hasRole(['admin', 'editor'])) {
@@ -25,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     $contact_role = strtolower(trim($_POST['contact_role'] ?? ''));
     $contact_role_other = trim($_POST['contact_role_other'] ?? '');
     $contact_email = trim($_POST['contact_email'] ?? '');
-    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? '');
+    $contact_email_confirm = trim($_POST['contact_email_confirm'] ?? ($_POST['contact_email'] ?? ''));
     $contact_phone = trim($_POST['contact_phone'] ?? '');
     $contact_birthday = trim($_POST['contact_birthday'] ?? '');
     $contact_notes = trim($_POST['contact_notes'] ?? '');
@@ -54,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 'role' => strtolower(trim($submitted_contact['role'] ?? '')),
                 'role_other' => trim($submitted_contact['role_other'] ?? ''),
                 'email' => trim($submitted_contact['email'] ?? ''),
-                'email_confirm' => trim($submitted_contact['email_confirm'] ?? ''),
+                'email_confirm' => trim($submitted_contact['email_confirm'] ?? ($submitted_contact['email'] ?? '')),
                 'phone' => trim($submitted_contact['phone'] ?? ''),
                 'birthday' => trim($submitted_contact['birthday'] ?? ''),
                 'notes' => trim($submitted_contact['notes'] ?? ''),
@@ -166,7 +168,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 $_SESSION['success_message'] = !empty($contacts_to_create)
                     ? "Organization and contact information saved successfully."
                     : "Organization saved successfully.";
-                header('Location: add_organization.php');
+                header('Location: ' . ($creation_return !== ''
+                    ? recordUrlWithQuery($creation_return, ['created_organization_id' => $organization_id])
+                    : 'view_organization.php?id=' . $organization_id));
                 exit();
             } catch (Throwable $exception) {
                 $conn->rollback();
@@ -199,118 +203,133 @@ if (isset($_SESSION['success_message'])) {
 <?php renderPageHead(applicationPageTitle('Organizations'), array (
   'styles' =>
   array (
-    0 => 'assets/css/style.min.css',
-    1 => 'assets/css/modern.min.css',
-    2 => 'assets/css/pages/add_organization.min.css',
+    'assets/css/style.min.css',
+    'assets/css/modern.min.css',
+    'assets/css/pages/record_workspace.min.css',
+    'assets/css/pages/add_organization.min.css',
   ),
 )); ?>
 <body class="add-organization-body">
 <?php include 'templates/header.php'; ?>
 <div class="container add-organization-page" role="main">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error) && $error && !empty($errorMessages)) echo "<p class='error'>" . implode("<br>", array_map('htmlspecialchars', $errorMessages)) . "</p>"; ?>
+    <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages); ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
-    <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Add organization details, addresses, and contacts.</p></div></div>
+    <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Start with a name; add contacts and address details as the relationship develops.</p></div></div>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="add_organization.php" class="organization-form">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
-            <label class="required">Organization Name</label>
-            <input type="text" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
+            <label class="required" for="organization_name">Organization Name</label>
+            <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
+        </div>
+
+        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Organization details</summary>
+        <div class="form-group">
+            <label for="notes">Notes</label>
+            <textarea id="notes" name="notes" rows="6"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
         </div>
 
         <div class="form-group">
-            <label>Notes</label>
-            <textarea name="notes" rows="6"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
+            <label for="affiliation">Affiliation</label>
+            <input type="text" id="affiliation" name="affiliation" value="<?php echo htmlspecialchars($_POST['affiliation'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Affiliation</label>
-            <input type="text" name="affiliation" value="<?php echo htmlspecialchars($_POST['affiliation'] ?? ''); ?>">
+            <label for="distinctives">Distinctives</label>
+            <input type="text" id="distinctives" name="distinctives" value="<?php echo htmlspecialchars($_POST['distinctives'] ?? ''); ?>">
         </div>
 
         <div class="form-group">
-            <label>Distinctives</label>
-            <input type="text" name="distinctives" value="<?php echo htmlspecialchars($_POST['distinctives'] ?? ''); ?>">
-        </div>
-
-        <div class="form-group">
-            <label>Website URL</label>
-            <input type="url" name="website_url" value="<?php echo htmlspecialchars($_POST['website_url'] ?? ''); ?>">
+            <label for="website_url">Website URL</label>
+            <input type="url" id="website_url" name="website_url" value="<?php echo htmlspecialchars($_POST['website_url'] ?? ''); ?>">
         </div>
 
         <div class="contact-grid">
             <div class="form-group">
-                <label>Phone</label>
+                <label for="phone">Phone</label>
                 <div class="phone-input-group" data-phone-input-group>
                     <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Organization phone country code'); ?>
-                    <input type="tel" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                    <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                 </div>
             </div>
 
             <div class="form-group">
-                <label>Fax</label>
+                <label for="fax">Fax</label>
                 <div class="phone-input-group" data-phone-input-group>
                     <?php echo phoneCountryPicker('fax_country_code', $fax_country_code_value, 'Organization fax country code'); ?>
-                    <input type="tel" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
+                    <input type="tel" id="fax" name="fax" value="<?php echo htmlspecialchars($fax_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" inputmode="tel" data-phone-number>
                 </div>
             </div>
         </div>
 
-        <div class="radio-group">
-            <label class="required">Mailing and Physical Address the Same</label>
+        </details>
+        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Addresses</summary>
+        <fieldset class="radio-group">
+            <legend>Mailing and Physical Address the Same</legend>
             <div>
                 <label><input type="radio" name="same_address" value="yes" <?php echo (!isset($_POST['same_address']) || $_POST['same_address'] === 'yes') ? 'checked' : ''; ?>> Yes</label>
                 <label><input type="radio" name="same_address" value="no" <?php echo (isset($_POST['same_address']) && $_POST['same_address'] === 'no') ? 'checked' : ''; ?>> No</label>
             </div>
-        </div>
+        </fieldset>
 
         <div id="physical_address_section" class="address-section">
-            <h3 class="required">Physical Address</h3>
+            <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_1" placeholder="Address Line 1" required value="<?php echo htmlspecialchars($_POST['physical_address_line_1'] ?? ''); ?>">
+                    <label for="physical_address_line_1">Address line 1</label>
+                    <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['physical_address_line_2'] ?? ''); ?>">
+                    <label for="physical_address_line_2">Address line 2</label>
+                    <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="physical_city" placeholder="City" required value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
+                    <label for="physical_city">City</label>
+                    <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
                 </div>
-                <div data-address-region-control data-address-region-for="physical" data-region-required="true">
-                    <input type="text" name="physical_state" placeholder="State/Province" required value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>" data-address-region-input>
+                <div data-address-region-control data-address-region-for="physical" data-region-required="false">
+                    <label for="physical_state">State / province</label>
+                    <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <input type="text" name="physical_zipcode" placeholder="Zip/Postal" required value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
+                    <label for="physical_zipcode">Postal code</label>
+                    <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
                     <?php echo addressCountryPicker(
                         'physical_country',
                         $_POST['physical_country'] ?? applicationDefaultCountry(),
                         'physical',
-                        true
+                        false
                     ); ?>
                 </div>
             </div>
         </div>
 
-        <div id="mailing_address_section" class="address-section">
-            <h3 class="required">Mailing Address</h3>
+        <div id="mailing_address_section" data-address-optional class="address-section">
+            <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['mailing_address_line_1'] ?? ''); ?>">
+                    <label for="mailing_address_line_1">Address line 1</label>
+                    <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <input type="text" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['mailing_address_line_2'] ?? ''); ?>">
+                    <label for="mailing_address_line_2">Address line 2</label>
+                    <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
-                    <input type="text" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
+                    <label for="mailing_city">City</label>
+                    <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
                 </div>
-                <div data-address-region-control data-address-region-for="mailing" data-region-required="true">
-                    <input type="text" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>" data-address-region-input>
+                <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
+                    <label for="mailing_state">State / province</label>
+                    <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <input type="text" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
+                    <label for="mailing_zipcode">Postal code</label>
+                    <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
                     <?php echo addressCountryPicker(
@@ -322,24 +341,25 @@ if (isset($_SESSION['success_message'])) {
             </div>
         </div>
 
-        <div class="section-heading">Contact(s)</div>
+        </details>
+        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Contacts</summary>
         <div class="address-section">
             <div id="contacts-container">
                 <div class="contact-entry">
                     <div class="contact-fields">
                         <div class="name-phone-row">
                             <div class="form-group">
-                                <label id="first_name_label">First Name</label>
+                                <label id="first_name_label" for="contact_first_name">First Name</label>
                                 <input type="text" name="contact_first_name" id="contact_first_name" autocomplete="given-name" value="<?php echo htmlspecialchars($_POST['contact_first_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
                             <div class="form-group">
-                                <label id="last_name_label">Last Name</label>
+                                <label id="last_name_label" for="contact_last_name">Last Name</label>
                                 <input type="text" name="contact_last_name" id="contact_last_name" autocomplete="family-name" value="<?php echo htmlspecialchars($_POST['contact_last_name'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
 
                             <div class="form-group contact-phone-field">
-                                <label>Phone</label>
+                                <label for="contact_phone">Phone</label>
                                 <div class="phone-input-group" data-phone-input-group>
                                     <?php echo phoneCountryPicker('contact_phone_country_code', $contact_phone_country_code_value, 'Contact phone country code'); ?>
                                     <input type="tel" name="contact_phone" id="contact_phone" value="<?php echo htmlspecialchars($contact_phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
@@ -354,7 +374,7 @@ if (isset($_SESSION['success_message'])) {
 
                         <div class="role-container">
                             <div class="form-group">
-                                <label id="role_label">Role</label>
+                                <label id="role_label" for="contact_role">Role</label>
                                 <select name="contact_role" id="contact_role" class="narrow-select" data-contact-role-id="">
                                     <option value="">Select Role</option>
                                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
@@ -364,20 +384,15 @@ if (isset($_SESSION['success_message'])) {
                             </div>
 
                             <div class="form-group" id="other_role_group" <?php echo ($_POST['contact_role'] ?? '') === 'other' ? '' : 'hidden'; ?>>
-                                <label>Describe Other Role</label>
+                                <label for="contact_role_other">Describe Other Role</label>
                                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($_POST['contact_role_other'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
 
                         <div class="email-container">
                             <div class="form-group">
-                                <label id="email_label">Email</label>
+                                <label id="email_label" for="contact_email">Email</label>
                                 <input type="email" name="contact_email" id="contact_email" value="<?php echo htmlspecialchars($_POST['contact_email'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
-                            </div>
-
-                            <div class="form-group">
-                                <label id="email_confirm_label">Confirm Email</label>
-                                <input type="email" name="contact_email_confirm" id="contact_email_confirm" value="<?php echo htmlspecialchars($_POST['contact_email_confirm'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
 
@@ -393,30 +408,30 @@ if (isset($_SESSION['success_message'])) {
                     <div class="contact-fields">
                         <div class="name-phone-row">
                             <div class="form-group">
-                                <label class="required">First Name</label>
-                                <input type="text" name="contacts[__CONTACT_INDEX__][first_name]" autocomplete="given-name" required>
+                                <label class="required" for="additional-__CONTACT_INDEX__-first_name">First Name</label>
+                                <input type="text" id="additional-__CONTACT_INDEX__-first_name" name="contacts[__CONTACT_INDEX__][first_name]" autocomplete="given-name" required>
                             </div>
                             <div class="form-group">
-                                <label class="required">Last Name</label>
-                                <input type="text" name="contacts[__CONTACT_INDEX__][last_name]" autocomplete="family-name" required>
+                                <label class="required" for="additional-__CONTACT_INDEX__-last_name">Last Name</label>
+                                <input type="text" id="additional-__CONTACT_INDEX__-last_name" name="contacts[__CONTACT_INDEX__][last_name]" autocomplete="family-name" required>
                             </div>
                             <div class="form-group contact-phone-field">
-                                <label class="required">Phone</label>
+                                <label for="additional-__CONTACT_INDEX__-phone">Phone</label>
                                 <div class="phone-input-group" data-phone-input-group>
                                     <?php echo phoneCountryPicker('contacts[__CONTACT_INDEX__][phone_country_code]', applicationDefaultPhoneCountryCode(), 'Contact phone country code'); ?>
-                                    <input type="tel" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number required>
+                                    <input type="tel" id="additional-__CONTACT_INDEX__-phone" name="contacts[__CONTACT_INDEX__][phone]" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
                                 </div>
                             </div>
                             <div class="form-group contact-birthday-field">
-                                <label>Birthday</label>
-                                <input type="text" name="contacts[__CONTACT_INDEX__][birthday]" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
+                                <label for="additional-__CONTACT_INDEX__-birthday">Birthday</label>
+                                <input type="text" id="additional-__CONTACT_INDEX__-birthday" name="contacts[__CONTACT_INDEX__][birthday]" placeholder="MM/DD" inputmode="numeric" autocomplete="bday" maxlength="5" pattern="[0-9]{2}/[0-9]{2}">
                                 <p class="field-help">Optional; repeats annually.</p>
                             </div>
                         </div>
                         <div class="role-container">
                             <div class="form-group">
-                                <label class="required">Role</label>
-                                <select name="contacts[__CONTACT_INDEX__][role]" class="narrow-select" required data-contact-role-id="__CONTACT_ID__">
+                                <label class="required" for="additional-__CONTACT_INDEX__-role">Role</label>
+                                <select id="additional-__CONTACT_INDEX__-role" name="contacts[__CONTACT_INDEX__][role]" class="narrow-select" required data-contact-role-id="__CONTACT_ID__">
                                     <option value="">Select Role</option>
                                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -424,23 +439,19 @@ if (isset($_SESSION['success_message'])) {
                                 </select>
                             </div>
                             <div class="form-group" hidden data-additional-other-role>
-                                <label class="required">Describe Other Role</label>
-                                <input type="text" name="contacts[__CONTACT_INDEX__][role_other]">
+                                <label class="required" for="additional-__CONTACT_INDEX__-role_other">Describe Other Role</label>
+                                <input type="text" id="additional-__CONTACT_INDEX__-role_other" name="contacts[__CONTACT_INDEX__][role_other]">
                             </div>
                         </div>
                         <div class="email-container">
                             <div class="form-group">
-                                <label class="required">Email</label>
-                                <input type="email" name="contacts[__CONTACT_INDEX__][email]" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="required">Confirm Email</label>
-                                <input type="email" name="contacts[__CONTACT_INDEX__][email_confirm]" required>
+                                <label class="required" for="additional-__CONTACT_INDEX__-email">Email</label>
+                                <input type="email" id="additional-__CONTACT_INDEX__-email" name="contacts[__CONTACT_INDEX__][email]" required>
                             </div>
                         </div>
                         <div class="form-group">
-                            <label>Notes</label>
-                            <textarea name="contacts[__CONTACT_INDEX__][notes]" rows="6" placeholder="Add incidental notes about this person."></textarea>
+                            <label for="additional-__CONTACT_INDEX__-notes">Notes</label>
+                            <textarea id="additional-__CONTACT_INDEX__-notes" name="contacts[__CONTACT_INDEX__][notes]" rows="6" placeholder="Add incidental notes about this person."></textarea>
                         </div>
                     </div>
                     <button type="button" data-remove-contact class="remove-contact-btn">Remove</button>
@@ -449,8 +460,9 @@ if (isset($_SESSION['success_message'])) {
             <button type="button" data-add-contact class="add-contact-btn">Add Another Contact</button>
         </div>
 
+        </details>
         <div class="form-group create-form-actions create-form-actions-end">
-            <a href="organizations.php" class="cancel-button">Cancel</a>
+            <a href="<?php echo htmlspecialchars($creation_return ?: 'organizations.php', ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
             <input type="submit" name="save_org" value="Create organization" class="save-button">
         </div>
     </form>
@@ -468,6 +480,7 @@ if (isset($_SESSION['success_message'])) {
     JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_INVALID_UTF8_SUBSTITUTE
 ); ?></script>
 
+<?php renderScript('assets/js/record-workspace.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'contact_photo_helpers.php';
 include 'two_factor_helpers.php';
@@ -70,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             : 'Unable to update the Contact. Please try again.';
     }
 
-    header('Location: contacts.php?' . http_build_query(['status' => $list_status]));
+    header('Location: ' . safeRecordReturnUrl($_POST['return_to'] ?? null, 'contacts.php?' . http_build_query(['status' => $list_status])));
     exit();
 }
 
@@ -247,6 +248,12 @@ function contactsPageUrl(
     }
     return 'contacts.php?' . http_build_query($parameters);
 }
+$list_current_url = recordCurrentUrl('contacts.php');
+$list_cursor_trail = recordCursorTrail($_GET['history'] ?? null);
+$list_previous_trail = $list_cursor_trail;
+$list_previous_cursor = array_pop($list_previous_trail);
+$list_previous_url = recordUrlWithQuery($list_current_url, ['cursor' => $list_previous_cursor, 'history' => recordEncodedCursorTrail($list_previous_trail)]);
+$list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor, 'history' => recordEncodedCursorTrail(array_merge($list_cursor_trail, [is_string($_GET['cursor'] ?? null) ? $_GET['cursor'] : '']))]);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -347,7 +354,7 @@ function contactsPageUrl(
                                     <?php else: ?>
                                         <span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(contactInitials($contact), ENT_QUOTES, 'UTF-8'); ?></span>
                                     <?php endif; ?>
-                                    <a class="record-link" href="view_contact.php?id=<?php echo (int) $contact['id']; ?>"><?php echo htmlspecialchars(
+                                    <a class="record-link" href="view_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars(
                                         $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
                                         ENT_QUOTES,
                                         'UTF-8'
@@ -380,14 +387,15 @@ function contactsPageUrl(
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>" class="action-button action-icon-button view-button" aria-label="View contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                                    <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                                     <?php if (!$show_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                        <a href="edit_contact.php?id=<?php echo (int) $contact['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit contact" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                        <a href="edit_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit contact" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                                     <?php endif; ?>
                                     <?php if (canArchiveEntries($user_role)): ?>
                                         <?php if ($show_archived): ?>
                                             <form method="post" action="contacts.php">
                                                 <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                                 <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                                 <input type="hidden" name="list_status" value="archived">
                                                 <input type="hidden" name="action" value="restore">
@@ -396,6 +404,7 @@ function contactsPageUrl(
                                         <?php else: ?>
                                             <form method="post" action="contacts.php">
                                                 <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                                 <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                                 <input type="hidden" name="list_status" value="active">
                                                 <input type="hidden" name="action" value="archive">
@@ -408,6 +417,7 @@ function contactsPageUrl(
                                               data-delete-confirmation="Permanently delete this contact?"
                                               <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                             <?php echo csrfInput(); ?>
+                                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                             <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                             <input type="hidden" name="action" value="delete">
@@ -433,13 +443,14 @@ function contactsPageUrl(
                        <?php echo $page_size === $allowed_page_size ? 'aria-current="true"' : ''; ?>><?php echo $allowed_page_size; ?></a>
                 <?php endforeach; ?>
             </div>
-            <span class="pagination-status">Showing up to <?php echo $page_size; ?> contacts</span>
+            <span class="pagination-status">Showing <?php echo count($contacts); ?> contacts</span>
             <div class="pagination-actions">
                 <?php if ($cursor !== null): ?>
+                    <a class="sort-button" href="<?php echo htmlspecialchars($list_previous_url, ENT_QUOTES, 'UTF-8'); ?>">Previous</a>
                     <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">First page</a>
                 <?php endif; ?>
                 <?php if ($next_cursor !== null): ?>
-                    <a href="<?php echo htmlspecialchars(contactsPageUrl($next_cursor, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">Next</a>
+                    <a href="<?php echo htmlspecialchars($list_next_url, ENT_QUOTES, 'UTF-8'); ?>" class="sort-button">Next</a>
                 <?php endif; ?>
             </div>
         </nav>

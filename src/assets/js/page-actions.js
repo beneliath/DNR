@@ -1,4 +1,15 @@
 (function () {
+    function typeaheadIndex(state, options, event) {
+        if (event.key.length !== 1 || event.key === ' ' || event.ctrlKey || event.metaKey || event.altKey) return null;
+        const now = Date.now();
+        state.typeahead = now - (state.lastTypedAt || 0) > 700 ? event.key : (state.typeahead || '') + event.key;
+        state.lastTypedAt = now;
+        const index = options.findIndex(function (option) {
+            return (option.dataset.countryName || option.textContent).trim().toLocaleLowerCase().startsWith(state.typeahead.toLocaleLowerCase());
+        });
+        return index >= 0 ? index : null;
+    }
+
     function setConditionalField(select, expectedValue, container, input) {
         if (!select || !container || !input) return;
         const visible = select.value === expectedValue;
@@ -26,7 +37,7 @@
             const separate = Boolean(selected && selected.value === 'no');
             section.hidden = !separate;
             section.querySelectorAll('input, select').forEach(function (input) {
-                input.required = separate;
+                input.required = separate && !section.hasAttribute('data-address-optional');
             });
         };
         radios.forEach(function (radio) { radio.addEventListener('change', update); });
@@ -58,6 +69,8 @@
 
         function openPicker(state, focusOption) {
             closeOtherPickers(state);
+            state.typeahead = '';
+            state.lastTypedAt = 0;
             state.menu.hidden = false;
             state.trigger.setAttribute('aria-expanded', 'true');
             const selected = optionForValue(state);
@@ -104,7 +117,7 @@
             updatePicker(state);
 
             trigger.addEventListener('click', function () {
-                if (menu.hidden) openPicker(state, false);
+                if (menu.hidden) openPicker(state, true);
                 else closePicker(state, false);
             });
             trigger.addEventListener('keydown', function (event) {
@@ -137,13 +150,20 @@
                     event.preventDefault();
                     closePicker(state, true);
                     return;
+                } else if (event.key === 'Tab') {
+                    closePicker(state, true);
+                    return;
                 }
+                if (targetIndex === null) targetIndex = typeaheadIndex(state, options, event);
                 if (targetIndex !== null) {
                     event.preventDefault();
                     options[targetIndex].focus();
                 }
             });
             select.addEventListener('change', function () { updatePicker(state); });
+            picker.addEventListener('focusout', function (event) {
+                if (!picker.contains(event.relatedTarget)) closePicker(state, false);
+            });
         });
 
         document.addEventListener('click', function (event) {
@@ -216,6 +236,8 @@
 
         function openPicker(state, focusOption) {
             closeOtherPickers(state);
+            state.typeahead = '';
+            state.lastTypedAt = 0;
             state.menu.hidden = false;
             state.trigger.setAttribute('aria-expanded', 'true');
             const selected = selectedOptionButton(state);
@@ -256,6 +278,7 @@
             updatePickerLabel(state, configuration, choice);
             clearRegionError(state);
             closePicker(state, focusTrigger);
+            state.select.dispatchEvent(new Event('change', { bubbles: true }));
         }
 
         function populatePicker(state, configuration, value) {
@@ -349,6 +372,8 @@
             const trigger = document.createElement('button');
             trigger.type = 'button';
             trigger.className = 'address-region-trigger';
+            trigger.id = `address-region-trigger-${prefix}-${index}`;
+            select.dataset.errorTarget = trigger.id;
             trigger.dataset.addressRegionToggle = '';
             trigger.setAttribute('aria-haspopup', 'listbox');
             trigger.setAttribute('aria-expanded', 'false');
@@ -398,7 +423,7 @@
             states.push(state);
 
             trigger.addEventListener('click', function () {
-                if (menu.hidden) openPicker(state, false);
+                if (menu.hidden) openPicker(state, true);
                 else closePicker(state, false);
             });
             trigger.addEventListener('keydown', function (event) {
@@ -431,7 +456,11 @@
                     event.preventDefault();
                     closePicker(state, true);
                     return;
+                } else if (event.key === 'Tab') {
+                    closePicker(state, true);
+                    return;
                 }
+                if (targetIndex === null) targetIndex = typeaheadIndex(state, options, event);
                 if (targetIndex !== null) {
                     event.preventDefault();
                     options[targetIndex].focus();
@@ -448,6 +477,9 @@
             });
             countrySelect.addEventListener('change', function () {
                 configureForCountry(state, countrySelect.value, false);
+            });
+            picker.addEventListener('focusout', function (event) {
+                if (!picker.contains(event.relatedTarget)) closePicker(state, false);
             });
             configureForCountry(state, countrySelect.value, true);
         });

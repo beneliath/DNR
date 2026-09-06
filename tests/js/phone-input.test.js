@@ -67,3 +67,49 @@ test("formatNationalInput reports invalid country codes and national lengths", f
     assert.equal(formatNationalInput(invalidNumber.input), false);
     assert.match(invalidNumber.input.validityMessage, /valid telephone number/);
 });
+
+test("phone picker supports selected focus, arrow/typeahead navigation and single-Tab exit", function () {
+    const fs = require('node:fs');
+    const vm = require('node:vm');
+    const events = {};
+    let focused = null;
+    const trigger = {
+        attrs: {}, dataset: { phoneCountryLabel: 'Phone country code' },
+        setAttribute(k, v) { this.attrs[k] = v; }, focus() { focused = this; }, closest() { return picker; }
+    };
+    const options = ['Argentina', 'Israel', 'United States / Canada'].map((countryName, index) => ({
+        dataset: { countryName }, index, focus() { focused = this; }, scrollIntoView() {},
+        closest(selector) { return selector === '[data-phone-country-option]' ? this : picker; }
+    }));
+    const menu = {
+        hidden: true, id: '', setAttribute() {},
+        querySelector() { return options[2]; }, querySelectorAll() { return options; }
+    };
+    const picker = {
+        contains(target) { return target === trigger || options.includes(target); },
+        querySelector(selector) { return selector === '[data-phone-country-toggle]' ? trigger : menu; }
+    };
+    const doc = {
+        addEventListener(name, fn) { (events[name] ||= []).push(fn); },
+        querySelectorAll() { return [picker]; }, getElementById(id) { return id === menu.id ? menu : null; }
+    };
+    vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/phone-input.js'), 'utf8'), { document: doc });
+    function key(target, key) {
+        const event = { target, key, preventDefault() {} };
+        events.keydown.forEach(fn => fn(event));
+    }
+    key(trigger, 'ArrowDown');
+    assert.equal(menu.hidden, false);
+    assert.equal(focused, options[2]);
+    key(options[2], 'Home');
+    assert.equal(focused, options[0]);
+    key(options[0], 'i');
+    assert.equal(focused, options[1]);
+    key(options[1], 'Tab');
+    assert.equal(menu.hidden, true);
+    assert.equal(focused, trigger, 'restores trigger so native Tab advances past the whole picker');
+    key(trigger, 'ArrowDown');
+    key(options[2], 'Escape');
+    assert.equal(focused, trigger);
+    assert.equal(menu.hidden, true);
+});

@@ -25,13 +25,12 @@ expectEngagementDateFormat(
     'Engagement summary cards should use the Dashboard summary typography.'
 );
 
+require_once __DIR__ . '/../src/engagement_view_helpers.php';
 expectEngagementDateFormat(
-    str_contains($source, "date('Y.m.d', \$start_timestamp)"),
-    'Start dates should use YYYY.MM.DD.'
-);
-expectEngagementDateFormat(
-    str_contains($source, "date('Y.m.d', \$end_timestamp)"),
-    'End dates in ranges should use YYYY.MM.DD.'
+    str_contains($source, 'engagementViewDateRange($start, $end)')
+        && engagementViewDateRange('2026-09-10', '2026-09-10') === 'Sep 10, 2026'
+        && engagementViewDateRange('2026-09-10', '2026-09-12') === 'Sep 10–12, 2026',
+    'Engagement list and detail dates should share readable month names and concise date ranges.'
 );
 expectEngagementDateFormat(
     str_contains($source, 'class="engagement-dates"'),

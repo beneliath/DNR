@@ -29,7 +29,8 @@ final class ContactInput
             'contact_role' => strtolower(InputText::value($input, 'contact_role')),
             'contact_role_other' => InputText::value($input, 'contact_role_other'),
             'contact_email' => InputText::value($input, 'contact_email'),
-            'contact_email_confirm' => InputText::value($input, 'contact_email_confirm'),
+            'contact_email_confirm' => array_key_exists('contact_email_confirm', $input)
+                ? InputText::value($input, 'contact_email_confirm') : InputText::value($input, 'contact_email'),
             'contact_phone' => InputText::value($input, 'contact_phone'),
             'contact_birthday' => $contact_birthday,
             'contact_notes' => InputText::value($input, 'contact_notes'),
@@ -128,7 +129,7 @@ final class ContactInput
             'contact_role' => $input['role'] ?? '',
             'contact_role_other' => $input['role_other'] ?? '',
             'contact_email' => $input['email'] ?? '',
-            'contact_email_confirm' => $input['email_confirm'] ?? '',
+            'contact_email_confirm' => $input['email_confirm'] ?? ($input['email'] ?? ''),
             'contact_phone' => $input['phone'] ?? '',
             'contact_birthday' => $input['birthday'] ?? '',
             'contact_notes' => $input['notes'] ?? '',

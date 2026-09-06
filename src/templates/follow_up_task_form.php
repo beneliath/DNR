@@ -40,7 +40,10 @@ $task_subject_search_url = 'task_subject_search.php'
         </div>
         <div class="form-group">
             <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
-            <input type="search" id="task-subject-search" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
+            <div class="task-selected-record" id="task-selected-record" hidden><div><small>Selected record</small><strong id="task-selected-record-label"></strong></div><button type="button" class="button-secondary" id="task-change-record">Change record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record">Clear relationship</button><?php endif; ?></div>
+            <div id="task-record-search-panel"><label for="task-subject-search">Find a related record</label>
+            <input type="search" id="task-subject-search" aria-describedby="task-subject-status" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
+            <div id="task-subject-results" class="task-subject-results" aria-label="Matching records"></div></div>
             <select id="task-subject" name="subject" required>
                 <?php if ($task_require_engagement_subject): ?>
                     <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select destination event</option>
@@ -51,7 +54,7 @@ $task_subject_search_url = 'task_subject_search.php'
                     <option value="<?php echo htmlspecialchars($task_selected_subject, ENT_QUOTES, 'UTF-8'); ?>" selected><?php echo htmlspecialchars($task_selected_record['label'], ENT_QUOTES, 'UTF-8'); ?><?php echo empty($task_selected_record['active']) ? ' · Archived' : ''; ?></option>
                 <?php endif; ?>
             </select>
-            <small id="task-subject-status" class="field-help" aria-live="polite"><?php if ($task_require_engagement_subject): ?>Type at least three characters, then choose an event different from the source task.<?php else: ?>Type at least three characters to load a bounded result set. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.<?php endif; ?></small>
+            <small id="task-subject-status" class="field-help" aria-live="polite"><?php if ($task_require_engagement_subject): ?>Type at least three characters, then choose an event different from the source task.<?php else: ?>Type at least three characters, then choose a result. Searching does not change the selected record. Use <?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?> when no record applies.<?php endif; ?></small>
         </div>
     </section>
 
@@ -88,6 +91,7 @@ $task_subject_search_url = 'task_subject_search.php'
                 </select>
             </div>
         </div>
+        <p class="field-help" id="task-cancel-closeout-note" hidden>Canceling a task removes it from active work. For engagement tasks under the closeout policy, a task due on or before the last dated presentation must still be marked Completed before the event can be financially finalized. Check the event closeout before canceling pre-event work.</p>
         <div class="form-group" id="task-waiting-on-group">
             <label for="task-waiting-on">Waiting on</label>
             <input type="text" id="task-waiting-on" name="waiting_on" maxlength="255" value="<?php echo htmlspecialchars($task_form_values['waiting_on'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="Person, organization, or missing decision">

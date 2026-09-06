@@ -71,13 +71,13 @@ expectFinancialTracking(
         && str_contains($helpers, 'AND due_date <= ?')
         && str_contains($helpers, "AND status <> 'completed'")
         && str_contains($closeout, 'engagementCloseoutTaskHoldMessage(')
-        && str_contains($closeout, 'if (!$closeout_is_held)')
+        && str_contains($closeout, 'name="action" value="save_draft" formnovalidate')
         && $correctionPosition !== false
         && $taskHoldPosition !== false
         && $initialClosePosition !== false
         && $correctionPosition < $taskHoldPosition
         && $taskHoldPosition < $initialClosePosition,
-    'initial closeout should be held by every non-completed task due through the last active presentation without blocking corrections.'
+    'initial closeout should be held by every non-completed task due through the last active presentation without blocking receipt drafts or corrections.'
 );
 
 expectFinancialTracking(

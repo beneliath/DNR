@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
 include 'map_helpers.php';
@@ -18,6 +19,7 @@ if (!in_array($user_role, ['admin', 'editor'])) {
 }
 
 $engagement_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+$record_edit_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, 'engagements.php');
 if ($engagement_id === null) {
     header("Location: engagements.php");
     exit();
@@ -55,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
     if (!$presentation_id || !in_array($presentation_action, ['archive', 'delete'], true)) {
         $_SESSION['presentation_action_error'] = 'Select a valid presentation action.';
-        header('Location: edit_engagement.php?id=' . $engagement_id . '#presentations-container');
+        header('Location: ' . recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#presentations-container');
         exit();
     }
     if ($presentation_action === 'archive' && !canArchiveEntries($user_role)) {
@@ -183,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             : 'Unable to update the presentation. Please try again.';
     }
 
-    header('Location: edit_engagement.php?id=' . $engagement_id . '#presentations-container');
+    header('Location: ' . recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#presentations-container');
     exit();
 }
 
@@ -248,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
             : 'Unable to update the Chron log. Please try again.';
     }
 
-    header('Location: edit_engagement.php?' . http_build_query(['id' => $engagement_id]) . '#chron-log');
+    header('Location: ' . recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#chron-log');
     exit();
 }
 
@@ -553,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 
         // Redirect to engagements listing
-        header("Location: engagements.php");
+        header('Location: ' . $record_edit_return);
         exit();
 
     } catch (Throwable $e) {
@@ -703,7 +705,7 @@ try {
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
     <div class="page-heading form-page-heading edit-engagement-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
     <?php if (!empty($error_message)): ?>
-        <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
+        <?php echo formErrorSummary($error_message); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <div class="success"><?php echo htmlspecialchars($chron_action_message); ?></div>
@@ -714,6 +716,7 @@ try {
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
         <section class="form-section">
         <h2>Event Details &amp; Schedule</h2>
@@ -744,12 +747,12 @@ try {
 
         <div class="event-row">
             <div class="event-group event-title-group">
-                <div class="label-container">Event Title</div>
+                <label class="label-container" for="event_title">Event Title</label>
                 <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
             </div>
 
             <div class="event-group">
-                <div class="label-container">Event Type</div>
+                <label class="label-container" for="event_type">Event Type</label>
                 <select name="event_type" id="event_type">
                     <?php
                     $event_types = \Dnr\Domain\ReferenceData::eventTypes();
@@ -791,8 +794,7 @@ try {
                     <input type="checkbox" name="brochures" <?php echo $engagement['brochures'] ? 'checked' : ''; ?>> brochures permitted
                 </label>
             </div>
-            <div class="radio-row">
-                <label>All Travel Covered</label>
+            <fieldset class="radio-row"><legend>All travel covered</legend>
                 <div class="radio-options">
                     <?php
                     $travel_covered = $engagement['travel_covered'] ?? 'unknown';
@@ -803,7 +805,7 @@ try {
                     }
                     ?>
                 </div>
-            </div>
+            </fieldset>
         </div>
 
         <div class="compensation-grid">
@@ -834,17 +836,17 @@ try {
 
             <div class="amount-row">
                 <div class="form-field">
-                    <label>Travel (Not in Compensation)</label>
+                    <label for="travel_amount">Travel (Not in Compensation)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['travel_amount'] ?? ''); ?>">
+                        <input type="number" id="travel_amount" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['travel_amount'] ?? ''); ?>">
                     </div>
                 </div>
                 <div class="form-field">
-                    <label>Lodging (Not in Travel)</label>
+                    <label for="housing_amount">Lodging (Not in Travel)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['housing_amount'] ?? ''); ?>">
+                        <input type="number" id="housing_amount" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($engagement['housing_amount'] ?? ''); ?>">
                     </div>
                 </div>
             </div>
@@ -902,7 +904,7 @@ try {
                         <input type="text" name="event_zipcode" id="event_zipcode" value="<?php echo htmlspecialchars($engagement['event_zipcode'] ?? ''); ?>">
                     </div>
                     <div class="form-field event-address-country-field">
-                        <label>Country</label>
+                        <span id="event-country-label">Country</span>
                         <?php echo addressCountryPicker(
                             'event_country',
                             $engagement['event_country'] ?: applicationDefaultCountry(),
@@ -948,6 +950,7 @@ try {
         <?php if (canArchiveEntries($user_role)): ?>
             <form id="archive-presentation-<?php echo $presentation_management_id; ?>" method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#presentations-container" hidden>
                 <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="presentation_id" value="<?php echo $presentation_management_id; ?>">
                 <input type="hidden" name="action" value="archive">
             </form>
@@ -957,6 +960,7 @@ try {
                   data-delete-confirmation="Permanently delete this presentation?"
                   data-archive-action="archive" hidden>
                 <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
                 <input type="hidden" name="presentation_id" value="<?php echo $presentation_management_id; ?>">
                 <input type="hidden" name="action" value="delete">
             </form>
@@ -975,9 +979,9 @@ try {
         </div>
 
         <div class="chron-add-form">
-            <label for="new-chron-entry">New Chron entry</label>
+            <label for="new-chron-entry">New Chron Log Entry</label>
             <textarea name="new_chron_entry" id="new-chron-entry" rows="6" maxlength="100000" form="engagement-edit-form" placeholder="Add scheduling notes, important information, or reminders."><?php echo htmlspecialchars($_POST['new_chron_entry'] ?? ''); ?></textarea>
-            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add Entry</button>
+            <button type="submit" name="save_and_add_chron" value="1" class="save-button" form="engagement-edit-form" data-add-chron-entry>Add Chron Log Entry</button>
         </div>
 
         <div class="chron-entry-list">
@@ -1016,11 +1020,12 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                         <?php endif; ?>
                     </div>
                     <div class="chron-entry-editor">
-                        <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
+                        <label class="visually-hidden" for="chron-entry-<?php echo (int) $chron_entry['id']; ?>">Edit Chron Log Entry from <?php echo htmlspecialchars($created_timestamp['display']); ?></label>
                         <input type="hidden" name="chron_entry_versions[<?php echo (int) $chron_entry['id']; ?>]" value="<?php echo htmlspecialchars($chron_entry_version); ?>" form="engagement-edit-form">
                         <textarea name="chron_entries[<?php echo (int) $chron_entry['id']; ?>]" id="chron-entry-<?php echo (int) $chron_entry['id']; ?>" rows="6" maxlength="100000" required form="engagement-edit-form"><?php echo htmlspecialchars($chron_entry_value); ?></textarea>
                         <form method="post" action="edit_engagement.php?id=<?php echo $engagement_id; ?>#chron-log" class="chron-entry-management">
                             <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
                             <div class="chron-entry-actions">
                                 <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
@@ -1048,7 +1053,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
     </section>
 
     <div class="engagement-page-actions" aria-label="Engagement form actions">
-        <a href="engagements.php" class="cancel-button">Cancel</a>
+        <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
         <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>
     </div>
 </div>

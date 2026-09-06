@@ -1,0 +1,61 @@
+.record-add-note, .record-form-section, .inline-organization-creator {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-block: 16px;
+    background: var(--surface);
+}
+.record-add-note summary, .record-form-section summary, .inline-organization-creator summary {
+    cursor: pointer;
+    color: var(--text);
+    font-weight: 650;
+}
+.record-note-form { display: grid; gap: 10px; margin-top: 16px; }
+.record-note-form textarea { width: 100%; box-sizing: border-box; min-height: 112px; }
+.record-note-actions { display: flex; justify-content: flex-end; }
+.record-note-form p { margin: 0; }
+.record-form-section[open] > summary { margin-bottom: 20px; }
+.inline-organization-creator { min-width: min(280px, 100%); align-self: start; }
+.inline-organization-creator[open] { display: grid; gap: 10px; }
+.record-section-links { display: flex; flex-wrap: wrap; gap: 8px 20px; margin-block: 20px; padding-block: 14px; border-block: 1px solid var(--border); }
+.relationship-events { width: 100%; }
+.relationship-events th, .relationship-events td {
+    padding: 14px 16px;
+    text-align: left;
+    vertical-align: middle;
+}
+.relationship-event-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.record-contact-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.record-related-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-block: 20px; }
+.record-related-summary > div { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.record-related-summary strong { display: block; margin-block: 6px; }
+.record-section-links[role="tablist"] { margin-bottom: 0; }
+html body .record-section-links [role="tab"] {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius-md) !important;
+    color: var(--text) !important;
+    padding: 8px 16px !important;
+    font-weight: 650;
+}
+html body .record-section-links [role="tab"]:hover {
+    background: var(--surface-hover) !important;
+    border-color: var(--primary) !important;
+}
+html body .record-section-links [role="tab"][aria-selected="true"] {
+    background: var(--primary) !important;
+    border-color: var(--primary) !important;
+    color: var(--primary-button-fg) !important;
+}
+html body .record-section-links [role="tab"]:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 3px;
+}
+.relationship-workspace > [role="tabpanel"] { padding: 20px 0; }
+.relationship-workspace > [role="tabpanel"][hidden] { display: none; }
+.relationship-workspace .organization-financials { padding: 20px; }
+.record-add-note summary { color: var(--link-color, #0057d9); }
+.record-form-section input, .record-form-section textarea { max-width: 100%; }
+
+.organization-form fieldset.radio-group { border: 0; padding: 0; min-width: 0; }
+.organization-form fieldset.radio-group legend { font-weight: 600; margin-bottom: 8px; }

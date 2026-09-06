@@ -320,7 +320,7 @@ try {
     </div>
     <!-- Form for adding a new speaking engagement -->
     <?php if (!empty($error_message)): ?>
-        <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
+        <?php echo formErrorSummary($error_message); ?>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
@@ -375,7 +375,7 @@ try {
         <!-- Event type fields -->
         <div class="event-row">
             <div class="event-group">
-                <div class="label-container">Event Type</div>
+                <label class="label-container" for="event_type">Event Type</label>
                 <select name="event_type" id="event_type">
                     <?php
                     $event_types = \Dnr\Domain\ReferenceData::eventTypes();
@@ -416,8 +416,7 @@ try {
                     <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> brochures permitted
                 </label>
             </div>
-            <div class="radio-row">
-                <label>All Travel Covered</label>
+            <fieldset class="radio-row"><legend>All travel covered</legend>
                 <div class="radio-options">
                     <?php
                     $travel_covered = $_POST['travel_covered'] ?? 'unknown';
@@ -428,7 +427,7 @@ try {
                     }
                     ?>
                 </div>
-            </div>
+            </fieldset>
         </div>
 <br>
         <div class="compensation-grid">
@@ -459,17 +458,17 @@ try {
 <br>
             <div class="amount-row">
                 <div class="form-field">
-                    <label>Travel (Not in Compensation)</label>
+                    <label for="travel_amount">Travel (Not in Compensation)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['travel_amount'] ?? ''); ?>">
+                        <input type="number" id="travel_amount" name="travel_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['travel_amount'] ?? ''); ?>">
                     </div>
                 </div>
                 <div class="form-field">
-                    <label>Lodging (Not in Travel)</label>
+                    <label for="housing_amount">Lodging (Not in Travel)</label>
                     <div class="currency-input">
                         <span>$</span>
-                        <input type="number" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['housing_amount'] ?? ''); ?>">
+                        <input type="number" id="housing_amount" name="housing_amount" step="0.01" min="0" value="<?php echo htmlspecialchars($_POST['housing_amount'] ?? ''); ?>">
                     </div>
                 </div>
             </div>
@@ -527,7 +526,7 @@ try {
                         <input type="text" name="event_zipcode" id="event_zipcode" maxlength="20" value="<?php echo htmlspecialchars($_POST['event_zipcode'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                     </div>
                     <div class="form-field event-address-country-field">
-                        <label>Country</label>
+                        <span id="event-country-label">Country</span>
                         <?php echo addressCountryPicker(
                             'event_country',
                             $_POST['event_country'] ?? applicationDefaultCountry(),

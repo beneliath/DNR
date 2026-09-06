@@ -169,9 +169,10 @@ expectTaskNotificationsFeature(
         && str_contains($profile, 'task_digest_enabled = ?')
         && str_contains($profile, 'task_digest_time = ?, task_digest_days = ?')
         && str_contains($header, 'nav-notification-badge')
-        && str_contains($tasks, 'task-reminder-badges')
-        && str_contains($tasks, "owner_filter === 'me'"),
-    'verified users should understand and control the Dashboard-style digest while personal in-app reminders remain visible.'
+        && str_contains($tasks, '$request_reminder_counts = fetchTaskReminderCounts(')
+        && str_contains($tasks, 'task-scope-selector')
+        && str_contains($tasks, "\$scope === 'mine'"),
+    'verified users should control the Dashboard-style digest while the header keeps personal reminders and the task queue uses one explicit ownership scope.'
 );
 expectTaskNotificationsFeature(
     str_contains($editUser, "include 'notification_helpers.php'")

@@ -96,8 +96,18 @@
         menu.hidden = !shouldOpen;
         trigger.setAttribute('aria-expanded', String(shouldOpen));
         if (shouldOpen) {
+            typeahead = '';
+            lastTypedAt = 0;
             const selected = menu.querySelector('[aria-selected="true"]');
-            if (selected) selected.scrollIntoView({ block: 'nearest' });
+            if (!menu.id || document.getElementById(menu.id) !== menu) {
+                menu.id = 'phone-country-menu-' + (++pickerSequence);
+            }
+            trigger.setAttribute('aria-controls', menu.id);
+            menu.setAttribute('aria-label', trigger.dataset.phoneCountryLabel || 'Phone country code');
+            if (selected) {
+                selected.scrollIntoView({ block: 'nearest' });
+                selected.focus();
+            }
         }
     }
 
@@ -127,8 +137,7 @@
         });
         closeCountryPicker(picker);
         validateCountryInput(countryInput);
-        const nationalInput = group.querySelector('[data-phone-number]');
-        if (nationalInput) nationalInput.focus();
+        trigger.focus();
     }
 
     if (typeof module === 'object' && module.exports) {
@@ -139,6 +148,9 @@
         };
     }
     if (typeof document === 'undefined') return;
+    let pickerSequence = 0;
+    let typeahead = '';
+    let lastTypedAt = 0;
 
     document.addEventListener('click', function (event) {
         const option = event.target.closest('[data-phone-country-option]');
@@ -157,12 +169,53 @@
     });
 
     document.addEventListener('keydown', function (event) {
-        if (event.key !== 'Escape') return;
         const picker = event.target.closest('[data-phone-country-picker]');
         if (!picker) return;
-        closeCountryPicker(picker);
         const trigger = picker.querySelector('[data-phone-country-toggle]');
-        if (trigger) trigger.focus();
+        const menu = picker.querySelector('[data-phone-country-menu]');
+        if (!trigger || !menu) return;
+        if (event.key === 'Escape') {
+            if (!menu.hidden) event.preventDefault();
+            closeCountryPicker(picker);
+            trigger.focus();
+            return;
+        }
+        if (event.key === 'Tab') {
+            if (!menu.hidden) { closeCountryPicker(picker); trigger.focus(); }
+            return;
+        }
+        if (menu.hidden) {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                toggleCountryPicker(trigger);
+            }
+            return;
+        }
+        const options = Array.from(menu.querySelectorAll('[data-phone-country-option]'));
+        const current = options.indexOf(event.target.closest('[data-phone-country-option]'));
+        let next = null;
+        if (event.key === 'ArrowDown') next = Math.min(options.length - 1, current + 1);
+        else if (event.key === 'ArrowUp') next = Math.max(0, current - 1);
+        else if (event.key === 'Home') next = 0;
+        else if (event.key === 'End') next = options.length - 1;
+        else if (event.key.length === 1 && event.key !== ' ' && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            const now = Date.now();
+            typeahead = now - lastTypedAt > 700 ? event.key : typeahead + event.key;
+            lastTypedAt = now;
+            const match = options.findIndex(function (option) {
+                return String(option.dataset.countryName || '').toLocaleLowerCase().startsWith(typeahead.toLocaleLowerCase());
+            });
+            if (match >= 0) next = match;
+        }
+        if (next !== null && options[next]) {
+            event.preventDefault();
+            options[next].focus();
+        }
+    });
+
+    document.addEventListener('focusout', function (event) {
+        const picker = event.target.closest('[data-phone-country-picker]');
+        if (picker && !picker.contains(event.relatedTarget)) closeCountryPicker(picker);
     });
 
     document.addEventListener('input', function (event) {

@@ -4,6 +4,30 @@
             margin: 0 auto;
             padding: 44px var(--app-content-padding) 36px;
         }
+
+.view-engagement-page .engagement-card.engagement-compact-overview { margin-bottom: 24px; }
+.engagement-overview-facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 20px;
+    margin: 0;
+}
+.engagement-overview-facts > div + div { border-left: 1px solid var(--border); padding-left: 20px; }
+.engagement-overview-facts dt { color: var(--text-muted); font-size: .9rem; margin-bottom: 6px; }
+.engagement-overview-facts dd { margin: 0; font-weight: 600; }
+.engagement-overview-meta { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid var(--border); color: var(--text-muted); font-size: .9rem; }
+.engagement-description { margin-top: 16px; }
+.engagement-description summary { cursor: pointer; font-weight: 600; }
+.engagement-description p { line-height: 1.6; }
+.engagement-workspace > .engagement-card.engagement-tab-panel { margin: 0; border: 0; border-radius: 0; box-shadow: none; }
+.engagement-workspace .record-add-note { margin: 0 0 24px; }
+.engagement-routing-card summary, .engagement-export-card summary { font-weight: 650; cursor: pointer; }
+.engagement-routing-card[open] summary, .engagement-export-card[open] summary { margin-bottom: 16px; }
+@media (max-width: 760px) {
+    .engagement-overview-facts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+    .engagement-overview-facts > div + div { padding-left: 0; border: 0; }
+    .engagement-tab-list { flex-wrap: wrap; }
+}
         .view-engagement-heading h1 {
             font-size: clamp(1.8rem, 3vw, 2.3rem);
         }

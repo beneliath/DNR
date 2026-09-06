@@ -25,7 +25,7 @@
   --border-strong: #c8d0dc;
   --text: #172033;
   --text-muted: #667085;
-  --text-subtle: #8992a3;
+  --text-subtle: #596579;
   --primary: #2457d6;
   --primary-hover: #1d46b3;
   --primary-subtle: #eff4ff;
@@ -1068,7 +1068,7 @@ html body .container > .profile-form {
 
 .app-footer .footer-moed-definition {
   margin-top: 1lh;
-  opacity: 0.5;
+  opacity: 1;
 }
 
 .app-footer .footer-moed-hebrew {
@@ -2757,6 +2757,80 @@ html body .container > .standard-event-task-form,
   margin-bottom: 10px;
 }
 
+.follow-up-task-form .task-selected-record {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+}
+
+.follow-up-task-form .task-selected-record:not([hidden]) {
+  display: flex;
+}
+
+.follow-up-task-form .task-selected-record > div {
+  flex: 1 1 240px;
+  min-width: 0;
+}
+
+.follow-up-task-form .task-selected-record small {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.follow-up-task-form .task-selected-record strong {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+html body .follow-up-task-form .task-selected-record > button {
+  flex: 0 0 auto;
+  min-height: 44px !important;
+  max-width: 100%;
+  margin: 0 !important;
+}
+
+.follow-up-task-form #task-record-search-panel {
+  margin-top: 20px;
+}
+
+.follow-up-task-form #task-record-search-panel > label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.follow-up-task-form .task-subject-results:not(:empty) {
+  display: grid;
+  gap: 8px;
+  margin-block: 12px;
+}
+
+html body .follow-up-task-form .task-subject-result {
+  justify-content: flex-start;
+  min-height: 44px !important;
+  margin: 0 !important;
+  padding: 12px 16px !important;
+  border: 1px solid var(--border-strong) !important;
+  border-radius: var(--radius-sm) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
+  background: var(--surface-hover) !important;
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
 .task-duplicate-button {
   margin-right: auto;
 }
@@ -2945,22 +3019,27 @@ html body :is(
   transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-/* Safe actions share one quiet surface treatment across pages and dialogs. */
-html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button) {
-  border: 1px solid var(--border-strong) !important;
-  background: var(--surface) !important;
-  color: var(--text) !important;
+/* Primary actions share one filled treatment across pages and dialogs. */
+html body :is(.button-primary, .action-primary, .button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .add-org-button, button.security-button):not(.button-secondary):not(.action-icon-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--primary) !important;
+  border-radius: var(--radius-sm);
+  background: var(--primary) !important;
+  color: var(--primary-button-fg) !important;
+  font: inherit;
+  font-weight: 650;
+  text-decoration: none;
 }
-
-html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):hover,
-html body :is(.button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .security-button, .add-org-button):focus-visible {
-  border-color: var(--control-hover-border) !important;
-  background: var(--control-hover-bg) !important;
-  color: var(--control-hover-fg) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--control-hover-border) 18%, transparent);
-  transform: translateY(-1px);
+html body :is(.button-primary, .action-primary, .button-add, .save-button, .save-event-button, .button-save, .register-button, .login-button, .add-org-button, button.security-button):not(.button-secondary):not(.action-icon-button):is(:hover, :focus-visible) {
+  border-color: var(--primary-hover) !important;
+  background: var(--primary-hover) !important;
+  color: var(--primary-button-fg) !important;
 }
-
 html body :is(.sort-button, .filter-button, .action-button, .button-secondary, .cancel-button, .button-cancel, .add-contact-btn, .add-presentation-btn, .archive-button, .restore-button) {
   border: 1px solid var(--border-strong) !important;
   background: var(--surface) !important;
@@ -3354,6 +3433,21 @@ textarea::placeholder {
 .presentation-entry.is-saved-presentation,
 .address-section.is-saved-address-section {
   background: transparent !important;
+}
+
+.engagement-form .presentations-outer-box {
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+
+.engagement-form .presentation-entry {
+  background: var(--surface) !important;
+}
+
+.engagement-form .address-section {
+  background: var(--surface) !important;
 }
 
 .presentation-fields {
@@ -5657,4 +5751,92 @@ html body .phone-country-option[aria-selected="true"] {
   .form-section {
     padding: 16px;
   }
+}
+
+/* Shared navigation and action hierarchy */
+:root { --primary-button-fg: #ffffff; }
+html.dark-mode { --primary-button-fg: #101828; }
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 300;
+  padding: 10px 16px;
+  border: 2px solid var(--primary);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--primary);
+  transform: translateY(-150%);
+}
+.skip-link:focus { transform: translateY(0); }
+html body .app-sidebar .nav-group { margin: 0 0 20px; padding: 0; border: 0; background: transparent; }
+html body .app-sidebar .nav-group-heading {
+  text-align: left !important;
+  margin: 0 0 7px;
+  padding: 0 12px;
+  color: var(--accent) !important;
+  font-size: 0.7rem;
+  line-height: 1.3;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+.app-sidebar .app-brand { margin-bottom: 24px; }
+.app-sidebar .utility-navigation { margin-top: auto; }
+.role-preview-disclosure { margin: 0 0 14px; color: var(--text-muted); font-size: 0.8rem; }
+.role-preview-disclosure > summary { padding: 8px 12px; cursor: pointer; text-align: left !important; }
+html body .app-sidebar .role-preview-disclosure > summary,
+html body .app-sidebar .role-preview-control > label { color: var(--accent) !important; }
+.role-preview-disclosure .role-preview-control { margin: 8px 0 0; }
+html body .sidebar-close-button { display: none !important; }
+.action-icon-label { display: none; }
+.form-error-summary {
+  grid-column: 1 / -1;
+  scroll-margin-top: 96px;
+  border-left: 4px solid var(--danger) !important;
+  text-align: left;
+}
+.form-error-summary h2 { margin: 0 0 10px; font-size: 1rem; color: var(--danger) !important; }
+.form-error-summary ul { margin: 0; padding-left: 22px; }
+.form-error-summary a { color: inherit; text-decoration: underline; }
+.form-field-error { display: block; margin: 6px 0 14px; color: var(--danger); font-size: 0.875rem; }
+html body :is(input, select, textarea, button)[aria-invalid="true"] { border-color: var(--danger) !important; }
+.form-error-summary:focus { outline: 2px solid var(--danger); outline-offset: 3px; }
+@media (max-width: 860px) {
+  html body .sidebar-close-button { display: block !important; align-self: flex-end; margin-bottom: 14px; }
+  .app-sidebar .app-brand { margin-bottom: 20px; }
+}
+@media (max-width: 760px) {
+  html body .action-icon-button {
+    display: inline-flex !important;
+    width: auto !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    height: auto !important;
+    gap: 6px;
+    padding: 8px 10px !important;
+    border-color: var(--border-strong) !important;
+    line-height: 1.25 !important;
+  }
+  .action-icon-label { display: inline; font-size: 0.8rem; font-weight: 650; }
+}
+
+/* Filter choices remain separate touch targets, with room before their results. */
+html body :is(.control-group, .sort-buttons, .inbound-status-filters, .map-list-filters) {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px !important;
+}
+html body :is(.control-group, .sort-buttons, .inbound-status-filters, .map-list-filters) :is(.sort-button, .filter-button, button[data-location-filter]) {
+  border-radius: var(--radius-md) !important;
+  margin: 0 !important;
+  padding-inline: 18px;
+  min-height: 44px;
+}
+html body .task-scope-selector {
+  margin: 8px 0 24px !important;
+}
+html body :is(.inbound-status-filters, .map-list-filters) {
+  margin-block: 18px 24px;
 }

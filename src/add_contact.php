@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_workspace_helpers.php';
 include 'contact_photo_helpers.php';
 startSecureSession();
+$creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
 
 // Ensure the user is logged in
 requireLogin();
@@ -132,9 +134,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $return_to_organization = $requested_organization_id !== null
                 && $organization_id === $requested_organization_id;
             header(
-                'Location: ' . ($return_to_organization
+                'Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_contact_id' => $contact_id]) : ($return_to_organization
                     ? 'view_organization.php?id=' . $requested_organization_id
-                    : 'view_contact.php?id=' . $contact_id)
+                    : 'view_contact.php?id=' . $contact_id))
             );
             exit();
         } catch (Throwable $exception) {
@@ -162,9 +164,9 @@ $add_contact_action = 'add_contact.php'
     . ($requested_organization_id !== null
         ? '?' . http_build_query(['organization_id' => $requested_organization_id])
         : '');
-$cancel_url = $requested_organization_id !== null
+$cancel_url = $creation_return !== '' ? $creation_return : ($requested_organization_id !== null
     ? 'view_organization.php?id=' . $requested_organization_id
-    : 'contacts.php';
+    : 'contacts.php');
 ?>
 
 <!DOCTYPE html>
@@ -172,9 +174,10 @@ $cancel_url = $requested_organization_id !== null
 <?php renderPageHead(applicationPageTitle('Add Contact'), array (
   'styles' =>
   array (
-    0 => 'assets/css/style.min.css',
-    1 => 'assets/css/modern.min.css',
-    2 => 'assets/css/pages/add_contact.min.css',
+    'assets/css/style.min.css',
+    'assets/css/modern.min.css',
+    'assets/css/pages/record_workspace.min.css',
+    'assets/css/pages/add_contact.min.css',
   ),
   'scripts' =>
   array (
@@ -188,7 +191,7 @@ $cancel_url = $requested_organization_id !== null
 <?php include 'templates/header.php'; ?>
 <main class="container add-contact-page">
     <?php if (!empty($error_message)): ?>
-        <div class="error"><?php echo htmlspecialchars($error_message); ?></div>
+        <?php echo formErrorSummary($error_message); ?>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
@@ -201,6 +204,7 @@ $cancel_url = $requested_organization_id !== null
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">
             <div class="form-group form-flex-one">
                 <label for="organization_id">Organization</label>
@@ -215,7 +219,14 @@ $cancel_url = $requested_organization_id !== null
                     ?>
                 </select>
             </div>
-            <a href="add_organization.php" class="add-org-button">Add New Organization</a>
+            <details class="inline-organization-creator" data-inline-organization>
+                <summary>New organization</summary>
+                <label for="inline-organization-name">Organization name</label>
+                <input id="inline-organization-name" type="text" maxlength="255" data-organization-name autocomplete="organization">
+                <button type="button" class="button-secondary" data-create-organization>Create and select</button>
+                <p data-organization-status role="status" aria-live="polite"></p>
+                <noscript><p>JavaScript is needed to create an organization here. You can save this contact without an organization and link it later.</p></noscript>
+            </details>
         </div>
 
         <div class="name-container">
@@ -248,10 +259,6 @@ $cancel_url = $requested_organization_id !== null
             <div class="form-group email-field">
                 <label for="contact_email" class="required">Email</label>
                 <input type="email" name="contact_email" id="contact_email" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_email'] ?? '') : ''; ?>">
-            </div>
-            <div class="form-group email-field">
-                <label for="contact_email_confirm" class="required">Confirm Email</label>
-                <input type="email" name="contact_email_confirm" id="contact_email_confirm" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_email_confirm'] ?? '') : ''; ?>">
             </div>
         </div>
 
@@ -296,6 +303,7 @@ $cancel_url = $requested_organization_id !== null
     </form>
 </main>
 
+<?php renderScript('assets/js/record-workspace.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

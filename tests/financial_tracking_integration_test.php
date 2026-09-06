@@ -168,6 +168,36 @@ try {
             === '3 tasks due on or before the last presentation (2026-03-12) must be marked completed before this event can be closed out.',
         'the closeout hold should explain the blocker count and cutoff date.'
     );
+    // Receipt collection is independent of finalization prerequisites and finalized analytics.
+    saveEngagementFinancialDraft($conn, $readinessEngagementId, [
+        'giving_income_received' => '123.45', 'lodging_received' => '', 'travel_received' => '0',
+        'notes' => 'Awaiting lodging confirmation',
+    ], '', $userId);
+    $draft = fetchEngagementFinancialDraft($conn, $readinessEngagementId);
+    expectFinancialTrackingIntegration($draft !== null
+        && $draft['giving_income_received'] === '123.45'
+        && $draft['lodging_received'] === null
+        && $draft['travel_received'] === '0.00'
+        && fetchEngagementFinancialReport($conn, $readinessEngagementId) === null,
+        'a draft should save through a task hold and retain unknown versus confirmed-zero amounts without finalizing');
+    $draftConflict = false;
+    try {
+        saveEngagementFinancialDraft($conn, $readinessEngagementId, ['giving_income_received' => '999'], '', $userId);
+    } catch (InvalidArgumentException $exception) { $draftConflict = true; }
+    expectFinancialTrackingIntegration($draftConflict
+        && fetchEngagementFinancialDraft($conn, $readinessEngagementId)['giving_income_received'] === '123.45',
+        'a stale draft must not overwrite newer receipt amounts');
+    saveEngagementFinancialDraft($conn, $readinessEngagementId, [
+        'giving_income_received' => '123.45', 'lodging_received' => '15', 'travel_received' => '0',
+    ], (string) $draft['updated_at'], $userId);
+    expectFinancialTrackingIntegration(fetchEngagementFinancialDraft($conn, $readinessEngagementId)['lodging_received'] === '15.00',
+        'a reopened draft should accept a newly confirmed amount');
+    $finalizedDraftRejected = false;
+    try {
+        saveEngagementFinancialDraft($conn, $engagementIds[1], ['giving_income_received' => '10'], '', $userId);
+    } catch (InvalidArgumentException $exception) { $finalizedDraftRejected = true; }
+    expectFinancialTrackingIntegration($finalizedDraftRejected, 'finalized events require report corrections rather than new drafts');
+
     $conn->begin_transaction();
     try {
         $lockedReadiness = fetchEngagementCloseoutTaskReadiness(
