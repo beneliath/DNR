@@ -135,11 +135,15 @@
     }
 
     function presentationEntryHasContent(entry) {
+        if (entry.querySelector('input[name$="[id]"]')) {
+            return true;
+        }
         var id = presentationId(entry);
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
         var timeInput = document.getElementById("presentation_time_" + id);
         var speakerInput = document.getElementById("speaker_name_" + id);
+        var durationInput = document.getElementById("duration_minutes_" + id);
         var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
         var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
 
@@ -147,6 +151,7 @@
             (topicInput && topicInput.value.trim())
             || (dateInput && dateInput.value)
             || (timeInput && timeInput.value)
+            || (durationInput && durationInput.value !== "" && durationInput.value !== "60")
             || (expectedAttendanceInput && expectedAttendanceInput.value)
             || (actualAttendanceInput && actualAttendanceInput.value)
             || (speakerInput && speakerInput.value.trim()
@@ -158,24 +163,9 @@
         );
     }
 
-    function presentationEntryIsComplete(entry) {
-        var id = presentationId(entry);
-        var topicInput = document.getElementById("presentation_topic_" + id);
-        var dateInput = document.getElementById("presentation_date_" + id);
-        var timeInput = document.getElementById("presentation_time_" + id);
-        var durationInput = document.getElementById("duration_minutes_" + id);
-
-        return Boolean(
-            topicInput && topicInput.value.trim()
-            && dateInput && dateInput.value
-            && timeInput && validTime(timeInput.value)
-            && durationInput && validWholeNumber(durationInput.value, 1, 1440)
-        );
-    }
-
-    function hasCompletePresentation() {
+    function hasPresentation() {
         return presentationEntries().some(function (entry) {
-            return presentationEntryIsComplete(entry);
+            return presentationEntryHasContent(entry);
         });
     }
 
@@ -186,12 +176,12 @@
         }
         var confirmedOption = status.querySelector('option[value="confirmed"]');
         if (confirmedOption) {
-            confirmedOption.disabled = !hasCompletePresentation();
+            confirmedOption.disabled = !hasPresentation();
         }
         status.setCustomValidity("");
     }
 
-    function validatePresentationEntry(entry, startInput, endInput, requireEntry) {
+    function validatePresentationEntry(entry, startInput, endInput) {
         var id = presentationId(entry);
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
@@ -199,29 +189,19 @@
         var durationInput = document.getElementById("duration_minutes_" + id);
         var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
         var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
-        var shouldValidate = requireEntry || presentationEntryHasContent(entry);
 
         [topicInput, dateInput, timeInput, durationInput, expectedAttendanceInput, actualAttendanceInput].forEach(function (input) {
             if (input) {
                 input.setCustomValidity("");
             }
         });
-        if (!shouldValidate) {
-            return true;
-        }
-        if (!topicInput || topicInput.value.trim() === "") {
-            topicInput.setCustomValidity("Enter a topic/title for this presentation.");
-            topicInput.reportValidity();
-            topicInput.focus();
-            return false;
-        }
-        if (!dateInput || dateInput.value === "") {
-            dateInput.setCustomValidity("Enter a date for this presentation.");
+        if (dateInput && dateInput.validity && dateInput.validity.badInput) {
+            dateInput.setCustomValidity("Use a valid presentation date.");
             dateInput.reportValidity();
             dateInput.focus();
             return false;
         }
-        if (startInput && endInput && startInput.value && endInput.value
+        if (dateInput && dateInput.value && startInput && endInput && startInput.value && endInput.value
             && (dateInput.value < startInput.value || dateInput.value > endInput.value)
         ) {
             dateInput.setCustomValidity("Presentation date must be between the engagement start and end dates.");
@@ -229,19 +209,14 @@
             dateInput.focus();
             return false;
         }
-        if (!timeInput || timeInput.value === "") {
-            timeInput.setCustomValidity("Enter a time for this presentation.");
-            timeInput.reportValidity();
-            timeInput.focus();
-            return false;
-        }
-        if (!validTime(timeInput.value)) {
+        if (timeInput && timeInput.value !== "" && !validTime(timeInput.value)) {
             timeInput.setCustomValidity("Use a valid presentation time, such as 9:30 AM.");
             timeInput.reportValidity();
             timeInput.focus();
             return false;
         }
-        if (!durationInput || !validWholeNumber(durationInput.value, 1, 1440)) {
+        if (durationInput && ((durationInput.validity && durationInput.validity.badInput)
+            || (durationInput.value !== "" && !validWholeNumber(durationInput.value, 1, 1440)))) {
             durationInput.setCustomValidity("Enter a duration between 1 and 1440 minutes.");
             durationInput.reportValidity();
             durationInput.focus();
@@ -275,6 +250,7 @@
         var durationInput = document.getElementById("duration_minutes_" + id);
         var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
         var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
+        var speakerInput = document.getElementById("speaker_name_" + id);
         if (timeInput) {
             timeInput.addEventListener("input", function () {
                 timeInput.setCustomValidity("");
@@ -310,10 +286,11 @@
                 updateConfirmedAvailability();
             });
         }
-        [expectedAttendanceInput, actualAttendanceInput].forEach(function (input) {
+        [speakerInput, expectedAttendanceInput, actualAttendanceInput].forEach(function (input) {
             if (input) {
                 input.addEventListener("input", function () {
                     input.setCustomValidity("");
+                    updateConfirmedAvailability();
                 });
             }
         });
@@ -513,16 +490,16 @@
         return [
             '<div class="presentation-fields">',
             '  <div class="form-field topic">',
-            '    <label for="presentation_topic_' + id + '">Topic/Title<span class="required">*</span></label>',
+            '    <label for="presentation_topic_' + id + '">Topic/Title</label>',
             '    <input type="text" name="presentations[' + id + '][topic_title]" id="presentation_topic_' + id + '" maxlength="255">',
             '  </div>',
             '  <div class="datetime-row">',
             '    <div class="form-field">',
-            '      <label for="presentation_date_' + id + '">Date<span class="required">*</span></label>',
+            '      <label for="presentation_date_' + id + '">Date</label>',
             '      <input type="date" name="presentations[' + id + '][presentation_date]" id="presentation_date_' + id + '">',
             '    </div>',
             '    <div class="form-field">',
-            '      <label for="presentation_time_' + id + '">Time<span class="required">*</span></label>',
+            '      <label for="presentation_time_' + id + '">Time</label>',
             '      <div class="time-input-container">',
             '        <input type="text" id="presentation_time_' + id + '" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530">',
             '        <div class="ampm-radio">',
@@ -539,7 +516,7 @@
             '      <input type="text" name="presentations[' + id + '][speaker_name]" id="speaker_name_' + id + '" maxlength="255">',
             '    </div>',
             '    <div class="form-field attendance">',
-            '      <label for="duration_minutes_' + id + '">Duration (minutes)<span class="required">*</span></label>',
+            '      <label for="duration_minutes_' + id + '">Duration (minutes)</label>',
             '      <input type="number" name="presentations[' + id + '][duration_minutes]" id="duration_minutes_' + id + '" min="1" max="1440" step="1" value="60">',
             '    </div>',
             '  </div>',
@@ -562,11 +539,12 @@
     }
 
     window.addPresentation = function () {
+        updateAllPresentationTimes();
         var entries = presentationEntries();
         var startInput = document.getElementById("event_start_date");
         var endInput = document.getElementById("event_end_date");
         for (var existingEntry of entries) {
-            if (!validatePresentationEntry(existingEntry, startInput, endInput, true)) {
+            if (!validatePresentationEntry(existingEntry, startInput, endInput)) {
                 return;
             }
         }
@@ -600,12 +578,12 @@
         var status = document.getElementById("confirmation_status");
 
         for (var entry of presentationEntries()) {
-            if (!validatePresentationEntry(entry, startInput, endInput, false)) {
+            if (!validatePresentationEntry(entry, startInput, endInput)) {
                 return false;
             }
         }
 
-        if (status && status.value === "confirmed" && !hasCompletePresentation()) {
+        if (status && status.value === "confirmed" && !hasPresentation()) {
             status.setCustomValidity("Add at least one presentation before confirming this engagement.");
             status.reportValidity();
             status.focus();

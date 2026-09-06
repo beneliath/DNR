@@ -1,3 +1,13 @@
+/* Keep the organization row centered; apply field spacing to the whole row. */
+    .organization-container {
+        margin-bottom: 18px;
+    }
+
+    .organization-container > label,
+    .organization-container > select {
+        margin-bottom: 0;
+    }
+
 /* Reset and contain all event field styles in a single block */
     .event-row {
         display: flex;

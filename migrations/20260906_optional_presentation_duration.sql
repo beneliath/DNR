@@ -1,0 +1,2 @@
+ALTER TABLE presentations
+    MODIFY COLUMN duration_minutes SMALLINT UNSIGNED NULL DEFAULT 60;

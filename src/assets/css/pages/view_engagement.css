@@ -337,3 +337,763 @@
         flex-direction: column;
     }
 }
+
+/* Engagement record workspace. */
+.view-engagement-page .view-engagement-heading {
+    align-items: center !important;
+    margin-bottom: 26px;
+}
+
+.view-engagement-page .view-engagement-heading > div,
+.view-engagement-page .view-engagement-heading h1 {
+    text-align: left !important;
+}
+
+.view-engagement-heading > div,
+.engagement-detail-main,
+.engagement-detail-sidebar,
+.engagement-card,
+.engagement-card-heading > *,
+.engagement-detail-list > div > * {
+    min-width: 0;
+}
+
+.engagement-title-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+    margin: 8px 0 0;
+    color: var(--text-muted);
+}
+
+.engagement-title-meta > a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+
+.engagement-title-meta > a:hover,
+.engagement-title-meta > a:focus-visible {
+    color: var(--primary);
+    text-decoration: underline;
+}
+
+.engagement-stage-path {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(108px, 1fr);
+    gap: 0;
+    margin: 0 0 24px;
+    padding: 23px 20px 18px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.engagement-stage-path > div {
+    position: relative;
+    display: grid;
+    justify-items: center;
+    align-content: start;
+    gap: 9px;
+    min-height: 59px;
+    padding: 1px 8px 9px;
+    color: var(--text-muted);
+    font-size: 0.76rem;
+    text-align: center;
+}
+
+.engagement-stage-path > div::before {
+    position: absolute;
+    z-index: 0;
+    top: 15px;
+    right: 50%;
+    left: -50%;
+    height: 1px;
+    background: var(--border-strong);
+    content: "";
+}
+
+.engagement-stage-path > div:first-child::before {
+    display: none;
+}
+
+.engagement-stage-path > div > span {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    width: 29px;
+    height: 29px;
+    place-items: center;
+    border: 2px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-muted);
+    font-weight: 750;
+}
+
+.engagement-stage-path > div.is-complete::before,
+.engagement-stage-path > div.is-current::before {
+    background: var(--success);
+}
+
+.engagement-stage-path > div.is-complete > span {
+    border-color: var(--success);
+    background: var(--success);
+    color: #fff;
+}
+
+.engagement-stage-path > div.is-current {
+    background: var(--primary-subtle);
+    box-shadow: inset 0 -3px var(--primary);
+}
+
+.engagement-stage-path > div.is-current > span {
+    border-color: var(--primary);
+    color: var(--primary);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 11%, transparent);
+}
+
+.engagement-stage-path > div.is-current > strong {
+    color: var(--text);
+}
+
+.engagement-stage-path > div.is-exception::before {
+    background: repeating-linear-gradient(to right, var(--border-strong) 0 5px, transparent 5px 9px);
+}
+
+.engagement-stage-path > div.is-exception > span {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.engagement-stage-path > div.is-exception.is-current {
+    background: var(--danger-subtle);
+    box-shadow: inset 0 -3px var(--danger);
+}
+
+.engagement-stage-path > div.is-exception.is-current > span {
+    background: var(--danger);
+    color: #fff;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--danger) 11%, transparent);
+}
+
+.engagement-detail-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.65fr) minmax(300px, 0.85fr);
+    align-items: start;
+    gap: 22px;
+}
+
+.engagement-detail-main,
+.engagement-detail-sidebar {
+    display: grid;
+    align-content: start;
+    gap: 20px;
+}
+
+.view-engagement-page .engagement-card {
+    margin: 0;
+    padding: 23px 24px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    box-shadow: var(--shadow-sm);
+}
+
+.view-engagement-page .engagement-card.detail-group {
+    padding: 23px 24px !important;
+}
+
+.engagement-card-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.engagement-card h2,
+.engagement-card-heading h2 {
+    margin: 0;
+    color: var(--text);
+    font-size: 1.08rem;
+    line-height: 1.35;
+}
+
+.engagement-card-heading > a {
+    flex: 0 0 auto;
+    font-size: 0.8rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.engagement-card-heading > a:hover {
+    text-decoration: underline;
+}
+
+.engagement-section-count {
+    display: inline-grid;
+    min-width: 24px;
+    height: 24px;
+    margin-left: 5px;
+    padding-inline: 6px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--surface-hover);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    vertical-align: middle;
+}
+
+.engagement-detail-list {
+    display: grid;
+    margin: 0;
+}
+
+.engagement-detail-list > div {
+    display: grid;
+    grid-template-columns: minmax(130px, 0.54fr) minmax(0, 1.46fr);
+    align-items: baseline;
+    gap: 16px;
+    padding: 11px 0;
+    border-top: 1px solid var(--border);
+}
+
+.engagement-detail-list > div:first-child {
+    border-top: 0;
+}
+
+.engagement-detail-list > div:last-child {
+    padding-bottom: 0;
+}
+
+.engagement-detail-list dt {
+    margin: 0;
+    color: var(--text);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.engagement-detail-list dd {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.83rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.engagement-detail-list dd small {
+    display: block;
+    margin-top: 3px;
+}
+
+.engagement-card-empty,
+.engagement-card > p {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.engagement-card .contacts-list {
+    margin: 4px 0 0;
+}
+
+.engagement-card .engagement-contacts-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.84rem;
+}
+
+.engagement-card .contact-item,
+.engagement-card .presentation-item {
+    background: var(--surface-subtle);
+    border-color: var(--border);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.engagement-card .contact-title {
+    color: var(--text-muted);
+}
+
+.engagement-card .contact-notes {
+    border-top-color: var(--border);
+}
+
+.engagement-card .presentation-item:last-child,
+.engagement-card > .detail-value:last-child {
+    margin-bottom: 0;
+}
+
+.engagement-card .presentation-item > strong {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--text);
+    font-size: 0.96rem;
+}
+
+.engagement-card .presentation-view-qr-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.engagement-compensation {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+.engagement-compensation h3 {
+    margin: 0 0 10px;
+    font-size: 0.96rem;
+}
+
+.engagement-compensation .detail-value {
+    display: grid;
+    gap: 5px;
+    margin: 0;
+    font-size: 0.84rem;
+    line-height: 1.5;
+}
+
+.engagement-card .financial-closeout-heading p {
+    font-size: 0.81rem;
+    line-height: 1.5;
+}
+
+.engagement-card .financial-amount-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.engagement-card .financial-amount-grid > div {
+    background: var(--surface-subtle);
+}
+
+.engagement-card .financial-meta,
+.engagement-card .financial-empty {
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.engagement-detail-sidebar .engagement-card > h2 {
+    margin-bottom: 18px;
+}
+
+.engagement-next-action-content {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.engagement-next-action-icon {
+    display: grid;
+    width: 52px;
+    height: 52px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border));
+    border-radius: var(--radius-sm);
+    background: var(--accent-subtle);
+    color: var(--accent);
+}
+
+.engagement-next-action-icon svg {
+    width: 26px;
+    height: 26px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.engagement-next-action-content > div {
+    min-width: 0;
+}
+
+.engagement-next-action-content strong {
+    display: block;
+    color: var(--text);
+    font-size: 0.93rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
+.engagement-next-action-content p {
+    margin: 5px 0 0;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.engagement-next-action-content p.task-due-overdue {
+    color: var(--danger);
+}
+
+.engagement-next-action-content p.task-due-today,
+.engagement-next-action-content p b {
+    color: var(--primary);
+}
+
+.view-engagement-page .engagement-card-action {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 42px;
+    margin-top: 16px;
+    text-align: center;
+    text-decoration: none;
+}
+
+.engagement-readiness-card ul {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.engagement-readiness-card li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 0;
+    border-top: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.engagement-readiness-card li:first-child {
+    border-top: 0;
+}
+
+.engagement-readiness-card li > strong {
+    display: grid;
+    width: 21px;
+    height: 21px;
+    flex: 0 0 auto;
+    place-items: center;
+    border: 1.5px solid var(--warning);
+    border-radius: 50%;
+    color: var(--warning);
+    font-size: 0.74rem;
+    font-weight: 750;
+}
+
+.engagement-readiness-card li.is-ready > strong {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.engagement-workflow-card .engagement-detail-list > div {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 10px;
+}
+
+.engagement-workflow-card > .detail-value {
+    margin: 12px 0 0;
+    font-size: 0.83rem;
+    line-height: 1.5;
+}
+
+.engagement-workflow-card .lifecycle-links {
+    margin-top: 10px;
+}
+
+.engagement-routing-card h2 {
+    margin: 0 0 16px;
+    color: var(--text);
+    font-size: 1.08rem;
+    font-weight: 700;
+}
+
+.engagement-routing-card .engagement-email-marker {
+    margin-top: 16px;
+}
+
+.engagement-routing-card .engagement-email-marker-help {
+    flex-basis: 100%;
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.engagement-export-card .export-actions {
+    display: grid !important;
+    grid-template-columns: 1fr;
+    margin: 0;
+    gap: 9px !important;
+}
+
+.engagement-export-card .export-actions > * {
+    justify-content: center;
+    margin: 0;
+    text-align: center;
+    text-decoration: none;
+}
+
+.view-engagement-page .engagement-workspace {
+    padding: 0;
+    overflow: hidden;
+}
+
+.engagement-tab-list {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    padding: 0 16px;
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+}
+
+html body #engagement-workspace .engagement-tab-list button {
+    flex: 0 0 auto;
+    min-height: 49px !important;
+    padding: 10px 2px !important;
+    border: 0 !important;
+    border-bottom: 3px solid transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    color: var(--text-muted) !important;
+    box-shadow: none !important;
+    font-size: 0.78rem !important;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+html body #engagement-workspace .engagement-tab-list button:hover,
+html body #engagement-workspace .engagement-tab-list button[aria-selected="true"] {
+    border-bottom-color: var(--primary) !important;
+    color: var(--primary) !important;
+}
+
+html body #engagement-workspace .engagement-tab-list button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: -5px;
+}
+
+.engagement-tab-list button span {
+    display: inline-grid;
+    min-width: 22px;
+    height: 22px;
+    margin-left: 4px;
+    padding-inline: 5px;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--surface-hover);
+    color: var(--text-muted);
+    font-size: 0.66rem;
+}
+
+.engagement-tab-panel {
+    padding: 22px 24px;
+    scroll-margin-top: 24px;
+}
+
+.engagement-tab-panel[hidden] {
+    display: none;
+}
+
+.engagement-workspace > .engagement-tab-panel {
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.view-engagement-page .engagement-tab-panel > .chron-log-section,
+.view-engagement-page .engagement-tab-panel > .engagement-correspondence,
+.view-engagement-page .engagement-tab-panel > .context-task-section {
+    margin: 0;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.engagement-workspace .chron-log-heading,
+.engagement-workspace .context-task-heading,
+.engagement-workspace .engagement-correspondence-heading {
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.engagement-workspace .chron-log-heading h2,
+.engagement-workspace .context-task-heading h2,
+.engagement-workspace .engagement-correspondence-heading h2 {
+    margin: 0 0 5px;
+    font-size: 1rem;
+}
+
+.engagement-workspace .chron-log-heading p,
+.engagement-workspace .context-task-heading p,
+.engagement-workspace .engagement-correspondence-heading p {
+    color: var(--text-muted);
+    font-size: 0.81rem;
+    line-height: 1.5;
+}
+
+.engagement-workspace .chron-entry-list {
+    gap: 0;
+    margin-top: 16px;
+}
+
+.engagement-workspace .chron-entry-card {
+    margin: 0;
+    padding: 0 0 23px calc(38px + .7rem);
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+}
+
+.engagement-workspace .chron-entry-card::before,
+.engagement-workspace .chron-entry-card + .chron-entry-card::before {
+    display: none;
+    content: none;
+}
+
+.engagement-workspace .engagement-chron-icon {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0;
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--success);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--success);
+    font-size: .76rem;
+}
+
+.engagement-workspace .chron-entry-card:not(:last-child)::after {
+    position: absolute;
+    top: 34px;
+    bottom: 0;
+    left: 16px;
+    width: 1px;
+    background: var(--border);
+    content: "";
+}
+
+.engagement-workspace .chron-entry-card:last-child {
+    padding-bottom: 0;
+}
+
+.engagement-workspace .chron-entry-meta {
+    flex-wrap: wrap;
+    gap: 5px 14px;
+    margin-bottom: 7px;
+    font-size: 0.76rem;
+}
+
+.engagement-workspace .chron-entry-text {
+    color: var(--text-muted);
+    font-size: 0.84rem;
+    line-height: 1.55;
+}
+
+.engagement-workspace .chron-empty-state {
+    margin: 0;
+}
+
+.engagement-workspace .context-task-card {
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.engagement-workspace .context-task-title-row {
+    font-size: 0.88rem;
+}
+
+.engagement-workspace .checklist-generation-form {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 1000px) {
+    .engagement-detail-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .engagement-detail-sidebar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        align-items: start;
+    }
+}
+
+@media (max-width: 720px) {
+    .view-engagement-page .view-engagement-heading {
+        align-items: stretch !important;
+    }
+
+    .engagement-detail-sidebar {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .engagement-stage-path {
+        padding-inline: 12px;
+    }
+
+    .view-engagement-page .engagement-card {
+        padding: 20px 18px;
+    }
+
+    .view-engagement-page .engagement-card.detail-group {
+        padding: 20px 18px !important;
+    }
+
+    .view-engagement-page .engagement-workspace {
+        padding: 0;
+    }
+
+    .engagement-detail-list > div {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+
+    .engagement-tab-list {
+        gap: 10px;
+        padding-inline: 12px;
+    }
+
+    .engagement-tab-panel {
+        padding: 20px 18px;
+    }
+
+    .engagement-workspace .chron-log-heading,
+    .engagement-workspace .context-task-heading,
+    .engagement-workspace .engagement-correspondence-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+}
+
+@media (max-width: 440px) {
+    .engagement-card-heading {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .engagement-card .financial-amount-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .engagement-workflow-card .engagement-detail-list > div {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
+    }
+}

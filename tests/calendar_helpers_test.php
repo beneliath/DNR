@@ -127,6 +127,21 @@ expectCalendar(
     'Presentations without both a date and time should not create timed calendar blocks.'
 );
 expectCalendar(
+    calendarPresentationEventLines(array_merge($presentation, ['presentation_date' => null])) === []
+        && calendarPresentationEventLines(array_merge($presentation, ['presentation_time' => null])) === [],
+    'Presentations with an unknown date or time should wait for a schedule before appearing on the calendar.'
+);
+$partial_presentation_lines = calendarPresentationEventLines(array_merge($presentation, [
+    'topic_title' => '',
+    'duration_minutes' => null,
+]), 'America/Chicago');
+expectCalendar(
+    in_array('DTSTART:20260821T143000Z', $partial_presentation_lines, true)
+        && in_array('SUMMARY:Presentation-Presentation-Jordan Speaker', $partial_presentation_lines, true)
+        && !str_contains(implode("\r\n", $partial_presentation_lines), 'DTEND:'),
+    'A scheduled presentation with unfinished details should use a title fallback without inventing an end time.'
+);
+expectCalendar(
     str_contains(
         implode("\r\n", calendarPresentationEventLines(array_merge($presentation, ['speaker_name' => '']))),
         'SUMMARY:Presentation-Opening Keynote-Unknown Speaker'

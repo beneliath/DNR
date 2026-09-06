@@ -27,7 +27,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
     <?php if (!empty($presentation_action_error)): ?>
         <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
     <?php endif; ?>
-    <p class="field-help">Topic/title, date, time, and duration are required for each presentation. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
+    <p class="field-help">Presentation details are optional and can be filled in after the event is created. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
     <div class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>">
         <div class="presentations-inner-container">
             <?php foreach ($presentation_form_rows as $presentation_index => $presentation): ?>
@@ -50,16 +50,16 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                     <?php endif; ?>
                     <div class="presentation-fields">
                         <div class="form-field topic">
-                            <label for="presentation_topic_<?php echo $presentation_dom_id; ?>">Topic/Title<span class="required">*</span></label>
+                            <label for="presentation_topic_<?php echo $presentation_dom_id; ?>">Topic/Title</label>
                             <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][topic_title]" id="presentation_topic_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_topic, ENT_QUOTES, 'UTF-8'); ?>">
                         </div>
                         <div class="datetime-row">
                             <div class="form-field">
-                                <label for="presentation_date_<?php echo $presentation_dom_id; ?>">Date<span class="required">*</span></label>
+                                <label for="presentation_date_<?php echo $presentation_dom_id; ?>">Date</label>
                                 <input type="date" name="presentations[<?php echo $presentation_dom_id; ?>][presentation_date]" id="presentation_date_<?php echo $presentation_dom_id; ?>" value="<?php echo htmlspecialchars((string) ($presentation['presentation_date'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="form-field">
-                                <label for="presentation_time_<?php echo $presentation_dom_id; ?>">Time<span class="required">*</span></label>
+                                <label for="presentation_time_<?php echo $presentation_dom_id; ?>">Time</label>
                                 <div class="time-input-container">
                                     <input type="text" id="presentation_time_<?php echo $presentation_dom_id; ?>" inputmode="numeric" pattern="[0-9]{1,2}:[0-9]{2}" placeholder="HH:MM or 1530" value="<?php echo htmlspecialchars($presentation_time_value, ENT_QUOTES, 'UTF-8'); ?>">
                                     <div class="ampm-radio">
@@ -76,8 +76,8 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_name]" id="speaker_name_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_speaker, ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                             <div class="form-field attendance">
-                                <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (minutes)<span class="required">*</span></label>
-                                <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][duration_minutes]" id="duration_minutes_<?php echo $presentation_dom_id; ?>" min="1" max="1440" step="1" value="<?php echo htmlspecialchars((string) ($presentation['duration_minutes'] ?? 60), ENT_QUOTES, 'UTF-8'); ?>">
+                                <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (minutes)</label>
+                                <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][duration_minutes]" id="duration_minutes_<?php echo $presentation_dom_id; ?>" min="1" max="1440" step="1" value="<?php echo htmlspecialchars((string) (array_key_exists('duration_minutes', $presentation) ? $presentation['duration_minutes'] : ($is_saved_presentation ? '' : 60)), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>
                         <div class="attendance-row">

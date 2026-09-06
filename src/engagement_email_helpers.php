@@ -133,9 +133,9 @@ function engagementEmailSafeEventBrief(array $engagement, array $presentations):
             ])));
             $duration = (int) ($presentation['duration_minutes'] ?? 0);
             if ($duration > 0) {
-                $schedule = trim($schedule . ' · ' . $duration . ' minutes');
+                $schedule = ($schedule !== '' ? $schedule . ' · ' : '') . $duration . ' minutes';
             }
-            $line = '- ' . trim((string) ($presentation['topic_title'] ?? 'Presentation'));
+            $line = '- ' . (trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation');
             if ($schedule !== '') {
                 $line .= ' — ' . $schedule;
             }
@@ -167,7 +167,7 @@ function engagementEmailTemplates(array $engagement, array $presentations): arra
             trim((string) ($presentation['presentation_date'] ?? '')),
             formatPresentationTime($presentation['presentation_time'] ?? ''),
         ])));
-        $presentationLines[] = '- ' . trim((string) ($presentation['topic_title'] ?? 'Presentation'))
+        $presentationLines[] = '- ' . (trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation')
             . ($schedule !== '' ? ' — ' . $schedule : '');
     }
     $schedule = $presentationLines !== []
