@@ -245,15 +245,17 @@
 
 .map-popup {
   display: flex;
-  min-width: 210px;
+  min-width: 0;
   flex-direction: column;
   gap: 7px;
+  overflow-wrap: anywhere;
   background: transparent !important;
   background-color: transparent !important;
   color: var(--text);
 }
 
 .map-popup-title {
+  padding-inline-end: 24px;
   font-size: 1rem;
   line-height: 1.3;
 }
@@ -276,16 +278,27 @@
 }
 
 .map-popup-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
+  max-width: 100%;
   margin-top: 3px;
-  color: var(--primary);
-  font-size: 0.82rem;
-  font-weight: 700;
+  white-space: normal;
   text-decoration: none;
 }
 
-.map-popup-link:hover {
-  text-decoration: underline;
+.map-popup-link:hover,
+.map-popup-link:focus-visible {
+  text-decoration: none;
+}
+
+/* Popup autofocus must not make the resting button look hovered. Retain the
+   shared keyboard focus outline, but change the fill only under the pointer. */
+html body .map-popup-link:not(:hover) {
+  border-color: var(--border-strong) !important;
+  background: var(--surface) !important;
+  color: var(--text) !important;
 }
 
 .map-attribution-note,
@@ -309,6 +322,12 @@
 .maplibregl-popup-tip {
   background: transparent !important;
   background-color: transparent !important;
+}
+
+/* MapLibre sets a desktop maximum inline; keep the entire popup in a phone's
+   map pane, including its padding and close control. */
+.maplibregl-popup {
+  max-width: min(320px, calc(100vw - 64px)) !important;
 }
 
 .maplibregl-popup-content {
@@ -556,7 +575,7 @@ html body .map-list-filters button:focus-visible { outline: 2px solid var(--prim
 .map-location-rows { margin: 0; padding: 0; list-style: none; }
 .map-location-rows li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid var(--border); }
 .map-location-rows li[hidden] { display: none; }
-.map-location-rows li > div { display: grid; gap: 7px; min-width: 0; }
+.map-location-rows li > div { display: grid; gap: 7px; min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .map-location-rows li > div:last-child { flex-shrink: 0; text-align: right; }
 .map-location-rows li > div > a:first-child { font-weight: 650; }
 .map-location-rows span { color: var(--text-muted); overflow-wrap: anywhere; }

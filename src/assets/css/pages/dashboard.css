@@ -483,6 +483,7 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 .dashboard-attention-list > li {
     padding: 15px 22px;
     border-bottom: 1px solid var(--border);
+    overflow-wrap: anywhere;
 }
 
 .dashboard-attention-list > li > a,
@@ -578,6 +579,12 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
         width: 100%;
     }
 
+    .dashboard-record-main > .record-link,
+    .dashboard-record-main > span {
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
     .dashboard-record-meta {
         align-items: flex-start;
         flex-direction: row;
@@ -586,10 +593,6 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 }
 
 @media (max-width: 480px) {
-    .dashboard-summary-grid {
-        grid-template-columns: 1fr;
-    }
-
     .dashboard-panel-heading,
     .dashboard-record-list > li,
     .dashboard-attention-list > li {
@@ -622,4 +625,7 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
  .dashboard-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
  .dashboard-summary-card .summary-icon { display: none; }
  .dashboard-pipeline-disclosure > summary span { display: block; margin: 8px 0 0; }
+}
+@media (max-width: 480px) {
+ .dashboard-summary-grid { grid-template-columns: minmax(0, 1fr); }
 }

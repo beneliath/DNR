@@ -26,8 +26,8 @@
 }
 .relationship-event-title { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .record-contact-actions { display: flex; flex-wrap: wrap; gap: 12px; }
-.record-related-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-block: 20px; }
-.record-related-summary > div { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); }
+.record-related-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 16px; margin-block: 20px; }
+.record-related-summary > div { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: var(--radius-md); overflow-wrap: anywhere; }
 .record-related-summary strong { display: block; margin-block: 6px; }
 .record-section-links[role="tablist"] { margin-bottom: 0; }
 html body .record-section-links [role="tab"] {

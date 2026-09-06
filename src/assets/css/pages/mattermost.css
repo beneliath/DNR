@@ -55,3 +55,48 @@
 .mattermost-links-table form {
   margin: 0;
 }
+
+@media (max-width: 760px) {
+  .mattermost-page .mattermost-links-table,
+  .mattermost-page .mattermost-links-table tbody,
+  .mattermost-page .mattermost-links-table tr {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mattermost-page .mattermost-links-table thead {
+    display: none;
+  }
+
+  .mattermost-page .mattermost-links-table tr {
+    margin-bottom: 14px;
+    padding: 4px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  .mattermost-page .mattermost-links-table td {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+    padding: 10px 0;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .mattermost-page .mattermost-links-table td::before {
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .mattermost-links-table td:nth-child(1)::before { content: "Account"; }
+  .mattermost-links-table td:nth-child(2)::before { content: "Instance"; }
+  .mattermost-links-table td:nth-child(3)::before { content: "Linked"; }
+  .mattermost-links-table td:nth-child(4)::before { content: "Last Used"; }
+  .mattermost-links-table td:nth-child(5)::before { content: "Action"; }
+}

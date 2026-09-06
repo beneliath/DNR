@@ -10,6 +10,9 @@ function harness(initialEvents) {
         addEventListener(type, listener) { this.listeners[type] = listener; }
         appendChild(child) { this.children.push(child); }
         setAttribute(key, value) { this[key] = value; }
+        matches(selector) { return selector === ':focus-visible' && this.focusVisible === true; }
+        querySelector(selector) { return this.children.find(child => child.className?.split(' ').includes(selector.slice(1))); }
+        focus() { this.focused = true; }
     }
     const ids = ['engagement-map', 'engagement-map-data', 'map-feedback', 'fit-map-pins', 'map-empty-state', 'map-empty-title', 'map-empty-description', 'map-list-empty', 'map-retry-feedback'];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
@@ -35,6 +38,7 @@ function harness(initialEvents) {
     const requests = [], timers = new Map(), documentListeners = {};
     let timerId = 0, responder = async () => ({status: 200, locations: []});
     const mapCalls = {created: 0, resized: 0, pins: 0};
+    const markers = [], popups = [];
     class FakeMap {
         constructor() { mapCalls.created++; }
         addControl() {}
@@ -45,12 +49,17 @@ function harness(initialEvents) {
         fitBounds() {}
     }
     class Marker {
+        constructor({element}) { this.element = element; markers.push(this); }
         setLngLat(point) { this.point = point; return this; }
         setPopup() { return this; }
         addTo() { mapCalls.pins++; return this; }
         getLngLat() { return this.point; }
     }
-    class Popup { setDOMContent() { return this; } }
+    class Popup {
+        constructor(options) { this.options = options; this.listeners = {}; popups.push(this); }
+        setDOMContent(content) { this.content = content; return this; }
+        on(type, listener) { this.listeners[type] = listener; return this; }
+    }
     class Bounds { extend() {} getCenter() { return [0, 0]; } }
     elements['engagement-map-data'].textContent = JSON.stringify({
         events: initialEvents, emptyTitle: 'No missing addresses', emptyDescription: 'No addresses need to be entered.',
@@ -77,10 +86,23 @@ function harness(initialEvents) {
     vm.createContext(context);
     vm.runInContext(fs.readFileSync('src/assets/js/map-list.js', 'utf8'), context);
     vm.runInContext(fs.readFileSync('src/assets/js/map.js', 'utf8').replace(/^import[\s\S]*?from 'maplibre-gl';/, ''), context);
-    return {elements, rows, filters, requests, mapCalls, responder: fn => { responder = fn; },
+    return {elements, rows, filters, requests, mapCalls, markers, popups, responder: fn => { responder = fn; },
         poll: async () => { const first = timers.entries().next().value; assert.ok(first, 'A poll should be scheduled'); timers.delete(first[0]); await first[1](); }};
 }
 const unresolved = {id: 4, title: 'Conference', address: '960 S. US Highway 41', locationState: 'not_found', latitude: null, longitude: null};
+
+test('pointer-opened popups leave the action unfocused while keyboard-opened popups focus it', () => {
+    const h = harness([{...unresolved, locationState: 'found', latitude: 32.9, longitude: -96.4, viewUrl: 'view_engagement.php?id=4'}]);
+    const popup = h.popups[0];
+    const link = popup.content.querySelector('.map-popup-link');
+    assert.equal(popup.options.focusAfterOpen, false);
+    popup.listeners.open();
+    assert.notEqual(link.focused, true, 'Opening a pin with a pointer must not apply keyboard focus styling');
+    h.markers[0].element.focusVisible = true;
+    popup.listeners.open();
+    assert.equal(link.focused, true, 'Opening a pin with the keyboard must move focus to the action');
+    assert.equal(link.href, 'view_engagement.php?id=4');
+});
 
 test('empty server results show guidance without initializing a world map or requesting lookups', () => {
     const h = harness([]);

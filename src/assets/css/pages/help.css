@@ -1213,8 +1213,15 @@ kbd {
   }
 
   .manual-search-control {
+    display: grid;
+    grid-template-columns: 23px minmax(0, 1fr);
     min-height: 54px;
     padding-left: 14px;
+  }
+
+  .manual-search-control button {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .manual-quick-links,
@@ -1244,7 +1251,7 @@ kbd {
   }
 
   .manual-current-role {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
   }
 
   .manual-current-role > p {
@@ -1253,6 +1260,11 @@ kbd {
 
   .manual-icon-legend {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .manual-example {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 

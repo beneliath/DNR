@@ -2554,6 +2554,7 @@ html body .chron-restore-page-actions a:focus-visible {
 
 .task-table th,
 .task-table td {
+  overflow-wrap: anywhere;
   padding: 14px 16px;
   border: 0;
   border-bottom: 1px solid var(--border);
@@ -4438,6 +4439,11 @@ html body .app-popover button {
   margin-top: 0;
 }
 
+.confirmation-dialog :is(h2, p, label, code) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .dialog-supporting-text {
   color: var(--text-muted);
   font-size: 0.9rem;
@@ -4630,6 +4636,16 @@ html.dark-mode .login-secondary-link a {
 .recovery-code-card {
   border-color: var(--border) !important;
   background: var(--surface-subtle) !important;
+}
+
+.qr-code-card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.qr-code-card img {
+  max-width: 100%;
+  height: auto;
 }
 
 /* Responsive layout */
@@ -5139,7 +5155,7 @@ html.dark-mode .login-secondary-link a {
   }
 
   .summary-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -5647,6 +5663,7 @@ html body .phone-country-option[aria-selected="true"] {
     flex-direction: column !important;
   }
 
+  html body :is(.container, .view-container) :is(input, select, textarea)[form]:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.presentation-native-file),
   html body :is(.container, .view-container) form:not(.footer-logout-form):not(.sidebar-logout-form) :is(
     input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="reset"]):not(.presentation-native-file),
     select,
@@ -5655,6 +5672,25 @@ html body .phone-country-option[aria-selected="true"] {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+
+  /* iOS native date/time chrome can add padding outside a 100% field width
+     (WebKit 301648). Use the app's field box while retaining the native picker. */
+  html body :is(.container, .view-container) input:is([type="date"], [type="time"], [type="datetime-local"]) {
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+    box-sizing: border-box !important;
+    min-inline-size: 0;
+    inline-size: 100%;
+    max-inline-size: 100%;
+  }
+
+  html body :is(.container, .view-container) input::-webkit-date-and-time-value {
+    min-width: 0;
+    min-height: 1.5em;
+    margin: 0;
+    text-align: left;
   }
 }
 
@@ -5686,6 +5722,15 @@ html body .phone-country-option[aria-selected="true"] {
 }
 
 @media (max-width: 760px) {
+  .breadcrumb {
+    flex-wrap: wrap;
+  }
+
+  .breadcrumb > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   /* Later page styles still specify desktop rows with !important. Match the
      form scope so new and dynamically added presentations stack consistently. */
   html body .engagement-form .presentation-fields {
@@ -5768,8 +5813,28 @@ html body .phone-country-option[aria-selected="true"] {
 
   .primary-actions,
   .export-actions,
-  .user-actions {
+  .user-actions,
+  .engagement-table .action-buttons,
+  .organization-table .action-buttons,
+  .contact-table .action-buttons {
     min-width: 0;
+    flex-wrap: wrap;
+  }
+
+  .task-table .task-actions {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    flex-flow: row wrap !important;
+  }
+
+  .task-table .task-actions > form {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .page-size-selector,
+  .pagination-actions {
     flex-wrap: wrap;
   }
 
@@ -5795,6 +5860,30 @@ html body .phone-country-option[aria-selected="true"] {
 
   .form-section {
     padding: 16px;
+  }
+
+  .confirmation-dialog-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html body .confirmation-dialog-actions > button {
+    min-width: 0;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  /* Nested contact cards leave too little space for a country code and a
+     readable telephone number on the same line. */
+  html body .phone-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  html body .phone-input-group > input[data-phone-number],
+  html.dark-mode body .phone-input-group > input[data-phone-number] {
+    flex: 0 1 auto !important;
   }
 }
 
@@ -5834,7 +5923,6 @@ html body .app-sidebar .role-preview-disclosure > summary,
 html body .app-sidebar .role-preview-control > label { color: var(--accent) !important; }
 .role-preview-disclosure .role-preview-control { margin: 8px 0 0; }
 html body .sidebar-close-button { display: none !important; }
-.action-icon-label { display: none; }
 .form-error-summary {
   grid-column: 1 / -1;
   scroll-margin-top: 96px;
@@ -5854,16 +5942,17 @@ html body :is(input, select, textarea, button)[aria-invalid="true"] { border-col
 @media (max-width: 760px) {
   html body .action-icon-button {
     display: inline-flex !important;
-    width: auto !important;
+    width: 44px !important;
     min-width: 44px !important;
     min-height: 44px !important;
-    height: auto !important;
-    gap: 6px;
-    padding: 8px 10px !important;
+    height: 44px !important;
+    flex: 0 0 44px !important;
+    align-items: center;
+    justify-content: center;
+    padding: 10px !important;
     border-color: var(--border-strong) !important;
     line-height: 1.25 !important;
   }
-  .action-icon-label { display: inline; font-size: 0.8rem; font-weight: 650; }
 }
 
 /* Filter choices remain separate touch targets, with room before their results. */

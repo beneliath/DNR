@@ -78,7 +78,12 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 8px 16px;
             margin-bottom: 10px;
+        }
+        .contact-header > * {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .contact-name {
             font-size: var(--font-size-large);
@@ -162,6 +167,7 @@
         }
         .financial-summary-card strong {
             font-size: clamp(1.15rem, 2vw, 1.45rem);
+            overflow-wrap: anywhere;
         }
         .financial-summary-card a {
             overflow: hidden;
@@ -209,6 +215,10 @@
                 grid-template-columns: 1fr;
             }
             .section-heading-row {
+                flex-direction: column;
+            }
+            .contact-header {
+                align-items: flex-start;
                 flex-direction: column;
             }
         }
