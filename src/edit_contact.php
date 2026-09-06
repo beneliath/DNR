@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/contact_organization_helpers.php';
 require_once __DIR__ . '/two_factor_helpers.php';
 include 'contact_photo_helpers.php';
 include 'chron_log_helpers.php';
@@ -45,6 +46,18 @@ if ($contact_result->num_rows === 0) {
 
 $contact = $contact_result->fetch_assoc();
 $contact_stmt->close();
+try {
+    $contact_organizations = fetchContactOrganizations($conn, (int) $contact_id);
+} catch (Throwable $exception) {
+    abortApplication(503, 'The contact organizations are temporarily unavailable.', [
+        'contact_id' => $contact_id,
+        'error' => $exception->getMessage(),
+    ]);
+}
+$additional_organization_rows = array_values(array_filter(
+    $contact_organizations,
+    static fn(array $affiliation): bool => empty($affiliation['is_primary'])
+));
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
     requireValidCsrfToken();
@@ -114,6 +127,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact_notes = (string) $normalized_contact['data']['contact_notes'];
     $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
+    $additional_organization_rows = $_POST['additional_organizations'] ?? [];
+    $additional_organizations = [];
+    try {
+        $additional_organizations = normalizeContactOrganizationAffiliations(
+            $additional_organization_rows,
+            $organization_id
+        );
+    } catch (InvalidArgumentException $exception) {
+        $error_messages[] = $exception->getMessage();
+    }
     $submitted_chron_entries = [];
     $submitted_chron_versions = [];
     $new_chron_entry = '';
@@ -182,40 +205,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             }
             if ($organization_id !== null) {
                 requireActiveOrganization($conn, $organization_id, true);
-            }
-            $locked_organization_id = $locked_contact['organization_id'] !== null
-                ? (int) $locked_contact['organization_id']
-                : null;
-            if ($locked_organization_id !== $organization_id) {
-                $touch_engagements_stmt = $conn->prepare(
-                    'UPDATE engagements engagement
-                     INNER JOIN engagement_contacts event_contact
-                             ON event_contact.engagement_id = engagement.id
-                     SET engagement.updated_at = CURRENT_TIMESTAMP(6)
-                     WHERE event_contact.contact_id = ?'
-                );
-                if (!$touch_engagements_stmt) {
-                    throw new RuntimeException('Unable to prepare the event contact changes.');
-                }
-                $touch_engagements_stmt->bind_param('i', $contact_id);
-                if (!$touch_engagements_stmt->execute()) {
-                    $touch_engagements_stmt->close();
-                    throw new RuntimeException('Unable to update related engagements.');
-                }
-                $touch_engagements_stmt->close();
-
-                $clear_assignments_stmt = $conn->prepare(
-                    'DELETE FROM engagement_contacts WHERE contact_id = ?'
-                );
-                if (!$clear_assignments_stmt) {
-                    throw new RuntimeException('Unable to prepare the event contact changes.');
-                }
-                $clear_assignments_stmt->bind_param('i', $contact_id);
-                if (!$clear_assignments_stmt->execute()) {
-                    $clear_assignments_stmt->close();
-                    throw new RuntimeException('Unable to clear the prior event contact assignments.');
-                }
-                $clear_assignments_stmt->close();
             }
             if ($contact_photo !== null) {
                 $update_stmt = $conn->prepare(
@@ -318,6 +307,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 throw new RuntimeException('Unable to update the contact.');
             }
             $update_stmt->close();
+            syncContactOrganizations(
+                $conn,
+                (int) $contact_id,
+                $organization_id,
+                $contact_role === 'other' ? $contact_role_other : ucfirst($contact_role),
+                $additional_organizations
+            );
             $current_user_id = (int) $_SESSION['user_id'];
             updateEntityChronLogEntries(
                 $conn,
@@ -388,10 +384,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['contact_birthday'
 }
 
 $organizations_result = $conn->query(
-    'SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
+    'SELECT id, organization_name, is_deleted FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
 );
 if (!$organizations_result) {
     abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
+}
+
+$contact_organization_options = $organizations_result->fetch_all(MYSQLI_ASSOC);
+$known_organization_ids = array_column($contact_organization_options, 'id');
+foreach ($contact_organizations as $affiliation) {
+    if (!in_array($affiliation['organization_id'], $known_organization_ids, false)) {
+        $contact_organization_options[] = [
+            'id' => $affiliation['organization_id'],
+            'organization_name' => $affiliation['organization_name'],
+            'is_deleted' => $affiliation['organization_is_deleted'],
+        ];
+    }
 }
 
 $cancel_url = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, ($_GET['from'] ?? '') === 'view' ? 'view_contact.php?id=' . $contact_id : 'contacts.php');
@@ -446,7 +454,7 @@ try {
 <?php include 'templates/header.php'; ?>
 <div class="container edit-contact-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>Edit Contact</span></nav>
-    <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information, role, and organization.</p></div></div>
+    <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information and roles at each organization.</p></div></div>
 
     <?php if ($error_messages): ?>
         <?php echo formErrorSummary($error_messages); ?>
@@ -464,14 +472,15 @@ try {
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
-            <label for="organization_id">Organization</label>
+            <label for="organization_id">Primary organization</label>
             <select name="organization_id" id="organization_id">
                 <option value="" <?php echo $contact['organization_id'] === null ? 'selected' : ''; ?>>No organization</option>
-                <?php while ($organization = $organizations_result->fetch_assoc()): ?>
+                <?php foreach ($contact_organization_options as $organization): ?>
+                    <?php if (!empty($organization['is_deleted'])) continue; ?>
                     <option value="<?php echo (int) $organization['id']; ?>" <?php echo (int) $contact['organization_id'] === (int) $organization['id'] ? 'selected' : ''; ?>>
                         <?php echo htmlspecialchars($organization['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
                     </option>
-                <?php endwhile; ?>
+                <?php endforeach; ?>
             </select>
         </div>
 
@@ -488,7 +497,7 @@ try {
 
         <div class="form-row">
             <div class="form-group">
-                <label for="contact_role" class="required">Role</label>
+                <label for="contact_role" class="required">Primary role</label>
                 <select name="contact_role" id="contact_role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $contact['contact_role'] === $role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -500,6 +509,8 @@ try {
                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($contact['contact_role_other'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
         </div>
+
+        <?php include __DIR__ . '/templates/contact_organization_affiliations.php'; ?>
 
         <div class="form-row">
             <div class="form-group">

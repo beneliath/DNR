@@ -62,7 +62,8 @@ function engagementSearchTermSql() {
         OR EXISTS (
             SELECT 1
             FROM contacts c
-            WHERE c.organization_id = e.organization_id
+            INNER JOIN contact_organizations co ON co.contact_id = c.id
+            WHERE co.organization_id = e.organization_id
               AND c.is_deleted = 0
               AND MATCH(
                   c.contact_first_name, c.contact_last_name, c.contact_email,

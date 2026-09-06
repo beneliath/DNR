@@ -53,7 +53,9 @@ $organizations = $conn->query('SELECT id, organization_name FROM organizations W
 $inquiry_organizations = $organizations ? $organizations->fetch_all(MYSQLI_ASSOC) : [];
 $contacts = $conn->query(
     "SELECT contact.id, contact.organization_id, contact.contact_first_name, contact.contact_last_name,
-            organization.organization_name
+            organization.organization_name,
+            (SELECT GROUP_CONCAT(co.organization_id ORDER BY co.organization_id)
+             FROM contact_organizations co WHERE co.contact_id = contact.id) AS organization_ids
      FROM contacts contact LEFT JOIN organizations organization ON organization.id = contact.organization_id
      WHERE contact.is_deleted = 0 AND (organization.id IS NULL OR organization.is_deleted = 0)
      ORDER BY contact.contact_last_name, contact.contact_first_name, contact.id"

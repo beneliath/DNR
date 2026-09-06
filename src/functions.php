@@ -1910,6 +1910,35 @@ function permanentlyDeleteOrganization(mysqli $conn, $organization_id) {
         return false;
     }
 
+    // Keep shared people, choosing a remaining affiliation as their primary.
+    $shared_stmt = $conn->prepare(
+        'SELECT c.id, co.organization_id, co.role_title
+         FROM contacts c
+         INNER JOIN contact_organizations co ON co.contact_id = c.id
+         INNER JOIN organizations o ON o.id = co.organization_id
+         WHERE c.organization_id = ? AND co.organization_id <> ?
+         ORDER BY c.id, o.is_deleted, co.organization_id FOR UPDATE'
+    );
+    $shared_stmt->bind_param('ii', $organization_id, $organization_id);
+    $shared_stmt->execute();
+    $shared_contacts = $shared_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $shared_stmt->close();
+    $promoted = [];
+    foreach ($shared_contacts as $contact) {
+        $contact_id = (int) $contact['id'];
+        if (isset($promoted[$contact_id])) continue;
+        $replacement_id = (int) $contact['organization_id'];
+        $replacement_title = trim((string) $contact['role_title']) ?: 'Contact';
+        $promote = $conn->prepare(
+            'UPDATE contacts SET organization_id = ?, contact_role = \'other\',
+             contact_role_other = ? WHERE id = ?'
+        );
+        $promote->bind_param('isi', $replacement_id, $replacement_title, $contact_id);
+        $promote->execute();
+        $promote->close();
+        $promoted[$contact_id] = true;
+    }
+
     $queries = [
         'DELETE ce FROM engagement_chron_entries ce
          INNER JOIN engagements e ON e.id = ce.engagement_id

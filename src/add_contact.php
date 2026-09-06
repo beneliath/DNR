@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/contact_organization_helpers.php';
 include 'contact_photo_helpers.php';
 startSecureSession();
 $creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
@@ -44,6 +45,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         ${$field_name} = $field_value;
     }
     $validation_errors = $normalized_contact['errors'];
+    $additional_organizations = [];
+    try {
+        $additional_organizations = normalizeContactOrganizationAffiliations(
+            $_POST['additional_organizations'] ?? [],
+            $organization_id
+        );
+    } catch (InvalidArgumentException $exception) {
+        $validation_errors[] = $exception->getMessage();
+    }
     $photo_error = '';
     $contact_photo = null;
     try {
@@ -129,6 +139,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             }
             $contact_id = $conn->insert_id;
             $stmt->close();
+            syncContactOrganizations(
+                $conn,
+                (int) $contact_id,
+                $organization_id,
+                $contact_role === 'other' ? $contact_role_other : ucfirst($contact_role),
+                $additional_organizations
+            );
             $conn->commit();
             $_SESSION['success_message'] = 'Contact added successfully.';
             $return_to_organization = $requested_organization_id !== null
@@ -147,6 +164,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         }
     }
 }
+
+$organization_options_result = $conn->query(
+    'SELECT id, organization_name, is_deleted FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
+);
+if (!$organization_options_result) {
+    abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
+}
+$contact_organization_options = $organization_options_result->fetch_all(MYSQLI_ASSOC);
+$additional_organization_rows = $_POST['additional_organizations'] ?? [];
 
 $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $contact_phone_local_value] = phoneNumberInputParts(
@@ -200,23 +226,19 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="contacts.php">Contacts</a><span aria-hidden="true">/</span><span>New Contact</span></nav>
     <div class="page-heading form-page-heading add-contact-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
         ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
-        : 'Connect a person with an organization and their role.'; ?></p></div></div>
+        : 'Connect a person with their organizations and roles.'; ?></p></div></div>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">
             <div class="form-group form-flex-one">
-                <label for="organization_id">Organization</label>
+                <label for="organization_id">Primary organization</label>
                 <select name="organization_id" id="organization_id">
                     <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No organization</option>
-                    <?php
-                    $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
-                    while ($row = $orgs->fetch_assoc()) {
-                        $selected = (int) $selected_organization_id === (int) $row['id'] ? 'selected' : '';
-                        echo "<option value='" . htmlspecialchars($row['id']) . "' $selected>" . htmlspecialchars($row['organization_name']) . "</option>";
-                    }
-                    ?>
+                    <?php foreach ($contact_organization_options as $row): ?>
+                        <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
             <details class="inline-organization-creator" data-inline-organization>
@@ -242,7 +264,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 
         <div class="role-container">
             <div class="form-group contact-role-field">
-                <label for="contact_role" class="required">Role</label>
+                <label for="contact_role" class="required">Primary role</label>
                 <select name="contact_role" id="contact_role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -254,6 +276,8 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['contact_role_other'] ?? '') : ''; ?>">
             </div>
         </div>
+
+        <?php include __DIR__ . '/templates/contact_organization_affiliations.php'; ?>
 
         <div class="email-container">
             <div class="form-group email-field">

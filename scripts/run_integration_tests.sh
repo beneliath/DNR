@@ -49,7 +49,9 @@ cleanup_isolated_backup() {
 printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
-    if [ "$test_name" = 'uiux_workflow_http_integration_test.php' ] \
+    if [ "$test_name" = 'engagement_contacts_http_integration_test.php' ] \
+        || [ "$test_name" = 'contact_affiliation_http_integration_test.php' ] \
+        || [ "$test_name" = 'uiux_workflow_http_integration_test.php' ] \
         || [ "$test_name" = 'record_workspace_integration_test.php' ]; then
         # CLI fixtures share Apache's session directory and filesystem identity.
         compose exec -T -u www-data \

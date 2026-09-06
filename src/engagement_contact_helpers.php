@@ -23,6 +23,9 @@ function engagementContactRoleLabel(mixed $role): string
 /** @param array<string, mixed> $contact */
 function organizationContactRoleLabel(array $contact): string
 {
+    if (array_key_exists('organization_role_title', $contact)) {
+        return trim((string) $contact['organization_role_title']);
+    }
     $role = trim((string) ($contact['contact_role'] ?? ''));
     if ($role === 'other') {
         return trim((string) ($contact['contact_role_other'] ?? ''));
@@ -107,16 +110,47 @@ function fetchOrganizationContactOptions(mysqli $conn, int $organization_id): ar
         return [];
     }
     $stmt = $conn->prepare(
-        'SELECT id, organization_id, contact_first_name, contact_last_name,
-                contact_role, contact_role_other, contact_email, contact_phone
-         FROM contacts
-         WHERE organization_id = ? AND is_deleted = 0
-         ORDER BY contact_last_name, contact_first_name, id'
+        'SELECT c.id, co.organization_id, c.contact_first_name, c.contact_last_name,
+                c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+                co.role_title AS organization_role_title
+         FROM contact_organizations co
+         INNER JOIN contacts c ON c.id = co.contact_id
+         WHERE co.organization_id = ? AND c.is_deleted = 0
+         ORDER BY c.contact_last_name, c.contact_first_name, c.id'
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the organization contacts.');
     }
     $stmt->bind_param('i', $organization_id);
+    $stmt->execute();
+    $contacts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $contacts;
+}
+
+/** @return list<array<string, mixed>> */
+function searchEventContactOptions(mysqli $conn, int $organization_id, string $query): array
+{
+    $query = trim($query);
+    if (mb_strlen($query, 'UTF-8') < 2) {
+        return [];
+    }
+    $pattern = '%' . strtr(mb_substr($query, 0, 100, 'UTF-8'), ['!' => '!!', '%' => '!%', '_' => '!_']) . '%';
+    $stmt = $conn->prepare(
+        "SELECT c.id, c.contact_first_name, c.contact_last_name, c.contact_email,
+                c.contact_phone, co.role_title AS organization_role_title,
+                (co.contact_id IS NOT NULL) AS is_affiliated,
+                COALESCE(o.organization_name, '') AS organization_name
+         FROM contacts c
+         LEFT JOIN organizations o ON o.id = c.organization_id
+         LEFT JOIN contact_organizations co ON co.contact_id = c.id AND co.organization_id = ?
+         WHERE c.is_deleted = 0
+           AND (CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) LIKE ? ESCAPE '!'
+                OR c.contact_email LIKE ? ESCAPE '!')
+         ORDER BY c.contact_last_name, c.contact_first_name, c.id
+         LIMIT 30"
+    );
+    $stmt->bind_param('iss', $organization_id, $pattern, $pattern);
     $stmt->execute();
     $contacts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
@@ -151,13 +185,15 @@ function validateEngagementContactAssignments(
 function fetchEngagementContacts(mysqli $conn, int $engagement_id): array
 {
     $stmt = $conn->prepare(
-        "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+        "SELECT c.id, co.organization_id, c.contact_first_name, c.contact_last_name,
                 c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+                co.role_title AS organization_role_title,
                 ec.contact_role AS engagement_contact_role
          FROM engagement_contacts ec
          INNER JOIN engagements e ON e.id = ec.engagement_id
          INNER JOIN contacts c ON c.id = ec.contact_id
-             AND c.organization_id = e.organization_id
+         INNER JOIN contact_organizations co ON co.contact_id = c.id
+             AND co.organization_id = e.organization_id
          WHERE ec.engagement_id = ? AND c.is_deleted = 0
          ORDER BY FIELD(
                     ec.contact_role,

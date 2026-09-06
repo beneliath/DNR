@@ -35,7 +35,7 @@
     }
     function refreshContacts() {
         const previous = contact.value;
-        renderOptions(contact, allContacts, contactSearch, function (option) { return !org.value || option.dataset.organizationId === org.value; });
+        renderOptions(contact, allContacts, contactSearch, function (option) { return !org.value || (option.dataset.organizationIds || option.dataset.organizationId || '').split(',').includes(org.value); });
         if (previous && !contact.value) feedback.textContent = 'The previous contact does not belong to this organization — choose a compatible contact';
         document.querySelectorAll('[data-inquiry-create="contact"]').forEach(function (link) {
             const url = new URL(link.href);

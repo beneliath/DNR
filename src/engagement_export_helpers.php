@@ -76,12 +76,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
             (string) ($contact['contact_first_name'] ?? '') . ' ' .
             (string) ($contact['contact_last_name'] ?? '')
         );
-        $role = trim((string) ($contact['contact_role'] ?? ''));
-        if ($role === 'other' && !empty($contact['contact_role_other'])) {
-            $role = trim((string) $contact['contact_role_other']);
-        } elseif ($role !== '') {
-            $role = ucfirst($role);
-        }
+        $role = organizationContactRoleLabel($contact);
 
         $fields = [];
         $event_role_labels = [];

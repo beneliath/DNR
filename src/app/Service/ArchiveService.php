@@ -27,7 +27,9 @@ final class ArchiveService
 
         $statement = $connection->prepare(
             'SELECT
-                (SELECT COUNT(*) FROM contacts WHERE organization_id = ? AND is_deleted = 0)
+                (SELECT COUNT(*) FROM contacts c
+                 INNER JOIN contact_organizations co ON co.contact_id = c.id
+                 WHERE co.organization_id = ? AND c.is_deleted = 0)
                   AS active_contacts,
                 (SELECT COUNT(*) FROM engagements WHERE organization_id = ? AND is_deleted = 0)
                   AS active_engagements,
@@ -165,6 +167,24 @@ final class ArchiveService
                     $connection->rollback();
                     $transactionStarted = false;
                     return false;
+                }
+            }
+
+            if ($entity === 'contact' && !$isArchived) {
+                $affiliations = $connection->prepare(
+                    'SELECT o.is_deleted FROM contact_organizations co
+                     INNER JOIN organizations o ON o.id = co.organization_id
+                     WHERE co.contact_id = ? FOR UPDATE'
+                );
+                $affiliations->bind_param('i', $id);
+                $affiliations->execute();
+                $rows = $affiliations->get_result()->fetch_all(MYSQLI_ASSOC);
+                $affiliations->close();
+                foreach ($rows as $row) {
+                    if ((int) $row['is_deleted'] === 1) {
+                        $connection->rollback();
+                        return false;
+                    }
                 }
             }
 

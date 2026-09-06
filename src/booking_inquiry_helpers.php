@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/engagement_email_helpers.php';
+require_once __DIR__ . '/contact_organization_helpers.php';
 
 /** @return array<string, string> */
 function bookingInquiryStages(): array
@@ -202,7 +203,7 @@ function normalizeBookingInquiryInput(mysqli $conn, array $input): array
             : null;
         if ($organizationId === null && $contactOrganizationId !== null) {
             $organizationId = $contactOrganizationId;
-        } elseif ($organizationId !== null && $organizationId !== $contactOrganizationId) {
+        } elseif ($organizationId !== null && !contactBelongsToOrganization($conn, $contactId, $organizationId)) {
             throw new InvalidArgumentException('The primary contact must belong to the selected organization.');
         }
     }
@@ -348,8 +349,7 @@ function lockBookingInquiryRelationships(mysqli $conn, array $data): void
     if ($row === null) {
         throw new InvalidArgumentException('Select an active primary Contact.');
     }
-    $contactOrganizationId = (int) ($row['organization_id'] ?? 0);
-    if ($organizationId > 0 && $contactOrganizationId !== $organizationId) {
+    if ($organizationId > 0 && !contactBelongsToOrganization($conn, $contactId, $organizationId)) {
         throw new InvalidArgumentException(
             'The primary Contact must belong to the selected Organization.'
         );
@@ -821,8 +821,9 @@ function convertBookingInquiry(
         $activeContact = false;
         if ($contactId > 0) {
             $contact = $conn->prepare(
-                'SELECT id FROM contacts
-                 WHERE id = ? AND organization_id = ? AND is_deleted = 0'
+                'SELECT c.id FROM contacts c
+                 INNER JOIN contact_organizations co ON co.contact_id = c.id
+                 WHERE c.id = ? AND co.organization_id = ? AND c.is_deleted = 0'
             );
             $contact->bind_param('ii', $contactId, $organizationId);
             $contact->execute();

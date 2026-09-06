@@ -59,3 +59,30 @@ html body .record-section-links [role="tab"]:focus-visible {
 
 .organization-form fieldset.radio-group { border: 0; padding: 0; min-width: 0; }
 .organization-form fieldset.radio-group legend { font-weight: 600; margin-bottom: 8px; }
+
+.contact-affiliations {
+    min-width: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin: 20px 0;
+    padding: 16px;
+    background: var(--surface);
+}
+.contact-affiliations legend { padding-inline: 6px; font-weight: 650; }
+.contact-affiliations > p { margin-top: 0; }
+.contact-affiliation-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: end;
+    margin-bottom: 16px;
+}
+.contact-affiliation-row .form-group { margin-bottom: 0; min-width: 0; }
+.contact-affiliation-actions { display: flex; flex-wrap: wrap; gap: 8px; align-self: end; }
+.contact-affiliation-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.contact-affiliation-list small { display: block; color: var(--text-muted); margin-top: 3px; }
+.contact-affiliation-kind { font-size: .8rem; color: var(--text-muted); margin-left: 6px; }
+@media (max-width: 640px) {
+    .contact-affiliation-row { grid-template-columns: minmax(0, 1fr); }
+    .contact-affiliation-actions { justify-self: start; }
+}

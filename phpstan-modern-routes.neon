@@ -37,6 +37,7 @@ parameters:
         - src/booking_inquiry_helpers.php
         - src/chron_log_helpers.php
         - src/contact_photo_helpers.php
+        - src/contact_organization_helpers.php
         - src/dashboard_helpers.php
         - src/engagement_contact_helpers.php
         - src/engagement_lifecycle_helpers.php

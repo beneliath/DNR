@@ -850,12 +850,20 @@ context without write controls.
 
 ## Event contacts and roles
 
-Engagement create and edit forms can assign active contacts from the selected organization to the
-event. Each contact may hold one or more event-specific roles: **Primary host**, **On-site
-contact**, **Billing**, **Travel**, and **Materials**. Engagement detail pages and exports include
-only assigned event contacts and distinguish these event responsibilities from the contact's
-organization-level role. Changing the engagement organization clears incompatible assignments;
-moving a contact to another organization removes assignments that are no longer valid. PDF exports
+Engagement create and edit forms can assign multiple contacts with one or more event-specific roles:
+**Primary host**, **On-site contact**, **Billing**, **Travel**, and **Materials**. Search the contact
+directory to add existing people, or use **Add new contact** repeatedly without leaving the event.
+New people and additional organization affiliations are saved together with the event; validation
+errors leave the draft available for correction.
+
+A contact can belong to several organizations, each with its own role or title. Contact forms retain
+a primary organization and allow additional affiliations, such as Pastor at one church and Chairman
+at a research center. Organization contact lists, event pickers, searches, and event exports use the
+matching affiliation. Removing an affiliation clears only the event assignments that depended on it;
+assignments at other organizations remain intact. Deleting an organization retains shared contacts
+and promotes a remaining affiliation to primary.
+
+PDF exports
 carry the configured digest-email wordmark on a white masthead for consistent graphical branding.
 They include only active work linked to the exported event and mirror the Work Queue's labeled
 overdue and due-today colors and semantic edge.

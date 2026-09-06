@@ -9,6 +9,7 @@ parameters:
         - src/booking_inquiry_helpers.php
         - src/chron_log_helpers.php
         - src/contact_photo_helpers.php
+        - src/contact_organization_helpers.php
         - src/database_backup_helpers.php
         - src/deployment_notice_helpers.php
         - src/dashboard_helpers.php
@@ -16,6 +17,7 @@ parameters:
         - src/engagement_export_helpers.php
         - src/engagement_email_helpers.php
         - src/engagement_contact_helpers.php
+        - src/engagement_contact_input_helpers.php
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/email_helpers.php

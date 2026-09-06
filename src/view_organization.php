@@ -82,11 +82,13 @@ try {
 }
 
 // Fetch contacts for the organization
-    $contact_query = "SELECT id, organization_id, contact_first_name, contact_last_name,
-                             contact_role, contact_role_other, contact_email, contact_phone
-                      FROM contacts
-                  WHERE organization_id = ? AND is_deleted = 0
-                  ORDER BY contact_last_name, contact_first_name";
+$contact_query = "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
+                         c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
+                         affiliation.role_title, (c.organization_id = affiliation.organization_id) AS is_primary
+                  FROM contact_organizations affiliation
+                  INNER JOIN contacts c ON c.id = affiliation.contact_id
+                  WHERE affiliation.organization_id = ? AND c.is_deleted = 0
+                  ORDER BY c.contact_last_name, c.contact_first_name";
 $contact_stmt = $conn->prepare($contact_query);
 if ($contact_stmt === false) abortApplication(503, 'The organization contacts are temporarily unavailable.', ['error' => $conn->error]);
 
@@ -254,15 +256,11 @@ $contact_stmt->close();
                             ); ?></a></h4>
                         <span class="contact-role">
                             <?php
-                            $role = $contact['contact_role'];
-                            if ($role === 'other' && !empty($contact['contact_role_other'])) {
-                                echo htmlspecialchars($contact['contact_role_other']);
-                            } else {
-                                echo ucfirst($role);
-                            }
+                            echo htmlspecialchars($contact['role_title'] ?: 'Role not specified', ENT_QUOTES, 'UTF-8');
                             ?>
                         </span>
                     </div>
+                    <p class="contact-affiliation-kind"><?php echo !empty($contact['is_primary']) ? 'Primary organization' : 'Additional organization'; ?></p>
                     <div class="contact-info">
                         <div><strong>Email:</strong> <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($contact['contact_email']); ?></a></div>
                         <?php if (!empty($contact['contact_phone'])): ?>

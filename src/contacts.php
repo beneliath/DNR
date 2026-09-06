@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/contact_organization_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'contact_photo_helpers.php';
 include 'two_factor_helpers.php';
@@ -143,6 +144,16 @@ $search_filter = $fulltext_query === ''
             o.email, o.phone, o.physical_city, o.physical_state,
             o.mailing_city, o.mailing_state
         ) AGAINST (? IN BOOLEAN MODE)
+        OR EXISTS (
+            SELECT 1 FROM contact_organizations affiliation
+            INNER JOIN organizations affiliated_org ON affiliated_org.id = affiliation.organization_id
+            WHERE affiliation.contact_id = c.id
+              AND MATCH(
+                  affiliated_org.organization_name, affiliated_org.notes, affiliated_org.affiliation, affiliated_org.distinctives,
+                  affiliated_org.email, affiliated_org.phone, affiliated_org.physical_city, affiliated_org.physical_state,
+                  affiliated_org.mailing_city, affiliated_org.mailing_state
+              ) AGAINST (? IN BOOLEAN MODE)
+        )
     )";
 $cursor_filter = '';
 $cursor_types = '';
@@ -195,8 +206,8 @@ if (!$contact_stmt) {
     abortApplication(503, 'Contacts are temporarily unavailable.', ['error' => $conn->error]);
 }
 
-$contact_types = ($fulltext_query !== '' ? 'ss' : '') . $cursor_types . 'i';
-$contact_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
+$contact_types = ($fulltext_query !== '' ? 'sss' : '') . $cursor_types . 'i';
+$contact_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query, $fulltext_query] : [];
 $contact_values = array_merge($contact_values, $cursor_values, [$query_limit]);
 $contact_bind = [$contact_types];
 foreach ($contact_values as &$contact_value) $contact_bind[] = &$contact_value;
@@ -208,6 +219,16 @@ if (!$contact_stmt->execute()) {
 $contacts = $contact_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $has_more_contacts = count($contacts) > $page_size;
 if ($has_more_contacts) array_pop($contacts);
+try {
+    $contact_organizations_by_id = fetchContactOrganizationsForContacts(
+        $conn,
+        array_map('intval', array_column($contacts, 'id'))
+    );
+} catch (Throwable $exception) {
+    abortApplication(503, 'Contact organizations are temporarily unavailable.', [
+        'error' => $exception->getMessage(),
+    ]);
+}
 $next_cursor = null;
 if ($has_more_contacts && $contacts !== []) {
     $last_contact = $contacts[array_key_last($contacts)];
@@ -263,6 +284,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/contacts.min.css',
+    3 => 'assets/css/pages/record_workspace.min.css',
   ),
 )); ?>
 <body class="contacts-body">
@@ -312,7 +334,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
                 <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'organization', $last_name_sort, $organization_sort === 'asc' ? 'desc' : 'asc', $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
                    class="sort-button sort-selection<?php echo $sort_column === 'organization' ? ' active' : ''; ?>"
                    <?php echo $sort_column === 'organization' ? 'aria-current="true"' : ''; ?>>
-                    Organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
+                    Primary organization <?php echo $organization_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
             </div>
         </div>
@@ -328,7 +350,7 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
             <thead>
                 <tr>
                     <th>Contact</th>
-                    <th>Organization</th>
+                    <th>Organizations</th>
                     <th>Phone number</th>
                     <th>Email address</th>
                     <th>Actions</th>
@@ -362,13 +384,20 @@ $list_next_url = recordUrlWithQuery($list_current_url, ['cursor' => $next_cursor
                                 </span>
                             </td>
                             <td>
-                                <?php if ($contact['organization_id'] !== null): ?>
-                                    <a href="view_organization.php?id=<?php echo (int) $contact['organization_id']; ?>">
-                                        <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
-                                    </a>
-                                <?php endif; ?>
-                                <?php if (!empty($contact['organization_is_archived'])): ?>
-                                    <span class="archive-status">Archived</span>
+                                <?php $listed_affiliations = $contact_organizations_by_id[(int) $contact['id']] ?? []; ?>
+                                <?php if ($listed_affiliations !== []): ?>
+                                    <ul class="contact-affiliation-list">
+                                        <?php foreach ($listed_affiliations as $affiliation): ?>
+                                            <li>
+                                                <a href="view_organization.php?id=<?php echo (int) $affiliation['organization_id']; ?>"><?php echo htmlspecialchars($affiliation['organization_name'], ENT_QUOTES, 'UTF-8'); ?></a>
+                                                <span class="contact-affiliation-kind"><?php echo !empty($affiliation['is_primary']) ? 'Primary' : 'Additional'; ?></span>
+                                                <?php if (!empty($affiliation['organization_is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
+                                                <?php if ($affiliation['role_title'] !== ''): ?><small><?php echo htmlspecialchars($affiliation['role_title'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                <?php else: ?>
+                                    No organizations linked
                                 <?php endif; ?>
                             </td>
                             <td>
