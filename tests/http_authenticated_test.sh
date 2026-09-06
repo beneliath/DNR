@@ -196,7 +196,37 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.ht
     "$base_url/tasks.php"
 grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
 grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
-grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=50"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=20"' "$temporary_directory/editor-task-reminders.html"
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/editor-task-reminders.html")" -eq 2
+
+# Work ownership views keep independent preferences, including when users
+# follow the rendered links after selecting a different size in another view.
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/unassigned-default-page-size.html" \
+    "$base_url/tasks.php?scope=unassigned"
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/unassigned-default-page-size.html")" -eq 2
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/everyone-page-size.html" \
+    "$base_url/tasks.php?scope=everyone&per_page=50"
+test "$(grep -c 'aria-current="true">50</a>' "$temporary_directory/everyone-page-size.html")" -eq 2
+mine_url=$(sed -n 's/.*href="\([^"]*\)">My work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
+test -n "$mine_url"
+case "$mine_url" in *per_page=*) echo 'Ownership links must not carry another view size.' >&2; exit 1 ;; esac
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/mine-page-size.html" "$base_url/$mine_url"
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/mine-page-size.html")" -eq 2
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
+    "$base_url/tasks.php?scope=mine&per_page=20"
+curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
+    "$base_url/tasks.php?scope=unassigned&per_page=100"
+for selection in mine:20 everyone:50 unassigned:100; do
+    scope=${selection%:*}
+    size=${selection#*:}
+    curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/work-page-size.html" \
+        "$base_url/tasks.php?scope=$scope&view=overdue"
+    test "$(grep -c "aria-current=\"true\">$size</a>" "$temporary_directory/work-page-size.html")" -eq 2
+done
+
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/map-default-page-size.html" "$base_url/map.php"
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/map-default-page-size.html")" -eq 2
+! grep -q '>500</a>' "$temporary_directory/map-default-page-size.html"
 
 # Each page remembers its own row limit across authenticated visits. Empty
 # searches keep both size selectors and counts, without a one-page navigator.
@@ -371,6 +401,9 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement-u
     "$base_url/edit_engagement.php?id=$engagement_id"
 grep -q '<option value="CA" selected>' "$temporary_directory/editor-edit-engagement-updated.html"
 grep -q 'name="event_state" id="event_state" value="ON"' "$temporary_directory/editor-edit-engagement-updated.html"
+curl -fsS -b "$editor_cookies" -o "$temporary_directory/engagement-default-page-size.html" \
+    "$base_url/view_engagement.php?id=$engagement_id"
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/engagement-default-page-size.html")" -eq 2
 
 # Archive dependent records before exercising the organization archive guard.
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-contacts.html" "$base_url/contacts.php"
@@ -419,6 +452,7 @@ expect_location "$temporary_directory/admin-verify.headers" 'dashboard.php' 'adm
 status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html" \
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'
+test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/admin-users.html")" -eq 2
 
 # Administrators can exercise the existing Editor and Reviewer authorization
 # paths without losing their authenticated identity. Every preview remains

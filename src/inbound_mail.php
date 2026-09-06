@@ -259,7 +259,6 @@ $statusLabels = [
                     </div>
                     <div class="inbound-detail-actions">
                         <small>Inbound message #<?php echo (int) $selectedMessage['id']; ?></small>
-                        <?php if (in_array((string) $selectedMessage['status'], ['pending', 'review', 'failed'], true)): ?><a href="add_inquiry.php?inbound_email_message_id=<?php echo (int) $selectedMessage['id']; ?>" class="button-secondary">Create Inquiry</a><?php endif; ?>
                         <?php if (canDeleteEntries($userRole)): ?>
                             <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
                                 <?php echo csrfInput(); ?>

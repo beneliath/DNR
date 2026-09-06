@@ -34,16 +34,16 @@ try {
     }
     $insert->close();
     $seen = [];
-    for ($page = 1; $page <= 6; $page++) {
+    for ($page = 1; $page <= 7; $page++) {
         $result = fetchInboundMailQueue($conn, 'review', $prefix, 'oldest', $page);
-        expectInboxQueue($result['total'] === 130 && $result['pages'] === 6, 'Filtered count and page count must match all 130 messages');
+        expectInboxQueue($result['page_size'] === 20 && $result['total'] === 130 && $result['pages'] === 7, 'The default 20 rows per page must cover all 130 messages in seven pages');
         array_push($seen, ...array_map('intval', array_column($result['messages'], 'id')));
     }
     expectInboxQueue($seen === array_slice($ids, 0, 130), 'Every message, including those beyond 100, must be reachable once with stable equal-time ordering');
     $newest = fetchInboundMailQueue($conn, 'all', $prefix, 'newest', 1);
     expectInboxQueue((int) $newest['messages'][0]['id'] === $ids[131] && $newest['total'] === 132, 'All-status newest order must reverse the stable ID tie-break');
     expectInboxQueue(fetchInboundMailQueue($conn, 'review', $prefix, 'oldest', -1)['page'] === 1, 'Negative pages clamp to the first page');
-    expectInboxQueue(fetchInboundMailQueue($conn, 'review', $prefix, 'oldest', PHP_INT_MAX)['page'] === 6, 'Out-of-range pages clamp to the last nonempty page');
+    expectInboxQueue(fetchInboundMailQueue($conn, 'review', $prefix, 'oldest', PHP_INT_MAX)['page'] === 7, 'Out-of-range pages clamp to the last nonempty page');
     expectInboxQueue(fetchInboundMailQueue($conn, 'processed', $prefix, 'oldest', 1)['total'] === 2, 'Search and status must combine');
     $literal = fetchInboundMailQueue($conn, 'review', '100%_complete', 'oldest', 1);
     expectInboxQueue($literal['total'] === 1 && (int) $literal['messages'][0]['id'] === $ids[0], 'Percent and underscore search must be literal, including matches in the body');

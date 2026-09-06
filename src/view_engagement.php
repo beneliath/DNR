@@ -56,7 +56,7 @@ unset($_SESSION['record_note_message']);
 
 $can_manage_engagement = !$is_archived && in_array($user_role, ['admin', 'editor'], true);
 $chron_view_query = ['id' => $engagement_id, 'return_to' => $record_list_return];
-$chron_view_query['chron_per_page'] = paginationPageSizePreference('view_engagement_chron', $_GET['chron_per_page'] ?? null, 50);
+$chron_view_query['chron_per_page'] = paginationPageSizePreference('view_engagement_chron', $_GET['chron_per_page'] ?? null);
 $requested_chron_page = \Dnr\Http\RequestInput::positiveInt($_GET, 'chron_page');
 if ($requested_chron_page !== null && $requested_chron_page > 1) {
     $chron_view_query['chron_page'] = $requested_chron_page;
