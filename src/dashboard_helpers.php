@@ -125,8 +125,10 @@ function fetchDashboardUpcomingEngagements(
                  FROM engagement_contacts event_contact
                  INNER JOIN contacts contact
                          ON contact.id = event_contact.contact_id
-                        AND contact.organization_id = e.organization_id
                         AND contact.is_deleted = 0
+                 INNER JOIN contact_organizations affiliation
+                         ON affiliation.contact_id = contact.id
+                        AND affiliation.organization_id = e.organization_id
                  WHERE event_contact.engagement_id = e.id) AS assigned_contact_count,
                 COUNT(*) OVER() AS dashboard_total
          FROM engagements e

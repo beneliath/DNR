@@ -7,6 +7,7 @@ include 'map_helpers.php';
 include 'two_factor_helpers.php';
 include 'follow_up_task_helpers.php';
 include 'engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_contact_input_helpers.php';
 include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
@@ -46,6 +47,8 @@ if (!$result || $result->num_rows === 0) {
 $engagement = $result->fetch_assoc();
 $DEFAULT_SPEAKER = applicationDefaultSpeaker();
 $submitted_engagement_contacts = null;
+$submitted_engagement_added_contact_ids = [];
+$submitted_engagement_new_contacts = [];
 
 // Archive or permanently delete one saved presentation without submitting
 // unrelated edits in the engagement form.
@@ -264,6 +267,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $conn->begin_transaction();
 
     try {
+        $submitted_engagement_added_contact_ids = normalizeEngagementAddedContactIds(
+            $_POST['engagement_added_contact_ids'] ?? null
+        );
+        $submitted_engagement_contacts = normalizeEngagementContactAssignments(
+            $_POST['engagement_contacts'] ?? null
+        );
+        $submitted_engagement_new_contacts = normalizeEngagementNewContacts(
+            $_POST['engagement_new_contacts'] ?? null
+        );
         $engagement_lock_stmt = $conn->prepare(
             'SELECT * FROM engagements WHERE id = ? AND is_deleted = 0 FOR UPDATE'
         );
@@ -290,19 +302,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
         $event_type_raw = is_scalar($_POST['event_type'] ?? null)
             ? trim((string) $_POST['event_type'])
             : '';
-        $submitted_engagement_contacts = normalizeEngagementContactAssignments(
-            $_POST['engagement_contacts'] ?? null
-        );
         $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
         foreach ($engagement_input as $field => $value) {
             ${$field} = $value;
         }
         requireActiveOrganization($conn, $organization_id, true);
-        validateEngagementContactAssignments(
-            $conn,
-            $organization_id,
-            $submitted_engagement_contacts
-        );
         validateEngagementLifecycleStatus($conn, $engagement_id, $lifecycle_status);
         validateEngagementRescheduleLink(
             $conn,
@@ -424,10 +428,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $touch_engagement_stmt->close();
         }
 
+        $saved_engagement_contacts = prepareEngagementContactAssignments(
+            $conn,
+            $organization_id,
+            $submitted_engagement_contacts,
+            $submitted_engagement_added_contact_ids,
+            $submitted_engagement_new_contacts
+        );
         syncEngagementContacts(
             $conn,
             $engagement_id,
-            $submitted_engagement_contacts,
+            $saved_engagement_contacts,
             $current_user_id
         );
         if ($submitted_chron_entries) {
@@ -625,11 +636,17 @@ try {
         $conn,
         $selected_engagement_organization_id
     );
+    $engagement_added_contacts = fetchEngagementAddedContactOptions(
+        $conn,
+        $submitted_engagement_added_contact_ids
+    );
+    $organization_contacts = array_values(array_filter($organization_contacts,
+        static fn(array $contact): bool => !in_array((int) $contact['id'], $submitted_engagement_added_contact_ids, true)));
     $displayed_engagement_contact_assignments = $submitted_engagement_contacts !== null
         && !empty($error_message)
         ? $submitted_engagement_contacts
         : fetchEngagementContactAssignments($conn, $engagement_id);
-$engagement_contact_assignment_map = engagementContactAssignmentMap(
+    $engagement_contact_assignment_map = engagementContactAssignmentMap(
         $displayed_engagement_contact_assignments
     );
     $reschedule_candidates = fetchEngagementRescheduleCandidates(
@@ -643,6 +660,7 @@ $engagement_contact_assignment_map = engagementContactAssignmentMap(
         'error' => $exception->getMessage(),
     ]);
 }
+$engagement_new_contact_rows = engagementNewContactFormRows($_POST['engagement_new_contacts'] ?? null);
 $engagement_lifecycle_options = engagementLifecycleStatuses();
 $engagement_confirmation_statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
 $selected_lifecycle_status = (string) ($engagement['lifecycle_status'] ?? 'active');

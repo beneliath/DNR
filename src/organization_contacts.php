@@ -28,6 +28,8 @@ if ($organization_id === null) {
 
 try {
     requireActiveOrganization($conn, $organization_id, true);
+    $search = \Dnr\Http\RequestInput::string($_GET, 'q');
+    $directory_search = array_key_exists('q', $_GET);
     $contacts = array_map(
         static function (array $contact): array {
             return [
@@ -38,9 +40,14 @@ try {
                 ),
                 'organization_role' => organizationContactRoleLabel($contact),
                 'email' => (string) ($contact['contact_email'] ?? ''),
+                'organization_name' => (string) ($contact['organization_name'] ?? ''),
+                'is_affiliated' => !array_key_exists('is_affiliated', $contact)
+                    || (bool) $contact['is_affiliated'],
             ];
         },
-        fetchOrganizationContactOptions($conn, $organization_id)
+        $directory_search
+            ? searchEventContactOptions($conn, $organization_id, $search)
+            : fetchOrganizationContactOptions($conn, $organization_id)
     );
     echo json_encode([
         'contacts' => $contacts,

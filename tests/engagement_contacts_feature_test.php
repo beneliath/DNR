@@ -13,6 +13,7 @@ function expectEngagementContactsFeature(bool $condition, string $message): void
 $root = dirname(__DIR__);
 $read = static fn(string $path): string => (string) file_get_contents($root . '/' . $path);
 $migration = $read('migrations/20260823_add_engagement_contacts.sql');
+$affiliationMigration = $read('migrations/20260906_add_contact_organizations.sql');
 $order = $read('migrations/order.txt');
 $create = $read('src/index.php');
 $edit = $read('src/edit_engagement.php');
@@ -21,6 +22,7 @@ $viewStyles = $read('src/assets/css/pages/view_engagement.css');
 $pdf = $read('src/download_engagement_pdf.php');
 $editContact = $read('src/edit_contact.php');
 $template = $read('src/templates/engagement_contact_form.php');
+$contactCard = $read('src/templates/engagement_existing_contact_card.php');
 $javascript = $read('src/assets/js/engagement-contacts.js');
 $privileges = $read('scripts/configure_database_privileges.sh');
 
@@ -36,16 +38,20 @@ expectEngagementContactsFeature(
     'the ordered migration should constrain and audit event contact relationships.'
 );
 expectEngagementContactsFeature(
-    str_contains($editContact, 'DELETE FROM engagement_contacts WHERE contact_id = ?')
-        && str_contains($editContact, 'SET engagement.updated_at = CURRENT_TIMESTAMP(6)'),
-    'moving a contact to another organization should clear now-invalid event assignments.'
+    str_contains($editContact, 'syncContactOrganizations(')
+        && !str_contains($editContact, 'DELETE FROM engagement_contacts WHERE contact_id = ?')
+        && str_contains($affiliationMigration, 'prune_contact_organization_events_after_delete')
+        && str_contains($affiliationMigration, 'DELETE ec FROM engagement_contacts ec')
+        && str_contains($affiliationMigration, 'e.organization_id = OLD.organization_id'),
+    'removing an affiliation should clear only that organization’s event assignments while preserving other organizations.'
 );
 expectEngagementContactsFeature(
     str_contains($create, 'normalizeEngagementContactAssignments')
         && str_contains($create, 'syncEngagementContacts')
         && str_contains($edit, 'normalizeEngagementContactAssignments')
         && str_contains($edit, 'syncEngagementContacts')
-        && substr_count($template, 'engagement_contacts[') >= 1
+        && str_contains($template, "include __DIR__ . '/engagement_existing_contact_card.php'")
+        && substr_count($contactCard, 'engagement_contacts[') >= 1
         && str_contains($javascript, 'organization_contacts.php') === false
         && str_contains($javascript, 'dataset.contactOptionsUrl'),
     'create and edit forms should persist roles and reload contacts when the organization changes.'

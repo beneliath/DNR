@@ -98,6 +98,85 @@
     color: var(--primary-hover);
 }
 
+.engagement-contacts-section h3 {
+    margin: 22px 0 6px;
+    font-size: 1rem;
+}
+
+.engagement-contact-add-section {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+.engagement-contact-add-section h3 {
+    margin-top: 0;
+}
+
+.engagement-contact-add-section .engagement-contacts-heading {
+    align-items: center;
+}
+
+.engagement-contact-add-section .engagement-contact-list:not(:empty) {
+    margin-top: 16px;
+}
+
+.engagement-contact-search-controls,
+.engagement-contact-search-result {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.engagement-contact-search-controls input {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+}
+
+.engagement-contact-search-controls button,
+.engagement-contact-search-result button,
+.engagement-contact-add-section .engagement-contacts-heading > button {
+    flex: 0 0 auto;
+}
+
+.engagement-contact-search-result {
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.engagement-contact-search-result > span,
+.engagement-contact-email {
+    overflow-wrap: anywhere;
+}
+
+.engagement-contact-remove {
+    margin-bottom: 12px;
+    padding: 5px 9px;
+    font-size: 0.78rem;
+}
+
+.engagement-new-contact-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.engagement-new-contact-fields .form-group {
+    min-width: 0;
+    margin: 0;
+}
+
+.engagement-new-contact-phone {
+    grid-column: 1 / -1;
+}
+
+.engagement-new-contact-fields input {
+    min-width: 0;
+    width: 100%;
+}
+
 .engagement-contact-empty,
 .engagement-contacts-empty {
     margin: 0;
@@ -129,12 +208,23 @@
 }
 
 @media (max-width: 560px) {
+    .engagement-contact-add-section .engagement-contacts-heading {
+        align-items: stretch;
+    }
+
     .engagement-contacts-heading {
         flex-direction: column;
     }
 
     .engagement-contact-list,
-    .engagement-contact-role-options {
+    .engagement-contact-role-options,
+    .engagement-new-contact-fields {
         grid-template-columns: 1fr;
+    }
+
+    .engagement-contact-search-controls,
+    .engagement-contact-search-result {
+        align-items: stretch;
+        flex-direction: column;
     }
 }

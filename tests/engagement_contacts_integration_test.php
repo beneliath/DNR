@@ -13,6 +13,7 @@ $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/config.php';
 require_once $sourceDirectory . '/functions.php';
 require_once $sourceDirectory . '/engagement_contact_helpers.php';
+require_once $sourceDirectory . '/contact_organization_helpers.php';
 
 function expectEngagementContactsIntegration(bool $condition, string $message): void
 {
@@ -115,6 +116,27 @@ try {
     expectEngagementContactsIntegration(
         $unrelatedContactRejected,
         'a contact from another organization should be rejected.'
+    );
+
+    ensureContactOrganization($conn, $contactIds[2], $organizationIds[0], 'Chairman');
+    $sharedAssignments = normalizeEngagementContactAssignments([
+        (string) $contactIds[0] => ['primary_host'],
+        (string) $contactIds[2] => ['billing', 'travel'],
+    ]);
+    validateEngagementContactAssignments($conn, $organizationIds[0], $sharedAssignments);
+    syncEngagementContacts($conn, $engagementId, $sharedAssignments, $userId);
+    $sharedContacts = fetchEngagementContacts($conn, $engagementId);
+    expectEngagementContactsIntegration(
+        count($sharedContacts) === 2
+            && organizationContactRoleLabel($sharedContacts[1]) === 'Chairman'
+            && $sharedContacts[1]['engagement_contact_roles'] === ['billing', 'travel'],
+        'secondary affiliations should support multiple event roles with the correct organization title.'
+    );
+    $searchResults = searchEventContactOptions($conn, $organizationIds[0], 'Casey');
+    expectEngagementContactsIntegration(
+        count(array_filter($searchResults, static fn(array $row): bool => (int) $row['id'] === $contactIds[2]
+            && (bool) $row['is_affiliated'])) === 1,
+        'the directory picker should identify an existing secondary affiliation.'
     );
 
     $replacementAssignments = normalizeEngagementContactAssignments([

@@ -162,6 +162,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contact_chron_entr
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.organization_chron_entries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.presentations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contacts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.standard_event_tasks TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.mattermost_link_codes TO '${MYSQL_USER}'@'%';
@@ -188,6 +189,7 @@ REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${mail_ingest_user}'@'%';
 GRANT SELECT (id, username, verified_email, account_status)
     ON \`${MYSQL_DATABASE}\`.users TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_ingest_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${mail_ingest_user}'@'%';
@@ -236,6 +238,7 @@ GRANT SELECT (engagement_id, contact_id)
     ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id, organization_id, contact_first_name, contact_last_name, is_deleted)
     ON \`${MYSQL_DATABASE}\`.contacts TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (status)
     ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_dispatch_user}'@'%';
 

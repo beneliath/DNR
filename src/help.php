@@ -281,7 +281,7 @@ $manual_access_summary = match ($manual_role) {
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
                         <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Enter a required event title, an optional description, a valid start and end date, and an event type. Use Other when the preset types do not fit.</p></section></li>
-                        <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select active contacts from the chosen organization and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials.</p></section></li>
+                        <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select multiple existing contacts and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials. Search the directory to add another person, or use Add new contact repeatedly. New contacts and organization affiliations are saved with the event.</p></section></li>
                         <li><span>04</span><section><strong>Add presentations.</strong><p>Presentation details are optional and can be filled in after creating the event. If you enter a date, it must be within the event range; enter duration in minutes. Record actual attendance after the presentation, including zero when applicable. You can also attach a PDF slide deck and speaker QR codes. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
                         <li><span>06</span><section><strong>Set planning states and ownership.</strong><p>Choose lifecycle and confirmation, then select the Caller when that person should own the initial standard checklist. If no Caller is selected, the checklist belongs to the user creating the engagement. Add an initial Chron entry when there is context worth preserving.</p></section></li>
@@ -381,8 +381,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-definition-panel">
                         <span class="manual-kicker">Contact</span>
                         <h3>Person Record</h3>
-                        <p>Store first and last name, optional organization, organization role, email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization. Use Create Organization in the contact form to add a missing organization without losing the contact details or selected photo.</p>
-                        <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Event-specific roles are assigned separately on each engagement.</p>
+                        <p>Store first and last name, optional primary organization, additional organization affiliations with their own roles or titles, email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization. Use Create Organization in the contact form to add a missing organization without losing the contact details or selected photo.</p>
+                        <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Additional organizations each have their own role or title, such as Pastor at a church and Chairman at a research center. Event-specific roles are assigned separately on each engagement.</p>
                         <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a contact</a><?php endif; ?>
                     </article>
                 </section>
@@ -405,7 +405,7 @@ $manual_access_summary = match ($manual_role) {
                         <li>The organization list shows location, active contacts, last giving, and lifetime giving from finalized reports.</li>
                         <li>An organization detail page summarizes lifetime giving, last and average event giving, lodging, travel, and recent finalized reports.</li>
                         <li>Search contacts by person or organization, sort by last name or organization, and choose 20, 50, or 100 rows per page.</li>
-                        <li>A contact detail page links back to its organization and shows that person’s Chron and open follow-up work.</li>
+                        <li>A contact detail page links to all its organizations and shows that person’s Chron and open follow-up work.</li>
                     </ul>
                 </section>
 
@@ -826,7 +826,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization removes its contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p></div>
+                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization preserves contacts who have another organization affiliation, and removes its remaining contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p></div>
                 </article>
             </section>
 

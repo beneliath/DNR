@@ -40,7 +40,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_contacts as $contact): ?>
                         <?php $contact_label = trim($contact['contact_last_name'] . ', ' . $contact['contact_first_name']) . (!empty($contact['organization_name']) ? ' · ' . $contact['organization_name'] : ' · Standalone'); ?>
-                        <option data-organization-id="<?php echo (int) ($contact['organization_id'] ?? 0); ?>" value="<?php echo (int) $contact['id']; ?>"<?php echo (int) $value('primary_contact_id') === (int) $contact['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($contact_label, ENT_QUOTES, 'UTF-8'); ?></option>
+                        <option data-organization-ids="<?php echo htmlspecialchars((string) ($contact['organization_ids'] ?? $contact['organization_id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-organization-id="<?php echo (int) ($contact['organization_id'] ?? 0); ?>" value="<?php echo (int) $contact['id']; ?>"<?php echo (int) $value('primary_contact_id') === (int) $contact['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($contact_label, ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>

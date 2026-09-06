@@ -259,6 +259,7 @@ $entity_labels = [
     'users' => 'user',
     'organizations' => 'organization',
     'contacts' => 'contact',
+    'contact_organizations' => 'contact organization',
     'inbound_email_messages' => 'inbound email',
     'engagements' => 'engagement',
     'presentations' => 'presentation',

@@ -7,6 +7,7 @@ include 'presentation_helpers.php';
 include 'map_helpers.php';
 include 'follow_up_task_helpers.php';
 include 'engagement_contact_helpers.php';
+require_once __DIR__ . '/engagement_contact_input_helpers.php';
 include 'engagement_lifecycle_helpers.php';
 startSecureSession();
 requireLogin();
@@ -32,6 +33,8 @@ $DEFAULT_SPEAKER = applicationDefaultSpeaker();
 $success_message = '';
 $error_message = '';
 $submitted_engagement_contacts = [];
+$submitted_engagement_added_contact_ids = [];
+$submitted_engagement_new_contacts = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     requireValidCsrfToken();
@@ -39,8 +42,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     $chron_entry = trim($_POST['chron_entry'] ?? '');
 
     try {
+        $submitted_engagement_added_contact_ids = normalizeEngagementAddedContactIds(
+            $_POST['engagement_added_contact_ids'] ?? null
+        );
         $submitted_engagement_contacts = normalizeEngagementContactAssignments(
             $_POST['engagement_contacts'] ?? null
+        );
+        $submitted_engagement_new_contacts = normalizeEngagementNewContacts(
+            $_POST['engagement_new_contacts'] ?? null
         );
         $engagement_input = \Dnr\Domain\EngagementInput::normalize($_POST);
         foreach ($engagement_input as $field => $value) {
@@ -89,11 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
         try {
             requireActiveOrganization($conn, $organization_id, true);
-            validateEngagementContactAssignments(
-                $conn,
-                $organization_id,
-                $submitted_engagement_contacts
-            );
             validateEngagementRescheduleLink(
                 $conn,
                 $organization_id,
@@ -157,10 +161,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                 if ($stmt->execute()) {
                     $engagement_id = $conn->insert_id;
 
+                    $saved_engagement_contacts = prepareEngagementContactAssignments(
+                        $conn,
+                        $organization_id,
+                        $submitted_engagement_contacts,
+                        $submitted_engagement_added_contact_ids,
+                        $submitted_engagement_new_contacts
+                    );
                     syncEngagementContacts(
                         $conn,
                         $engagement_id,
-                        $submitted_engagement_contacts,
+                        $saved_engagement_contacts,
                         $current_user_id,
                         false
                     );
@@ -252,6 +263,12 @@ try {
         $conn,
         $selected_engagement_organization_id
     );
+    $engagement_added_contacts = fetchEngagementAddedContactOptions(
+        $conn,
+        $submitted_engagement_added_contact_ids
+    );
+    $organization_contacts = array_values(array_filter($organization_contacts,
+        static fn(array $contact): bool => !in_array((int) $contact['id'], $submitted_engagement_added_contact_ids, true)));
 } catch (Throwable $exception) {
     abortApplication(503, 'Organization contacts are temporarily unavailable.', [
         'error' => $exception->getMessage(),
@@ -260,6 +277,7 @@ try {
 $engagement_contact_assignment_map = engagementContactAssignmentMap(
     $submitted_engagement_contacts
 );
+$engagement_new_contact_rows = engagementNewContactFormRows($_POST['engagement_new_contacts'] ?? null);
 $engagement_lifecycle_options = engagementLifecycleStatuses();
 $engagement_confirmation_statuses = \Dnr\Domain\ReferenceData::engagementStatuses();
 $selected_lifecycle_status = !empty($error_message)

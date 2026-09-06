@@ -20,7 +20,7 @@ $migration = file_get_contents(
 $migrationOrder = file_get_contents($root . '/migrations/order.txt');
 
 expectOptionalContactOrganization(
-    str_contains($addContact, '<label for="organization_id">Organization</label>')
+    str_contains($addContact, '<label for="organization_id">Primary organization</label>')
         && str_contains($addContact, '<select name="organization_id" id="organization_id">')
         && str_contains($addContact, '>No organization</option>')
         && str_contains($addContact, 'if ($organization_id !== null)')

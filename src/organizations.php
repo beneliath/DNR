@@ -107,7 +107,9 @@ $search_filter = $fulltext_query === '' ? '' : " AND (
         ) AGAINST (? IN BOOLEAN MODE)
         OR EXISTS (
             SELECT 1 FROM contacts searched_contact
-            WHERE searched_contact.organization_id = o.id
+            INNER JOIN contact_organizations searched_affiliation
+                ON searched_affiliation.contact_id = searched_contact.id
+            WHERE searched_affiliation.organization_id = o.id
               AND searched_contact.is_deleted = 0
               AND MATCH(
                   searched_contact.contact_first_name, searched_contact.contact_last_name,
@@ -163,15 +165,16 @@ if ($organizations !== []) {
     $contacts_stmt = $conn->prepare(
         "SELECT organization_id, contact_name, contact_count
          FROM (
-             SELECT c.organization_id,
+             SELECT co.organization_id,
                     CONCAT_WS(' ', c.contact_first_name, c.contact_last_name) AS contact_name,
                     ROW_NUMBER() OVER (
-                        PARTITION BY c.organization_id
+                        PARTITION BY co.organization_id
                         ORDER BY c.contact_last_name, c.contact_first_name, c.id
                     ) AS contact_position,
-                    COUNT(*) OVER (PARTITION BY c.organization_id) AS contact_count
+                    COUNT(*) OVER (PARTITION BY co.organization_id) AS contact_count
              FROM contacts c
-             WHERE c.is_deleted = 0 AND c.organization_id IN ({$placeholders})
+             INNER JOIN contact_organizations co ON co.contact_id = c.id
+             WHERE c.is_deleted = 0 AND co.organization_id IN ({$placeholders})
          ) ranked_contacts
          WHERE contact_position <= 3
          ORDER BY organization_id, contact_position"
