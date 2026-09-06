@@ -246,7 +246,6 @@ html.dark-mode .inbound-detail-heading small {
 .inbound-message-detail { min-width: 0; }
 .inbound-message-body pre { max-height: 55vh; line-height: 1.6; }
 .inbound-message-list { max-height: 85vh; overflow-y: auto; padding: 2px; }
-.inbound-message-card.selected { border-left: 4px solid var(--primary); }
 @media (max-width: 900px) { .inbound-message-list { max-height: 280px; } }
 
 /* Keep the wide search field and its controls on a shared baseline. */

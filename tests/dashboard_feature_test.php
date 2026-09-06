@@ -59,13 +59,13 @@ expectDashboardFeature(
         && $summary_grid_position !== false
         && $booking_panel_position > $my_work_panel_start
         && $my_work_panel_start < strpos($dashboard, 'id="upcoming-engagements"')
-        && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure">')
-        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>')
+        && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure" open>')
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open My Booking Pipeline</a>')
         && str_contains($dashboard, '<small>Booking Inquiries</small>')
         && str_contains($dashboard, '<small>All Active Work</small>')
         && str_contains($dashboard, '<small>Mail For Review</small>')
         && str_contains($dashboard, '<small>Financial Closeouts</small>'),
-    'daily work should lead the upcoming schedule and the secondary pipeline should be collapsed.'
+    'daily work should lead the upcoming schedule and the secondary pipeline should be expanded by default while remaining collapsible.'
 );
 
 expectDashboardFeature(

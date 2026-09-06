@@ -229,7 +229,7 @@ expectHeaderScope(
     'The footer author should safely open the GitHub profile in a new tab.'
 );
 expectHeaderScope(
-    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time<\/p>/s', $footer_source) === 1
+    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time<\/p>/s', preg_replace('/<\/?a\b[^>]*>/', '', $footer_source)) === 1
         && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*1;)[^}]*\}/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
     'The shared footer should show a larger Hebrew name in a readable definition one blank line below the copyright notice.'
@@ -241,7 +241,7 @@ expectHeaderScope(
 expectHeaderScope(
     str_contains($footer_source, 'class="footer-ascii-cat"')
         && str_contains($footer_source, 'aria-label="ASCII art cat"')
-        && str_contains($footer_source, "  (il),-''  (li),'  ((!.-'\n\nGenesis 49:9,10 ... Revelation 5:5")
+        && str_contains(preg_replace('/<\/?(?:a|button)\b[^>]*>/', '', $footer_source), "  (il),-''  (li),'  ((!.-'\n\nGenesis 49: 9, 10 ... Revelation 5:5")
         && str_contains($footer_source, 'Do you see Him?'),
     'The shared footer should leave one blank line between the ASCII cat and the Genesis/Revelation line.'
 );

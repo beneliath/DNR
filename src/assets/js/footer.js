@@ -1,4 +1,18 @@
 (function () {
+    const trigger = document.getElementById('open-footer-lion');
+    const dialog = document.getElementById('footer-lion-dialog');
+    const closeButton = document.getElementById('close-footer-lion');
+    if (!trigger || !dialog || !closeButton) return;
+
+    trigger.addEventListener('click', function () {
+        dialog.showModal();
+    });
+    closeButton.addEventListener('click', function () {
+        dialog.close();
+    });
+})();
+
+(function () {
     const logoutForm = document.getElementById('logout-form');
     const confirmation = document.getElementById('logout-confirmation');
     const cancelButton = document.getElementById('cancel-logout');
