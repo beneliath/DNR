@@ -100,6 +100,11 @@ function normalizeEngagementMapFilters(array $query, ?DateTimeImmutable $instant
 
 function engagementMapAddress(array $engagement)
 {
+    // The default country alone does not describe an event location.
+    $location_fields = ['event_address_line_1', 'event_address_line_2', 'event_city', 'event_state', 'event_zipcode'];
+    if (!array_filter($location_fields, static fn ($field) => trim((string) ($engagement[$field] ?? '')) !== '')) {
+        return '';
+    }
     $parts = [];
     foreach (['event_address_line_1', 'event_address_line_2'] as $field) {
         $value = trim((string) ($engagement[$field] ?? ''));
@@ -232,7 +237,7 @@ function queueEngagementMapAddress(mysqli $conn, $address, bool $retry_failed = 
  * The returned address is internal endpoint data and should not be serialized.
  *
  * @param list<int> $engagement_ids
- * @return list<array{id: int, status: string, latitude?: float, longitude?: float, address: string}>
+ * @return list<array{id: int, status: string, latitude?: float, longitude?: float, address: string, provider?: string, confidence?: float|null, matchedAddress?: string, locationNote?: string}>
  */
 function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): array
 {
@@ -242,10 +247,12 @@ function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): arr
 
     $placeholders = implode(', ', array_fill(0, count($engagement_ids), '?'));
     $stmt = $conn->prepare(
-        "SELECT id, event_address_line_1, event_address_line_2, event_city,
-                event_state, event_zipcode, event_country
-         FROM engagements
-         WHERE is_deleted = 0 AND id IN ({$placeholders})"
+        "SELECT e.id, e.event_address_line_1, e.event_address_line_2, e.event_city,
+                e.event_state, e.event_zipcode, e.event_country,
+                p.address_hash AS pin_address_hash, p.latitude AS pin_latitude, p.longitude AS pin_longitude
+         FROM engagements e
+         LEFT JOIN engagement_map_pins p ON p.engagement_id = e.id
+         WHERE e.is_deleted = 0 AND e.id IN ({$placeholders})"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare engagement map locations.');
@@ -270,6 +277,9 @@ function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): arr
         $engagements[(int) $engagement['id']] = [
             'address' => $address,
             'hash' => $hash,
+            'pin' => $engagement['pin_address_hash'] === $hash
+                && engagementMapCoordinatesAreValid($engagement['pin_latitude'], $engagement['pin_longitude'])
+                ? ['latitude' => (float) $engagement['pin_latitude'], 'longitude' => (float) $engagement['pin_longitude']] : null,
         ];
         if ($hash !== '') {
             $hashes[$hash] = true;
@@ -284,16 +294,17 @@ function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): arr
         $hash_placeholders = implode(', ', array_fill(0, count($hash_values), '?'));
         $state_stmt = $conn->prepare(
             "SELECT requested.address_hash, requested.latitude, requested.longitude,
-                    requested.lookup_status, q.status AS queue_status
+                    requested.lookup_status, requested.provider, requested.confidence,
+                    requested.matched_address, q.status AS queue_status
              FROM (
-                SELECT address_hash, latitude, longitude, lookup_status
+                SELECT address_hash, latitude, longitude, lookup_status, provider, confidence, matched_address
                 FROM engagement_map_geocodes
                 WHERE address_hash IN ({$hash_placeholders})
              ) requested
              LEFT JOIN engagement_map_geocode_queue q
                ON q.address_hash = requested.address_hash
              UNION ALL
-             SELECT q.address_hash, NULL, NULL, NULL, q.status
+             SELECT q.address_hash, NULL, NULL, NULL, NULL, NULL, NULL, q.status
              FROM engagement_map_geocode_queue q
              WHERE q.address_hash IN ({$hash_placeholders})
                AND NOT EXISTS (
@@ -340,18 +351,30 @@ function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): arr
             'status' => $address === '' ? 'no_address' : 'unqueued',
             'address' => $address,
         ];
+        $pin = $engagements[$engagement_id]['pin'];
+        if ($pin !== null) {
+            $locations[] = array_merge($location, $pin, [
+                'status' => 'found', 'provider' => 'manual', 'locationNote' => 'Pin confirmed for this address',
+            ]);
+            continue;
+        }
         $geocode = $hash === '' ? null : ($geocodes[$hash] ?? null);
-        if (is_array($geocode) && $geocode['lookup_status'] === 'not_found') {
-            $location['status'] = 'not_found';
-        } elseif (is_array($geocode)
+        if (is_array($geocode)
             && $geocode['lookup_status'] === 'found'
             && engagementMapCoordinatesAreValid($geocode['latitude'], $geocode['longitude'])
         ) {
             $location['status'] = 'found';
             $location['latitude'] = (float) $geocode['latitude'];
             $location['longitude'] = (float) $geocode['longitude'];
+            $location['provider'] = (string) $geocode['provider'];
+            $location['confidence'] = $geocode['confidence'] === null ? null : (float) $geocode['confidence'];
+            $location['matchedAddress'] = (string) ($geocode['matched_address'] ?? '');
+            $location['locationNote'] = $geocode['provider'] === 'geoapify'
+                ? 'High confidence address match' : 'Automatically located';
         } elseif ($hash !== '' && isset($queue_states[$hash])) {
             $location['status'] = $queue_states[$hash] === 'failed' ? 'failed' : 'pending';
+        } elseif (is_array($geocode) && $geocode['lookup_status'] === 'not_found') {
+            $location['status'] = 'not_found';
         }
         $locations[] = $location;
     }
@@ -362,7 +385,7 @@ function engagementMapLocationStatuses(mysqli $conn, array $engagement_ids): arr
 /**
  * Store a completed lookup and acknowledge its queue item as one atomic change.
  *
- * @param array{latitude: float, longitude: float}|null $coordinates
+ * @param array{latitude: float, longitude: float, provider?: string, confidence?: float, match_type?: string, matched_address?: string}|null $coordinates
  */
 function completeEngagementMapGeocodeJob(
     mysqli $conn,
@@ -373,6 +396,10 @@ function completeEngagementMapGeocodeJob(
     $latitude = $coordinates['latitude'] ?? null;
     $longitude = $coordinates['longitude'] ?? null;
     $lookup_status = $coordinates === null ? 'not_found' : 'found';
+    $provider = (string) ($coordinates['provider'] ?? engagementMapGeocoderProvider());
+    $confidence = $coordinates['confidence'] ?? null;
+    $match_type = $coordinates['match_type'] ?? null;
+    $matched_address = $coordinates['matched_address'] ?? null;
     if ($coordinates !== null && !engagementMapCoordinatesAreValid($latitude, $longitude)) {
         throw new InvalidArgumentException('A completed geocoding job must contain valid coordinates.');
     }
@@ -383,23 +410,30 @@ function completeEngagementMapGeocodeJob(
     try {
         $save = $conn->prepare(
             'INSERT INTO engagement_map_geocodes
-                (address_hash, address_query, latitude, longitude, lookup_status, geocoded_at)
-             VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP())
+                (address_hash, address_query, latitude, longitude, lookup_status, geocoded_at,
+                 provider, confidence, match_type, matched_address)
+             VALUES (?, ?, ?, ?, ?, UTC_TIMESTAMP(), ?, ?, ?, ?)
              ON DUPLICATE KEY UPDATE
                 address_query = VALUES(address_query), latitude = VALUES(latitude),
                 longitude = VALUES(longitude), lookup_status = VALUES(lookup_status),
-                geocoded_at = VALUES(geocoded_at)'
+                geocoded_at = VALUES(geocoded_at), provider = VALUES(provider),
+                confidence = VALUES(confidence), match_type = VALUES(match_type),
+                matched_address = VALUES(matched_address)'
         );
         if (!$save) {
             throw new RuntimeException('Unable to prepare geocoding result storage: ' . $conn->error);
         }
         $save->bind_param(
-            'ssdds',
+            'ssddssdss',
             $address_hash,
             $address_query,
             $latitude,
             $longitude,
-            $lookup_status
+            $lookup_status,
+            $provider,
+            $confidence,
+            $match_type,
+            $matched_address
         );
         if (!$save->execute()) {
             $save_error = $save->error;
@@ -539,14 +573,24 @@ function geocoderHostIsPublic($host)
     return geocoderHostPublicAddresses($host) !== [];
 }
 
+function engagementMapGeocoderProvider(): string
+{
+    $provider = trim((string) (getenv('DNR_GEOCODER_PROVIDER') ?: 'nominatim'));
+    if (!in_array($provider, ['nominatim', 'geoapify'], true)) {
+        throw new RuntimeException('The configured geocoding provider is not supported.');
+    }
+    return $provider;
+}
+
 /** @return array{url: string, host: string, port: int, addresses: list<string>} */
 function validatedGeocoderEndpoint()
 {
-    $url = trim((string) (getenv('DNR_GEOCODER_BASE_URL') ?: 'https://nominatim.openstreetmap.org/search'));
+    $geoapify = engagementMapGeocoderProvider() === 'geoapify';
+    $url = trim((string) (getenv('DNR_GEOCODER_BASE_URL') ?: ($geoapify ? 'https://api.geoapify.com/v1/geocode/search' : 'https://nominatim.openstreetmap.org/search')));
     $host = trim(strtolower((string) parse_url($url, PHP_URL_HOST)), '[]');
     $allowed_hosts = array_filter(array_map(
         static fn($value) => trim(strtolower(trim($value)), '[]'),
-        explode(',', (string) (getenv('DNR_GEOCODER_ALLOWED_HOSTS') ?: 'nominatim.openstreetmap.org'))
+        explode(',', (string) (getenv('DNR_GEOCODER_ALLOWED_HOSTS') ?: ($geoapify ? 'api.geoapify.com' : 'nominatim.openstreetmap.org')))
     ));
     $port = parse_url($url, PHP_URL_PORT) ?: 443;
     if (!filter_var($url, FILTER_VALIDATE_URL)
@@ -579,17 +623,66 @@ function geocoderAddressesMatch($left, $right)
         && hash_equals($left_binary, $right_binary);
 }
 
+/** @return list<string> */
+function engagementMapGeocodeQueries(string $address): array
+{
+    $queries = [$address];
+    $parts = array_map('trim', explode(',', $address));
+    foreach ($parts as $index => $part) {
+        if (preg_match('/^\d+[a-z]?(?:-\d+[a-z]?)?\s+\S/i', $part) !== 1) {
+            continue;
+        }
+        // Remove a venue-name prefix, but retain the street number, direction,
+        // unit, city, region, postal code, and country.
+        $street_address = implode(', ', array_slice($parts, $index));
+        $queries[] = $street_address;
+        if (preg_match('/,\s*(?:US|USA|United States(?: of America)?)$/i', $address) === 1) {
+            $queries[] = (string) preg_replace('/\bU\.?S\.?\s+(?:Highway|Hwy|Route)\s+(?=\d)/i', 'US ', $street_address);
+        }
+        break;
+    }
+    return array_values(array_unique($queries));
+}
+
 function geocodeEngagementMapAddress($address)
 {
+    foreach (engagementMapGeocodeQueries((string) $address) as $index => $query) {
+        if ($index > 0) {
+            usleep(1100000);
+        }
+        $coordinates = requestEngagementMapGeocode($query);
+        if ($coordinates !== null) {
+            return $coordinates;
+        }
+    }
+    return null;
+}
+
+function requestEngagementMapGeocode(string $address)
+{
+    $provider = engagementMapGeocoderProvider();
     $endpoint = validatedGeocoderEndpoint();
     $base_url = $endpoint['url'];
     $application_version = defined('APP_VERSION') ? APP_VERSION : 'dev';
     $separator = strpos($base_url, '?') === false ? '?' : '&';
-    $url = $base_url . $separator . http_build_query([
+    $parameters = [
         'format' => 'jsonv2',
-        'limit' => 1,
+        'limit' => 3,
+        'addressdetails' => 1,
         'q' => $address,
-    ], '', '&', PHP_QUERY_RFC3986);
+    ];
+    if ($provider === 'geoapify') {
+        $api_key = configurationSecret('DNR_GEOAPIFY_API_KEY');
+        if ($api_key === '') {
+            throw new RuntimeException('The Geoapify API key is not configured.');
+        }
+        // Never send the secret to a configurable third-party endpoint.
+        if ($endpoint['host'] !== 'api.geoapify.com' || $endpoint['port'] !== 443) {
+            throw new RuntimeException('Geoapify credentials require the official HTTPS endpoint.');
+        }
+        $parameters = ['text' => $address, 'format' => 'json', 'limit' => 3, 'apiKey' => $api_key];
+    }
+    $url = $base_url . $separator . http_build_query($parameters, '', '&', PHP_QUERY_RFC3986);
     $user_agent = preg_replace('/[\r\n]+/', ' ', trim((string) (getenv('DNR_GEOCODER_USER_AGENT')
         ?: applicationBrandName() . '/' . $application_version . ' (' . githubRepositoryUrl() . ')')));
     if (!function_exists('curl_init')) {
@@ -633,7 +726,7 @@ function geocodeEngagementMapAddress($address)
     $completed = curl_exec($curl);
     $status = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
     $connected_address = (string) curl_getinfo($curl, CURLINFO_PRIMARY_IP);
-    curl_close($curl);
+    unset($curl);
     if ($completed === false
         || $body_too_large
         || $status < 200
@@ -642,7 +735,52 @@ function geocodeEngagementMapAddress($address)
     ) {
         throw new RuntimeException('The geocoder did not return a successful response.');
     }
-    return parseEngagementMapGeocoderResponse($body);
+    return $provider === 'geoapify'
+        ? parseGeoapifyGeocoderResponse($body, $address)
+        : parseEngagementMapGeocoderResponse($body, $address);
+}
+
+/** @return array{latitude: float, longitude: float, provider: string, confidence: float, match_type: string, matched_address: string}|null */
+function parseGeoapifyGeocoderResponse(string $response, string $requested_address): ?array
+{
+    $decoded = json_decode($response, true);
+    if (!is_array($decoded) || !is_array($decoded['results'] ?? null) || !array_is_list($decoded['results'])) {
+        throw new RuntimeException('Geoapify returned an invalid location response.');
+    }
+    $parsed = is_array($decoded['query']['parsed'] ?? null) ? $decoded['query']['parsed'] : [];
+    preg_match('/(?:^|,)\s*(\d+[a-z]?(?:-\d+[a-z]?)?)\s+\S/i', $requested_address, $house_match);
+    // Worldwide addresses may put the house number after the street and the
+    // postcode before the city. Use the provider's parsed house number first.
+    $house = trim((string) ($parsed['housenumber'] ?? $house_match[1] ?? ''));
+    if (!isset($parsed['housenumber']) && $house === (string) ($parsed['postcode'] ?? '')) {
+        $house = '';
+    }
+    foreach ($decoded['results'] as $candidate) {
+        if (!is_array($candidate) || !engagementMapCoordinatesAreValid($candidate['lat'] ?? null, $candidate['lon'] ?? null)) {
+            throw new RuntimeException('Geoapify returned invalid coordinates.');
+        }
+        $rank = is_array($candidate['rank'] ?? null) ? $candidate['rank'] : [];
+        $confidence = $rank['confidence'] ?? null;
+        if (!is_numeric($confidence) || (float) $confidence < 0.95 || (float) $confidence > 1
+            || !in_array($candidate['result_type'] ?? '', ['building', 'amenity'], true)
+            || ($house !== '' && strcasecmp($house, trim((string) ($candidate['housenumber'] ?? ''))) !== 0)
+        ) {
+            continue;
+        }
+        // Honor explicit country codes without imposing a US bias on worldwide searches.
+        if (preg_match('/,\s*([A-Z]{2})$/i', $requested_address, $country_match) === 1
+            && strcasecmp($country_match[1], (string) ($candidate['country_code'] ?? '')) !== 0
+        ) {
+            continue;
+        }
+        return [
+            'latitude' => (float) $candidate['lat'], 'longitude' => (float) $candidate['lon'],
+            'provider' => 'geoapify', 'confidence' => (float) $confidence,
+            'match_type' => mb_substr((string) ($rank['match_type'] ?? $candidate['result_type']), 0, 64),
+            'matched_address' => mb_substr((string) ($candidate['formatted'] ?? ''), 0, 1000),
+        ];
+    }
+    return null;
 }
 
 function engagementMapCoordinatesAreValid($latitude, $longitude)
@@ -655,7 +793,7 @@ function engagementMapCoordinatesAreValid($latitude, $longitude)
         && (float) $longitude <= 180;
 }
 
-function parseEngagementMapGeocoderResponse($response)
+function parseEngagementMapGeocoderResponse($response, string $requested_address = '')
 {
     $decoded = json_decode((string) $response, true);
     if (!is_array($decoded)) {
@@ -665,17 +803,33 @@ function parseEngagementMapGeocoderResponse($response)
         return null;
     }
 
-    $first = $decoded[0] ?? null;
-    if (!is_array($first)
-        || !engagementMapCoordinatesAreValid($first['lat'] ?? null, $first['lon'] ?? null)
-    ) {
+    if (!array_is_list($decoded)) {
         throw new RuntimeException('The location service returned invalid coordinates.');
     }
-
-    return [
-        'latitude' => (float) $first['lat'],
-        'longitude' => (float) $first['lon'],
-    ];
+    preg_match('/(?:^|,)\s*(\d+[a-z]?(?:-\d+[a-z]?)?)\s+\S/i', $requested_address, $house_match);
+    preg_match('/\b[A-Z]{2}\s+(\d{5})(?:-\d{4})?,\s*(?:US|USA|United States(?: of America)?)$/i', $requested_address, $zip_match);
+    foreach ($decoded as $candidate) {
+        if (!is_array($candidate)
+            || !engagementMapCoordinatesAreValid($candidate['lat'] ?? null, $candidate['lon'] ?? null)
+        ) {
+            throw new RuntimeException('The location service returned invalid coordinates.');
+        }
+        if (isset($house_match[1])) {
+            $details = is_array($candidate['address'] ?? null) ? $candidate['address'] : [];
+            // A city or road midpoint is not a successful numbered-address lookup.
+            if (strcasecmp(trim((string) ($details['house_number'] ?? '')), $house_match[1]) !== 0
+                || (int) ($candidate['place_rank'] ?? 0) < 28
+                || (isset($zip_match[1]) && substr((string) ($details['postcode'] ?? ''), 0, 5) !== $zip_match[1])
+            ) {
+                continue;
+            }
+        }
+        return [
+            'latitude' => (float) $candidate['lat'],
+            'longitude' => (float) $candidate['lon'],
+        ];
+    }
+    return null;
 }
 
 function engagementMapDateLabel($start_date, $end_date)

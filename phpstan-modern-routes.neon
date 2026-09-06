@@ -4,6 +4,7 @@ parameters:
     level: 3
     paths:
         - src/map_geocode.php
+        - src/map_pin.php
         - src/dashboard.php
         - src/organization_contacts.php
         - src/engagement_reschedule_options.php

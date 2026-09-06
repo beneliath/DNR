@@ -34,7 +34,7 @@ $apache = $read('docker/apache-security.conf');
 $security_headers = $read('src/functions.php');
 
 expectMapFeature(
-    str_contains($header, "'map' => ['map.php']")
+    str_contains($header, "'map' => ['map.php', 'map_pin.php']")
         && str_contains($header, 'href="map.php"')
         && str_contains($header, '<span>Map</span>'),
     'the application sidebar should expose an active Map destination.'
@@ -198,7 +198,8 @@ expectMapFeature(
         && str_contains($map_page, "'csrfToken' => \$map_csrf_token")
         && str_contains($map_script, 'pollPendingLocations')
         && str_contains($map_script, 'requestLocationBatch')
-        && str_contains($map_script, 'engagement_ids: Array.from(pendingEvents.keys()).join')
+        && str_contains($map_script, 'ids = Array.from(pendingEvents.keys())')
+        && str_contains($map_script, "engagement_ids: ids.join(',')")
         && str_contains($map_script, 'Math.random()')
         && str_contains($map_script, 'maximumPollIntervalMilliseconds')
         && !str_contains($map_script, 'Promise.all(lookups)')

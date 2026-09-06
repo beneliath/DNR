@@ -59,3 +59,5 @@
 20260905_inbound_email_indexes.sql
 20260906_optional_presentation_duration.sql
 20260906_uiux_financial_drafts.sql
+20260906_map_location_quality.sql
+20260906_map_pin_actor_retention.sql

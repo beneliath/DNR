@@ -951,6 +951,51 @@ be placed.
 
 The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. The tile URL and attribution are supplied by the selected deployment profile; geocoding uses its separately allowlisted worker endpoint.
 
+#### Worldwide address lookup with Geoapify
+
+Use the optional `docker-compose.geoapify.yaml` overlay for Geoapify geocoding.
+Create a project at <https://myprojects.geoapify.com>, then save its API key in
+`secrets/geoapify_api_key` (excluded from Git). The overlay mounts the key only
+into the egress-enabled geocoder worker; PHP pages, browser scripts, and map
+payloads never receive it. The existing map renderer and tile provider remain
+independently configurable. Geoapify attribution is shown with its results.
+
+After applying current migrations, activate it in the local preview with:
+
+```sh
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml \
+  -f docker-compose.geoapify.yaml up -d --no-deps web geocoder
+```
+
+The deployment wrapper automatically includes this overlay when a nonempty
+key file is provisioned on the host, so subsequent s1 releases retain Geoapify.
+Provision the secret separately before deployment. On Linux, keep the file
+owner-only and grant the container worker (UID 33) read access with a file ACL,
+as for the other worker secrets. Set `DNR_GEOCODER_PROVIDER=nominatim` when
+invoking the wrapper to explicitly opt out, or `geoapify` to require the key.
+`DNR_GEOAPIFY_API_KEY_FILE` can override the host secret path. Never commit the
+key, place it in a tile URL, or paste it into a command argument. Configure key
+restrictions for the worker's outgoing IP if desired; browser referrer-only
+restrictions do not work for background requests.
+
+Lookups retain provider, confidence, match type, and matched-address metadata.
+Automatic Geoapify pins require a building or amenity result with at least 0.95
+provider confidence, matching the requested house number and explicit country
+code when present. Confidence is a provider score, not a guarantee of accuracy.
+Broad or uncertain results remain unresolved instead of placing a city-center
+pin. Searches preserve street directions and the stored address; bounded
+fallbacks remove a venue prefix or normalize US highway wording. Provider
+errors are retried by the worker and never cached as address misses.
+
+**Show missing addresses** filters for records needing address details;
+**Retry lookup** explicitly requeues a missed or failed lookup without resetting
+active jobs or their backoff. Empty results show guidance and a return action.
+Editors can also use **Set map pin** to click, drag, or enter coordinates and
+explicitly confirm the venue. Confirmed pins are stored per engagement, take
+priority over worker results, and apply only while the address hash still
+matches. **Use automatic lookup** removes the override. Both actions require
+CSRF and editing access, reject stale addresses, and record an audit event.
+
 Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
 private subscription URLs per device. The feed includes non-archived engagements in the configured
 bounded calendar window, regardless of lifecycle. Entries are all-day events covering the event
