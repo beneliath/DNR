@@ -22,6 +22,10 @@ if (strtoupper($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
     $respond(405, ['status' => 'error', 'message' => 'Use POST to queue an engagement location.']);
 }
 requireValidCsrfToken();
+$retry = ($_POST['retry'] ?? '') === '1';
+if ($retry && !in_array((string) ($_SESSION['role'] ?? ''), ['admin', 'editor'], true)) {
+    $respond(403, ['status' => 'error', 'message' => 'Editing access is required to retry a location lookup.']);
+}
 
 try {
     $engagement_ids = normalizeEngagementMapIds(
@@ -45,14 +49,23 @@ if ($locations === []) {
 
 $addresses_to_queue = [];
 foreach ($locations as $location) {
-    if ($location['status'] === 'unqueued') {
+    if ($location['status'] === 'unqueued'
+        || ($retry && in_array($location['status'], ['not_found', 'failed'], true))
+    ) {
         $addresses_to_queue[] = $location['address'];
     }
 }
-if (!queueEngagementMapAddresses($conn, $addresses_to_queue)) {
+if (!queueEngagementMapAddresses($conn, $addresses_to_queue, $retry)) {
     $respond(503, ['status' => 'error', 'message' => 'Unable to queue the location lookups.']);
 }
 
+// Reload: a worker may already have finished, or another request may have
+// queued the same address. The queue takes precedence over a cached miss.
+try {
+    $locations = engagementMapLocationStatuses($conn, $engagement_ids);
+} catch (RuntimeException $exception) {
+    $respond(503, ['status' => 'error', 'message' => 'The lookup was queued, but its status could not be loaded. Refresh to check it.']);
+}
 $payload_locations = [];
 $has_pending = false;
 foreach ($locations as $location) {

@@ -22,6 +22,15 @@ import {
     }
 
     const events = Array.isArray(payload.events) ? payload.events : [];
+    const emptyElement = document.getElementById('map-empty-state');
+    const emptyTitle = document.getElementById('map-empty-title');
+    const emptyDescription = document.getElementById('map-empty-description');
+    const retryFeedback = document.getElementById('map-retry-feedback');
+    if (events.length === 0) {
+        feedbackElement.textContent = String(payload.emptyTitle || 'No matching engagements');
+        fitButton.disabled = true;
+        return;
+    }
     const mapProvider = payload.mapProvider && typeof payload.mapProvider === 'object'
         ? payload.mapProvider
         : {};
@@ -65,8 +74,9 @@ import {
     const coordinateCounts = new globalThis.Map();
     const pendingEvents = new globalThis.Map();
     let pinCount = 0;
-    let pendingCount = Number(payload.pendingGeocodeCount) || 0;
-    let notFoundCount = Number(payload.notFoundCount) || 0;
+    let pollTimer;
+    const retryingIds = new Set();
+    const requestedRetryIds = new Set();
     const withoutAddressCount = Number(payload.withoutAddressCount) || 0;
     const resultsTruncated = payload.resultsTruncated === true;
     let providerError = '';
@@ -76,14 +86,28 @@ import {
     }
 
     function updateFeedback() {
+        const pendingCount = events.filter(event => event.locationState === 'pending').length;
+        const notFoundCount = events.filter(event => event.locationState === 'not_found').length;
+        const failedCount = events.filter(event => event.locationState === 'failed').length;
         const parts = [plural(pinCount, 'visible pin')];
         if (pendingCount > 0) parts.push(plural(pendingCount, 'location') + ' awaiting lookup');
-        if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address') + ' not found');
+        if (notFoundCount > 0) parts.push(plural(notFoundCount, 'address', 'addresses') + ' not found');
+        if (failedCount > 0) parts.push(plural(failedCount, 'lookup') + ' unavailable');
         if (withoutAddressCount > 0) parts.push(plural(withoutAddressCount, 'event') + ' without an address');
         if (resultsTruncated) parts.push('more matching events are outside the display limit');
         if (providerError) parts.push(providerError);
         feedbackElement.textContent = parts.join(' · ');
         fitButton.disabled = pinCount === 0;
+        const wasHidden = mapElement.hidden;
+        mapElement.hidden = pinCount === 0;
+        if (emptyElement) emptyElement.hidden = pinCount > 0;
+        if (pinCount === 0 && emptyTitle && emptyDescription) {
+            emptyTitle.textContent = pendingCount > 0 ? 'Looking up locations' : String(payload.emptyTitle || 'No locations on the map yet');
+            emptyDescription.textContent = pendingCount > 0
+                ? 'Pins will appear here as the location lookups finish. You can keep reviewing the list below.'
+                : String(payload.emptyDescription || 'Check the addresses below or retry unresolved lookups.');
+        }
+        if (wasHidden && pinCount > 0) map.resize();
     }
 
     function markerBounds() {
@@ -195,7 +219,7 @@ import {
     events.forEach(function (event) {
         if (event.latitude !== null && event.longitude !== null) {
             addPin(event, Number(event.latitude), Number(event.longitude));
-        } else if (Number(event.id) > 0 && event.address) {
+        } else if (Number(event.id) > 0 && event.locationState === 'pending') {
             pendingEvents.set(Number(event.id), event);
         }
     });
@@ -220,49 +244,97 @@ import {
     let pollCount = 0;
     let polling = false;
 
-    function applyLocationResults(locations) {
+    function applyLocationResults(locations, isRetry = false) {
         if (!Array.isArray(locations)) return;
         let pinsChanged = false;
         locations.forEach(function (result) {
             const eventId = Number(result.id);
-            const event = pendingEvents.get(eventId);
-            if (!event) return;
-            if (result.status === 'found'
-                && addPin(event, Number(result.latitude), Number(result.longitude))
-            ) {
-                document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: 'found'}}));
-                pendingEvents.delete(eventId);
-                pendingCount = Math.max(0, pendingCount - 1);
-                pinsChanged = true;
-            } else if (result.status === 'not_found'
-                || result.status === 'no_address'
-                || result.status === 'failed'
-            ) {
-                document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: 'not_found'}}));
-                pendingEvents.delete(eventId);
-                pendingCount = Math.max(0, pendingCount - 1);
-                notFoundCount++;
+            const event = events.find(item => Number(item.id) === eventId);
+            if (!event || (retryingIds.has(eventId) && !isRetry)) return;
+            if (result.status === 'found') {
+                if (event.locationState !== 'found') {
+                    if (!addPin(event, Number(result.latitude), Number(result.longitude))) return;
+                    pinsChanged = true;
+                }
+                event.locationState = 'found';
+            } else if (['not_found', 'failed', 'pending', 'no_address', 'unqueued'].includes(result.status)) {
+                event.locationState = result.status === 'no_address' ? 'needs_address'
+                    : (result.status === 'unqueued' ? 'pending' : result.status);
+            } else {
+                return;
             }
+            if (event.locationState === 'pending') pendingEvents.set(eventId, event);
+            else pendingEvents.delete(eventId);
+            if (requestedRetryIds.has(eventId) && event.locationState !== 'pending') {
+                requestedRetryIds.delete(eventId);
+                if (retryFeedback) retryFeedback.textContent = event.locationState === 'found'
+                    ? 'Location found and added to the map.'
+                    : (event.locationState === 'not_found'
+                        ? 'No matching location was found. Check the address details before trying again.'
+                        : 'The location lookup could not be completed. Review its status below.');
+            }
+            document.dispatchEvent(new CustomEvent('map-location-updated', {detail: {id: eventId, state: event.locationState, locationNote: result.locationNote || ''}}));
         });
+        updateFeedback();
         if (pinsChanged) fitMapToPins();
     }
 
-    async function requestLocationBatch(url) {
+    async function requestLocationBatch(url, ids = Array.from(pendingEvents.keys()), retry = false) {
         const response = await fetch(url, {
             method: 'POST',
             credentials: 'same-origin',
             headers: {'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8'},
             body: new URLSearchParams({
                 csrf_token: csrfToken,
-                engagement_ids: Array.from(pendingEvents.keys()).join(',')
+                engagement_ids: ids.join(','),
+                retry: retry ? '1' : '0'
             })
         });
-        if (!response.ok && response.status !== 202) {
-            throw new Error('Location lookup failed.');
+        let result;
+        try {
+            result = await response.json();
+        } catch (error) {
+            throw new Error(response.status === 400 || response.status === 401 || response.status === 403
+                ? 'Your session or request token has expired. Reload the page and try again.'
+                : 'The location service returned an unexpected response. Reload the page and try again.');
         }
-        const result = await response.json();
-        applyLocationResults(result.locations);
+        if (!response.ok && response.status !== 202) {
+            throw new Error(result.message || 'Location lookup failed.');
+        }
+        applyLocationResults(result.locations, retry);
     }
+
+    function schedulePoll(delay) {
+        window.clearTimeout(pollTimer);
+        if (pendingEvents.size > 0 && pollCount < maximumPolls) {
+            pollTimer = window.setTimeout(pollPendingLocations, delay);
+        }
+    }
+
+    document.querySelectorAll('[data-retry-location]').forEach(function (button) {
+        button.addEventListener('click', async function () {
+            const id = Number(button.dataset.retryLocation);
+            if (retryingIds.has(id) || !enqueueUrl || !csrfToken) return;
+            retryingIds.add(id);
+            requestedRetryIds.add(id);
+            button.disabled = true;
+            button.textContent = 'Retrying lookup';
+            if (retryFeedback) retryFeedback.textContent = 'Requesting another location lookup…';
+            try {
+                await requestLocationBatch(enqueueUrl, [id], true);
+                pollCount = 0;
+                if (retryFeedback && pendingEvents.has(id)) retryFeedback.textContent = 'Lookup queued. The location status and map will update here when it finishes.';
+                schedulePoll(pollInterval);
+            } catch (error) {
+                requestedRetryIds.delete(id);
+                if (retryFeedback) retryFeedback.textContent = error.message || 'The lookup could not be retried. Try again.';
+            } finally {
+                retryingIds.delete(id);
+                button.disabled = false;
+                button.textContent = 'Retry lookup';
+            }
+        });
+    });
 
     function nextPollDelay() {
         const exponentialDelay = Math.min(
@@ -276,7 +348,7 @@ import {
     async function pollPendingLocations() {
         if (polling || pendingEvents.size === 0 || pollCount >= maximumPolls) return;
         if (document.visibilityState === 'hidden') {
-            window.setTimeout(pollPendingLocations, nextPollDelay());
+            schedulePoll(nextPollDelay());
             return;
         }
         polling = true;
@@ -289,7 +361,7 @@ import {
         polling = false;
         updateFeedback();
         if (pendingEvents.size > 0 && pollCount < maximumPolls) {
-            window.setTimeout(pollPendingLocations, nextPollDelay());
+            schedulePoll(nextPollDelay());
         }
     }
 
@@ -304,7 +376,7 @@ import {
         polling = false;
         updateFeedback();
         if (pendingEvents.size > 0) {
-            window.setTimeout(pollPendingLocations, pollInterval);
+            schedulePoll(pollInterval);
         }
     }
 

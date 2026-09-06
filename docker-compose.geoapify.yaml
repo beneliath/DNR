@@ -1,0 +1,17 @@
+# Optional worldwide geocoding. The API key is available only to the worker.
+services:
+  web:
+    environment:
+      DNR_GEOCODER_PROVIDER: geoapify
+  geocoder:
+    environment:
+      DNR_GEOCODER_PROVIDER: geoapify
+      DNR_GEOCODER_BASE_URL: https://api.geoapify.com/v1/geocode/search
+      DNR_GEOCODER_ALLOWED_HOSTS: api.geoapify.com
+      DNR_GEOAPIFY_API_KEY_FILE: /run/secrets/dnr_geoapify_api_key
+    secrets:
+      - dnr_geoapify_api_key
+
+secrets:
+  dnr_geoapify_api_key:
+    file: ${DNR_GEOAPIFY_API_KEY_FILE:-./secrets/geoapify_api_key}

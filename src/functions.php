@@ -151,8 +151,9 @@ function sendApplicationSecurityHeaders() {
 
     $nonce = contentSecurityPolicyNonce();
     $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
-    $style_source = $page === 'map.php' ? "'self' 'unsafe-inline'" : "'self'";
-    $style_attribute_source = $page === 'map.php' ? "'unsafe-inline'" : "'none'";
+    $map_page = in_array($page, ['map.php', 'map_pin.php'], true);
+    $style_source = $map_page ? "'self' 'unsafe-inline'" : "'self'";
+    $style_attribute_source = $map_page ? "'unsafe-inline'" : "'none'";
     $map_tile_source = deploymentConfig()->tileCspSource();
     header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: blob: {$map_tile_source}; font-src 'self'; connect-src 'self' {$map_tile_source}; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     header('X-Content-Type-Options: nosniff');
@@ -983,6 +984,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'edit_task.php',
         'inbound_mail.php',
         'index.php',
+        'map_pin.php',
         'restore_chron_entries.php',
         'restore_entity_chron_entries.php',
         'restore_presentations.php',

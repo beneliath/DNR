@@ -100,6 +100,21 @@ command -v docker >/dev/null 2>&1 || {
 
 printf 'DNR build provenance: %.7s at %s\n' "$DNR_BUILD_COMMIT" "$DNR_BUILD_TIMESTAMP"
 cd "$project_directory"
+# A provisioned key opts this host into worldwide lookups on every deployment.
+# The secret stays in its file; only the worker receives the Compose mount.
+geocoder_provider=${DNR_GEOCODER_PROVIDER:-auto}
+geoapify_key_file=${DNR_GEOAPIFY_API_KEY_FILE:-$project_directory/secrets/geoapify_api_key}
+case "$geocoder_provider" in
+    auto)
+        if [ -s "$geoapify_key_file" ]; then geocoder_provider=geoapify; fi
+        ;;
+    geoapify|nominatim) ;;
+    *) echo 'DNR_GEOCODER_PROVIDER must be geoapify, nominatim, or auto.' >&2; exit 1 ;;
+esac
+if [ "$geocoder_provider" = geoapify ]; then
+    [ -s "$geoapify_key_file" ] || { echo 'A nonempty Geoapify key file is required.' >&2; exit 1; }
+    set -- -f docker-compose.geoapify.yaml "$@"
+fi
 case "$mode" in
     development|dev)
         exec docker compose \

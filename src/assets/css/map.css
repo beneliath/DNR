@@ -553,7 +553,7 @@ html body .map-list-filters button:hover { background: var(--surface-hover) !imp
 html body .map-list-filters button[aria-pressed='true'] { color: var(--primary-button-fg) !important; background: var(--primary) !important; border-color: var(--primary) !important; }
 html body .map-list-filters button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .map-list-filters span { margin-left: 8px; font-variant-numeric: tabular-nums; }
-.map-location-rows { margin: 0; padding: 0; list-style: none; max-height: 540px; overflow-y: auto; }
+.map-location-rows { margin: 0; padding: 0; list-style: none; }
 .map-location-rows li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px 0; border-top: 1px solid var(--border); }
 .map-location-rows li[hidden] { display: none; }
 .map-location-rows li > div { display: grid; gap: 7px; min-width: 0; }
@@ -562,6 +562,20 @@ html body .map-list-filters button:focus-visible { outline: 2px solid var(--prim
 .map-location-rows span { color: var(--text-muted); overflow-wrap: anywhere; }
 .map-location-rows strong { font-size: .85rem; }
 .map-pagination { display: flex; gap: 12px; margin-top: 16px; }
+.map-empty-state { padding: 36px 24px; text-align: center; background: var(--surface); }
+.map-empty-state h3 { margin: 0 0 12px; }
+.map-empty-state p { margin: 0 auto 20px; max-width: 640px; color: var(--text-muted); }
+.map-list-help { color: var(--text-muted); margin: 0 0 20px; }
+.map-location-help { max-width: 320px; font-size: .85rem; }
+.map-location-help:empty, #map-retry-feedback:empty { display: none; }
+.map-page [hidden] { display: none !important; }
+.map-pin-form { margin-top: 24px; padding: 24px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.map-pin-coordinates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; max-width: 680px; }
+.map-pin-coordinates label { display: block; margin-bottom: 8px; }
+.map-pin-confirm { display: flex; align-items: center; gap: 10px; margin: 20px 0 12px; }
+.map-pin-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
+#pin-editor-map .maplibregl-marker { background: transparent !important; border: 0 !important; box-shadow: none !important; padding: 0 !important; margin: 0 !important; min-height: 0 !important; min-width: 0 !important; }
+@media (max-width: 600px) { .map-pin-coordinates { grid-template-columns: 1fr; } }
 @media (max-width: 700px) {
  .map-list-heading, .map-location-rows li { align-items: flex-start; flex-direction: column; }
  .map-location-rows li > div:last-child { text-align: left; }

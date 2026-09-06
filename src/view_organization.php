@@ -145,7 +145,7 @@ $contact_stmt->close();
         <div><span>Next engagement</span><?php if ($next_organization_event): ?><strong><a href="view_engagement.php?id=<?php echo (int) $next_organization_event['id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-events'); ?>"><?php echo htmlspecialchars($next_organization_event['event_title'] ?: 'Upcoming engagement'); ?></a></strong><?php echo htmlspecialchars(engagementViewDateRange($next_organization_event['event_start_date'], $next_organization_event['event_end_date'])); ?><?php else: ?><strong>No upcoming engagement</strong><?php endif; ?></div>
         <div><span>Follow-up</span><strong><a href="#organization-tasks">Open tasks</a></strong><?php if ($record_can_add_note): ?><a href="#add-note">Record a conversation</a><?php else: ?><a href="#chron-log">Read activity</a><?php endif; ?></div>
     </div>
-    <details class="record-form-section"><summary>Profile, addresses, and notes</summary>
+    <details class="record-form-section" open><summary>Profile, addresses, and notes</summary>
     <div class="organization-overview-grid">
         <div class="organization-details">
             <div class="detail-row">

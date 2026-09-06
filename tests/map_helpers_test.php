@@ -23,6 +23,62 @@ expectMapHelper(
     $address === '123 Main Street, Suite 4, Dallas, TX 75201, USA',
     'event address fields should produce a geocoder-ready address.'
 );
+expectMapHelper(engagementMapAddress(['event_country' => 'US']) === '', 'a default country is not an event address.');
+$inverness = 'Calvary Chapel Inverness, 960 S. US Highway 41, Inverness, FL 34450, US';
+expectMapHelper(engagementMapGeocodeQueries($inverness) === [
+    $inverness,
+    '960 S. US Highway 41, Inverness, FL 34450, US',
+    '960 S. US 41, Inverness, FL 34450, US',
+], 'fallback searches must preserve street number, south direction, city, region, and postcode.');
+expectMapHelper(engagementMapGeocodeQueries($address) === [$address], 'do not discard suite details or repeat an identical lookup.');
+$cityOnly = ['lat' => '28.8358176', 'lon' => '-82.3303715', 'place_rank' => 16,
+    'address' => ['village' => 'Inverness', 'postcode' => '34450']];
+$exactHouse = ['lat' => '28.8364987', 'lon' => '-82.3404196', 'place_rank' => 30,
+    'address' => ['house_number' => '960', 'postcode' => '34450']];
+expectMapHelper(parseEngagementMapGeocoderResponse(json_encode([$cityOnly]), $inverness) === null,
+    'a city center must not become a numbered street-address pin.');
+expectMapHelper(parseEngagementMapGeocoderResponse(json_encode([$cityOnly, $exactHouse]), $inverness)
+    === ['latitude' => 28.8364987, 'longitude' => -82.3404196],
+    'skip broad results and accept a precise matching house in the requested postcode.');
+$wrongHouse = $exactHouse;
+$wrongHouse['address']['house_number'] = '961';
+expectMapHelper(parseEngagementMapGeocoderResponse(json_encode([$wrongHouse]), $inverness) === null,
+    'a different house number is not a match.');
+$wrongHouse['address'] = ['house_number' => '960', 'postcode' => '34451'];
+expectMapHelper(parseEngagementMapGeocoderResponse(json_encode([$wrongHouse]), $inverness) === null,
+    'a different postcode is not a match.');
+$geoapify = ['results' => [['lat' => 48.8566, 'lon' => 2.3522, 'housenumber' => '11',
+    'country_code' => 'fr', 'formatted' => '11 Avenue de la Bourdonnais, Paris, France',
+    'result_type' => 'building', 'rank' => ['confidence' => 0.99, 'match_type' => 'full_match']]]];
+$internationalAddress = '11 Avenue de la Bourdonnais, 75007 Paris, FR';
+$international = parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress);
+expectMapHelper($international !== null && $international['provider'] === 'geoapify' && $international['confidence'] === 0.99,
+    'a high confidence international building match should preserve quality and provider.');
+$german = ['query' => ['parsed' => ['housenumber' => '77', 'postcode' => '10117']],
+    'results' => [['lat' => 52.5163, 'lon' => 13.3805, 'housenumber' => '77', 'country_code' => 'de',
+    'result_type' => 'building', 'rank' => ['confidence' => 1]]]];
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($german), 'Unter den Linden 77, 10117 Berlin, DE') !== null,
+    'international postcodes before city names must not be mistaken for house numbers.');
+$german['results'][0]['housenumber'] = '78';
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($german), 'Unter den Linden 77, 10117 Berlin, DE') === null,
+    'international matches must still preserve the requested house number.');
+$geoapify['results'][0]['rank']['confidence'] = 0.7;
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
+    'uncertain matches must not silently become venue pins.');
+$geoapify['results'][0]['rank']['confidence'] = 1;
+$geoapify['results'][0]['result_type'] = 'city';
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
+    'a high confidence city match is still not a venue.');
+$geoapify['results'][0]['result_type'] = 'building';
+$geoapify['results'][0]['country_code'] = 'us';
+expectMapHelper(parseGeoapifyGeocoderResponse(json_encode($geoapify), $internationalAddress) === null,
+    'a candidate in a different explicitly requested country must be rejected.');
+try {
+    parseGeoapifyGeocoderResponse('{"message":"unauthorized"}', $internationalAddress);
+    expectMapHelper(false, 'provider errors must not be cached as an address miss.');
+} catch (RuntimeException $exception) {
+    expectMapHelper(true, 'provider errors must not be cached as an address miss.');
+}
 expectMapHelper(
     normalizeEngagementMapIds('7,8,7', 3) === [7, 8],
     'batched map IDs should be positive, ordered, and de-duplicated.'

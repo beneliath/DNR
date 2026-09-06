@@ -18,7 +18,7 @@ $nav_groups = [
         'view_standard_task.php',
         'edit_standard_task.php',
     ],
-    'map' => ['map.php'],
+    'map' => ['map.php', 'map_pin.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],

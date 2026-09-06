@@ -110,6 +110,8 @@ foreach (glob(__DIR__ . '/../src/*.php') ?: [] as $page_path) {
         $role_preview_ui_pages[] = basename($page_path);
     }
 }
+expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'editor') === 'map_pin.php?id=4', 'Editors can return to the pin editor after role preview.');
+expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'reviewer') === 'dashboard.php', 'Reviewers must not be returned to the pin editor.');
 foreach ($role_preview_ui_pages as $page) {
     expectTrue(
         safeRolePreviewReturnUrl($page, 'admin') === $page,
