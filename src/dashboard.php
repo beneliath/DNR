@@ -303,13 +303,13 @@ $task_status_labels = followUpTaskStatuses();
             <?php endif; ?>
         </section>
     </div>
-    <details class="dashboard-pipeline-disclosure">
+    <details class="dashboard-pipeline-disclosure" open>
         <summary>Booking pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
     <div class="dashboard-inquiry-grid">
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">
             <div><h2 id="booking-inquiries-heading">Inquiry Next Actions</h2><p>Active opportunities owned by you or waiting for an owner.</p></div>
-            <a href="inquiries.php?view=active&amp;owner=mine_or_unassigned" class="button-secondary dashboard-panel-button">Open Booking Pipeline</a>
+            <a href="inquiries.php?view=active&amp;owner=mine_or_unassigned" class="button-secondary dashboard-panel-button">Open My Booking Pipeline</a>
         </div>
         <?php if ($booking_inquiries === []): ?>
             <div class="dashboard-empty-state"><strong>No inquiry actions waiting</strong><span>The active pipeline is clear for you.</span></div>

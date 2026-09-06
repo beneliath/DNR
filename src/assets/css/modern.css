@@ -1092,6 +1092,21 @@ html body .container > .profile-form {
   white-space: pre;
 }
 
+.app-footer .footer-ascii-trigger {
+  display: inline-block !important;
+  margin: 0;
+  padding: 0 !important;
+  border: 0;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: inherit !important;
+  font: inherit !important;
+  text-align: left;
+  vertical-align: top;
+  white-space: pre;
+  cursor: pointer;
+}
+
 .page-heading {
   display: flex !important;
   align-items: flex-start !important;
@@ -3000,7 +3015,7 @@ html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
 
 /* Buttons */
 html body :is(
-  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option),
+  button:not(.nav-link):not(.sidebar-logout-button):not(.mobile-menu-button):not(.mobile-theme-button):not(.sidebar-backdrop):not(.action-icon-button):not(.sort-button):not(.filter-button):not(.address-region-trigger):not(.address-region-option):not(.footer-ascii-trigger),
   input[type="button"], input[type="submit"], input[type="reset"], [role="button"],
   .button-save, .button-view, .button-edit, .button-archive, .button-delete,
   .button-cancel, .button-add, .register-button, .add-org-button,
@@ -4383,6 +4398,36 @@ html body .app-popover button {
 .confirmation-dialog::backdrop {
   background: var(--dialog-backdrop);
   backdrop-filter: blur(2px);
+}
+
+.confirmation-dialog.footer-lion-dialog {
+  width: max-content;
+  max-width: calc(100vw - 32px) !important;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  padding: 20px !important;
+}
+
+.footer-lion-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-lion-art {
+  flex-shrink: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  /* Fit 77 columns and 30 lines while reserving room for padding and Close. */
+  font-size: min(0.875rem, calc((100vw - 76px) / 47), calc((100vh - 136px) / 33));
+  font-size: min(0.875rem, calc((100vw - 76px) / 47), calc((100dvh - 136px) / 33));
+  line-height: 1.1;
+  white-space: pre;
+}
+
+.footer-lion-dialog .confirmation-dialog-actions {
+  flex-shrink: 0;
 }
 
 .confirmation-dialog h2 {

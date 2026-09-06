@@ -14,18 +14,53 @@ $footer_repository_url = githubRepositoryUrl();
 ?>
 <footer class="app-footer">
     <p>&copy; <?php echo date("Y"); ?> <a class="footer-link" href="<?php echo htmlspecialchars('https://github.com/' . rawurlencode($footer_repository_owner), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_owner, ENT_QUOTES, 'UTF-8'); ?></a> <span aria-hidden="true">·</span> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_name, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($footer_version, ENT_QUOTES, 'UTF-8'); ?></a><?php if ($footer_push !== null): ?> <span aria-hidden="true">·</span> <time datetime="<?php echo htmlspecialchars($footer_push['pushed_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($footer_push_label, ENT_QUOTES, 'UTF-8'); ?></time> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url . '/commit/' . $footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" title="View commit <?php echo htmlspecialchars($footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?> on GitHub">(<?php echo htmlspecialchars($footer_short_commit, ENT_QUOTES, 'UTF-8'); ?>)</a><?php endif; ?></p>
-    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד</span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time</p>
-    <pre class="footer-ascii-cat" aria-label="ASCII art cat">
-     ("`-''-/").___..--''"`-.
+    <p class="footer-moed-definition"><a class="footer-link" href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/" target="_blank" rel="noopener noreferrer"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד</span>&nbsp;&nbsp;=&nbsp;&nbsp;appointment, appointed time</a></p>
+    <pre class="footer-ascii-cat" aria-label="ASCII art cat"><button type="button" id="open-footer-lion" class="footer-ascii-trigger" aria-label="Open lion ASCII art" aria-haspopup="dialog" aria-controls="footer-lion-dialog">     ("`-''-/").___..--''"`-.
      `6_ 6  )   `-.  (     ).`-.__.`)
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'
-  (il),-''  (li),'  ((!.-'
+  (il),-''  (li),'  ((!.-'</button>
 
-Genesis 49:9,10 ... Revelation 5:5
-         Do you see Him?
+<a class="footer-link" href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49: 9, 10</a> ... <a class="footer-link" href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>
+         <a class="footer-link" href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer">Do you see Him?</a>
     </pre>
 </footer>
+
+<dialog id="footer-lion-dialog" class="confirmation-dialog footer-lion-dialog" aria-label="Lion ASCII art">
+    <pre class="footer-lion-art">                              ,aodObo,
+Genesis 49:9, 10           ,AMMMMP~~~~
+                        ,MMMMMMMMA.
+        |             ,M;'     `YV/'
+        |            AM' ,OMA,
+        |           AM|   `~VMM,.      .,ama,____,amma,..
+        |           MML      )MMMD   .AMMMMMMMMMMMMMMMMMMD.
+        |           VMMM    .AMMY'  ,AMMMMMMMMMMMMMMMMMMMMD
+        |           `VMM, AMMMV'  ,AMMMMMMMMMMMMMMMMMMMMMMM,                ,
+        |            VMMMmMMV'  ,AMY~~''  'MMMMMMMMMMMM' '~~             ,aMM
+        |            `YMMMM'   AMM'        `VMMMMMMMMP'_              A,aMMMM
+        |             AMMM'    VMMA. YVmmmMMMMMMMMMMML MmmmY          MMMMMMM
+        |            ,AMMA   _,HMMMMmdMMMMMMMMMMMMMMMML`VMV'         ,MMMMMMM
+        |            AMMMA _'MMMMMMMMMMMMMMMMMMMMMMMMMMA `'          MMMMMMMM
+        |           ,AMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMa      ,,,   `MMMMMMM
+        |           AMMMMMMMMM'~`YMMMMMMMMMMMMMMMMMMMMMMA    ,AMMV    MMMMMMM
+        |           VMV MMMMMV   `YMMMMMMMMMMMMMMMMMMMMMY   `VMMY'  adMMMMMMM
+        |           `V  MMMM'      `YMMMMMMMV.~~~~~~~~~,aado,`V''   MMMMMMMMM
+        |              aMMMMmv       `YMMMMMMMm,    ,/AMMMMMA,      YMMMMMMMM
+        |              VMMMMM,,v       YMMMMMMMMMo oMMMMMMMMM'    a, YMMMMMMM
+        |              `YMMMMMY'       `YMMMMMMMY' `YMMMMMMMY     MMmMMMMMMMM
+        |               AMMMMM  ,        ~~~~~,aooooa,~~~~~~      MMMMMMMMMMM
+        |                 YMMMb,d'         dMMMMMMMMMMMMMD,   a,, AMMMMMMMMMM
+        ▼                  YMMMMM, A       YMMMMMMMMMMMMMY   ,MMMMMMMMMMMMMMM
+                          AMMMMMMMMM        `~~~~'  `~~~~'   AMMMMMMMMMMMMMMM
+ Revelation 5:5           `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM
+                        ,AMMMMMMMMMMMMMMA,       ,aAMMMMMMMMMMMMMMMMMMMMMMMMM
+                      ,AMMMMMMMMMMMMMMMMMMA,    AMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+ Do you see Him?    ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
+                   AMMMMMMMMMMMMMMMMMMMMMMMMAaAMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</pre>
+    <div class="confirmation-dialog-actions">
+        <button type="button" id="close-footer-lion" class="button-secondary" autofocus>Close</button>
+    </div>
+</dialog>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title" aria-describedby="logout-confirmation-message">
     <h2 id="logout-confirmation-title">Log Out?</h2>
