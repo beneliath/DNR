@@ -159,17 +159,6 @@
         });
         if (firstSummary) firstSummary.focus();
         doc.querySelectorAll('.success:not([role])').forEach(function (message) { message.setAttribute('role', 'status'); });
-
-        doc.querySelectorAll('.action-icon-button').forEach(function (control) {
-            if (control.querySelector('.action-icon-label') || control.textContent.trim()) return;
-            const label = control.dataset.tooltip || control.getAttribute('aria-label') || control.title;
-            if (!label) return;
-            const text = doc.createElement('span');
-            text.className = 'action-icon-label';
-            text.setAttribute('aria-hidden', 'true');
-            text.textContent = label;
-            control.appendChild(text);
-        });
     }
 
     if (typeof module === 'object' && module.exports) module.exports = { connectFieldError, fieldLabel, initialize };

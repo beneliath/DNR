@@ -37,3 +37,62 @@
         height: auto;
     }
 }
+
+@media (max-width: 760px) {
+    .calendar-subscription .calendar-url-row,
+    .calendar-subscription .calendar-card-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .calendar-subscription .calendar-url-row > *,
+    .calendar-subscription .calendar-purge-form,
+    .calendar-subscription .calendar-purge-form > button {
+        width: 100%;
+        min-width: 0;
+        margin-inline: 0;
+    }
+
+    .calendar-subscription .calendar-subscription-table,
+    .calendar-subscription .calendar-subscription-table tbody,
+    .calendar-subscription .calendar-subscription-table tr {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .calendar-subscription .calendar-subscription-table :is(colgroup, thead) {
+        display: none;
+    }
+
+    .calendar-subscription .calendar-subscription-table tr {
+        margin-bottom: 14px;
+        padding: 4px 14px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+    }
+
+    .calendar-subscription .calendar-subscription-table td {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 5px;
+        padding: 10px 0;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+
+    .calendar-subscription .calendar-subscription-table td::before {
+        color: var(--text-muted);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    .calendar-subscription-table td:nth-child(1)::before { content: "Label"; }
+    .calendar-subscription-table td:nth-child(2)::before { content: "Created"; }
+    .calendar-subscription-table td:nth-child(3)::before { content: "Last Used"; }
+    .calendar-subscription-table td:nth-child(4)::before { content: "Status"; }
+    .calendar-subscription-table td:nth-child(5)::before { content: "Action"; }
+}

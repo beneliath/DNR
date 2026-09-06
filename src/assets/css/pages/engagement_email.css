@@ -332,6 +332,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
 
 .outbound-message-summary dl > div {
     display: grid;
+    min-width: 0;
     gap: 4px;
 }
 
@@ -345,6 +346,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
 
 .outbound-message-summary dd {
     margin: 0;
+    overflow-wrap: anywhere;
 }
 
 .outbound-delivery-list {
@@ -372,6 +374,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
 }
 
 .outbound-delivery-card a,
+.outbound-delivery-card strong,
 .outbound-delivery-card small {
     overflow-wrap: anywhere;
 }
@@ -444,6 +447,7 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
 .engagement-email-history-recipients {
     color: var(--text-muted);
     font-size: var(--font-size-small);
+    overflow-wrap: anywhere;
 }
 
 .engagement-email-history-recipients {
@@ -463,8 +467,9 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     }
 
     .recipient-list,
-    .outbound-message-summary dl {
-        grid-template-columns: 1fr;
+    .outbound-message-summary dl,
+    .engagement-email-history-item {
+        grid-template-columns: minmax(0, 1fr);
     }
 
     .outbound-delivery-state {

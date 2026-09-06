@@ -282,7 +282,12 @@
         .empty-state {
             text-align: center !important;
         }
-        @media (max-width: 700px) {
+        @media (max-width: 760px) {
+            .audit-filter-form .audit-search-field {
+                width: 100%;
+                min-width: 0;
+                flex: 0 1 auto;
+            }
             .page-heading,
             .audit-controls {
                 align-items: flex-start;

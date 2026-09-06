@@ -40,6 +40,21 @@
             border-radius: 11px;
             font-size: 1.15rem;
         }
+
+        @media (max-width: 480px) {
+            .engagements-page .summary-card {
+                min-height: 0;
+                gap: 14px;
+                padding: 14px 16px;
+            }
+            .engagements-page .summary-card > span:last-child {
+                min-height: 0;
+            }
+            .engagements-page .summary-icon {
+                width: 40px;
+                height: 40px;
+            }
+        }
         .engagements-body .app-footer {
             width: min(100%, var(--app-content-max));
             max-width: var(--app-content-max);

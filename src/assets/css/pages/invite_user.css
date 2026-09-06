@@ -207,4 +207,13 @@ html body .invite-user-page > .invite-user-layout > .invite-user-form,
     .invite-user-form-heading > div {
         min-width: 0;
     }
+
+    .invite-user-form-heading > div > div,
+    .invite-user-guidance > div:first-child > div {
+        min-width: 0;
+    }
+
+    .invite-user-form-heading small {
+        white-space: normal;
+    }
 }

@@ -70,3 +70,16 @@ html body.profile-page .profile-container > .profile-form {
     padding: 12px 16px;
     border-radius: var(--radius-sm);
 }
+
+@media (max-width: 480px) {
+    .profile-page .profile-actions,
+    .profile-page .profile-save-actions {
+        align-items: stretch !important;
+        flex-direction: column;
+    }
+
+    .profile-page .profile-actions > *,
+    .profile-page .profile-save-actions > * {
+        width: 100%;
+    }
+}

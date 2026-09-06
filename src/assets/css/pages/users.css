@@ -48,7 +48,7 @@
 
 .page-heading {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            grid-template-columns: minmax(0, 1fr);
             align-items: center;
             column-gap: 16px;
         }
@@ -168,6 +168,7 @@
         }
         .user-identity-copy {
             min-width: 0;
+            overflow-wrap: anywhere;
         }
         .user-account-heading {
             display: flex;
@@ -211,7 +212,24 @@
                 gap: 16px;
             }
             .user-actions {
-                align-self: flex-end;
+                align-self: stretch;
+                justify-content: flex-start;
+            }
+            .user-actions > form {
+                min-width: 0;
+                max-width: 100%;
+            }
+            .user-actions .action-button:not(.action-icon-button) {
+                white-space: normal;
+            }
+            .user-actions form[data-invitation-form] {
+                flex-wrap: wrap;
+            }
+            .user-actions .invitation-submit-status-compact {
+                min-width: 0;
+                flex-basis: 100%;
+                margin-left: 0;
+                white-space: normal;
             }
         }
         @media (max-width: 1180px) {

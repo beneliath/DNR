@@ -189,9 +189,9 @@ import {
         content.appendChild(address);
 
         const link = document.createElement('a');
-        link.className = 'map-popup-link';
+        link.className = 'button-secondary map-popup-link';
         link.href = event.viewUrl;
-        link.textContent = 'View engagement';
+        link.textContent = 'View Engagement';
         content.appendChild(link);
         return content;
     }
@@ -206,7 +206,15 @@ import {
         markerElement.setAttribute('aria-label', event.title + ' — ' + event.statusLabel + ' · ' + event.lifecycleLabel);
         markerElement.title = event.title + ' — ' + event.statusLabel + ' · ' + event.lifecycleLabel;
         markerElement.innerHTML = '<span class="engagement-map-pin-shape"><span class="engagement-map-pin-center"></span></span>';
-        const popup = new Popup({offset: 30, maxWidth: '320px'}).setDOMContent(popupContent(event));
+        const popupElement = popupContent(event);
+        const popup = new Popup({offset: 30, maxWidth: '320px', focusAfterOpen: false}).setDOMContent(popupElement);
+        popup.on('open', function () {
+            // Pointer-opened popups keep the button in its normal state. Move
+            // keyboard focus into the popup only when the pin has visible focus.
+            if (markerElement.matches(':focus-visible')) {
+                popupElement.querySelector('.map-popup-link').focus();
+            }
+        });
         const marker = new Marker({element: markerElement, anchor: 'bottom'})
             .setLngLat(coordinates)
             .setPopup(popup)

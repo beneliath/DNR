@@ -1106,12 +1106,13 @@ html body #engagement-workspace .engagement-tab-list button:focus-visible {
 
 }
 
-@media (max-width: 440px) {
+@media (max-width: 480px) {
     .engagement-card-heading {
         align-items: flex-start;
         flex-direction: column;
     }
 
+    .engagement-overview-facts,
     .engagement-card .financial-amount-grid {
         grid-template-columns: minmax(0, 1fr);
     }
