@@ -69,6 +69,7 @@
         feedback.textContent = 'Selected ' + option.textContent;
         changeButton.focus();
     }
+    select.dataset.errorTarget = search.id;
     select.hidden = true;
     showSelection();
     searchPanel.hidden = Boolean(select.value && select.value !== 'general');

@@ -83,7 +83,7 @@ test('searching, clearing and failed searches preserve a task relation until exp
         focus() { this.focused = true; }
     }
     const ids = ['task-subject-search', 'task-subject', 'task-subject-status', 'task-selected-record', 'task-selected-record-label', 'task-record-search-panel', 'task-subject-results', 'task-change-record', 'task-clear-record'];
-    const elements = Object.fromEntries(ids.map((id) => [id, new Element()]));
+    const elements = Object.fromEntries(ids.map((id) => [id, Object.assign(new Element(), { id })]));
     const select = elements['task-subject'];
     select.children = [{ value: 'general', textContent: 'General work' }, { value: 'engagement:42', textContent: 'Original event' }];
     select.value = 'engagement:42';
@@ -114,4 +114,12 @@ test('searching, clearing and failed searches preserve a task relation until exp
     assert.equal(select.value, 'engagement:99');
     elements['task-clear-record'].listeners.click();
     assert.equal(select.value, 'general');
+    select.value = '';
+    elements['task-record-search-panel'].hidden = true;
+    let invalidPrevented = false;
+    select.listeners.invalid({ preventDefault() { invalidPrevented = true; } });
+    assert.equal(invalidPrevented, true);
+    assert.equal(elements['task-record-search-panel'].hidden, false);
+    assert.equal(elements['task-subject-search'].focused, true);
+    assert.equal(elements[select.dataset.errorTarget], elements['task-subject-search']);
 });
