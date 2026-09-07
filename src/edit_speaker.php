@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/speaker_helpers.php';
+require_once __DIR__ . '/short_link_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 $conn = applicationDatabaseConnection();
 startSecureSession();
@@ -23,13 +24,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     foreach (array_merge(['name', 'email', 'phone', 'bio', 'version'], array_keys(SPEAKER_URL_FIELDS)) as $field) {
         $form_values[$field] = \Dnr\Http\RequestInput::string($_POST, $field);
     }
+    $input = $_POST;
+    if (isset($_POST['custom_links_present'])) $input['custom_links'] = $_POST['custom_links'] ?? [];
+    if (array_key_exists('custom_links', $input)) {
+        $form_values['custom_links'] = is_array($input['custom_links']) ? $input['custom_links'] : [];
+    }
     try {
         $photo = speakerPhotoFromUpload(is_array($_FILES['speaker_photo'] ?? null) ? $_FILES['speaker_photo'] : []);
-        $saved_id = saveSpeaker($conn, $_POST, $speaker_id, \Dnr\Http\RequestInput::positiveInt($_POST, 'version'), $photo, isset($_POST['remove_speaker_photo']));
+        $conn->begin_transaction();
+        $saved_id = saveSpeaker($conn, $input, $speaker_id, \Dnr\Http\RequestInput::positiveInt($_POST, 'version'), $photo, isset($_POST['remove_speaker_photo']));
+        if (!empty($input['custom_links'])) ensureSpeakerCustomShortLinks($conn, $saved_id);
+        $conn->commit();
         $_SESSION['speaker_message'] = $speaker_id === null ? 'Speaker added.' : 'Speaker updated.';
         header('Location: ' . recordUrlWithQuery('view_speaker.php?id=' . $saved_id, ['return_to' => $return_to]));
         exit();
     } catch (Throwable $exception) {
+        $conn->rollback();
         $error_message = $exception instanceof InvalidArgumentException
             ? $exception->getMessage() : 'Unable to save the speaker. Please try again.';
         if (!$exception instanceof InvalidArgumentException) {
@@ -47,10 +57,12 @@ $page_title = $speaker_id === null ? 'Add Speaker' : 'Edit Speaker';
 $cancel_url = $return_to;
 $photo_url = $speaker_id === null ? 'data:image/svg+xml;base64,' . base64_encode(speakerInitialsSvg($form_values))
     : 'speaker_photo.php?id=' . $speaker_id . '&size=full&v=' . (int) ($speaker['version'] ?? 0);
+$custom_links = array_values(array_filter($form_values['custom_links'] ?? [], 'is_array'));
+if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle($page_title), ['styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css', 'assets/css/pages/speakers.min.css'], 'scripts' => [['path' => 'assets/js/contact-photo.min.js', 'defer' => true]]]); ?>
+<?php renderPageHead(applicationPageTitle($page_title), ['styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css', 'assets/css/pages/speakers.min.css'], 'scripts' => [['path' => 'assets/js/contact-photo.min.js', 'defer' => true], ['path' => 'assets/js/speaker-links.min.js', 'defer' => true]]]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
@@ -90,6 +102,22 @@ $photo_url = $speaker_id === null ? 'data:image/svg+xml;base64,' . base64_encode
                     </div>
                 <?php endforeach; ?>
             </div>
+        </section>
+        <section class="form-section speaker-custom-links" aria-labelledby="speaker-custom-links-heading" data-speaker-custom-links data-max-links="<?php echo SPEAKER_CUSTOM_LINK_MAX_COUNT; ?>">
+            <h2 id="speaker-custom-links-heading">Custom Links</h2>
+            <p class="field-help" id="speaker-custom-links-help">Add named links for resources, videos, social profiles, or other pages. Saving creates a unique link and QR code for each associated presentation.</p>
+            <p class="field-help">Published links keep their names, destinations, and statistics when you edit or remove a profile link. Manage a published destination from its Statistics page under Presentations.</p>
+            <input type="hidden" name="custom_links_present" value="1">
+            <div data-custom-link-rows>
+                <?php foreach ($custom_links as $custom_index => $custom_link): ?>
+                    <?php include __DIR__ . '/templates/speaker_custom_link_row.php'; ?>
+                <?php endforeach; ?>
+            </div>
+            <template data-custom-link-template>
+                <?php $custom_index = '__INDEX__'; $custom_link = []; include __DIR__ . '/templates/speaker_custom_link_row.php'; ?>
+            </template>
+            <button type="button" class="button-secondary" data-add-custom-link>Add Custom Link</button>
+            <p class="field-help" role="status" aria-live="polite" data-custom-link-status></p>
         </section>
         <div class="form-group contact-photo-field">
             <div class="contact-photo-preview"><img src="<?php echo htmlspecialchars($photo_url, ENT_QUOTES, 'UTF-8'); ?>" alt="Current speaker photo" data-contact-photo-preview></div>

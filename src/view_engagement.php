@@ -747,6 +747,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <button type="button" class="action-button export-button" data-copy-format="text">Copy Text</button>
             <button type="button" class="action-button export-button" data-copy-format="markdown">Copy MD</button>
             <a href="download_engagement_pdf.php?id=<?php echo $engagement_id; ?>" class="action-button export-button">Download PDF</a>
+            <a href="presentation_qr_pdf_view.php?engagement_id=<?php echo $engagement_id; ?>" class="action-button export-button" target="_blank" rel="noopener">View QR Codes PDF</a>
         </div>
         <span id="copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
 

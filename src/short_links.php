@@ -84,7 +84,7 @@ $activeLink = $isSingleLink ? ($links[0] ?? null) : null;
 $clearFiltersUrl = 'short_links.php' . ($isSingleLink ? '?id=' . $filters['id'] : '');
 $context = '';
 if ($activeLink !== null) {
-    $reportTitle = SHORT_LINK_TYPES[$activeLink['link_type']] . ' QR Code Statistics';
+    $reportTitle = shortLinkLabel($activeLink) . ' QR Code Statistics';
     $context = ($activeLink['topic_title'] ?: 'Untitled presentation') . ' · ' . $activeLink['speaker_name'];
 } elseif (isset($filters['presentation_id'])) {
     $stmt = $conn->prepare('SELECT topic_title FROM presentations WHERE id = ?');
@@ -215,7 +215,7 @@ if ($activeLink !== null) {
     <div class="short-link-cards">
     <?php foreach ($links as $link): ?>
         <?php if ($link['link_type'] === 'notes' && !$link['has_notes']) continue; ?>
-        <?php $id = (int) $link['id']; $label = SHORT_LINK_TYPES[$link['link_type']]; $qr = 'short_link_qr.php?id=' . $id;
+        <?php $id = (int) $link['id']; $label = shortLinkLabel($link); $qr = 'short_link_qr.php?id=' . $id;
         $url = (string) ($link['qr_url'] ?? ''); ?>
         <article class="short-link-card">
             <div class="short-link-card-heading"><h3><?php echo $h($label); ?></h3><span><?php echo number_format((int) $link['visits']); ?> visits</span></div>

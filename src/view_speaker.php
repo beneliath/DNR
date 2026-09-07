@@ -67,6 +67,12 @@ unset($_SESSION['speaker_message']);
                     <?php endif; ?>
                 </div>
             <?php endforeach; ?>
+            <?php foreach ($speaker['custom_links'] as $custom_link): ?>
+                <div class="detail-row">
+                    <strong><?php echo htmlspecialchars($custom_link['label'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                    <a href="<?php echo htmlspecialchars($custom_link['url'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($custom_link['url'], ENT_QUOTES, 'UTF-8'); ?></a>
+                </div>
+            <?php endforeach; ?>
         </div>
     </section>
     <div class="action-buttons">
