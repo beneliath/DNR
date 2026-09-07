@@ -1216,3 +1216,7 @@ including archived records, to that speaker. It then replaces the old free-text 
 with a required foreign key. Apply it through the normal backed-up migration workflow together
 with the application changes. The application database account receives SELECT, INSERT, and
 UPDATE rights for speakers only; the offline exact-restore account retains its recovery access.
+
+### Presentation QR codes
+
+See [Presentation QR Codes](docs/qr-code-system.md) for generated speaker links, public notes downloads, statistics, and country-detection configuration.

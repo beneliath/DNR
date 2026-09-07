@@ -92,7 +92,7 @@ class ReleaseWorkflow(unittest.TestCase):
             self.assertEqual((root/'VERSION').read_text(),'1.11.6\n')
 
 class DeploymentBackupGate(unittest.TestCase):
-    def exercise(self, backup_fails, seed_fails=False):
+    def exercise(self, backup_fails, seed_fails=False, qr_fails=False):
         import datetime, hashlib, os
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'.git').mkdir()
@@ -134,7 +134,12 @@ class DeploymentBackupGate(unittest.TestCase):
                     if args[3:5]==['ps','-aq']: return args[-1]
                     if args[3]=='stop': self.assertGreaterEqual(clock[0],1480.0)
                     if args[3:5]==['run','--rm']:
-                        if not seed_fails: raise ValueError('synthetic migration failure')
+                        if not seed_fails and not qr_fails: raise ValueError('synthetic migration failure')
+                        if args[-1] == '/opt/dnr/bin/backfill_short_link_qr.php':
+                            self.assertIn(['backup'], events)
+                            self.assertTrue(any(event[-1:] == ['migrator'] for event in events))
+                            self.assertIn('DNR_PUBLIC_BASE_URL=https://example.test', args)
+                            raise ValueError('synthetic QR backfill failure')
                         if 'apply' in args:
                             self.assertIn(['backup'], events)
                             self.assertTrue(any(event[-1:] == ['migrator'] for event in events))
@@ -161,11 +166,12 @@ class DeploymentBackupGate(unittest.TestCase):
                 else:
                     self.assertGreater(merge[0],backup_index)
                     self.assertTrue(record['backup']['restore_verified'])
-                    self.assertEqual(record['phase'],'seeding-speaker' if seed_fails else 'migrating')
+                    self.assertEqual(record['phase'],'seeding-speaker' if seed_fails else ('preparing-qr-images' if qr_fails else 'migrating'))
                 self.assertIn('stop',events[-1], 'Failure must leave writers paused')
             finally: os.chdir(cwd)
     def test_backup_failure_prevents_checkout_and_database_upgrade(self): self.exercise(True)
     def test_migration_failure_retains_verified_recovery_record(self): self.exercise(False)
     def test_speaker_import_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, True)
+    def test_qr_backfill_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, qr_fails=True)
 
 if __name__ == '__main__': unittest.main()

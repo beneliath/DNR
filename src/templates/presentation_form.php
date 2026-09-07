@@ -96,7 +96,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         <div class="presentation-assets">
                             <div class="presentation-assets-heading">
                                 <h3>Presentation Files &amp; QR Codes</h3>
-                                <p>PDF slide decks may be up to 100 MB. QR codes may be pasted or selected as JPEG, PNG, or WebP images.</p>
+                                <p>PDF slide decks may be up to 100 MB. Speaker notes may also be up to 100 MB; keep each save under 120 MB total. QR codes are generated when you save.</p>
                             </div>
                             <div class="presentation-slide-deck-card">
                                 <div class="presentation-asset-label">PDF Slide Deck</div>
@@ -129,81 +129,21 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                        data-presentation-file-name>
                                 <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>
                             </div>
-                            <div class="presentation-qr-grid">
-                                <?php
-                                $presentation_qr_fields = [
-                                    'speaker_notes_qr' => [
-                                        'label' => 'Speaker Notes QR Code',
-                                        'description' => 'Links attendees to the speaker notes download.',
-                                        'query_type' => 'notes_qr',
-                                        'has_key' => 'has_speaker_notes_qr',
-                                    ],
-                                    'speaker_website_qr' => [
-                                        'label' => 'Speaker Website QR Code',
-                                        'description' => 'Links attendees to the speaker website.',
-                                        'query_type' => 'website_qr',
-                                        'has_key' => 'has_speaker_website_qr',
-                                    ],
-                                    'speaker_donation_qr' => [
-                                        'label' => 'Speaker Donation QR Code',
-                                        'description' => 'Links attendees to the speaker donation page.',
-                                        'query_type' => 'donation_qr',
-                                        'has_key' => 'has_speaker_donation_qr',
-                                    ],
-                                ];
-                                ?>
-                                <?php foreach ($presentation_qr_fields as $qr_field => $qr_configuration): ?>
-                                    <?php
-                                    $has_qr = !empty($presentation[$qr_configuration['has_key']]) && $is_saved_presentation;
-                                    $qr_url = $has_qr
-                                        ? 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=' . $qr_configuration['query_type']
-                                        : '';
-                                    $qr_input_id = $qr_field . '_' . $presentation_dom_id;
-                                    $qr_status_id = $qr_input_id . '_status';
-                                    ?>
-                                    <div class="presentation-qr-card" data-qr-uploader>
-                                        <div class="presentation-asset-label"><?php echo htmlspecialchars($qr_configuration['label'], ENT_QUOTES, 'UTF-8'); ?></div>
-                                        <p><?php echo htmlspecialchars($qr_configuration['description'], ENT_QUOTES, 'UTF-8'); ?></p>
-                                        <button type="button"
-                                                class="presentation-qr-preview"
-                                                data-qr-preview-button
-                                                data-copy-qr-url="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                aria-label="Copy <?php echo htmlspecialchars($qr_configuration['label'], ENT_QUOTES, 'UTF-8'); ?>"
-                                                <?php echo $has_qr ? '' : 'hidden'; ?>>
-                                            <img data-qr-preview
-                                                 <?php if ($has_qr): ?>src="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"<?php endif; ?>
-                                                 alt="<?php echo htmlspecialchars($qr_configuration['label'], ENT_QUOTES, 'UTF-8'); ?>">
-                                            <span>Click QR code to copy</span>
-                                        </button>
-                                        <div class="presentation-qr-actions">
-                                            <button type="button"
-                                                    class="presentation-paste-button"
-                                                    data-paste-qr
-                                                    aria-describedby="<?php echo htmlspecialchars($qr_status_id, ENT_QUOTES, 'UTF-8'); ?>">Paste QR code</button>
-                                            <label class="presentation-file-picker" for="<?php echo htmlspecialchars($qr_input_id, ENT_QUOTES, 'UTF-8'); ?>">
-                                                <?php echo $has_qr ? 'Replace image' : 'Choose image'; ?>
-                                            </label>
-                                        </div>
-                                        <input type="file"
-                                               class="presentation-native-file"
-                                               name="presentations[<?php echo $presentation_dom_id; ?>][<?php echo htmlspecialchars($qr_field, ENT_QUOTES, 'UTF-8'); ?>]"
-                                               id="<?php echo htmlspecialchars($qr_input_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                               accept="image/jpeg,image/png,image/webp"
-                                               data-qr-file>
-                                        <?php if ($has_qr): ?>
-                                            <label class="presentation-asset-remove">
-                                                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo htmlspecialchars($qr_field, ENT_QUOTES, 'UTF-8'); ?>]" value="1">
-                                                Remove current QR code
-                                            </label>
-                                        <?php endif; ?>
-                                        <span class="presentation-qr-status"
-                                              id="<?php echo htmlspecialchars($qr_status_id, ENT_QUOTES, 'UTF-8'); ?>"
-                                              data-copy-status
-                                              role="status"
-                                              aria-live="polite"></span>
-                                    </div>
-                                <?php endforeach; ?>
+                            <div class="presentation-slide-deck-card">
+                                <label class="presentation-asset-label" for="speaker_notes_<?php echo $presentation_dom_id; ?>">PDF Speaker Notes</label>
+                                <p>Anyone with the notes QR code can download this PDF without signing in.</p>
+                                <?php if (!empty($presentation['has_speaker_notes']) && $is_saved_presentation): ?>
+                                    <a href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes">Download current notes</a>
+                                    <label class="presentation-remove-asset"><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_speaker_notes]" value="1"> Remove current notes</label>
+                                <?php endif; ?>
+                                <input type="file" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_notes]" id="speaker_notes_<?php echo $presentation_dom_id; ?>" accept="application/pdf,.pdf" data-presentation-file-name>
+                                <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>
                             </div>
+                            <?php if ($is_saved_presentation): ?>
+                                <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/presentation_short_links.php'; ?>
+                            <?php else: ?>
+                                <p>Save the presentation to download its unique QR codes.</p>
+                            <?php endif; ?>
                         </div>
                         <?php if ($is_saved_presentation): ?>
                             <div class="remove-btn-container presentation-management-actions">

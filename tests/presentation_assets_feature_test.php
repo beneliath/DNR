@@ -48,16 +48,9 @@ expectPresentationAssetFeature(
 );
 
 expectPresentationAssetFeature(
-    str_contains($template, '[slide_deck]')
-        && str_contains($template, "'speaker_notes_qr' =>")
-        && str_contains($template, "'speaker_website_qr' =>")
-        && str_contains($template, "'speaker_donation_qr' =>")
-        && str_contains($template, 'data-paste-qr')
-        && !str_contains($template, 'data-qr-paste-zone')
-        && str_contains($template, 'Download <?php echo htmlspecialchars($slide_filename')
-        && preg_match('/<a[^>]*presentation_asset\.php[^>]*target="_blank"/', $template) !== 1
-        && str_contains($template, 'data-copy-qr-url'),
-    'the shared presentation form should expose PDF and direct QR paste controls without a separate paste zone.'
+    str_contains($template, '[slide_deck]') && str_contains($template, '[speaker_notes]')
+        && str_contains($template, 'presentation_short_links.php') && !str_contains($template, 'data-paste-qr'),
+    'the form accepts notes PDFs and uses generated QR codes.'
 );
 
 expectPresentationAssetFeature(
@@ -72,12 +65,8 @@ expectPresentationAssetFeature(
 
 expectPresentationAssetFeature(
     str_contains($view_engagement, 'Download PDF slide deck')
-        && !str_contains($view_engagement, 'target="_blank"')
-        && str_contains($view_engagement, 'Speaker Notes')
-        && str_contains($view_engagement, 'Speaker Website')
-        && str_contains($view_engagement, 'Speaker Donations')
-        && str_contains($view_engagement, 'data-copy-qr-url'),
-    'engagement details should show the PDF in a new tab and all available QR codes.'
+        && str_contains($view_engagement, 'presentation_short_links.php'),
+    'engagement details show slides and generated links.'
 );
 
 expectPresentationAssetFeature(

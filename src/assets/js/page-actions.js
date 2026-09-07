@@ -980,18 +980,21 @@
             });
             if (tabs.length === 0 || panels.some(function (panel) { return !panel; })) return;
 
-            const activate = function (index, focus) {
+            const activate = function (index, focus, remember) {
                 tabs.forEach(function (tab, tabIndex) {
                     const selected = tabIndex === index;
                     tab.setAttribute('aria-selected', String(selected));
                     tab.tabIndex = selected ? 0 : -1;
                     panels[tabIndex].hidden = !selected;
                 });
+                // Keep this history entry on the chosen tab without creating a
+                // Back-button step for every tab click or moving the scroll position.
+                if (remember) window.history.replaceState(window.history.state, '', '#' + panels[index].id);
                 if (focus) tabs[index].focus();
             };
 
             tabs.forEach(function (tab, index) {
-                tab.addEventListener('click', function () { activate(index, false); });
+                tab.addEventListener('click', function () { activate(index, false, true); });
                 tab.addEventListener('keydown', function (event) {
                     let next = null;
                     if (event.key === 'ArrowRight') next = (index + 1) % tabs.length;
@@ -1000,7 +1003,7 @@
                     if (event.key === 'End') next = tabs.length - 1;
                     if (next === null) return;
                     event.preventDefault();
-                    activate(next, true);
+                    activate(next, true, true);
                 });
             });
 
@@ -1041,7 +1044,7 @@
             const addNote = group.querySelector('.inquiry-add-note');
             if (openNoteButton && addNote) {
                 openNoteButton.addEventListener('click', function () {
-                    activate(0, false);
+                    activate(0, false, true);
                     addNote.open = true;
                     const textarea = addNote.querySelector('textarea');
                     if (textarea) textarea.focus();

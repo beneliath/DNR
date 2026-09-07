@@ -64,13 +64,15 @@ $photo_url = $speaker_id === null ? 'data:image/svg+xml;base64,' . base64_encode
         <input type="hidden" name="version" value="<?php echo htmlspecialchars((string) $form_values['version'], ENT_QUOTES, 'UTF-8'); ?>">
         <section class="form-section">
             <h2>Speaker Details</h2>
-            <div class="form-field"><label for="speaker_name" class="required">Name</label><input type="text" id="speaker_name" name="name" maxlength="255" autocomplete="name" required value="<?php echo htmlspecialchars($form_values['name'], ENT_QUOTES, 'UTF-8'); ?>"></div>
-            <div class="form-field"><label for="speaker_email" class="required">Email Address</label><input type="email" id="speaker_email" name="email" maxlength="254" autocomplete="email" required value="<?php echo htmlspecialchars($form_values['email'], ENT_QUOTES, 'UTF-8'); ?>"></div>
-            <div class="form-group">
-                <label for="speaker_phone">Phone Number</label>
-                <div class="phone-input-group" data-phone-input-group>
-                    <?php echo phoneCountryPicker('phone_country_code', $phone_country_code); ?>
-                    <input type="tel" id="speaker_phone" name="phone" maxlength="64" required value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+            <div class="speaker-details-row">
+                <div class="form-field"><label for="speaker_name" class="required">Name</label><input type="text" id="speaker_name" name="name" maxlength="255" autocomplete="name" required value="<?php echo htmlspecialchars($form_values['name'], ENT_QUOTES, 'UTF-8'); ?>"></div>
+                <div class="form-field"><label for="speaker_email" class="required">Email Address</label><input type="email" id="speaker_email" name="email" maxlength="254" autocomplete="email" required value="<?php echo htmlspecialchars($form_values['email'], ENT_QUOTES, 'UTF-8'); ?>"></div>
+                <div class="form-group">
+                    <label for="speaker_phone">Phone Number</label>
+                    <div class="phone-input-group" data-phone-input-group>
+                        <?php echo phoneCountryPicker('phone_country_code', $phone_country_code); ?>
+                        <input type="tel" id="speaker_phone" name="phone" maxlength="64" required value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" placeholder="(111) 111-1111" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                    </div>
                 </div>
             </div>
             <div class="form-group">

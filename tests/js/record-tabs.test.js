@@ -64,10 +64,17 @@ function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initializ
     };
     const window = {
         location: { hash },
+        history: {
+            state: { retained: true }, replacements: [],
+            replaceState(state, title, hash) {
+                this.replacements.push({ state, hash });
+                window.location.hash = hash;
+            }
+        },
         addEventListener(name, callback) { (windowEvents[name] ||= []).push(callback); }
     };
     const fixture = {
-        panels, tabs, nodes, openNote, addNote, noteText,
+        panels, tabs, nodes, openNote, addNote, noteText, window,
         get focused() { return focused; },
         initialize() {
             vm.runInNewContext(source, { document, window });
@@ -182,4 +189,21 @@ test("inquiry tabs still switch and the add-note button returns to Activity", fu
     assertSelected(fixture, 0);
     assert.equal(fixture.addNote.open, true);
     assert.equal(fixture.focused, fixture.noteText);
+});
+
+test("selected tab survives leaving for statistics and returning to the history URL", function () {
+    const fixture = recordTabsFixture();
+    fixture.tabs[2].events.click();
+    assert.equal(fixture.window.location.hash, '#engagement-tasks');
+    assert.deepEqual(fixture.window.history.replacements, [
+        { state: { retained: true }, hash: '#engagement-tasks' }
+    ]);
+    const returned = recordTabsFixture({ hash: fixture.window.location.hash });
+    assertSelected(returned, 2);
+    assert.equal(fixture.panels[2].scrolls, 0);
+    fixture.key(2, 'Home');
+    assert.equal(fixture.window.location.hash, '#chron-log');
+    // Initial deep links retain their nested target rather than replacing it.
+    const nested = recordTabsFixture({ hash: '#follow-up-form' });
+    assert.equal(nested.window.history.replacements.length, 0);
 });

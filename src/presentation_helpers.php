@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/presentation_asset_helpers.php';
 require_once __DIR__ . '/speaker_helpers.php';
+require_once __DIR__ . '/short_link_helpers.php';
 
 function presentationScalarValue(array $presentation, $key)
 {
@@ -427,6 +428,7 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             )) {
                 $presentations_changed = true;
             }
+            if (ensurePresentationShortLinks($conn, $presentation_id)) $presentations_changed = true;
             continue;
         }
 
@@ -462,6 +464,7 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             $presentation_id,
             is_array($presentation['asset_changes'] ?? null) ? $presentation['asset_changes'] : []
         );
+        ensurePresentationShortLinks($conn, $presentation_id);
         $presentations_changed = true;
     }
 

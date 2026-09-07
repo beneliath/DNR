@@ -20,7 +20,7 @@ $nav_groups = [
     ],
     'map' => ['map.php', 'map_pin.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
-    'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php'],
+    'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php', 'short_links.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
@@ -35,6 +35,11 @@ foreach ($nav_groups as $group => $pages) {
         $active_nav = $group;
         break;
     }
+}
+if ($shell_current_page === 'short_links.php'
+    && (isset($_GET['id']) || isset($_GET['presentation_id']) || isset($_GET['engagement_id']))
+) {
+    $active_nav = 'engagements';
 }
 if ($shell_current_page === 'restore_entity_chron_entries.php'
     && is_scalar($_GET['entity_type'] ?? null)

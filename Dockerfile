@@ -24,7 +24,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
         libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli \
-    && a2enmod headers proxy proxy_http deflate expires \
+    && a2enmod headers proxy proxy_http deflate expires rewrite \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && apt-mark auto '.*' >/dev/null \
@@ -69,6 +69,7 @@ COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
 COPY --chmod=0644 scripts/prune_audit_log.php /opt/dnr/bin/prune_audit_log.php
 COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php
 COPY --chmod=0644 scripts/initial_speaker_seed.php /opt/dnr/bin/initial_speaker_seed.php
+COPY --chmod=0644 scripts/backfill_short_link_qr.php /opt/dnr/bin/backfill_short_link_qr.php
 COPY --chmod=0755 docker/mattermost-secret-entrypoint.sh /usr/local/bin/dnr-mattermost-secret-entrypoint
 COPY migrations/ /opt/dnr/migrations/
 RUN install -d -m 0755 /opt/dnr/config

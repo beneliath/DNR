@@ -16,6 +16,17 @@ if (!$presentation_id || $presentation_id < 1 || $definition === null) {
     exit;
 }
 
+if ($query_type === 'notes') {
+    require_once __DIR__ . '/short_link_helpers.php';
+    $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ?');
+    $stmt->bind_param('i', $presentation_id);
+    $stmt->execute();
+    $speaker_id = $stmt->get_result()->fetch_assoc()['speaker_id'] ?? null;
+    if ($speaker_id === null) { http_response_code(404); exit; }
+    deliverPresentationNotes($conn, (int) $presentation_id, (int) $speaker_id);
+    exit;
+}
+
 // Keep metadata and all chunks in one consistent snapshot during replacement.
 $conn->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
 $conn->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);

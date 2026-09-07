@@ -334,7 +334,7 @@
             '<div class="presentation-assets">',
             '  <div class="presentation-assets-heading">',
             '    <h3>Presentation Files &amp; QR Codes</h3>',
-            '    <p>PDF slide decks may be up to 100 MB. QR codes may be pasted or selected as JPEG, PNG, or WebP images.</p>',
+            '    <p>PDF slide decks may be up to 100 MB. Speaker notes may also be up to 100 MB; keep each save under 120 MB total. QR codes are generated when you save.</p>',
             '  </div>',
             '  <div class="presentation-slide-deck-card">',
             '    <div class="presentation-asset-label">PDF Slide Deck</div>',
@@ -342,11 +342,13 @@
             '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][slide_deck]" id="slide_deck_' + id + '" accept="application/pdf,.pdf" data-presentation-file-name>',
             '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
             '  </div>',
-            '  <div class="presentation-qr-grid">',
-                 qrUploadMarkup(id, "speaker_notes_qr", "Speaker Notes QR Code", "Links attendees to the speaker notes download."),
-                 qrUploadMarkup(id, "speaker_website_qr", "Speaker Website QR Code", "Links attendees to the speaker website."),
-                 qrUploadMarkup(id, "speaker_donation_qr", "Speaker Donation QR Code", "Links attendees to the speaker donation page."),
+            '  <div class="presentation-slide-deck-card">',
+            '    <label class="presentation-asset-label" for="speaker_notes_' + id + '">PDF Speaker Notes</label>',
+            '    <p>Anyone with the notes QR code can download this PDF without signing in.</p>',
+            '    <input type="file" name="presentations[' + id + '][speaker_notes]" id="speaker_notes_' + id + '" accept="application/pdf,.pdf" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
             '  </div>',
+            '  <p>Save the presentation to download its unique QR codes.</p>',
             '</div>'
         ].join("");
     }
