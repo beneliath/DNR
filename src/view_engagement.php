@@ -524,7 +524,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <?php endif; ?>
                 <div class="presentation-view-assets">
                     <?php if (!empty($presentation['has_slide_deck'])): ?>
-                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slides">Download PDF slide deck</a>
+                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slides">View PDF slide deck</a>
                     <?php endif; ?>
                     <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/templates/presentation_short_links.php'; ?>
                 </div>

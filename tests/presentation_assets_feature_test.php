@@ -56,16 +56,16 @@ expectPresentationAssetFeature(
 expectPresentationAssetFeature(
     str_contains($asset_route, 'startSecureSession();')
         && str_contains($asset_route, 'requireLogin();')
-        && str_contains($asset_route, 'sendPresentationPdfDownloadHeaders($filename)')
-        && str_contains($asset_helper, "'Content-Disposition: attachment;")
-        && str_contains($asset_helper, 'Content-Security-Policy: sandbox')
+        && str_contains($asset_route, 'sendPresentationPdfViewHeaders($filename)')
+        && str_contains($asset_helper, "'Content-Disposition: inline;")
+        && str_contains($asset_helper, "Content-Type: application/pdf")
         && str_contains($asset_route, "'X-Content-Type-Options: nosniff'")
         && str_contains($asset_route, 'presentationAssetDefinitionForQueryType'),
-    'the asset route should be authenticated and allowlisted, with PDFs delivered as downloads.'
+    'the asset route should be authenticated and allowlisted, with PDFs displayed in the browser.'
 );
 
 expectPresentationAssetFeature(
-    str_contains($view_engagement, 'Download PDF slide deck')
+    str_contains($view_engagement, 'View PDF slide deck')
         && str_contains($view_engagement, 'presentation_short_links.php'),
     'engagement details show slides and generated links.'
 );

@@ -42,15 +42,16 @@ try{
  $notesCount=fn()=>(int)$conn->query('SELECT COALESCE(SUM(visits),0) AS n FROM short_link_stats WHERE link_id='.(int)$notes['id'])->fetch_assoc()['n'];
  $notesQrBefore=$conn->query('SELECT * FROM short_link_qr_images WHERE link_id='.(int)$notes['id'])->fetch_assoc();
  $r=$request('surls/'.$notes['code']);
- expectLinkHttp($r['status']===302&&preg_match('/^Location:\s*(\/surls\/[a-f0-9]{16}\/speaker-notes\.pdf)\s*$/mi',$r['headers'],$downloadMatch)===1,'Scanning the existing notes QR redirects directly to a named PDF download');
+ expectLinkHttp($r['status']===302&&preg_match('/^Location:\s*(\/surls\/[a-f0-9]{16}\/speaker-notes\.pdf)\s*$/mi',$r['headers'],$downloadMatch)===1,'Scanning the existing notes QR redirects directly to a named PDF');
  $notesDownload=ltrim($downloadMatch[1],'/');
  expectLinkHttp($notesDownload==='surls/'.$notes['code'].'/speaker-notes.pdf','Download destination preserves the original bearer code');
  expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&str_contains(strtolower($r['headers']),'no-store'),'Notes redirect needs no session and is not cached');
  expectLinkHttp(!str_contains(strtolower($r['headers']),'content-disposition:')&&$notesCount()===0,'QR navigation itself does not download or count a visit');
  expectLinkHttp($request('surls/'.$notes['code'],null,'',[],true)['status']===302&&$notesCount()===0,'HEAD follows the same redirect without counting');
  $r=$request($notesDownload);
- expectLinkHttp($r['status']===200&&$r['body']===$pdf&&str_contains($r['headers'],'attachment; filename="http-notes.pdf"'),'Public notes download serves exact PDF safely');
- expectLinkHttp(str_contains(strtolower($r['headers']),'content-type: application/octet-stream')&&str_contains($r['headers'],"sandbox; default-src 'none'; frame-ancestors 'none'")&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Named PDF selects the file downloader and retains sandbox and nosniff protections');
+ expectLinkHttp($r['status']===200&&$r['body']===$pdf&&str_contains($r['headers'],'inline; filename="http-notes.pdf"'),'Public notes view serves the exact PDF inline');
+ expectLinkHttp(str_contains(strtolower($r['headers']),'content-type: application/pdf')&&str_contains($r['headers'],"default-src 'none'; frame-ancestors 'none'")&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Named PDF supports browser viewing with resource restrictions and nosniff');
+ expectLinkHttp(preg_match('/^Content-Security-Policy:[^\r\n]*\bsandbox\b/mi',$r['headers'])===0,'The PDF response does not sandbox the browser viewer');
  expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&$notesCount()===1,'Only the completed PDF delivery counts, without setting a cookie');
  $head=$request($notesDownload,null,'',[],true);
  expectLinkHttp($head['status']===200&&$head['body']===''&&str_contains($head['headers'],'Content-Length: '.strlen($pdf))&&$notesCount()===1,'PDF HEAD reports the file size without downloading or counting');
@@ -67,7 +68,7 @@ try{
   $scan=$request('surls/'.$notes['code'],null,'',['User-Agent: '.$agent]);
   expectLinkHttp($scan['status']===302&&str_contains($scan['headers'],'Location: /'.$notesDownload),'Same redirect for '.$agentName);
   $download=$request($notesDownload,null,'',['User-Agent: '.$agent]);
-  expectLinkHttp($download['status']===200&&$download['body']===$pdf&&str_contains($download['headers'],'attachment; filename="http-notes.pdf"')&&str_contains(strtolower($download['headers']),'content-type: application/octet-stream'),'Same direct download response for '.$agentName);
+  expectLinkHttp($download['status']===200&&$download['body']===$pdf&&str_contains($download['headers'],'inline; filename="http-notes.pdf"')&&str_contains(strtolower($download['headers']),'content-type: application/pdf'),'Same inline PDF response for '.$agentName);
  }
  expectLinkHttp($notesCount()===4,'Each redirect plus download counts once');
  $r=$request($notesDownload.'?code=ffffffffffffffff&download=0',null,'',['Sec-Purpose: prefetch']);
@@ -85,7 +86,7 @@ try{
    $buttonDownload=$request($assetPath,null,$cookie,['User-Agent: '.$mobileAgents['iPhone Firefox']]);
    $expectedPdf=$assetType==='notes'&&isset($uploadedPdf)?$uploadedPdf:$pdf;
    $expectedFilename=$assetType==='notes'&&isset($uploadedPdf)?'uploaded-notes.pdf':'http-notes.pdf';
-   expectLinkHttp($buttonDownload['status']===200&&$buttonDownload['body']===$expectedPdf&&str_contains(strtolower($buttonDownload['headers']),'content-type: application/octet-stream')&&str_contains($buttonDownload['headers'],'attachment; filename="'.$expectedFilename.'"')&&str_contains($buttonDownload['headers'],"sandbox; default-src 'none'; frame-ancestors 'none'"),'Download buttons and the public QR use the same protected file response: '.$role.' '.$assetType);
+   expectLinkHttp($buttonDownload['status']===200&&$buttonDownload['body']===$expectedPdf&&str_contains(strtolower($buttonDownload['headers']),'content-type: application/pdf')&&str_contains($buttonDownload['headers'],'inline; filename="'.$expectedFilename.'"')&&str_contains($buttonDownload['headers'],"default-src 'none'; frame-ancestors 'none'"),'View buttons and the public QR use the same inline PDF response: '.$role.' '.$assetType);
   }
   $r=$request('short_links.php?presentation_id='.$pid,null,$cookie);
   expectLinkHttp($r['status']===200&&str_contains($r['body'],'HTTP QR Fixture'),'All MOED roles can view statistics: '.$role);

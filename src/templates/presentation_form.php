@@ -133,7 +133,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 <label class="presentation-asset-label" for="speaker_notes_<?php echo $presentation_dom_id; ?>">PDF Speaker Notes</label>
                                 <p>Anyone with the notes QR code can download this PDF without signing in.</p>
                                 <?php if (!empty($presentation['has_speaker_notes']) && $is_saved_presentation): ?>
-                                    <a href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes">Download current notes</a>
+                                    <a href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes">View current notes</a>
                                     <label class="presentation-remove-asset"><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_speaker_notes]" value="1"> Remove current notes</label>
                                 <?php endif; ?>
                                 <input type="file" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_notes]" id="speaker_notes_<?php echo $presentation_dom_id; ?>" accept="application/pdf,.pdf" data-presentation-file-name>
