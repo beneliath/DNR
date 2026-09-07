@@ -10,8 +10,10 @@ To set up the project on your local machine, follow these steps:
 
 1. **Clone the repository**
 
-   ```
-   git clone https://github.com/beneliath/DNR.git
+   Copy the clone URL from the repository's **Code** menu and replace `<repository-url>` below:
+
+   ```sh
+   git clone '<repository-url>' DNR
    ```
 
 2. **Navigate to the project directory**
@@ -483,13 +485,14 @@ the existing proxy network. DNR trusts those exact hops. Do not replace the exac
 address with the entire shared proxy subnet; another container on that subnet could otherwise
 present forged Cloudflare client headers.
 
-Prepare the network and merge the tracked proxy overlay with the existing Traefik stack:
+Prepare the network and merge the tracked proxy overlay with the existing Traefik stack.
+Replace `/path/to/traefik` with that stack's directory:
 
 ```sh
 docker network create --driver bridge --subnet 172.29.255.0/29 moed_edge
 install -m 600 deploy/traefik-moed-edge.yaml \
-  /home/dgilmore/traefik/docker-compose.moed-edge.yml
-cd /home/dgilmore/traefik
+  /path/to/traefik/docker-compose.moed-edge.yml
+cd /path/to/traefik
 docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml config --quiet
 docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml up -d traefik cloudflared
 ```
@@ -704,16 +707,16 @@ Follow [Release and recovery workflow](docs/release-workflow.md) to prepare the 
 ./scripts/deploy_s1.sh "$(git rev-parse HEAD)"
 ```
 
-The command defaults to `dgilmore@192.168.1.150`, `/home/dgilmore/moed`, the complete
-`production-ubuntu-proton-mattermost` topology, and `https://moed.beneliath.com`.
+The command targets the configured s1 deployment and uses the complete
+`production-ubuntu-proton-mattermost` topology.
 It creates and restore-verifies a fresh encrypted database backup before changing the checkout,
 database image/schema, or application version. This is a standing [deployment directive](.cursor/rules/backup-before-database-upgrade.mdc), including for manual structural/version upgrades.
 
 Configure the private s1 backup password file first (`DNR_S1_BACKUP_PASSWORD_FILE`, default
-`/home/dgilmore/moed/secrets/deployment_backup_password`). Deployment holds a host lock through backup,
+`secrets/deployment_backup_password` under the deployment's project directory). Deployment holds a host lock through backup,
 migration and public readiness; it uses CI-qualified digests with rebuilding disabled and retains
 an explicit recovery record. `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR` and
-`DNR_S1_PUBLIC_BASE_URL` can override the documented host identity when intentionally needed.
+`DNR_S1_PUBLIC_BASE_URL` can override the deployment user, host, project directory, and public URL.
 
 ### Two-factor authentication
 
@@ -1210,8 +1213,7 @@ Speakers cannot be archived or deleted.
 Presentation forms select a saved speaker from a dropdown. Edits to a speaker apply to all
 associated presentations, including their calendar entries and exports.
 
-The `20260907_add_speakers.sql` migration seeds Olivier Melnick
-(`olivier@shalominmessiah.com`, `+1 (949) 400-2892`) and assigns **every existing presentation**,
+The `20260907_add_speakers.sql` migration creates an initial speaker record and assigns **every existing presentation**,
 including archived records, to that speaker. It then replaces the old free-text speaker name
 with a required foreign key. Apply it through the normal backed-up migration workflow together
 with the application changes. The application database account receives SELECT, INSERT, and
