@@ -301,7 +301,7 @@
                 if (display) {
                     display.textContent = input.files && input.files[0]
                         ? input.files[0].name
-                        : "No PDF selected";
+                        : (display.dataset.emptyFileLabel || "No PDF selected");
                 }
                 updateConfirmedAvailability();
             });
@@ -329,25 +329,30 @@
         ].join("");
     }
 
+    function pdfUploadMarkup(id) {
+        var key = "speaker_notes";
+        var inputId = key + "_" + id;
+        return [
+            '  <div class="presentation-notes-card">',
+            '    <div class="presentation-asset-label">PDF Speaker Notes</div>',
+            '    <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>',
+            '    <div class="presentation-pdf-picker-row">',
+            '    <label class="presentation-file-picker" for="' + inputId + '">Choose PDF</label>',
+            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="application/pdf,.pdf" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
+            '    </div>',
+            '  </div>'
+        ].join("");
+    }
+
     function presentationAssetsMarkup(id) {
         return [
             '<div class="presentation-assets">',
             '  <div class="presentation-assets-heading">',
             '    <h3>Presentation Files &amp; QR Codes</h3>',
-            '    <p>PDF slide decks may be up to 100 MB. Speaker notes may also be up to 100 MB; keep each save under 120 MB total. QR codes are generated when you save.</p>',
+            '    <p>PDF Speaker Notes may be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>',
             '  </div>',
-            '  <div class="presentation-slide-deck-card">',
-            '    <div class="presentation-asset-label">PDF Slide Deck</div>',
-            '    <label class="presentation-file-picker" for="slide_deck_' + id + '">Choose PDF</label>',
-            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][slide_deck]" id="slide_deck_' + id + '" accept="application/pdf,.pdf" data-presentation-file-name>',
-            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
-            '  </div>',
-            '  <div class="presentation-slide-deck-card">',
-            '    <label class="presentation-asset-label" for="speaker_notes_' + id + '">PDF Speaker Notes</label>',
-            '    <p>Anyone with the notes QR code can download this PDF without signing in.</p>',
-            '    <input type="file" name="presentations[' + id + '][speaker_notes]" id="speaker_notes_' + id + '" accept="application/pdf,.pdf" data-presentation-file-name>',
-            '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
-            '  </div>',
+            pdfUploadMarkup(id),
             '  <p>Save the presentation to download its unique QR codes.</p>',
             '</div>'
         ].join("");

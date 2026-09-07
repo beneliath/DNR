@@ -138,7 +138,7 @@ expectUserManual(
 );
 
 expectUserManual(
-    str_contains($manual, 'PDF Slide Deck')
+    str_contains($manual, 'PDF Speaker Notes')
         && str_contains($manual, 'PDF up to 100 MB')
         && str_contains($manual, 'Speaker QR Codes')
         && str_contains($manual, 'website, bio, donations, connection, blog, books, custom links, and notes')

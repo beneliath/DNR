@@ -35,7 +35,7 @@ try{
  $pdf="%PDF-1.4\nNotes fixture\nstartxref\n0\n%%EOF\n";
  $asset=['data'=>$pdf,'filename'=>'http-notes.pdf','size'=>strlen($pdf),'sha256'=>hash('sha256',$pdf,true)];
  $conn->begin_transaction();
- applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset],'slide_deck'=>['action'=>'replace','asset'=>$asset]]);
+ applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset]]);
  ensurePresentationShortLinks($conn,$pid);
  $conn->commit();
  $links=fetchPresentationShortLinks($conn,$pid);$notes=array_values(array_filter($links,fn($link)=>$link['link_type']==='notes'))[0];
@@ -84,8 +84,8 @@ try{
    $assetPath='presentation_asset.php?id='.$pid.'&type='.$assetType;
    expectLinkHttp($request($assetPath)['status']===302,'Presentation download button still requires login: '.$assetType);
    $buttonDownload=$request($assetPath,null,$cookie,['User-Agent: '.$mobileAgents['iPhone Firefox']]);
-   $expectedPdf=$assetType==='notes'&&isset($uploadedPdf)?$uploadedPdf:$pdf;
-   $expectedFilename=$assetType==='notes'&&isset($uploadedPdf)?'uploaded-notes.pdf':'http-notes.pdf';
+   $expectedPdf=isset($uploadedPdf)?$uploadedPdf:$pdf;
+   $expectedFilename=isset($uploadedPdf)?'uploaded-notes.pdf':'http-notes.pdf';
    expectLinkHttp($buttonDownload['status']===200&&$buttonDownload['body']===$expectedPdf&&str_contains(strtolower($buttonDownload['headers']),'content-type: application/pdf')&&str_contains($buttonDownload['headers'],'inline; filename="'.$expectedFilename.'"')&&str_contains($buttonDownload['headers'],"default-src 'none'; frame-ancestors 'none'"),'View buttons and the public QR use the same inline PDF response: '.$role.' '.$assetType);
   }
   $r=$request('short_links.php?presentation_id='.$pid,null,$cookie);
@@ -107,6 +107,7 @@ try{
   $viewDoc=new DOMDocument();@$viewDoc->loadHTML($engagementView['body']);$viewXpath=new DOMXPath($viewDoc);
   foreach($links as$generatedLink)expectLinkHttp($viewXpath->query('//div[contains(@class,"presentation-qr-display")]//a[@href="short_links.php?id='.$generatedLink['id'].'"]')->length===1,'Each presentation QR card opens its own statistics: '.$role);
   expectLinkHttp(!str_contains($engagementView['body'],'Presentation Statistics'),'Engagement view has no aggregate Presentation Statistics link');
+  expectLinkHttp($viewXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$pid.'&type=notes" and @target="_blank" and @rel="noopener" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Each uploaded notes file has its own correctly labelled new-tab button: '.$role);
   $preview=$viewXpath->query('//div[contains(@class,"presentation-qr-display")]//img')->item(0);
   expectLinkHttp($preview instanceof DOMElement && $preview->getAttribute('src')==='data:image/png;base64,'.base64_encode($web['qr_png']),'QR preview embeds the stored PNG without a separate image request');
   foreach(['png','svg']as$format){
@@ -139,6 +140,8 @@ try{
    }
    $input=$xpath->query('//input[@type="file" and contains(@name,"[speaker_notes]")]')->item(0);
    expectLinkHttp($input instanceof DOMElement,'Notes upload field present');
+   expectLinkHttp($xpath->query('//div[contains(@class,"presentation-entry")]//input[@type="file"]')->length===1,'Exactly one PDF upload appears per presentation');
+   expectLinkHttp(str_contains($edit['body'],'No replacement selected'),'Saved PDF is distinguished from a pending replacement');
    $path=tempnam(sys_get_temp_dir(),'qr-notes-upload-');
    $uploadedPdf="%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\nxref\n0 2\n0000000000 65535 f \n0000000009 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n52\n%%EOF\n";
    file_put_contents($path,$uploadedPdf);
@@ -151,6 +154,23 @@ try{
   }
   if($role==='reviewer')expectLinkHttp($request('short_links.php',$post,$cookie)['status']===403,'Reviewer cannot mutate even with valid CSRF');
  }
+ // Exercise multiple presentations independently, including cards without notes.
+ $moreIds=[];
+ for($index=2;$index<=4;$index++){
+  $conn->begin_transaction();
+  $conn->query("INSERT INTO presentations (engagement_id,speaker_id,topic_title) VALUES ($event,$speaker,'Presentation $index')");
+  $moreId=(int)$conn->insert_id;$moreIds[]=$moreId;
+  if($index<4)applyPresentationAssetChanges($conn,$event,$moreId,['speaker_notes'=>['action'=>'replace','asset'=>$asset]]);
+  ensurePresentationShortLinks($conn,$moreId);$conn->commit();
+ }
+ $multiView=$request('view_engagement.php?id='.$event,null,$cookie);
+ $multiDoc=new DOMDocument();@$multiDoc->loadHTML($multiView['body']);$multiXpath=new DOMXPath($multiDoc);
+ expectLinkHttp($multiXpath->query('//a[@class="presentation-view-pdf"]')->length===3,'All three presentations with PDFs have view buttons; an empty presentation has none');
+ foreach(array_merge([$pid],array_slice($moreIds,0,2))as$notesId){
+  expectLinkHttp($multiXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$notesId.'&type=notes" and @target="_blank" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Presentation '.$notesId.' opens its own Speaker Notes');
+ }
+ // Remove the added test presentations before the single-resource removal assertions.
+ $conn->query('DELETE FROM presentations WHERE id IN ('.implode(',',$moreIds).')');
  $conn->begin_transaction();
  applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'remove']]);
  ensurePresentationShortLinks($conn,$pid);$conn->commit();

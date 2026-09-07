@@ -190,7 +190,7 @@ $engagement_marker = applicationInboundMarker($engagement_id);
 $presentation_stmt = $conn->prepare(
     "SELECT p.id, p.speaker_id, p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name, p.duration_minutes,
             p.expected_attendance, p.actual_attendance,
-            p.slide_deck_pdf IS NOT NULL AS has_slide_deck, p.slide_deck_filename,
+            EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND n.pdf IS NOT NULL) AS has_speaker_notes,
             p.speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
             p.speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
             p.speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr
@@ -519,8 +519,8 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div>Actual attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                 <?php endif; ?>
                 <div class="presentation-view-assets">
-                    <?php if (!empty($presentation['has_slide_deck'])): ?>
-                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slides">View PDF slide deck</a>
+                    <?php if (!empty($presentation['has_speaker_notes'])): ?>
+                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes" target="_blank" rel="noopener">View PDF Speaker Notes</a>
                     <?php endif; ?>
                     <?php
                     $short_link_presentation_id = (int) $presentation['id'];

@@ -42,6 +42,7 @@
     function render() {
         const view = noticePresentation(notice, (Date.now() - clockOffset) / 1000);
         banner.hidden = !view;
+        banner.dataset.deploymentPhase = view ? notice.phase : '';
         document.body.classList.toggle('deployment-notice-active', Boolean(view));
         if (view) {
             // Announce state changes politely, without reading every countdown tick.

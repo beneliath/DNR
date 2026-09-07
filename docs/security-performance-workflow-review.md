@@ -112,7 +112,7 @@ On a 20,000-row synthetic organizations table with the production table definiti
 
 ### P3 — P2: Align attachment, PHP memory, and backup limits
 
-**Evidence: source-verified limits and size arithmetic.** [Slide decks may be 100 MiB](/Users/dgilmore/DNR/src/presentation_asset_helpers.php:7), uploads [read the whole file](/Users/dgilmore/DNR/src/presentation_asset_helpers.php:199), and [non-range downloads select the whole BLOB](/Users/dgilmore/DNR/src/presentation_asset.php:104). The backup format base64-encodes values, while its [default serialized size ceiling is 256 MiB](/Users/dgilmore/DNR/src/database_backup_helpers.php:11).
+**Evidence: source-verified limits and size arithmetic.** [Speaker Notes may be 100 MiB](/Users/dgilmore/DNR/src/presentation_asset_helpers.php:7), uploads [read the whole file](/Users/dgilmore/DNR/src/presentation_asset_helpers.php:199), and [non-range downloads select the whole BLOB](/Users/dgilmore/DNR/src/presentation_asset.php:104). The backup format base64-encodes values, while its [default serialized size ceiling is 256 MiB](/Users/dgilmore/DNR/src/database_backup_helpers.php:11).
 
 Two legal 100 MiB attachments require approximately **266.7 MiB** of base64 data alone, exceeding the default backup ceiling before other rows and metadata. Thus normal supported uploads can make the built-in backup refuse to export the database. Large simultaneous reads also multiply PHP-worker memory demand; an out-of-memory failure was not reproduced. The backup implementation already streams encrypted output, so the problem is not that the entire backup is buffered.
 

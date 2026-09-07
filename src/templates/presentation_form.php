@@ -96,49 +96,9 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         <div class="presentation-assets">
                             <div class="presentation-assets-heading">
                                 <h3>Presentation Files &amp; QR Codes</h3>
-                                <p>PDF slide decks may be up to 100 MB. Speaker notes may also be up to 100 MB; keep each save under 120 MB total. QR codes are generated when you save.</p>
+                                <p>PDF Speaker Notes may be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>
                             </div>
-                            <div class="presentation-slide-deck-card">
-                                <div class="presentation-asset-label">PDF Slide Deck</div>
-                                <?php if (!empty($presentation['has_slide_deck']) && $is_saved_presentation): ?>
-                                    <?php
-                                    $slide_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slides';
-                                    $slide_filename = (string) ($presentation['slide_deck_filename'] ?? 'slide-deck.pdf');
-                                    ?>
-                                    <div class="presentation-existing-asset">
-                                        <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>" class="presentation-pdf-link">
-                                            Download <?php echo htmlspecialchars($slide_filename, ENT_QUOTES, 'UTF-8'); ?>
-                                        </a>
-                                        <?php if (!empty($presentation['slide_deck_size'])): ?>
-                                            <span><?php echo htmlspecialchars(number_format(((int) $presentation['slide_deck_size']) / 1048576, 1)); ?> MB</span>
-                                        <?php endif; ?>
-                                        <label class="presentation-asset-remove">
-                                            <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_slide_deck]" value="1">
-                                            Remove current PDF
-                                        </label>
-                                    </div>
-                                <?php endif; ?>
-                                <label class="presentation-file-picker" for="slide_deck_<?php echo $presentation_dom_id; ?>">
-                                    <?php echo !empty($presentation['has_slide_deck']) ? 'Replace PDF' : 'Choose PDF'; ?>
-                                </label>
-                                <input type="file"
-                                       class="presentation-native-file"
-                                       name="presentations[<?php echo $presentation_dom_id; ?>][slide_deck]"
-                                       id="slide_deck_<?php echo $presentation_dom_id; ?>"
-                                       accept="application/pdf,.pdf"
-                                       data-presentation-file-name>
-                                <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>
-                            </div>
-                            <div class="presentation-slide-deck-card">
-                                <label class="presentation-asset-label" for="speaker_notes_<?php echo $presentation_dom_id; ?>">PDF Speaker Notes</label>
-                                <p>Anyone with the notes QR code can download this PDF without signing in.</p>
-                                <?php if (!empty($presentation['has_speaker_notes']) && $is_saved_presentation): ?>
-                                    <a href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes">View current notes</a>
-                                    <label class="presentation-remove-asset"><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_speaker_notes]" value="1"> Remove current notes</label>
-                                <?php endif; ?>
-                                <input type="file" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_notes]" id="speaker_notes_<?php echo $presentation_dom_id; ?>" accept="application/pdf,.pdf" data-presentation-file-name>
-                                <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>
-                            </div>
+                            <?php include __DIR__ . '/presentation_pdf_upload.php'; ?>
                             <?php if ($is_saved_presentation): ?>
                                 <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/presentation_short_links.php'; ?>
                             <?php else: ?>

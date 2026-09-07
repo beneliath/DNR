@@ -16,7 +16,7 @@ if (!$presentation_id || $presentation_id < 1 || $definition === null) {
     exit;
 }
 
-if ($query_type === 'notes') {
+if ($definition['form_key'] === 'speaker_notes') {
     require_once __DIR__ . '/short_link_helpers.php';
     $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ?');
     $stmt->bind_param('i', $presentation_id);
@@ -92,7 +92,7 @@ if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
 }
 
 $filename = $definition['kind'] === 'pdf'
-    ? (string) ($asset['asset_filename'] ?? 'slide-deck.pdf')
+    ? (string) ($asset['asset_filename'] ?? 'speaker-notes.pdf')
     : $definition['query_type'] . '.png';
 $filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', basename($filename)) ?: 'presentation-asset';
 

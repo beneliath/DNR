@@ -69,3 +69,4 @@
 20260907_add_short_links.sql
 20260907_store_short_link_qr_images.sql
 20260907_add_speaker_custom_links.sql
+20260907_unify_speaker_notes.sql

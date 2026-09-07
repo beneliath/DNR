@@ -131,6 +131,16 @@ function presentationFormFixture(rows = [{}], statusValue = "pending") {
     return { window, nodes, entries, status, confirmedOption };
 }
 
+test("new edit-page cards submit the PDF Speaker Notes upload to notes storage", function () {
+    const fixture = presentationFormFixture([{}], "pending");
+    fixture.window.addPresentation();
+    const markup = fixture.entries[1].markup;
+    assert.match(markup, /PDF Speaker Notes/);
+    assert.match(markup, /name="presentations\[2\]\[speaker_notes\]"/);
+    assert.doesNotMatch(markup, /\[slide_deck\]|PDF Slide Deck/);
+    assert.equal((markup.match(/class="presentation-notes-card"/g) || []).length, 1);
+});
+
 test("blank and partial presentations can be saved and followed by another presentation", function () {
     for (const row of [
         {},
