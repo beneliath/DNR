@@ -3,11 +3,12 @@ require_once dirname(__DIR__) . '/short_link_helpers.php';
 $short_links = fetchPresentationShortLinks($conn, $short_link_presentation_id);
 ?>
 <div class="presentation-generated-links">
+    <p><a class="button-secondary" href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>" target="_blank" rel="noopener">View QR Codes PDF</a></p>
     <div class="presentation-view-qr-grid">
         <?php foreach ($short_links as $short_link): ?>
             <?php if ((int) $short_link['speaker_id'] !== (int) $short_link['current_speaker_id']) continue; ?>
             <?php if ($short_link['link_type'] === 'notes' && !$short_link['has_notes']) continue; ?>
-            <?php $qr_url = 'short_link_qr.php?id=' . (int) $short_link['id']; $label = SHORT_LINK_TYPES[$short_link['link_type']]; ?>
+            <?php $qr_url = 'short_link_qr.php?id=' . (int) $short_link['id']; $label = shortLinkLabel($short_link); ?>
             <div class="presentation-qr-display">
                 <div class="presentation-view-asset-label"><?php echo htmlspecialchars($label); ?><?php echo $short_link['is_enabled'] ? '' : ' (Disabled)'; ?></div>
                 <?php if (!empty($short_link['qr_png'])): ?>

@@ -13,6 +13,21 @@
     gap: 10px;
 }
 
+.speaker-custom-link-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) auto;
+    align-items: end;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.speaker-custom-link-row > .form-group { min-width: 0; margin-bottom: 0; }
+.speaker-custom-link-row input { margin-bottom: 0; }
+.speaker-custom-link-row > button { margin: 0; }
+@media (max-width: 640px) {
+    .speaker-custom-link-row { grid-template-columns: minmax(0, 1fr); }
+    .speaker-custom-link-row > button { justify-self: start; }
+}
+
 .speaker-details-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(20rem, 1fr);

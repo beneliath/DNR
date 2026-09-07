@@ -7,6 +7,7 @@ require_once __DIR__ . '/functions.php';
 
 const SPEAKER_PHOTO_MAX_BYTES = CONTACT_PHOTO_MAX_BYTES;
 const SPEAKER_URL_MAX_LENGTH = 2048;
+const SPEAKER_CUSTOM_LINK_MAX_COUNT = 50;
 const SPEAKER_URL_FIELDS = [
     'website_url' => 'Website URL',
     'bio_url' => 'Bio URL',
@@ -83,7 +84,7 @@ function defaultSpeakerId(array $speakers, string $preferredName = ''): int
 
 function fetchSpeaker(mysqli $conn, int $id): ?array
 {
-    $stmt = $conn->prepare('SELECT id, name, email, phone, bio, version, photo_mime, photo_updated_at, '
+    $stmt = $conn->prepare('SELECT id, name, email, phone, bio, version, photo_mime, photo_updated_at, custom_links, '
         . implode(', ', array_keys(SPEAKER_URL_FIELDS)) . ' FROM speakers WHERE id = ?');
     if (!$stmt) {
         throw new RuntimeException('Unable to load the speaker.');
@@ -92,7 +93,48 @@ function fetchSpeaker(mysqli $conn, int $id): ?array
     $stmt->execute();
     $speaker = $stmt->get_result()->fetch_assoc();
     $stmt->close();
+    if ($speaker) $speaker['custom_links'] = speakerCustomLinks($speaker);
     return $speaker ?: null;
+}
+
+/** @return list<array{key: string, label: string, url: string}> */
+function speakerCustomLinks(array $speaker): array
+{
+    $links = $speaker['custom_links'] ?? [];
+    return is_string($links) ? json_decode($links, true, 512, JSON_THROW_ON_ERROR) : $links;
+}
+
+/** @return list<array{key: string, label: string, url: string}> */
+function normalizeSpeakerCustomLinks(mixed $input, array $existing = []): array
+{
+    if (!is_array($input) || count($input) > SPEAKER_CUSTOM_LINK_MAX_COUNT) {
+        throw new InvalidArgumentException('Add up to ' . SPEAKER_CUSTOM_LINK_MAX_COUNT . ' custom links.');
+    }
+    $knownKeys = array_column($existing, 'key');
+    $links = [];
+    $seen = [];
+    foreach ($input as $row) {
+        if (!is_array($row) || !is_string($row['label'] ?? null) || !is_string($row['url'] ?? null)
+            || !is_string($row['key'] ?? '')) {
+            throw new InvalidArgumentException('Enter a name and URL for each custom link.');
+        }
+        $key = $row['key'] ?? '';
+        $label = trim($row['label']);
+        $url = trim($row['url']);
+        if ($key === '' && $label === '' && $url === '') continue;
+        if ($label === '' || mb_strlen($label, 'UTF-8') > 255 || preg_match('/[\x00-\x1F\x7F]/', $label)) {
+            throw new InvalidArgumentException('Custom link names must contain 1 to 255 characters on a single line.');
+        }
+        require_once __DIR__ . '/short_link_helpers.php';
+        $url = shortLinkTarget($url);
+        if ($key !== '' && (!in_array($key, $knownKeys, true) || isset($seen[$key]))) {
+            throw new InvalidArgumentException('A custom link changed in another session. Reload the page before saving.');
+        }
+        $key = $key === '' ? bin2hex(random_bytes(8)) : $key;
+        $seen[$key] = true;
+        $links[] = ['key' => $key, 'label' => $label, 'url' => $url];
+    }
+    return $links;
 }
 
 /** @return array<string, string> */
@@ -158,6 +200,12 @@ function saveSpeaker(mysqli $conn, array $input, ?int $id = null, ?int $version 
     $columns = ['name', 'email', 'phone', 'bio'];
     $values = [$speaker['name'], $speaker['email'], $speaker['phone'], $speaker['bio']];
     $types = 'ssss';
+    if (array_key_exists('custom_links', $input)) {
+        $existing = $id === null ? [] : speakerCustomLinks(fetchSpeaker($conn, $id) ?? []);
+        $columns[] = 'custom_links';
+        $values[] = json_encode(normalizeSpeakerCustomLinks($input['custom_links'], $existing), JSON_THROW_ON_ERROR);
+        $types .= 's';
+    }
     foreach (SPEAKER_URL_FIELDS as $field => $label) {
         $columns[] = $field;
         $values[] = $speaker[$field];

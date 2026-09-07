@@ -6,7 +6,23 @@ require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/presentation_asset_helpers.php';
 
 const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donations',
-    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes'];
+    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'custom' => 'Custom Links'];
+
+function shortLinkLabel(array $link): string
+{
+    return $link['link_type'] === 'custom' ? (string) $link['custom_label'] : SHORT_LINK_TYPES[$link['link_type']];
+}
+
+/** Called inside the speaker save transaction. */
+function ensureSpeakerCustomShortLinks(mysqli $conn, int $speakerId): void
+{
+    $stmt = $conn->prepare('SELECT id FROM presentations WHERE speaker_id = ? ORDER BY id FOR UPDATE');
+    $stmt->bind_param('i', $speakerId);
+    $stmt->execute();
+    foreach ($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $presentation) {
+        ensurePresentationShortLinks($conn, (int) $presentation['id'], true);
+    }
+}
 
 function shortLinkUrl(string $code): string
 {
@@ -48,7 +64,7 @@ function shortLinkTarget(string $value): string
 }
 
 /** Called inside the presentation transaction, with the presentation row locked. */
-function ensurePresentationShortLinks(mysqli $conn, int $presentationId): bool
+function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $customOnly = false): bool
 {
     $stmt = $conn->prepare('SELECT p.engagement_id, p.speaker_id, s.*,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id
@@ -58,31 +74,48 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId): bool
     $stmt->execute();
     $speaker = $stmt->get_result()->fetch_assoc();
     if (!$speaker) throw new RuntimeException('Presentation not found.');
-    $existing = $conn->prepare('SELECT l.id, l.code, l.link_type, q.link_id AS image_id FROM short_links l
+    $existing = $conn->prepare('SELECT l.id, l.code, l.link_type, l.custom_link_key, q.link_id AS image_id FROM short_links l
         LEFT JOIN short_link_qr_images q ON q.link_id = l.id WHERE l.presentation_id = ? AND l.speaker_id = ?');
     $existing->bind_param('ii', $presentationId, $speaker['speaker_id']);
     $existing->execute();
-    $types = array_column($existing->get_result()->fetch_all(MYSQLI_ASSOC), null, 'link_type');
+    $types = [];
+    foreach ($existing->get_result()->fetch_all(MYSQLI_ASSOC) as $link) {
+        $types[$link['link_type'] . ':' . $link['custom_link_key']] = $link;
+    }
+    $definitions = [];
+    if (!$customOnly) {
+        foreach (SHORT_LINK_TYPES as $type => $label) {
+            if ($type === 'custom' || ($type === 'notes' && !$speaker['has_notes'])) continue;
+            $definitions[] = ['type' => $type, 'key' => '', 'label' => null,
+                'url' => $type === 'notes' ? null : trim((string) ($speaker[$type . '_url'] ?? ''))];
+        }
+    }
+    foreach (speakerCustomLinks($speaker) as $link) {
+        $definitions[] = ['type' => 'custom', 'key' => $link['key'], 'label' => $link['label'], 'url' => $link['url']];
+    }
     $changed = false;
-    foreach (SHORT_LINK_TYPES as $type => $_label) {
-        if ($type === 'notes' && !$speaker['has_notes']) continue;
-        if (isset($types[$type])) {
+    foreach ($definitions as $definition) {
+        $type = $definition['type'];
+        $identity = $type . ':' . $definition['key'];
+        if (isset($types[$identity])) {
             // Also prepares a legacy notes link on its first PDF upload.
-            if ($types[$type]['image_id'] === null) {
-                storeShortLinkQrImages($conn, (int) $types[$type]['id'], $types[$type]['code']);
+            if ($types[$identity]['image_id'] === null) {
+                storeShortLinkQrImages($conn, (int) $types[$identity]['id'], $types[$identity]['code']);
                 $changed = true;
             }
             continue;
         }
-        $target = $type === 'notes' ? null : trim((string) ($speaker[$type . '_url'] ?? ''));
+        $target = $definition['url'];
         if ($target === '') continue;
         // Existing profile validation already restricts URLs to HTTP(S).
         if ($target !== null) $target = shortLinkTarget($target);
         $insert = $conn->prepare('INSERT INTO short_links
-            (code, engagement_id, presentation_id, speaker_id, link_type, target_url) VALUES (?, ?, ?, ?, ?, ?)');
+            (code, engagement_id, presentation_id, speaker_id, link_type, target_url, custom_link_key, custom_label)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
         for ($attempt = 0; $attempt < 5; $attempt++) {
             $code = bin2hex(random_bytes(8));
-            $insert->bind_param('siiiss', $code, $speaker['engagement_id'], $presentationId, $speaker['speaker_id'], $type, $target);
+            $insert->bind_param('siiissss', $code, $speaker['engagement_id'], $presentationId, $speaker['speaker_id'],
+                $type, $target, $definition['key'], $definition['label']);
             try { $insert->execute(); break; }
             catch (mysqli_sql_exception $exception) {
                 if ($exception->getCode() !== 1062 || $attempt === 4) throw $exception;

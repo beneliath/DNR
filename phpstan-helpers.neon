@@ -36,6 +36,7 @@ parameters:
         - src/speaker_helpers.php
         - src/speaker_seed_helpers.php
         - src/presentation_helpers.php
+        - src/presentation_qr_pdf.php
         - src/presentation_asset_helpers.php
         - src/profile_helpers.php
         - src/two_factor_helpers.php

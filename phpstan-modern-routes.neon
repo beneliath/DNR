@@ -34,6 +34,7 @@ parameters:
         - src/functions.php
     scanFiles:
         - src/speaker_helpers.php
+        - src/short_link_helpers.php
         - src/engagement_view_helpers.php
         - src/inbound_queue_helpers.php
         - src/record_workspace_helpers.php
