@@ -396,42 +396,77 @@ function inboundEmailTrustedAuthenticationServers(): array
 
 function inboundEmailTopAuthenticationResults(string $rawHeaders): ?string
 {
-    $unfolded = preg_replace("/\r?\n[\t ]+/", ' ', $rawHeaders);
-    if (!is_string($unfolded)) {
-        return null;
-    }
-    foreach (preg_split("/\r?\n/", $unfolded) ?: [] as $line) {
-        if (preg_match('/\AAuthentication-Results\s*:\s*(.+)\z/i', $line, $match) === 1) {
-            return trim($match[1]);
-        }
-    }
-    return null;
+    return inboundEmailHeaderValues($rawHeaders, 'Authentication-Results')[0] ?? null;
 }
 
-/** @return array{required: bool, trusted: bool, authentication_server: ?string} */
+/** @return list<string> */
+function inboundEmailHeaderValues(string $rawHeaders, string $name): array
+{
+    $unfolded = preg_replace("/\r?\n[\t ]+/", ' ', $rawHeaders);
+    if (!is_string($unfolded)) {
+        return [];
+    }
+    $values = [];
+    foreach (preg_split("/\r?\n/", $unfolded) ?: [] as $line) {
+        if ($line === '') {
+            break;
+        }
+        if (preg_match('/\A' . preg_quote($name, '/') . '\s*:\s*(.*)\z/i', $line, $match) === 1) {
+            $values[] = trim($match[1]);
+        }
+    }
+    return $values;
+}
+
+/** @return array{required: bool, trusted: bool, authentication_server: ?string, method: ?string, reason: ?string} */
 function inboundEmailSenderAuthentication(array $message): array
 {
     $required = inboundEmailRequiresAuthenticatedFrom();
+    $authentication = [
+        'required' => $required, 'trusted' => false, 'authentication_server' => null,
+        'method' => null, 'reason' => null,
+    ];
     if (!$required) {
-        return ['required' => false, 'trusted' => false, 'authentication_server' => null];
+        return $authentication;
     }
 
-    $result = inboundEmailTopAuthenticationResults((string) ($message['raw_headers'] ?? ''));
+    $rawHeaders = (string) ($message['raw_headers'] ?? '');
+    $senderAddress = normalizeInboundEmailAddress($message['sender_address'] ?? '');
+    $assertions = inboundEmailHeaderValues($rawHeaders, 'X-Dnr-Sender-Authentication');
+    if ($assertions !== []) {
+        $kind = count($assertions) === 1
+            ? \Dnr\Security\InboundBridgeAuthentication::verify(
+                $assertions[0], $senderAddress, (string) ($message['rfc_message_id'] ?? '')
+            ) : null;
+        $authentication['trusted'] = in_array($kind, ['internal', 'dmarc'], true);
+        $authentication['authentication_server'] = $kind !== null ? 'proton-bridge' : null;
+        $authentication['method'] = $authentication['trusted'] ? 'proton-' . $kind : null;
+        $authentication['reason'] = $authentication['trusted'] ? null : ($kind === 'unverified'
+            ? 'Proton did not authenticate this message for automatic processing, or marked it as imported, spam, or phishing.'
+            : 'The Proton Bridge sender-authentication assertion is missing, invalid, or does not match this message.');
+        // A failed Bridge assertion must never fall back to sender-supplied
+        // Authentication-Results, including in imported MIME messages.
+        return $authentication;
+    }
+
+    $result = inboundEmailTopAuthenticationResults($rawHeaders);
     if ($result === null) {
-        return ['required' => true, 'trusted' => false, 'authentication_server' => null];
+        $authentication['reason'] = in_array('internal', inboundEmailHeaderValues($rawHeaders, 'X-Pm-Origin'), true)
+            ? 'Sender authentication is unavailable for this Proton internal message; it requires manual review.'
+            : 'The mailbox did not supply a trusted sender-authentication result.';
+        return $authentication;
     }
     $authservSection = trim(explode(';', $result, 2)[0]);
     $authservId = strtolower(rtrim((string) (preg_split('/\s+/', $authservSection)[0] ?? ''), '.'));
     $trustedServers = inboundEmailTrustedAuthenticationServers();
+    $authentication['authentication_server'] = $authservId !== '' ? $authservId : null;
     if ($authservId === '' || !in_array($authservId, $trustedServers, true)) {
-        return [
-            'required' => true,
-            'trusted' => false,
-            'authentication_server' => $authservId !== '' ? $authservId : null,
-        ];
+        $authentication['reason'] = $trustedServers === []
+            ? 'No trusted mailbox authentication servers are configured, and no verified Proton Bridge assertion is available.'
+            : 'The authentication result is not from a configured trusted mailbox server.';
+        return $authentication;
     }
 
-    $senderAddress = normalizeInboundEmailAddress($message['sender_address'] ?? '');
     $senderDomain = strrchr($senderAddress, '@');
     $senderDomain = $senderDomain === false ? '' : strtolower(substr($senderDomain, 1));
     $dmarcPassed = false;
@@ -451,11 +486,11 @@ function inboundEmailSenderAuthentication(array $message): array
         }
     }
 
-    return [
-        'required' => true,
-        'trusted' => $dmarcPassed,
-        'authentication_server' => $authservId,
-    ];
+    $authentication['trusted'] = $dmarcPassed;
+    $authentication['method'] = $dmarcPassed ? 'dmarc' : null;
+    $authentication['reason'] = $dmarcPassed ? null
+        : 'The visible sender does not have a trusted aligned DMARC pass from the mailbox provider.';
+    return $authentication;
 }
 
 /**
@@ -878,7 +913,7 @@ function searchInboundEmailEngagements(
  *   automatic: bool, authoritative_engagement: bool,
  *   authoritative_inquiry: bool,
  *   sender_authentication_required: bool, sender_authenticated: bool,
- *   authentication_server: ?string,
+ *   authentication_server: ?string, sender_authentication_method: ?string,
  *   reasons: list<string>, sender: array<string, mixed>,
  *   participants: list<array<string, mixed>>,
  *   contacts: list<array{id: int, label: string}>,
@@ -906,7 +941,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message, bool $automaticO
     // does not need participant queries while the worker holds its row lock.
     $earlyReason = '';
     if ($automaticOnly && $senderAuthentication['required'] && !$senderAuthentication['trusted']) {
-        $earlyReason = 'The visible sender does not have a trusted aligned DMARC pass from the mailbox provider.';
+        $earlyReason = (string) $senderAuthentication['reason'];
     } elseif ($automaticOnly && inboundEmailMessageEngagementMarkers($message)['ids'] === []
         && inboundEmailMessageInquiryMarkers($message)['ids'] === []) {
         $earlyReason = 'No valid Engagement or Inquiry marker was provided.';
@@ -917,6 +952,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message, bool $automaticO
             'sender_authentication_required' => $senderAuthentication['required'],
             'sender_authenticated' => $senderAuthentication['trusted'],
             'authentication_server' => $senderAuthentication['authentication_server'],
+            'sender_authentication_method' => $senderAuthentication['method'],
             'reasons' => [$earlyReason],
             'sender' => ['type' => 'unknown', 'id' => null, 'label' => $senderAddress],
             'participants' => [], 'contacts' => [], 'organizations' => [], 'engagements' => [], 'inquiries' => [],
@@ -953,7 +989,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message, bool $automaticO
         $reasons[] = 'The sender is not a uniquely recognized active user, Contact, or Organization.';
     }
     if ($senderAuthentication['required'] && !$senderAuthentication['trusted']) {
-        $reasons[] = 'The visible sender does not have a trusted aligned DMARC pass from the mailbox provider.';
+        $reasons[] = (string) $senderAuthentication['reason'];
     }
 
     $engagements = [];
@@ -1107,6 +1143,7 @@ function routeInboundEmailMessage(mysqli $conn, array $message, bool $automaticO
         'sender_authentication_required' => $senderAuthentication['required'],
         'sender_authenticated' => $senderAuthentication['trusted'],
         'authentication_server' => $senderAuthentication['authentication_server'],
+        'sender_authentication_method' => $senderAuthentication['method'],
         'reasons' => $reasons,
         'sender' => $sender,
         'participants' => $participants,

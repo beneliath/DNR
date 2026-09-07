@@ -27,6 +27,9 @@ expectProtonBridgeDeployment(
         && str_contains($dockerfile, 'PROTON_BRIDGE_VERSION=3.25.0-1')
         && str_contains($dockerfile, '6b0318f4f425ef1a19b63e2bd589bc1036d95f073cb9ac26b42c0fc63a8bc275')
         && str_contains($dockerfile, 'sha256sum --check --strict')
+        && str_contains($dockerfile, 'a73fea9d1868f59c36852f438e3f8a2d96a3c4e26822382f0be466edc7021bd5')
+        && str_contains($dockerfile, 'go test ./pkg/message')
+        && str_contains($dockerfile, 'COPY --from=bridge-builder /build/dnr-bridge')
         && str_contains($dockerfile, 'USER proton-bridge'),
     'the Bridge image should pin and verify the official package and run without root.'
 );
@@ -43,6 +46,7 @@ expectProtonBridgeDeployment(
         && str_contains($bridge, 'DNR_IMAP_HOST: 127.0.0.1')
         && str_contains($bridge, 'DNR_IMAP_VERIFY_PEER: "0"')
         && str_contains($bridge, 'proton_bridge_data:/home/proton-bridge')
+        && str_contains($bridge, 'DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key')
         && !str_contains($bridge, 'init: true')
         && !str_contains($bridge, 'ports:'),
     'Bridge should share only the worker network namespace, use its image init, and never publish mail ports.'
@@ -82,6 +86,7 @@ expectProtonBridgeDeployment(
     is_executable($root . '/scripts/prepare_linux_secrets.sh')
         && str_contains($linuxSecrets, 'chmod 700 "$secrets_directory"')
         && str_contains($linuxSecrets, 'u:0:r--,u:33:r--,m::r--')
+        && str_contains($linuxSecrets, 'u:10001:r--,m::r-- "$inbound_key"')
         && !str_contains($linuxSecrets, 'o::r'),
     'native Linux secrets should grant narrow container ACLs without becoming world-readable.'
 );
