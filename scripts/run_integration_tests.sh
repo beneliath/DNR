@@ -6,8 +6,15 @@ integration_test_files=$(
     find tests -maxdepth 1 -type f \
         \( -name '*_integration_test.php' -o -name 'integration_*_test.php' \) \
         -print \
-        | LC_ALL=C sort
+        | LC_ALL=C sort \
+        | awk '/\/speaker_deployment_integration_test.php$/ { initial = $0; next }
+               { remaining = remaining $0 "\n" }
+               END { if (initial != "") print initial; printf "%s", remaining }'
 )
+
+# The initial-import suite needs the freshly migrated, single-speaker directory.
+# Run it before HTTP suites create permanent speaker fixtures (the web account
+# intentionally has no permission to delete speakers).
 
 if [ -z "$integration_test_files" ]; then
     echo 'No integration test suites were found.' >&2
