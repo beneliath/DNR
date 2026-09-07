@@ -214,7 +214,7 @@ try {
     </div>
 
     <?php if (isset($error)): ?>
-        <p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
+        <p class="error" id="database-backup-error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
     <p class="database-warning">
@@ -241,7 +241,7 @@ try {
                 Creates a consistent snapshot of every DNR table, encrypts and authenticates the
                 complete archive with your password, and downloads it as a <code>.dnrbackup</code> file.
             </p>
-            <form method="post" action="database_maintenance.php" autocomplete="off">
+            <form method="post" action="database_maintenance.php" autocomplete="off" id="database-backup-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="backup">
 
