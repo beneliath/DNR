@@ -138,7 +138,7 @@ if ($range !== null) {
 }
 header('Content-Length: ' . $remaining);
 if ($definition['kind'] === 'pdf') {
-    sendPresentationPdfDownloadHeaders($filename);
+    sendPresentationPdfViewHeaders($filename);
 } else {
     header('Content-Type: ' . $mime_type);
     header('Content-Disposition: inline; filename="' . addcslashes($filename, '"\\') . '"');

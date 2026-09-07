@@ -292,7 +292,7 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     $data->execute();
     $chunk = $data->get_result()->fetch_assoc()['chunk'] ?? null;
     if (!is_string($chunk) || strlen($chunk) !== $length) { $conn->commit(); http_response_code(503); return; }
-    sendPresentationPdfDownloadHeaders((string) $notes['filename']);
+    sendPresentationPdfViewHeaders((string) $notes['filename']);
     header('Cache-Control: private, no-store');
     header('Accept-Ranges: bytes');
     header('Content-Length: ' . $remaining);
