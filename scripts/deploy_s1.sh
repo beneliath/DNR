@@ -73,7 +73,9 @@ if seed.get('format') != 1 or seed.get('speaker', {}).get('name') != 'Olivier Me
 print(hashlib.sha256(data).hexdigest())
 PY
     )
-    scp -q "$release_directory/speaker-seed.json" "$remote:$incoming/speaker-seed.json"
+    scp -q "$release_directory/speaker-seed.json" "$remote:$incoming/speaker-seed.upload.json"
+    ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" \
+        "mv -f '$incoming/speaker-seed.upload.json' '$incoming/speaker-seed.json'"
 fi
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" python3 "$incoming/deploy_release_host.py" \
     "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}" "$notice_id" "$speaker_seed_sha256"
