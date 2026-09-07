@@ -50,11 +50,12 @@ if (!empty($engagement['is_deleted']) || !empty($engagement['organization_delete
 try {
     $contacts = fetchEngagementContacts($conn, $engagementId);
     $presentationStmt = $conn->prepare(
-        'SELECT topic_title, presentation_date, presentation_time,
-                speaker_name, duration_minutes
-         FROM presentations
-         WHERE engagement_id = ? AND is_archived = 0
-         ORDER BY presentation_date, presentation_time, id'
+        'SELECT p.topic_title, p.presentation_date, p.presentation_time,
+                s.name AS speaker_name, p.duration_minutes
+         FROM presentations p
+         INNER JOIN speakers s ON s.id = p.speaker_id
+         WHERE p.engagement_id = ? AND p.is_archived = 0
+         ORDER BY p.presentation_date, p.presentation_time, p.id'
     );
     if (!$presentationStmt) {
         throw new RuntimeException('Unable to prepare the presentation schedule.');

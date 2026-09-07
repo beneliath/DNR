@@ -32,6 +32,8 @@ parameters:
         - src/mattermost_integration_helpers.php
         - src/notification_helpers.php
         - src/operations_helpers.php
+        - src/speaker_helpers.php
+        - src/speaker_seed_helpers.php
         - src/presentation_helpers.php
         - src/presentation_asset_helpers.php
         - src/profile_helpers.php

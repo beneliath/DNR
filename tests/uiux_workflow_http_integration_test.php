@@ -71,8 +71,8 @@ try {
         event_type, confirmation_status) VALUES ({$organizationId}, 'HTTP receipt fixture', '2026-01-01',
         '2026-01-02', 'conference', 'confirmed')");
     $engagementId = (int) $conn->insert_id;
-    $conn->query("INSERT INTO presentations (engagement_id, topic_title, presentation_date, speaker_name)
-        VALUES ({$engagementId}, 'Final active presentation', '2026-01-02', 'Test Speaker')");
+    $conn->query("INSERT INTO presentations (engagement_id, topic_title, presentation_date, speaker_id)
+        VALUES ({$engagementId}, 'Final active presentation', '2026-01-02', (SELECT MIN(id) FROM speakers))");
     $conn->query("INSERT INTO follow_up_tasks (title, status, due_date, subject_type, engagement_id, created_by)
         VALUES ('Canceled closeout prerequisite', 'canceled', '2026-01-02', 'engagement', {$engagementId}, {$userId})");
     $blockerId = (int) $conn->insert_id;

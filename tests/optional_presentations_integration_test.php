@@ -23,7 +23,7 @@ function expectOptionalPresentationsIntegration(bool $condition, string $message
 function fetchOptionalPresentationsIntegration(mysqli $conn, int $engagementId): array
 {
     $stmt = $conn->prepare(
-        'SELECT id, topic_title, presentation_date, presentation_time, speaker_name,
+        'SELECT id, topic_title, presentation_date, presentation_time, speaker_id,
                 duration_minutes, expected_attendance, actual_attendance
          FROM presentations WHERE engagement_id = ? AND is_archived = 0 ORDER BY id'
     );
@@ -34,7 +34,7 @@ function fetchOptionalPresentationsIntegration(mysqli $conn, int $engagementId):
     return $rows;
 }
 
-$defaultSpeaker = 'Default Speaker';
+$defaultSpeaker = defaultSpeakerId(fetchSpeakerOptions($conn));
 $startDate = '2026-11-14';
 $endDate = '2026-11-15';
 $normalize = static fn(array $rows): array => normalizeEngagementPresentations(
@@ -47,6 +47,8 @@ $normalize = static fn(array $rows): array => normalizeEngagementPresentations(
 
 $conn->begin_transaction();
 try {
+    $conn->query("INSERT INTO speakers (name, email, phone) VALUES ('Guest Speaker', 'guest@example.com', '+19494002892')");
+    $guestSpeakerId = (int) $conn->insert_id;
     $organizationName = 'Optional Presentations Test ' . bin2hex(random_bytes(4));
     $organizationStmt = $conn->prepare('INSERT INTO organizations (organization_name) VALUES (?)');
     $organizationStmt->bind_param('s', $organizationName);
@@ -69,7 +71,7 @@ try {
         'topic_title' => '',
         'presentation_date' => '',
         'presentation_time' => '',
-        'speaker_name' => $defaultSpeaker,
+        'speaker_id' => $defaultSpeaker,
         'duration_minutes' => '60',
     ];
     $untouched = $normalize([$untouchedRow]);
@@ -81,7 +83,7 @@ try {
     );
 
     $partialRow = array_replace($untouchedRow, [
-        'speaker_name' => 'Guest Speaker',
+        'speaker_id' => $guestSpeakerId,
         'duration_minutes' => '',
     ]);
     expectOptionalPresentationsIntegration(

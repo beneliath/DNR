@@ -58,5 +58,22 @@ remote="$s1_user@$s1_host"
 incoming="$s1_project_directory/.git/dnr-deploy/incoming/$expected_commit"
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" "umask 077; mkdir -p '$incoming'"
 scp -q "$release_directory/manifest.json" "$release_directory/mirrors.json" scripts/deploy_release_host.py scripts/deployment_backup.py scripts/deployment_notice.py scripts/release_timestamp.py "$remote:$incoming/"
+speaker_seed_sha256=''
+if [ -n "${DNR_S1_SPEAKER_SEED_FILE:-}" ]; then
+    cp "$DNR_S1_SPEAKER_SEED_FILE" "$release_directory/speaker-seed.json"
+    speaker_seed_sha256=$(python3 - "$release_directory/speaker-seed.json" <<'PY'
+import hashlib, json, pathlib, sys
+path = pathlib.Path(sys.argv[1])
+if path.stat().st_size > 8 * 1024 * 1024:
+    raise SystemExit('Speaker seed exceeds the deployment limit')
+data = path.read_bytes()
+seed = json.loads(data)
+if seed.get('format') != 1 or seed.get('speaker', {}).get('name') != 'Olivier Melnick':
+    raise SystemExit('Invalid initial speaker seed')
+print(hashlib.sha256(data).hexdigest())
+PY
+    )
+    scp -q "$release_directory/speaker-seed.json" "$remote:$incoming/speaker-seed.json"
+fi
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" python3 "$incoming/deploy_release_host.py" \
-    "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}" "$notice_id"
+    "$s1_project_directory" "$expected_commit" "$incoming/manifest.json" "$backup_password_file" "${public_base_url%/}" "$notice_id" "$speaker_seed_sha256"

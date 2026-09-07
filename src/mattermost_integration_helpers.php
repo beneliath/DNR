@@ -589,10 +589,11 @@ function mattermostEngagement(mysqli $conn, int $engagementId): ?array
     }
 
     $presentationStmt = $conn->prepare(
-        'SELECT topic_title, presentation_date, presentation_time, speaker_name
-         FROM presentations
-         WHERE engagement_id = ? AND is_archived = 0
-         ORDER BY presentation_date ASC, presentation_time ASC, id ASC
+        'SELECT p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name
+         FROM presentations p
+         INNER JOIN speakers s ON s.id = p.speaker_id
+         WHERE p.engagement_id = ? AND p.is_archived = 0
+         ORDER BY p.presentation_date ASC, p.presentation_time ASC, p.id ASC
          LIMIT 10'
     );
     if (!$presentationStmt) {

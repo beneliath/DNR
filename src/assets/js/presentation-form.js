@@ -142,7 +142,7 @@
         var topicInput = document.getElementById("presentation_topic_" + id);
         var dateInput = document.getElementById("presentation_date_" + id);
         var timeInput = document.getElementById("presentation_time_" + id);
-        var speakerInput = document.getElementById("speaker_name_" + id);
+        var speakerInput = document.getElementById("speaker_id_" + id);
         var durationInput = document.getElementById("duration_minutes_" + id);
         var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
         var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
@@ -250,7 +250,7 @@
         var durationInput = document.getElementById("duration_minutes_" + id);
         var expectedAttendanceInput = document.getElementById("expected_attendance_" + id);
         var actualAttendanceInput = document.getElementById("actual_attendance_" + id);
-        var speakerInput = document.getElementById("speaker_name_" + id);
+        var speakerInput = document.getElementById("speaker_id_" + id);
         if (timeInput) {
             timeInput.addEventListener("input", function () {
                 timeInput.setCustomValidity("");
@@ -512,8 +512,8 @@
             '  </div>',
             '  <div class="speaker-row">',
             '    <div class="form-field speaker">',
-            '      <label for="speaker_name_' + id + '">Speaker Name</label>',
-            '      <input type="text" name="presentations[' + id + '][speaker_name]" id="speaker_name_' + id + '" maxlength="255">',
+            '      <label for="speaker_id_' + id + '">Speaker</label>',
+            '      <select name="presentations[' + id + '][speaker_id]" id="speaker_id_' + id + '"></select>',
             '    </div>',
             '    <div class="form-field attendance">',
             '      <label for="duration_minutes_' + id + '">Duration (minutes)</label>',
@@ -555,7 +555,12 @@
         entry.id = "presentation-" + id;
         entry.innerHTML = presentationMarkup(id);
         presentationContainer().appendChild(entry);
-        document.getElementById("speaker_name_" + id).value = defaultSpeaker();
+        var speakerSelect = document.getElementById("speaker_id_" + id);
+        var sourceSelect = document.getElementById("presentations-container").querySelector('select[name$="[speaker_id]"]');
+        Array.from(sourceSelect.options).forEach(function (option) {
+            speakerSelect.appendChild(option.cloneNode(true));
+        });
+        speakerSelect.value = defaultSpeaker();
         wirePresentationEntry(entry);
         applyPresentationDateConstraints();
         updateConfirmedAvailability();

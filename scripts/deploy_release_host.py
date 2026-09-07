@@ -20,7 +20,8 @@ def run(args, **kwargs):
 
 
 def main():
-    project, expected, manifest_path, backup_password_file, public_url, notice_id = sys.argv[1:]
+    project, expected, manifest_path, backup_password_file, public_url, notice_id = sys.argv[1:7]
+    speaker_seed_sha256 = sys.argv[7] if len(sys.argv) > 7 else ''
     root = Path(project)
     os.chdir(root)
     records = root / '.git/dnr-deploy'
@@ -68,6 +69,20 @@ def main():
             return compose('ps', '-aq', service).splitlines()[-1]
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
+        seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
+        def speaker_seed(action):
+            if not re.fullmatch('[0-9a-f]{64}', speaker_seed_sha256) or not seed_path.is_file() \
+                    or seed_path.stat().st_size > 8 * 1024 * 1024 \
+                    or hashlib.sha256(seed_path.read_bytes()).hexdigest() != speaker_seed_sha256:
+                raise ValueError('Initial speaker seed checksum mismatch')
+            # The host directory remains owner-only; the read-only mount must
+            # also be readable by the maintenance container's unprivileged user.
+            seed_path.parent.chmod(0o700)
+            seed_path.chmod(0o444)
+            return compose('run', '--rm', '--no-deps', '--entrypoint', 'php',
+                           '-v', str(seed_path) + ':/run/dnr/initial-speaker.json:ro',
+                           'maintenance', '/opt/dnr/bin/initial_speaker_seed.php',
+                           action, '/run/dnr/initial-speaker.json')
         previous = {service: inspect(container(service))['Config']['Image']
                     for service in ('db', 'web', 'ingress', 'geocoder', 'mail-ingest', 'mail-dispatch', 'proton-bridge')}
         previous_database_image_id = inspect(container('db'))['Image']
@@ -75,10 +90,12 @@ def main():
             run(['docker', 'pull', image])
             if inspect(image)['Config']['Labels'].get('org.opencontainers.image.revision') != expected:
                 raise ValueError('Image provenance mismatch')
+        if speaker_seed_sha256:
+            speaker_seed('validate')
         record = dict(commit=expected, previous_commit=previous_commit, previous_images=previous,
                       backup=None, manifest=release,
                       mirrors=json.loads(Path(manifest_path).with_name('mirrors.json').read_text()),
-                      phase='preflight', outcome='running')
+                      phase='preflight', outcome='running', speaker_seed_sha256=speaker_seed_sha256 or None)
         record_path = records / (expected + '.json')
         def save(phase):
             record['phase'] = phase
@@ -112,6 +129,13 @@ def main():
             compose('up', '-d', '--no-build', '--no-deps', '--wait', 'db')
             save('migrating')
             compose('run', '--rm', '--no-deps', 'migrator')
+            if speaker_seed_sha256:
+                save('seeding-speaker')
+                # The import checks every profile field/photo and all presentation
+                # references in one transaction before reopening production writes.
+                output = speaker_seed('apply')
+                record['speaker_seed'] = json.loads(output.splitlines()[-1])
+                save('speaker-seed-verified')
             save('starting')
             compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '180')
             for service in ('web', 'geocoder', 'mail-ingest', 'mail-dispatch'):

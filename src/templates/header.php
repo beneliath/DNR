@@ -20,6 +20,7 @@ $nav_groups = [
     ],
     'map' => ['map.php', 'map_pin.php'],
     'organizations' => ['organizations.php', 'add_organization.php', 'edit_organization.php', 'view_organization.php'],
+    'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
@@ -171,6 +172,9 @@ if (!empty($_SESSION['user_id'])) {
                 </a></li>
                     <li><a href="contacts.php" class="nav-link<?php echo $active_nav === 'contacts' ? ' active' : ''; ?>"<?php echo $active_nav === 'contacts' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span>Contacts</span>
+                </a></li>
+                    <li><a href="speakers.php" class="nav-link<?php echo $active_nav === 'speakers' ? ' active' : ''; ?>"<?php echo $active_nav === 'speakers' ? ' aria-current="page"' : ''; ?>>
+                    <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Speakers</span>
                 </a></li>
                 </ul>
             </section>

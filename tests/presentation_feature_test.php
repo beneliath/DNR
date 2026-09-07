@@ -14,19 +14,19 @@ $presentations = normalizeEngagementPresentations(
         'topic_title' => 'Opening keynote',
         'presentation_date' => '2026-08-21',
         'presentation_time' => '9:30 pm',
-        'speaker_name' => '',
+        'speaker_id' => '',
         'duration_minutes' => '90',
         'expected_attendance' => '125',
         'actual_attendance' => '0',
     ]],
     '2026-08-20',
     '2026-08-22',
-    'Default Speaker'
+    1
 );
 
 expectPresentationFeature(count($presentations) === 1, 'a complete presentation should be normalized.');
 expectPresentationFeature($presentations[0]['presentation_time'] === '21:30:00', 'time should be normalized for the SQL TIME column.');
-expectPresentationFeature($presentations[0]['speaker_name'] === 'Default Speaker', 'blank speaker should use the default.');
+expectPresentationFeature($presentations[0]['speaker_id'] === 1, 'blank speaker should use the default.');
 expectPresentationFeature($presentations[0]['duration_minutes'] === 90, 'duration should be normalized as minutes.');
 expectPresentationFeature($presentations[0]['expected_attendance'] === 125, 'attendance should be an integer.');
 expectPresentationFeature($presentations[0]['actual_attendance'] === 0, 'zero should be a valid actual attendance.');
@@ -37,18 +37,18 @@ expectPresentationFeature(normalizePresentationTime('1200') === '12:00:00', '120
 expectPresentationFeature(formatPresentationTime('21:30:00') === '09:30 PM', 'stored times should be formatted for people.');
 
 $blank_presentations = normalizeEngagementPresentations(
-    [['topic_title' => '', 'speaker_name' => 'Default Speaker']],
+    [['topic_title' => '', 'speaker_id' => 1]],
     '2026-08-20',
     '2026-08-22',
-    'Default Speaker'
+    1
 );
 expectPresentationFeature($blank_presentations === [], 'the initial blank presentation row should remain optional.');
 expectPresentationFeature(
     normalizeEngagementPresentations(
-        [['speaker_name' => 'Default Speaker', 'duration_minutes' => '60']],
+        [['speaker_id' => 1, 'duration_minutes' => '60']],
         '2026-08-20',
         '2026-08-22',
-        'Default Speaker'
+        1
     ) === [],
     'the untouched default speaker and duration should not create an empty presentation.'
 );
@@ -58,12 +58,12 @@ foreach ([
     ['presentation_date' => '2026-08-21'],
     ['presentation_time' => '09:30 AM'],
     ['duration_minutes' => '45'],
-    ['speaker_name' => 'Guest Speaker'],
+    ['speaker_id' => 2],
     ['actual_attendance' => '0'],
 ] as $partial_submission) {
     $partial_submission += ['duration_minutes' => ''];
     $partial = normalizeEngagementPresentations(
-        [$partial_submission], '2026-08-20', '2026-08-22', 'Default Speaker'
+        [$partial_submission], '2026-08-20', '2026-08-22', 1
     );
     expectPresentationFeature(count($partial) === 1, 'partially entered presentations should be saved.');
     expectPresentationFeature(
@@ -78,7 +78,7 @@ foreach ([
 
 $cleared_presentation = normalizeEngagementPresentations(
     [['id' => '12', 'duration_minutes' => '']],
-    '2026-08-20', '2026-08-22', 'Default Speaker', true
+    '2026-08-20', '2026-08-22', 1, true
 );
 expectPresentationFeature(
     count($cleared_presentation) === 1
@@ -97,7 +97,7 @@ expectPresentationFeature(
 );
 $asset_only_presentation = normalizeEngagementPresentations(
     [3 => ['duration_minutes' => '']],
-    '2026-08-20', '2026-08-22', 'Default Speaker', false, ['3' => true]
+    '2026-08-20', '2026-08-22', 1, false, ['3' => true]
 );
 expectPresentationFeature(
     count($asset_only_presentation) === 1 && $asset_only_presentation[0]['_form_key'] === '3',
@@ -112,7 +112,7 @@ $default_duration_presentation = normalizeEngagementPresentations(
     ]],
     '2026-08-20',
     '2026-08-22',
-    'Default Speaker'
+    1
 );
 expectPresentationFeature(
     $default_duration_presentation[0]['duration_minutes'] === 60
@@ -162,7 +162,7 @@ foreach ([
             $submission,
             '2026-08-20',
             '2026-08-22',
-            'Default Speaker'
+            1
         );
         expectPresentationFeature(false, "invalid presentation should be rejected: {$expected_message}.");
     } catch (InvalidArgumentException $exception) {
@@ -260,8 +260,8 @@ expectPresentationFeature(
     str_contains($presentation_migration, 'is_archived TINYINT(1) NOT NULL DEFAULT 0')
         && str_contains($presentation_migration, 'fk_presentation_archiver')
         && str_contains($calendar_source, 'AND p.is_archived = 0')
-        && str_contains($view_source, 'WHERE engagement_id = ? AND is_archived = 0')
-        && str_contains($pdf_source, 'WHERE engagement_id = ? AND is_archived = 0'),
+        && str_contains($view_source, 'WHERE p.engagement_id = ? AND p.is_archived = 0')
+        && str_contains($pdf_source, 'WHERE p.engagement_id = ? AND p.is_archived = 0'),
     'archived presentations should be tracked and excluded from active views, calendars, and exports.'
 );
 expectPresentationFeature(

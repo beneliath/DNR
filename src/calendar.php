@@ -111,7 +111,7 @@ $presentation_query = "SELECT
             p.topic_title,
             p.presentation_date,
             p.presentation_time,
-            p.speaker_name,
+            s.name AS speaker_name,
             p.duration_minutes,
             e.event_title,
             e.event_type,
@@ -133,10 +133,12 @@ $presentation_query = "SELECT
                 e.updated_at,
                 o.updated_at,
                 p.updated_at,
+                s.updated_at,
                 COALESCE(replacement.updated_at, e.updated_at),
                 COALESCE(replacement_organization.updated_at, o.updated_at)
             )) AS calendar_updated_at
           FROM presentations p
+          INNER JOIN speakers s ON s.id = p.speaker_id
           INNER JOIN engagements e ON e.id = p.engagement_id
           INNER JOIN organizations o ON o.id = e.organization_id
           LEFT JOIN engagements replacement

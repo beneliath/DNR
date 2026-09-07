@@ -17,9 +17,9 @@ $engagement = (int) $conn->insert_id;
 $backup = $encrypted = $decrypted = null;
 try {
     for ($i = 0; $i < 2; $i++) {
-        $conn->query("INSERT INTO presentations (engagement_id,topic_title,speaker_name,slide_deck_pdf,slide_deck_size,slide_deck_sha256,
+        $conn->query("INSERT INTO presentations (engagement_id,topic_title,speaker_id,slide_deck_pdf,slide_deck_size,slide_deck_sha256,
             speaker_notes_qr_image,speaker_website_qr_image,speaker_donation_qr_image)
-            VALUES ($engagement,'Capacity fixture','Test', REPEAT(CHAR(65+$i),104857600),104857600,
+            VALUES ($engagement,'Capacity fixture',(SELECT MIN(id) FROM speakers), REPEAT(CHAR(65+$i),104857600),104857600,
                 UNHEX(SHA2(REPEAT(CHAR(65+$i),104857600),256)),REPEAT('q',5242880),REPEAT('r',5242880),REPEAT('s',5242880))");
     }
     $expected = $conn->query("SELECT id, HEX(slide_deck_sha256) AS hash FROM presentations WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);

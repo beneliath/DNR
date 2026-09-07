@@ -3,6 +3,10 @@ parameters:
     # here before the remaining procedural surface is raised as a whole.
     level: 3
     paths:
+        - src/speaker_photo.php
+        - src/speakers.php
+        - src/edit_speaker.php
+        - src/view_speaker.php
         - src/map_geocode.php
         - src/map_pin.php
         - src/dashboard.php
@@ -29,6 +33,7 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/speaker_helpers.php
         - src/engagement_view_helpers.php
         - src/inbound_queue_helpers.php
         - src/record_workspace_helpers.php

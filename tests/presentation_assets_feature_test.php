@@ -55,7 +55,7 @@ expectPresentationAssetFeature(
         && str_contains($template, 'data-paste-qr')
         && !str_contains($template, 'data-qr-paste-zone')
         && str_contains($template, 'Download <?php echo htmlspecialchars($slide_filename')
-        && !str_contains($template, 'target="_blank"')
+        && preg_match('/<a[^>]*presentation_asset\.php[^>]*target="_blank"/', $template) !== 1
         && str_contains($template, 'data-copy-qr-url'),
     'the shared presentation form should expose PDF and direct QR paste controls without a separate paste zone.'
 );
@@ -197,10 +197,10 @@ try {
 }
 
 $upload_only_presentations = normalizeEngagementPresentations(
-    [7 => ['topic_title' => '', 'speaker_name' => 'Default Speaker']],
+    [7 => ['topic_title' => '', 'speaker_id' => 1]],
     '2026-08-20',
     '2026-08-22',
-    'Default Speaker',
+    1,
     false,
     ['7' => true]
 );

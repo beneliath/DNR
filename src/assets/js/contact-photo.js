@@ -6,8 +6,10 @@
 
     if (!input || !preview || !status) return;
 
+    const photoLabel = input.dataset.photoLabel || 'contact';
+    const photoTitle = photoLabel.charAt(0).toUpperCase() + photoLabel.slice(1);
     const originalSource = preview.getAttribute('src');
-    const originalAlt = preview.getAttribute('alt') || 'Current contact photo';
+    const originalAlt = preview.getAttribute('alt') || 'Current ' + photoLabel + ' photo';
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
     const maximumBytes = Number(input.dataset.maxBytes || 0);
     let selectionVersion = 0;
@@ -31,14 +33,14 @@
         }
 
         if (!allowedTypes.includes(file.type)) {
-            input.setCustomValidity('Choose a JPEG, PNG, or WebP contact photo.');
+            input.setCustomValidity('Choose a JPEG, PNG, or WebP ' + photoLabel + ' photo.');
             restoreCurrentPhoto();
             input.reportValidity();
             return;
         }
 
         if (maximumBytes > 0 && file.size > maximumBytes) {
-            input.setCustomValidity('Contact photos must be 5 MB or smaller.');
+            input.setCustomValidity(photoTitle + ' photos must be 5 MB or smaller.');
             restoreCurrentPhoto();
             input.reportValidity();
             return;
@@ -54,7 +56,7 @@
             if (currentSelection !== selectionVersion || typeof reader.result !== 'string') return;
             loadingSelectedPhoto = true;
             preview.src = reader.result;
-            preview.alt = 'Preview of selected contact photo';
+            preview.alt = 'Preview of selected ' + photoLabel + ' photo';
             status.textContent = 'Preview updated. Save changes to apply this photo.';
         });
 
@@ -77,7 +79,7 @@
     preview.addEventListener('error', function () {
         if (!loadingSelectedPhoto) return;
         loadingSelectedPhoto = false;
-        input.setCustomValidity('Choose a valid JPEG, PNG, or WebP contact photo.');
+        input.setCustomValidity('Choose a valid JPEG, PNG, or WebP ' + photoLabel + ' photo.');
         preview.src = originalSource;
         preview.alt = originalAlt;
         status.textContent = 'That photo could not be previewed. Choose a different file.';
