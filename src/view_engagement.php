@@ -522,52 +522,12 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <?php if ($presentation['actual_attendance'] !== null): ?>
                 <div>Actual attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                 <?php endif; ?>
-                <?php
-                $presentation_has_qr = !empty($presentation['has_speaker_notes_qr'])
-                    || !empty($presentation['has_speaker_website_qr'])
-                    || !empty($presentation['has_speaker_donation_qr']);
-                ?>
-                <?php if (!empty($presentation['has_slide_deck']) || $presentation_has_qr): ?>
-                    <div class="presentation-view-assets">
-                        <?php if (!empty($presentation['has_slide_deck'])): ?>
-                            <?php $slide_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slides'; ?>
-                            <a href="<?php echo htmlspecialchars($slide_url, ENT_QUOTES, 'UTF-8'); ?>"
-                               class="presentation-view-pdf">
-                                Download PDF slide deck<?php if (!empty($presentation['slide_deck_filename'])): ?>:
-                                    <?php echo htmlspecialchars((string) $presentation['slide_deck_filename'], ENT_QUOTES, 'UTF-8'); ?>
-                                <?php endif; ?>
-                            </a>
-                        <?php endif; ?>
-                        <?php if ($presentation_has_qr): ?>
-                            <div class="presentation-view-qr-grid">
-                                <?php
-                                $view_qr_codes = [
-                                    ['has_speaker_notes_qr', 'notes_qr', 'Speaker Notes'],
-                                    ['has_speaker_website_qr', 'website_qr', 'Speaker Website'],
-                                    ['has_speaker_donation_qr', 'donation_qr', 'Speaker Donations'],
-                                ];
-                                ?>
-                                <?php foreach ($view_qr_codes as [$has_key, $query_type, $label]): ?>
-                                    <?php if (!empty($presentation[$has_key])): ?>
-                                        <?php $qr_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=' . $query_type; ?>
-                                        <div class="presentation-qr-display">
-                                            <div class="presentation-view-asset-label"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></div>
-                                            <button type="button"
-                                                    class="presentation-view-qr-button"
-                                                    data-copy-qr-url="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                    aria-label="Copy <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR code">
-                                                <img src="<?php echo htmlspecialchars($qr_url, ENT_QUOTES, 'UTF-8'); ?>"
-                                                     alt="<?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR code">
-                                                <span>Click to copy</span>
-                                            </button>
-                                            <span class="presentation-qr-status" data-copy-status role="status" aria-live="polite"></span>
-                                        </div>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+                <div class="presentation-view-assets">
+                    <?php if (!empty($presentation['has_slide_deck'])): ?>
+                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slides">Download PDF slide deck</a>
+                    <?php endif; ?>
+                    <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/templates/presentation_short_links.php'; ?>
+                </div>
             </div>
             <?php endforeach; ?>
             <?php if (!$presentations): ?>

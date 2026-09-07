@@ -19,6 +19,8 @@
         "ext-sodium": "*",
         "endroid/qr-code": "^6.0",
         "giggsey/libphonenumber-for-php": "^9.0",
+        "matomo/device-detector": "^6.5",
+        "maxmind-db/reader": "^1.13",
         "spomky-labs/otphp": "^11.4",
         "symfony/yaml": "^7.3",
         "tecnickcom/tcpdf": "^6.11",

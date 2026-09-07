@@ -612,6 +612,8 @@ $presentations_query = "SELECT id, engagement_id, topic_title, presentation_date
                                expected_attendance, actual_attendance,
                                slide_deck_pdf IS NOT NULL AS has_slide_deck,
                                slide_deck_filename, slide_deck_size, slide_deck_updated_at,
+                               EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = presentations.id AND n.speaker_id = presentations.speaker_id AND n.pdf IS NOT NULL) AS has_speaker_notes,
+                               (SELECT filename FROM presentation_notes n WHERE n.presentation_id = presentations.id AND n.speaker_id = presentations.speaker_id) AS speaker_notes_filename,
                                speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
                                speaker_notes_qr_updated_at,
                                speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,

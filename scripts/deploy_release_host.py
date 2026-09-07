@@ -136,6 +136,12 @@ def main():
                 output = speaker_seed('apply')
                 record['speaker_seed'] = json.loads(output.splitlines()[-1])
                 save('speaker-seed-verified')
+            save('preparing-qr-images')
+            # Render existing links once while writers remain paused. Page and
+            # download requests only serve the stored PNG/SVG files.
+            record['qr_images'] = compose('run', '--rm', '--no-deps', '--entrypoint', 'php',
+                '-e', 'DNR_PUBLIC_BASE_URL=' + public_url,
+                'maintenance', '/opt/dnr/bin/backfill_short_link_qr.php')
             save('starting')
             compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '180')
             for service in ('web', 'geocoder', 'mail-ingest', 'mail-dispatch'):

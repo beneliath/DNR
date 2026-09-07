@@ -66,3 +66,5 @@
 20260907_add_speaker_photos.sql
 20260907_add_speaker_bio.sql
 20260907_add_speaker_urls.sql
+20260907_add_short_links.sql
+20260907_store_short_link_qr_images.sql

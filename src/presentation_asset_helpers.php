@@ -62,6 +62,11 @@ function presentationAssetDefinitions(): array
             'sha_column' => 'slide_deck_sha256',
             'updated_column' => 'slide_deck_updated_at',
         ],
+        'speaker_notes' => [
+            'kind' => 'pdf', 'label' => 'PDF speaker notes', 'query_type' => 'notes',
+            'data_column' => 'pdf', 'mime_column' => null, 'filename_column' => 'filename',
+            'size_column' => 'size', 'sha_column' => 'sha256', 'updated_column' => 'updated_at',
+        ],
         'speaker_notes_qr' => [
             'kind' => 'image',
             'label' => 'speaker notes QR code',
@@ -283,15 +288,26 @@ function attachPresentationAssetChanges(
         foreach ($definitions as $asset_key => $definition) {
             $upload = $upload_map[$form_key][$asset_key] ?? null;
             $remove = presentationAssetRemovalRequested($submitted_row, $asset_key);
+            if ($definition['kind'] === 'image' && ($upload !== null || $remove)) {
+                throw new InvalidArgumentException('QR codes are now generated automatically. Reload the presentation form.');
+            }
             if ($upload !== null && $remove) {
                 throw new InvalidArgumentException(
                     'Choose either a replacement or removal for the ' . $definition['label'] . ', not both.'
                 );
             }
             if ($upload !== null) {
-                $asset = $definition['kind'] === 'pdf'
-                    ? presentationSlideDeckFromUpload($upload)
-                    : presentationQrImageFromUpload($upload, $definition['label']);
+                try {
+                    $asset = $definition['kind'] === 'pdf'
+                        ? presentationSlideDeckFromUpload($upload)
+                        : presentationQrImageFromUpload($upload, $definition['label']);
+                } catch (InvalidArgumentException $exception) {
+                    if ($asset_key !== 'speaker_notes') throw $exception;
+                    throw new InvalidArgumentException(str_replace(
+                        ['PDF slide decks', 'PDF slide deck'], ['PDF speaker notes', 'PDF speaker notes'],
+                        $exception->getMessage()
+                    ));
+                }
                 $changes[$asset_key] = ['action' => 'replace', 'asset' => $asset];
             } elseif ($remove) {
                 $changes[$asset_key] = ['action' => 'remove'];
@@ -318,6 +334,11 @@ function applyPresentationAssetChanges(
     foreach ($changes as $asset_key => $change) {
         if (!isset($definitions[$asset_key]) || !is_array($change)) {
             throw new InvalidArgumentException('Invalid presentation asset submission.');
+        }
+        if ($asset_key === 'speaker_notes') {
+            require_once __DIR__ . '/short_link_helpers.php';
+            applyPresentationNotesChange($conn, $presentation_id, $engagement_id, $change);
+            continue;
         }
         $definition = $definitions[$asset_key];
         $action = (string) ($change['action'] ?? '');
@@ -419,6 +440,7 @@ function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stor
             continue;
         }
         foreach ([
+            'has_speaker_notes', 'speaker_notes_filename',
             'has_slide_deck', 'slide_deck_filename', 'slide_deck_size', 'slide_deck_updated_at',
             'has_speaker_notes_qr', 'speaker_notes_qr_updated_at',
             'has_speaker_website_qr', 'speaker_website_qr_updated_at',

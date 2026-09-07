@@ -1,0 +1,7 @@
+# Optional offline country lookups when requests do not arrive through Cloudflare.
+services:
+  web:
+    environment:
+      DNR_GEOIP_DATABASE: /opt/dnr/geoip/country.mmdb
+    volumes:
+      - ${DNR_GEOIP_DATABASE_FILE:?Set DNR_GEOIP_DATABASE_FILE to a country MMDB file}:/opt/dnr/geoip/country.mmdb:ro

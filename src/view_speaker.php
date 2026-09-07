@@ -25,10 +25,13 @@ unset($_SESSION['speaker_message']);
 <div class="container view-contact-page" role="main">
     <?php if ($message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($return_to, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(recordReturnLabel($return_to), ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span><span>Speaker Details</span></nav>
-    <div class="page-heading record-page-heading view-contact-heading">
+    <div class="page-heading record-page-heading view-contact-heading speaker-view-heading">
         <div><h1><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></h1><p class="page-intro">Speaker</p></div>
         <?php if (hasRole(['admin', 'editor'])): ?>
-            <a class="button-secondary" href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_speaker.php?id=' . $speaker_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>">Edit Speaker</a>
+            <a class="button-secondary speaker-heading-edit" href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_speaker.php?id=' . $speaker_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>">Edit Speaker</a>
+        <?php endif; ?>
+        <?php if (hasRole(['admin', 'editor', 'reviewer'])): ?>
+            <a class="button-secondary speaker-heading-statistics" href="short_links.php?speaker_id=<?php echo (int) $speaker['id']; ?>">Statistics</a>
         <?php endif; ?>
     </div>
     <div class="contact-overview-grid">

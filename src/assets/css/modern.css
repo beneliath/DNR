@@ -6126,3 +6126,38 @@ html body :is(.inbound-status-filters, .map-list-filters) {
     .numbered-pagination .page-previous,
     .numbered-pagination .page-next { min-width: 36px; padding-inline: 9px; }
 }
+
+/* Shared generated QR cards in both presentation forms and engagement details. */
+.presentation-generated-links .presentation-view-qr-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+}
+.presentation-generated-links .presentation-qr-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .65rem;
+  padding: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  text-align: center;
+}
+html body .presentation-generated-links button.presentation-view-qr-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .5rem;
+  padding: .5rem;
+  background: var(--surface-subtle);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+html body .presentation-generated-links .presentation-view-qr-button img {
+  display: block;
+  width: 160px;
+  height: 160px;
+  max-width: 100%;
+  background: white;
+}
