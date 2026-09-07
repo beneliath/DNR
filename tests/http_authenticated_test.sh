@@ -197,21 +197,21 @@ curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.ht
 grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
 grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
 grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=20"' "$temporary_directory/editor-task-reminders.html"
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/editor-task-reminders.html")" -eq 2
+! grep -q 'numbered-pagination' "$temporary_directory/editor-task-reminders.html"
 
 # Work ownership views keep independent preferences, including when users
 # follow the rendered links after selecting a different size in another view.
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/unassigned-default-page-size.html" \
     "$base_url/tasks.php?scope=unassigned"
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/unassigned-default-page-size.html")" -eq 2
+grep -q 'scope=unassigned&amp;per_page=20' "$temporary_directory/unassigned-default-page-size.html"
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/everyone-page-size.html" \
     "$base_url/tasks.php?scope=everyone&per_page=50"
-test "$(grep -c 'aria-current="true">50</a>' "$temporary_directory/everyone-page-size.html")" -eq 2
+grep -q 'scope=everyone&amp;per_page=50' "$temporary_directory/everyone-page-size.html"
 mine_url=$(sed -n 's/.*href="\([^"]*\)">My work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
 test -n "$mine_url"
 case "$mine_url" in *per_page=*) echo 'Ownership links must not carry another view size.' >&2; exit 1 ;; esac
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/mine-page-size.html" "$base_url/$mine_url"
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/mine-page-size.html")" -eq 2
+grep -q 'scope=mine&amp;per_page=20' "$temporary_directory/mine-page-size.html"
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
     "$base_url/tasks.php?scope=mine&per_page=20"
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
@@ -221,29 +221,27 @@ for selection in mine:20 everyone:50 unassigned:100; do
     size=${selection#*:}
     curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/work-page-size.html" \
         "$base_url/tasks.php?scope=$scope&view=overdue"
-    test "$(grep -c "aria-current=\"true\">$size</a>" "$temporary_directory/work-page-size.html")" -eq 2
+    grep -q "scope=$scope&amp;per_page=$size" "$temporary_directory/work-page-size.html"
 done
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/map-default-page-size.html" "$base_url/map.php"
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/map-default-page-size.html")" -eq 2
+grep -q 'name="per_page" value="20"' "$temporary_directory/map-default-page-size.html"
 ! grep -q '>500</a>' "$temporary_directory/map-default-page-size.html"
 
-# Each page remembers its own row limit across authenticated visits. Empty
-# searches keep both size selectors and counts, without a one-page navigator.
+# Each page remembers its own record limit even when an empty search hides
+# both pagination tools. Search forms retain the remembered setting.
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
     "$base_url/contacts.php?per_page=50"
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o /dev/null \
     "$base_url/organizations.php?per_page=100"
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/contact-page-size.html" \
     "$base_url/contacts.php?q=NoPaginationMatch$fixture_suffix"
-test "$(grep -c 'aria-current="true">50</a>' "$temporary_directory/contact-page-size.html")" -eq 2
-grep -q 'Showing 0 of 0 contacts' "$temporary_directory/contact-page-size.html"
-! grep -q 'class="pagination-bar"' "$temporary_directory/contact-page-size.html"
+grep -q 'name="per_page" value="50"' "$temporary_directory/contact-page-size.html"
+! grep -q 'numbered-pagination' "$temporary_directory/contact-page-size.html"
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/organization-page-size.html" \
     "$base_url/organizations.php?q=NoPaginationMatch$fixture_suffix"
-test "$(grep -c 'aria-current="true">100</a>' "$temporary_directory/organization-page-size.html")" -eq 2
-grep -q 'Showing 0 of 0 organizations' "$temporary_directory/organization-page-size.html"
-! grep -q 'class="pagination-bar"' "$temporary_directory/organization-page-size.html"
+grep -q 'name="per_page" value="100"' "$temporary_directory/organization-page-size.html"
+! grep -q 'numbered-pagination' "$temporary_directory/organization-page-size.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add.html")
@@ -403,7 +401,7 @@ grep -q '<option value="CA" selected>' "$temporary_directory/editor-edit-engagem
 grep -q 'name="event_state" id="event_state" value="ON"' "$temporary_directory/editor-edit-engagement-updated.html"
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/engagement-default-page-size.html" \
     "$base_url/view_engagement.php?id=$engagement_id"
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/engagement-default-page-size.html")" -eq 2
+! grep -q 'numbered-pagination' "$temporary_directory/engagement-default-page-size.html"
 
 # Archive dependent records before exercising the organization archive guard.
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-contacts.html" "$base_url/contacts.php"
@@ -452,7 +450,7 @@ expect_location "$temporary_directory/admin-verify.headers" 'dashboard.php' 'adm
 status=$(curl -sS -b "$admin_cookies" -o "$temporary_directory/admin-users.html" \
     -w '%{http_code}' "$base_url/users.php")
 expect_status "$status" '200' 'administrator user list'
-test "$(grep -c 'aria-current="true">20</a>' "$temporary_directory/admin-users.html")" -eq 2
+! grep -q 'numbered-pagination' "$temporary_directory/admin-users.html"
 
 # Administrators can exercise the existing Editor and Reviewer authorization
 # paths without losing their authenticated identity. Every preview remains

@@ -389,6 +389,35 @@ Primary implementation references: Proton's pinned
 [Bridge header construction](https://github.com/ProtonMail/proton-bridge/blob/v3.25.0/pkg/message/build.go),
 and [sender verification explanation](https://proton.me/support/digital-signature).
 
+#### Follow-up: automatic Chron filing permissions
+
+After deploying 1.11.24, a new Proton test message passed sender authentication and its signed
+Engagement route, but automatic filing failed with `UPDATE command denied` on
+`contact_chron_entries`. **Retry Routing** then succeeded because that action uses the web
+application's database account. The background worker uses `dnrmailingest`, which intentionally
+has only `SELECT` and `INSERT` access to Contact, Organization, Engagement, and Inquiry Chron.
+
+The filing queries used `ON DUPLICATE KEY UPDATE id = id` to avoid duplicate Chron entries.
+MySQL requires `UPDATE` permission for that clause when preparing the statement, including a
+first delivery and even when the Contact target list is empty. The error therefore occurred before
+the intended Engagement entry could be inserted. The transaction rolled back, retaining the source
+message for retry. This was a filing-permission defect after successful authentication.
+
+Filing now uses `INSERT ... SELECT ... WHERE NOT EXISTS` for all four Chron tables. The existing
+`FOR UPDATE` lock on the inbound source row serializes filing attempts for that message throughout
+the transaction. Existing entries are skipped without changing their text, attribution, or timestamps;
+the unique source/target indexes remain in place, and other database errors still abort the transaction.
+This requires no additional worker grants or schema migration. Processed messages remain terminal.
+
+`tests/inbound_worker_filing_integration_test.php` reproduces the old permission denial and verifies
+the fix through a real `dnrmailingest` connection in a disposable database. It confirms that Chron
+updates remain forbidden, tests an Engagement-only message with no Contact match, covers all four
+Chron destinations, preserves pre-existing entries, and checks duplicate delivery and completed-message
+protection. Fixture setup and cleanup use the web account; filing always uses the restricted worker.
+Both ordinary integration CI and exact-release-image qualification run this regression. Previously,
+filing integration used the web account, while worker-privilege tests only checked account-column
+access, which allowed the mismatch to escape testing.
+
 An Engagement marker is a signed routing capability, so do not expose it outside the intended
 correspondence. Unsigned legacy markers intentionally require review after this upgrade. Exact
 address matching remains a routing aid, not proof of sender identity, and inbound entries are always

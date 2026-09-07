@@ -142,6 +142,10 @@ function paginationUrl(string $base_url, int $page, int $size, string $page_key 
 
 /** @param list<int> $allowed_sizes */
 function renderPagination(int $total, int $page, int $size, string $base_url, string $label, string $aria_label, string $page_key = 'page', string $size_key = 'per_page', array $allowed_sizes = [20, 50, 100]): void {
+    if ($total <= 20) {
+        return;
+    }
+    $allowed_sizes = array_values(array_filter($allowed_sizes, static fn(int $option): bool => $total > $option));
     $state = paginationState($total, $size, $page);
     $page_numbers = paginationPageNumbers($state['page'], $state['pages']);
     $url = static fn(int $target_page, int $target_size): string => htmlspecialchars(

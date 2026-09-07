@@ -294,6 +294,13 @@ jobs:
           for suite in account_security inbound_email user_lifecycle booking_inquiry; do
             docker compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/tests/${suite}_integration_test.php"
           done
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.ci-image.yaml \
+            run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            -e DNR_TEST_MAIL_INGEST_PASSWORD_FILE=/run/secrets/test_mail_ingest_password \
+            -v "$PWD/secrets/mysql_mail_ingest_password:/run/secrets/test_mail_ingest_password:ro" \
+            web /opt/dnr/tests/inbound_worker_filing_integration_test.php
       - name: Rehearse the deployment backup and restore gate
         run: |
           docker compose stop web geocoder

@@ -80,11 +80,38 @@ unset($_SESSION['organization_action_message'], $_SESSION['organization_action_e
 generateCsrfToken();
 releaseApplicationSessionLock();
 
-// Retrieve organizations using an allowlisted name-sort direction.
+// Keep sort columns and directions allowlisted before building SQL.
 $name_sort = strtolower(\Dnr\Http\RequestInput::string($_GET, 'name_sort')) === 'desc'
     ? 'desc'
     : 'asc';
-$order_direction = $name_sort === 'asc' ? 'ASC' : 'DESC';
+$last_giving_sort = \Dnr\Http\RequestInput::string($_GET, 'last_giving_sort') === 'asc' ? 'asc' : 'desc';
+$lifetime_giving_sort = \Dnr\Http\RequestInput::string($_GET, 'lifetime_giving_sort') === 'asc' ? 'asc' : 'desc';
+$sort_column = \Dnr\Http\RequestInput::enum($_GET, 'sort_by', ['name', 'last_giving', 'lifetime_giving'], 'name');
+$sort_direction = match ($sort_column) {
+    'last_giving' => $last_giving_sort,
+    'lifetime_giving' => $lifetime_giving_sort,
+    default => $name_sort,
+};
+$order_direction = $sort_direction === 'asc' ? 'ASC' : 'DESC';
+$financial_sort_join = '';
+$order_clause = "o.organization_name {$order_direction}, o.id {$order_direction}";
+if ($sort_column !== 'name') {
+    // Match the displayed financial summaries: only finalized reports count,
+    // and the latest event is determined by event dates, not closeout entry time.
+    $financial_sort_join = ' LEFT JOIN (
+        SELECT engagement.organization_id, report.giving_income_received AS last_event_giving,
+               SUM(report.giving_income_received) OVER (PARTITION BY engagement.organization_id) AS lifetime_giving,
+               ROW_NUMBER() OVER (
+                   PARTITION BY engagement.organization_id
+                   ORDER BY engagement.event_end_date DESC, engagement.event_start_date DESC, engagement.id DESC
+               ) AS financial_position
+        FROM engagement_financial_reports report
+        INNER JOIN engagements engagement ON engagement.id = report.engagement_id
+    ) financial ON financial.organization_id = o.id AND financial.financial_position = 1';
+    $order_clause = $sort_column === 'last_giving'
+        ? "financial.last_event_giving IS NULL ASC, financial.last_event_giving {$order_direction}, o.organization_name ASC, o.id ASC"
+        : "COALESCE(financial.lifetime_giving, 0) {$order_direction}, o.organization_name ASC, o.id ASC";
+}
 $search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
 $fulltext_query = fulltextSearchQuery($search);
 if ($fulltext_query === '') {
@@ -120,7 +147,7 @@ $search_filter = $fulltext_query === '' ? '' : " AND (
 $cursor_filter = '';
 $cursor_values = [];
 $cursor_types = '';
-if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
+if ($sort_column === 'name' && $cursor !== null && ctype_digit((string) $cursor['id'])) {
     $comparison = $order_direction === 'ASC' ? '>' : '<';
     $cursor_filter = " AND (o.organization_name {$comparison} ? OR (o.organization_name = ? AND o.id {$comparison} ?))";
     $cursor_values = [(string) $cursor['name'], (string) $cursor['name'], (int) $cursor['id']];
@@ -129,7 +156,8 @@ if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
     $cursor = null;
 }
 $query_limit = $page_size;
-$organization_from = "FROM organizations o WHERE o.is_deleted = {$archive_value}{$search_filter}";
+$organization_where = "WHERE o.is_deleted = {$archive_value}{$search_filter}";
+$organization_from = "FROM organizations o {$organization_where}";
 $search_values = $fulltext_query !== '' ? [$fulltext_query, $fulltext_query] : [];
 $pagination = queryPagination($conn, $organization_from, $fulltext_query !== '' ? 'ss' : '', $search_values, $page_size, $_GET['page'] ?? null, $cursor_filter, $cursor_types, $cursor_values);
 $current_page = $pagination['page'];
@@ -137,8 +165,8 @@ $page_offset = $pagination['offset'];
 
 $query = "SELECT o.id, o.organization_name, o.physical_city, o.physical_state,
                  '' AS contact_names
-          {$organization_from}
-          ORDER BY o.organization_name {$order_direction}, o.id {$order_direction}
+          FROM organizations o{$financial_sort_join} {$organization_where}
+          ORDER BY {$order_clause}
           LIMIT ? OFFSET ?";
 $query_stmt = $conn->prepare($query);
 if (!$query_stmt) abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
@@ -210,20 +238,21 @@ if ($organizations !== []) {
     unset($organization);
 }
 
-function organizationsPageUrl($status, $name_sort, $search = '', $cursor = null, $page_size = 20)
-{
-    $parameters = [
-        'status' => $status,
+$list_url = static function (array $overrides = []) use (
+    $list_status, $name_sort, $last_giving_sort, $lifetime_giving_sort, $sort_column, $search, $page_size
+): string {
+    $parameters = array_merge([
+        'status' => $list_status,
         'name_sort' => $name_sort,
+        'last_giving_sort' => $last_giving_sort,
+        'lifetime_giving_sort' => $lifetime_giving_sort,
+        'sort_by' => $sort_column,
         'per_page' => $page_size,
-    ];
-    if (is_string($cursor) && $cursor !== '') $parameters['cursor'] = $cursor;
-    if ($search !== '') {
-        $parameters['q'] = $search;
-    }
+        'q' => $search !== '' ? $search : null,
+    ], $overrides);
     return 'organizations.php?' . http_build_query($parameters);
-}
-$list_current_url = paginationUrl(organizationsPageUrl($list_status, $name_sort, $search, null, $page_size), $current_page, $page_size);
+};
+$list_current_url = paginationUrl($list_url(), $current_page, $page_size);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -256,23 +285,31 @@ $list_current_url = paginationUrl(organizationsPageUrl($list_status, $name_sort,
         <form method="get" action="organizations.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="hidden" name="last_giving_sort" value="<?php echo $last_giving_sort; ?>">
+            <input type="hidden" name="lifetime_giving_sort" value="<?php echo $lifetime_giving_sort; ?>">
+            <input type="hidden" name="sort_by" value="<?php echo $sort_column; ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <label class="visually-hidden" for="organization-search">Search organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
-            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort, '', null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Organization archive status">
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('active', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
-            <a href="<?php echo htmlspecialchars(organizationsPageUrl('archived', $name_sort, $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
+            <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
+            <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
         <div class="control-group" aria-label="Organization sort order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
-                <a href="<?php echo htmlspecialchars(organizationsPageUrl($list_status, $name_sort === 'asc' ? 'desc' : 'asc', $search, null, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button active" aria-current="true">
+                <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'name', 'name_sort' => $sort_column === 'name' && $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === 'name' ? ' active' : ''; ?>"<?php echo $sort_column === 'name' ? ' aria-current="true"' : ''; ?>>
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
+                <?php foreach (['last_giving' => ['Last Giving', $last_giving_sort], 'lifetime_giving' => ['Lifetime Giving', $lifetime_giving_sort]] as $giving_column => [$giving_label, $giving_direction]): ?>
+                    <a href="<?php echo htmlspecialchars($list_url(['sort_by' => $giving_column, $giving_column . '_sort' => $sort_column === $giving_column ? ($giving_direction === 'asc' ? 'desc' : 'asc') : $giving_direction]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === $giving_column ? ' active' : ''; ?>"<?php echo $sort_column === $giving_column ? ' aria-current="true"' : ''; ?>>
+                        <?php echo $giving_label . ' ' . ($giving_direction === 'asc' ? '↑' : '↓'); ?>
+                    </a>
+                <?php endforeach; ?>
             </div>
         </div>
     </div>

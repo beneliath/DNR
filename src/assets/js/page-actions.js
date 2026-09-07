@@ -543,6 +543,55 @@
         });
     }
 
+    function initializeExistingOrganizationContacts() {
+        const section = document.querySelector('[data-existing-organization-contacts]');
+        if (!section) return;
+        const rows = section.querySelector('[data-existing-organization-contact-rows]');
+        const add = section.querySelector('[data-add-existing-organization-contact]');
+        if (!rows || !add || !rows.firstElementChild) return;
+        const template = rows.firstElementChild.cloneNode(true);
+        template.querySelectorAll('option').forEach(function (option) {
+            if (option.textContent === 'Previously selected contact is unavailable') option.remove();
+        });
+        function update() {
+            Array.from(rows.children).forEach(function (row, index) {
+                const select = row.querySelector('[data-existing-contact-select]');
+                const role = row.querySelector('[data-existing-contact-role]');
+                const filled = select.value !== '' || role.value.trim() !== '';
+                select.id = 'existing-contact-' + index;
+                select.name = 'existing_contacts[' + index + '][contact_id]';
+                role.id = 'existing-contact-role-' + index;
+                role.name = 'existing_contacts[' + index + '][role_title]';
+                [select, role].forEach(function (field) {
+                    field.required = filled;
+                    const label = field.closest('.form-group').querySelector('label');
+                    label.htmlFor = field.id;
+                    label.classList.toggle('required', filled);
+                });
+            });
+            add.disabled = rows.children.length >= 20;
+        }
+        function append() {
+            const row = template.cloneNode(true);
+            row.querySelector('[data-existing-contact-select]').value = '';
+            row.querySelector('[data-existing-contact-role]').value = '';
+            rows.appendChild(row);
+            update();
+            row.querySelector('select').focus();
+        }
+        add.addEventListener('click', function () { if (rows.children.length < 20) append(); });
+        rows.addEventListener('input', update);
+        rows.addEventListener('change', update);
+        rows.addEventListener('click', function (event) {
+            const remove = event.target.closest('[data-remove-existing-organization-contact]');
+            if (!remove) return;
+            remove.closest('[data-existing-organization-contact-row]').remove();
+            if (rows.children.length === 0) append();
+            else { update(); add.focus(); }
+        });
+        update();
+    }
+
     function initializeAdditionalOrganizationContacts() {
         const container = document.getElementById('contacts-container');
         const template = document.getElementById('contact-entry-template');
@@ -1073,6 +1122,7 @@
         initializeAddressRegions();
         updatePrimaryOrganizationContactRequirements();
         initializeAdditionalOrganizationContacts();
+        initializeExistingOrganizationContacts();
         initializeEngagementForm();
         initializeSelectAll('select-all-chron-entries', 'chron_entry_ids[]');
         initializeSelectAll('select-all-presentations', 'presentation_ids[]');

@@ -2,6 +2,54 @@
 
 declare(strict_types=1);
 
+/** @return list<array{contact_id: int, role_title: string}> */
+function normalizeOrganizationExistingContacts(mixed $submitted): array
+{
+    if ($submitted === null) return [];
+    if (!is_array($submitted) || count($submitted) > 20) {
+        throw new InvalidArgumentException('Add no more than 20 existing contacts at a time.');
+    }
+    $contacts = [];
+    foreach ($submitted as $row) {
+        if (!is_array($row) || !is_scalar($row['contact_id'] ?? '') || !is_scalar($row['role_title'] ?? '')) {
+            throw new InvalidArgumentException('Select an existing contact and describe their role.');
+        }
+        $id = trim((string) ($row['contact_id'] ?? ''));
+        $title = trim((string) ($row['role_title'] ?? ''));
+        if ($id === '' && $title === '') continue;
+        if (!ctype_digit($id) || (int) $id < 1 || (string) (int) $id !== $id) {
+            throw new InvalidArgumentException('Select an existing contact for each additional role.');
+        }
+        if ($title === '' || mb_strlen($title) > 255) {
+            throw new InvalidArgumentException('Describe each existing contact’s role in 1–255 characters.');
+        }
+        if (isset($contacts[(int) $id])) {
+            throw new InvalidArgumentException('Select each existing contact only once.');
+        }
+        $contacts[(int) $id] = ['contact_id' => (int) $id, 'role_title' => $title];
+    }
+    ksort($contacts);
+    return array_values($contacts);
+}
+
+/** Preserve safe draft fields when another part of organization creation is invalid.
+ * @return list<array{contact_id: string, role_title: string}>
+ */
+function organizationExistingContactFormRows(mixed $submitted): array
+{
+    $rows = [];
+    if (is_array($submitted)) {
+        foreach (array_slice(array_values($submitted), 0, 20) as $row) {
+            if (!is_array($row)) continue;
+            $rows[] = [
+                'contact_id' => is_scalar($row['contact_id'] ?? null) ? (string) $row['contact_id'] : '',
+                'role_title' => is_scalar($row['role_title'] ?? null) ? (string) $row['role_title'] : '',
+            ];
+        }
+    }
+    return $rows ?: [['contact_id' => '', 'role_title' => '']];
+}
+
 /**
  * Normalize the additional affiliations submitted by a contact form.
  * The primary organization remains in contacts for older integrations.

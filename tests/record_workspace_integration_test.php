@@ -92,9 +92,11 @@ try {
 
     // Each filtered list has enough fixtures to traverse a real page boundary.
     $keyword = 'Recordnav' . $suffix;
+    $sortOrganizationIds = [];
     for ($n = 1; $n <= 27; $n++) {
         $conn->query("INSERT INTO organizations (organization_name) VALUES ('{$keyword} Organization {$n}')");
         $organizations[] = (int) $conn->insert_id;
+        $sortOrganizationIds[$n] = (int) $conn->insert_id;
         $conn->query("INSERT INTO contacts (organization_id, contact_first_name, contact_last_name, contact_role, contact_email) VALUES ({$orgId}, '{$keyword}', 'Contact {$n}', 'admin', 'nav-{$suffix}-{$n}@example.org')");
         $contacts[] = (int) $conn->insert_id;
         $conn->query("INSERT INTO engagements (organization_id, event_title, event_start_date, event_end_date, event_type, confirmation_status) VALUES ({$orgId}, '{$keyword} Event {$n}', '2026-09-10', '2026-09-12', 'conference', 'under_review')");
@@ -141,13 +143,75 @@ try {
                     'Invalid page input falls back to the first page');
             }
             $empty = recordHttp($list . '?q=NoContact' . $suffix . '&page=5', $editorSession);
-            expectRecordHttp($empty['status'] === 200 && str_contains($empty['body'], 'Showing 0 of 0 contacts')
+            expectRecordHttp($empty['status'] === 200 && !str_contains($empty['body'], 'numbered-pagination')
                 && !str_contains($empty['body'], 'rel="next"') && !str_contains($empty['body'], 'rel="prev"'),
                 'Empty searches have no enabled page navigation');
             $larger = recordHttp($list . '?q=' . $keyword . '&per_page=50&page=2', $editorSession);
             expectRecordHttp($larger['status'] === 200 && str_contains($larger['body'], 'Showing 1–27 of 27 contacts'),
                 'Changing the page size keeps the request within the available pages');
         }
+    }
+    // Giving sorts must use finalized amounts across the whole result set.
+    $addFinancialEvent = static function (int $organizationId, string $date, ?string $giving, int $archived = 0) use ($conn, &$engagements): int {
+        $conn->execute_query("INSERT INTO engagements (organization_id, event_title, event_start_date, event_end_date,
+            event_type, confirmation_status, lifecycle_status, is_deleted)
+            VALUES (?, 'Financial sort fixture', ?, ?, 'conference', 'confirmed', 'completed', ?)",
+            [$organizationId, $date, $date, $archived]);
+        $id = $engagements[] = (int) $conn->insert_id;
+        if ($giving !== null) {
+            $conn->execute_query("INSERT INTO engagement_financial_reports (engagement_id, giving_income_received, closed_at)
+                VALUES (?, ?, ?)", [$id, $giving, $archived ? '2026-09-01 12:00:00' : '2026-08-21 12:00:00']);
+        }
+        return $id;
+    };
+    $givingKeyword = 'Givingsort' . $suffix;
+    foreach ($sortOrganizationIds as $n => $id) {
+        $conn->execute_query('UPDATE organizations SET organization_name = ? WHERE id = ?', [$givingKeyword . ' Organization ' . $n, $id]);
+        if ($n === 27) continue; // No finalized report is distinct from confirmed zero.
+        $addFinancialEvent($id, '2026-08-20', (string) ($n === 26 ? 0 : min($n, 24) * 100));
+    }
+    $addFinancialEvent($sortOrganizationIds[1], '2026-01-01', '9000.00', 1);
+    // Same event dates use the newer event ID, including cents in the ordering.
+    $addFinancialEvent($sortOrganizationIds[3], '2026-08-20', '25.25');
+    $draftId = $addFinancialEvent($sortOrganizationIds[2], '2026-08-30', null);
+    $conn->execute_query('INSERT INTO engagement_financial_drafts (engagement_id, giving_income_received, updated_by) VALUES (?, ?, ?)',
+        [$draftId, '99999.99', $users[0]]);
+    $givingCases = [
+        ['last_giving', 'desc', [24, 25, ...range(23, 4), 2, 1, 3, 26, 27]],
+        ['last_giving', 'asc', [26, 3, 1, 2, ...range(4, 23), 24, 25, 27]],
+        ['lifetime_giving', 'desc', [1, 24, 25, ...range(23, 4), 3, 2, 26, 27]],
+        ['lifetime_giving', 'asc', [26, 27, 2, 3, ...range(4, 23), 24, 25, 1]],
+    ];
+    foreach ($givingCases as [$column, $direction, $expectedPositions]) {
+        $url = 'organizations.php?' . http_build_query(['q' => $givingKeyword, 'per_page' => 20, 'sort_by' => $column, $column . '_sort' => $direction]);
+        $foundIds = [];
+        for ($page = 1; $page <= 2; $page++) {
+            $response = recordHttp($url . '&page=' . $page, $editorSession);
+            expectRecordHttp($response['status'] === 200, 'Financial organization sort renders');
+            $dom = new DOMDocument(); @$dom->loadHTML($response['body']); $xpath = new DOMXPath($dom);
+            foreach ($xpath->query('//tbody//a[@class="record-link"]') as $link) {
+                parse_str((string) parse_url($link->getAttribute('href'), PHP_URL_QUERY), $query);
+                $foundIds[] = (int) $query['id'];
+                parse_str((string) parse_url($query['return_to'], PHP_URL_QUERY), $returnQuery);
+                expectRecordHttp($returnQuery['sort_by'] === $column && $returnQuery[$column . '_sort'] === $direction,
+                    'Opening a record preserves the giving sort');
+            }
+            foreach ($xpath->query('//nav[contains(@class,"numbered-pagination")]//a') as $link) {
+                parse_str((string) parse_url($link->getAttribute('href'), PHP_URL_QUERY), $query);
+                expectRecordHttp($query['sort_by'] === $column && $query[$column . '_sort'] === $direction && $query['q'] === $givingKeyword,
+                    'Both pagination controls preserve the giving sort and search');
+            }
+            expectRecordHttp($xpath->query('//form[@role="search"]//input[@name="sort_by" and @value="' . $column . '"]')->length === 1,
+                'Search retains the financial sort');
+            $activeSort = $xpath->query('//div[@aria-label="Organization sort order"]//a[@aria-current="true"]')->item(0);
+            expectRecordHttp($activeSort instanceof DOMElement, 'The active giving sort is identified');
+            parse_str((string) parse_url($activeSort->getAttribute('href'), PHP_URL_QUERY), $toggleQuery);
+            expectRecordHttp($toggleQuery[$column . '_sort'] === ($direction === 'asc' ? 'desc' : 'asc') && !isset($toggleQuery['page']),
+                'Toggling a giving sort reverses direction and returns to page one');
+        }
+        expectRecordHttp($foundIds === array_map(static fn(int $n): int => $sortOrganizationIds[$n], $expectedPositions),
+            'Financial sort order is numeric, stable across pages, excludes drafts, and includes archived event history: ' . $column . ' ' . $direction
+            . '; found fixture positions ' . json_encode(array_map(static fn(int $id) => array_search($id, $sortOrganizationIds, true), $foundIds)));
     }
     $organizationPageTwo = recordHttp('view_organization.php?id=' . $orgId . '&events_page=2', $editorSession);
     expectRecordHttp($organizationPageTwo['status'] === 200 && substr_count($organizationPageTwo['body'], 'aria-label="Organization engagement pages"') === 2 && str_contains($organizationPageTwo['body'], 'Showing 21–28 of 28 engagements'), 'Organization history includes a reachable second page of related engagements');

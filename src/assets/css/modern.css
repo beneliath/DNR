@@ -5040,7 +5040,9 @@ html.dark-mode .login-secondary-link a {
   .organization-table td:nth-child(1)::before { content: "Organization"; }
   .organization-table td:nth-child(2)::before { content: "Location"; }
   .organization-table td:nth-child(3)::before { content: "Contacts"; }
-  .organization-table td:nth-child(4)::before { content: "Actions"; }
+  .organization-table td:nth-child(4)::before { content: "Last Giving"; }
+  .organization-table td:nth-child(5)::before { content: "Lifetime Giving"; }
+  .organization-table td:nth-child(6)::before { content: "Actions"; }
   .contact-table td:nth-child(1)::before { content: "Contact"; }
   .contact-table td:nth-child(2)::before { content: "Organization"; }
   .contact-table td:nth-child(3)::before { content: "Phone number"; }

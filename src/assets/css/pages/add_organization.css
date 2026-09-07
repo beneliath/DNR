@@ -255,3 +255,16 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
         }
+
+.existing-organization-contact-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) auto;
+    align-items: end;
+    gap: 16px;
+    margin-block: 16px;
+}
+.existing-organization-contact-row .form-group { min-width: 0; margin-bottom: 0; }
+@media (max-width: 760px) {
+    .existing-organization-contact-row { grid-template-columns: minmax(0, 1fr); }
+    .existing-organization-contact-row > button { justify-self: start; }
+}

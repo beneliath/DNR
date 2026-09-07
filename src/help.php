@@ -404,7 +404,7 @@ $manual_access_summary = match ($manual_role) {
                         <li>Search organizations by their details or active contacts; sort by name and switch between Active and Archived.</li>
                         <li>The organization list shows location, active contacts, last giving, and lifetime giving from finalized reports.</li>
                         <li>An organization detail page summarizes lifetime giving, last and average event giving, lodging, travel, and recent finalized reports.</li>
-                        <li>Search contacts by person or organization, sort by last name or organization, and choose 20, 50, or 100 rows per page.</li>
+                        <li>Search contacts by person or organization, sort by last name or organization, and choose 20, 50, or 100 records per page.</li>
                         <li>A contact detail page links to all its organizations and shows that person’s Chron and open follow-up work.</li>
                     </ul>
                 </section>

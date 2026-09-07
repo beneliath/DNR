@@ -89,6 +89,10 @@ foreach ([[81, 1, 20, 0, 1, 'Showing 1–20 of 81 organizations'],
     ob_start();
     renderPagination($total, $page, $size, 'organizations.php?q=A%26B', 'organizations', 'Organization pages');
     $html = ob_get_clean();
+    if ($total <= 20) {
+        expectPaginationHelper($html === '', 'Lists with 20 or fewer records must render no pagination tool.');
+        continue;
+    }
     $dom = new DOMDocument();
     @$dom->loadHTML('<?xml encoding="UTF-8">' . $html);
     $xpath = new DOMXPath($dom);
@@ -100,8 +104,8 @@ foreach ([[81, 1, 20, 0, 1, 'Showing 1–20 of 81 organizations'],
             'The current page is identified when navigation is available.');
     } else {
         expectPaginationHelper($xpath->query('//*[@class="pagination-bar"]')->length === 0
-            && $xpath->query('//a[contains(@class,"page-size-button")]')->length === 3,
-            'Single-page and empty lists retain the size selector without a page-navigation bar.');
+            && $xpath->query('//a[contains(@class,"page-size-button")]')->length === 2,
+            'A remembered large page size hides page navigation while offering only useful smaller sizes.');
     }
     expectPaginationHelper(str_contains($html, $status), 'The visible record range agrees with the results.');
     foreach ($xpath->query('//a') as $link) {
@@ -112,6 +116,18 @@ foreach ([[81, 1, 20, 0, 1, 'Showing 1–20 of 81 organizations'],
         }
     }
     expectPaginationHelper($xpath->query('//*[@id]')->length === 0, 'Repeated pagination controls do not duplicate IDs.');
+}
+
+foreach ([0 => [], 19 => [], 20 => [], 21 => [20], 50 => [20], 51 => [20, 50],
+    100 => [20, 50], 101 => [20, 50, 100]] as $total => $expectedSizes) {
+    ob_start();
+    renderPagination($total, 1, 20, 'contacts.php', 'contacts', 'Contact pages');
+    $html = ob_get_clean();
+    preg_match_all('/class="sort-button page-size-button[^>]*>(\d+)<\/a>/', $html, $matches);
+    expectPaginationHelper(array_map('intval', $matches[1]) === $expectedSizes,
+        'Page-size options appear only when the record count strictly exceeds their size.');
+    expectPaginationHelper($total <= 20 ? $html === '' : str_contains($html, 'Records per page:'),
+        'Visible tools use Records per page; small lists have no tool at either placement.');
 }
 
 echo "Pagination helper tests passed.\n";

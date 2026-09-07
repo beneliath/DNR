@@ -1373,19 +1373,25 @@ function processInboundEmailMessage(
         $creatorName = 'Email Gateway';
         $createdAt = (string) $message['received_at'];
 
+        // The source row remains locked for the entire transaction, serializing
+        // filing/retries. Existing target entries are preserved using SELECT and
+        // INSERT only; the ingest worker deliberately has no Chron UPDATE grant.
         $contactInsert = $conn->prepare(
             'INSERT INTO contact_chron_entries
                 (contact_id, inbound_email_message_id, entry_text, created_by,
                  created_by_username_snapshot, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE id = id'
+             SELECT ?, ?, ?, ?, ?, ?, ?, ?
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM contact_chron_entries
+                 WHERE inbound_email_message_id = ? AND contact_id = ?
+             )'
         );
         if (!$contactInsert) {
             throw new RuntimeException('Unable to prepare Contact Chron email routing.');
         }
         foreach ($contactIds as $contactId) {
             $contactInsert->bind_param(
-                'iisisiss',
+                'iisisissii',
                 $contactId,
                 $messageId,
                 $entryText,
@@ -1393,7 +1399,9 @@ function processInboundEmailMessage(
                 $creatorName,
                 $creatorId,
                 $createdAt,
-                $createdAt
+                $createdAt,
+                $messageId,
+                $contactId
             );
             $contactInsert->execute();
         }
@@ -1403,15 +1411,18 @@ function processInboundEmailMessage(
             'INSERT INTO organization_chron_entries
                 (organization_id, inbound_email_message_id, entry_text, created_by,
                  created_by_username_snapshot, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE id = id'
+             SELECT ?, ?, ?, ?, ?, ?, ?, ?
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM organization_chron_entries
+                 WHERE inbound_email_message_id = ? AND organization_id = ?
+             )'
         );
         if (!$organizationInsert) {
             throw new RuntimeException('Unable to prepare Organization Chron email routing.');
         }
         foreach ($organizationIds as $organizationId) {
             $organizationInsert->bind_param(
-                'iisisiss',
+                'iisisissii',
                 $organizationId,
                 $messageId,
                 $entryText,
@@ -1419,7 +1430,9 @@ function processInboundEmailMessage(
                 $creatorName,
                 $creatorId,
                 $createdAt,
-                $createdAt
+                $createdAt,
+                $messageId,
+                $organizationId
             );
             $organizationInsert->execute();
         }
@@ -1429,15 +1442,18 @@ function processInboundEmailMessage(
             'INSERT INTO engagement_chron_entries
                 (engagement_id, inbound_email_message_id, entry_text, created_by,
                  created_by_username_snapshot, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE id = id'
+             SELECT ?, ?, ?, ?, ?, ?, ?, ?
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM engagement_chron_entries
+                 WHERE inbound_email_message_id = ? AND engagement_id = ?
+             )'
         );
         if (!$engagementInsert) {
             throw new RuntimeException('Unable to prepare Engagement Chron email routing.');
         }
         foreach ($engagementIds as $engagementId) {
             $engagementInsert->bind_param(
-                'iisisiss',
+                'iisisissii',
                 $engagementId,
                 $messageId,
                 $entryText,
@@ -1445,7 +1461,9 @@ function processInboundEmailMessage(
                 $creatorName,
                 $creatorId,
                 $createdAt,
-                $createdAt
+                $createdAt,
+                $messageId,
+                $engagementId
             );
             $engagementInsert->execute();
         }
@@ -1455,15 +1473,18 @@ function processInboundEmailMessage(
             'INSERT INTO booking_inquiry_chron_entries
                 (booking_inquiry_id, inbound_email_message_id, entry_text, created_by,
                  created_by_username_snapshot, updated_by, created_at, updated_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-             ON DUPLICATE KEY UPDATE id = id'
+             SELECT ?, ?, ?, ?, ?, ?, ?, ?
+             WHERE NOT EXISTS (
+                 SELECT 1 FROM booking_inquiry_chron_entries
+                 WHERE inbound_email_message_id = ? AND booking_inquiry_id = ?
+             )'
         );
         if (!$inquiryInsert) {
             throw new RuntimeException('Unable to prepare Inquiry Chron email routing.');
         }
         foreach ($inquiryIds as $inquiryId) {
             $inquiryInsert->bind_param(
-                'iisisiss',
+                'iisisissii',
                 $inquiryId,
                 $messageId,
                 $entryText,
@@ -1471,7 +1492,9 @@ function processInboundEmailMessage(
                 $creatorName,
                 $creatorId,
                 $createdAt,
-                $createdAt
+                $createdAt,
+                $messageId,
+                $inquiryId
             );
             $inquiryInsert->execute();
         }

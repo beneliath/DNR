@@ -49,6 +49,17 @@ cleanup_isolated_backup() {
 printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'inbound_worker_filing_integration_test.php' ]; then
+        # The fixture driver creates records as web, but files every message
+        # through a separate connection using the real restricted worker account.
+        compose run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            -e DNR_TEST_MAIL_INGEST_PASSWORD_FILE=/run/secrets/test_mail_ingest_password \
+            -v "${DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE:-${PWD}/secrets/mysql_mail_ingest_password}:/run/secrets/test_mail_ingest_password:ro" \
+            web "/opt/dnr/${test_file}" </dev/null
+        continue
+    fi
     if [ "$test_name" = 'engagement_contacts_http_integration_test.php' ] \
         || [ "$test_name" = 'contact_affiliation_http_integration_test.php' ] \
         || [ "$test_name" = 'uiux_workflow_http_integration_test.php' ] \

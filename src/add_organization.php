@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/contact_organization_helpers.php';
 startSecureSession();
 $creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
 
@@ -21,6 +22,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         ${$field_name} = $field_value;
     }
     $errorMessages = $normalized_organization['errors'];
+    $existing_contacts = [];
+    try {
+        $existing_contacts = normalizeOrganizationExistingContacts($_POST['existing_contacts'] ?? null);
+    } catch (InvalidArgumentException $exception) {
+        $errorMessages[] = $exception->getMessage();
+    }
 
     $contact_first_name = trim($_POST['contact_first_name'] ?? '');
     $contact_last_name = trim($_POST['contact_last_name'] ?? '');
@@ -164,8 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     }
                 }
 
+                foreach ($existing_contacts as $existing_contact) {
+                    ensureContactOrganizationAffiliation($conn, (int) $existing_contact['contact_id'],
+                        (int) $organization_id, $existing_contact['role_title']);
+                }
                 $conn->commit();
-                $_SESSION['success_message'] = !empty($contacts_to_create)
+                $_SESSION['success_message'] = !empty($contacts_to_create) || !empty($existing_contacts)
                     ? "Organization and contact information saved successfully."
                     : "Organization saved successfully.";
                 header('Location: ' . ($creation_return !== ''
@@ -176,12 +187,20 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                 $conn->rollback();
                 applicationLog('error', 'Organization creation failed', ['error' => $exception->getMessage()]);
                 $error = true;
-                $errorMessages[] = "Unable to save the organization.";
+                $errorMessages[] = $exception instanceof InvalidArgumentException
+                    ? $exception->getMessage() : "Unable to save the organization.";
             }
         }
     }
 }
 
+$existing_contact_rows = organizationExistingContactFormRows($_POST['existing_contacts'] ?? null);
+$existing_contact_options = $conn->query(
+    'SELECT c.id, c.contact_first_name, c.contact_last_name, c.contact_email, o.organization_name
+     FROM contacts c LEFT JOIN organizations o ON o.id = c.organization_id
+     WHERE c.is_deleted = 0 ORDER BY c.contact_last_name, c.contact_first_name, c.id'
+)->fetch_all(MYSQLI_ASSOC);
+$existing_contact_option_ids = array_map('intval', array_column($existing_contact_options, 'id'));
 $phone_country_code_value = trim($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
 $fax_country_code_value = trim($_POST['fax_country_code'] ?? applicationDefaultPhoneCountryCode());
@@ -343,7 +362,41 @@ if (isset($_SESSION['success_message'])) {
 
         </details>
         <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Contacts</summary>
+        <div class="address-section" data-existing-organization-contacts>
+            <h3>Add Existing Contacts</h3>
+            <p class="field-help">Choose a contact and describe their role with this organization. Their other organizations and roles stay in place.</p>
+            <div data-existing-organization-contact-rows>
+                <?php foreach ($existing_contact_rows as $index => $row): ?>
+                    <div class="existing-organization-contact-row" data-existing-organization-contact-row>
+                        <div class="form-group">
+                            <label for="existing-contact-<?php echo $index; ?>">Existing Contact</label>
+                            <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select>
+                                <option value="">Select an existing contact</option>
+                                <?php if ($row['contact_id'] !== '' && !in_array((int) $row['contact_id'], $existing_contact_option_ids, true)): ?>
+                                    <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously selected contact is unavailable</option>
+                                <?php endif; ?>
+                                <?php foreach ($existing_contact_options as $option): ?>
+                                    <option value="<?php echo (int) $option['id']; ?>"<?php echo (string) $option['id'] === $row['contact_id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars(
+                                        trim($option['contact_first_name'] . ' ' . $option['contact_last_name'])
+                                            . ($option['contact_email'] !== '' ? ' — ' . $option['contact_email'] : '')
+                                            . (!empty($option['organization_name']) ? ' · ' . $option['organization_name'] : ''),
+                                        ENT_QUOTES, 'UTF-8'); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="existing-contact-role-<?php echo $index; ?>">Role With This Organization</label>
+                            <input type="text" id="existing-contact-role-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][role_title]"
+                                value="<?php echo htmlspecialchars($row['role_title'], ENT_QUOTES, 'UTF-8'); ?>" maxlength="255" placeholder="e.g., Board member" data-existing-contact-role>
+                        </div>
+                        <button type="button" class="button-secondary" data-remove-existing-organization-contact aria-label="Remove existing contact">Remove</button>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+            <button type="button" class="button-secondary" data-add-existing-organization-contact>Add Another Existing Contact</button>
+        </div>
         <div class="address-section">
+            <h3>Create New Contacts</h3>
             <div id="contacts-container">
                 <div class="contact-entry">
                     <div class="contact-fields">
