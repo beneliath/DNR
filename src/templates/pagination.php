@@ -1,6 +1,6 @@
 <nav class="pagination numbered-pagination" aria-label="<?php echo htmlspecialchars($aria_label, ENT_QUOTES, 'UTF-8'); ?>">
     <div class="page-size-selector" aria-label="<?php echo htmlspecialchars(ucfirst($label) . ' per page', ENT_QUOTES, 'UTF-8'); ?>">
-        <span class="page-size-label">Rows per page:</span>
+        <span class="page-size-label">Records per page:</span>
         <?php foreach ($allowed_sizes as $allowed_size): ?>
             <a href="<?php echo $url(1, $allowed_size); ?>" class="sort-button page-size-button<?php echo $size === $allowed_size ? ' active' : ''; ?>"<?php echo $size === $allowed_size ? ' aria-current="true"' : ''; ?>><?php echo $allowed_size; ?></a>
         <?php endforeach; ?>

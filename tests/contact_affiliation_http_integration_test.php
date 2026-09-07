@@ -125,6 +125,61 @@ try {
     $final = affiliationSnapshot($conn, $contactId);
     expectAffiliationHttp(count($final) === 2 && array_column($final, 'role_title') === ['Senior Pastor', 'Chairman'],
         'Edit route must save additional title changes and remove only omitted affiliations');
+
+    $organizationForm = affiliationHttp('add_organization.php', $sessionId);
+    expectAffiliationHttp($organizationForm['status'] === 200
+        && str_contains($organizationForm['body'], 'Add Existing Contacts')
+        && str_contains($organizationForm['body'], 'existing_contacts[0][role_title]'),
+        'New Organization must offer existing contacts and a role with the new organization.');
+    $beforeLink = $conn->query('SELECT organization_id, contact_role, contact_role_other FROM contacts WHERE id = ' . $contactId)->fetch_assoc();
+    $roleTitle = 'Advisory & Planning <Chair>';
+    $organizationPost = ['csrf_token' => $csrf, 'save_org' => '1',
+        'organization_name' => 'Linked organization ' . $suffix,
+        'existing_contacts' => [['contact_id' => $contactId, 'role_title' => $roleTitle]],
+        'contact_first_name' => 'New', 'contact_last_name' => 'Colleague' . $suffix,
+        'contact_role' => 'pastor', 'contact_email' => 'org-colleague-' . $suffix . '@example.test'];
+    $newOrganization = affiliationHttp('add_organization.php', $sessionId, $organizationPost);
+    expectAffiliationHttp($newOrganization['status'] === 302
+        && preg_match('/Location: view_organization\.php\?id=(\d+)/i', $newOrganization['headers'], $match) === 1,
+        'An organization with both existing and new contacts must save successfully.');
+    $linkedOrganizationId = $organizations[] = (int) $match[1];
+    $newContacts = $conn->query('SELECT id FROM contacts WHERE organization_id = ' . $linkedOrganizationId)->fetch_all(MYSQLI_ASSOC);
+    foreach ($newContacts as $newContact) $contacts[] = (int) $newContact['id'];
+    expectAffiliationHttp(count($newContacts) === 1
+        && $conn->query('SELECT organization_id, contact_role, contact_role_other FROM contacts WHERE id = ' . $contactId)->fetch_assoc() === $beforeLink,
+        'Adding an existing contact must not duplicate it or replace its primary organization and role.');
+    $afterLink = affiliationSnapshot($conn, $contactId);
+    expectAffiliationHttp(count($afterLink) === count($final) + 1
+        && array_slice($afterLink, 0, count($final)) === $final
+        && end($afterLink)['role_title'] === $roleTitle,
+        'The existing affiliations and new organization-specific role must all be preserved.');
+    $linkedView = affiliationHttp('view_organization.php?id=' . $linkedOrganizationId, $sessionId);
+    expectAffiliationHttp(str_contains($linkedView['body'], htmlspecialchars($roleTitle, ENT_QUOTES, 'UTF-8')),
+        'The new organization must show the existing contact’s role with safe HTML escaping.');
+
+    $invalidOrganization = array_replace($organizationPost, [
+        'organization_name' => 'Rejected linked organization ' . $suffix,
+        'contact_email' => 'rejected-colleague-' . $suffix . '@example.test',
+        'existing_contacts' => [
+            ['contact_id' => $contactId, 'role_title' => $roleTitle],
+            ['contact_id' => 2147483647, 'role_title' => 'Unavailable'],
+        ],
+    ]);
+    $failedOrganization = affiliationHttp('add_organization.php', $sessionId, $invalidOrganization);
+    expectAffiliationHttp($failedOrganization['status'] === 200
+        && str_contains($failedOrganization['body'], 'Select an active contact and organization.')
+        && str_contains($failedOrganization['body'], htmlspecialchars($roleTitle, ENT_QUOTES, 'UTF-8'))
+        && str_contains($failedOrganization['body'], 'Previously selected contact is unavailable'),
+        'An unavailable existing contact must show validation and preserve all draft selections and roles.');
+    expectAffiliationHttp((int) $conn->execute_query('SELECT COUNT(*) AS total FROM organizations WHERE organization_name = ?',
+        [$invalidOrganization['organization_name']])->fetch_assoc()['total'] === 0
+        && (int) $conn->execute_query('SELECT COUNT(*) AS total FROM contacts WHERE contact_email = ?',
+            [$invalidOrganization['contact_email']])->fetch_assoc()['total'] === 0
+        && affiliationSnapshot($conn, $contactId) === $afterLink,
+        'A failed organization save must roll back the organization, new contacts, and additional affiliations together.');
+    $noRole = array_replace($organizationPost, ['existing_contacts' => [['contact_id' => $contactId, 'role_title' => '']]]);
+    expectAffiliationHttp(str_contains(affiliationHttp('add_organization.php', $sessionId, $noRole)['body'],
+        'Describe each existing contact'), 'An existing contact needs a role with the new organization.');
     echo "Contact affiliation HTTP integration tests passed.\n";
 } finally {
     foreach (['engagements' => $engagements, 'contacts' => $contacts, 'organizations' => $organizations, 'users' => $users] as $table => $ids) {

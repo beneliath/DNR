@@ -45,4 +45,22 @@ foreach ([
     expectContactOrganizations($rejected, 'invalid organization/title input must be rejected.');
 }
 
+expectContactOrganizations(normalizeOrganizationExistingContacts(null) === []
+    && normalizeOrganizationExistingContacts([['contact_id' => '', 'role_title' => '']]) === [],
+    'Creating an organization without existing contacts remains supported.');
+expectContactOrganizations(normalizeOrganizationExistingContacts([
+    ['contact_id' => '8', 'role_title' => ' Chair '], ['contact_id' => '4', 'role_title' => 'Trustee'],
+]) === [['contact_id' => 4, 'role_title' => 'Trustee'], ['contact_id' => 8, 'role_title' => 'Chair']],
+    'Existing contacts receive their own trimmed role and a stable lock order.');
+foreach (['bad', [['contact_id' => [], 'role_title' => 'Chair']],
+    [['contact_id' => '', 'role_title' => 'Chair']], [['contact_id' => '0', 'role_title' => 'Chair']],
+    [['contact_id' => '3', 'role_title' => '']], [['contact_id' => '3', 'role_title' => str_repeat('é', 256)]],
+    [['contact_id' => '3', 'role_title' => 'Chair'], ['contact_id' => '3', 'role_title' => 'Trustee']],
+    array_fill(0, 21, ['contact_id' => '3', 'role_title' => 'Chair'])] as $invalid) {
+    try {
+        normalizeOrganizationExistingContacts($invalid);
+        throw new RuntimeException('Invalid existing-contact selection was accepted.');
+    } catch (InvalidArgumentException) {
+    }
+}
 echo "Contact organization helper tests passed.\n";

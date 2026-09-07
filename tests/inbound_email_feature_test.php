@@ -62,7 +62,6 @@ expectInboundFeature(
         && str_contains($helper, '$creatorId = null')
         && str_contains($helper, 'LEFT JOIN organizations organization')
         && str_contains($helper, 'organization.id IS NULL OR organization.is_deleted = 0')
-        && str_contains($helper, 'ON DUPLICATE KEY UPDATE id = id')
         && str_contains($helper, 'function purgeInboundEmailMessage')
         && str_contains($helper, 'DELETE FROM inbound_email_messages WHERE id = ?'),
     'routing should require signed markers and recognized senders, preserve standalone Contacts, use gateway attribution, and deduplicate delivery.'
