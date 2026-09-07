@@ -42,8 +42,9 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
 
 COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf
 COPY docker/apache-php-capacity.conf /etc/apache2/conf-available/zz-dnr-capacity.conf
+COPY docker/apache-short-links.conf /etc/apache2/conf-available/zz-dnr-short-links.conf
 COPY docker/php-production.ini /usr/local/etc/php/conf.d/dnr-production.ini
-RUN a2enconf zz-dnr-security zz-dnr-capacity \
+RUN a2enconf zz-dnr-security zz-dnr-capacity zz-dnr-short-links \
     && apachectl configtest
 
 # Keep dependencies outside Apache's document root so the development source
