@@ -4,6 +4,7 @@ require_once __DIR__ . '/follow_up_task_helpers.php';
 
 class DnrEngagementPdf extends TCPDF {
     private $engagement_title = 'Engagement';
+    private $document_label = 'ENGAGEMENT';
     private $generated_date = '';
     private $brand_logo_path = '';
     private $brand_logo_type = '';
@@ -12,6 +13,10 @@ class DnrEngagementPdf extends TCPDF {
 
     public function setEngagementTitle($title) {
         $this->engagement_title = (string) $title;
+    }
+
+    public function setDocumentLabel(string $label): void {
+        $this->document_label = $label;
     }
 
     public function setGeneratedDate($generated_date) {
@@ -136,7 +141,7 @@ class DnrEngagementPdf extends TCPDF {
         $this->Cell(
             $this->GetPageWidth() - $this->rMargin - $label_x,
             5,
-            engagementPdfText('ENGAGEMENT BRIEF'),
+            engagementPdfText($this->document_label . ' BRIEF'),
             0,
             1,
             'R'
@@ -990,6 +995,8 @@ function renderEngagementPdf(
     $business_date = null,
     $tasks_truncated = false
 ) {
+    $is_presentation = ($export['kind'] ?? '') === 'presentation';
+    $document_label = $is_presentation ? 'PRESENTATION' : 'ENGAGEMENT';
     $title = (string) ($export['title'] ?? 'Engagement');
     $business_date = $business_date ?: applicationBusinessDate();
     $generated_date = $generated_date ?: engagementPdfDateLabel($business_date);
@@ -998,6 +1005,7 @@ function renderEngagementPdf(
     $pdf->SetAuthor(applicationBrandName());
     $pdf->SetCreator(applicationBrandName());
     $pdf->setEngagementTitle($title);
+    $pdf->setDocumentLabel($document_label);
     $pdf->setGeneratedDate($generated_date);
     $pdf->setBrandLogoPath(engagementPdfBrandLogoPath());
     $pdf->SetMargins(18, 23, 18);
@@ -1006,7 +1014,7 @@ function renderEngagementPdf(
 
     $pdf->SetFont('dejavusans', 'B', 7);
     $pdf->SetTextColor(102, 112, 133);
-    $pdf->Cell(0, 4, engagementPdfText('ENGAGEMENT'), 0, 1, 'L');
+    $pdf->Cell(0, 4, engagementPdfText($document_label), 0, 1, 'L');
     $pdf->SetFont('dejavusans', 'B', 18.5);
     $pdf->SetTextColor(23, 32, 51);
     $pdf->MultiCell(0, 8.5, engagementPdfText($title), 0, 'L', false, 1);
@@ -1018,7 +1026,10 @@ function renderEngagementPdf(
             $chron_sections[] = $section;
         }
     }
-    foreach (orderEngagementPdfSections($export['sections'] ?? []) as $section) {
+    $sections = $is_presentation
+        ? ($export['sections'] ?? [])
+        : orderEngagementPdfSections($export['sections'] ?? []);
+    foreach ($sections as $section) {
         addEngagementPdfSection($pdf, $section);
     }
 

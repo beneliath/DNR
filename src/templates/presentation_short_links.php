@@ -3,7 +3,9 @@ require_once dirname(__DIR__) . '/short_link_helpers.php';
 $short_links = fetchPresentationShortLinks($conn, $short_link_presentation_id);
 ?>
 <div class="presentation-generated-links">
-    <p><a class="button-secondary" href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>" target="_blank" rel="noopener">View QR Codes PDF</a></p>
+    <?php if ($short_link_show_pdf_action ?? true): ?>
+        <p><a class="button-secondary" href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>" target="_blank" rel="noopener">View QR Codes PDF</a></p>
+    <?php endif; ?>
     <div class="presentation-view-qr-grid">
         <?php foreach ($short_links as $short_link): ?>
             <?php if ((int) $short_link['speaker_id'] !== (int) $short_link['current_speaker_id']) continue; ?>

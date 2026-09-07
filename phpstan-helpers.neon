@@ -15,6 +15,7 @@ parameters:
         - src/dashboard_helpers.php
         - src/daily_digest_email.php
         - src/engagement_export_helpers.php
+        - src/presentation_export_helpers.php
         - src/engagement_email_helpers.php
         - src/engagement_contact_helpers.php
         - src/engagement_contact_input_helpers.php
@@ -43,6 +44,8 @@ parameters:
         - src/user_lifecycle_helpers.php
     bootstrapFiles:
         - src/functions.php
+    scanFiles:
+        - src/engagement_view_helpers.php
     tmpDir: /tmp/dnr-phpstan-helpers
     parallel:
         maximumNumberOfProcesses: 1
