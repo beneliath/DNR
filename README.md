@@ -274,13 +274,120 @@ The routing policy is deliberately conservative:
 - The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
   names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
   mail is converted to inert plain text.
-- Automatic routing requires authenticated sender results by default. List the exact trusted
+- Automatic routing requires authenticated sender results by default. The bundled Proton Bridge
+  adapter supplies signed assertions from Proton's API metadata for internal mail and external
+  mail that passed DMARC, as described below. For other IMAP providers, list the exact trusted
   mailbox `authserv-id` values in `DNR_INBOUND_TRUSTED_AUTH_SERVERS`; until then, messages remain in
   **Inbound Mail** for review. The topmost `Authentication-Results` header must come from a listed
   server and report an aligned `dmarc=pass` for the visible `From` domain. Missing, forged, failing,
   or mismatched results fail closed. Set `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=0` only as an
   explicit compatibility exception for a trusted mailbox that cannot expose provider-generated
   results. DNR intentionally does not trust a later sender-supplied `Authentication-Results` header.
+
+#### Proton sender authentication: incident, fix, and verification
+
+**Issue identified on September 6, 2026 (application 1.11.23).** An incoming message had a valid
+signed Engagement marker and uniquely matched an active user's verified email address, but Routing
+details reported: “The visible sender does not have a trusted aligned DMARC pass from the mailbox
+provider.” The message had arrived successfully; the missing evidence prevented automatic Chron
+filing. That warning did not establish that the sender had failed DMARC or was spoofed.
+
+Two independent conditions explained the behavior. Production's `DNR_INBOUND_TRUSTED_AUTH_SERVERS`
+was empty, so no ordinary `Authentication-Results` header could satisfy the original authentication
+gate. In addition, the inspected message was internal, end-to-end encrypted Proton mail. Its retained
+headers included `X-Pm-Origin: internal` and `X-Pm-Content-Encryption: end-to-end`, but no
+`Authentication-Results` header. Adding a trusted server name alone could not fix this internal-mail
+case. The 22-character signature in `[MOED#123.<signed-token>]` authenticates the routing capability;
+it does not authenticate the person named in `From`.
+
+**Implementation.** The Proton sidecar retains the checksum-pinned official 3.25.0 package and uses
+a narrowly adapted backend built from the separately checksum-pinned 3.25.0 source archive. The
+adapter lives in `docker/proton-bridge-auth/`; its installation script inserts one call at the end of
+upstream `getMessageHeader()`. The backend reports `3.25.0+dnr.1`. Its decision uses the authenticated
+Proton API's `MessageMetadata.Flags` and `Sender`, rather than interpreting incoming `X-Pm-*` or
+sender-supplied `Authentication-Results` headers:
+
+- A received message marked both **Internal** and **E2E** gets an `internal` assertion.
+- Other received messages marked **DMARCPass** get a `dmarc` assertion.
+- Imported mail, messages with **DMARCFail**, and messages flagged as spam or phishing get an
+  `unverified` assertion, even if other flags claim success. Drafts and sent-only items also remain
+  unverified. SPF failure alone does not override a DMARC pass, because DKIM can satisfy DMARC.
+
+Release qualification also found fixable high-severity vulnerabilities in the upstream source's
+older Go dependency graph. The checked-in `dependencies.patch` pins `golang.org/x/crypto` 0.55.0,
+`golang.org/x/net` 0.57.0, `golang.org/x/text` 0.41.0, and gRPC 1.83.1, plus their required transitive
+updates and verified Go checksums. It is applied strictly to the pinned source; the image does not
+resolve floating `latest` versions. Message, IMAP-service, and synchronization-service tests run
+against that patched graph before the backend is built. Release scans remain mandatory.
+
+With the Compose-provided key setting present, the adapter replaces every existing
+`X-Dnr-Sender-Authentication` field with its own result. Even
+when authentication or the key is unavailable, it installs a failure value so the upstream decrypted
+MIME-header merge cannot reintroduce a forged assertion. The result is bound to the normalized
+sender address and RFC Message-ID and authenticated with a full HMAC-SHA256. A versioned,
+domain-separated key is derived from the existing inbound routing key; event-tag signatures cannot
+be reused as authentication assertions. No private key or message content is exposed in the header.
+
+`src/app/Security/InboundBridgeAuthentication.php` verifies that assertion, its signature, sender,
+and Message-ID. Duplicate, malformed, modified, or mismatched assertions fail closed. A failed
+Bridge assertion never falls back to ordinary DMARC headers. The existing topmost-header,
+exact-trusted-server, aligned-DMARC policy remains available for generic IMAP providers and retained
+messages without a Bridge assertion. Raw `X-Pm-Origin` and encryption headers alone never authorize
+processing. Successful Routing details now identify **Verified by Proton (internal message)** or
+**DMARC verified by Proton**; missing evidence and configuration failures have distinct explanations.
+
+This fixes both Proton cases without turning off `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM`: the
+Proton API assertion supplies authenticated evidence directly, so an empty generic trusted-server
+list does not block verified Bridge mail. A recognized active sender and a valid, unambiguous signed
+marker for an active Engagement are still required. Existing participant routing, Email Gateway
+attribution, duplicate-delivery protection, and manual approval remain in force.
+
+**Rollout requirements.** This change includes the Bridge image, Compose secret mount, and PHP
+application. Deploy all of them through the normal release workflow; updating PHP alone cannot
+create authentication evidence that an older Bridge never supplied. There is no database migration.
+Before the first rollout, run `scripts/prepare_linux_secrets.sh` on the Linux host (with
+`DNR_INBOUND_ROUTING_KEY_FILE` set explicitly if a nondefault host path is used). It grants UID 10001
+read access to only the inbound routing key, while retaining the existing root/www-data ACLs.
+`docker-compose.proton-bridge.yaml` mounts that key read-only into Bridge. The entrypoint refuses
+to start if the configured key cannot be read or is not a base64-encoded 32-byte key. Bridge does not
+receive database or outbound SMTP credentials. Keep the existing key; do not generate a replacement
+as part of this fix. Rotation invalidates previously issued event tags and retained Bridge assertions.
+
+Keep Bridge's automatic updates disabled as described in its setup instructions, so an upstream
+binary cannot silently replace the adapter. Upgrading Bridge requires updating both pinned source
+and package, reviewing the metadata flags and header-merge behavior, and rerunning adapter tests.
+Generic IMAP installations continue to configure their real provider's exact `authserv-id` values;
+do not guess a server name or disable authentication to suppress a warning.
+
+**Validation and operational check.** The Bridge image build runs the upstream message package
+tests plus `dnr_auth_test.go`. Adapter cases cover internal and external DMARC passes, unverified
+external mail, imports, drafts, missing encryption, spam, phishing, contradictory pass/fail flags,
+forged duplicate headers, and unavailable keys. PHP's `inbound_bridge_authentication_test.php`
+checks the same fixed cross-language HMAC fixture and rejects changed senders, Message-IDs,
+signatures, versions, duplicates, body-only assertions, and fallback attempts. The disposable
+`inbound_email_integration_test.php` suite exercises parsing, storage, automatic processing, actual
+Engagement Chron writes, and deduplication with an empty trusted-server list. It also verifies that
+unknown senders, altered tags, and invalid assertions remain in review. These tests use synthetic
+mail and do not send messages or modify the production mailbox.
+
+Local implementation validation passed `composer check`, the disposable inbound integration suite,
+production Compose configuration validation, and the Linux/amd64 Bridge image build (including the
+upstream and adapter tests). A network-disabled container reported **Proton Mail Bridge
+3.25.0+dnr.1**; a separate startup check correctly refused an unreadable authentication key. The
+disposable database was removed after testing. These results do not constitute a production rollout.
+
+After deployment, check new internal Proton mail and new external DMARC-passing mail from known
+senders carrying a valid event tag. Confirm the authentication method in Routing details, a final
+**Processed** status, and exactly one matching Engagement Chron entry. This live delivery check is
+separate from local automated tests and is not implied by a successful image build. Existing retained
+messages and Bridge-cached messages may lack the new assertion: the update does not invent evidence,
+reset mailbox state, refetch old mail, or automatically retry the review queue. Review those messages
+manually. Already processed messages remain terminal and are not filed again.
+
+Primary implementation references: Proton's pinned
+[message metadata flags](https://github.com/ProtonMail/go-proton-api/blob/6bf7f5a61eb8/message_types.go),
+[Bridge header construction](https://github.com/ProtonMail/proton-bridge/blob/v3.25.0/pkg/message/build.go),
+and [sender verification explanation](https://proton.me/support/digital-signature).
 
 An Engagement marker is a signed routing capability, so do not expose it outside the intended
 correspondence. Unsigned legacy markers intentionally require review after this upgrade. Exact
@@ -482,9 +589,9 @@ Configure these values as needed:
 - `DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE`: bounded Engagement-recipient deliveries claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
 - `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
-- `DNR_INBOUND_ROUTING_KEY_FILE`: host path to the independent base64-encoded 32-byte key used to sign Engagement reply-routing markers. Generate it with `scripts/ensure_inbound_routing_key.sh`, back it up securely, and do not rotate it while issued reply markers are still in use.
+- `DNR_INBOUND_ROUTING_KEY_FILE`: host path to the independent base64-encoded 32-byte key used to sign Engagement reply-routing markers and derive a separate HMAC key for the bundled Bridge's sender-authentication assertions. Generate it with `scripts/ensure_inbound_routing_key.sh`, back it up securely, and do not rotate it while issued reply markers or retained assertions are still in use.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
-- `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM` and `DNR_INBOUND_TRUSTED_AUTH_SERVERS`: fail-closed automatic-routing gate. It defaults on, and the topmost `Authentication-Results` header must use a listed trusted `authserv-id` and contain an aligned DMARC pass for the visible sender domain; otherwise the message requires manual review. An empty trusted-server list therefore disables automatic routing safely. Set the gate to `0` only as an explicit compatibility exception for a trusted mailbox that cannot expose provider authentication results.
+- `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM` and `DNR_INBOUND_TRUSTED_AUTH_SERVERS`: fail-closed automatic-routing gate. It defaults on. The bundled Bridge supplies signed assertions from Proton's internal-mail or DMARC metadata. Other IMAP providers require a topmost `Authentication-Results` header from a listed trusted `authserv-id` with an aligned DMARC pass. An empty trusted-server list blocks that generic path but does not block valid Bridge assertions. Set the gate to `0` only as an explicit compatibility exception for a trusted mailbox that cannot expose provider authentication results. See the Proton authentication incident and rollout notes above.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
 - `DNR_IMAP_USERNAME`, `DNR_IMAP_PASSWORD_FILE`, and `DNR_IMAP_MAILBOX`: mailbox credentials and selected folder. The mail Compose overlay mounts the password as a Docker secret; `DNR_IMAP_PASSWORD` is accepted only for simple non-Compose or development execution.
 - `DNR_IMAP_VERIFY_PEER`: verifies the IMAP server certificate by default. Disable it only for a local Proton Bridge endpoint using Bridge's self-signed certificate.

@@ -198,6 +198,54 @@ try {
         'mail without trusted DMARC results should remain in manual review.'
     );
 
+    // Model assertions from the independently tested Go Bridge adapter. Exercise
+    // parsing, storage, automatic processing, and real Chron writes with no
+    // configured authserv-id, matching the production incident.
+    putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=');
+    foreach ([
+        ['internal', $userEmail, $engagementMarker, false, 'processed'],
+        ['dmarc', $userEmail, $engagementMarker, false, 'processed'],
+        ['unverified', $userEmail, $engagementMarker, false, 'review'],
+        ['internal', 'unknown-' . $suffix . '@example.net', $engagementMarker, false, 'review'],
+        ['internal', $userEmail, '[MOED#' . $engagementId . '.altered]', false, 'review'],
+        ['internal', $userEmail, $engagementMarker, true, 'review'],
+    ] as $caseIndex => [$kind, $sender, $marker, $tamper, $expectedStatus]) {
+        $fixtureId = 'bridge-' . $caseIndex . '-' . $suffix . '@example.net';
+        $payload = json_encode(['kind' => $kind, 'from' => $sender, 'id' => hash('sha256', $fixtureId)], JSON_THROW_ON_ERROR);
+        $bridgeKey = hash_hmac('sha256', 'dnr:proton-sender-auth:key:v1', \Dnr\Security\InboundRoutingKey::bytes(), true);
+        $signature = hash_hmac('sha256', "dnr:proton-sender-auth:v1\n" . $payload, $bridgeKey);
+        $assertion = 'v1.' . rtrim(strtr(base64_encode($payload), '+/', '-_'), '=') . '.' . $signature;
+        if ($tamper) {
+            $assertion .= '0';
+        }
+        $parsedBridge = parseInboundEmail(
+            'X-Dnr-Sender-Authentication: ' . $assertion . "\r\n"
+                . "X-Pm-Origin: internal\r\nX-Pm-Content-Encryption: end-to-end\r\n"
+                . $rawMessage($sender, $contactEmail, $fixtureId, 'Bridge test ' . $marker, null, false)
+        );
+        $storedBridge = storeInboundEmailMessage($conn, 'imap', 'bridge-' . $caseIndex . '-' . $suffix, $parsedBridge);
+        $createdIds['messages'][] = $storedBridge['id'];
+        expectInboundIntegration(
+            processInboundEmailMessage($conn, $storedBridge['id']) === $expectedStatus,
+            'Bridge authentication case ' . $caseIndex . ' should be ' . $expectedStatus . '.'
+        );
+        $chronStmt = $conn->prepare('SELECT COUNT(*) AS total FROM engagement_chron_entries WHERE inbound_email_message_id = ?');
+        $chronStmt->bind_param('i', $storedBridge['id']);
+        $chronStmt->execute();
+        $chronCount = (int) $chronStmt->get_result()->fetch_assoc()['total'];
+        $chronStmt->close();
+        expectInboundIntegration(
+            $chronCount === ($expectedStatus === 'processed' ? 1 : 0),
+            'only authenticated Bridge mail with a recognized sender and valid marker may write an Engagement Chron entry.'
+        );
+        $redelivered = storeInboundEmailMessage($conn, 'imap', 'redelivery-' . $caseIndex . '-' . $suffix, $parsedBridge);
+        expectInboundIntegration(
+            !$redelivered['inserted'] && $redelivered['id'] === $storedBridge['id'],
+            'Bridge assertions must preserve Message-ID deduplication.'
+        );
+    }
+    putenv('DNR_INBOUND_TRUSTED_AUTH_SERVERS=mx.integration.test');
+
     $outgoing = parseInboundEmail($rawMessage(
         'Staff <' . $userEmail . '>',
         'Inbound Contact <' . $contactEmail . '>',

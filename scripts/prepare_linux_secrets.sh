@@ -25,4 +25,11 @@ find "$secrets_directory" -maxdepth 1 -type f -exec chmod 600 {} +
 find "$secrets_directory" -maxdepth 1 -type f \
     -exec setfacl -m u:0:r--,u:33:r--,m::r-- {} +
 
+# Only the inbound key is shared with Bridge (UID 10001). It derives a distinct
+# HMAC key for provider assertions; Bridge receives no database or SMTP secrets.
+inbound_key=${DNR_INBOUND_ROUTING_KEY_FILE:-"$secrets_directory/dnr_inbound_routing_key"}
+if [ -f "$inbound_key" ]; then
+    setfacl -m u:10001:r--,m::r-- "$inbound_key"
+fi
+
 printf 'Prepared Linux secret ACLs in %s\n' "$secrets_directory"

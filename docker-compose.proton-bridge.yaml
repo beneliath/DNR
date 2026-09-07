@@ -20,6 +20,10 @@ services:
       com.centurylinklabs.watchtower.enable: "false"
     volumes:
       - proton_bridge_data:/home/proton-bridge
+    secrets:
+      - dnr_inbound_routing_key
+    environment:
+      DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key
     networks: [backend, egress]
     healthcheck:
       test: ["CMD", "/usr/local/bin/proton-bridge-healthcheck"]

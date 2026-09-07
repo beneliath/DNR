@@ -1,6 +1,22 @@
 #!/bin/sh
 set -eu
 
+if [ -n "${DNR_INBOUND_ROUTING_KEY_FILE:-}" ]; then
+    if [ ! -r "$DNR_INBOUND_ROUTING_KEY_FILE" ]; then
+        echo 'Bridge cannot read the inbound authentication key; run prepare_linux_secrets.sh on the host.' >&2
+        exit 1
+    fi
+    if ! base64 --decode < "$DNR_INBOUND_ROUTING_KEY_FILE" > /dev/null 2>&1; then
+        echo 'Bridge inbound authentication key is not valid base64.' >&2
+        exit 1
+    fi
+    key_length=$(base64 --decode < "$DNR_INBOUND_ROUTING_KEY_FILE" | wc -c | tr -d ' ')
+    if [ "$key_length" != 32 ]; then
+        echo 'Bridge requires a base64-encoded 32-byte inbound authentication key.' >&2
+        exit 1
+    fi
+fi
+
 bridge_user_directory=/home/proton-bridge
 export GNUPGHOME="${bridge_user_directory}/.gnupg"
 export PASSWORD_STORE_DIR="${bridge_user_directory}/.password-store"

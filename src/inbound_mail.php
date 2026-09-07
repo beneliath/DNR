@@ -293,6 +293,13 @@ $statusLabels = [
                     <details class="inbound-routing-summary">
                         <summary>Routing details</summary>
                         <p>Sender classification: <strong><?php echo htmlspecialchars(ucfirst((string) $selectedRouting['sender']['type']), ENT_QUOTES, 'UTF-8'); ?></strong> — <?php echo htmlspecialchars((string) $selectedRouting['sender']['label'], ENT_QUOTES, 'UTF-8'); ?></p>
+                        <?php if ($selectedRouting['sender_authenticated']): ?>
+                            <p class="success">Sender authentication: <?php echo match ($selectedRouting['sender_authentication_method']) {
+                                'proton-internal' => 'Verified by Proton (internal message)',
+                                'proton-dmarc' => 'DMARC verified by Proton',
+                                default => 'DMARC verified by the trusted mailbox provider',
+                            }; ?></p>
+                        <?php endif; ?>
                         <?php foreach ($selectedRouting['engagements'] as $engagement): ?>
                             <a class="inbound-engagement-route" href="view_engagement.php?id=<?php echo (int) $engagement['id']; ?>">
                                 <code><?php echo htmlspecialchars((string) $engagement['marker'], ENT_QUOTES, 'UTF-8'); ?></code>
