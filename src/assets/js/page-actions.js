@@ -947,6 +947,16 @@
         });
     }
 
+    function initializeDatabaseBackupSubmission() {
+        const form = document.getElementById('database-backup-form');
+        const error = document.getElementById('database-backup-error');
+        if (!form || !error) return;
+        form.addEventListener('submit', function () {
+            // A successful download leaves this document open, so discard the previous attempt's error.
+            error.remove();
+        });
+    }
+
     function initializeInvitationSubmission() {
         document.querySelectorAll('[data-invitation-form]').forEach(function (form) {
             const button = form.querySelector('[data-invitation-submit]');
@@ -1140,6 +1150,7 @@
         initializeCopyTextButtons();
         initializeQrCopy();
         initializePresentationCopy();
+        initializeDatabaseBackupSubmission();
         initializeInvitationSubmission();
         initializeInquiryTabs();
         initializeDisclosurePopovers();
