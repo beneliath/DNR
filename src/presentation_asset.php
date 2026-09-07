@@ -131,7 +131,6 @@ if (!is_string($data) || strlen($data) !== $chunk_length) {
     exit;
 }
 
-header('Content-Type: ' . $mime_type);
 header('Accept-Ranges: bytes');
 if ($range !== null) {
     http_response_code(206);
@@ -139,11 +138,9 @@ if ($range !== null) {
 }
 header('Content-Length: ' . $remaining);
 if ($definition['kind'] === 'pdf') {
-    // Uploaded PDFs are opaque active-content containers. Downloading them
-    // avoids running viewer features in the authenticated application origin.
-    header("Content-Security-Policy: sandbox; default-src 'none'; frame-ancestors 'none'");
-    header('Content-Disposition: attachment; filename="' . addcslashes($filename, '"\\') . '"');
+    sendPresentationPdfDownloadHeaders($filename);
 } else {
+    header('Content-Type: ' . $mime_type);
     header('Content-Disposition: inline; filename="' . addcslashes($filename, '"\\') . '"');
 }
 while (true) {
