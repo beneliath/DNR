@@ -35,19 +35,58 @@ try{
  $pdf="%PDF-1.4\nNotes fixture\nstartxref\n0\n%%EOF\n";
  $asset=['data'=>$pdf,'filename'=>'http-notes.pdf','size'=>strlen($pdf),'sha256'=>hash('sha256',$pdf,true)];
  $conn->begin_transaction();
- applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset]]);
+ applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset],'slide_deck'=>['action'=>'replace','asset'=>$asset]]);
  ensurePresentationShortLinks($conn,$pid);
  $conn->commit();
  $links=fetchPresentationShortLinks($conn,$pid);$notes=array_values(array_filter($links,fn($link)=>$link['link_type']==='notes'))[0];
+ $notesCount=fn()=>(int)$conn->query('SELECT COALESCE(SUM(visits),0) AS n FROM short_link_stats WHERE link_id='.(int)$notes['id'])->fetch_assoc()['n'];
+ $notesQrBefore=$conn->query('SELECT * FROM short_link_qr_images WHERE link_id='.(int)$notes['id'])->fetch_assoc();
  $r=$request('surls/'.$notes['code']);
+ expectLinkHttp($r['status']===302&&preg_match('/^Location:\s*(\/surls\/[a-f0-9]{16}\/speaker-notes\.pdf)\s*$/mi',$r['headers'],$downloadMatch)===1,'Scanning the existing notes QR redirects directly to a named PDF download');
+ $notesDownload=ltrim($downloadMatch[1],'/');
+ expectLinkHttp($notesDownload==='surls/'.$notes['code'].'/speaker-notes.pdf','Download destination preserves the original bearer code');
+ expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&str_contains(strtolower($r['headers']),'no-store'),'Notes redirect needs no session and is not cached');
+ expectLinkHttp(!str_contains(strtolower($r['headers']),'content-disposition:')&&$notesCount()===0,'QR navigation itself does not download or count a visit');
+ expectLinkHttp($request('surls/'.$notes['code'],null,'',[],true)['status']===302&&$notesCount()===0,'HEAD follows the same redirect without counting');
+ $r=$request($notesDownload);
  expectLinkHttp($r['status']===200&&$r['body']===$pdf&&str_contains($r['headers'],'attachment; filename="http-notes.pdf"'),'Public notes download serves exact PDF safely');
- $r=$request('surls/'.$notes['code'],null,'',['Range: bytes=3-10']);
+ expectLinkHttp(str_contains(strtolower($r['headers']),'content-type: application/octet-stream')&&str_contains($r['headers'],"sandbox; default-src 'none'; frame-ancestors 'none'")&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Named PDF selects the file downloader and retains sandbox and nosniff protections');
+ expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&$notesCount()===1,'Only the completed PDF delivery counts, without setting a cookie');
+ $head=$request($notesDownload,null,'',[],true);
+ expectLinkHttp($head['status']===200&&$head['body']===''&&str_contains($head['headers'],'Content-Length: '.strlen($pdf))&&$notesCount()===1,'PDF HEAD reports the file size without downloading or counting');
+ $r=$request($notesDownload,null,'',['Range: bytes=3-10']);
  expectLinkHttp($r['status']===206&&$r['body']===substr($pdf,3,8),'Notes support byte ranges');
- expectLinkHttp($request('surls/'.$notes['code'],null,'',['Range: bytes=99999-'])['status']===416,'Invalid range rejected');
+ expectLinkHttp($notesCount()===1,'Continuation ranges do not inflate downloads');
+ expectLinkHttp($request($notesDownload,null,'',['Range: bytes=99999-'])['status']===416,'Invalid range rejected');
+ $mobileAgents=[
+  'iPhone Firefox'=>'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) FxiOS/142.0 Mobile/15E148 Safari/605.1.15',
+  'iPhone Safari'=>'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1',
+  'Android Chrome'=>'Mozilla/5.0 (Linux; Android 15; Pixel 9) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Mobile Safari/537.36',
+ ];
+ foreach($mobileAgents as$agentName=>$agent){
+  $scan=$request('surls/'.$notes['code'],null,'',['User-Agent: '.$agent]);
+  expectLinkHttp($scan['status']===302&&str_contains($scan['headers'],'Location: /'.$notesDownload),'Same redirect for '.$agentName);
+  $download=$request($notesDownload,null,'',['User-Agent: '.$agent]);
+  expectLinkHttp($download['status']===200&&$download['body']===$pdf&&str_contains($download['headers'],'attachment; filename="http-notes.pdf"')&&str_contains(strtolower($download['headers']),'content-type: application/octet-stream'),'Same direct download response for '.$agentName);
+ }
+ expectLinkHttp($notesCount()===4,'Each redirect plus download counts once');
+ $r=$request($notesDownload.'?code=ffffffffffffffff&download=0',null,'',['Sec-Purpose: prefetch']);
+ expectLinkHttp($r['status']===200&&$r['body']===$pdf&&$notesCount()===4,'Named PDF route ignores injected query values and excludes prefetches');
+ expectLinkHttp($request($notesDownload,[])['status']===405,'PDF endpoint rejects unsupported methods');
+ expectLinkHttp($request('surls/'.$web['code'].'/speaker-notes.pdf')['status']===404,'PDF endpoint cannot redirect a different resource type');
+ expectLinkHttp($conn->query('SELECT * FROM short_link_qr_images WHERE link_id='.(int)$notes['id'])->fetch_assoc()===$notesQrBefore,'Download routing preserves stored QR images and their URL');
  foreach(['admin','editor','reviewer']as$role){
   $name='qr-http-'.bin2hex(random_bytes(5));$hash=password_hash(bin2hex(random_bytes(20)),PASSWORD_DEFAULT);
   $stmt=$conn->prepare('INSERT INTO users(username,password,role) VALUES(?,?,?)');$stmt->bind_param('sss',$name,$hash,$role);$stmt->execute();$uid=(int)$conn->insert_id;$userIds[]=$uid;
   startSecureSession();$_SESSION=['user_id'=>$uid,'username'=>$name,'role'=>$role,'authenticated_role'=>$role,'auth_version'=>1,'auth_complete'=>true,'_csrf_token'=>bin2hex(random_bytes(32))];$csrf=$_SESSION['_csrf_token'];$sessionIds[]=session_id();$cookie=session_name().'='.session_id();session_write_close();
+  foreach(['slides','notes']as$assetType){
+   $assetPath='presentation_asset.php?id='.$pid.'&type='.$assetType;
+   expectLinkHttp($request($assetPath)['status']===302,'Presentation download button still requires login: '.$assetType);
+   $buttonDownload=$request($assetPath,null,$cookie,['User-Agent: '.$mobileAgents['iPhone Firefox']]);
+   $expectedPdf=$assetType==='notes'&&isset($uploadedPdf)?$uploadedPdf:$pdf;
+   $expectedFilename=$assetType==='notes'&&isset($uploadedPdf)?'uploaded-notes.pdf':'http-notes.pdf';
+   expectLinkHttp($buttonDownload['status']===200&&$buttonDownload['body']===$expectedPdf&&str_contains(strtolower($buttonDownload['headers']),'content-type: application/octet-stream')&&str_contains($buttonDownload['headers'],'attachment; filename="'.$expectedFilename.'"')&&str_contains($buttonDownload['headers'],"sandbox; default-src 'none'; frame-ancestors 'none'"),'Download buttons and the public QR use the same protected file response: '.$role.' '.$assetType);
+  }
   $r=$request('short_links.php?presentation_id='.$pid,null,$cookie);
   expectLinkHttp($r['status']===200&&str_contains($r['body'],'HTTP QR Fixture'),'All MOED roles can view statistics: '.$role);
   expectLinkHttp(preg_match('/<script[^>]*id="short-link-stats-data"[^>]*>(.*?)<\/script>/s',$r['body'],$chartMatch)===1,'Authenticated chart data is included: '.$role);
@@ -106,7 +145,7 @@ try{
     $form[$input->getAttribute('name')]=new CURLFile($path,'application/pdf','uploaded-notes.pdf');$form['save_engagement']='1';
     $saved=$request('edit_engagement.php?id='.$event,$form,$cookie);
     if ($saved['status'] !== 302) { preg_match('/<div[^>]*class="[^"]*form-error-summary[^"]*"[^>]*>(.*?)<\/div>/s', $saved['body'], $failure); throw new RuntimeException('Notes upload failed with HTTP '.$saved['status'].': '.strip_tags($failure[1] ?? substr($saved['body'], 0, 200))); }
-    expectLinkHttp($request('surls/'.$notes['code'])['body']===$uploadedPdf,'Uploaded notes replace the PDF at the original short URL');
+    expectLinkHttp($request('surls/'.$notes['code'])['status']===302&&$request($notesDownload)['body']===$uploadedPdf,'Uploaded notes replace the PDF behind the original QR and download URLs');
    }finally{unlink($path);}
   }
   if($role==='reviewer')expectLinkHttp($request('short_links.php',$post,$cookie)['status']===403,'Reviewer cannot mutate even with valid CSRF');
@@ -117,10 +156,14 @@ try{
  $removedView=$request('view_engagement.php?id='.$event,null,$cookie);
  expectLinkHttp(!str_contains($removedView['body'],'alt="Speaker Notes QR code"')&&!str_contains($removedView['body'],'Speaker Notes QR Code Statistics'),'Removed notes leave no QR image or placeholder card in Presentations');
  expectLinkHttp($request('surls/'.$notes['code'])['status']===404,'Removed notes are unavailable publicly');
+ expectLinkHttp($request($notesDownload)['status']===404,'An already resolved download URL cannot serve removed notes');
  $conn->begin_transaction();
  applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset]]);
  ensurePresentationShortLinks($conn,$pid);$conn->commit();
  expectLinkHttp(str_contains($request('view_engagement.php?id='.$event,null,$cookie)['body'],'alt="Speaker Notes QR code"'),'Re-uploaded notes reveal the original QR code');
+ expectLinkHttp($request('surls/'.$notes['code'])['status']===302&&$request($notesDownload)['body']===$pdf,'Re-uploading restores the same automatic download chain');
+ updateShortLink($conn,(int)$notes['id'],1,'',false);
+ expectLinkHttp($request('surls/'.$notes['code'])['status']===410&&$request($notesDownload)['status']===410,'Disabling notes revokes both the QR and resolved PDF URL');
  $missingCode=bin2hex(random_bytes(8));
  $conn->query("INSERT INTO short_links (code,engagement_id,presentation_id,speaker_id,link_type,target_url) VALUES ('$missingCode',$event,$pid,$speaker,'bio','https://example.com/bio')");
  $missingId=(int)$conn->insert_id;

@@ -18,8 +18,22 @@ $stmt->execute();
 $link = $stmt->get_result()->fetch_assoc();
 if (!$link) { http_response_code(404); exit('Link not found.'); }
 if (!$link['is_enabled']) { http_response_code(410); exit('This link is no longer available.'); }
+$download = \Dnr\Http\RequestInput::string($_GET, 'download') === '1';
+if ($download && $link['link_type'] !== 'notes') { http_response_code(404); exit('Notes not found.'); }
 if ($link['link_type'] === 'notes') {
-    deliverPresentationNotes($conn, (int) $link['presentation_id'], (int) $link['speaker_id'], (int) $link['id']);
+    if ($download) {
+        deliverPresentationNotes($conn, (int) $link['presentation_id'], (int) $link['speaker_id'], (int) $link['id']);
+        exit;
+    }
+    $notes = $conn->prepare('SELECT 1 FROM presentation_notes
+        WHERE presentation_id = ? AND speaker_id = ? AND pdf IS NOT NULL');
+    $notes->bind_param('ii', $link['presentation_id'], $link['speaker_id']);
+    $notes->execute();
+    if (!$notes->get_result()->fetch_row()) { http_response_code(404); exit('Notes are not available yet.'); }
+    // Keep scanning a normal short-link navigation. The named PDF endpoint
+    // handles the attachment download, including subsequent HEAD/range requests.
+    // Only serving the file counts as a download; this redirect does not.
+    header('Location: /surls/' . $code . '/speaker-notes.pdf', true, 302);
     exit;
 }
 try { $target = shortLinkTarget($link['target_url']); }

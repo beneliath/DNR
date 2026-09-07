@@ -9,6 +9,19 @@ const PRESENTATION_QR_MAX_BYTES = 5 * 1024 * 1024;
 const PRESENTATION_QR_MAX_PIXELS = 16000000;
 const PRESENTATION_QR_MAX_DIMENSION = 1600;
 
+/** Deliver validated PDFs as files instead of invoking a browser's PDF viewer. */
+function sendPresentationPdfDownloadHeaders(string $filename): void
+{
+    $filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', basename($filename)) ?: 'presentation.pdf';
+    // Some mobile PDF viewers try to render application/pdf even with an
+    // attachment disposition, then fail under the uploaded-file sandbox.
+    // Binary delivery selects the file downloader while retaining the PDF name.
+    header('Content-Type: application/octet-stream');
+    header('Content-Disposition: attachment; filename="' . addcslashes($filename, '"\\') . '"');
+    header('X-Content-Type-Options: nosniff');
+    header("Content-Security-Policy: sandbox; default-src 'none'; frame-ancestors 'none'");
+}
+
 /**
  * Parse one RFC 7233 byte range. Multiple ranges are intentionally rejected
  * because these authenticated assets are served directly by PHP.

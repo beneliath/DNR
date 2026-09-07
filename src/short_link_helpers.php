@@ -292,10 +292,7 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     $data->execute();
     $chunk = $data->get_result()->fetch_assoc()['chunk'] ?? null;
     if (!is_string($chunk) || strlen($chunk) !== $length) { $conn->commit(); http_response_code(503); return; }
-    header('Content-Type: application/pdf');
-    header('X-Content-Type-Options: nosniff');
-    header("Content-Security-Policy: sandbox; default-src 'none'; frame-ancestors 'none'");
-    header('Content-Disposition: attachment; filename="' . addcslashes($notes['filename'], '"\\') . '"');
+    sendPresentationPdfDownloadHeaders((string) $notes['filename']);
     header('Cache-Control: private, no-store');
     header('Accept-Ranges: bytes');
     header('Content-Length: ' . $remaining);

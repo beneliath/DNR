@@ -12,8 +12,21 @@ slide deck and are publicly downloadable by anyone holding the notes URL. Each
 file may be up to 100 MB; the existing 120 MB combined request limit applies.
 Replacing notes preserves the QR code. Removing notes makes the download
 unavailable and hides its QR card until another PDF is uploaded. Re-uploading
-reuses the original code and its statistics. Downloads use attachment headers and
-support single byte ranges.
+reuses the original code and its statistics. Scanning the notes QR redirects
+directly to `/surls/{code}/speaker-notes.pdf`, which downloads the PDF using
+attachment headers, like the presentation's **Download PDF slide deck** button.
+There is no intermediate page, extra button, browser-specific code, or login.
+The download endpoint rechecks the link and notes availability and supports
+HEAD requests and single byte ranges. Existing QR codes and image bytes remain
+unchanged. The short-link redirect does not count as a download; only serving
+the PDF does.
+
+Public notes and authenticated presentation PDF downloads share the same binary
+attachment response (`application/octet-stream`, the original `.pdf` filename,
+`nosniff`, and the uploaded-file CSP sandbox). This requests a file download
+instead of invoking a mobile browser's PDF viewer. The PDF contents are unchanged;
+devices still control their save/open prompt. No JavaScript, PDF plug-in, or
+user-agent detection is needed.
 
 Each generated QR code has a **Statistics** button on the presentation's card.
 It opens analytics for that exact short-link ID, with the resource type,
