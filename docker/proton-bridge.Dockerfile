@@ -4,7 +4,7 @@ FROM ubuntu:26.04@sha256:2260313b31c8c011cd2eebe728008efac1b3982be73eb71348ea264
 COPY --from=go-toolchain /usr/local/go /usr/local/go
 ENV PATH="/usr/local/go/bin:${PATH}" GOTOOLCHAIN=local
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl build-essential pkg-config libfido2-dev libsecret-1-dev python3 \
+    ca-certificates curl build-essential patch pkg-config libfido2-dev libsecret-1-dev python3 \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 # Keep this archive and the package below at the same version. Upgrades require
@@ -16,8 +16,8 @@ WORKDIR /build/proton-bridge-3.25.0
 COPY docker/proton-bridge-auth/ /adapter/
 RUN python3 /adapter/install.py && cp /adapter/*.go pkg/message/
 RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    go test ./pkg/message \
-    && (cd utils && ./credits.sh bridge) \
+    (cd utils && ./credits.sh bridge) \
+    && go test ./pkg/message ./internal/services/imapservice ./internal/services/syncservice \
     && go build -trimpath -ldflags='-s -w -X "github.com/ProtonMail/proton-bridge/v3/internal/constants.FullAppName=Proton Mail Bridge" -X github.com/ProtonMail/proton-bridge/v3/internal/constants.Version=3.25.0+dnr.1 -X github.com/ProtonMail/proton-bridge/v3/internal/constants.Revision=dnr-auth-v1 -X github.com/ProtonMail/proton-bridge/v3/internal/constants.Tag=v3.25.0 -X github.com/ProtonMail/proton-bridge/v3/internal/constants.BuildEnv=live' \
         -o /build/dnr-bridge ./cmd/Desktop-Bridge
 

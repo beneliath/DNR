@@ -313,6 +313,13 @@ sender-supplied `Authentication-Results` headers:
   `unverified` assertion, even if other flags claim success. Drafts and sent-only items also remain
   unverified. SPF failure alone does not override a DMARC pass, because DKIM can satisfy DMARC.
 
+Release qualification also found fixable high-severity vulnerabilities in the upstream source's
+older Go dependency graph. The checked-in `dependencies.patch` pins `golang.org/x/crypto` 0.55.0,
+`golang.org/x/net` 0.57.0, `golang.org/x/text` 0.41.0, and gRPC 1.83.1, plus their required transitive
+updates and verified Go checksums. It is applied strictly to the pinned source; the image does not
+resolve floating `latest` versions. Message, IMAP-service, and synchronization-service tests run
+against that patched graph before the backend is built. Release scans remain mandatory.
+
 With the Compose-provided key setting present, the adapter replaces every existing
 `X-Dnr-Sender-Authentication` field with its own result. Even
 when authentication or the key is unavailable, it installs a failure value so the upstream decrypted
