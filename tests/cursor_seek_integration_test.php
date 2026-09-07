@@ -35,7 +35,8 @@ try {
         $baseline=$conn->query("SELECT $select FROM $from ORDER BY $order")->fetch_all(MYSQLI_ASSOC);
         $seen=[];$cursor=null;
         do {
-            [$filter,$types,$values]=routeCursorPredicate($source,$isOrg?'organizations':'contacts',$cursor,$direction,$sort);
+            // Organizations now has several sorts; use its actual name-sort key.
+            [$filter,$types,$values]=routeCursorPredicate($source,$isOrg?'organizations':'contacts',$cursor,$direction,$isOrg?'name':$sort);
             $stmt=$conn->prepare("SELECT $select FROM $from $filter ORDER BY $order LIMIT 7");
             if ($types!=='') $stmt->bind_param($types,...$values);
             $stmt->execute();$rows=$stmt->get_result()->fetch_all(MYSQLI_ASSOC);$stmt->close();
