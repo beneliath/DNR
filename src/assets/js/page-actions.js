@@ -916,25 +916,33 @@
         });
     }
 
-    function initializeEngagementCopy() {
-        const data = document.getElementById('engagement-export-data');
-        const status = document.getElementById('copy-status');
-        if (!data || !status) return;
-        let exports;
-        try { exports = JSON.parse(data.textContent || '{}'); } catch (error) { return; }
-        document.querySelectorAll('[data-copy-format]').forEach(function (button) {
-            button.addEventListener('click', async function () {
+    function initializePresentationCopy() {
+        document.querySelectorAll('[data-presentation-export]').forEach(function (group) {
+            const data = group.querySelector('[data-presentation-export-data]');
+            const status = group.querySelector('[data-presentation-copy-status]');
+            if (!data || !status) return;
+            let exports;
+            try { exports = JSON.parse(data.textContent || '{}'); } catch (error) { return; }
+            group.querySelectorAll('[data-copy-format]').forEach(function (button) {
                 const originalLabel = button.textContent;
-                try {
-                    const value = exports[button.dataset.copyFormat] || '';
-                    await copyText(value);
-                    button.textContent = 'Copied!';
-                    status.textContent = originalLabel + ' copied to the clipboard.';
-                } catch (error) {
-                    button.textContent = 'Copy failed';
-                    status.textContent = originalLabel + ' could not be copied.';
-                }
-                window.setTimeout(function () { button.textContent = originalLabel; }, 1800);
+                let feedbackTimer;
+                button.addEventListener('click', async function () {
+                    window.clearTimeout(feedbackTimer);
+                    button.disabled = true;
+                    try {
+                        const value = exports && exports[button.dataset.copyFormat];
+                        if (typeof value !== 'string' || value === '') throw new Error('Presentation export unavailable.');
+                        await copyText(value);
+                        button.textContent = 'Copied!';
+                        status.textContent = originalLabel + ' copied to the clipboard.';
+                    } catch (error) {
+                        button.textContent = 'Copy failed';
+                        status.textContent = originalLabel + ' could not be copied.';
+                    } finally {
+                        button.disabled = false;
+                    }
+                    feedbackTimer = window.setTimeout(function () { button.textContent = originalLabel; }, 1800);
+                });
             });
         });
     }
@@ -1131,7 +1139,7 @@
         initializeSelectAll('select-all-presentations', 'presentation_ids[]');
         initializeCopyTextButtons();
         initializeQrCopy();
-        initializeEngagementCopy();
+        initializePresentationCopy();
         initializeInvitationSubmission();
         initializeInquiryTabs();
         initializeDisclosurePopovers();

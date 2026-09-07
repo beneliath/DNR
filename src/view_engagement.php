@@ -2,7 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/chron_log_helpers.php';
-require_once __DIR__ . '/engagement_export_helpers.php';
+require_once __DIR__ . '/presentation_export_helpers.php';
 require_once __DIR__ . '/engagement_contact_helpers.php';
 require_once __DIR__ . '/engagement_lifecycle_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
@@ -273,10 +273,6 @@ if (!empty($engagement['event_country'])) {
     $event_address_parts[] = $engagement['event_country'];
 }
 
-$engagement_export = buildEngagementExport($engagement, $contacts, $presentations, $chron_entries);
-$engagement_plain_text = renderEngagementPlainText($engagement_export);
-$engagement_markdown = renderEngagementMarkdown($engagement_export);
-
 // Close statements
 $stmt->close();
 $presentation_stmt->close();
@@ -526,8 +522,14 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     <?php if (!empty($presentation['has_slide_deck'])): ?>
                         <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slides">View PDF slide deck</a>
                     <?php endif; ?>
-                    <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/templates/presentation_short_links.php'; ?>
+                    <?php
+                    $short_link_presentation_id = (int) $presentation['id'];
+                    $short_link_show_pdf_action = false;
+                    include __DIR__ . '/templates/presentation_short_links.php';
+                    unset($short_link_show_pdf_action);
+                    ?>
                 </div>
+                <?php include __DIR__ . '/templates/presentation_export_actions.php'; ?>
             </div>
             <?php endforeach; ?>
             <?php if (!$presentations): ?>
@@ -742,24 +744,10 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <a href="#financial-closeout" class="button-secondary engagement-card-action">View Financial Closeout</a>
             </section>
 
-            <details class="engagement-card engagement-export-card"><summary>Export engagement</summary>
-        <div class="export-actions" aria-label="Export engagement">
-            <button type="button" class="action-button export-button" data-copy-format="text">Copy Text</button>
-            <button type="button" class="action-button export-button" data-copy-format="markdown">Copy MD</button>
-            <a href="download_engagement_pdf.php?id=<?php echo $engagement_id; ?>" class="action-button export-button">Download PDF</a>
-            <a href="presentation_qr_pdf_view.php?engagement_id=<?php echo $engagement_id; ?>" class="action-button export-button" target="_blank" rel="noopener">View QR Codes PDF</a>
-        </div>
-        <span id="copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
-
-            </details>
         </aside>
     </div>
     <div class="action-buttons"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Back to <?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a></div>
 </main>
-<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-export-data"><?php echo json_encode([
-        'text' => $engagement_plain_text,
-        'markdown' => $engagement_markdown,
-    ], JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
 <?php renderScript('assets/js/record-workspace.min.js'); ?>
 <?php include 'templates/footer.php'; ?>
 </body>

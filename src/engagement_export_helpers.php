@@ -139,47 +139,7 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
 
     $presentation_entries = [];
     foreach ($presentations as $presentation) {
-        $presentation_date_time = trim(
-            (string) ($presentation['presentation_date'] ?? '') . ' ' .
-            formatPresentationTime($presentation['presentation_time'] ?? '')
-        );
-        $fields = [];
-        addEngagementExportField($fields, 'Speaker', $presentation['speaker_name'] ?? '');
-        addEngagementExportField($fields, 'Date and Time', $presentation_date_time);
-        if (!array_key_exists('duration_minutes', $presentation)
-            || $presentation['duration_minutes'] !== null
-        ) {
-            addEngagementExportField(
-                $fields,
-                'Duration',
-                (string) ((int) ($presentation['duration_minutes'] ?? 60)) . ' minutes',
-                true
-            );
-        }
-        if (array_key_exists('expected_attendance', $presentation)
-            && $presentation['expected_attendance'] !== null
-        ) {
-            addEngagementExportField(
-                $fields,
-                'Expected Attendance',
-                (string) ((int) $presentation['expected_attendance']),
-                true
-            );
-        }
-        if (array_key_exists('actual_attendance', $presentation)
-            && $presentation['actual_attendance'] !== null
-        ) {
-            addEngagementExportField(
-                $fields,
-                'Actual Attendance',
-                (string) ((int) $presentation['actual_attendance']),
-                true
-            );
-        }
-        $presentation_entries[] = [
-            'title' => trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation',
-            'fields' => $fields,
-        ];
+        $presentation_entries[] = buildPresentationExportEntry($presentation);
     }
     if ($presentation_entries) {
         $sections[] = [
@@ -233,38 +193,9 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         ];
     }
 
-    $address_parts = [];
-    foreach (['event_address_line_1', 'event_address_line_2'] as $address_field) {
-        $address_part = trim((string) ($engagement[$address_field] ?? ''));
-        if ($address_part !== '') {
-            $address_parts[] = $address_part;
-        }
-    }
-    $city_line = trim(implode(', ', array_filter([
-        trim((string) ($engagement['event_city'] ?? '')),
-        trim((string) ($engagement['event_state'] ?? '')),
-    ], function ($part) {
-        return $part !== '';
-    })));
-    $zipcode = trim((string) ($engagement['event_zipcode'] ?? ''));
-    if ($zipcode !== '') {
-        $city_line = trim($city_line . ' ' . $zipcode);
-    }
-    if ($city_line !== '') {
-        $address_parts[] = $city_line;
-    }
-    $country = trim((string) ($engagement['event_country'] ?? ''));
-    if ($country !== '') {
-        $address_parts[] = $country;
-    }
-    if ($address_parts) {
-        $sections[] = [
-            'heading' => 'Location',
-            'entries' => [['fields' => [[
-                'label' => 'Address',
-                'value' => implode("\n", $address_parts),
-            ]]]],
-        ];
+    $location = buildEngagementExportLocation($engagement);
+    if ($location !== null) {
+        $sections[] = $location;
     }
 
     $chron_export_entries = [];
@@ -295,6 +226,88 @@ function buildEngagementExport(array $engagement, array $contacts, array $presen
         'title' => $document_title,
         'sections' => $sections,
     ];
+}
+
+function buildPresentationExportEntry(array $presentation) {
+    $presentation_date_time = trim(
+        (string) ($presentation['presentation_date'] ?? '') . ' ' .
+        formatPresentationTime($presentation['presentation_time'] ?? '')
+    );
+    $fields = [];
+    addEngagementExportField($fields, 'Speaker', $presentation['speaker_name'] ?? '');
+    addEngagementExportField($fields, 'Date and Time', $presentation_date_time);
+    if (!array_key_exists('duration_minutes', $presentation)
+        || $presentation['duration_minutes'] !== null
+    ) {
+        addEngagementExportField(
+            $fields,
+            'Duration',
+            (string) ((int) ($presentation['duration_minutes'] ?? 60)) . ' minutes',
+            true
+        );
+    }
+    if (array_key_exists('expected_attendance', $presentation)
+        && $presentation['expected_attendance'] !== null
+    ) {
+        addEngagementExportField(
+            $fields,
+            'Expected Attendance',
+            (string) ((int) $presentation['expected_attendance']),
+            true
+        );
+    }
+    if (array_key_exists('actual_attendance', $presentation)
+        && $presentation['actual_attendance'] !== null
+    ) {
+        addEngagementExportField(
+            $fields,
+            'Actual Attendance',
+            (string) ((int) $presentation['actual_attendance']),
+            true
+        );
+    }
+    return [
+        'title' => trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation',
+        'fields' => $fields,
+    ];
+}
+
+function buildEngagementExportLocation(array $engagement) {
+    $address_parts = [];
+    foreach (['event_address_line_1', 'event_address_line_2'] as $address_field) {
+        $address_part = trim((string) ($engagement[$address_field] ?? ''));
+        if ($address_part !== '') {
+            $address_parts[] = $address_part;
+        }
+    }
+    $city_line = trim(implode(', ', array_filter([
+        trim((string) ($engagement['event_city'] ?? '')),
+        trim((string) ($engagement['event_state'] ?? '')),
+    ], function ($part) {
+        return $part !== '';
+    })));
+    $zipcode = trim((string) ($engagement['event_zipcode'] ?? ''));
+    if ($zipcode !== '') {
+        $city_line = trim($city_line . ' ' . $zipcode);
+    }
+    if ($city_line !== '') {
+        $address_parts[] = $city_line;
+    }
+    $country = trim((string) ($engagement['event_country'] ?? ''));
+    if ($country !== '') {
+        $address_parts[] = $country;
+    }
+    if ($address_parts) {
+        return [
+            'heading' => 'Location',
+            'entries' => [['fields' => [[
+                'label' => 'Address',
+                'value' => implode("\n", $address_parts),
+            ]]]],
+        ];
+    }
+
+    return null;
 }
 
 function renderEngagementPlainText(array $export) {

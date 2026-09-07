@@ -9,7 +9,7 @@ function expectQrPdf(bool $ok, string $message): void
 }
 
 $context = ['event_title' => 'Presentation resources <preview>'];
-foreach ([0, 1, 4, 8, 15, 57] as $count) {
+foreach ([0, 1, 4, 7, 8, 15, 57] as $count) {
     $links = [];
     for ($i = 0; $i < $count; $i++) {
         $url = 'https://example.com/surls/' . sprintf('%016x', $i);
@@ -25,6 +25,23 @@ foreach ([0, 1, 4, 8, 15, 57] as $count) {
     if (getenv('DNR_QR_PDF_SAMPLE_DIR')) {
         file_put_contents(getenv('DNR_QR_PDF_SAMPLE_DIR') . '/qr-' . $count . '.pdf', $pdf);
     }
+}
+$presentationContext = [
+    'presentation_id' => 71, 'event_title' => 'Community Conference',
+    'topic_title' => 'Opening Presentation', 'speaker_name' => 'First Speaker',
+    'presentation_date' => '2026-10-01', 'presentation_time' => '09:30:00',
+    'event_address_line_1' => '123 Main Street', 'event_address_line_2' => 'Suite 4',
+    'event_city' => 'Madison', 'event_state' => 'WI', 'event_zipcode' => '53703', 'event_country' => 'US',
+];
+$details = presentationQrPdfDetails($presentationContext);
+expectQrPdf($details['Date'] === 'October 1, 2026' && $details['Time'] === '09:30 AM', 'The QR sheet uses the selected presentation date and time.');
+expectQrPdf($details['Location'] === '123 Main Street, Suite 4, Madison, WI 53703, US', 'The QR sheet includes the complete venue address.');
+expectQrPdf(count(array_unique(presentationQrPdfDetails([]))) === 1
+    && presentationQrPdfDetails([])['Date'] === 'To be confirmed', 'Missing scheduling details are explicit without invented values.');
+foreach ([[], array_slice($links, 0, 4), array_slice($links, 0, 7), $links] as $presentationLinks) {
+    $pdf = renderPresentationQrPdf($presentationContext, $presentationLinks);
+    expectQrPdf(preg_match('/\/Type\s*\/Pages\b.*?\/Count\s+1\b/s', $pdf) === 1, 'Presentation metadata and every code still fit on one page.');
+    expectQrPdf(preg_match_all('/\/URI\s*\([^)]*\/surls\//', $pdf) === count($presentationLinks), 'Presentation metadata does not remove clickable QR codes.');
 }
 try {
     renderPresentationQrPdf($context, [['qr_png' => null, 'qr_url' => null]]);

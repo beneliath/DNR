@@ -18,7 +18,10 @@ if ((isset($_GET['engagement_id']) && $engagementId === null)
     http_response_code(400); exit('Choose a valid engagement or presentation.');
 }
 if ($presentationId !== null) {
-    $stmt = $conn->prepare('SELECT e.id AS engagement_id, e.event_title, p.id AS presentation_id, p.topic_title, s.name AS speaker_name
+    $stmt = $conn->prepare('SELECT e.id AS engagement_id, e.event_title, p.id AS presentation_id, p.topic_title, s.name AS speaker_name,
+        p.presentation_date, p.presentation_time,
+        e.event_address_line_1, e.event_address_line_2, e.event_city,
+        e.event_state, e.event_zipcode, e.event_country
         FROM presentations p JOIN engagements e ON e.id = p.engagement_id JOIN speakers s ON s.id = p.speaker_id
         WHERE p.id = ? AND p.is_archived = 0');
     $stmt->bind_param('i', $presentationId);

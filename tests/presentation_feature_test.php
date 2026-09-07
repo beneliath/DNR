@@ -200,7 +200,7 @@ expectPresentationFeature(
     'editing should transactionally synchronize added and changed presentations.'
 );
 expectPresentationFeature(
-    str_contains($view_source, "require_once __DIR__ . '/engagement_export_helpers.php';")
+    str_contains($view_source, "require_once __DIR__ . '/presentation_export_helpers.php';")
         && str_contains($view_source, "require_once __DIR__ . '/presentation_helpers.php';")
         && !str_contains($view_source, "include 'presentation_helpers.php';"),
     'the engagement detail route should load overlapping export and presentation helpers idempotently.'
