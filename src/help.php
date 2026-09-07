@@ -71,7 +71,7 @@ $manual_access_summary = match ($manual_role) {
                 <a href="#dashboard" data-manual-toc><span>03</span>Daily Dashboard</a>
                 <a href="#booking-pipeline" data-manual-toc><span>04</span>Booking Pipeline</a>
                 <a href="#engagements" data-manual-toc><span>05</span>Engagements</a>
-                <a href="#organizations-contacts" data-manual-toc><span>06</span>Organizations and Contacts</a>
+                <a href="#organizations-contacts" data-manual-toc><span>06</span>Organizations, Contacts, and Speakers</a>
                 <a href="#work-queue" data-manual-toc><span>07</span>Work Queue</a>
                 <a href="#chron-mail" data-manual-toc><span>08</span>Chron and Email</a>
                 <a href="#map-calendar" data-manual-toc><span>09</span>Map and Calendar</a>
@@ -83,7 +83,7 @@ $manual_access_summary = match ($manual_role) {
         </aside>
 
         <section class="manual-content" data-manual-content>
-            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar mobile theme light dark action icons archive delete keyboard getting around">
+            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar mobile theme light dark action icons archive delete keyboard getting around pagination records per page list size remember search sort">
                 <header class="manual-chapter-heading">
                     <span>Chapter 01</span>
                     <h2>Getting Oriented</h2>
@@ -128,6 +128,11 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
+                    <h3>Browse Longer Lists</h3>
+                    <p>Use <strong>Records per page</strong>, where available, to choose 20, 50, or 100 records. Each list remembers your preferred size in this browser. Use the page numbers, <strong>Previous</strong>, or <strong>Next</strong> to move through results. Search and sorting apply to the full result list, so you do not need to search each page separately.</p>
+                </section>
+
+                <section class="manual-subsection">
                     <h3>Common Action Icons</h3>
                     <section class="manual-icon-legend">
                         <span><i class="manual-action-icon action-view" aria-hidden="true">◉</i><strong>View</strong><small>Open details</small></span>
@@ -161,7 +166,7 @@ $manual_access_summary = match ($manual_role) {
                         <tbody>
                             <tr><td>View records, Chron, work, map, and exports</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage own profile, calendar links, and security</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
-                            <tr><td>Create and edit inquiries, engagements, organizations, and contacts</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
+                            <tr><td>Create and edit inquiries, engagements, organizations, contacts, and speakers</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage tasks, Chron entries, closeouts, and engagement email</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Archive and restore shared records</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage users, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
@@ -173,7 +178,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card<?php echo $manual_role === 'reviewer' ? ' is-current-role' : ''; ?>">
                         <span class="manual-role-badge role-reviewer">Reviewer</span>
                         <h3>Read and Export</h3>
-                        <p>Reviewers can inspect all shared operational records, follow links between them, use search and filters, download engagement PDFs, copy engagement summaries, and subscribe to the calendar.</p>
+                        <p>Reviewers can inspect shared records, follow links between them, use search and filters, copy presentation briefs, view presentation and QR-code PDFs, review link statistics, and subscribe to the calendar.</p>
                     </article>
                     <article class="manual-card<?php echo $manual_role === 'editor' ? ' is-current-role' : ''; ?>">
                         <span class="manual-role-badge role-editor">Editor</span>
@@ -246,10 +251,11 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-card-grid manual-card-grid-three">
-                    <article class="manual-card"><span class="manual-kicker">Triage</span><h3>Filter the Board</h3><p>Search request text, organizations, contacts, and locations. Narrow the board to your inquiries, unassigned work, or a priority level. Booked and Declined records have their own views.</p></article>
+                    <article class="manual-card"><span class="manual-kicker">Triage</span><h3>Filter the Board</h3><p>Search request text, organizations, contacts, and locations. Use the owner and next-action filters to find your inquiries, unassigned work, overdue actions, or requests that still need a next step.</p></article>
                     <article class="manual-card"><span class="manual-kicker">Communicate</span><h3>Use the Starting Templates</h3><p>Initial response, request details, date options, and proposal follow-up templates are editable before sending. Sent messages appear in Correspondence and Chron with delivery status.</p></article>
                     <article class="manual-card"><span class="manual-kicker">Protect History</span><h3>Keep the Source Record</h3><p>Do not copy pre-booking Chron Log Entries by hand. The booked Inquiry retains its source email, stage history, Chron, correspondence, and any work not moved to the Engagement. Resolve or reassign active Inquiries before archiving their Contact or Organization.</p></article>
                 </section>
+                <p>The default board shows active inquiries and those booked this month. Use the <strong>Stage</strong> filter for <strong>Booked</strong>, <strong>Declined</strong>, or <strong>All Stages</strong>. In All Stages, Declined starts on a separate row. The stages wrap to fit your screen; scroll down to see the remaining rows.</p>
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
 
@@ -282,7 +288,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
                         <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Enter a required event title, an optional description, a valid start and end date, and an event type. Use Other when the preset types do not fit.</p></section></li>
                         <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select multiple existing contacts and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials. Search the directory to add another person, or use Add new contact repeatedly. New contacts and organization affiliations are saved with the event.</p></section></li>
-                        <li><span>04</span><section><strong>Add presentations.</strong><p>Choose a saved speaker from the dropdown. Under Relationships → Speakers, administrators and editors can add or edit the speaker’s name, email address, and telephone number; reviewers can view them. Speakers remain available permanently and cannot be archived or deleted. Presentation details are optional and can be filled in after creating the event. If you enter a date, it must be within the event range; enter duration in minutes. Record actual attendance after the presentation, including zero when applicable. You can also attach one Speaker Notes PDF to each presentation. Saving generates unique QR codes for the speaker’s available URLs. A Speaker Notes QR code is generated and displayed only after a notes PDF is uploaded. At least one presentation is required before the engagement can be Confirmed.</p></section></li>
+                        <li><span>04</span><section><strong>Add presentations.</strong><p>Choose a saved speaker from the dropdown; add missing speakers in <a href="speakers.php">Relationships → Speakers</a>. Presentation details can be filled in later. Dates must fall within the event range, and duration is entered in minutes. Record actual attendance afterward, including zero when applicable. At least one complete presentation is required before the engagement can be Confirmed.</p></section></li>
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
                         <li><span>06</span><section><strong>Set planning states and ownership.</strong><p>Choose lifecycle and confirmation, then select the Caller when that person should own the initial standard checklist. If no Caller is selected, the checklist belongs to the user creating the engagement. Add an initial Chron entry when there is context worth preserving.</p></section></li>
                     </ol>
@@ -317,18 +323,29 @@ $manual_access_summary = match ($manual_role) {
                     <section class="manual-card-grid manual-card-grid-two">
                         <article class="manual-card">
                             <h4>PDF Speaker Notes</h4>
-                            <p>Choose a PDF up to 100 MB for a presentation. After saving, select View PDF Speaker Notes to open the file in a separate browser tab. From the edit page, you can replace the file or select <strong>Remove current PDF</strong>, then save the engagement.</p>
+                            <p>Attach one PDF up to 100 MB to each presentation with <strong>Choose PDF</strong>, then save. Select <strong>View PDF Speaker Notes</strong> on the event detail page to open it in a new tab. Use <strong>Replace PDF</strong> or <strong>Remove current PDF</strong> on the edit page and save to update it.</p>
+                            <p>Use this file for notes you intend to share: anyone with its QR code can open the PDF without signing in.</p>
                         </article>
                         <article class="manual-card">
                             <h4>Speaker QR Codes</h4>
-                            <p>Save a presentation to generate unique QR codes for its speaker’s website, bio, donations, connection, blog, books, custom links, and notes. Download PNG or SVG images for presentations, or select a displayed QR code to copy it. The notes QR code appears only after a PDF is uploaded. Removing the PDF hides its code; re-uploading notes reuses the same code and statistics. Attendees can download notes without signing in.</p>
+                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, and notes. Select a displayed code to copy it. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
+                            <p>The Speaker Notes code appears after its PDF is saved. Replacing the PDF keeps the same code. Removing the file hides the code; adding notes again reuses the code and its statistics.</p>
                         </article>
                     </section>
-                    <p>In an engagement’s Presentations tab, select <strong>Statistics</strong> beneath a QR code to view that code’s visits over time and referrer, browser, country, and operating-system breakdowns. Use the <strong>Statistics</strong> button on a speaker’s record for totals across their presentations. Admins and editors can explicitly change a destination or disable a link; reviewers can view statistics. Editing a speaker’s profile does not change existing destinations. Previous speakers’ links and notes remain separate.</p>
-                    <p>Select <strong>View QR Codes PDF</strong> on a presentation to open all of its labeled QR codes on a single landscape page, with its date, time, and venue address. Missing scheduling details show <strong>To be confirmed</strong>. The PDF uses the project’s blue theme and opens in your browser for viewing, saving, or printing. It uses the existing tracking links; viewing the sheet does not add visits. Disabled codes are labeled, and unavailable notes or previous speakers’ codes are omitted.</p>
-                    <p>To add custom resources, open <strong>Speakers → Edit Speaker → Custom Links</strong>. Enter a name and HTTP or HTTPS URL for each link, using <strong>Add Custom Link</strong> for more rows (up to 50). Saving creates a separate link and QR code on every existing presentation for that speaker, and future presentations receive their own codes. Renaming or removing a profile link preserves published names, destinations, and statistics. To change a published destination or disable its code, open that code’s <strong>Statistics</strong> page. Choose <strong>Custom Links</strong> in the Link Type filter to view custom-link activity.</p>
-                    <p>Each saved presentation has a <strong>Save Changes</strong> button in its lower-left corner, so you can save without scrolling to the page-level button. Saved presentations can also be archived independently from the engagement. Restore archived presentations from the edit or view page; if an archived presentation no longer falls within the event dates, enter a valid date and time during restoration. Administrators can permanently delete presentations after fresh elevation.</p>
+                    <p>Select <strong>View QR Codes PDF</strong> to view, save, or print a single landscape sheet of that presentation’s labeled codes, schedule, and venue. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; notes without a PDF and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
+                    <p>Each saved presentation has a nearby <strong>Save Changes</strong> button. It saves the engagement form, including other changes on the page. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
+                </section>
+
+                <section class="manual-subsection" id="qr-statistics">
+                    <h3>Review QR Code Activity</h3>
+                    <ul class="manual-check-list">
+                        <li>In the <strong>Presentations</strong> tab, select <strong>Statistics</strong> beneath a code to see its visits. Open a speaker’s record and choose <strong>Statistics</strong> for activity across that speaker’s presentations.</li>
+                        <li>Choose a date range to focus on a recent event or a longer period. In the speaker view, use <strong>Link Type</strong> to focus on notes, donations, or <strong>Custom Links</strong>, then select <strong>Apply Filters</strong>.</li>
+                        <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count.</li>
+                    </ul>
+                    <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes, replace the PDF on the presentation instead of editing a destination.</p>
+                    <p>Editing a speaker’s profile does not change destinations already shared with audiences. Previous speakers’ links and notes remain separate when you change a presentation’s speaker.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -367,11 +384,11 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="engagements.php">Open Engagements <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact optional address country international flag state province Canada United States affiliation distinctives website phone fax email financial history giving photo role pastor admin other describe notes search archive dependencies move active">
+            <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact speaker directory profile bio biography custom links resources QR statistics optional address country international flag state province Canada United States affiliation distinctives website phone fax email financial history giving photo role pastor admin other describe notes search archive dependencies move active">
                 <header class="manual-chapter-heading">
                     <span>Chapter 06</span>
-                    <h2>Organizations and Contacts</h2>
-                    <p>Organization records hold the durable relationship; contacts identify the people within it. Engagements reuse both rather than duplicating them.</p>
+                    <h2>Organizations, Contacts, and Speakers</h2>
+                    <p>Organizations hold relationship history, contacts identify the people involved, and speaker profiles keep presentation details and audience resources ready to reuse.</p>
                 </header>
 
                 <section class="manual-split">
@@ -413,6 +430,19 @@ $manual_access_summary = match ($manual_role) {
                     </ul>
                 </section>
 
+                <section class="manual-subsection" id="speakers">
+                    <h3>Keep Speaker Profiles Ready to Use</h3>
+                    <p>Open <strong>Relationships → Speakers</strong> to find a speaker by name, email, or phone. Select <strong>Name</strong> to switch alphabetical order, then open the speaker’s name or View icon for their details. Administrators and editors can use <strong>New Speaker</strong> or <strong>Edit Speaker</strong>; reviewers can view profiles and statistics.</p>
+                    <ul class="manual-check-list">
+                        <li>Save the speaker’s name, email address, and phone number once, then choose that speaker when adding presentations.</li>
+                        <li>Add a biography and an optional photo to make the profile useful and recognizable. Photos can be JPEG, PNG, or WebP, up to 5 MB.</li>
+                        <li>Add the speaker’s website and other audience links. The written <strong>Bio</strong> is for the profile; <strong>Bio URL</strong> is the web page opened by the biography QR code.</li>
+                        <li>For videos, social pages, or other resources, use <strong>Speakers → Edit Speaker → Custom Links</strong>. Give each link a clear name and full web address; select <strong>Add Custom Link</strong> for more, then <strong>Save speaker</strong>.</li>
+                    </ul>
+                    <p>Saving a new custom link adds a separate QR code to that speaker’s existing presentations, and future presentations receive their own codes. Renaming or removing a profile link keeps already-published links and their statistics intact. To change or disable a shared code, select <strong>Statistics</strong> beneath that code on its presentation.</p>
+                    <p>Speakers remain available permanently and cannot be archived or deleted. Keep their existing profiles current instead of creating duplicates.</p>
+                </section>
+
                 <article class="manual-callout manual-callout-neutral">
                     <span class="manual-callout-icon" aria-hidden="true">i</span>
                     <div class="manual-callout-body"><h3>Organization Archive Rule</h3><p>An organization cannot be archived while it still has active contacts or engagements. Archive those child records first, or move them to another active organization. Restoring a contact or engagement also requires its organization to be active.</p></div>
@@ -421,6 +451,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-link-row">
                     <a href="organizations.php"><strong>Organizations</strong><span>Search and review relationship records →</span></a>
                     <a href="contacts.php"><strong>Contacts</strong><span>Find people and communication history →</span></a>
+                    <a href="speakers.php"><strong>Speakers</strong><span>Maintain profiles and audience resources →</span></a>
                 </section>
             </section>
 
@@ -881,6 +912,10 @@ $manual_access_summary = match ($manual_role) {
                     <details>
                         <summary><span>A QR Code Will Not Copy</span><i aria-hidden="true">+</i></summary>
                         <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. Save the presentation first if its QR codes are not yet available.</p>
+                    </details>
+                    <details>
+                        <summary><span>The Speaker Notes QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
+                        <p>Open the engagement for editing, check the speaker selected for that presentation, and choose a Speaker Notes PDF. Save the engagement before looking for the code. A code is not shown when there is no saved PDF for that speaker. If an upload is too large, reduce the PDF to 100 MB or less; when adding several files, keep the combined upload under 120 MB.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>
