@@ -6150,8 +6150,8 @@ html body .presentation-generated-links button.presentation-view-qr-button {
   align-items: center;
   gap: .5rem;
   padding: .5rem;
-  background: var(--surface-subtle);
-  color: var(--text);
+  background: #fff !important;
+  color: #1f2937 !important;
   border: 1px solid var(--border);
 }
 html body .presentation-generated-links .presentation-view-qr-button img {
