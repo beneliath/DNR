@@ -40,8 +40,7 @@ try {
     applyPresentationAssetChanges($conn,$event,$pid,['speaker_notes'=>['action'=>'replace','asset'=>$asset]]);
     ensurePresentationShortLinks($conn,$pid);
     expectLinks($conn->query('SELECT * FROM short_link_qr_images WHERE link_id='.(int)$links[1]['id'])->fetch_assoc()===$notesImages, 'Re-uploaded notes reuse the same link and rendered images');
-    $row = $conn->query("SELECT slide_deck_pdf FROM presentations WHERE id = $pid")->fetch_assoc();
-    expectLinks($row['slide_deck_pdf'] === null,'Notes do not overwrite slides');
+    expectLinks($conn->query("SHOW COLUMNS FROM presentations LIKE 'slide_deck_pdf'")->num_rows === 0,'Only the canonical Speaker Notes store exists');
     $rows = normalizeEngagementPresentations([array_replace($presentations[0],['speaker_id'=>$other]),$presentations[1]],'2026-10-01','2026-10-02',$speaker,true);
     syncEngagementPresentations($conn,$event,$rows);
     expectLinks(count(fetchPresentationShortLinks($conn,$pid)) === 3,'Speaker replacement creates a separate website link without a notes placeholder');

@@ -324,6 +324,18 @@ html.dark-mode .deployment-notice-banner {
 .deployment-notice-banner[hidden] { display: none !important; }
 .deployment-notice-heading { display: flex; flex-wrap: wrap; gap: 0.4em; font-size: 0.98rem; }
 .deployment-notice-heading strong { color: inherit; }
+
+@keyframes deployment-title-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .deployment-notice-banner[data-deployment-phase="deploying"] [data-deployment-title] {
+    animation: deployment-title-blink 1.2s step-end infinite;
+  }
+}
+
 [data-deployment-timer] { font-weight: 700; font-variant-numeric: tabular-nums; }
 body.has-app-shell.deployment-notice-active { padding-top: var(--deployment-banner-height); }
 body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: calc(var(--deployment-banner-height) + 68px); }
@@ -3535,7 +3547,7 @@ textarea::placeholder {
   font-size: 0.9rem;
 }
 
-.presentation-slide-deck-card,
+.presentation-notes-card,
 .presentation-qr-card {
   padding: 15px;
   border: 1px solid var(--border);
@@ -3543,7 +3555,7 @@ textarea::placeholder {
   background: var(--surface);
 }
 
-.presentation-slide-deck-card {
+.presentation-notes-card {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -3562,6 +3574,18 @@ textarea::placeholder {
   flex-wrap: wrap;
   gap: 10px;
   flex-basis: 100%;
+}
+
+.presentation-pdf-picker-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  flex-basis: 100%;
+  gap: 10px;
+}
+
+.presentation-existing-asset + .presentation-pdf-picker-row {
+  margin-top: 6px;
 }
 
 .presentation-pdf-link,
@@ -3794,6 +3818,19 @@ html body button.presentation-qr-preview:focus-visible {
 
 .required {
   color: var(--danger) !important;
+}
+
+.engagement-form fieldset.radio-row {
+  min-width: 0;
+  max-width: 100%;
+  padding: 10px 16px 14px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+
+.engagement-form fieldset.radio-row > legend {
+  padding-inline: 6px;
+  color: var(--text);
 }
 
 .checkbox-label,
@@ -6130,11 +6167,13 @@ html body :is(.inbound-status-filters, .map-list-filters) {
 /* Shared generated QR cards in both presentation forms and engagement details. */
 .presentation-generated-links .presentation-view-qr-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  /* Keep at most six cards per row, with room for the QR image and padding. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, max(220px, calc((100% - 5rem) / 6))), 1fr));
   gap: 1rem;
 }
 .presentation-generated-links .presentation-qr-display {
   display: flex;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   gap: .65rem;
@@ -6146,6 +6185,8 @@ html body :is(.inbound-status-filters, .map-list-filters) {
 }
 html body .presentation-generated-links button.presentation-view-qr-button {
   display: flex;
+  max-width: 100%;
+  min-width: 0;
   flex-direction: column;
   align-items: center;
   gap: .5rem;
@@ -6157,7 +6198,9 @@ html body .presentation-generated-links button.presentation-view-qr-button {
 html body .presentation-generated-links .presentation-view-qr-button img {
   display: block;
   width: 160px;
-  height: 160px;
+  height: auto;
   max-width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
   background: white;
 }

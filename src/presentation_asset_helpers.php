@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/image_upload_helpers.php';
 
-const PRESENTATION_SLIDE_DECK_MAX_BYTES = 100 * 1024 * 1024;
+const PRESENTATION_SPEAKER_NOTES_MAX_BYTES = 100 * 1024 * 1024;
 const PRESENTATION_QR_MAX_BYTES = 5 * 1024 * 1024;
 const PRESENTATION_QR_MAX_PIXELS = 16000000;
 const PRESENTATION_QR_MAX_DIMENSION = 1600;
@@ -63,19 +63,8 @@ function presentationAssetByteRange(string $header, int $size): ?array
 function presentationAssetDefinitions(): array
 {
     return [
-        'slide_deck' => [
-            'kind' => 'pdf',
-            'label' => 'PDF slide deck',
-            'query_type' => 'slides',
-            'data_column' => 'slide_deck_pdf',
-            'mime_column' => null,
-            'filename_column' => 'slide_deck_filename',
-            'size_column' => 'slide_deck_size',
-            'sha_column' => 'slide_deck_sha256',
-            'updated_column' => 'slide_deck_updated_at',
-        ],
         'speaker_notes' => [
-            'kind' => 'pdf', 'label' => 'PDF speaker notes', 'query_type' => 'notes',
+            'kind' => 'pdf', 'label' => 'PDF Speaker Notes', 'query_type' => 'notes',
             'data_column' => 'pdf', 'mime_column' => null, 'filename_column' => 'filename',
             'size_column' => 'size', 'sha_column' => 'sha256', 'updated_column' => 'updated_at',
         ],
@@ -117,6 +106,10 @@ function presentationAssetDefinitions(): array
 
 function presentationAssetDefinitionForQueryType(string $query_type): ?array
 {
+    // Keep existing PDF bookmarks working against the single notes store.
+    if ($query_type === 'slides') {
+        $query_type = 'notes';
+    }
     foreach (presentationAssetDefinitions() as $form_key => $definition) {
         if ($definition['query_type'] === $query_type) {
             $definition['form_key'] = $form_key;
@@ -158,10 +151,14 @@ function presentationAssetUploadMap(array $files): array
 
     $definitions = presentationAssetDefinitions();
     foreach (array_keys($names) as $row_key) {
-        foreach ($definitions as $asset_key => $_definition) {
+        foreach (array_merge(array_keys($definitions), ['slide_deck']) as $asset_key) {
             $upload = presentationUploadEntry($files, $row_key, $asset_key);
             if ($upload === null || $upload['error'] === UPLOAD_ERR_NO_FILE) {
                 continue;
+            }
+            $asset_key = $asset_key === 'slide_deck' ? 'speaker_notes' : $asset_key;
+            if (isset($uploads[(string) $row_key][$asset_key])) {
+                throw new InvalidArgumentException('Upload only one Speaker Notes PDF per presentation. Reload the presentation form.');
             }
             $uploads[(string) $row_key][$asset_key] = $upload;
         }
@@ -196,37 +193,37 @@ function requireSuccessfulPresentationUpload(array $upload, string $label, int $
     }
 }
 
-function presentationSlideDeckFromPath(
+function presentationSpeakerNotesFromPath(
     string $path,
     string $original_name,
     bool $require_uploaded_file = true
 ): array {
     if ($path === '' || !is_file($path) || ($require_uploaded_file && !is_uploaded_file($path))) {
-        throw new InvalidArgumentException('The PDF slide deck upload could not be verified.');
+        throw new InvalidArgumentException('The PDF Speaker Notes upload could not be verified.');
     }
 
     $size = filesize($path);
     if ($size === false || $size < 1) {
-        throw new InvalidArgumentException('The selected PDF slide deck is empty.');
+        throw new InvalidArgumentException('The selected PDF Speaker Notes is empty.');
     }
-    if ($size > PRESENTATION_SLIDE_DECK_MAX_BYTES) {
-        throw new InvalidArgumentException('PDF slide decks must be 100 MB or smaller.');
+    if ($size > PRESENTATION_SPEAKER_NOTES_MAX_BYTES) {
+        throw new InvalidArgumentException('PDF Speaker Notes must be 100 MB or smaller.');
     }
 
     $contents = file_get_contents($path);
     if ($contents === false || strlen($contents) !== $size) {
-        throw new RuntimeException('The PDF slide deck could not be read.');
+        throw new RuntimeException('The PDF Speaker Notes could not be read.');
     }
     $finfo = new finfo(FILEINFO_MIME_TYPE);
     $tail = substr($contents, -4096);
     $hasValidStructure = preg_match('/\A%PDF-(?:1\.[0-7]|2\.0)(?:\r\n|\r|\n)/', $contents) === 1
         && preg_match('/startxref\s+\d+\s+%%EOF[\x09\x0A\x0C\x0D\x20]*\z/D', $tail) === 1;
     if ((string) $finfo->file($path) !== 'application/pdf' || !$hasValidStructure) {
-        throw new InvalidArgumentException('Upload a valid PDF slide deck.');
+        throw new InvalidArgumentException('Upload a valid PDF Speaker Notes.');
     }
 
     $filename = basename(str_replace('\\', '/', trim($original_name)));
-    $filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $filename) ?: 'slide-deck.pdf';
+    $filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', $filename) ?: 'speaker-notes.pdf';
     if (!str_ends_with(strtolower($filename), '.pdf')) {
         $filename .= '.pdf';
     }
@@ -243,14 +240,14 @@ function presentationSlideDeckFromPath(
     ];
 }
 
-function presentationSlideDeckFromUpload(array $upload): array
+function presentationSpeakerNotesFromUpload(array $upload): array
 {
     requireSuccessfulPresentationUpload(
         $upload,
-        'PDF slide deck',
-        PRESENTATION_SLIDE_DECK_MAX_BYTES
+        'PDF Speaker Notes',
+        PRESENTATION_SPEAKER_NOTES_MAX_BYTES
     );
-    return presentationSlideDeckFromPath(
+    return presentationSpeakerNotesFromPath(
         (string) $upload['tmp_name'],
         (string) $upload['name']
     );
@@ -271,6 +268,9 @@ function presentationQrImageFromUpload(array $upload, string $label): array
 function presentationAssetRemovalRequested(array $submitted_row, string $asset_key): bool
 {
     $value = $submitted_row['remove_' . $asset_key] ?? null;
+    if ($asset_key === 'speaker_notes' && $value === null) {
+        $value = $submitted_row['remove_slide_deck'] ?? null;
+    }
     if ($value === null) {
         return false;
     }
@@ -309,17 +309,7 @@ function attachPresentationAssetChanges(
                 );
             }
             if ($upload !== null) {
-                try {
-                    $asset = $definition['kind'] === 'pdf'
-                        ? presentationSlideDeckFromUpload($upload)
-                        : presentationQrImageFromUpload($upload, $definition['label']);
-                } catch (InvalidArgumentException $exception) {
-                    if ($asset_key !== 'speaker_notes') throw $exception;
-                    throw new InvalidArgumentException(str_replace(
-                        ['PDF slide decks', 'PDF slide deck'], ['PDF speaker notes', 'PDF speaker notes'],
-                        $exception->getMessage()
-                    ));
-                }
+                $asset = presentationSpeakerNotesFromUpload($upload);
                 $changes[$asset_key] = ['action' => 'replace', 'asset' => $asset];
             } elseif ($remove) {
                 $changes[$asset_key] = ['action' => 'remove'];
@@ -376,50 +366,27 @@ function applyPresentationAssetChanges(
             $stmt->bind_param('ii', $presentation_id, $engagement_id);
         } elseif ($action === 'replace' && is_array($change['asset'] ?? null)) {
             $asset = $change['asset'];
-            if ($definition['kind'] === 'pdf') {
-                $stmt = $conn->prepare(
-                    'UPDATE presentations
-                     SET slide_deck_pdf = ?, slide_deck_filename = ?, slide_deck_size = ?,
-                         slide_deck_sha256 = ?, slide_deck_updated_at = UTC_TIMESTAMP(6)
-                     WHERE id = ? AND engagement_id = ?'
-                );
-                if (!$stmt) {
-                    throw new RuntimeException('Unable to prepare the PDF slide deck update.');
-                }
-                $blob = null;
-                $stmt->bind_param(
-                    'bsisii',
-                    $blob,
-                    $asset['filename'],
-                    $asset['size'],
-                    $asset['sha256'],
-                    $presentation_id,
-                    $engagement_id
-                );
-                $stmt->send_long_data(0, $asset['data']);
-            } else {
-                $stmt = $conn->prepare(
-                    'UPDATE presentations
-                     SET ' . $definition['data_column'] . ' = ?, '
-                         . $definition['mime_column'] . ' = ?, '
-                         . $definition['sha_column'] . ' = ?, '
-                         . $definition['updated_column'] . ' = UTC_TIMESTAMP(6)
-                     WHERE id = ? AND engagement_id = ?'
-                );
-                if (!$stmt) {
-                    throw new RuntimeException('Unable to prepare the QR code update.');
-                }
-                $blob = null;
-                $stmt->bind_param(
-                    'bssii',
-                    $blob,
-                    $asset['mime_type'],
-                    $asset['sha256'],
-                    $presentation_id,
-                    $engagement_id
-                );
-                $stmt->send_long_data(0, $asset['data']);
+            $stmt = $conn->prepare(
+                'UPDATE presentations
+                 SET ' . $definition['data_column'] . ' = ?, '
+                     . $definition['mime_column'] . ' = ?, '
+                     . $definition['sha_column'] . ' = ?, '
+                     . $definition['updated_column'] . ' = UTC_TIMESTAMP(6)
+                 WHERE id = ? AND engagement_id = ?'
+            );
+            if (!$stmt) {
+                throw new RuntimeException('Unable to prepare the QR code update.');
             }
+            $blob = null;
+            $stmt->bind_param(
+                'bssii',
+                $blob,
+                $asset['mime_type'],
+                $asset['sha256'],
+                $presentation_id,
+                $engagement_id
+            );
+            $stmt->send_long_data(0, $asset['data']);
         } else {
             throw new InvalidArgumentException('Invalid presentation asset submission.');
         }
@@ -452,8 +419,7 @@ function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stor
             continue;
         }
         foreach ([
-            'has_speaker_notes', 'speaker_notes_filename',
-            'has_slide_deck', 'slide_deck_filename', 'slide_deck_size', 'slide_deck_updated_at',
+            'has_speaker_notes', 'speaker_notes_filename', 'speaker_notes_size',
             'has_speaker_notes_qr', 'speaker_notes_qr_updated_at',
             'has_speaker_website_qr', 'speaker_website_qr_updated_at',
             'has_speaker_donation_qr', 'speaker_donation_qr_updated_at',

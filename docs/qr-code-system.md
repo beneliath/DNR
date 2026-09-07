@@ -7,14 +7,13 @@ QR card or placeholder. Repeated saves preserve the same codes. Existing
 presentation links are backfilled by the forward migration. Legacy notes links
 without PDFs remain hidden and acquire images only when notes are uploaded.
 
-Upload **PDF Speaker Notes** on the presentation form. Notes are separate from the
-slide deck and are publicly viewable by anyone holding the notes URL. Each
+Upload **PDF Speaker Notes** on the presentation form. Notes are the presentation’s single PDF resource, publicly viewable by anyone holding the notes URL. Each
 file may be up to 100 MB; the existing 120 MB combined request limit applies.
 Replacing notes preserves the QR code. Removing notes makes the PDF
 unavailable and hides its QR card until another PDF is uploaded. Re-uploading
 reuses the original code and its statistics. Scanning the notes QR redirects
 directly to `/surls/{code}/speaker-notes.pdf`, which opens the PDF in the browser,
-like the presentation's **View PDF slide deck** button.
+like the presentation's **View PDF Speaker Notes** button.
 There is no intermediate page, extra button, browser-specific code, or login.
 The PDF endpoint rechecks the link and notes availability and supports
 HEAD requests and single byte ranges. Existing QR codes and image bytes remain
@@ -120,3 +119,16 @@ QR image formats, snapshot persistence, separate speakers and presentations,
 notes storage, optimistic updates, and aggregate counts. HTTP integration tests
 exercise `/surls/`, PDF/range delivery, QR downloads, authentication, CSRF and all
 three roles against an explicitly disposable database.
+
+Speaker Notes uses only `presentation_notes`, keyed by presentation and speaker so
+published links retain their original attribution. Both new and edit forms show
+one upload, and every presentation with a PDF has a **View PDF Speaker Notes**
+button opening its own file in a new tab. Old `type=slides` bookmarks and old upload
+field names remain compatibility aliases for the same notes resource.
+
+The `20260907_unify_speaker_notes.sql` migration copies legacy PDFs into this store,
+deduplicates identical files without changing existing notes metadata or short links,
+and removes the old PDF columns. It stops before changing files if both stores hold
+different PDFs for the same presentation and speaker; reconcile those files from a
+verified backup before retrying through the migration recovery process. Run the
+normal QR image backfill after migration to prepare newly migrated notes links.

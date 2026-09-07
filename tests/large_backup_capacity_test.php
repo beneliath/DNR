@@ -17,12 +17,15 @@ $engagement = (int) $conn->insert_id;
 $backup = $encrypted = $decrypted = null;
 try {
     for ($i = 0; $i < 2; $i++) {
-        $conn->query("INSERT INTO presentations (engagement_id,topic_title,speaker_id,slide_deck_pdf,slide_deck_size,slide_deck_sha256,
+        $conn->query("INSERT INTO presentations (engagement_id,topic_title,speaker_id,
             speaker_notes_qr_image,speaker_website_qr_image,speaker_donation_qr_image)
-            VALUES ($engagement,'Capacity fixture',(SELECT MIN(id) FROM speakers), REPEAT(CHAR(65+$i),104857600),104857600,
-                UNHEX(SHA2(REPEAT(CHAR(65+$i),104857600),256)),REPEAT('q',5242880),REPEAT('r',5242880),REPEAT('s',5242880))");
+            VALUES ($engagement,'Capacity fixture',(SELECT MIN(id) FROM speakers),REPEAT('q',5242880),REPEAT('r',5242880),REPEAT('s',5242880))");
+        $presentation = (int) $conn->insert_id;
+        $conn->query("INSERT INTO presentation_notes (presentation_id,speaker_id,pdf,size,sha256)
+            VALUES ($presentation,(SELECT MIN(id) FROM speakers),REPEAT(CHAR(65+$i),104857600),104857600,
+                UNHEX(SHA2(REPEAT(CHAR(65+$i),104857600),256)))");
     }
-    $expected = $conn->query("SELECT id, HEX(slide_deck_sha256) AS hash FROM presentations WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);
+    $expected = $conn->query("SELECT p.id, HEX(n.sha256) AS hash FROM presentations p JOIN presentation_notes n ON n.presentation_id=p.id AND n.speaker_id=p.speaker_id WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);
     $backup = createDatabaseBackup($conn, 'capacity-test');
     if ($backup['size'] <= 268435456 || $backup['size'] >= databaseBackupMaximumBytes()) throw new RuntimeException('Capacity fixture did not exercise the old limit');
     $encrypted = encryptDatabaseBackup($backup['path'], 'Large synthetic backup password');
@@ -31,9 +34,9 @@ try {
     unlink($encrypted['path']); $encrypted = null;
     $schema = databaseBackupSchemaDescriptor($conn);
     $inspection = inspectDatabaseBackup($decrypted['path'], $schema);
-    $conn->query("UPDATE presentations SET slide_deck_pdf=NULL WHERE engagement_id=$engagement");
+    $conn->query("UPDATE presentation_notes n JOIN presentations p ON p.id=n.presentation_id SET n.pdf=NULL WHERE engagement_id=$engagement");
     restoreDatabaseBackup($conn, $decrypted['path'], $schema, ['id'=>0,'username'=>'capacity-test']);
-    $restored = $conn->query("SELECT id, SHA2(slide_deck_pdf,256) AS hash, OCTET_LENGTH(slide_deck_pdf) AS size FROM presentations WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);
+    $restored = $conn->query("SELECT p.id, SHA2(n.pdf,256) AS hash, OCTET_LENGTH(n.pdf) AS size FROM presentations p JOIN presentation_notes n ON n.presentation_id=p.id AND n.speaker_id=p.speaker_id WHERE engagement_id=$engagement ORDER BY id")->fetch_all(MYSQLI_ASSOC);
     foreach ($restored as $i=>$row) {
         if (strtoupper($row['hash']) !== $expected[$i]['hash'] || (int)$row['size'] !== 104857600) throw new RuntimeException('Large BLOB restore mismatch');
     }

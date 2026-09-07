@@ -40,6 +40,12 @@ expectPresentationAssetFeature(
 );
 
 expectPresentationAssetFeature(
+    array_keys(array_filter(presentationAssetDefinitions(), static fn(array $asset): bool => $asset['kind'] === 'pdf')) === ['speaker_notes']
+        && presentationAssetDefinitionForQueryType('slides') === presentationAssetDefinitionForQueryType('notes'),
+    'Speaker Notes is the only PDF asset; legacy URLs resolve to the same definition.'
+);
+
+expectPresentationAssetFeature(
     str_contains($new_engagement, 'enctype="multipart/form-data"')
         && str_contains($edit_engagement, 'enctype="multipart/form-data"')
         && str_contains($new_engagement, 'attachPresentationAssetChanges')
@@ -48,10 +54,38 @@ expectPresentationAssetFeature(
 );
 
 expectPresentationAssetFeature(
-    str_contains($template, '[slide_deck]') && str_contains($template, '[speaker_notes]')
+    str_contains($template, 'presentation_pdf_upload.php')
         && str_contains($template, 'presentation_short_links.php') && !str_contains($template, 'data-paste-qr'),
     'the form accepts notes PDFs and uses generated QR codes.'
 );
+
+foreach (['speaker_notes' => 'notes'] as $pdf_type => $query_type) {
+    $render_pdf_upload = static function (string $presentation_pdf_type): string {
+        $presentation_dom_id = 7;
+        $is_saved_presentation = true;
+        $presentation = [
+            'id' => 123,
+            'has_speaker_notes' => true, 'speaker_notes_filename' => 'notes.pdf', 'speaker_notes_size' => 2097152,
+        ];
+        ob_start();
+        include __DIR__ . '/../src/templates/presentation_pdf_upload.php';
+        return (string) ob_get_clean();
+    };
+    $pdf_markup = $render_pdf_upload($pdf_type);
+    $document = new DOMDocument();
+    $document->loadHTML($pdf_markup);
+    $xpath = new DOMXPath($document);
+    expectPresentationAssetFeature(
+        $xpath->query('//input[@type="file" and @name="presentations[7][' . $pdf_type . ']"]')->length === 1
+            && $xpath->query('//input[@type="file"]')->length === 1
+            && $xpath->query('//input[@type="checkbox" and @name="presentations[7][remove_' . $pdf_type . ']"]')->length === 1
+            && $xpath->query('//a[@href="presentation_asset.php?id=123&type=' . $query_type . '" and @target="_blank"]')->length === 1
+            && str_contains($pdf_markup, $query_type . '.pdf')
+            && str_contains($pdf_markup, 'PDF Speaker Notes')
+            && str_contains($pdf_markup, '2.0 MB'),
+        'the ' . $pdf_type . ' pane must bind its upload, removal, view link, and metadata to the same asset.'
+    );
+}
 
 expectPresentationAssetFeature(
     str_contains($asset_route, 'startSecureSession();')
@@ -65,15 +99,15 @@ expectPresentationAssetFeature(
 );
 
 expectPresentationAssetFeature(
-    str_contains($view_engagement, 'View PDF slide deck')
+    str_contains($view_engagement, 'View PDF Speaker Notes')
         && str_contains($view_engagement, 'presentation_short_links.php'),
-    'engagement details show slides and generated links.'
+    'engagement details show Speaker Notes and generated links.'
 );
 
 expectPresentationAssetFeature(
     preg_match('/\.presentation-view-pdf:hover,\s*\.presentation-view-pdf:focus-visible\s*\{[^}]*background:\s*var\(--control-hover-bg\);[^}]*color:\s*var\(--control-hover-fg\);[^}]*text-decoration:\s*none;[^}]*transform:\s*translateY\(-1px\);/s', $view_engagement_css) === 1
         && !preg_match('/\.presentation-view-pdf:hover,[^{]*\{[^}]*text-decoration:\s*underline;/s', $view_engagement_css),
-    'the PDF slide-deck link should use the standard colored hover treatment without an underline.'
+    'the PDF Speaker Notes link should use the standard colored hover treatment without an underline.'
 );
 
 expectPresentationAssetFeature(
@@ -111,10 +145,10 @@ expectPresentationAssetFeature(
 );
 
 expectPresentationAssetFeature(
-    str_contains($asset_helper, 'PRESENTATION_SLIDE_DECK_MAX_BYTES = 100 * 1024 * 1024')
-        && str_contains($asset_helper, 'PDF slide decks must be 100 MB or smaller.')
-        && str_contains($template, 'PDF slide decks may be up to 100 MB.')
-        && str_contains($presentation_script, 'PDF slide decks may be up to 100 MB.')
+    str_contains($asset_helper, 'PRESENTATION_SPEAKER_NOTES_MAX_BYTES = 100 * 1024 * 1024')
+        && str_contains($asset_helper, 'PDF Speaker Notes must be 100 MB or smaller.')
+        && str_contains($template, 'PDF Speaker Notes may be up to 100 MB.')
+        && str_contains($presentation_script, 'PDF Speaker Notes may be up to 100 MB.')
         && str_contains($asset_helper, "!== 'application/pdf'")
         && str_contains($asset_helper, "preg_match('/\\A%PDF-")
         && str_contains($asset_helper, 'startxref\\s+\\d+\\s+%%EOF')
@@ -140,7 +174,7 @@ file_put_contents(
         . "startxref\n52\n%%EOF\n"
 );
 try {
-    $pdf = presentationSlideDeckFromPath($pdf_path, '../../Unsafe Deck.PDF', false);
+    $pdf = presentationSpeakerNotesFromPath($pdf_path, '../../Unsafe Deck.PDF', false);
     expectPresentationAssetFeature(
         $pdf['mime_type'] === 'application/pdf'
             && $pdf['filename'] === 'Unsafe Deck.PDF'
@@ -158,7 +192,7 @@ if ($invalid_path === false) {
 }
 file_put_contents($invalid_path, '<html>not a pdf</html>');
 try {
-    presentationSlideDeckFromPath($invalid_path, 'not-a-pdf.pdf', false);
+    presentationSpeakerNotesFromPath($invalid_path, 'not-a-pdf.pdf', false);
     expectPresentationAssetFeature(false, 'a non-PDF upload should be rejected.');
 } catch (InvalidArgumentException $exception) {
     expectPresentationAssetFeature(
@@ -175,7 +209,7 @@ if ($truncated_pdf_path === false) {
 }
 file_put_contents($truncated_pdf_path, "%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
 try {
-    presentationSlideDeckFromPath($truncated_pdf_path, 'truncated.pdf', false);
+    presentationSpeakerNotesFromPath($truncated_pdf_path, 'truncated.pdf', false);
     expectPresentationAssetFeature(false, 'a PDF without a final cross-reference marker should be rejected.');
 } catch (InvalidArgumentException $exception) {
     expectPresentationAssetFeature(

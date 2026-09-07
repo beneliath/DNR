@@ -225,6 +225,11 @@ jobs:
           export DNR_MIGRATION_TEST_CONTAINER=$(docker compose ps -q db)
           export DNR_MIGRATION_TEST_PASSWORD=$(cat secrets/mysql_root_password)
           python3 tests/migration_concurrency_test.py
+      - name: Verify Speaker Notes storage migration preserves PDFs and links
+        run: |
+          DNR_INTEGRATION_TARGET=disposable \
+          DNR_MIGRATION_TEST_CONTAINER=$(docker compose ps -q db) \
+            python3 tests/speaker_notes_migration_test.py
       - name: Exercise HTTP boundaries
         run: |
           sh tests/http_smoke_test.sh
