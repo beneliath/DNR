@@ -97,7 +97,28 @@ try {
         $afterPdf = (int) $conn->query('SELECT COALESCE(SUM(visits),0) AS total FROM short_link_stats WHERE link_id=' . $links[0]['id'])->fetch_assoc()['total'];
         expectCustomLinkHttp($afterPdf === 1, 'Viewing PDFs does not increment visit statistics.');
         expectCustomLinkHttp(str_contains($presentation['body'], $pdfUrl)
-            && str_contains($presentation['body'], 'presentation_qr_pdf_view.php?engagement_id=' . $event), 'Both presentation and engagement PDF actions are exposed.');
+            && str_contains($presentation['body'], 'presentation_qr_pdf_view.php?presentation_id=' . $pids[1])
+            && !str_contains($presentation['body'], 'presentation_qr_pdf_view.php?engagement_id=')
+            && substr_count($presentation['body'], '<summary>Export Presentation</summary>') === 2,
+            'Each presentation exposes its own export dropdown without an event-wide export action.');
+        preg_match_all('/<script[^>]*data-presentation-export-data[^>]*>(.*?)<\/script>/s', $presentation['body'], $copyMatches);
+        expectCustomLinkHttp(count($copyMatches[1]) === 2, 'Each presentation has an independent copy payload.');
+        foreach (['Custom HTTP Presentation', 'Second Custom Presentation'] as $index => $title) {
+            $copy = json_decode($copyMatches[1][$index], true, 512, JSON_THROW_ON_ERROR);
+            $otherTitle = $index === 0 ? 'Second Custom Presentation' : 'Custom HTTP Presentation';
+            expectCustomLinkHttp(str_starts_with($copy['text'], $title . "\n")
+                && !str_contains($copy['text'], $otherTitle)
+                && str_starts_with($copy['markdown'], '# ' . $title . "\n")
+                && !str_contains($copy['markdown'], $otherTitle), 'Copy exports contain only the selected presentation.');
+            $briefUrl = 'presentation_pdf_view.php?presentation_id=' . $pids[$index];
+            expectCustomLinkHttp(str_contains($presentation['body'], $briefUrl), 'Each card links to its own presentation brief.');
+            expectCustomLinkHttp($request($briefUrl)['status'] === 302, 'Presentation briefs require authentication.');
+            $brief = $request($briefUrl, null, $cookie);
+            expectCustomLinkHttp($brief['status'] === 200 && str_starts_with($brief['body'], '%PDF-')
+                && str_contains($brief['headers'], 'Content-Disposition: inline;')
+                && str_contains($brief['headers'], 'presentation-' . $pids[$index] . '-'), 'Presentation briefs open inline for ' . $role);
+            expectCustomLinkHttp($request($briefUrl, null, $cookie, true)['body'] === '', 'Presentation brief HEAD requests do not send a body.');
+        }
         if ($role === 'editor') {
             $remove = $input + ['csrf_token' => $csrf, 'version' => 2, 'custom_links_present' => 1];
             expectCustomLinkHttp($request($editUrl, $remove, $cookie)['status'] === 302 && fetchSpeaker($conn, $speaker)['custom_links'] === [], 'Removing all rows persists an empty profile collection.');
