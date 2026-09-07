@@ -110,6 +110,20 @@ Reserve disk space for the compressed SQL, encrypted copy, verification copy, an
 
 The Compose wrapper still supports explicit development/source builds. Manual database upgrades must follow the same backup directive; a bare Compose command is not a replacement for the guarded deployment procedure.
 
+### Initial speaker profile transfer
+
+For the initial speaker rollout, export the sole Olivier Melnick record with
+`php /opt/dnr/bin/initial_speaker_seed.php export` inside the source application container.
+Keep its JSON output in an owner-only deployment directory outside source control. It includes
+the bio, URLs, and original/thumbnail photo bytes, so treat it as deployment data.
+Set `DNR_S1_SPEAKER_SEED_FILE` to that local file when running `deploy_s1.sh`.
+The deployment transfers it over SSH, verifies its checksum and contents before the save window,
+then imports it after migrations while writers remain paused. Import requires exactly one
+migrated Olivier speaker, updates every presentation reference (including archived records),
+and verifies the complete profile and photo before committing. The deployment receipt records
+the seed checksum, speaker ID, and presentation count. A failed import leaves writers paused
+with the verified pre-upgrade backup available. Omit this option on subsequent normal releases.
+
 ## Recovery
 
 Inspect `.git/dnr-deploy/SHA.json` and the backup's `receipt.json`. Keep the encrypted pre-upgrade archive through deployment and recovery verification, then copy it to protected off-host storage under the deployment's retention policy. There is no automatic destructive retention cleanup.

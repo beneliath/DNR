@@ -626,7 +626,7 @@ Configure these values as needed:
 - `DNR_IMAP_VERIFY_PEER`: verifies the IMAP server certificate by default. Disable it only for a local Proton Bridge endpoint using Bridge's self-signed certificate.
 - `DNR_CONFIG_FILE_HOST`: host path to the selected non-secret deployment YAML; defaults to the tracked MOED profile for backward compatibility.
 - `DNR_BRAND_DISPLAY_NAME`, `DNR_TOTP_ISSUER`, `DNR_CALENDAR_NAME`, `DNR_INBOUND_MARKER_PREFIX`, and `DNR_INBOUND_ACCEPTED_MARKER_PREFIXES`: optional highest-precedence identity overrides. The accepted marker value is a comma-separated list and must include the emitted prefix.
-- `DNR_DEFAULT_SPEAKER`: optional override for the profile's pre-filled presentation speaker. The legacy `DEFAULT_SPEAKER` name remains accepted during migration.
+- `DNR_DEFAULT_SPEAKER`: optional name used to preselect a matching saved speaker record for new presentations; otherwise the first-created speaker is selected. The legacy `DEFAULT_SPEAKER` name remains accepted during migration.
 - `DNR_DEFAULT_COUNTRY`, `DNR_DEFAULT_PHONE_COUNTRY_CODE`, and `DNR_TIMEZONE`: optional overrides for the corresponding profile defaults. Invalid values fail startup.
 - `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
 - `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
@@ -1194,3 +1194,25 @@ This project is licensed under the MIT License. See the LICENSE file for more de
 ### Project Status
 
 Under active development
+
+### Speaker records
+
+Under **Relationships → Speakers**, all signed-in users can view speakers; administrators and
+editors can add and edit their name, email address, telephone number, and optional bio. The bio
+uses the same six-row text field and safe link rendering as Contact Notes. Telephone numbers
+use the Contacts country picker and formatting and are stored in E.164 format.
+Speakers also have optional website, bio, donation, connection, blog, and books URLs.
+These accept HTTP/HTTPS links up to 2,048 characters and appear on the speaker detail page.
+Speaker photos can be uploaded, replaced, or removed with the same JPEG/PNG/WebP validation,
+5 MB limit, resized originals, and thumbnails as contact photos. The Speakers directory shares
+the Contacts theme, search/sort controls, view/edit icons, and upper/lower pagination rules.
+Speakers cannot be archived or deleted.
+Presentation forms select a saved speaker from a dropdown. Edits to a speaker apply to all
+associated presentations, including their calendar entries and exports.
+
+The `20260907_add_speakers.sql` migration seeds Olivier Melnick
+(`olivier@shalominmessiah.com`, `+1 (949) 400-2892`) and assigns **every existing presentation**,
+including archived records, to that speaker. It then replaces the old free-text speaker name
+with a required foreign key. Apply it through the normal backed-up migration workflow together
+with the application changes. The application database account receives SELECT, INSERT, and
+UPDATE rights for speakers only; the offline exact-restore account retains its recovery access.

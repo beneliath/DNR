@@ -14,7 +14,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
 }
 ?>
 <section id="presentations-container" class="form-section"
-         data-default-speaker="<?php echo htmlspecialchars($DEFAULT_SPEAKER, ENT_QUOTES, 'UTF-8'); ?>">
+         data-default-speaker="<?php echo (int) $default_speaker_id; ?>">
     <div class="chron-log-heading">
         <h2>Presentation(s)</h2>
         <?php if (!empty($archived_presentation_count) && !empty($engagement_id)): ?>
@@ -28,6 +28,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
         <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
     <?php endif; ?>
     <p class="field-help">Presentation details are optional and can be filled in after the event is created. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
+    <p class="field-help"><a href="speakers.php" target="_blank" rel="noopener">View or manage speakers (opens in a new tab)</a></p>
     <div class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>">
         <div class="presentations-inner-container">
             <?php foreach ($presentation_form_rows as $presentation_index => $presentation): ?>
@@ -37,9 +38,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                     $presentation['presentation_time'] ?? ''
                 );
                 $presentation_topic = (string) ($presentation['topic_title'] ?? '');
-                $presentation_speaker = array_key_exists('speaker_name', $presentation)
-                    ? (string) $presentation['speaker_name']
-                    : $DEFAULT_SPEAKER;
+                $presentation_speaker = (int) ($presentation['speaker_id'] ?? $default_speaker_id);
                 $is_saved_presentation = !empty($presentation['id']);
                 $show_delete_button = !$is_saved_presentation
                     && (count($presentation_form_rows) > 1 || $presentation_topic !== '');
@@ -72,8 +71,12 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         </div>
                         <div class="speaker-row">
                             <div class="form-field speaker">
-                                <label for="speaker_name_<?php echo $presentation_dom_id; ?>">Speaker Name</label>
-                                <input type="text" name="presentations[<?php echo $presentation_dom_id; ?>][speaker_name]" id="speaker_name_<?php echo $presentation_dom_id; ?>" maxlength="255" value="<?php echo htmlspecialchars($presentation_speaker, ENT_QUOTES, 'UTF-8'); ?>">
+                                <label for="speaker_id_<?php echo $presentation_dom_id; ?>">Speaker</label>
+                                <select name="presentations[<?php echo $presentation_dom_id; ?>][speaker_id]" id="speaker_id_<?php echo $presentation_dom_id; ?>">
+                                    <?php foreach ($speaker_options as $speaker_option): ?>
+                                        <option value="<?php echo (int) $speaker_option['id']; ?>"<?php echo $presentation_speaker === (int) $speaker_option['id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars($speaker_option['name'] . ' — ' . $speaker_option['email'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
                             </div>
                             <div class="form-field attendance">
                                 <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (minutes)</label>

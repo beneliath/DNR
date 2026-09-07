@@ -26,8 +26,9 @@ if (!hasRole(['admin', 'editor'])) {
     exit();
 }
 
-// Get default speaker name from environment variable
-$DEFAULT_SPEAKER = applicationDefaultSpeaker();
+// Use the configured speaker when it matches a saved record.
+$speaker_options = fetchSpeakerOptions($conn);
+$default_speaker_id = defaultSpeakerId($speaker_options, applicationDefaultSpeaker());
 
 // Handle form submission for adding a new engagement
 $success_message = '';
@@ -66,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
             $_POST['presentations'] ?? null,
             $event_start_date,
             $event_end_date,
-            $DEFAULT_SPEAKER,
+            $default_speaker_id,
             false,
             array_fill_keys(array_keys($presentation_asset_uploads), true)
         );

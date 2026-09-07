@@ -1,0 +1,7 @@
+ALTER TABLE speakers
+    ADD COLUMN website_url VARCHAR(2048) NULL,
+    ADD COLUMN bio_url VARCHAR(2048) NULL,
+    ADD COLUMN donation_url VARCHAR(2048) NULL,
+    ADD COLUMN connection_url VARCHAR(2048) NULL,
+    ADD COLUMN blog_url VARCHAR(2048) NULL,
+    ADD COLUMN books_url VARCHAR(2048) NULL;

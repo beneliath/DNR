@@ -55,7 +55,7 @@ function presentationFormFixture(rows = [{}], statusValue = "pending") {
     const entries = [];
     const periods = new Map();
     const documentEvents = {};
-    const defaultSpeaker = "Default Speaker";
+    const defaultSpeaker = "1";
     function input(value = "") {
         return {
             value, validity: { badInput: false }, events: {}, validationMessage: "",
@@ -71,18 +71,23 @@ function presentationFormFixture(rows = [{}], statusValue = "pending") {
     nodes.set("confirmation_status", status);
     nodes.set("event_start_date", input("2026-11-14"));
     nodes.set("event_end_date", input("2026-11-16"));
-    nodes.set("presentations-container", { dataset: { defaultSpeaker } });
+    nodes.set("presentations-container", { dataset: { defaultSpeaker },
+        querySelector: () => nodes.get("speaker_id_1") });
 
     function initializeEntry(entry, values = {}) {
         const id = Number(entry.id.replace("presentation-", ""));
         const defaults = {
             presentation_topic: "", presentation_date: "", presentation_time: "",
             presentation_time_hidden: "", duration_minutes: "60",
-            speaker_name: defaultSpeaker, expected_attendance: "", actual_attendance: ""
+            speaker_id: defaultSpeaker, expected_attendance: "", actual_attendance: ""
         };
         for (const [field, value] of Object.entries({ ...defaults, ...values })) {
             if (field !== "saved") nodes.set(field + "_" + id, input(value));
         }
+        const select = nodes.get("speaker_id_" + id);
+        function option(value) { return { value, cloneNode() { return option(value); } }; }
+        select.options = [option("1"), option("2")];
+        select.appendChild = node => select.options.push(node);
         periods.set(id, [Object.assign(input("AM"), { checked: true })]);
         nodes.set(entry.id, entry);
         entry.querySelectorAll = () => [];
@@ -151,7 +156,7 @@ test("confirmation accepts partial or previously saved presentations", function 
         { presentation_date: "2026-11-15", duration_minutes: "" },
         { presentation_time: "9:30", duration_minutes: "" },
         { duration_minutes: "45" },
-        { speaker_name: "Another Speaker" },
+        { speaker_id: "2" },
         { expected_attendance: "50" },
         { actual_attendance: "0" },
         { saved: 12, duration_minutes: "" }
@@ -174,7 +179,7 @@ test("confirmation still requires content beyond a blank row's defaults", functi
 test("changing optional attendance, speaker, or duration updates confirmation availability", function () {
     for (const [field, value] of [
         ["expected_attendance", "50"], ["actual_attendance", "0"],
-        ["speaker_name", "Another Speaker"], ["duration_minutes", "45"]
+        ["speaker_id", "2"], ["duration_minutes", "45"]
     ]) {
         const fixture = presentationFormFixture();
         const input = fixture.nodes.get(field + "_1");

@@ -45,7 +45,8 @@ if (!$result || $result->num_rows === 0) {
 }
 
 $engagement = $result->fetch_assoc();
-$DEFAULT_SPEAKER = applicationDefaultSpeaker();
+$speaker_options = fetchSpeakerOptions($conn);
+$default_speaker_id = defaultSpeakerId($speaker_options, applicationDefaultSpeaker());
 $submitted_engagement_contacts = null;
 $submitted_engagement_added_contact_ids = [];
 $submitted_engagement_new_contacts = [];
@@ -336,7 +337,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $_POST['presentations'] ?? null,
             $event_start_date,
             $event_end_date,
-            $DEFAULT_SPEAKER,
+            $default_speaker_id,
             true,
             array_fill_keys(array_keys($presentation_asset_uploads), true)
         );
@@ -607,7 +608,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
 // Get presentations for this engagement
 $presentations_query = "SELECT id, engagement_id, topic_title, presentation_date,
-                               presentation_time, speaker_name, duration_minutes,
+                               presentation_time, speaker_id, duration_minutes,
                                expected_attendance, actual_attendance,
                                slide_deck_pdf IS NOT NULL AS has_slide_deck,
                                slide_deck_filename, slide_deck_size, slide_deck_updated_at,

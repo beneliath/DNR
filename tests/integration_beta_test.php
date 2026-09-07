@@ -83,8 +83,8 @@ $engagement_stmt->close();
 
 $presentation_stmt = $conn->prepare(
     "INSERT INTO presentations
-        (engagement_id, topic_title, presentation_date, presentation_time, speaker_name)
-     VALUES (?, 'Existing Presentation', '2026-09-11', '14:00:00', 'Beta Speaker')"
+        (engagement_id, topic_title, presentation_date, presentation_time, speaker_id)
+     VALUES (?, 'Existing Presentation', '2026-09-11', '14:00:00', (SELECT MIN(id) FROM speakers))"
 );
 $presentation_stmt->bind_param('i', $engagement_id);
 $presentation_stmt->execute();

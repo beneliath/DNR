@@ -188,15 +188,16 @@ $engagement_marker = applicationInboundMarker($engagement_id);
 
 // Fetch presentations associated with this engagement.
 $presentation_stmt = $conn->prepare(
-    "SELECT id, topic_title, presentation_date, presentation_time, speaker_name, duration_minutes,
-            expected_attendance, actual_attendance,
-            slide_deck_pdf IS NOT NULL AS has_slide_deck, slide_deck_filename,
-            speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
-            speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
-            speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr
-     FROM presentations
-     WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date, presentation_time, id"
+    "SELECT p.id, p.speaker_id, p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name, p.duration_minutes,
+            p.expected_attendance, p.actual_attendance,
+            p.slide_deck_pdf IS NOT NULL AS has_slide_deck, p.slide_deck_filename,
+            p.speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
+            p.speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
+            p.speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr
+     FROM presentations p
+         INNER JOIN speakers s ON s.id = p.speaker_id
+     WHERE p.engagement_id = ? AND p.is_archived = 0
+     ORDER BY p.presentation_date, p.presentation_time, p.id"
 );
 if ($presentation_stmt === false) abortApplication(503, 'The engagement presentations are temporarily unavailable.', ['error' => $conn->error]);
 $presentation_stmt->bind_param("i", $engagement_id);
@@ -505,7 +506,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <div class="presentation-item">
                 <strong><?php echo htmlspecialchars(trim((string) $presentation['topic_title']) ?: 'Presentation'); ?></strong>
                 <?php if (!empty($presentation['speaker_name'])): ?>
-                <div>Speaker: <?php echo htmlspecialchars($presentation['speaker_name']); ?></div>
+                <div>Speaker: <a href="view_speaker.php?id=<?php echo (int) $presentation['speaker_id']; ?>"><?php echo htmlspecialchars($presentation['speaker_name']); ?></a></div>
                 <?php endif; ?>
                 <?php if (!empty($presentation['presentation_date']) || !empty($presentation['presentation_time'])): ?>
                 <div>

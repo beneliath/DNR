@@ -100,8 +100,8 @@ try {
     $presentationStmt = $conn->prepare(
         "INSERT INTO presentations
             (engagement_id, topic_title, presentation_date, presentation_time,
-             speaker_name, is_archived, archived_by, archived_at)
-         VALUES (?, ?, ?, '10:00:00', 'Financial Test Speaker', ?, ?, ?)"
+             speaker_id, is_archived, archived_by, archived_at)
+         VALUES (?, ?, ?, '10:00:00', (SELECT MIN(id) FROM speakers), ?, ?, ?)"
     );
     foreach ([
         ['Opening presentation', '2026-03-10', 0, null, null],

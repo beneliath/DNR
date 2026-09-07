@@ -92,7 +92,7 @@ class ReleaseWorkflow(unittest.TestCase):
             self.assertEqual((root/'VERSION').read_text(),'1.11.6\n')
 
 class DeploymentBackupGate(unittest.TestCase):
-    def exercise(self, backup_fails):
+    def exercise(self, backup_fails, seed_fails=False):
         import datetime, hashlib, os
         with tempfile.TemporaryDirectory() as directory:
             root=Path(directory); (root/'.git').mkdir()
@@ -102,6 +102,10 @@ class DeploymentBackupGate(unittest.TestCase):
             manifest.write_text(json.dumps(dict(commit=expected,version='1.11.7',migration_mode='pause-writers',images=images,
                 migrations={'001.sql':hashlib.sha256(b'SELECT 1;').hexdigest()})))
             (root/'mirrors.json').write_text('{}')
+            seed_sha = ''
+            if seed_fails:
+                (root/'speaker-seed.json').write_text('{}')
+                seed_sha = hashlib.sha256(b'{}').hexdigest()
             events=[]
             clock=[1000.0]
             def sleep(seconds):
@@ -129,7 +133,12 @@ class DeploymentBackupGate(unittest.TestCase):
                     self.assertEqual(kwargs['env']['DNR_BUILD_TIMESTAMP'], '2026-09-05T13:51:40Z')
                     if args[3:5]==['ps','-aq']: return args[-1]
                     if args[3]=='stop': self.assertGreaterEqual(clock[0],1480.0)
-                    if args[3:5]==['run','--rm']: raise ValueError('synthetic migration failure')
+                    if args[3:5]==['run','--rm']:
+                        if not seed_fails: raise ValueError('synthetic migration failure')
+                        if 'apply' in args:
+                            self.assertIn(['backup'], events)
+                            self.assertTrue(any(event[-1:] == ['migrator'] for event in events))
+                            raise ValueError('synthetic seed failure')
                     return ''
                 return ''
             def backup(*args):
@@ -138,7 +147,7 @@ class DeploymentBackupGate(unittest.TestCase):
                 return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True}
             cwd=Path.cwd()
             try:
-                with patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32]), self.assertRaisesRegex(ValueError,'synthetic'):
+                with patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), self.assertRaisesRegex(ValueError,'synthetic'):
                     deploy_release_host.main()
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
                 self.assertEqual(record['outcome'],'failed')
@@ -152,10 +161,11 @@ class DeploymentBackupGate(unittest.TestCase):
                 else:
                     self.assertGreater(merge[0],backup_index)
                     self.assertTrue(record['backup']['restore_verified'])
-                    self.assertEqual(record['phase'],'migrating')
+                    self.assertEqual(record['phase'],'seeding-speaker' if seed_fails else 'migrating')
                 self.assertIn('stop',events[-1], 'Failure must leave writers paused')
             finally: os.chdir(cwd)
     def test_backup_failure_prevents_checkout_and_database_upgrade(self): self.exercise(True)
     def test_migration_failure_retains_verified_recovery_record(self): self.exercise(False)
+    def test_speaker_import_failure_keeps_writers_paused_after_verified_backup(self): self.exercise(False, True)
 
 if __name__ == '__main__': unittest.main()

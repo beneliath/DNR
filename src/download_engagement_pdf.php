@@ -66,11 +66,12 @@ try {
 }
 
 $presentation_stmt = $conn->prepare(
-    'SELECT topic_title, presentation_date, presentation_time, speaker_name, duration_minutes,
-            expected_attendance, actual_attendance
-     FROM presentations
-     WHERE engagement_id = ? AND is_archived = 0
-     ORDER BY presentation_date, presentation_time, id'
+    'SELECT p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name, p.duration_minutes,
+            p.expected_attendance, p.actual_attendance
+     FROM presentations p
+         INNER JOIN speakers s ON s.id = p.speaker_id
+     WHERE p.engagement_id = ? AND p.is_archived = 0
+     ORDER BY p.presentation_date, p.presentation_time, p.id'
 );
 if (!$presentation_stmt) {
     http_response_code(500);

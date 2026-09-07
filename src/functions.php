@@ -944,6 +944,8 @@ function safeRolePreviewReturnUrl($return_url, $role) {
     }
 
     $shared_pages = [
+        'speakers.php',
+        'view_speaker.php',
         'contacts.php',
         'dashboard.php',
         'engagements.php',
@@ -967,6 +969,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'view_standard_task.php',
     ];
     $editor_pages = [
+        'edit_speaker.php',
         'add_contact.php',
         'add_inquiry.php',
         'add_organization.php',

@@ -103,7 +103,8 @@ expectContactPhoto(
         && str_contains($contact_photo_script, 'new FileReader()')
         && str_contains($contact_photo_script, 'reader.readAsDataURL(file)')
         && !str_contains($contact_photo_script, 'URL.createObjectURL(file)')
-        && str_contains($contact_photo_script, 'Preview of selected contact photo')
+        && str_contains($contact_photo_script, "input.dataset.photoLabel || 'contact'")
+        && str_contains($contact_photo_script, "'Preview of selected ' + photoLabel + ' photo'")
         && str_contains($contact_photo_script, 'Save changes to apply this photo.')
         && str_contains($contact_photo_script, 'removeCheckbox.checked = false'),
     'selecting a valid contact photo should immediately replace the preview before saving.'

@@ -62,3 +62,7 @@
 20260906_map_location_quality.sql
 20260906_map_pin_actor_retention.sql
 20260906_add_contact_organizations.sql
+20260907_add_speakers.sql
+20260907_add_speaker_photos.sql
+20260907_add_speaker_bio.sql
+20260907_add_speaker_urls.sql
