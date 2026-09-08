@@ -106,7 +106,8 @@ try{
   $engagementView=$request('view_engagement.php?id='.$event,null,$cookie);
   $viewDoc=new DOMDocument();@$viewDoc->loadHTML($engagementView['body']);$viewXpath=new DOMXPath($viewDoc);
   foreach($links as$generatedLink)expectLinkHttp($viewXpath->query('//div[contains(@class,"presentation-qr-display")]//a[@href="short_links.php?id='.$generatedLink['id'].'"]')->length===1,'Each presentation QR card opens its own statistics: '.$role);
-  expectLinkHttp(!str_contains($engagementView['body'],'Presentation Statistics'),'Engagement view has no aggregate Presentation Statistics link');
+  expectLinkHttp($viewXpath->query('//a[starts-with(@href,"short_links.php?presentation_id=")]')->length===0,'Engagement view has no aggregate Presentation Statistics navigation link');
+  expectLinkHttp($viewXpath->query('//a[@href="reset_presentation_stats.php?presentation_id='.$pid.'"]')->length===($role==='admin'?1:0),'Only admins see the separate presentation statistics reset action');
   expectLinkHttp($viewXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$pid.'&type=notes" and @target="_blank" and @rel="noopener" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Each uploaded notes file has its own correctly labelled new-tab button: '.$role);
   $preview=$viewXpath->query('//div[contains(@class,"presentation-qr-display")]//img')->item(0);
   expectLinkHttp($preview instanceof DOMElement && $preview->getAttribute('src')==='data:image/png;base64,'.base64_encode($web['qr_png']),'QR preview embeds the stored PNG without a separate image request');
