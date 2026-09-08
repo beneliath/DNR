@@ -8,6 +8,99 @@
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
 
+.calendar-content-options {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.calendar-content-options legend {
+    margin-bottom: 0.65rem;
+    font-weight: 700;
+}
+
+.calendar-content-options .calendar-content-option {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    margin: 0;
+    padding: 0.5rem 0;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.calendar-content-option input[type="checkbox"] {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 auto;
+    margin: 0;
+    accent-color: var(--primary);
+}
+
+.calendar-content-option:has(input:disabled) {
+    color: var(--text-muted);
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.calendar-subscription-content-summary {
+    display: block;
+    margin-top: 0.4rem;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.calendar-subscription .calendar-url-row {
+    align-items: center;
+    flex-direction: row;
+}
+
+.calendar-subscription :is(#calendar-url, #copy-calendar-url) {
+    box-sizing: border-box;
+    height: 46px !important;
+    min-height: 46px !important;
+    margin: 0;
+    padding-block: 0 !important;
+}
+
+.calendar-subscription #copy-calendar-url {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+.calendar-subscription #new-calendar-title {
+    color: var(--success) !important;
+}
+
+#new-calendar-link {
+    scroll-margin-top: calc(var(--deployment-banner-height, 0px) + 24px);
+}
+
+@media (max-width: 860px) {
+    #new-calendar-link {
+        scroll-margin-top: calc(var(--deployment-banner-height, 0px) + 80px);
+    }
+
+    .role-preview-active #new-calendar-link {
+        scroll-margin-top: calc(var(--deployment-banner-height, 0px) + 164px);
+    }
+}
+
+@keyframes calendar-new-link-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #new-calendar-title {
+        animation: calendar-new-link-blink 1.6s step-end infinite;
+    }
+}
+
 .calendar-subscription-management-grid {
     display: grid;
     grid-template-columns: minmax(320px, 0.625fr) minmax(0, 1.375fr);
@@ -39,13 +132,11 @@
 }
 
 @media (max-width: 760px) {
-    .calendar-subscription .calendar-url-row,
     .calendar-subscription .calendar-card-heading {
         align-items: stretch;
         flex-direction: column;
     }
 
-    .calendar-subscription .calendar-url-row > *,
     .calendar-subscription .calendar-purge-form,
     .calendar-subscription .calendar-purge-form > button {
         width: 100%;

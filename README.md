@@ -1152,7 +1152,16 @@ events use the calendar-standard `CANCELLED` status; postponed and canceled entr
 transparent, and their descriptions include any cancellation reason and replacement event.
 Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
 
-Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest, redacts all query strings from Apache access logs, and never includes contacts, chronological notes, travel, lodging, or compensation in the feed.
+When creating a link, choose any combination of **Events**, **Presentations**, **My Active Work**,
+**All Active Work**, and **Birthdays (from Contacts)**. Select at least one category. Each link
+keeps its own content settings, displayed beneath its label. All Active Work disables My Active
+Work and includes everyone's active work, including unassigned tasks. My Active Work uses the
+subscription owner's assignments. Open, in-progress, and waiting tasks with a due date appear as
+transparent all-day reminders within the feed window; completed, canceled, and undated tasks do
+not appear. Task changes invalidate cached feeds. Existing links retain events, presentations,
+and birthdays without adding work automatically.
+
+Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest and redacts all query strings from Apache access logs. Depending on the selected content, a feed can include contact names and birthdays or work titles, due dates, status, and priority. Contact details, task details, chronological notes, travel, lodging, and compensation remain excluded.
 
 ### Contributing
 

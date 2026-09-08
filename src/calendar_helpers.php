@@ -199,7 +199,8 @@ function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $ass
     $assigned_filter = $assigned_user_id !== null ? ' AND t.assigned_to = ?' : '';
     $stmt = $conn->prepare(
         "SELECT t.id, t.title, t.due_date, t.status, t.priority, t.assigned_to,
-                assignee.username AS assignee_username
+                assignee.username AS assignee_username,
+                UNIX_TIMESTAMP(t.updated_at) AS calendar_updated_at
          FROM follow_up_tasks t
          LEFT JOIN users assignee ON assignee.id = t.assigned_to
          WHERE t.due_date BETWEEN ? AND ?
@@ -733,12 +734,41 @@ function calendarPresentationEventLines(
     return $lines;
 }
 
+/** Due work is an all-day reminder; task details and waiting-on notes stay private. */
+function calendarTaskEventLines(array $task): array {
+    $due_date = trim((string) ($task['due_date'] ?? ''));
+    $due = DateTimeImmutable::createFromFormat('!Y-m-d', $due_date);
+    if (!$due || $due->format('Y-m-d') !== $due_date
+        || !in_array($task['status'] ?? '', ['open', 'in_progress', 'waiting'], true)) {
+        return [];
+    }
+    $updated_timestamp = $task['calendar_updated_at'] ?? null;
+    $updated_at = calendarUtcTimestamp($updated_timestamp);
+    return [
+        'BEGIN:VEVENT',
+        'UID:task-' . (int) ($task['id'] ?? 0) . '@dnr-calendar',
+        'DTSTAMP:' . $updated_at,
+        'LAST-MODIFIED:' . $updated_at,
+        'SEQUENCE:' . calendarSequence($updated_timestamp),
+        'SUMMARY:' . calendarEscapeText('Work: ' . (string) ($task['title'] ?? 'Untitled task')),
+        'DTSTART;VALUE=DATE:' . $due->format('Ymd'),
+        'DTEND;VALUE=DATE:' . $due->modify('+1 day')->format('Ymd'),
+        'DESCRIPTION:' . calendarEscapeText('Status: ' . calendarStatusLabel($task['status'])
+            . "\nPriority: " . calendarStatusLabel($task['priority'] ?? 'normal')),
+        'CATEGORIES:WORK',
+        'STATUS:CONFIRMED',
+        'TRANSP:TRANSPARENT',
+        'END:VEVENT',
+    ];
+}
+
 function buildCalendar(
     array $engagements,
     $calendar_name = null,
     array $presentations = [],
     $timezone_name = null,
-    array $birthdays = []
+    array $birthdays = [],
+    array $tasks = []
 ) {
     $calendar_name = $calendar_name ?? applicationCalendarName();
     $productName = preg_replace('/[^A-Za-z0-9 ._-]+/u', '', applicationBrandName()) ?: 'DNR';
@@ -768,6 +798,10 @@ function buildCalendar(
         $lines = array_merge($lines, calendarBirthdayEventLines($birthday));
     }
 
+    foreach ($tasks as $task) {
+        $lines = array_merge($lines, calendarTaskEventLines($task));
+    }
+
     $lines[] = 'END:VCALENDAR';
     return implode("\r\n", array_map('calendarFoldLine', $lines)) . "\r\n";
 }
@@ -779,12 +813,63 @@ function calendarTokenHash($token) {
     return hash('sha256', $token, true);
 }
 
-function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar subscription') {
+/** @return array<string, string> */
+function calendarSubscriptionContentOptions(): array {
+    return [
+        'events' => 'Events',
+        'presentations' => 'Presentations',
+        'my_work' => 'My Active Work',
+        'all_work' => 'All Active Work',
+        'birthdays' => 'Birthdays (from Contacts)',
+    ];
+}
+
+/** @return list<string> */
+function calendarSubscriptionDefaultContent(): array {
+    return ['events', 'presentations', 'birthdays'];
+}
+
+/** @return array{include_events: int, include_presentations: int, work_scope: string, include_birthdays: int} */
+function normalizeCalendarSubscriptionContent(mixed $content): array {
+    if (!is_array($content)) {
+        throw new InvalidArgumentException('Select valid calendar content.');
+    }
+    $options = calendarSubscriptionContentOptions();
+    foreach ($content as $option) {
+        if (!is_string($option) || !isset($options[$option])) {
+            throw new InvalidArgumentException('Select valid calendar content.');
+        }
+    }
+    if ($content === []) {
+        throw new InvalidArgumentException('Select at least one type of calendar content.');
+    }
+    return [
+        'include_events' => (int) in_array('events', $content, true),
+        'include_presentations' => (int) in_array('presentations', $content, true),
+        'work_scope' => in_array('all_work', $content, true) ? 'all'
+            : (in_array('my_work', $content, true) ? 'my' : 'none'),
+        'include_birthdays' => (int) in_array('birthdays', $content, true),
+    ];
+}
+
+function calendarSubscriptionContentSummary(array $subscription): string {
+    $selected = [];
+    if ((int) $subscription['include_events'] === 1) $selected[] = 'events';
+    if ((int) $subscription['include_presentations'] === 1) $selected[] = 'presentations';
+    if ($subscription['work_scope'] === 'my') $selected[] = 'my_work';
+    if ($subscription['work_scope'] === 'all') $selected[] = 'all_work';
+    if ((int) $subscription['include_birthdays'] === 1) $selected[] = 'birthdays';
+    $options = calendarSubscriptionContentOptions();
+    return implode(', ', array_map(static fn(string $key): string => $options[$key], $selected));
+}
+
+function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar subscription', ?array $content = null) {
     $user_id = (int) $user_id;
     $label = trim(substr((string) $label, 0, 100));
     if ($user_id < 1 || $label === '') {
         throw new InvalidArgumentException('A subscription owner and label are required.');
     }
+    $settings = normalizeCalendarSubscriptionContent($content ?? calendarSubscriptionDefaultContent());
 
     $conn->begin_transaction();
     try {
@@ -819,10 +904,12 @@ function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar s
         $token = rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
         $token_hash = calendarTokenHash($token);
         $stmt = $conn->prepare(
-            'INSERT INTO calendar_subscriptions (user_id, label, token_hash)
-             VALUES (?, ?, ?)'
+            'INSERT INTO calendar_subscriptions
+                (user_id, label, token_hash, include_events, include_presentations, work_scope, include_birthdays)
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
-        $stmt->bind_param('iss', $user_id, $label, $token_hash);
+        $stmt->bind_param('issiisi', $user_id, $label, $token_hash,
+            $settings['include_events'], $settings['include_presentations'], $settings['work_scope'], $settings['include_birthdays']);
         if (!$stmt->execute()) {
             $stmt->close();
             throw new RuntimeException('Unable to create the calendar subscription.');
@@ -830,7 +917,7 @@ function createCalendarSubscription(mysqli $conn, $user_id, $label = 'Calendar s
         $subscription_id = (int) $conn->insert_id;
         $stmt->close();
         $conn->commit();
-        return ['id' => $subscription_id, 'token' => $token, 'label' => $label];
+        return ['id' => $subscription_id, 'token' => $token, 'label' => $label] + $settings;
     } catch (Throwable $exception) {
         $conn->rollback();
         throw $exception;
@@ -844,7 +931,9 @@ function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
     }
     $stmt = $conn->prepare(
         'SELECT subscription.id, subscription.user_id, subscription.label,
-                subscription.created_at, subscription.last_used_at
+                subscription.created_at, subscription.last_used_at,
+                subscription.include_events, subscription.include_presentations,
+                subscription.work_scope, subscription.include_birthdays
          FROM calendar_subscriptions subscription
          INNER JOIN users user ON user.id = subscription.user_id
          WHERE subscription.token_hash = ? AND subscription.revoked_at IS NULL
@@ -872,7 +961,8 @@ function calendarSubscriptionForToken(mysqli $conn, $submitted_token) {
 
 function calendarSubscriptionsForUser(mysqli $conn, $user_id) {
     $stmt = $conn->prepare(
-        'SELECT id, label, created_at, last_used_at, revoked_at
+        'SELECT id, label, created_at, last_used_at, revoked_at,
+                include_events, include_presentations, work_scope, include_birthdays
          FROM calendar_subscriptions WHERE user_id = ?
          ORDER BY created_at DESC, id DESC'
     );

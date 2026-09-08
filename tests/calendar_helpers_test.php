@@ -26,6 +26,29 @@ $common = [
     'engagement_notes' => 'This private note must not appear.',
 ];
 
+$defaults = normalizeCalendarSubscriptionContent(calendarSubscriptionDefaultContent());
+expectCalendar($defaults === ['include_events' => 1, 'include_presentations' => 1, 'work_scope' => 'none', 'include_birthdays' => 1], 'Defaults must preserve existing subscription content without adding work.');
+expectCalendar(normalizeCalendarSubscriptionContent(['my_work', 'all_work'])['work_scope'] === 'all', 'All work must supersede my work on the server.');
+foreach ([[], 'events', ['unknown'], [['events']], [true]] as $invalidContent) {
+    try {
+        normalizeCalendarSubscriptionContent($invalidContent);
+        expectCalendar(false, 'Invalid or empty selections must be rejected.');
+    } catch (InvalidArgumentException $expected) {
+    }
+}
+$task = ['id' => 77, 'title' => "Prepare, review; résumé\nATTENDEE:fake", 'due_date' => '2026-12-31',
+    'status' => 'waiting', 'priority' => 'high', 'calendar_updated_at' => 1786708800,
+    'details' => 'Private details', 'waiting_on' => 'Private waiting note'];
+$taskCalendar = buildCalendar([], null, [], null, [], [$task]);
+expectCalendar(str_contains($taskCalendar, "UID:task-77@dnr-calendar\r\n")
+    && str_contains($taskCalendar, "DTSTART;VALUE=DATE:20261231\r\nDTEND;VALUE=DATE:20270101\r\n")
+    && str_contains($taskCalendar, "TRANSP:TRANSPARENT\r\n"), 'Active work should use stable all-day reminders with exclusive end dates.');
+expectCalendar(!str_contains($taskCalendar, 'Private') && !str_contains($taskCalendar, "\r\nATTENDEE:"), 'Work feeds must omit private fields and escape calendar property injection.');
+foreach (['completed', 'canceled'] as $inactiveStatus) {
+    expectCalendar(calendarTaskEventLines(array_replace($task, ['status' => $inactiveStatus])) === [], 'Inactive work must not be published.');
+}
+expectCalendar(calendarTaskEventLines(array_replace($task, ['due_date' => null])) === [], 'Undated work must not invent a calendar date.');
+
 $all_day = $common + [
     'event_start_date' => '2026-08-14',
     'event_end_date' => '2026-08-15',
