@@ -104,8 +104,9 @@ foreach ([[81, 1, 20, 0, 1, 'Showing 1–20 of 81 organizations'],
             'The current page is identified when navigation is available.');
     } else {
         expectPaginationHelper($xpath->query('//*[@class="pagination-bar"]')->length === 0
-            && $xpath->query('//a[contains(@class,"page-size-button")]')->length === 2,
-            'A remembered large page size hides page navigation while offering only useful smaller sizes.');
+            && $xpath->query('//a[contains(@class,"page-size-button")]')->length === 3
+            && $xpath->query('//a[@aria-current="true"]')->item(0)->textContent === (string) $size,
+            'A remembered large page size hides page navigation while retaining the available sizes and active selection.');
     }
     expectPaginationHelper(str_contains($html, $status), 'The visible record range agrees with the results.');
     foreach ($xpath->query('//a') as $link) {
@@ -118,14 +119,14 @@ foreach ([[81, 1, 20, 0, 1, 'Showing 1–20 of 81 organizations'],
     expectPaginationHelper($xpath->query('//*[@id]')->length === 0, 'Repeated pagination controls do not duplicate IDs.');
 }
 
-foreach ([0 => [], 19 => [], 20 => [], 21 => [20], 50 => [20], 51 => [20, 50],
-    100 => [20, 50], 101 => [20, 50, 100]] as $total => $expectedSizes) {
+foreach ([0 => [], 19 => [], 20 => [], 21 => [20, 50], 50 => [20, 50], 51 => [20, 50, 100],
+    100 => [20, 50, 100], 101 => [20, 50, 100]] as $total => $expectedSizes) {
     ob_start();
     renderPagination($total, 1, 20, 'contacts.php', 'contacts', 'Contact pages');
     $html = ob_get_clean();
     preg_match_all('/class="sort-button page-size-button[^>]*>(\d+)<\/a>/', $html, $matches);
     expectPaginationHelper(array_map('intval', $matches[1]) === $expectedSizes,
-        'Page-size options appear only when the record count strictly exceeds their size.');
+        'The 50-record option appears at 21 records and the 100-record option appears at 51 records.');
     expectPaginationHelper($total <= 20 ? $html === '' : str_contains($html, 'Records per page:'),
         'Visible tools use Records per page; small lists have no tool at either placement.');
 }
