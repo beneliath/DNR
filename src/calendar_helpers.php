@@ -198,11 +198,19 @@ function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $ass
     $assigned_user_id = $assigned_user_id === null ? null : (int) $assigned_user_id;
     $assigned_filter = $assigned_user_id !== null ? ' AND t.assigned_to = ?' : '';
     $stmt = $conn->prepare(
-        "SELECT t.id, t.title, t.due_date, t.status, t.priority, t.assigned_to,
+        "SELECT t.id, t.title, t.due_date, t.status, t.priority, t.assigned_to, t.engagement_id,
                 assignee.username AS assignee_username,
-                UNIX_TIMESTAMP(t.updated_at) AS calendar_updated_at
+                COALESCE(NULLIF(TRIM(e.event_title), ''), o.organization_name) AS engagement_label,
+                UNIX_TIMESTAMP(GREATEST(
+                    t.updated_at,
+                    COALESCE(e.updated_at, t.updated_at),
+                    COALESCE(o.updated_at, t.updated_at),
+                    COALESCE(assignee.last_updated_at, t.updated_at)
+                )) AS calendar_updated_at
          FROM follow_up_tasks t
          LEFT JOIN users assignee ON assignee.id = t.assigned_to
+         LEFT JOIN engagements e ON e.id = t.engagement_id
+         LEFT JOIN organizations o ON o.id = e.organization_id
          WHERE t.due_date BETWEEN ? AND ?
            AND t.status IN ('open', 'in_progress', 'waiting')"
         . $assigned_filter .
@@ -744,17 +752,29 @@ function calendarTaskEventLines(array $task): array {
     }
     $updated_timestamp = $task['calendar_updated_at'] ?? null;
     $updated_at = calendarUtcTimestamp($updated_timestamp);
+    $engagement_label = trim((string) ($task['engagement_label'] ?? ''));
+    if ($engagement_label === '') {
+        $engagement_id = (int) ($task['engagement_id'] ?? 0);
+        $engagement_label = $engagement_id > 0 ? 'Engagement #' . $engagement_id : 'None';
+    }
+    $owner = trim((string) ($task['assignee_username'] ?? '')) ?: 'Unassigned';
+    $description = [
+        'Engagement: ' . $engagement_label,
+        'Owner: ' . $owner,
+        'Status: ' . calendarStatusLabel($task['status']),
+        'Priority: ' . calendarStatusLabel($task['priority'] ?? 'normal'),
+    ];
     return [
         'BEGIN:VEVENT',
         'UID:task-' . (int) ($task['id'] ?? 0) . '@dnr-calendar',
         'DTSTAMP:' . $updated_at,
         'LAST-MODIFIED:' . $updated_at,
-        'SEQUENCE:' . calendarSequence($updated_timestamp),
+        // Advance existing work entries when publishing engagement and owner metadata.
+        'SEQUENCE:' . min(2147483647, calendarSequence($updated_timestamp) + 1),
         'SUMMARY:' . calendarEscapeText('Work: ' . (string) ($task['title'] ?? 'Untitled task')),
         'DTSTART;VALUE=DATE:' . $due->format('Ymd'),
         'DTEND;VALUE=DATE:' . $due->modify('+1 day')->format('Ymd'),
-        'DESCRIPTION:' . calendarEscapeText('Status: ' . calendarStatusLabel($task['status'])
-            . "\nPriority: " . calendarStatusLabel($task['priority'] ?? 'normal')),
+        'DESCRIPTION:' . calendarEscapeText(implode("\n", $description)),
         'CATEGORIES:WORK',
         'STATUS:CONFIRMED',
         'TRANSP:TRANSPARENT',
