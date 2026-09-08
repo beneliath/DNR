@@ -248,13 +248,19 @@ $webcal_url = $calendar_url === null
 
     <?php if ($calendar_url !== null): ?>
         <section class="security-card calendar-card" id="new-calendar-link" aria-labelledby="new-calendar-title">
-            <h3 id="new-calendar-title">Save This New Link</h3>
+            <div class="calendar-new-link-heading">
+                <h3 id="new-calendar-title">Save This New Link</h3>
+                <span class="calendar-new-link-context">Shown only once</span>
+            </div>
             <p>This token is shown only once. Add it to your calendar now or copy it to an approved password manager.</p>
             <p><strong>Includes:</strong> <?php echo htmlspecialchars(calendarSubscriptionContentSummary($new_subscription), ENT_QUOTES, 'UTF-8'); ?></p>
             <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
             <div class="calendar-url-row">
                 <input type="url" id="calendar-url" readonly value="<?php echo htmlspecialchars($calendar_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="button" id="copy-calendar-url">Copy URL</button>
+                <button type="button" id="copy-calendar-url" class="action-icon-button" aria-label="Copy calendar URL" title="Copy calendar URL" data-tooltip="Copy URL">
+                    <svg class="action-icon calendar-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    <svg class="action-icon calendar-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                </button>
             </div>
             <p id="copy-calendar-status" class="calendar-copy-status" aria-live="polite"></p>
             <p><a class="security-button" id="open-calendar-app" href="<?php echo htmlspecialchars($webcal_url, ENT_QUOTES, 'UTF-8'); ?>">Open in Calendar App</a></p>

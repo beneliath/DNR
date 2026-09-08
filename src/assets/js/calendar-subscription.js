@@ -29,11 +29,15 @@
             await navigator.clipboard.writeText(input.value);
             status.textContent = 'Calendar URL copied.';
             copyButton.classList.add('is-copied');
-            copyButton.textContent = 'Copied!';
+            copyButton.setAttribute('aria-label', 'Calendar URL copied');
+            copyButton.setAttribute('title', 'Calendar URL copied');
+            copyButton.dataset.tooltip = 'Copied';
             window.clearTimeout(copyFeedbackTimer);
             copyFeedbackTimer = window.setTimeout(function () {
                 copyButton.classList.remove('is-copied');
-                copyButton.textContent = 'Copy URL';
+                copyButton.setAttribute('aria-label', 'Copy calendar URL');
+                copyButton.setAttribute('title', 'Copy calendar URL');
+                copyButton.dataset.tooltip = 'Copy URL';
             }, 2000);
         } catch (error) {
             input.select();

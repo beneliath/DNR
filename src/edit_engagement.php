@@ -413,7 +413,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $canceled_task_count = cancelEngagementFollowUpTasks($conn, $engagement_id);
         }
 
-        $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations);
+        $presentations_changed = syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id);
         if ($presentations_changed) {
             $touch_engagement_stmt = $conn->prepare(
                 'UPDATE engagements SET updated_at = CURRENT_TIMESTAMP(6) WHERE id = ?'
@@ -607,21 +607,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 }
 
 // Get presentations for this engagement
-$presentations_query = "SELECT id, engagement_id, topic_title, presentation_date,
-                               presentation_time, speaker_id, duration_minutes,
-                               expected_attendance, actual_attendance,
-                               EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = presentations.id AND n.speaker_id = presentations.speaker_id AND n.pdf IS NOT NULL) AS has_speaker_notes,
-                               (SELECT filename FROM presentation_notes n WHERE n.presentation_id = presentations.id AND n.speaker_id = presentations.speaker_id) AS speaker_notes_filename,
-                               (SELECT size FROM presentation_notes n WHERE n.presentation_id = presentations.id AND n.speaker_id = presentations.speaker_id) AS speaker_notes_size,
-                               speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
-                               speaker_notes_qr_updated_at,
-                               speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
-                               speaker_website_qr_updated_at,
-                               speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr,
-                               speaker_donation_qr_updated_at
-                        FROM presentations
-                        WHERE engagement_id = ? AND is_archived = 0
-                        ORDER BY presentation_date, presentation_time, id";
+$presentations_query = "SELECT p.id, p.engagement_id, p.topic_title, p.presentation_date,
+                               p.presentation_time, p.speaker_id, p.duration_minutes,
+                               p.expected_attendance, p.actual_attendance,
+                               n.pdf IS NOT NULL AS has_speaker_notes,
+                               n.filename AS speaker_notes_filename,
+                               n.size AS speaker_notes_size,
+                               n.updated_at AS speaker_notes_updated_at,
+                               COALESCE(uploader.username, n.uploaded_by_username_snapshot) AS speaker_notes_uploaded_by_username,
+                               p.speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
+                               p.speaker_notes_qr_updated_at,
+                               p.speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
+                               p.speaker_website_qr_updated_at,
+                               p.speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr,
+                               p.speaker_donation_qr_updated_at
+                        FROM presentations p
+                        LEFT JOIN presentation_notes n ON n.presentation_id = p.id AND n.speaker_id = p.speaker_id
+                        LEFT JOIN users uploader ON uploader.id = n.uploaded_by
+                        WHERE p.engagement_id = ? AND p.is_archived = 0
+                        ORDER BY p.presentation_date, p.presentation_time, p.id";
 $stmt = $conn->prepare($presentations_query);
 $stmt->bind_param("i", $engagement_id);
 $stmt->execute();
