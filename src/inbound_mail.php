@@ -285,7 +285,7 @@ $statusLabels = [
 
                 <section class="inbound-message-body">
                     <h3>Message</h3>
-                    <pre><?php echo htmlspecialchars($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', ENT_QUOTES, 'UTF-8'); ?></pre>
+                    <pre><?php echo renderTextWithLinks($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', false); ?></pre>
                     <?php if (mb_strlen((string) $selectedMessage['body_text'], 'UTF-8') > 100000): ?><p class="field-help">The review preview is limited to 100,000 characters; the retained source text is longer.</p><?php endif; ?>
                 </section>
 

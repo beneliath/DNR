@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Render user-entered plain text for read-only UI surfaces, wrapping absolute
  * HTTP(S) URLs in safe external links while preserving line breaks.
  */
-function renderTextWithLinks($text) {
+function renderTextWithLinks($text, bool $convertLineBreaks = true) {
     $text = (string) $text;
     $url_matches = [];
     $match_count = preg_match_all(
@@ -16,11 +16,12 @@ function renderTextWithLinks($text) {
         PREG_OFFSET_CAPTURE
     );
     if ($match_count === false || $match_count === 0) {
-        return nl2br(htmlspecialchars(
+        $html = htmlspecialchars(
             $text,
             ENT_QUOTES | ENT_SUBSTITUTE,
             'UTF-8'
-        ));
+        );
+        return $convertLineBreaks ? nl2br($html) : $html;
     }
 
     $html = '';
@@ -73,5 +74,5 @@ function renderTextWithLinks($text) {
         'UTF-8'
     );
 
-    return nl2br($html);
+    return $convertLineBreaks ? nl2br($html) : $html;
 }

@@ -157,6 +157,50 @@ function updateShortLink(mysqli $conn, int $id, int $version, string $target, bo
     if ($stmt->affected_rows !== 1) throw new InvalidArgumentException('This link changed in another session. Reload before saving.');
 }
 
+/** Reset all historical visit aggregates, keeping the presentation and its links intact. */
+function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int $actorId): void
+{
+    if ($presentationId < 1 || $actorId < 1) {
+        throw new InvalidArgumentException('Select a valid presentation.');
+    }
+    $conn->begin_transaction();
+    try {
+        $stmt = $conn->prepare('SELECT topic_title FROM presentations WHERE id = ? FOR UPDATE');
+        $stmt->bind_param('i', $presentationId);
+        $stmt->execute();
+        $presentation = $stmt->get_result()->fetch_assoc();
+        if (!$presentation) {
+            throw new InvalidArgumentException('Presentation not found.');
+        }
+        // Match the presentation-edit lock order and include disabled links and
+        // links retained for previous speakers, not just the visible QR cards.
+        $links = $conn->prepare('SELECT id FROM short_links WHERE presentation_id = ? ORDER BY id FOR UPDATE');
+        $links->bind_param('i', $presentationId);
+        $links->execute();
+        $linkCount = $links->get_result()->num_rows;
+        $delete = $conn->prepare('DELETE v FROM short_link_stats v
+            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?');
+        $delete->bind_param('i', $presentationId);
+        $delete->execute();
+        if (!recordAuditEvent($conn, [
+            'event_category' => 'database_change',
+            'event_type' => 'presentation_statistics_reset',
+            'actor_user_id' => $actorId,
+            'entity_type' => 'presentations',
+            'entity_id' => $presentationId,
+            'entity_label' => mb_strcut((string) $presentation['topic_title'], 0, 255, 'UTF-8'),
+            'details' => 'Reset all visit statistics for ' . $linkCount . ' links; removed '
+                . $delete->affected_rows . ' hourly statistic groups.',
+        ])) {
+            throw new RuntimeException('Unable to audit the statistics reset.');
+        }
+        $conn->commit();
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
 function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $engagementId, array $change): void
 {
     $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ? AND engagement_id = ? FOR UPDATE');

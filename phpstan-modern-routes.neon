@@ -15,6 +15,7 @@ parameters:
         - src/task_subject_search.php
         - src/user_lifecycle.php
         - src/restore_presentations.php
+        - src/reset_presentation_stats.php
         - src/view_calendar.php
         - src/contacts.php
         - src/organizations.php
