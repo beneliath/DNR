@@ -26,4 +26,7 @@ $short_links = fetchPresentationShortLinks($conn, $short_link_presentation_id);
         <?php endforeach; ?>
     </div>
     <p>Each code is unique to this presentation. Select Statistics on a code to review its visits and manage its destination. A Speaker Notes code is added after a PDF is uploaded.</p>
+    <?php if (hasRole(['admin'])): ?>
+        <p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>">Reset Presentation Statistics</a></p>
+    <?php endif; ?>
 </div>

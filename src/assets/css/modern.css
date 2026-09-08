@@ -6204,3 +6204,24 @@ html body .presentation-generated-links .presentation-view-qr-button img {
   object-fit: contain;
   background: white;
 }
+
+html body .presentation-stats-reset {
+  border: 1px solid #fda4af !important;
+  background: #fff1f2 !important;
+  color: #9f1239 !important;
+}
+html body .presentation-stats-reset:is(:hover, :focus-visible) {
+  border-color: #e11d48 !important;
+  background: #ffe4e6 !important;
+  color: #881337 !important;
+}
+html.dark-mode body .presentation-stats-reset {
+  border-color: #9f3657 !important;
+  background: #4c1325 !important;
+  color: #fecdd3 !important;
+}
+html.dark-mode body .presentation-stats-reset:is(:hover, :focus-visible) {
+  border-color: #fb7185 !important;
+  background: #6b1a35 !important;
+  color: #fff1f2 !important;
+}

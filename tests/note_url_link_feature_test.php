@@ -45,11 +45,18 @@ expectNoteUrlLinkFeature(
 $root = dirname(__DIR__);
 $read = static fn($path) => file_get_contents($root . '/' . $path);
 $note_views = [
+    'inbound email body' => $read('src/inbound_mail.php'),
     'contact notes' => $read('src/view_contact.php'),
     'organization notes' => $read('src/view_organization.php'),
     'standard task notes' => $read('src/view_standard_task.php'),
     'engagement closeout notes' => $read('src/view_engagement.php'),
 ];
+expectNoteUrlLinkFeature(
+    renderTextWithLinks("First\nhttps://example.test/notes\nLast", false)
+        === "First\n<a href=\"https://example.test/notes\" target=\"_blank\" rel=\"noopener noreferrer\">https://example.test/notes</a>\nLast"
+        && renderTextWithLinks("First\n<unsafe>\nLast", false) === "First\n&lt;unsafe&gt;\nLast",
+    'preformatted email bodies should escape HTML and link URLs without doubling preserved line breaks.'
+);
 foreach ($note_views as $label => $source) {
     expectNoteUrlLinkFeature(
         is_string($source) && str_contains($source, 'renderTextWithLinks('),

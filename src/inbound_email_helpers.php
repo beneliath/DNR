@@ -85,21 +85,52 @@ function inboundEmailHeaderAddresses(IMessage $message, string $headerName): arr
     return array_values($addresses);
 }
 
+/** Convert email HTML to inert text while retaining absolute web link destinations. */
+function inboundEmailHtmlToPlainText(string $html): string
+{
+    if (trim($html) === '') {
+        return '';
+    }
+    $document = new DOMDocument();
+    if (!$document->loadHTML('<?xml encoding="UTF-8">' . $html, LIBXML_NONET | LIBXML_NOERROR | LIBXML_NOWARNING)) {
+        return '';
+    }
+    $xpath = new DOMXPath($document);
+    foreach ($xpath->query('//head | //script | //style | //template | //iframe | //object') ?: [] as $node) {
+        $node->parentNode?->removeChild($node);
+    }
+    foreach ($xpath->query('//a[@href]') ?: [] as $anchor) {
+        if (!$anchor instanceof DOMElement) {
+            continue;
+        }
+        $url = trim($anchor->getAttribute('href'));
+        if (!preg_match('~\Ahttps?://[^\s<>"\x00-\x20\x7F]+\z~i', $url)
+            || !filter_var($url, FILTER_VALIDATE_URL)) {
+            continue;
+        }
+        $label = trim($anchor->textContent);
+        // Separate destinations from neighboring inline text so autolinking
+        // cannot join adjacent anchors into a different URL.
+        if ($label === '' || $label === $url) {
+            $anchor->textContent = ' ' . $url . ' ';
+        } else {
+            $anchor->appendChild($document->createTextNode(' (' . $url . ') '));
+        }
+    }
+    $html = $document->saveHTML() ?: '';
+    $html = preg_replace('#<\s*br\s*/?\s*>#i', "\n", $html) ?? $html;
+    $html = preg_replace('#</\s*(p|div|li|tr|h[1-6])\s*>#i', "\n", $html) ?? $html;
+    return trim(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+}
+
 function inboundEmailPlainText(IMessage $message): string
 {
-    $text = $message->getTextContent();
-    if (!is_string($text) || trim($text) === '') {
-        $html = $message->getHtmlContent();
-        if (is_string($html) && $html !== '') {
-            $html = preg_replace(
-                '#<(script|style|head)\b[^>]*>.*?</\1>#is',
-                '',
-                $html
-            ) ?? $html;
-            $html = preg_replace('#<\s*br\s*/?\s*>#i', "\n", $html) ?? $html;
-            $html = preg_replace('#</\s*(p|div|li|tr|h[1-6])\s*>#i', "\n", $html) ?? $html;
-            $text = html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        }
+    // The plain-text alternative can contain only a link's label (e.g. HERE).
+    // Prefer inert HTML-derived text so the destination survives MIME import.
+    $html = $message->getHtmlContent();
+    $text = is_string($html) ? inboundEmailHtmlToPlainText($html) : '';
+    if ($text === '') {
+        $text = $message->getTextContent();
     }
     $text = is_string($text) ? $text : '';
     $text = str_replace(["\r\n", "\r"], "\n", $text);

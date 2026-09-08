@@ -54,6 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 if (isset($_GET['saved'])) $message = 'Links saved. Existing QR codes remain valid.';
+if (isset($filters['presentation_id']) && ($_SESSION['_presentation_stats_reset'] ?? null) === $filters['presentation_id']) {
+    $message = 'Presentation statistics reset to zero. New visits will be counted from now on.';
+    unset($_SESSION['_presentation_stats_reset']);
+}
 $whereSql = implode(' AND ', $where);
 $stats = shortLinkStats($conn, $whereSql, $start, $end);
 $report = shortLinkReportData($stats, $start, $end);

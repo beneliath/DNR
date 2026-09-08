@@ -52,6 +52,17 @@ route; existing third-party destinations cannot acquire MOED tracking retroactiv
 
 ## Statistics
 
+Administrators can select **Reset Presentation Statistics** below a presentation's
+QR cards. The existing sensitive-action unlock requires the administrator's password
+and a fresh authenticator or recovery code, and lasts five minutes. After unlocking,
+the administrator must confirm **Reset Statistics to Zero**. The reset permanently
+removes all visit aggregates for that presentation across all dates, including
+disabled links and links retained for previous speakers. QR codes, destinations,
+notes, presentation details, and other presentations' statistics are preserved.
+New visits count normally, and the administrator and presentation are recorded in
+the audit log. Deployments must apply the updated restricted grants so the web
+account can delete from `short_link_stats`.
+
 MOED stores hourly aggregates of visits, browsers, operating systems, countries,
 and referrer hostnames, with filters for speaker, event, presentation, individual
 link, link type and an inclusive UTC date range (up to 366 days). The report uses

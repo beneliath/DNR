@@ -249,6 +249,7 @@ $database_action_labels = [
     'database_insert' => 'Created',
     'database_update' => 'Updated',
     'database_delete' => 'Deleted',
+    'presentation_statistics_reset' => 'Reset statistics',
 ];
 $entity_labels = [
     'users' => 'user',

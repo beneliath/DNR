@@ -274,8 +274,10 @@ The routing policy is deliberately conservative:
   Engagement from the searchable selector, in addition to approving matched Contact and Organization
   routes. If an address is missing from DNR, update the record and use **Retry routing**.
 - The Chron entry contains the normalized headers, subject, timestamps, plain-text body, attachment
-  names, and a link to the retained inbound record. Attachment contents are not stored. HTML-only
-  mail is converted to inert plain text.
+  names, and a link to the retained inbound record. Attachment contents are not stored. When an
+  HTML body is available, it is converted to inert text, retaining HTTP(S) link destinations next
+  to their labels. Otherwise the plain-text body is used. Retained web URLs are clickable in both
+  Inbound Mail and the activity entry; email HTML itself is never rendered.
 - Automatic routing requires authenticated sender results by default. The bundled Proton Bridge
   adapter supplies signed assertions from Proton's API metadata for internal mail and external
   mail that passed DMARC, as described below. For other IMAP providers, list the exact trusted

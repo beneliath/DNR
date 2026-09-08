@@ -6,6 +6,7 @@ putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
 
 require_once __DIR__ . '/../vendor/autoload.php';
 require_once __DIR__ . '/../src/inbound_email_helpers.php';
+require_once __DIR__ . '/../src/chron_log_helpers.php';
 
 function expectInboundEmail(bool $condition, string $message): void
 {
@@ -213,6 +214,73 @@ expectInboundEmail(
         && !str_contains($parsedHtml['body_text'], 'alert')
         && !str_contains($parsedHtml['body_text'], 'display:none'),
     'HTML-only mail should become inert plain text without scripts or styles.'
+);
+
+$linkUrl = 'https://example.org/edit_engagement.php?id=1&return_to=view%3Fid%3D1#presentations-container';
+$linkedHtml = '<p>Are You Ready? – Texas</p><p>Upload speaker notes '
+    . '<a href="' . htmlspecialchars($linkUrl, ENT_QUOTES, 'UTF-8') . '"><strong>HERE</strong></a></p>'
+    . '<p>' . $marker123 . '</p>';
+$linkedRaw = substr($htmlOnly, 0, strpos($htmlOnly, '<html>')) . $linkedHtml;
+$linkedEmail = parseInboundEmail($linkedRaw);
+expectInboundEmail(
+    str_contains($linkedEmail['body_text'], 'HERE (' . $linkUrl . ')')
+        && str_contains($linkedEmail['body_text'], 'Are You Ready? – Texas')
+        && inboundEmailMessageEngagementMarkers($linkedEmail)['ids'] === [123],
+    'HTML links must retain their labels, exact query and fragment, Unicode text, and routing markers.'
+);
+$alternative = implode("\r\n", [
+    'From: Jane <jane@example.org>',
+    'To: David <david@example.net>',
+    'Subject: Linked notes',
+    'MIME-Version: 1.0',
+    'Content-Type: multipart/alternative; boundary="linked-alternative"',
+    '',
+    '--linked-alternative',
+    'Content-Type: text/plain; charset=UTF-8',
+    '',
+    'Upload speaker notes HERE',
+    '--linked-alternative',
+    'Content-Type: text/html; charset=UTF-8',
+    '',
+    $linkedHtml,
+    '--linked-alternative--',
+]);
+$linkedAlternative = parseInboundEmail($alternative);
+expectInboundEmail(
+    str_contains($linkedAlternative['body_text'], 'HERE (' . $linkUrl . ')'),
+    'a nonempty plain-text MIME alternative must not hide embedded HTML link destinations.'
+);
+$emptyAlternative = parseInboundEmail(str_replace($linkedHtml, '<html><body></body></html>', $alternative));
+expectInboundEmail(
+    $emptyAlternative['body_text'] === 'Upload speaker notes HERE',
+    'an empty HTML alternative should fall back to the available plain text.'
+);
+$untrustedHtml = inboundEmailHtmlToPlainText(
+    '<style>hidden-style</style><script>hidden-script</script><iframe>hidden-frame</iframe>'
+    . '<a href="javascript:alert(1)" onclick="alert(2)">Bad scheme</a>'
+    . '<a href="data:text/html,evil">Data</a><a href="//example.org/relative">Relative</a>'
+    . '<a href="https://example.org/empty"><img src="https://example.org/tracker"></a>'
+    . '<a href="https://example.org/visible">https://example.org/visible</a>'
+    . '<p>&lt;script&gt;escaped&lt;/script&gt;</p>'
+);
+$safeEmailHtml = renderTextWithLinks($untrustedHtml, false);
+expectInboundEmail(
+    substr_count($safeEmailHtml, '<a href=') === 2
+        && substr_count($untrustedHtml, 'https://example.org/visible') === 1
+        && !str_contains($safeEmailHtml, 'hidden-')
+        && !str_contains($safeEmailHtml, 'onclick')
+        && !str_contains($safeEmailHtml, 'javascript:')
+        && !str_contains($safeEmailHtml, 'data:text')
+        && !str_contains($safeEmailHtml, '<img')
+        && !str_contains($safeEmailHtml, '<script>')
+        && str_contains($safeEmailHtml, '&lt;script&gt;escaped&lt;/script&gt;'),
+    'email HTML must remain inert, reject unsupported destinations, and retain image-only web links without loading images.'
+);
+$linkedChron = renderChronLogEntryHtml(formatInboundEmailChronEntry($linkedEmail + ['id' => 43]));
+expectInboundEmail(
+    str_contains($linkedChron, 'href="' . htmlspecialchars($linkUrl, ENT_QUOTES, 'UTF-8') . '"')
+        && str_contains($linkedChron, 'HERE ('),
+    'a parsed embedded link must stay clickable after being formatted as an activity entry.'
 );
 
 $entry = formatInboundEmailChronEntry([
