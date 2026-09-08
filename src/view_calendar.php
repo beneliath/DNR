@@ -337,7 +337,7 @@ $webcal_url = $calendar_url === null
                 </table>
             </div>
         <?php endif; ?>
-        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to the content selected for that subscription, which may include event and presentation schedules, work titles, due dates, status and priority, and contact names and birthdays. Contact details, notes, travel, lodging, and compensation are excluded.</p>
+        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to the content selected for that subscription, which may include event and presentation schedules, work titles, linked engagements, task owners, due dates, status and priority, and contact names and birthdays. Contact details, notes, travel, lodging, and compensation are excluded.</p>
         </section>
     </div>
     </section>

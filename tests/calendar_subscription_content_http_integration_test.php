@@ -31,6 +31,7 @@ $request = static function (string $path, ?array $post = null, string $cookie = 
         'body' => str_replace("\r\n ", '', substr($raw, $length)), 'etag' => trim($match[1] ?? '')];
 };
 $userIds = [];
+$userNames = [];
 $sessionId = '';
 $organizationId = 0;
 try {
@@ -41,6 +42,7 @@ try {
         $stmt->bind_param('ss', $name, $hash);
         $stmt->execute();
         $userIds[] = (int) $conn->insert_id;
+        $userNames[] = $name;
     }
     [$ownerId, $otherId] = $userIds;
     $conn->query("INSERT INTO organizations (organization_name) VALUES ('Calendar content HTTP fixture')");
@@ -68,6 +70,19 @@ try {
         $stmt->execute();
         $taskIds[] = (int) $conn->insert_id;
     }
+    $conn->query("UPDATE follow_up_tasks SET subject_type='engagement', engagement_id=$engagementId WHERE id={$taskIds[0]}");
+    $taskEvent = static function (array $response, int $taskId): string {
+        foreach (explode('BEGIN:VEVENT', $response['body']) as $event) {
+            if (str_contains($event, "UID:task-$taskId@dnr-calendar\r\n")) {
+                return explode('END:VEVENT', $event)[0];
+            }
+        }
+        throw new RuntimeException('Expected task entry was not found');
+    };
+    $taskSequence = static function (string $event): int {
+        preg_match('/^SEQUENCE:(\d+)$/m', str_replace("\r", '', $event), $match);
+        return (int) ($match[1] ?? -1);
+    };
     $uids = ['events' => "engagement-$engagementId", 'presentations' => "presentation-$presentationId",
         'birthdays' => "contact-birthday-$contactId", 'my_work' => 'task-' . $taskIds[0],
         'other_work' => 'task-' . $taskIds[1], 'unassigned_work' => 'task-' . $taskIds[2]];
@@ -137,6 +152,8 @@ try {
     $other = createCalendarSubscription($conn, $otherId, 'Other owner', ['my_work']);
     $minePath = 'calendar.php?token=' . $mine['token'];
     $mineFeed = $request($minePath);
+    $mineEvent = $taskEvent($mineFeed, $taskIds[0]);
+    expectCalendarContent(str_contains($mineEvent, 'DESCRIPTION:Engagement: Calendar event fixture\\nOwner: ' . $userNames[0] . '\\nStatus: Open\\nPriority: Normal'), 'My work must identify its engagement and actual owner');
     $otherFeed = $request('calendar.php?token=' . $other['token'], null, '', $mineFeed['etag']);
     $assertContent($otherFeed, ['other_work']);
     expectCalendarContent($otherFeed['etag'] !== $mineFeed['etag'], 'Different owners must have distinct cache validators');
@@ -146,6 +163,41 @@ try {
     $all = createCalendarSubscription($conn, $ownerId, 'Everyone', ['all_work']);
     $allPath = 'calendar.php?token=' . $all['token'];
     $allFeed = $request($allPath);
+    $reassignedEvent = $taskEvent($allFeed, $taskIds[0]);
+    expectCalendarContent(str_contains($reassignedEvent, 'Owner: ' . $userNames[1] . '\\n'), 'Reassigned work must identify the new owner');
+    expectCalendarContent(str_contains($taskEvent($allFeed, $taskIds[2]), 'DESCRIPTION:Engagement: None\\nOwner: Unassigned\\n'), 'General unassigned work needs explicit fallbacks');
+
+    // Owner edits do not increment calendar_feed_revision; conditional refresh must
+    // still return the new name and an advancing sequence on the same task UID.
+    $renameTime = gmdate('Y-m-d H:i:s', time() + 5);
+    $renamedOwner = $userNames[1] . '-renamed';
+    $stmt = $conn->prepare('UPDATE users SET username=?, last_updated_at=? WHERE id=?');
+    $stmt->bind_param('ssi', $renamedOwner, $renameTime, $otherId);
+    $stmt->execute();
+    $renamedFeed = $request($allPath, null, '', $allFeed['etag']);
+    $assertContent($renamedFeed, ['my_work', 'other_work', 'unassigned_work']);
+    $renamedEvent = $taskEvent($renamedFeed, $taskIds[0]);
+    expectCalendarContent(str_contains($renamedEvent, 'Owner: ' . $renamedOwner . '\\n')
+        && $taskSequence($renamedEvent) > $taskSequence($reassignedEvent), 'Renaming the owner must refresh the existing calendar entry');
+
+    $engagementTime = gmdate('Y-m-d H:i:s', time() + 10);
+    $conn->query("UPDATE engagements SET event_title='Renamed calendar engagement', updated_at='$engagementTime' WHERE id=$engagementId");
+    $engagementFeed = $request($allPath, null, '', $renamedFeed['etag']);
+    $assertContent($engagementFeed, ['my_work', 'other_work', 'unassigned_work']);
+    $engagementEvent = $taskEvent($engagementFeed, $taskIds[0]);
+    expectCalendarContent(str_contains($engagementEvent, 'Engagement: Renamed calendar engagement\\n')
+        && $taskSequence($engagementEvent) > $taskSequence($renamedEvent), 'Renaming the engagement must refresh the existing calendar entry');
+
+    $conn->query("UPDATE engagements SET event_title='' WHERE id=$engagementId");
+    $fallbackFeed = $request($allPath, null, '', $engagementFeed['etag']);
+    $assertContent($fallbackFeed, ['my_work', 'other_work', 'unassigned_work']);
+    expectCalendarContent(str_contains($taskEvent($fallbackFeed, $taskIds[0]), 'Engagement: Calendar content HTTP fixture\\n'), 'Untitled engagements must fall back to their organization name');
+    $organizationTime = gmdate('Y-m-d H:i:s', time() + 15);
+    $conn->query("UPDATE organizations SET organization_name='Renamed calendar organization', updated_at='$organizationTime' WHERE id=$organizationId");
+    $allFeed = $request($allPath, null, '', $fallbackFeed['etag']);
+    $assertContent($allFeed, ['my_work', 'other_work', 'unassigned_work']);
+    expectCalendarContent(str_contains($taskEvent($allFeed, $taskIds[0]), 'Engagement: Renamed calendar organization\\n'), 'The fallback label must track organization edits');
+    expectCalendarContent($request($allPath, null, '', $allFeed['etag'])['status'] === 304, 'Unchanged work metadata should still allow a conditional 304');
     $conn->query("UPDATE follow_up_tasks SET status='completed', completed_at=UTC_TIMESTAMP() WHERE id={$taskIds[0]}");
     $completedFeed = $request($allPath, null, '', $allFeed['etag']);
     $assertContent($completedFeed, ['other_work', 'unassigned_work']);

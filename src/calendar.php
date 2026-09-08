@@ -41,8 +41,16 @@ if (!$calendar_revision) {
     header('Cache-Control: private, no-store');
     exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
+// Owner names can change without advancing the shared calendar revision.
+// Read the selected work before validating the cache so those changes are included.
+$tasks = $subscription['work_scope'] === 'none' ? [] : fetchCalendarViewerTasks(
+    $conn,
+    $window_start,
+    $window_end,
+    $subscription['work_scope'] === 'my' ? (int) $subscription['user_id'] : null
+);
 $etag = '"calendar-' . hash('sha256', implode('|', [
-    'subscription-content-v1',
+    'subscription-content-v2',
     $subscription['id'],
     $subscription['user_id'],
     $subscription['include_events'],
@@ -53,6 +61,7 @@ $etag = '"calendar-' . hash('sha256', implode('|', [
     $calendar_revision['changed_at'] ?? 0,
     $window_start,
     $window_end,
+    hash('sha256', json_encode($tasks, JSON_THROW_ON_ERROR)),
 ])) . '"';
 
 header('Content-Type: text/calendar; charset=utf-8');
@@ -193,13 +202,6 @@ if ((int) $subscription['include_birthdays'] === 1) {
     }
     $birthdays = $birthday_result->fetch_all(MYSQLI_ASSOC);
 }
-
-$tasks = $subscription['work_scope'] === 'none' ? [] : fetchCalendarViewerTasks(
-    $conn,
-    $window_start,
-    $window_end,
-    $subscription['work_scope'] === 'my' ? (int) $subscription['user_id'] : null
-);
 
 $calendar_timezone = applicationTimezoneName();
 echo buildCalendar(

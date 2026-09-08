@@ -44,6 +44,18 @@ expectCalendar(str_contains($taskCalendar, "UID:task-77@dnr-calendar\r\n")
     && str_contains($taskCalendar, "DTSTART;VALUE=DATE:20261231\r\nDTEND;VALUE=DATE:20270101\r\n")
     && str_contains($taskCalendar, "TRANSP:TRANSPARENT\r\n"), 'Active work should use stable all-day reminders with exclusive end dates.');
 expectCalendar(!str_contains($taskCalendar, 'Private') && !str_contains($taskCalendar, "\r\nATTENDEE:"), 'Work feeds must omit private fields and escape calendar property injection.');
+$unfoldedTaskCalendar = str_replace("\r\n ", '', $taskCalendar);
+expectCalendar(str_contains($unfoldedTaskCalendar, 'DESCRIPTION:Engagement: None\\nOwner: Unassigned\\nStatus: Waiting\\nPriority: High'), 'General and unassigned work should have explicit metadata fallbacks.');
+expectCalendar(str_contains($taskCalendar, 'SEQUENCE:' . (calendarSequence($task['calendar_updated_at']) + 1)), 'Existing work entries should advance their sequence for the added metadata.');
+$linkedTask = array_replace($task, [
+    'engagement_id' => 42,
+    'engagement_label' => "Leadership, résumé; summit\nLOCATION:injected",
+    'assignee_username' => "Owner, équipe; one\nATTENDEE:injected",
+]);
+$linkedTaskCalendar = str_replace("\r\n ", '', buildCalendar([], null, [], null, [], [$linkedTask]));
+expectCalendar(str_contains($linkedTaskCalendar, 'DESCRIPTION:Engagement: Leadership\\, résumé\\; summit\\nLOCATION:injected\\nOwner: Owner\\, équipe\\; one\\nATTENDEE:injected\\nStatus: Waiting\\nPriority: High'), 'Work descriptions must include and escape engagement and owner values.');
+expectCalendar(!str_contains($linkedTaskCalendar, "\r\nLOCATION:") && !str_contains($linkedTaskCalendar, "\r\nATTENDEE:"), 'Metadata must not inject calendar properties.');
+expectCalendar(str_contains(implode("\n", calendarTaskEventLines(array_replace($linkedTask, ['engagement_label' => ' ']))), 'Engagement: Engagement #42'), 'Unnamed engagements must still be identifiable by ID.');
 foreach (['completed', 'canceled'] as $inactiveStatus) {
     expectCalendar(calendarTaskEventLines(array_replace($task, ['status' => $inactiveStatus])) === [], 'Inactive work must not be published.');
 }
