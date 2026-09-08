@@ -1,4 +1,21 @@
 (function () {
+    const myWork = document.getElementById('calendar-content-my_work');
+    const allWork = document.getElementById('calendar-content-all_work');
+    if (myWork && allWork) {
+        let restoreMyWork = myWork.checked;
+        function syncWorkOptions() {
+            if (allWork.checked) {
+                restoreMyWork = myWork.checked;
+                myWork.checked = false;
+            } else if (myWork.disabled) {
+                myWork.checked = restoreMyWork;
+            }
+            myWork.disabled = allWork.checked;
+        }
+        allWork.addEventListener('change', syncWorkOptions);
+        syncWorkOptions();
+    }
+
     const copyButton = document.getElementById('copy-calendar-url');
     const openLink = document.getElementById('open-calendar-app');
     let copyFeedbackTimer;

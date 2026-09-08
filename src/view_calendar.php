@@ -16,7 +16,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         if ($action === 'create') {
             $label = is_string($_POST['label'] ?? null) ? $_POST['label'] : 'Calendar subscription';
-            $subscription = createCalendarSubscription($conn, $user_id, $label);
+            $content = $_POST['content'] ?? [];
+            normalizeCalendarSubscriptionContent($content);
+            $subscription = createCalendarSubscription($conn, $user_id, $label, $content);
             $_SESSION['_new_calendar_subscription'] = $subscription;
             recordAuditEvent($conn, [
                 'event_category' => 'security',
@@ -26,6 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'entity_type' => 'calendar_subscription',
                 'entity_id' => $subscription['id'],
                 'entity_label' => $subscription['label'],
+                'details' => 'Includes: ' . calendarSubscriptionContentSummary($subscription),
             ]);
         } elseif ($action === 'revoke') {
             $subscription_id = filter_input(INPUT_POST, 'subscription_id', FILTER_VALIDATE_INT);
@@ -73,18 +76,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } catch (Throwable $exception) {
         $_SESSION['_calendar_subscription_error'] = $exception->getMessage();
+        if ($action === 'create') {
+            $_SESSION['_calendar_subscription_form'] = [
+                'label' => is_string($_POST['label'] ?? null) ? $_POST['label'] : '',
+                'content' => array_values(array_filter(
+                    is_array($_POST['content'] ?? null) ? $_POST['content'] : [],
+                    static fn($value): bool => is_string($value) && isset(calendarSubscriptionContentOptions()[$value])
+                )),
+            ];
+        }
     }
-    header('Location: view_calendar.php');
+    if ($action === 'create' && isset($_SESSION['_new_calendar_subscription'])) {
+        header('Location: view_calendar.php#new-calendar-link');
+    } else {
+        header('Location: view_calendar.php');
+    }
     exit();
 }
 
 $new_subscription = $_SESSION['_new_calendar_subscription'] ?? null;
 $message = $_SESSION['_calendar_subscription_message'] ?? '';
 $error = $_SESSION['_calendar_subscription_error'] ?? '';
+$subscription_form = $_SESSION['_calendar_subscription_form'] ?? [
+    'label' => '', 'content' => calendarSubscriptionDefaultContent(),
+];
 unset(
     $_SESSION['_new_calendar_subscription'],
     $_SESSION['_calendar_subscription_message'],
-    $_SESSION['_calendar_subscription_error']
+    $_SESSION['_calendar_subscription_error'],
+    $_SESSION['_calendar_subscription_form']
 );
 $business_date = applicationBusinessDate();
 $requested_day = is_string($_GET['day'] ?? null) ? $_GET['day'] : null;
@@ -227,9 +247,10 @@ $webcal_url = $calendar_url === null
         </div>
 
     <?php if ($calendar_url !== null): ?>
-        <section class="security-card calendar-card" aria-labelledby="new-calendar-title">
+        <section class="security-card calendar-card" id="new-calendar-link" aria-labelledby="new-calendar-title">
             <h3 id="new-calendar-title">Save This New Link</h3>
             <p>This token is shown only once. Add it to your calendar now or copy it to an approved password manager.</p>
+            <p><strong>Includes:</strong> <?php echo htmlspecialchars(calendarSubscriptionContentSummary($new_subscription), ENT_QUOTES, 'UTF-8'); ?></p>
             <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
             <div class="calendar-url-row">
                 <input type="url" id="calendar-url" readonly value="<?php echo htmlspecialchars($calendar_url, ENT_QUOTES, 'UTF-8'); ?>">
@@ -249,8 +270,18 @@ $webcal_url = $calendar_url === null
                 <input type="hidden" name="action" value="create">
                 <div class="form-group">
                     <label for="subscription-label">Device or Service</label>
-                    <input type="text" id="subscription-label" name="label" maxlength="100" placeholder="Personal phone" required>
+                    <input type="text" id="subscription-label" name="label" maxlength="100" placeholder="Personal phone" required value="<?php echo htmlspecialchars($subscription_form['label'], ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
+                <fieldset class="calendar-content-options" aria-describedby="calendar-content-help">
+                    <legend>Include in This Subscription</legend>
+                    <?php foreach (calendarSubscriptionContentOptions() as $value => $label): ?>
+                        <label class="calendar-content-option" for="calendar-content-<?php echo $value; ?>">
+                            <input type="checkbox" id="calendar-content-<?php echo $value; ?>" name="content[]" value="<?php echo $value; ?>"<?php echo in_array($value, $subscription_form['content'], true) ? ' checked' : ''; ?>>
+                            <span><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></span>
+                        </label>
+                    <?php endforeach; ?>
+                </fieldset>
+                <p id="calendar-content-help" class="field-help">Choose one or more. Active work appears on its due date. My Active Work includes work assigned to you; All Active Work includes everyone's work, including unassigned work.</p>
                 <button type="submit" class="security-button">Create Private Link</button>
             </form>
         </section>
@@ -284,7 +315,7 @@ $webcal_url = $calendar_url === null
                     <tbody>
                     <?php foreach ($subscriptions as $subscription): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($subscription['label'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars($subscription['label'], ENT_QUOTES, 'UTF-8'); ?><span class="calendar-subscription-content-summary"><?php echo htmlspecialchars(calendarSubscriptionContentSummary($subscription), ENT_QUOTES, 'UTF-8'); ?></span></td>
                             <td><?php echo htmlspecialchars($subscription['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo htmlspecialchars($subscription['last_used_at'] ?: 'Never', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo $subscription['revoked_at'] === null ? 'Active' : 'Revoked'; ?></td>
@@ -306,7 +337,7 @@ $webcal_url = $calendar_url === null
                 </table>
             </div>
         <?php endif; ?>
-        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to event and presentation schedules plus contact names and birthdays, but not contact details, notes, travel, lodging, or compensation.</p>
+        <p class="calendar-privacy-note"><strong>Keep every link private:</strong> it grants access to the content selected for that subscription, which may include event and presentation schedules, work titles, due dates, status and priority, and contact names and birthdays. Contact details, notes, travel, lodging, and compensation are excluded.</p>
         </section>
     </div>
     </section>

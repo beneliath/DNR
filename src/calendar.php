@@ -42,6 +42,13 @@ if (!$calendar_revision) {
     exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
 }
 $etag = '"calendar-' . hash('sha256', implode('|', [
+    'subscription-content-v1',
+    $subscription['id'],
+    $subscription['user_id'],
+    $subscription['include_events'],
+    $subscription['include_presentations'],
+    $subscription['work_scope'],
+    $subscription['include_birthdays'],
     $calendar_revision['revision'] ?? 0,
     $calendar_revision['changed_at'] ?? 0,
     $window_start,
@@ -59,124 +66,140 @@ if (trim((string) ($_SERVER['HTTP_IF_NONE_MATCH'] ?? '')) === $etag) {
     exit();
 }
 
-$query = "SELECT
-            e.id,
-            e.event_title,
-            e.event_start_date,
-            e.event_end_date,
-            e.event_type,
-            e.event_type_other,
-            e.confirmation_status,
-            e.lifecycle_status,
-            e.cancellation_reason,
-            e.event_address_line_1,
-            e.event_address_line_2,
-            e.event_city,
-            e.event_state,
-            e.event_zipcode,
-            e.event_country,
-            o.organization_name,
-            replacement.event_title AS rescheduled_event_title,
-            replacement.event_start_date AS rescheduled_event_start_date,
-            replacement_organization.organization_name AS rescheduled_organization_name,
-            UNIX_TIMESTAMP(GREATEST(
-                e.updated_at,
-                o.updated_at,
-                COALESCE(replacement.updated_at, e.updated_at),
-                COALESCE(replacement_organization.updated_at, o.updated_at)
-            )) AS calendar_updated_at
-          FROM engagements e
-          INNER JOIN organizations o ON o.id = e.organization_id
-          LEFT JOIN engagements replacement
-                 ON replacement.id = e.rescheduled_to_engagement_id
-          LEFT JOIN organizations replacement_organization
-                 ON replacement_organization.id = replacement.organization_id
-          WHERE e.is_deleted = 0 AND {$engagement_window}
-          ORDER BY e.event_start_date, e.id";
-$engagement_statement = $conn->prepare($query);
-if (!$engagement_statement) {
-    applicationLog('error', 'Unable to build the private calendar', ['error' => $conn->error]);
-    http_response_code(503);
-    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+$engagements = [];
+if ((int) $subscription['include_events'] === 1) {
+    $query = "SELECT
+                e.id,
+                e.event_title,
+                e.event_start_date,
+                e.event_end_date,
+                e.event_type,
+                e.event_type_other,
+                e.confirmation_status,
+                e.lifecycle_status,
+                e.cancellation_reason,
+                e.event_address_line_1,
+                e.event_address_line_2,
+                e.event_city,
+                e.event_state,
+                e.event_zipcode,
+                e.event_country,
+                o.organization_name,
+                replacement.event_title AS rescheduled_event_title,
+                replacement.event_start_date AS rescheduled_event_start_date,
+                replacement_organization.organization_name AS rescheduled_organization_name,
+                UNIX_TIMESTAMP(GREATEST(
+                    e.updated_at,
+                    o.updated_at,
+                    COALESCE(replacement.updated_at, e.updated_at),
+                    COALESCE(replacement_organization.updated_at, o.updated_at)
+                )) AS calendar_updated_at
+              FROM engagements e
+              INNER JOIN organizations o ON o.id = e.organization_id
+              LEFT JOIN engagements replacement
+                     ON replacement.id = e.rescheduled_to_engagement_id
+              LEFT JOIN organizations replacement_organization
+                     ON replacement_organization.id = replacement.organization_id
+              WHERE e.is_deleted = 0 AND {$engagement_window}
+              ORDER BY e.event_start_date, e.id";
+    $engagement_statement = $conn->prepare($query);
+    if (!$engagement_statement) {
+        applicationLog('error', 'Unable to build the private calendar', ['error' => $conn->error]);
+        http_response_code(503);
+        exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+    }
+    $engagement_statement->bind_param('ss', $window_start, $window_end);
+    $engagement_statement->execute();
+    $result = $engagement_statement->get_result();
+    $engagements = $result->fetch_all(MYSQLI_ASSOC);
+    $engagement_statement->close();
 }
-$engagement_statement->bind_param('ss', $window_start, $window_end);
-$engagement_statement->execute();
-$result = $engagement_statement->get_result();
-$engagements = $result->fetch_all(MYSQLI_ASSOC);
-$engagement_statement->close();
 
-$presentation_query = "SELECT
-            p.id,
-            p.engagement_id,
-            p.topic_title,
-            p.presentation_date,
-            p.presentation_time,
-            s.name AS speaker_name,
-            p.duration_minutes,
-            e.event_title,
-            e.event_type,
-            e.event_type_other,
-            e.confirmation_status,
-            e.lifecycle_status,
-            e.cancellation_reason,
-            e.event_address_line_1,
-            e.event_address_line_2,
-            e.event_city,
-            e.event_state,
-            e.event_zipcode,
-            e.event_country,
-            o.organization_name,
-            replacement.event_title AS rescheduled_event_title,
-            replacement.event_start_date AS rescheduled_event_start_date,
-            replacement_organization.organization_name AS rescheduled_organization_name,
-            UNIX_TIMESTAMP(GREATEST(
-                e.updated_at,
-                o.updated_at,
-                p.updated_at,
-                s.updated_at,
-                COALESCE(replacement.updated_at, e.updated_at),
-                COALESCE(replacement_organization.updated_at, o.updated_at)
-            )) AS calendar_updated_at
-          FROM presentations p
-          INNER JOIN speakers s ON s.id = p.speaker_id
-          INNER JOIN engagements e ON e.id = p.engagement_id
-          INNER JOIN organizations o ON o.id = e.organization_id
-          LEFT JOIN engagements replacement
-                 ON replacement.id = e.rescheduled_to_engagement_id
-          LEFT JOIN organizations replacement_organization
-                 ON replacement_organization.id = replacement.organization_id
-          WHERE e.is_deleted = 0
-            AND p.is_archived = 0
-            AND p.presentation_time IS NOT NULL
-            AND {$presentation_window}
-          ORDER BY p.presentation_date, p.presentation_time, p.id";
-$presentation_statement = $conn->prepare($presentation_query);
-if (!$presentation_statement) {
-    applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);
-    http_response_code(503);
-    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+$presentations = [];
+if ((int) $subscription['include_presentations'] === 1) {
+    $presentation_query = "SELECT
+                p.id,
+                p.engagement_id,
+                p.topic_title,
+                p.presentation_date,
+                p.presentation_time,
+                s.name AS speaker_name,
+                p.duration_minutes,
+                e.event_title,
+                e.event_type,
+                e.event_type_other,
+                e.confirmation_status,
+                e.lifecycle_status,
+                e.cancellation_reason,
+                e.event_address_line_1,
+                e.event_address_line_2,
+                e.event_city,
+                e.event_state,
+                e.event_zipcode,
+                e.event_country,
+                o.organization_name,
+                replacement.event_title AS rescheduled_event_title,
+                replacement.event_start_date AS rescheduled_event_start_date,
+                replacement_organization.organization_name AS rescheduled_organization_name,
+                UNIX_TIMESTAMP(GREATEST(
+                    e.updated_at,
+                    o.updated_at,
+                    p.updated_at,
+                    s.updated_at,
+                    COALESCE(replacement.updated_at, e.updated_at),
+                    COALESCE(replacement_organization.updated_at, o.updated_at)
+                )) AS calendar_updated_at
+              FROM presentations p
+              INNER JOIN speakers s ON s.id = p.speaker_id
+              INNER JOIN engagements e ON e.id = p.engagement_id
+              INNER JOIN organizations o ON o.id = e.organization_id
+              LEFT JOIN engagements replacement
+                     ON replacement.id = e.rescheduled_to_engagement_id
+              LEFT JOIN organizations replacement_organization
+                     ON replacement_organization.id = replacement.organization_id
+              WHERE e.is_deleted = 0
+                AND p.is_archived = 0
+                AND p.presentation_time IS NOT NULL
+                AND {$presentation_window}
+              ORDER BY p.presentation_date, p.presentation_time, p.id";
+    $presentation_statement = $conn->prepare($presentation_query);
+    if (!$presentation_statement) {
+        applicationLog('error', 'Unable to add presentations to the private calendar', ['error' => $conn->error]);
+        http_response_code(503);
+        exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+    }
+    $presentation_statement->bind_param('ss', $window_start, $window_end);
+    $presentation_statement->execute();
+    $presentation_result = $presentation_statement->get_result();
+    $presentations = $presentation_result->fetch_all(MYSQLI_ASSOC);
+    $presentation_statement->close();
 }
-$presentation_statement->bind_param('ss', $window_start, $window_end);
-$presentation_statement->execute();
-$presentation_result = $presentation_statement->get_result();
-$presentations = $presentation_result->fetch_all(MYSQLI_ASSOC);
-$presentation_statement->close();
 
-$birthday_result = $conn->query(
-    "SELECT id, contact_first_name, contact_last_name, contact_birthday,
-            UNIX_TIMESTAMP(updated_at) AS calendar_updated_at
-     FROM contacts
-     WHERE is_deleted = 0
-       AND contact_birthday IS NOT NULL
-     ORDER BY SUBSTRING(contact_birthday, 1, 2),
-              SUBSTRING(contact_birthday, 4, 2), id"
+$birthdays = [];
+if ((int) $subscription['include_birthdays'] === 1) {
+    $birthday_result = $conn->query(
+        "SELECT id, contact_first_name, contact_last_name, contact_birthday,
+                UNIX_TIMESTAMP(updated_at) AS calendar_updated_at
+         FROM contacts
+         WHERE is_deleted = 0
+           AND contact_birthday IS NOT NULL
+         ORDER BY SUBSTRING(contact_birthday, 1, 2),
+                  SUBSTRING(contact_birthday, 4, 2), id"
+    );
+    if (!$birthday_result) {
+        applicationLog('error', 'Unable to add birthdays to the private calendar', ['error' => $conn->error]);
+        http_response_code(503);
+        exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
+    }
+    $birthdays = $birthday_result->fetch_all(MYSQLI_ASSOC);
+}
+
+$tasks = $subscription['work_scope'] === 'none' ? [] : fetchCalendarViewerTasks(
+    $conn,
+    $window_start,
+    $window_end,
+    $subscription['work_scope'] === 'my' ? (int) $subscription['user_id'] : null
 );
-if (!$birthday_result) {
-    applicationLog('error', 'Unable to add birthdays to the private calendar', ['error' => $conn->error]);
-    http_response_code(503);
-    exit('The ' . applicationBrandName() . ' calendar is temporarily unavailable.');
-}
-$birthdays = $birthday_result->fetch_all(MYSQLI_ASSOC);
 
 $calendar_timezone = applicationTimezoneName();
 echo buildCalendar(
@@ -184,5 +207,6 @@ echo buildCalendar(
     applicationCalendarName(),
     $presentations,
     $calendar_timezone,
-    $birthdays
+    $birthdays,
+    $tasks
 );
