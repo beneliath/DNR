@@ -201,7 +201,7 @@ function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int 
     }
 }
 
-function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $engagementId, array $change): void
+function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $engagementId, array $change, ?int $uploadedBy = null): void
 {
     $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ? AND engagement_id = ? FOR UPDATE');
     $stmt->bind_param('ii', $presentationId, $engagementId);
@@ -210,15 +210,19 @@ function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $en
     if ($speakerId === null) throw new InvalidArgumentException('Presentation not found.');
     if (($change['action'] ?? '') === 'remove') {
         $stmt = $conn->prepare('UPDATE presentation_notes SET pdf = NULL, filename = NULL, size = NULL,
-            sha256 = NULL, updated_at = UTC_TIMESTAMP(6) WHERE presentation_id = ? AND speaker_id = ?');
+            sha256 = NULL, updated_at = UTC_TIMESTAMP(6), uploaded_by = NULL, uploaded_by_username_snapshot = NULL
+            WHERE presentation_id = ? AND speaker_id = ?');
         $stmt->bind_param('ii', $presentationId, $speakerId);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
-        $stmt = $conn->prepare('INSERT INTO presentation_notes (presentation_id, speaker_id, pdf, filename, size, sha256)
-            VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE pdf = VALUES(pdf), filename = VALUES(filename),
-            size = VALUES(size), sha256 = VALUES(sha256), updated_at = UTC_TIMESTAMP(6)');
+        $stmt = $conn->prepare('INSERT INTO presentation_notes
+            (presentation_id, speaker_id, pdf, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
+            VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6), ?, (SELECT username FROM users WHERE id = ?))
+            ON DUPLICATE KEY UPDATE pdf = VALUES(pdf), filename = VALUES(filename),
+            size = VALUES(size), sha256 = VALUES(sha256), updated_at = UTC_TIMESTAMP(6),
+            uploaded_by = VALUES(uploaded_by), uploaded_by_username_snapshot = VALUES(uploaded_by_username_snapshot)');
         $blob = null;
-        $stmt->bind_param('iibsis', $presentationId, $speakerId, $blob, $asset['filename'], $asset['size'], $asset['sha256']);
+        $stmt->bind_param('iibsisii', $presentationId, $speakerId, $blob, $asset['filename'], $asset['size'], $asset['sha256'], $uploadedBy, $uploadedBy);
         $stmt->send_long_data(2, $asset['data']);
     } else throw new InvalidArgumentException('Invalid notes change.');
     $stmt->execute();

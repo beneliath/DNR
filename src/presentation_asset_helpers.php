@@ -326,7 +326,8 @@ function applyPresentationAssetChanges(
     mysqli $conn,
     int $engagement_id,
     int $presentation_id,
-    array $changes
+    array $changes,
+    ?int $uploaded_by = null
 ): bool {
     if (!$changes) {
         return false;
@@ -339,7 +340,7 @@ function applyPresentationAssetChanges(
         }
         if ($asset_key === 'speaker_notes') {
             require_once __DIR__ . '/short_link_helpers.php';
-            applyPresentationNotesChange($conn, $presentation_id, $engagement_id, $change);
+            applyPresentationNotesChange($conn, $presentation_id, $engagement_id, $change, $uploaded_by);
             continue;
         }
         $definition = $definitions[$asset_key];
@@ -420,6 +421,7 @@ function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stor
         }
         foreach ([
             'has_speaker_notes', 'speaker_notes_filename', 'speaker_notes_size',
+            'speaker_notes_updated_at', 'speaker_notes_uploaded_by_username',
             'has_speaker_notes_qr', 'speaker_notes_qr_updated_at',
             'has_speaker_website_qr', 'speaker_website_qr_updated_at',
             'has_speaker_donation_qr', 'speaker_donation_qr_updated_at',

@@ -13,6 +13,7 @@ $audit_log_page = file_get_contents(__DIR__ . '/../src/audit_log.php');
 $audit_log_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/audit_log.css');
 $calendar_subscription_page = file_get_contents(__DIR__ . '/../src/view_calendar.php');
 $calendar_subscription_script = file_get_contents(__DIR__ . '/../src/assets/js/calendar-subscription.js');
+$calendar_subscription_styles = file_get_contents(__DIR__ . '/../src/assets/css/pages/calendar_subscription.css');
 $footer_template = file_get_contents(__DIR__ . '/../src/templates/footer.php');
 $theme_script = file_get_contents(__DIR__ . '/../src/assets/js/theme.js');
 $header_template = file_get_contents(__DIR__ . '/../src/templates/header.php');
@@ -159,8 +160,12 @@ expectHoverStyle(
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#copy-calendar-url.is-copied') !== false
-        && strpos($calendar_subscription_script, "copyButton.textContent = 'Copied!';") !== false,
-    'Copy URL should show an in-button success confirmation.'
+        && str_contains($calendar_subscription_page, 'class="action-icon calendar-copied-icon"')
+        && str_contains($calendar_subscription_styles, "#copy-calendar-url.is-copied .calendar-copied-icon {\n    display: block;")
+        && str_contains($calendar_subscription_script, "copyButton.classList.add('is-copied');")
+        && str_contains($calendar_subscription_script, "copyButton.setAttribute('aria-label', 'Calendar URL copied');")
+        && !str_contains($calendar_subscription_script, 'copyButton.textContent'),
+    'Copy URL should preserve its icons and show an accessible in-button success confirmation.'
 );
 expectHoverStyle(
     strpos($modern_stylesheet, '#open-calendar-app.is-opening') !== false

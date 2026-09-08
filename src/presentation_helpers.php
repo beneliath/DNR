@@ -321,7 +321,7 @@ function engagementPresentationMatches(array $current, array $submitted)
         && $current_actual_attendance === ($submitted['actual_attendance'] ?? null);
 }
 
-function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presentations)
+function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presentations, ?int $uploaded_by = null)
 {
     $speaker_options = $presentations ? fetchSpeakerOptions($conn) : [];
     foreach ($presentations as $presentation) {
@@ -424,7 +424,8 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
                 $conn,
                 (int) $engagement_id,
                 $presentation_id,
-                $asset_changes
+                $asset_changes,
+                $uploaded_by
             )) {
                 $presentations_changed = true;
             }
@@ -462,7 +463,8 @@ function syncEngagementPresentations(mysqli $conn, $engagement_id, array $presen
             $conn,
             (int) $engagement_id,
             $presentation_id,
-            is_array($presentation['asset_changes'] ?? null) ? $presentation['asset_changes'] : []
+            is_array($presentation['asset_changes'] ?? null) ? $presentation['asset_changes'] : [],
+            $uploaded_by
         );
         ensurePresentationShortLinks($conn, $presentation_id);
         $presentations_changed = true;

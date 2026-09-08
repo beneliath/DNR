@@ -11,11 +11,17 @@ $has_pdf = $is_saved_presentation && !empty($presentation['has_' . $pdf_key]);
         <?php
         $pdf_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=notes';
         $pdf_filename = (string) ($presentation[$pdf_key . '_filename'] ?? 'speaker-notes.pdf');
+        $pdf_uploaded_at = $presentation[$pdf_key . '_updated_at'] ?? null;
+        $pdf_uploaded_by = trim((string) ($presentation[$pdf_key . '_uploaded_by_username'] ?? ''));
         ?>
         <div class="presentation-existing-asset">
             <a href="<?php echo htmlspecialchars($pdf_url, ENT_QUOTES, 'UTF-8'); ?>" class="presentation-pdf-link" target="_blank" rel="noopener">
                 View <?php echo htmlspecialchars($pdf_filename, ENT_QUOTES, 'UTF-8'); ?>
             </a>
+            <?php if (!empty($pdf_uploaded_at)): ?>
+                <span class="presentation-upload-timestamp">Uploaded <?php echo htmlspecialchars(applicationTimestampLabel($pdf_uploaded_at, 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php endif; ?>
+            <span class="presentation-upload-user"><?php echo $pdf_uploaded_by !== '' ? 'By ' . htmlspecialchars($pdf_uploaded_by, ENT_QUOTES, 'UTF-8') : 'Uploader unknown'; ?></span>
             <?php if (!empty($presentation[$pdf_key . '_size'])): ?>
                 <span><?php echo htmlspecialchars(number_format(((int) $presentation[$pdf_key . '_size']) / 1048576, 1)); ?> MB</span>
             <?php endif; ?>

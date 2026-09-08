@@ -71,3 +71,4 @@
 20260907_add_speaker_custom_links.sql
 20260907_unify_speaker_notes.sql
 20260908_add_calendar_subscription_content.sql
+20260908_add_presentation_notes_uploader.sql

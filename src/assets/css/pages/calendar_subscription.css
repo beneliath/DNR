@@ -66,14 +66,50 @@
     padding-block: 0 !important;
 }
 
-.calendar-subscription #copy-calendar-url {
-    flex: 0 0 auto;
-    width: auto;
-    white-space: nowrap;
+html body .calendar-subscription #copy-calendar-url {
+    --action-current: var(--primary);
+    flex: 0 0 46px !important;
+    width: 46px !important;
+    min-width: 46px !important;
+    padding: 0 !important;
+}
+
+html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
+    color: var(--primary) !important;
+}
+
+.calendar-copied-icon,
+#copy-calendar-url.is-copied .calendar-copy-icon {
+    display: none;
+}
+
+#copy-calendar-url.is-copied .calendar-copied-icon {
+    display: block;
+}
+
+.calendar-new-link-heading {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .calendar-subscription #new-calendar-title {
-    color: var(--success) !important;
+    margin: 0;
+}
+
+.calendar-new-link-context {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-left: 4px solid var(--accent);
+    border-radius: var(--radius-sm);
+    background: var(--accent-subtle);
+    color: var(--accent);
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1.4;
 }
 
 #new-calendar-link {
@@ -96,7 +132,7 @@
 }
 
 @media (prefers-reduced-motion: no-preference) {
-    #new-calendar-title {
+    .calendar-new-link-context {
         animation: calendar-new-link-blink 1.6s step-end infinite;
     }
 }

@@ -177,7 +177,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         false
                     );
 
-                    syncEngagementPresentations($conn, $engagement_id, $presentations);
+                    syncEngagementPresentations($conn, $engagement_id, $presentations, $current_user_id);
 
                     if ($chron_entry !== '') {
                         $chron_stmt = $conn->prepare(
