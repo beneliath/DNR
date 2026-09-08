@@ -157,8 +157,8 @@ try {
                 $toolsCount = $number > 20 ? 2 : 0;
                 expectSpeakerHttp(substr_count($list['body'], 'aria-label="Speaker pages"') === $toolsCount, 'Upper and lower pagination follow the Contacts visibility rule.');
                 expectSpeakerHttp(substr_count($list['body'], 'class="contact-name-cell"') === 20, 'The directory respects its page size.');
-                expectSpeakerHttp(substr_count($list['body'], '>50</a>') === ($number > 50 ? 2 : 0)
-                    && substr_count($list['body'], '>100</a>') === ($number > 100 ? 2 : 0), 'Page-size choices appear at the same thresholds as Contacts.');
+                expectSpeakerHttp(substr_count($list['body'], '>50</a>') === ($number >= 21 ? 2 : 0)
+                    && substr_count($list['body'], '>100</a>') === ($number >= 51 ? 2 : 0), 'Page-size choices appear at the same thresholds as Contacts.');
             }
             $addPageSpeaker->close();
             $lastPage = $request('speakers.php?q=' . urlencode($paginationPrefix) . '&per_page=50&page=3');

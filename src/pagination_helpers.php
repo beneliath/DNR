@@ -145,7 +145,11 @@ function renderPagination(int $total, int $page, int $size, string $base_url, st
     if ($total <= 20) {
         return;
     }
-    $allowed_sizes = array_values(array_filter($allowed_sizes, static fn(int $option): bool => $total > $option));
+    $allowed_sizes = array_values(array_filter($allowed_sizes, static fn(int $option): bool => $total >= match ($option) {
+        50 => 21,
+        100 => 51,
+        default => $option + 1,
+    }));
     $state = paginationState($total, $size, $page);
     $page_numbers = paginationPageNumbers($state['page'], $state['pages']);
     $url = static fn(int $target_page, int $target_size): string => htmlspecialchars(
