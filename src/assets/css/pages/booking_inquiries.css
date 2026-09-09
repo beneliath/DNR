@@ -125,7 +125,8 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
     padding-bottom: 1rem;
 }
 .inquiry-kanban-columns-1 { grid-template-columns: minmax(0, 1fr); }
-.inquiry-kanban-columns-7 > .inquiry-stage-declined { grid-column: 1; }
+.inquiry-kanban-columns-7 > .inquiry-stage-booked,
+.inquiry-kanban-columns-7 > .inquiry-stage-declined { grid-column: -2 / -1; }
 
 .inquiry-kanban-column {
     width: 100%;
@@ -325,6 +326,7 @@ html body main.container.inquiry-form-page > form.inquiry-form.inquiry-form {
 .inquiry-form-section-heading p { margin: .2rem 0 0; color: var(--text-muted); font-size: .8rem; line-height: 1.45; }
 .inquiry-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem 1.1rem; }
 .inquiry-form-grid .form-group { margin: 0; }
+.inquiry-form input[type="search"] + select { margin-top: .5rem; }
 .inquiry-request-summary { margin-top: .55rem; }
 .inquiry-event-type-grid { display: flex; align-items: flex-end; gap: 1.1rem; }
 .inquiry-event-type-grid > .form-group {

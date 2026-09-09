@@ -1,0 +1,5 @@
+reportlab>=4
+pypdf>=5
+lxml>=5
+Pillow>=10
+pdfplumber>=0.11
