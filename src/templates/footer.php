@@ -27,36 +27,36 @@ $footer_repository_url = githubRepositoryUrl();
 </footer>
 
 <dialog id="footer-lion-dialog" class="confirmation-dialog footer-lion-dialog" aria-label="Lion ASCII art">
-    <pre class="footer-lion-art">                              ,aodObo,
-Genesis 49:9, 10           ,AMMMMP~~~~
-                        ,MMMMMMMMA.
-        |             ,M;'     `YV/'
-        |            AM' ,OMA,
-        |           AM|   `~VMM,.      .,ama,____,amma,..
-        |           MML      )MMMD   .AMMMMMMMMMMMMMMMMMMD.
-        |           VMMM    .AMMY'  ,AMMMMMMMMMMMMMMMMMMMMD
-        |           `VMM, AMMMV'  ,AMMMMMMMMMMMMMMMMMMMMMMM,                ,
-        |            VMMMmMMV'  ,AMY~~''  'MMMMMMMMMMMM' '~~             ,aMM
-        |            `YMMMM'   AMM'        `VMMMMMMMMP'_              A,aMMMM
-        |             AMMM'    VMMA. YVmmmMMMMMMMMMMML MmmmY          MMMMMMM
-        |            ,AMMA   _,HMMMMmdMMMMMMMMMMMMMMMML`VMV'         ,MMMMMMM
-        |            AMMMA _'MMMMMMMMMMMMMMMMMMMMMMMMMMA `'          MMMMMMMM
-        |           ,AMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMa      ,,,   `MMMMMMM
-        |           AMMMMMMMMM'~`YMMMMMMMMMMMMMMMMMMMMMMA    ,AMMV    MMMMMMM
-        |           VMV MMMMMV   `YMMMMMMMMMMMMMMMMMMMMMY   `VMMY'  adMMMMMMM
-        |           `V  MMMM'      `YMMMMMMMV.~~~~~~~~~,aado,`V''   MMMMMMMMM
-        |              aMMMMmv       `YMMMMMMMm,    ,/AMMMMMA,      YMMMMMMMM
-        |              VMMMMM,,v       YMMMMMMMMMo oMMMMMMMMM'    a, YMMMMMMM
-        |              `YMMMMMY'       `YMMMMMMMY' `YMMMMMMMY     MMmMMMMMMMM
-        |               AMMMMM  ,        ~~~~~,aooooa,~~~~~~      MMMMMMMMMMM
-        |                 YMMMb,d'         dMMMMMMMMMMMMMD,   a,, AMMMMMMMMMM
-        ▼                  YMMMMM, A       YMMMMMMMMMMMMMY   ,MMMMMMMMMMMMMMM
-                          AMMMMMMMMM        `~~~~'  `~~~~'   AMMMMMMMMMMMMMMM
- Revelation 5:5           `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM
-                        ,AMMMMMMMMMMMMMMA,       ,aAMMMMMMMMMMMMMMMMMMMMMMMMM
-                      ,AMMMMMMMMMMMMMMMMMMA,    AMMMMMMMMMMMMMMMMMMMMMMMMMMMM
- Do you see Him?    ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM
-                   AMMMMMMMMMMMMMMMMMMMMMMMMAaAMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</pre>
+    <pre class="footer-lion-art">                   <span class="footer-lion-shape">           ,aodObo,</span>
+Genesis 49:9, 10   <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
+                   <span class="footer-lion-shape">     ,MMMMMMMMA.</span>
+        |          <span class="footer-lion-shape">   ,M;'     `YV/'</span>
+        |          <span class="footer-lion-shape">  AM' ,OMA,</span>
+        |          <span class="footer-lion-shape"> AM|   `~VMM,.      .,ama,____,amma,..</span>
+        |          <span class="footer-lion-shape"> MML      )MMMD   .AMMMMMMMMMMMMMMMMMMD.</span>
+        |          <span class="footer-lion-shape"> VMMM    .AMMY'  ,AMMMMMMMMMMMMMMMMMMMMD</span>
+        |          <span class="footer-lion-shape"> `VMM, AMMMV'  ,AMMMMMMMMMMMMMMMMMMMMMMM,                ,</span>
+        |          <span class="footer-lion-shape">  VMMMmMMV'  ,AMY~~''  'MMMMMMMMMMMM' '~~             ,aMM</span>
+        |          <span class="footer-lion-shape">  `YMMMM'   AMM'        `VMMMMMMMMP'_              A,aMMMM</span>
+        |          <span class="footer-lion-shape">   AMMM'    VMMA. YVmmmMMMMMMMMMMML MmmmY          MMMMMMM</span>
+        |          <span class="footer-lion-shape">  ,AMMA   _,HMMMMmdMMMMMMMMMMMMMMMML`VMV'         ,MMMMMMM</span>
+        |          <span class="footer-lion-shape">  AMMMA _'MMMMMMMMMMMMMMMMMMMMMMMMMMA `'          MMMMMMMM</span>
+        |          <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMa      ,,,   `MMMMMMM</span>
+        |          <span class="footer-lion-shape"> AMMMMMMMMM'~`YMMMMMMMMMMMMMMMMMMMMMMA    ,AMMV    MMMMMMM</span>
+        |          <span class="footer-lion-shape"> VMV MMMMMV   `YMMMMMMMMMMMMMMMMMMMMMY   `VMMY'  adMMMMMMM</span>
+        |          <span class="footer-lion-shape"> `V  MMMM'      `YMMMMMMMV.~~~~~~~~~,aado,`V''   MMMMMMMMM</span>
+        |          <span class="footer-lion-shape">    aMMMMmv       `YMMMMMMMm,    ,/AMMMMMA,      YMMMMMMMM</span>
+        |          <span class="footer-lion-shape">    VMMMMM,,v       YMMMMMMMMMo oMMMMMMMMM'    a, YMMMMMMM</span>
+        |          <span class="footer-lion-shape">    `YMMMMMY'       `YMMMMMMMY' `YMMMMMMMY     MMmMMMMMMMM</span>
+        |          <span class="footer-lion-shape">     AMMMMM  ,        ~~~~~,aooooa,~~~~~~      MMMMMMMMMMM</span>
+        |          <span class="footer-lion-shape">       YMMMb,d'         dMMMMMMMMMMMMMD,   a,, AMMMMMMMMMM</span>
+        ▼          <span class="footer-lion-shape">        YMMMMM, A       YMMMMMMMMMMMMMY   ,MMMMMMMMMMMMMMM</span>
+                   <span class="footer-lion-shape">       AMMMMMMMMM        `~~~~'  `~~~~'   AMMMMMMMMMMMMMMM</span>
+ Revelation 5:5    <span class="footer-lion-shape">       `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM</span>
+                   <span class="footer-lion-shape">     ,AMMMMMMMMMMMMMMA,       ,aAMMMMMMMMMMMMMMMMMMMMMMMMM</span>
+                   <span class="footer-lion-shape">   ,AMMMMMMMMMMMMMMMMMMA,    AMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
+ Do you see Him?   <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
+                   <span class="footer-lion-shape">AMMMMMMMMMMMMMMMMMMMMMMMMAaAMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span></pre>
     <div class="confirmation-dialog-actions">
         <button type="button" id="close-footer-lion" class="button-secondary" autofocus>Close</button>
     </div>
