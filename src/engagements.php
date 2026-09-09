@@ -290,10 +290,18 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     <?php endif; ?>
 
     <div class="summary-grid" aria-label="Engagement summary">
-        <div class="summary-card summary-confirmed"><span class="summary-icon" aria-hidden="true">◆</span><span><small>Active</small><strong><?php echo $summary['active']; ?></strong></span></div>
-        <div class="summary-card summary-review"><span class="summary-icon" aria-hidden="true">Ⅱ</span><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></div>
-        <div class="summary-card summary-archived"><span class="summary-icon" aria-hidden="true">×</span><span><small>Canceled</small><strong><?php echo $summary['canceled']; ?></strong></span></div>
-        <div class="summary-card summary-work-in-progress"><span class="summary-icon" aria-hidden="true">✓</span><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></div>
+        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'active', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+           class="summary-card summary-confirmed<?php echo in_array($lifecycle_filter, ['all', 'active'], true) ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">◆</span><span><small>Active</small><strong><?php echo $summary['active']; ?></strong></span></a>
+        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'postponed', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+           class="summary-card summary-review<?php echo in_array($lifecycle_filter, ['all', 'postponed'], true) ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'postponed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">Ⅱ</span><span><small>Postponed</small><strong><?php echo $summary['postponed']; ?></strong></span></a>
+        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'canceled', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+           class="summary-card summary-archived<?php echo in_array($lifecycle_filter, ['all', 'canceled'], true) ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'canceled' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">×</span><span><small>Canceled</small><strong><?php echo $summary['canceled']; ?></strong></span></a>
+        <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'completed', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
+           class="summary-card summary-work-in-progress<?php echo in_array($lifecycle_filter, ['all', 'completed'], true) ? ' is-selected' : ''; ?>"
+           <?php echo $lifecycle_filter === 'completed' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">✓</span><span><small>Completed</small><strong><?php echo $summary['completed']; ?></strong></span></a>
     </div>
 
     <div class="list-controls engagement-controls">
