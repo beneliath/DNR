@@ -1,0 +1,26 @@
+{
+  "pages": 117,
+  "screenshots": 68,
+  "internal_links": 1012,
+  "bookmarks": 241,
+  "chapter_targets": "13/13 valid",
+  "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
+  "external_pdf_actions": 0,
+  "readme_appendix": {
+    "sections": 37,
+    "text_fragments_verified": 1027,
+    "attachment_bytes": 87644,
+    "attachment_matches_current_source": true,
+    "sha256": "3a6fe449211ffa11bc9642ec9e7982cf079166e62a13ec858ccb78180e775eac"
+  },
+  "format": {
+    "reference_text": "two columns",
+    "walkthrough_instructions": "two columns below spanning screenshots",
+    "readme_reverse_pages": 20,
+    "readme_colors": "white text on black",
+    "cover_logo": "native SVG paths; no raster image or white backdrop",
+    "column_gutters": "clear",
+    "full_width_reference_blocks": 5,
+    "automatic_word_breaks": 0
+  }
+}

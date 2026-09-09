@@ -39,6 +39,7 @@ $manual_access_summary = match ($manual_role) {
         <section class="manual-hero-copy">
             <h1 id="manual-title">User Manual</h1>
             <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
+            <a class="manual-inline-link" href="assets/docs/moed-comprehensive-user-manual.pdf" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
         </section>
         <section class="manual-role-summary" aria-label="Your access">
             <span>Your Access</span>
