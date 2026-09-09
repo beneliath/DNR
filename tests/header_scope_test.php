@@ -83,6 +83,37 @@ expectHeaderScope(
         && str_contains($header_markup, '<span>Database</span>'),
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
+
+foreach ([
+    ['active' => 4, 'total' => 5, 'label' => '4'],
+    ['active' => 7, 'total' => 4, 'label' => '7'],
+    ['active' => 0, 'total' => 1, 'label' => null],
+    ['active' => 120, 'total' => 5, 'label' => '99+'],
+] as $badge_case) {
+    $_SESSION['user_id'] = 1;
+    $request_reminder_counts = [
+        'active' => $badge_case['active'],
+        'total' => $badge_case['total'],
+    ];
+    ob_start();
+    include __DIR__ . '/../src/templates/header.php';
+    $badge_markup = ob_get_clean();
+    $has_badge = preg_match(
+        '/class="nav-notification-badge" aria-label="([^"]+)">([^<]+)<\/span>/',
+        $badge_markup,
+        $badge_match
+    ) === 1;
+    expectHeaderScope(
+        $badge_case['label'] === null
+            ? !$has_badge
+            : $has_badge
+                && $badge_match[1] === $badge_case['active'] . ' active tasks assigned to you'
+                && $badge_match[2] === $badge_case['label'],
+        'My Work should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
+    );
+}
+unset($_SESSION['user_id'], $request_reminder_counts);
+
 expectHeaderScope(
     str_contains($header_markup, 'class="role-preview-control"')
         && str_contains($header_markup, '<option value="editor">Editor</option>')
