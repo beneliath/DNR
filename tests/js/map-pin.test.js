@@ -23,7 +23,8 @@ function harness(coordinates = {latitude: null, longitude: null}) {
         on(type, fn) { this.listeners[type] = fn; }
         getLngLat() { return {lat: this.point[1], lng: this.point[0]}; }
     }
-    const context = {document: {getElementById: id => elements[id]}, MapLibreMap: FakeMap, Marker, NavigationControl: class {}};
+    const context = {document: {getElementById: id => elements[id]}, MapLibreMap: FakeMap, Marker, NavigationControl: class {},
+        setWorkerUrl: () => {}, DNR_MAPLIBRE_WORKER_URL: '/assets/js/maplibre-worker.min.js?v=test'};
     vm.createContext(context);
     vm.runInContext(fs.readFileSync('src/assets/js/map-pin.js', 'utf8').replace(/^import[^\n]*\n/, ''), context);
     return {elements, map: maps[0], markers, latitude: elements['pin-latitude'], longitude: elements['pin-longitude'], confirmation: elements['confirm-pin']};

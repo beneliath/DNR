@@ -43,14 +43,15 @@ def main():
 
     try:
         # Let ingress create its prefork children before measuring backend idle
-        # connection starvation. Keep the client connections open for both passes;
-        # cold-start burst latency is covered by the separate download load test.
+        # connection starvation. Cold-start burst latency is covered separately.
         with concurrent.futures.ThreadPoolExecutor(max_workers=count) as pool:
             list(pool.map(lambda connection: request(connection, False), connections))
         for connection in connections:
+            # Early warmup sockets may reach ingress's idle timeout while later
+            # prefork children start. Measure on fresh sockets, keeping all of
+            # those connections open until the measured batch completes.
+            connection.close()
             connection.timeout = deadline
-            if connection.sock is not None:
-                connection.sock.settimeout(deadline)
         with concurrent.futures.ThreadPoolExecutor(max_workers=count) as pool:
             durations = list(pool.map(request, connections))
     except (OSError, ValueError, RuntimeError, http.client.HTTPException) as error:
