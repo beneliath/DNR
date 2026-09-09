@@ -59,10 +59,10 @@ $source_iterator = new RecursiveIteratorIterator(
     new RecursiveDirectoryIterator(__DIR__ . '/../src', FilesystemIterator::SKIP_DOTS)
 );
 foreach ($source_iterator as $source_file) {
-    // Both map bundles contain the MapLibre runtime. Its upstream color
+    // Generated map bundles contain the MapLibre runtime. Its upstream color
     // constants are not application hover styles and are covered by the
     // generated-asset tests instead.
-    if (in_array($source_file->getFilename(), ['map.min.js', 'map-pin.min.js'], true)) {
+    if (in_array($source_file->getFilename(), ['map.min.js', 'map-pin.min.js', 'maplibre-worker.min.js'], true)) {
         continue;
     }
     if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {

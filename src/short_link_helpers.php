@@ -265,7 +265,7 @@ function shortLinkVisitDimensions(array $server): ?array
     if (preg_match('/prefetch|prerender/i', (string) ($server['HTTP_SEC_PURPOSE'] ?? $server['HTTP_PURPOSE'] ?? ''))) return null;
     $ua = substr((string) ($server['HTTP_USER_AGENT'] ?? ''), 0, 2048);
     $detector = new \DeviceDetector\DeviceDetector($ua);
-    $detector->setYamlParser(new \DeviceDetector\Yaml\Symfony());
+    $detector->setYamlParser(new \Dnr\Analytics\CompiledDeviceDetectorYaml());
     $detector->discardBotInformation();
     $detector->parse();
     if ($detector->isBot()) return null;
@@ -349,8 +349,10 @@ function backfillShortLinkQrImages(mysqli $conn, int $batchSize = 100): int
 }
 
 /** Public notes are scoped to the link's original presentation AND speaker. */
-function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speakerId, ?int $linkId = null): void
+function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speakerId, ?int $linkId = null, int $edgeTtl = 0): void
 {
+    header('Cache-Control: private, no-store');
+    header('Cloudflare-CDN-Cache-Control: no-store');
     $conn->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     $conn->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
     $stmt = $conn->prepare('SELECT filename, size, HEX(sha256) AS sha FROM presentation_notes
@@ -360,7 +362,10 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     $notes = $stmt->get_result()->fetch_assoc();
     if (!$notes) { $conn->commit(); http_response_code(404); echo 'Notes are not available yet.'; return; }
     $size = (int) $notes['size'];
-    try { $range = presentationAssetByteRange((string) ($_SERVER['HTTP_RANGE'] ?? ''), $size); }
+    $etag = '"notes-' . strtolower((string) $notes['sha']) . '"';
+    $rangeHeader = (string) ($_SERVER['HTTP_RANGE'] ?? '');
+    if (isset($_SERVER['HTTP_IF_RANGE']) && trim((string) $_SERVER['HTTP_IF_RANGE']) !== $etag) $rangeHeader = '';
+    try { $range = presentationAssetByteRange($rangeHeader, $size); }
     catch (OutOfRangeException $exception) {
         $conn->commit(); http_response_code(416); header('Content-Range: bytes */' . $size); return;
     }
@@ -375,6 +380,10 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     if (!is_string($chunk) || strlen($chunk) !== $length) { $conn->commit(); http_response_code(503); return; }
     sendPresentationPdfViewHeaders((string) $notes['filename']);
     header('Cache-Control: private, no-store');
+    header('ETag: ' . $etag);
+    if ($linkId !== null && $edgeTtl > 0) {
+        header('Cloudflare-CDN-Cache-Control: public, max-age=' . min(300, $edgeTtl) . ', must-revalidate');
+    }
     header('Accept-Ranges: bytes');
     header('Content-Length: ' . $remaining);
     if ($range !== null) { http_response_code(206); header('Content-Range: bytes ' . $range['start'] . '-' . $range['end'] . '/' . $size); }
@@ -390,7 +399,7 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
         if (!is_string($chunk) || strlen($chunk) !== $length) break;
     }
     $conn->commit();
-    if ($linkId !== null && $remaining === 0 && ($range === null || $range['start'] === 0)) recordShortLinkVisit($conn, $linkId, $_SERVER);
+    // Direct PDF requests and cache fills never count as QR-link visits.
 }
 
 /** @return array{0: string, 1: string} */

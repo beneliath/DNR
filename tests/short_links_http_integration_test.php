@@ -46,13 +46,13 @@ try{
  $notesDownload=ltrim($downloadMatch[1],'/');
  expectLinkHttp($notesDownload==='surls/'.$notes['code'].'/speaker-notes.pdf','Download destination preserves the original bearer code');
  expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&str_contains(strtolower($r['headers']),'no-store'),'Notes redirect needs no session and is not cached');
- expectLinkHttp(!str_contains(strtolower($r['headers']),'content-disposition:')&&$notesCount()===0,'QR navigation itself does not download or count a visit');
- expectLinkHttp($request('surls/'.$notes['code'],null,'',[],true)['status']===302&&$notesCount()===0,'HEAD follows the same redirect without counting');
+ expectLinkHttp(!str_contains(strtolower($r['headers']),'content-disposition:')&&$notesCount()===1,'QR navigation counts one link visit before cached PDF delivery');
+ expectLinkHttp($request('surls/'.$notes['code'],null,'',[],true)['status']===302&&$notesCount()===1,'HEAD follows the same redirect without counting');
  $r=$request($notesDownload);
  expectLinkHttp($r['status']===200&&$r['body']===$pdf&&str_contains($r['headers'],'inline; filename="http-notes.pdf"'),'Public notes view serves the exact PDF inline');
  expectLinkHttp(str_contains(strtolower($r['headers']),'content-type: application/pdf')&&str_contains($r['headers'],"default-src 'none'; frame-ancestors 'none'")&&str_contains(strtolower($r['headers']),'x-content-type-options: nosniff'),'Named PDF supports browser viewing with resource restrictions and nosniff');
  expectLinkHttp(preg_match('/^Content-Security-Policy:[^\r\n]*\bsandbox\b/mi',$r['headers'])===0,'The PDF response does not sandbox the browser viewer');
- expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&$notesCount()===1,'Only the completed PDF delivery counts, without setting a cookie');
+ expectLinkHttp(!str_contains(strtolower($r['headers']),'set-cookie:')&&$notesCount()===1,'PDF delivery does not double-count the redirect and sets no cookie');
  $head=$request($notesDownload,null,'',[],true);
  expectLinkHttp($head['status']===200&&$head['body']===''&&str_contains($head['headers'],'Content-Length: '.strlen($pdf))&&$notesCount()===1,'PDF HEAD reports the file size without downloading or counting');
  $r=$request($notesDownload,null,'',['Range: bytes=3-10']);

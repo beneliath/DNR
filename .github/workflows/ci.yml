@@ -197,6 +197,7 @@ jobs:
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.smtp.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml config --quiet
           docker compose -f docker-compose.yaml config --quiet
+          docker compose -f docker-compose.yaml -f docker-compose.cloudflare.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.smtp.yaml config --quiet
           docker compose -f docker-compose.yaml -f docker-compose.mail.yaml -f docker-compose.smtp.yaml config --quiet

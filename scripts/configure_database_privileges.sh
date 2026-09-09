@@ -166,6 +166,7 @@ GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.short_links TO '${MYSQL_US
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.short_link_qr_images TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.presentation_notes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.short_link_stats TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.notes_cache_purge_queue TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contacts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.contact_organizations TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${MYSQL_USER}'@'%';
@@ -186,6 +187,7 @@ CREATE USER IF NOT EXISTS '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_passw
 ALTER USER '${geocoder_user}'@'%' IDENTIFIED BY '${geocoder_password}';
 REVOKE ALL PRIVILEGES, GRANT OPTION FROM '${geocoder_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geocodes TO '${geocoder_user}'@'%';
+GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.notes_cache_purge_queue TO '${geocoder_user}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${geocoder_user}'@'%';
 
 CREATE USER IF NOT EXISTS '${mail_ingest_user}'@'%' IDENTIFIED BY '${mail_ingest_password}';

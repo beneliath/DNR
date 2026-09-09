@@ -3,7 +3,8 @@ import {
     Map as MapLibreMap,
     Marker,
     NavigationControl,
-    Popup
+    Popup,
+    setWorkerUrl
 } from 'maplibre-gl';
 
 (function () {
@@ -12,6 +13,7 @@ import {
     const feedbackElement = document.getElementById('map-feedback');
     const fitButton = document.getElementById('fit-map-pins');
     if (!mapElement || !dataElement || !feedbackElement || !fitButton) return;
+    setWorkerUrl(DNR_MAPLIBRE_WORKER_URL);
 
     let payload;
     try {

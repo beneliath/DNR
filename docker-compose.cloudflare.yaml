@@ -1,0 +1,48 @@
+# Enable only after provisioning the two files and the narrow Cloudflare rule.
+services:
+  web:
+    environment:
+      DNR_NOTES_EDGE_CACHE_TTL: "300"
+  notes-cache:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    mem_limit: 256m
+    cpus: 0.5
+    pids_limit: 32
+    entrypoint: ["php", "-d", "memory_limit=128M", "/opt/dnr/bin/process_notes_cache_purges.php", "--loop"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=1m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      DB_HOST: db
+      MYSQL_DATABASE: dnr
+      MYSQL_USER: dnrgeocoder
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_geocoder_password
+      DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
+      DNR_CLOUDFLARE_ZONE_ID_FILE: /run/secrets/dnr_cloudflare_zone_id
+      DNR_CLOUDFLARE_PURGE_TOKEN_FILE: /run/secrets/dnr_cloudflare_purge_token
+      DNR_WORKER_HEALTH_MAX_AGE: "120"
+    secrets:
+      - dnr_mysql_geocoder_password
+      - dnr_cloudflare_zone_id
+      - dnr_cloudflare_purge_token
+    networks: [backend, egress]
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "notes-cache"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+secrets:
+  dnr_cloudflare_zone_id:
+    file: ${DNR_CLOUDFLARE_ZONE_ID_FILE:-./secrets/cloudflare_zone_id}
+  dnr_cloudflare_purge_token:
+    file: ${DNR_CLOUDFLARE_PURGE_TOKEN_FILE:-./secrets/cloudflare_purge_token}

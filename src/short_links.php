@@ -144,6 +144,7 @@ if ($activeLink !== null) {
         <div><label for="to_filter">Through (UTC)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
         <div class="short-link-filter-actions"><button type="submit" class="button-primary">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
     </form>
+    <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>
     <section class="short-link-report" aria-label="Traffic statistics">
         <div class="stats-overview">
             <div class="stats-summary">

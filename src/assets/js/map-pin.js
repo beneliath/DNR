@@ -1,4 +1,4 @@
-import {Map as MapLibreMap, Marker, NavigationControl} from 'maplibre-gl';
+import {Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl} from 'maplibre-gl';
 (function () {
     const data = document.getElementById('pin-editor-data');
     const mapElement = document.getElementById('pin-editor-map');
@@ -7,6 +7,7 @@ import {Map as MapLibreMap, Marker, NavigationControl} from 'maplibre-gl';
     const confirmation = document.getElementById('confirm-pin');
     const feedback = document.getElementById('pin-editor-feedback');
     if (!data || !mapElement || !latitude || !longitude || !confirmation || !feedback) return;
+    setWorkerUrl(DNR_MAPLIBRE_WORKER_URL);
     const payload = JSON.parse(data.textContent || '{}');
     const valid = (lat, lon) => Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
     const hasCoordinates = valid(payload.latitude, payload.longitude);

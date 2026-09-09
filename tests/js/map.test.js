@@ -74,6 +74,7 @@ function harness(initialEvents) {
         },
         window: {setTimeout: fn => { timers.set(++timerId, fn); return timerId; }, clearTimeout: id => timers.delete(id)},
         MapLibreMap: FakeMap, Marker, Popup, LngLatBounds: Bounds, NavigationControl: class {},
+        setWorkerUrl: () => {}, DNR_MAPLIBRE_WORKER_URL: '/assets/js/maplibre-worker.min.js?v=test',
         CustomEvent: class { constructor(type, options) { this.type = type; this.detail = options.detail; } },
         URLSearchParams,
         fetch: async (url, options) => {

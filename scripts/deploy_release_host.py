@@ -65,6 +65,10 @@ def main():
         mode = 'production-ubuntu-proton-mattermost'
         def compose(*args):
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
+        def application_writers():
+            configured = set(compose('config', '--services').splitlines())
+            return [name for name in ('web', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache')
+                    if name in configured]
         def container(service):
             return compose('ps', '-aq', service).splitlines()[-1]
         def inspect(identifier):
@@ -85,6 +89,11 @@ def main():
                            action, '/run/dnr/initial-speaker.json')
         previous = {service: inspect(container(service))['Config']['Image']
                     for service in ('db', 'web', 'ingress', 'geocoder', 'mail-ingest', 'mail-dispatch', 'proton-bridge')}
+        if 'notes-cache' in application_writers():
+            existing_cache_worker = [line for line in compose('ps', '-aq', 'notes-cache').splitlines()
+                                     if re.fullmatch('[0-9a-f]{12,64}', line)]
+            if existing_cache_worker:
+                previous['notes-cache'] = inspect(existing_cache_worker[-1])['Config']['Image']
         previous_database_image_id = inspect(container('db'))['Image']
         for image in images.values():
             run(['docker', 'pull', image])
@@ -115,7 +124,7 @@ def main():
             save('awaiting-save-window')
             raise
         try:
-            compose('stop', 'web', 'geocoder', 'mail-ingest', 'mail-dispatch')
+            compose('stop', *application_writers())
             save('backing-up')
             # Standing deployment directive: finish and verify a NEW backup before
             # changing the checkout, database version, schema, or application image.
@@ -144,7 +153,7 @@ def main():
                 'maintenance', '/opt/dnr/bin/backfill_short_link_qr.php')
             save('starting')
             compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '180')
-            for service in ('web', 'geocoder', 'mail-ingest', 'mail-dispatch'):
+            for service in application_writers():
                 state = inspect(container(service))
                 if state['Image'] != inspect(images['app'])['Id']:
                     raise ValueError(service + ' is running a different image')
@@ -165,7 +174,7 @@ def main():
             record['outcome'] = 'failed'
             record['error'] = str(error)
             # Schema may have advanced. Do not restart old writers or attempt a MySQL downgrade.
-            try: compose('stop', 'web', 'geocoder', 'mail-ingest', 'mail-dispatch')
+            try: compose('stop', *application_writers())
             except subprocess.CalledProcessError: pass
             save(record['phase'])
             notice.finish(notice_id, 'failed')
