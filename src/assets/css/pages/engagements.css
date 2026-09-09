@@ -11,6 +11,25 @@
             gap: 1rem;
             padding: 1.1rem 1.2rem;
             border-radius: 12px;
+            color: inherit;
+            text-decoration: none;
+            box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 4%, transparent);
+            transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+        }
+        .engagements-page .summary-card.is-selected {
+            border-color: var(--primary);
+            background: var(--primary-subtle) !important;
+            box-shadow: inset 0 0 0 1px var(--primary);
+        }
+        .engagements-page .summary-card:hover,
+        .engagements-page .summary-card:focus-visible {
+            border-color: var(--primary);
+            box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+            transform: translateY(-1px);
+        }
+        .engagements-page .summary-card:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 3px;
         }
         .engagements-page .summary-card > span:last-child {
             min-height: 56px;

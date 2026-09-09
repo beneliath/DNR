@@ -2487,14 +2487,21 @@ html body .chron-restore-page-actions a:focus-visible {
 .task-summary-grid .summary-card {
   color: inherit;
   text-decoration: none;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 4%, transparent);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
 }
 
-.task-summary-grid .summary-card:hover,
-.task-summary-grid .summary-card:focus-visible,
 .task-summary-grid .summary-card.is-selected {
   border-color: var(--primary);
   background: var(--primary-subtle) !important;
   box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.task-summary-grid .summary-card:hover,
+.task-summary-grid .summary-card:focus-visible {
+  border-color: var(--primary);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--primary) 10%, transparent);
+  transform: translateY(-1px);
 }
 
 .task-summary-grid .summary-danger strong {
