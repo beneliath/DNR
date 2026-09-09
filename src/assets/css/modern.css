@@ -4475,6 +4475,10 @@ html body .app-popover button {
   white-space: pre;
 }
 
+.footer-lion-shape {
+  color: var(--primary);
+}
+
 .footer-lion-dialog .confirmation-dialog-actions {
   flex-shrink: 0;
 }
