@@ -68,7 +68,7 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
 $shell_logo_dark = applicationBrandLogo('dark');
-$nav_reminder_count = 0;
+$nav_task_count = 0;
 if (!empty($_SESSION['user_id'])) {
     try {
         require_once dirname(__DIR__) . '/notification_helpers.php';
@@ -77,7 +77,7 @@ if (!empty($_SESSION['user_id'])) {
             (int) $_SESSION['user_id'],
             $user_role
         );
-        $nav_reminder_count = (int) $nav_reminders['total'];
+        $nav_task_count = (int) $nav_reminders['active'];
     } catch (Throwable $exception) {
         applicationLog('error', 'Unable to load navigation reminders', [
             'user_id' => (int) $_SESSION['user_id'],
@@ -143,7 +143,7 @@ if (!empty($_SESSION['user_id'])) {
                 </a></li>
                     <li><a href="tasks.php?owner=me" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>My Work</span>
-                    <?php if ($nav_reminder_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_reminder_count; ?> work reminders"><?php echo $nav_reminder_count > 99 ? '99+' : $nav_reminder_count; ?></span><?php endif; ?>
+                    <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> active tasks assigned to you"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
                 </a></li>
                     <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>

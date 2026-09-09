@@ -136,6 +136,16 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
     overflow: visible;
 }
 
+.inquiry-kanban-column.inquiry-stage-declined {
+    border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+    background: var(--danger-subtle);
+}
+
+.inquiry-kanban-column.inquiry-stage-booked {
+    border-color: color-mix(in srgb, var(--success) 35%, var(--border));
+    background: var(--success-subtle);
+}
+
 .inquiry-kanban-column > header {
     display: flex;
     align-items: center;
