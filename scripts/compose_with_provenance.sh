@@ -115,6 +115,16 @@ if [ "$geocoder_provider" = geoapify ]; then
     [ -s "$geoapify_key_file" ] || { echo 'A nonempty Geoapify key file is required.' >&2; exit 1; }
     set -- -f docker-compose.geoapify.yaml "$@"
 fi
+# A provisioned purge token opts the host into managed speaker-note caching.
+# Never enable edge caching without the worker's zone ID and durable retries.
+cloudflare_token_file=${DNR_CLOUDFLARE_PURGE_TOKEN_FILE:-$project_directory/secrets/cloudflare_purge_token}
+cloudflare_zone_file=${DNR_CLOUDFLARE_ZONE_ID_FILE:-$project_directory/secrets/cloudflare_zone_id}
+if [ -s "$cloudflare_token_file" ]; then
+    [ -s "$cloudflare_zone_file" ] || { echo 'Cloudflare caching requires the zone ID file.' >&2; exit 1; }
+    export DNR_CLOUDFLARE_PURGE_TOKEN_FILE=$cloudflare_token_file
+    export DNR_CLOUDFLARE_ZONE_ID_FILE=$cloudflare_zone_file
+    set -- -f docker-compose.cloudflare.yaml "$@"
+fi
 case "$mode" in
     development|dev)
         exec docker compose \

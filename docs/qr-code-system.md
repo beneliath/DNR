@@ -17,8 +17,8 @@ like the presentation's **View PDF Speaker Notes** button.
 There is no intermediate page, extra button, browser-specific code, or login.
 The PDF endpoint rechecks the link and notes availability and supports
 HEAD requests and single byte ranges. Existing QR codes and image bytes remain
-unchanged. The short-link redirect does not count as a visit; only serving
-the PDF does.
+unchanged. The uncached short-link redirect counts a notes-link visit before
+the PDF is served. PDF requests never add another visit, including CDN cache fills.
 
 Public notes and authenticated presentation PDFs share an `application/pdf`
 response with `Content-Disposition: inline` and the original filename. The browser
@@ -86,9 +86,10 @@ These are visits, not unique attendees, verified camera scans, or completed
 external transactions. Camera apps often provide no referrer. Known bots,
 prefetches, and HEAD requests are excluded. Country and user-agent classifications
 are approximate. Direct/unknown referrers and unknown countries remain visible.
-PDF counts cover successfully served full requests and ranges beginning at byte
-zero; later range requests are excluded. Repeated initial requests may still
-count more than once. Statistics write failures are logged without blocking
+From this release, notes counts measure successful short-link redirects, not
+completed PDF downloads. Direct visits to an already resolved PDF URL are not
+counted. Repeated short-link visits may count more than once. Historical counts
+from earlier releases retain their original PDF-request meaning. Statistics write failures are logged without blocking
 normal redirects.
 
 ## Deployment
@@ -112,8 +113,8 @@ preserves existing images and their encoded origin. Include it in deployment
 before making the new pages available. The guarded s1 workflow runs this step
 automatically while writers remain paused. Missing images return 503; GET requests
 never generate replacements. Image data is included in normal database backups. Apache resolves the dedicated
-`/surls/` path; front proxies must forward that path to MOED without caching the
-responses. No external Kutt service is required. The feature uses Kutt as a
+`/surls/` path; front proxies must leave short-link redirects uncached. Only the canonical
+public PDF path may be cached as described in [Cloudflare notes caching](cloudflare-notes-cache.md). No external Kutt service is required. The feature uses Kutt as a
 behavioral reference; it does not embed Kutt's code or user-management system.
 
 Country detection accepts `CF-IPCountry` only through the configured trusted

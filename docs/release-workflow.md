@@ -135,7 +135,7 @@ Native archives use the `.sql.gz.dnrenc` suffix. They are encrypted SQL/gzip, no
 
 ## Capacity and storage
 
-The web image permits three PHP workers at 512 MiB each, a 1.25 GiB backup/upload tmpfs, and a 4 GiB / 2 CPU / 128 PID container envelope. Maintenance uses 2 GiB; workers use 768 MiB / 1 CPU / 128 PIDs. These bounds leave room for the shared runtime and encryption workspace; tune them only with measured workload and host capacity.
+The web image permits 20 PHP workers at 512 MiB each, a 1.25 GiB backup/upload tmpfs, and a 14 GiB / 2 CPU / 128 PID container envelope. Maintenance uses 2 GiB; workers use 768 MiB / 1 CPU / 128 PIDs. These bounds leave room for the shared runtime and encryption workspace; tune them only with measured workload and host capacity.
 
 Browser backups default to 512 MiB of serialized data and expose an approximate size warning. The existing backup format is retained, but base64 rows are written in small chunks and restore bindings release old BLOB values. Downloads read 1 MiB chunks from a consistent snapshot. PDF uploads remain bounded at 100 MiB and still validate in memory.
 

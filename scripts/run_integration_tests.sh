@@ -118,7 +118,9 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         trap - EXIT HUP INT TERM
         continue
     fi
-    if [ "$test_name" = 'map_retry_http_integration_test.php' ] \
+    if [ "$test_name" = 'notes_cache_http_integration_test.php' ] \
+        || [ "$test_name" = 'notes_cache_integration_test.php' ] \
+        || [ "$test_name" = 'map_retry_http_integration_test.php' ] \
         || [ "$test_name" = 'email_outbox_worker_integration_test.php' ] \
         || [ "$test_name" = 'engagement_email_integration_test.php' ] \
         || [ "$test_name" = 'operational_retention_integration_test.php' ] \

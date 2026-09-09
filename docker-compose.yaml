@@ -49,7 +49,7 @@ x-watchtower-disabled-labels: &watchtower-disabled-labels
 services:
   web:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
-    mem_limit: 4g
+    mem_limit: 14g
     cpus: 2.0
     pids_limit: 128
     build:

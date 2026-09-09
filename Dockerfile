@@ -52,6 +52,8 @@ RUN a2enconf zz-dnr-security zz-dnr-capacity zz-dnr-short-links \
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
 RUN install -d -m 0755 /opt/dnr/bin
+COPY --chmod=0644 scripts/compile_device_detector_yaml.php /opt/dnr/bin/compile_device_detector_yaml.php
+RUN php /opt/dnr/bin/compile_device_detector_yaml.php
 COPY --chmod=0644 scripts/create_admin.php /opt/dnr/bin/create_admin.php
 COPY --chmod=0644 scripts/set_password.php /opt/dnr/bin/set_password.php
 COPY --chmod=0644 scripts/cli_input.php /opt/dnr/bin/cli_input.php
@@ -63,6 +65,7 @@ COPY --chmod=0644 scripts/check_worker_health.php /opt/dnr/bin/check_worker_heal
 COPY --chmod=0644 scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY --chmod=0644 scripts/check_config.php /opt/dnr/bin/check_config.php
 COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
+COPY --chmod=0644 scripts/process_notes_cache_purges.php /opt/dnr/bin/process_notes_cache_purges.php
 COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
 COPY --chmod=0644 scripts/native_backup_crypto.php /opt/dnr/bin/native_backup_crypto.php

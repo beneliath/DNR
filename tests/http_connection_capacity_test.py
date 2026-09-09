@@ -14,21 +14,22 @@ def main():
     if base.scheme not in {"http", "https"} or not base.hostname:
         raise SystemExit("DNR_TEST_BASE_URL must be an HTTP(S) URL.")
 
-    # More clients than the three app workers, with a deadline shorter than the
+    # More clients than the twenty app workers, with a deadline shorter than the
     # old five-second keep-alive timeout. Keep clients open until the batch ends.
-    count = 8
+    count = 40
     deadline = 3.0
     connection_type = (
         http.client.HTTPSConnection if base.scheme == "https" else http.client.HTTPConnection
     )
     connections = [
-        connection_type(base.hostname, base.port, timeout=deadline) for _ in range(count)
+        connection_type(base.hostname, base.port, timeout=15) for _ in range(count)
     ]
     start = threading.Barrier(count)
     path = base.path.rstrip("/") + "/health.php"
 
-    def request(connection):
-        start.wait(timeout=deadline)
+    def request(connection, measured=True):
+        if measured:
+            start.wait(timeout=deadline)
         began = time.monotonic()
         connection.request("GET", path, headers={"Connection": "keep-alive"})
         response = connection.getresponse()
@@ -36,11 +37,20 @@ def main():
         elapsed = time.monotonic() - began
         if response.status != 200 or json.loads(payload).get("status") != "ok":
             raise RuntimeError("The app health endpoint did not return a healthy response.")
-        if elapsed >= deadline:
+        if measured and elapsed >= deadline:
             raise RuntimeError(f"A request waited {elapsed:.3f}s for an available worker.")
         return elapsed
 
     try:
+        # Let ingress create its prefork children before measuring backend idle
+        # connection starvation. Keep the client connections open for both passes;
+        # cold-start burst latency is covered by the separate download load test.
+        with concurrent.futures.ThreadPoolExecutor(max_workers=count) as pool:
+            list(pool.map(lambda connection: request(connection, False), connections))
+        for connection in connections:
+            connection.timeout = deadline
+            if connection.sock is not None:
+                connection.sock.settimeout(deadline)
         with concurrent.futures.ThreadPoolExecutor(max_workers=count) as pool:
             durations = list(pool.map(request, connections))
     except (OSError, ValueError, RuntimeError, http.client.HTTPException) as error:
