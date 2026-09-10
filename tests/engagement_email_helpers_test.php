@@ -57,7 +57,13 @@ $partialPresentation = [
     'speaker_name' => 'Example Speaker',
 ];
 $partialBrief = engagementEmailSafeEventBrief($engagement, [$partialPresentation]);
-$partialTemplates = engagementEmailTemplates($engagement, [$partialPresentation]);
+$templateDefinitions = [[
+    'template_key' => 'presentation_schedule', 'name' => 'Presentation schedule',
+    'subject_template' => 'Schedule: {{event_name}}',
+    'body_template' => "{{organization_name}}\n{{presentation_schedule}}",
+    'suggested_roles_json' => '["primary_host"]',
+]];
+$partialTemplates = engagementEmailTemplates($engagement, [$partialPresentation], $templateDefinitions);
 expectEngagementEmailHelper(
     str_contains($partialBrief, '- Presentation — Example Speaker')
         && !str_contains($partialBrief, 'minutes')
@@ -118,12 +124,12 @@ try {
     // Expected.
 }
 
-$templates = engagementEmailTemplates($engagement, $presentations);
+$templates = engagementEmailTemplates($engagement, $presentations, $templateDefinitions);
 expectEngagementEmailHelper(
-    isset($templates['booking_confirmation'], $templates['travel_lodging'], $templates['post_event_thanks'])
-        && $templates['booking_confirmation']['suggested_roles'] === ['primary_host']
+    isset($templates['presentation_schedule'], $templates['custom'])
+        && $templates['presentation_schedule']['suggested_roles'] === ['primary_host']
         && str_contains($templates['presentation_schedule']['body'], 'Opening Session'),
-    'built-in templates should carry useful content and role suggestions.'
+    'stored templates should render event content and role suggestions.'
 );
 
 $subject = normalizeEngagementEmailSubject('Final details', 42);
@@ -156,5 +162,75 @@ expectEngagementEmailHelper(
         && $resolved['deliveries'][0]['recipient_roles'] === ['primary_host', 'travel'],
     'contacts sharing one normalized address should create one private delivery and retain both Chron targets.'
 );
+
+$speakers = [
+    ['id' => 1, 'name' => 'Casey Speaker', 'email' => 'speaker@example.test'],
+    ['id' => 2, 'name' => 'Drew Speaker', 'email' => 'SHARED@example.test'],
+    ['id' => 3, 'name' => 'No Email', 'email' => 'invalid'],
+];
+$withSpeaker = engagementEmailResolveRecipients($contacts, [1], $speakers, [1]);
+expectEngagementEmailHelper(
+    count($withSpeaker['deliveries']) === 2
+        && count($withSpeaker['contacts']) === 1
+        && count($withSpeaker['speakers']) === 1
+        && $withSpeaker['deliveries'][1]['contact_id'] === null
+        && $withSpeaker['deliveries'][1]['recipient_email'] === 'speaker@example.test'
+        && $withSpeaker['deliveries'][1]['recipient_roles'] === ['speaker'],
+    'a speaker should receive a separate delivery without being treated as a contact with the same ID.'
+);
+$sharedSpeaker = engagementEmailResolveRecipients($contacts, [1, 2], $speakers, [2]);
+expectEngagementEmailHelper(
+    count($sharedSpeaker['deliveries']) === 1
+        && $sharedSpeaker['deliveries'][0]['contact_id'] === 1
+        && $sharedSpeaker['deliveries'][0]['recipient_roles'] === ['primary_host', 'travel', 'speaker']
+        && str_contains($sharedSpeaker['deliveries'][0]['recipient_name'], 'Blair Coordinator')
+        && str_contains($sharedSpeaker['deliveries'][0]['recipient_name'], 'Drew Speaker'),
+    'speakers and contacts sharing an address should receive one delivery with all names and roles retained.'
+);
+$speakerOnly = engagementEmailResolveRecipients([], [], $speakers, [1, 1]);
+expectEngagementEmailHelper(
+    $speakerOnly['contacts'] === []
+        && count($speakerOnly['speakers']) === 1
+        && count($speakerOnly['deliveries']) === 1,
+    'a speaker can be the only recipient, and repeated IDs must not duplicate the delivery.'
+);
+$chronText = engagementEmailChronText(
+    7,
+    array_merge($withSpeaker['contacts'], $withSpeaker['speakers']),
+    'Test subject',
+    'Test message'
+);
+expectEngagementEmailHelper(
+    str_contains($chronText, 'Avery Host <shared@example.test>')
+        && str_contains($chronText, 'Casey Speaker <speaker@example.test>'),
+    'the engagement and organization history should include both contacts and speakers.'
+);
+expectEngagementEmailHelper(
+    engagementEmailResolveRecipients($contacts, [1], $speakers)['speakers'] === [],
+    'available speakers must never be included without an explicit selection.'
+);
+foreach ([
+    [[], []],
+    [[99], []],
+    [[], [99]],
+    [[], [3]],
+    [range(1, 25), [1]],
+    [[], [0]],
+] as [$contactIds, $speakerIds]) {
+    try {
+        engagementEmailResolveRecipients($contacts, $contactIds, $speakers, $speakerIds);
+        expectEngagementEmailHelper(false, 'empty, unavailable, invalid, or excessive recipients should be rejected.');
+    } catch (InvalidArgumentException) {
+        // Expected.
+    }
+}
+foreach ([null, '1', [['1']], ['0'], ['1.5'], range(1, 26)] as $invalidIds) {
+    try {
+        normalizeEngagementEmailRecipientIds($invalidIds);
+        expectEngagementEmailHelper(false, 'malformed submitted recipient lists should be rejected.');
+    } catch (InvalidArgumentException) {
+        // Expected.
+    }
+}
 
 echo "Engagement email helper tests passed.\n";

@@ -8,7 +8,7 @@ $nav_groups = [
         'inquiries.php', 'add_inquiry.php', 'edit_inquiry.php',
         'view_inquiry.php', 'convert_inquiry.php', 'compose_inquiry_email.php',
     ],
-    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'close_engagement.php', 'restore_chron_entries.php'],
+    'engagements' => ['engagements.php', 'index.php', 'edit_engagement.php', 'view_engagement.php', 'close_engagement.php', 'restore_chron_entries.php', 'compose_engagement_email.php'],
     'tasks' => [
         'tasks.php',
         'add_task.php',
@@ -23,6 +23,7 @@ $nav_groups = [
     'speakers' => ['speakers.php', 'edit_speaker.php', 'view_speaker.php', 'speaker_photo.php', 'short_links.php'],
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],
+    'email_templates' => ['email_templates.php', 'edit_email_template.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
     'profile' => ['profile.php'],
@@ -153,6 +154,9 @@ if (!empty($_SESSION['user_id'])) {
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 3v4M17 3v4"/></svg><span>Inbox</span>
                     </a></li>
                     <?php endif; ?>
+                    <li><a href="email_templates.php" class="nav-link<?php echo $active_nav === 'email_templates' ? ' active' : ''; ?>"<?php echo $active_nav === 'email_templates' ? ' aria-current="page"' : ''; ?>>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 16h4"/></svg><span>Email Templates</span>
+                    </a></li>
                 </ul>
             </section>
             <section class="nav-group" aria-labelledby="nav-schedule">

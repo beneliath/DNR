@@ -49,6 +49,7 @@ if (!empty($engagement['is_deleted']) || !empty($engagement['organization_delete
 
 try {
     $contacts = fetchEngagementContacts($conn, $engagementId);
+    $speakers = fetchEngagementEmailSpeakers($conn, $engagementId);
     $presentationStmt = $conn->prepare(
         'SELECT p.topic_title, p.presentation_date, p.presentation_time,
                 s.name AS speaker_name, p.duration_minutes
@@ -64,7 +65,7 @@ try {
     $presentationStmt->execute();
     $presentations = $presentationStmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $presentationStmt->close();
-    $templates = engagementEmailTemplates($engagement, $presentations);
+    $templates = engagementEmailTemplates($engagement, $presentations, fetchEmailMessageTemplates($conn));
 } catch (Throwable $exception) {
     abortApplication(503, 'The engagement email composer is temporarily unavailable.', [
         'engagement_id' => $engagementId,
@@ -75,12 +76,13 @@ try {
 $templateKey = is_scalar($_POST['template_key'] ?? $_GET['template'] ?? null)
     ? trim((string) ($_POST['template_key'] ?? $_GET['template']))
     : 'booking_confirmation';
-if (!isset($templates[$templateKey])) {
-    $templateKey = 'booking_confirmation';
+$unavailableTemplate = !isset($templates[$templateKey]);
+if ($unavailableTemplate) {
+    $templateKey = $_SERVER['REQUEST_METHOD'] === 'POST' ? 'custom' : (string) array_key_first($templates);
 }
 $selectedContactIds = [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_array($_POST['contact_ids'] ?? null)) {
-    foreach ($_POST['contact_ids'] as $contactId) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    foreach (is_array($_POST['contact_ids'] ?? null) ? $_POST['contact_ids'] : [] as $contactId) {
         if (is_scalar($contactId) && ctype_digit(trim((string) $contactId))) {
             $selectedContactIds[(int) $contactId] = true;
         }
@@ -90,6 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_array($_POST['contact_ids'] ?? n
     foreach ($contacts as $contact) {
         if (array_intersect($suggestedRoles, (array) ($contact['engagement_contact_roles'] ?? []))) {
             $selectedContactIds[(int) $contact['id']] = true;
+        }
+    }
+}
+$selectedSpeakerIds = [];
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_array($_POST['speaker_ids'] ?? null)) {
+    foreach ($_POST['speaker_ids'] as $speakerId) {
+        if (is_scalar($speakerId) && ctype_digit(trim((string) $speakerId))) {
+            $selectedSpeakerIds[(int) $speakerId] = true;
         }
     }
 }
@@ -107,12 +117,16 @@ $deliveryAvailable = in_array($mailTransport, ['smtp', 'log'], true);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     try {
+        if ($unavailableTemplate) {
+            throw new InvalidArgumentException('This email template was archived or deleted. Your draft is preserved. Review it as Custom message or select another template before sending.');
+        }
         if (!$deliveryAvailable) {
             throw new DomainException(
                 'Email delivery is unavailable. Ask an administrator to check the mail setup.'
             );
         }
-        $contactIds = normalizeEngagementEmailContactIds($_POST['contact_ids'] ?? null);
+        $contactIds = normalizeEngagementEmailRecipientIds($_POST['contact_ids'] ?? []);
+        $speakerIds = normalizeEngagementEmailRecipientIds($_POST['speaker_ids'] ?? []);
         $messageId = queueEngagementEmail(
             $conn,
             $engagement,
@@ -123,7 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $body,
             $includeEventBrief,
             (int) $_SESSION['user_id'],
-            (string) ($_SESSION['username'] ?? '')
+            (string) ($_SESSION['username'] ?? ''),
+            speakerIds: $speakerIds
         );
         $_SESSION['engagement_email_message'] = $mailTransport === 'log'
             ? 'The message was accepted by the development mail transport.'
@@ -148,6 +163,14 @@ $contactsWithEmail = array_values(array_filter(
         FILTER_VALIDATE_EMAIL
     ) !== false
 ));
+$speakersWithEmail = array_values(array_filter(
+    $speakers,
+    static fn(array $speaker): bool => filter_var(
+        trim((string) ($speaker['email'] ?? '')),
+        FILTER_VALIDATE_EMAIL
+    ) !== false
+));
+$hasRecipientsWithEmail = $contactsWithEmail !== [] || $speakersWithEmail !== [];
 $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
 ?>
 <!DOCTYPE html>
@@ -181,8 +204,8 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
     <?php if (!$deliveryAvailable): ?>
         <p class="warning" role="status">Email delivery is not available. The form can be reviewed, but a message cannot be queued until an administrator enables mail.</p>
     <?php endif; ?>
-    <?php if ($contactsWithEmail === []): ?>
-        <p class="warning" role="status">This engagement has no assigned contacts with an email address. Add an email to an assigned event contact before sending correspondence.</p>
+    <?php if (!$hasRecipientsWithEmail): ?>
+        <p class="warning" role="status">This engagement has no assigned contacts or speakers with a valid email address. Add an email to an assigned event contact or speaker before sending correspondence.</p>
     <?php endif; ?>
 
     <form method="post" action="compose_engagement_email.php" class="engagement-email-form" data-engagement-email-form>
@@ -200,6 +223,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                     <option value="<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $templateKey === $key ? ' selected' : ''; ?>><?php echo htmlspecialchars($template['label'], ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
             </select>
+            <p class="field-help"><a href="email_templates.php?engagement_id=<?php echo $engagementId; ?>">Manage Email Templates</a></p>
         </section>
 
         <section class="email-compose-card">
@@ -211,11 +235,12 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <?php foreach (engagementContactRoles() as $role => $label): ?>
                     <button type="button" class="button-secondary" data-select-recipient-role="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php endforeach; ?>
+                <?php if ($speakers !== []): ?><button type="button" class="button-secondary" data-select-recipient-role="speaker">Speaker</button><?php endif; ?>
                 <button type="button" class="button-secondary" data-select-all-recipients>All</button>
                 <button type="button" class="button-secondary" data-clear-recipients>Clear</button>
             </div>
             <fieldset class="recipient-list">
-                <legend class="visually-hidden">Event contacts</legend>
+                <legend class="visually-hidden">Event contacts and speakers</legend>
                 <?php foreach ($contacts as $contact): ?>
                     <?php
                     $contactId = (int) $contact['id'];
@@ -238,7 +263,26 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                         </span>
                     </label>
                 <?php endforeach; ?>
-                <?php if ($contacts === []): ?><p>No event contacts are assigned.</p><?php endif; ?>
+                <?php foreach ($speakers as $speaker): ?>
+                    <?php
+                    $speakerId = (int) $speaker['id'];
+                    $speakerName = trim((string) $speaker['name']);
+                    $speakerEmail = trim((string) ($speaker['email'] ?? ''));
+                    $speakerEmailAvailable = filter_var($speakerEmail, FILTER_VALIDATE_EMAIL) !== false;
+                    ?>
+                    <label class="recipient-option<?php echo !$speakerEmailAvailable ? ' is-unavailable' : ''; ?>">
+                        <input type="checkbox" name="speaker_ids[]" value="<?php echo $speakerId; ?>"
+                               data-email-recipient data-contact-roles="speaker"
+                               <?php echo isset($selectedSpeakerIds[$speakerId]) && $speakerEmailAvailable ? 'checked' : ''; ?>
+                               <?php echo !$speakerEmailAvailable ? 'disabled' : ''; ?>>
+                        <span class="recipient-copy">
+                            <strong><?php echo htmlspecialchars($speakerName !== '' ? $speakerName : 'Unnamed speaker', ENT_QUOTES, 'UTF-8'); ?></strong>
+                            <small><?php echo htmlspecialchars($speakerEmailAvailable ? $speakerEmail : 'No valid email address', ENT_QUOTES, 'UTF-8'); ?></small>
+                            <span class="recipient-role-list"><span>Speaker</span></span>
+                        </span>
+                    </label>
+                <?php endforeach; ?>
+                <?php if ($contacts === [] && $speakers === []): ?><p>No event contacts or speakers are assigned.</p><?php endif; ?>
             </fieldset>
             <p class="recipient-count" data-recipient-count role="status" aria-live="polite"></p>
         </section>
@@ -268,7 +312,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
 
         <div class="email-compose-actions">
             <a href="view_engagement.php?id=<?php echo $engagementId; ?>#correspondence" class="button-secondary">Cancel</a>
-            <button type="submit" class="save-button"<?php echo !$deliveryAvailable || $contactsWithEmail === [] ? ' disabled' : ''; ?> data-confirm="Queue this message for delivery to the selected contacts?">Queue Email</button>
+            <button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$hasRecipientsWithEmail ? ' disabled' : ''; ?> data-confirm="Queue this message for delivery to the selected recipients?">Queue Email</button>
         </div>
     </form>
 </main>

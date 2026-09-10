@@ -1,17 +1,17 @@
 {
-  "pages": 117,
-  "screenshots": 68,
-  "internal_links": 1012,
-  "bookmarks": 241,
+  "pages": 121,
+  "screenshots": 71,
+  "internal_links": 1053,
+  "bookmarks": 249,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
     "sections": 37,
-    "text_fragments_verified": 1027,
-    "attachment_bytes": 87644,
+    "text_fragments_verified": 1045,
+    "attachment_bytes": 89266,
     "attachment_matches_current_source": true,
-    "sha256": "3a6fe449211ffa11bc9642ec9e7982cf079166e62a13ec858ccb78180e775eac"
+    "sha256": "8fcefe11121480b415527788137dbe6c9cf823c87e79e998f3cb6f1e325cd8da"
   },
   "format": {
     "reference_text": "two columns",

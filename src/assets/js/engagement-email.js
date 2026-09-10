@@ -21,20 +21,27 @@
     const count = form.querySelector("[data-recipient-count]");
 
     function updateCount() {
-        const selected = recipients.filter((recipient) => recipient.checked).length;
+        const selected = recipients.filter((recipient) => recipient.checked && !recipient.disabled).length;
         if (count) {
             count.textContent = selected === 1
-                ? "1 contact selected."
-                : `${selected} contacts selected.`;
+                ? "1 recipient selected."
+                : `${selected} recipients selected.`;
         }
     }
 
     function selectSuggestedRoles(roles) {
-        if (!Array.isArray(roles) || roles.length === 0) {
+        if (!Array.isArray(roles)) {
             return;
         }
         recipients.forEach((recipient) => {
             const contactRoles = (recipient.dataset.contactRoles || "").split(/\s+/).filter(Boolean);
+            if (recipient.disabled) {
+                recipient.checked = false;
+                return;
+            }
+            if (contactRoles.includes("speaker")) {
+                return;
+            }
             recipient.checked = roles.some((role) => contactRoles.includes(role));
         });
         updateCount();
@@ -51,7 +58,9 @@
         if (body) {
             body.value = template.body || "";
         }
-        selectSuggestedRoles(template.suggested_roles || []);
+        if (templateSelect.value !== "custom") {
+            selectSuggestedRoles(template.suggested_roles || []);
+        }
     });
 
     form.querySelectorAll("[data-select-recipient-role]").forEach((button) => {
@@ -59,7 +68,7 @@
             const role = button.dataset.selectRecipientRole || "";
             recipients.forEach((recipient) => {
                 const roles = (recipient.dataset.contactRoles || "").split(/\s+/).filter(Boolean);
-                if (roles.includes(role)) {
+                if (!recipient.disabled && roles.includes(role)) {
                     recipient.checked = true;
                 }
             });

@@ -67,7 +67,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'short_links_http_integration_test.php' ] \
+    if [ "$test_name" = 'email_templates_http_integration_test.php' ] \
+        || [ "$test_name" = 'short_links_http_integration_test.php' ] \
         || [ "$test_name" = 'calendar_subscription_content_http_integration_test.php' ] \
         || [ "$test_name" = 'presentation_stats_reset_http_integration_test.php' ] \
         || [ "$test_name" = 'speaker_custom_links_http_integration_test.php' ] \

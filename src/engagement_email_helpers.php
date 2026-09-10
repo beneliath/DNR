@@ -6,36 +6,54 @@ require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/engagement_contact_helpers.php';
 require_once __DIR__ . '/presentation_helpers.php';
+require_once __DIR__ . '/email_template_helpers.php';
 
-/** @return array<string, array{label: string, suggested_roles: list<string>}> */
-function engagementEmailTemplateDefinitions(): array
+/**
+ * @param array<string, mixed> $engagement
+ * @param list<array<string, mixed>> $presentations
+ * @param list<array<string, mixed>> $definitions
+ * @return array<string, array{label: string, subject: string, body: string, suggested_roles: list<string>}>
+ */
+function renderEngagementEmailTemplates(array $engagement, array $presentations, array $definitions): array
 {
-    return [
-        'booking_confirmation' => [
-            'label' => 'Booking confirmation',
-            'suggested_roles' => ['primary_host'],
-        ],
-        'travel_lodging' => [
-            'label' => 'Travel and lodging request',
-            'suggested_roles' => ['primary_host', 'travel'],
-        ],
-        'final_reconfirmation' => [
-            'label' => 'Final-detail reconfirmation',
-            'suggested_roles' => ['primary_host', 'on_site_contact'],
-        ],
-        'presentation_schedule' => [
-            'label' => 'Presentation schedule',
-            'suggested_roles' => ['primary_host', 'on_site_contact', 'materials'],
-        ],
-        'post_event_thanks' => [
-            'label' => 'Post-event thank-you',
-            'suggested_roles' => ['primary_host', 'on_site_contact'],
-        ],
-        'custom' => [
-            'label' => 'Custom message',
-            'suggested_roles' => [],
-        ],
+    $scheduleLines = [];
+    $speakers = [];
+    foreach ($presentations as $presentation) {
+        $schedule = trim(implode(' at ', array_filter([
+            trim((string) ($presentation['presentation_date'] ?? '')),
+            formatPresentationTime($presentation['presentation_time'] ?? ''),
+        ])));
+        $scheduleLines[] = '- ' . (trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation')
+            . ($schedule !== '' ? ' — ' . $schedule : '');
+        $name = trim((string) ($presentation['speaker_name'] ?? ''));
+        if ($name !== '') $speakers[$name] = $name;
+    }
+    $values = [
+        'event_name' => engagementEmailEventLabel($engagement),
+        'organization_name' => trim((string) ($engagement['organization_name'] ?? '')),
+        'event_dates' => engagementEmailDateLabel($engagement),
+        'event_start_date' => trim((string) ($engagement['event_start_date'] ?? '')),
+        'event_end_date' => trim((string) ($engagement['event_end_date'] ?? '')),
+        'event_location' => engagementEmailLocationLabel($engagement),
+        'speaker_names' => implode(', ', $speakers),
+        'presentation_schedule' => $scheduleLines !== [] ? implode("\n", $scheduleLines) : '- Presentation schedule to be confirmed',
     ];
+    $marker = applicationInboundMarker((int) $engagement['id']);
+    $templates = [];
+    foreach ($definitions as $definition) {
+        if (!empty($definition['is_archived'])) continue;
+        $roles = json_decode((string) $definition['suggested_roles_json'], true);
+        $roles = is_array($roles) ? array_values(array_filter($roles, static fn(mixed $role): bool => is_string($role) && isset(engagementContactRoles()[$role]))) : [];
+        $subject = trim(renderEmailMessageTemplateText((string) $definition['subject_template'], $values, true));
+        $templates[(string) $definition['template_key']] = [
+            'label' => (string) $definition['name'],
+            'subject' => trim($subject . ' ' . $marker),
+            'body' => renderEmailMessageTemplateText((string) $definition['body_template'], $values),
+            'suggested_roles' => $roles,
+        ];
+    }
+    $templates['custom'] = ['label' => 'Custom message', 'subject' => $marker, 'body' => '', 'suggested_roles' => []];
+    return $templates;
 }
 
 function engagementEmailReplyToAddress(): string
@@ -152,60 +170,12 @@ function engagementEmailSafeEventBrief(array $engagement, array $presentations):
 /**
  * @param array<string, mixed> $engagement
  * @param list<array<string, mixed>> $presentations
+ * @param list<array<string, mixed>> $definitions
  * @return array<string, array{label: string, subject: string, body: string, suggested_roles: list<string>}>
  */
-function engagementEmailTemplates(array $engagement, array $presentations): array
+function engagementEmailTemplates(array $engagement, array $presentations, array $definitions): array
 {
-    $definitions = engagementEmailTemplateDefinitions();
-    $event = engagementEmailEventLabel($engagement);
-    $organization = trim((string) ($engagement['organization_name'] ?? ''));
-    $dates = engagementEmailDateLabel($engagement);
-    $marker = applicationInboundMarker((int) ($engagement['id'] ?? 0));
-    $presentationLines = [];
-    foreach ($presentations as $presentation) {
-        $schedule = trim(implode(' at ', array_filter([
-            trim((string) ($presentation['presentation_date'] ?? '')),
-            formatPresentationTime($presentation['presentation_time'] ?? ''),
-        ])));
-        $presentationLines[] = '- ' . (trim((string) ($presentation['topic_title'] ?? '')) ?: 'Presentation')
-            . ($schedule !== '' ? ' — ' . $schedule : '');
-    }
-    $schedule = $presentationLines !== []
-        ? implode("\n", $presentationLines)
-        : '- Presentation schedule to be confirmed';
-
-    $content = [
-        'booking_confirmation' => [
-            'subject' => 'Confirmation: ' . $event . ' ' . $marker,
-            'body' => "Hello,\n\nThis message confirms {$event} with {$organization} on {$dates}. Please reply with any corrections or outstanding details.\n\nThank you,",
-        ],
-        'travel_lodging' => [
-            'subject' => 'Travel and lodging details: ' . $event . ' ' . $marker,
-            'body' => "Hello,\n\nWe are preparing travel and lodging for {$event} on {$dates}. Please send the confirmed transportation, lodging, arrival, and local-contact details when available.\n\nThank you,",
-        ],
-        'final_reconfirmation' => [
-            'subject' => 'Final details: ' . $event . ' ' . $marker,
-            'body' => "Hello,\n\nWe are reconfirming the final details for {$event} on {$dates}. Please review the schedule, venue, on-site contact, travel, lodging, and materials arrangements and reply with any changes.\n\nThank you,",
-        ],
-        'presentation_schedule' => [
-            'subject' => 'Presentation schedule: ' . $event . ' ' . $marker,
-            'body' => "Hello,\n\nHere is the current presentation schedule for {$event}:\n\n{$schedule}\n\nPlease reply with any corrections.\n\nThank you,",
-        ],
-        'post_event_thanks' => [
-            'subject' => 'Thank you: ' . $event . ' ' . $marker,
-            'body' => "Hello,\n\nThank you for hosting and supporting {$event}. We appreciate the time, preparation, and hospitality that made the engagement possible.\n\nWith gratitude,",
-        ],
-        'custom' => [
-            'subject' => $marker,
-            'body' => '',
-        ],
-    ];
-
-    $templates = [];
-    foreach ($definitions as $key => $definition) {
-        $templates[$key] = $definition + $content[$key];
-    }
-    return $templates;
+    return renderEngagementEmailTemplates($engagement, $presentations, $definitions);
 }
 
 function normalizeEngagementEmailSubject(mixed $subject, int $engagementId): string
@@ -270,30 +240,72 @@ function normalizeEngagementEmailBody(mixed $body): string
 /** @return list<int> */
 function normalizeEngagementEmailContactIds(mixed $submitted): array
 {
-    if (!is_array($submitted) || $submitted === [] || count($submitted) > 25) {
+    $ids = normalizeEngagementEmailRecipientIds($submitted);
+    if ($ids === []) {
         throw new InvalidArgumentException('Select between one and 25 event contacts.');
+    }
+    return $ids;
+}
+
+/** @return list<int> */
+function normalizeEngagementEmailRecipientIds(mixed $submitted): array
+{
+    if (!is_array($submitted) || count($submitted) > 25) {
+        throw new InvalidArgumentException('Select up to 25 recipients.');
     }
     $ids = [];
     foreach ($submitted as $value) {
         if (!is_scalar($value) || !ctype_digit(trim((string) $value))) {
-            throw new InvalidArgumentException('Select valid event contacts.');
+            throw new InvalidArgumentException('Select valid recipients.');
         }
         $id = (int) $value;
         if ($id < 1) {
-            throw new InvalidArgumentException('Select valid event contacts.');
+            throw new InvalidArgumentException('Select valid recipients.');
         }
         $ids[$id] = $id;
     }
     return array_values($ids);
 }
 
+/** @return list<array<string, mixed>> */
+function fetchEngagementEmailSpeakers(mysqli $conn, int $engagementId): array
+{
+    $stmt = $conn->prepare(
+        'SELECT DISTINCT s.id, s.name, s.email
+         FROM speakers s
+         INNER JOIN presentations p ON p.speaker_id = s.id
+         WHERE p.engagement_id = ? AND p.is_archived = 0
+         ORDER BY s.name, s.id'
+    );
+    if (!$stmt) {
+        throw new RuntimeException('Unable to prepare the engagement email speakers.');
+    }
+    $stmt->bind_param('i', $engagementId);
+    $stmt->execute();
+    $speakers = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stmt->close();
+    return $speakers;
+}
+
 /**
  * @param list<array<string, mixed>> $contacts
  * @param list<int> $selectedIds
- * @return array{contacts: list<array<string, mixed>>, deliveries: list<array<string, mixed>>}
+ * @param list<array<string, mixed>> $speakers
+ * @param list<int> $selectedSpeakerIds
+ * @return array{contacts: list<array<string, mixed>>, speakers: list<array<string, mixed>>, deliveries: list<array<string, mixed>>}
  */
-function engagementEmailResolveRecipients(array $contacts, array $selectedIds): array
-{
+function engagementEmailResolveRecipients(
+    array $contacts,
+    array $selectedIds,
+    array $speakers = [],
+    array $selectedSpeakerIds = []
+): array {
+    $selectedIds = normalizeEngagementEmailRecipientIds($selectedIds);
+    $selectedSpeakerIds = normalizeEngagementEmailRecipientIds($selectedSpeakerIds);
+    $recipientCount = count($selectedIds) + count($selectedSpeakerIds);
+    if ($recipientCount < 1 || $recipientCount > 25) {
+        throw new InvalidArgumentException('Select between one and 25 recipients.');
+    }
     $available = [];
     foreach ($contacts as $contact) {
         $available[(int) $contact['id']] = $contact;
@@ -332,16 +344,42 @@ function engagementEmailResolveRecipients(array $contacts, array $selectedIds): 
             }
         }
     }
+    $availableSpeakers = [];
+    foreach ($speakers as $speaker) {
+        $availableSpeakers[(int) $speaker['id']] = $speaker;
+    }
+    $selectedSpeakers = [];
+    foreach ($selectedSpeakerIds as $speakerId) {
+        if (!isset($availableSpeakers[$speakerId])) {
+            throw new InvalidArgumentException('Select only speakers assigned to active presentations for this engagement.');
+        }
+        $speaker = $availableSpeakers[$speakerId];
+        $email = normalizeAccountEmail($speaker['email'] ?? '');
+        $name = trim((string) ($speaker['name'] ?? ''));
+        $speaker['normalized_email'] = $email;
+        $speaker['display_name'] = $name !== '' ? $name : $email;
+        $selectedSpeakers[] = $speaker;
+        if (!isset($deliveriesByAddress[$email])) {
+            $deliveriesByAddress[$email] = [
+                'contact_id' => null,
+                'recipient_email' => $email,
+                'recipient_names' => [],
+                'recipient_roles' => [],
+            ];
+        }
+        $deliveriesByAddress[$email]['recipient_names']['speaker:' . $speakerId] = $speaker['display_name'];
+        $deliveriesByAddress[$email]['recipient_roles']['speaker'] = 'speaker';
+    }
     $deliveries = [];
     foreach ($deliveriesByAddress as $delivery) {
         $deliveries[] = [
-            'contact_id' => (int) $delivery['contact_id'],
+            'contact_id' => $delivery['contact_id'],
             'recipient_email' => (string) $delivery['recipient_email'],
             'recipient_name' => mb_substr(implode(' / ', $delivery['recipient_names']), 0, 255, 'UTF-8'),
             'recipient_roles' => array_values($delivery['recipient_roles']),
         ];
     }
-    return ['contacts' => $selected, 'deliveries' => $deliveries];
+    return ['contacts' => $selected, 'speakers' => $selectedSpeakers, 'deliveries' => $deliveries];
 }
 
 /**
@@ -432,6 +470,7 @@ function queueMattermostPostReactionNotification(
  * @param array<string, mixed> $engagement
  * @param list<array<string, mixed>> $presentations
  * @param list<int> $contactIds
+ * @param list<int> $speakerIds
  */
 function queueEngagementEmail(
     mysqli $conn,
@@ -446,7 +485,8 @@ function queueEngagementEmail(
     string $createdByUsername,
     string $mattermostInstanceId = '',
     string $mattermostIdempotencyKey = '',
-    string $mattermostPostId = ''
+    string $mattermostPostId = '',
+    array $speakerIds = []
 ): int {
     $transport = accountMailTransport();
     $engagementId = (int) ($engagement['id'] ?? 0);
@@ -465,9 +505,6 @@ function queueEngagementEmail(
         || ($mattermostPostId !== '' && $mattermostInstanceId === '')
     ) {
         throw new InvalidArgumentException('The Mattermost email request identity is invalid.');
-    }
-    if (!isset(engagementEmailTemplateDefinitions()[$templateKey])) {
-        throw new InvalidArgumentException('Select a supported email template.');
     }
     $subject = normalizeEngagementEmailSubject($subject, $engagementId);
     $body = normalizeEngagementEmailBody($body);
@@ -527,17 +564,19 @@ function queueEngagementEmail(
             }
         }
 
+        $templateLabel = emailMessageTemplateLabelForSend($conn, $templateKey);
         $availableContacts = fetchEngagementContacts($conn, $engagementId);
-        $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds);
+        $availableSpeakers = $speakerIds !== [] ? fetchEngagementEmailSpeakers($conn, $engagementId) : [];
+        $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds, $availableSpeakers, $speakerIds);
         $selectedContacts = $resolved['contacts'];
         $deliveries = $resolved['deliveries'];
 
         $messageInsert = $conn->prepare(
             'INSERT INTO engagement_email_messages
-                (engagement_id, organization_id, template_key, subject, body_text, reply_to,
+                (engagement_id, organization_id, template_key, template_label, subject, body_text, reply_to,
                  included_event_brief, created_by, created_by_username_snapshot,
                  mattermost_instance_id, mattermost_idempotency_key, mattermost_post_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'),
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULLIF(?, \'\'), NULLIF(?, \'\'),
                      NULLIF(?, \'\'))'
         );
         if (!$messageInsert) {
@@ -545,10 +584,11 @@ function queueEngagementEmail(
         }
         $briefValue = $includeEventBrief ? 1 : 0;
         $messageInsert->bind_param(
-            'iissssiissss',
+            'iisssssiissss',
             $engagementId,
             $organizationId,
             $templateKey,
+            $templateLabel,
             $subject,
             $body,
             $replyTo,
@@ -587,7 +627,7 @@ function queueEngagementEmail(
             $payloadCiphertext
         );
         foreach ($deliveries as $delivery) {
-            $deliveryContactId = (int) $delivery['contact_id'];
+            $deliveryContactId = $delivery['contact_id'];
             $recipientName = (string) $delivery['recipient_name'];
             $recipientEmail = (string) $delivery['recipient_email'];
             $recipientRolesJson = json_encode(
@@ -605,7 +645,12 @@ function queueEngagementEmail(
         }
         $deliveryInsert->close();
 
-        $chronText = engagementEmailChronText($messageId, $selectedContacts, $subject, $body);
+        $chronText = engagementEmailChronText(
+            $messageId,
+            array_merge($selectedContacts, $resolved['speakers']),
+            $subject,
+            $body
+        );
         $engagementChron = $conn->prepare(
             'INSERT INTO engagement_chron_entries
                 (engagement_id, outbound_email_message_id, entry_text,

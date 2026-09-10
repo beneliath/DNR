@@ -17,6 +17,7 @@ parameters:
         - src/engagement_export_helpers.php
         - src/presentation_export_helpers.php
         - src/engagement_email_helpers.php
+        - src/email_template_helpers.php
         - src/engagement_contact_helpers.php
         - src/engagement_contact_input_helpers.php
         - src/engagement_lifecycle_helpers.php
