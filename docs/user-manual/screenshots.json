@@ -523,24 +523,28 @@
     "title": "Review copied inbound email",
     "route": "inbound_mail.php",
     "steps": [
-      "Open Inbox to find messages needing review, pending, processing, failed, processed, or rejected.",
-      "Search the queue and use its pages. Needs review begins with the oldest message.",
-      "Read the source before approving any destination."
+      "Open Inbox in the sidebar. Use Needs review, Pending, Processing, Failed, Processed, Rejected, or All to choose a queue.",
+      "Search by subject, sender, or message content. Change Order or use the queue pages when needed. Needs review starts oldest first.",
+      "On a wide screen, the message list is on the left, the reader is in the middle, and the filing panel is on the right.",
+      "Select a message to read it. Search messages stays visible at a consistent vertical position. On a phone, use Back to messages to return to the queue."
     ],
-    "file": "screenshots/inbox.png"
+    "file": "screenshots/inbox.png",
+    "shell": true
   },
   {
     "chapter": 8,
     "id": "inbound-message",
-    "title": "Choose routing destinations",
+    "title": "Read a message and choose its Chron Logs",
     "route": "inbound_mail.php?id=2",
     "steps": [
-      "Inspect the sender, subject, body, attachments list, and Routing details.",
-      "Choose suggested Contact/Organization routes and search active engagements by marker, ID, title, or organization.",
-      "Approve selected routes writes Chron; Retry automatic routing reevaluates matches; Reject retains the source without writing Chron.",
-      "Create Inquiry, when shown, turns a request into a booking record while preserving its source."
+      "Read the sender, subject, and message. Expand Message details for recipients, sent time, and attachment names; open Routing details for matching reasons.",
+      "Review the reason in the right-hand filing panel. Choose the intended Contact, Organization, or Inquiry suggestions when available. Scroll down to search and select an active Engagement.",
+      "Check the selected Chron log count, then choose Save to Chron logs. Processed messages show Message status and Saved to Chron so you can review their destinations.",
+      "Find matches again checks routing after record corrections. Other actions contains Reject message. Administrators can expand Manage retained email below the reader to purge the retained source after confirmation."
     ],
-    "file": "screenshots/inbound-message.png"
+    "file": "screenshots/inbound-message.png",
+    "shell": true,
+    "focus": "#inbound-queue-search"
   },
   {
     "chapter": 9,

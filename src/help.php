@@ -583,16 +583,16 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Review the Inbound Queue</h3>
                     <p>Editors and administrators see messages grouped as Needs review, Pending, Processing, Failed, Processed, or Rejected. Without a valid signed marker, every message requires review. Unknown or ambiguous senders, shared addresses, messages with no unique target, and invalid, conflicting, unknown, or archived engagement markers also require review.</p>
                     <ol class="manual-steps manual-steps-compact">
-                        <li><span>01</span><section><strong>Inspect the source.</strong><p>Read the message before choosing its destinations. Search by subject, sender, or content; use Previous and Next to reach every result. Needs review starts oldest first. Open Routing details for classification and diagnostic reasons.</p></section></li>
-                        <li><span>02</span><section><strong>Correct the targets.</strong><p>Select suggested Contact and Organization routes. Search any active engagement by marker, ID, title, or organization.</p></section></li>
-                        <li><span>03</span><section><strong>Choose an outcome.</strong><p><strong>Approve selected routes</strong> writes Chron; <strong>Retry automatic routing</strong> checks again after record corrections; <strong>Reject</strong> preserves the source without changing Chron.</p></section></li>
+                        <li><span>01</span><section><strong>Inspect the source.</strong><p>Open Inbox in the sidebar. On a wide screen, the message list is on the left, the reader is in the middle, and the filing panel is on the right. Search by subject, sender, or content; use Order and the queue pages to find a message. Needs review starts oldest first. Selecting a message keeps Search messages visible at the same vertical position. Expand Message details for recipients, sent time, and attachment names, or Routing details for matching reasons. On a phone, use Back to messages to return to the list.</p></section></li>
+                        <li><span>02</span><section><strong>Choose the Chron Logs.</strong><p>In the filing panel, review the reason under Review needed. Select the intended Contact, Organization, or Inquiry suggestions when available. Find an active engagement by name, ID, or email marker and choose it from the Engagement list. Check the count of selected Chron logs before saving.</p></section></li>
+                        <li><span>03</span><section><strong>Choose an outcome.</strong><p><strong>Save to Chron logs</strong> saves the conversation to the selected records. <strong>Find matches again</strong> checks routing again after record corrections. Expand <strong>Other actions</strong> to <strong>Reject message</strong> while retaining the source without writing Chron. For a processed message, review <strong>Message status</strong> and <strong>Saved to Chron</strong> to confirm where it was filed.</p></section></li>
                     </ol>
                     <?php if ($manual_can_manage): ?><p class="manual-open-area"><a href="inbound_mail.php">Open Inbound Mail <span aria-hidden="true">→</span></a></p><?php endif; ?>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Treat Address Matching as a Routing Aid</h3><p>An exact visible From address is not independent proof of identity. Respect the mailbox provider’s spam and SPF/DKIM/DMARC signals. Leave suspicious messages for review. Administrator purge removes the retained <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> mail card and source links, but preserves Chron entries and never deletes the original IMAP message.</p></div>
+                    <div class="manual-callout-body"><h3>Treat Address Matching as a Routing Aid</h3><p>An exact visible From address is not independent proof of identity. Respect the mailbox provider’s spam and SPF/DKIM/DMARC signals. Leave suspicious messages for review. Administrators can expand <strong>Manage retained email</strong> below the reader and choose <strong>Purge Mail Entry</strong> after confirmation. Purge removes the retained <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> mail card and source links, but preserves Chron entries and never deletes the original IMAP message.</p></div>
                 </article>
             </section>
 
@@ -892,7 +892,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Email Still Needs Review</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> marker in the subject or plain-text body where applicable, then choose Retry automatic routing—or approve the intended routes manually.</p>
+                        <p>Confirm the sender or participant address exactly matches one active record. Correct missing contact/organization email data, preserve a single valid <code><?php echo htmlspecialchars($manual_marker_template, ENT_QUOTES, 'UTF-8'); ?></code> marker in the subject or plain-text body where applicable, then choose <strong>Find matches again</strong>, or select the intended destinations and choose <strong>Save to Chron logs</strong>.</p>
                     </details>
                     <details>
                         <summary><span>An Outbound Email Failed or Cannot Be Queued</span><i aria-hidden="true">+</i></summary>
