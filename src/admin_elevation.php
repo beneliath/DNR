@@ -29,13 +29,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   array (
     0 => 'assets/css/style.min.css',
     1 => 'assets/css/modern.min.css',
+    2 => 'assets/css/pages/admin_elevation.min.css',
   ),
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container security-container">
     <h1>Confirm Administrator Access</h1>
-    <?php if ($error !== ''): ?><p class="error"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($error !== ''): ?><p class="error admin-elevation-notice"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <section class="security-card">
         <p>Enter your current password and a fresh authenticator or recovery code. Sensitive administrator actions remain unlocked for five minutes.</p>
         <form method="post" action="admin_elevation.php" class="security-form" autocomplete="off">
