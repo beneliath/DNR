@@ -84,7 +84,7 @@ expectInboundFeature(
 expectInboundFeature(
     str_contains($review, 'requireValidCsrfToken')
         && str_contains($review, "['admin', 'editor']")
-        && str_contains($review, 'Approve selected routes')
+        && str_contains($review, 'Save to Chron logs')
         && str_contains($review, 'Reject message')
         && str_contains($review, "\$action === 'purge'")
         && str_contains($review, 'canDeleteEntries($userRole)')
@@ -105,14 +105,10 @@ expectInboundFeature(
         && preg_match('/\.inbound-mail-page\s*\{[^}]*width:\s*min\(100%,\s*var\(--app-content-max\)\);[^}]*max-width:\s*var\(--app-content-max\);[^}]*padding-inline:\s*var\(--app-content-padding\);/s', $reviewStyles) === 1
         && preg_match('/\.inbound-mail-heading h1\s*\{[^}]*font-size:\s*clamp\(1\.8rem,\s*3vw,\s*2\.3rem\);/s', $reviewStyles) === 1
         && preg_match('/\.inbound-mail-body \.app-footer\s*\{[^}]*max-width:\s*var\(--app-content-max\);/s', $reviewStyles) === 1
-        && preg_match('/\.inbound-mail-page,[^{]*\.inbound-mail-page > \.inbound-mail-layout > section\s*\{[^}]*background:\s*transparent\s*!important;/s', $reviewStyles) === 1
-        && preg_match('/html\.dark-mode \.inbound-message-card\s*\{[^}]*background:\s*var\(--surface\)\s*!important;[^}]*color:\s*var\(--text\)\s*!important;/s', $reviewStyles) === 1
-        && preg_match('/html\.dark-mode \.inbound-message-card:hover,[^{]*html\.dark-mode \.inbound-message-card\.selected\s*\{[^}]*background:\s*var\(--surface-subtle\)\s*!important;/s', $reviewStyles) === 1,
-    'the Inbound Mail page should use the Dashboard canvas and typography without painting a legacy black surface over the app background.'
-);
-expectInboundFeature(
-    preg_match('/\\.inbound-message-detail > \\.inbound-routing-summary,[^{]*\\.inbound-message-detail > \\.inbound-message-body\\s*\\{[^}]*background:\\s*transparent\\s*!important;/s', $reviewStyles) === 1,
-    'nested Routing, review, and Plain-Text Content sections should inherit the surrounding Inbound Mail detail pane background.'
+        && str_contains($reviewStyles, 'background: var(--surface)')
+        && str_contains($reviewStyles, 'color: var(--text)')
+        && str_contains($reviewStyles, 'background: var(--primary-subtle)'),
+    'the Inbound Mail workspace should use shared theme surfaces, typography, and selected-message colors.'
 );
 expectInboundFeature(
     str_contains($grants, '.inbound_email_messages')

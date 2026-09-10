@@ -24,6 +24,22 @@
     }
     if (typeof document === 'undefined') return;
 
+    const reviewForm = document.querySelector('.inbound-review-form');
+    const selectionSummary = document.getElementById('inbound-selection-summary');
+    const approveButton = reviewForm?.querySelector('button[value="approve"]');
+    function updateSelectionSummary() {
+        if (!reviewForm || !selectionSummary || !approveButton) return;
+        const checked = reviewForm.querySelectorAll('input[type="checkbox"]:checked').length;
+        const engagement = reviewForm.querySelector('[name="engagement_ids[]"]');
+        const count = checked + (Number(engagement?.value) > 0 ? 1 : 0);
+        approveButton.disabled = count === 0;
+        selectionSummary.textContent = count === 0
+            ? 'Choose at least one destination to save this message'
+            : count + ' Chron log' + (count === 1 ? '' : 's') + ' selected';
+    }
+    reviewForm?.addEventListener('change', updateSelectionSummary);
+    updateSelectionSummary();
+
     const search = document.getElementById('inbound-engagement-search');
     const select = document.getElementById('inbound-engagement-id');
     const status = document.getElementById('inbound-engagement-search-status');
@@ -53,6 +69,7 @@
             fragment.appendChild(option);
         });
         select.replaceChildren(fragment);
+        updateSelectionSummary();
     }
 
     search.addEventListener('input', function () {
@@ -60,14 +77,13 @@
         request?.abort();
         const query = search.value.trim();
         if (query.length < 2 && !/^\d+$/.test(query)) {
-            status.textContent = 'Type at least two characters, an engagement ID, or an email marker.';
+            status.textContent = 'Search by name (2+ characters), ID, or email marker';
             return;
         }
 
         timer = window.setTimeout(async function () {
             const controller = new AbortController();
             request = controller;
-            const selected = currentSelection();
             status.textContent = 'Searching engagements…';
             select.setAttribute('aria-busy', 'true');
             try {
@@ -80,7 +96,7 @@
                 });
                 const payload = await response.json();
                 if (!response.ok || !Array.isArray(payload.engagements)) throw new Error();
-                renderOptions(payload.engagements, selected);
+                renderOptions(payload.engagements, currentSelection());
                 status.textContent = payload.engagements.length === 0
                     ? 'No matching active engagements.'
                     : payload.engagements.length + ' matching engagement'
