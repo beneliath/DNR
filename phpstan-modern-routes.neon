@@ -3,6 +3,8 @@ parameters:
     # here before the remaining procedural surface is raised as a whole.
     level: 3
     paths:
+        - src/email_templates.php
+        - src/edit_email_template.php
         - src/speaker_photo.php
         - src/speakers.php
         - src/edit_speaker.php
@@ -34,6 +36,7 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/email_template_helpers.php
         - src/speaker_helpers.php
         - src/short_link_helpers.php
         - src/engagement_view_helpers.php

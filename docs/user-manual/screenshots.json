@@ -287,6 +287,71 @@
     "file": "screenshots/closeout.png"
   },
   {
+    "chapter": 5,
+    "id": "email-templates",
+    "title": "Manage the email template library",
+    "route": "email_templates.php",
+    "steps": [
+      "Open Email Templates under Work in the sidebar, or Manage Email Templates in an engagement email.",
+      "Search by name or subject. Select + New Email Template, a template name, or its Edit action.",
+      "Archive removes a template from new messages. Open Archived and choose Restore to use it again.",
+      "Only administrators can permanently delete an archived template after confirming access. Sent messages and history remain unchanged."
+    ],
+    "file": "screenshots/email-templates.png",
+    "captured_on": "2026-09-10",
+    "note": "Fictional records from the isolated template preview; no email was queued during capture.",
+    "crop": [
+      260,
+      0,
+      1102,
+      884
+    ]
+  },
+  {
+    "chapter": 5,
+    "id": "email-template-editor",
+    "title": "Add or edit reusable email text",
+    "route": "edit_email_template.php?id=14",
+    "steps": [
+      "Enter a clear template name, a subject, and the starting plain-text message.",
+      "Use event fields such as {{event_name}} in the text. The engagement routing marker is added automatically when composing.",
+      "Existing templates can be edited too. Save Changes updates the template for future selections, leaving sent messages intact.",
+      "If another session changed the template, preserve your edits, reload, and review the current version before saving."
+    ],
+    "file": "screenshots/email-template-editor.png",
+    "captured_on": "2026-09-10",
+    "note": "Fictional records from the isolated template preview; no email was queued during capture.",
+    "crop": [
+      260,
+      0,
+      1087,
+      970
+    ]
+  },
+  {
+    "chapter": 5,
+    "id": "email-template-fields",
+    "title": "Personalize fields and suggest recipients",
+    "route": "edit_email_template.php?id=14",
+    "focus": ".email-template-field-help",
+    "action": "email-fields",
+    "steps": [
+      "Expand Personalize with event fields. Place the cursor in the subject or message, then select a field button.",
+      "Presentation schedule is available in the message only. Speaker names inserts text; it does not select recipients.",
+      "Choose suggested event contact roles. Leave all clear to choose contacts when composing. Lower Display order numbers appear first.",
+      "Save the template. Open an engagement email, choose it, and review the filled text and recipients before queuing."
+    ],
+    "file": "screenshots/email-template-fields.png",
+    "captured_on": "2026-09-10",
+    "note": "Fictional records from the isolated template preview; no email was queued during capture.",
+    "crop": [
+      295,
+      315,
+      995,
+      740
+    ]
+  },
+  {
     "chapter": 6,
     "id": "organizations",
     "title": "Browse organizations",
@@ -494,15 +559,22 @@
     "chapter": 8,
     "id": "email",
     "title": "Choose event recipients and a template",
-    "route": "compose_engagement_email.php?id=13",
+    "route": "compose_engagement_email.php?id=1",
     "steps": [
-      "Open Send Message on an active engagement.",
-      "Choose a starting template and select assigned event contacts with valid addresses.",
-      "Every unique address receives a separate email. Review subject, message, and optional share-safe brief.",
-      "Queue Email when ready and review each delivery in Correspondence."
+      "Choose an active template or Custom message. Review event fields after they are filled.",
+      "Select event contacts, then use Speaker or an individual speaker card to include an assigned speaker. Speakers are unchecked by default.",
+      "Only speakers assigned to active presentations with valid email addresses can receive mail. Speaker-only messages are allowed.",
+      "Each unique address receives one separate email. Changing templates preserves selected speakers. Review the message and brief before Queue Email."
     ],
-    "note": "The isolated preview disables outbound transport; no message was queued or sent for this manual.",
-    "file": "screenshots/email.png"
+    "note": "This example selects Casey Speaker explicitly. No email was queued during capture.",
+    "file": "screenshots/email.png",
+    "captured_on": "2026-09-10",
+    "crop": [
+      260,
+      0,
+      1087,
+      924
+    ]
   },
   {
     "chapter": 8,

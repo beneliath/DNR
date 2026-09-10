@@ -47,10 +47,15 @@ for number,shot in enumerate(shots,1):
     assert 'Figure ' in texts[index],('Figure caption missing',shot['id'])
     assert report['destinations']['end-shot-'+shot['id']]==index+1,('Split walkthrough',shot['id'])
 all_text='\n'.join(texts)
-for expected in ['Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder']:
+for expected in ['Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
     assert expected in all_text,('Missing required topic',expected)
-for forbidden in ['Lorem ipsum','TODO:','Traceback','Fatal error','{{','Undefined variable']:
+for forbidden in ['Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)
+# Double braces are now intentional, documented template fields. Reject unknown tokens.
+allowed_fields={'event_name','organization_name','event_dates','event_start_date','event_end_date','event_location','speaker_names','presentation_schedule'}
+for field in re.findall(r'\{\{(.*?)\}\}',all_text,re.S):
+    assert field.strip() in allowed_fields,('Unexpected template field',field)
+assert '{{event_name}}' in all_text
 assert links>300
 assert len(shots)>=50
 assert report['destinations']['__total__']==len(pages)

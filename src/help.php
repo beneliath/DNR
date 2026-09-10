@@ -39,7 +39,7 @@ $manual_access_summary = match ($manual_role) {
         <section class="manual-hero-copy">
             <h1 id="manual-title">User Manual</h1>
             <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
-            <a class="manual-inline-link" href="assets/docs/moed-comprehensive-user-manual.pdf" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
+            <a class="manual-inline-link" href="<?php echo htmlspecialchars(assetUrl('assets/docs/moed-comprehensive-user-manual.pdf'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
         </section>
         <section class="manual-role-summary" aria-label="Your access">
             <span>Your Access</span>
@@ -103,7 +103,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-card-number">1</span>
                         <h3>Use the Sidebar</h3>
-                        <p>The main areas are always in the left sidebar. On a narrow screen, use the menu button in the top bar and tap outside the panel or press <kbd>Esc</kbd> to close it.</p>
+                        <p>The main areas are always in the left sidebar. Under Work, open <strong>Email Templates</strong> to maintain reusable engagement messages. On a narrow screen, use the menu button in the top bar and tap outside the panel or press <kbd>Esc</kbd> to close it.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-card-number">2</span>
@@ -169,6 +169,7 @@ $manual_access_summary = match ($manual_role) {
                             <tr><td>Manage own profile, calendar links, and security</td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Create and edit inquiries, engagements, organizations, contacts, and speakers</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage tasks, Chron entries, closeouts, and engagement email</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
+                            <tr><td>Add, edit, archive, and restore email templates</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Archive and restore shared records</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Manage users, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
                         </tbody>
@@ -260,7 +261,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template library add edit archive restore delete display order event fields placeholders booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
                 <header class="manual-chapter-heading">
                     <span>Chapter 05</span>
                     <h2>Engagements</h2>
@@ -338,6 +339,22 @@ $manual_access_summary = match ($manual_role) {
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
+                <section class="manual-subsection" id="email-templates">
+                    <h3>Manage Email Templates</h3>
+                    <p>Open <a href="email_templates.php">Email Templates</a> under <strong>Work</strong> in the sidebar, or select <strong>Manage Email Templates</strong> in the engagement email composer. This library supplies engagement email in the browser and Mattermost. Inquiry emails use their own starting templates.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Add or edit a template.</strong><p>Select <strong>+ New Email Template</strong>, or open an active template by its name or Edit action. Enter the template name, subject, and plain-text message. The original Booking confirmation, Travel and lodging request, Final-detail reconfirmation, Presentation schedule, and Post-event thank-you templates can all be edited.</p></section></li>
+                        <li><span>02</span><section><strong>Personalize the starting text.</strong><p>Expand <strong>Personalize with event fields</strong>. Click where the field belongs in the subject or message, then choose a field button. Event name, organization, dates, location, and speaker names are available; Presentation schedule belongs in the message only. For example, <code>Welcome to {{event_name}}</code> uses that engagement's event name when composing. The routing marker is added automatically.</p></section></li>
+                        <li><span>03</span><section><strong>Choose suggestions and order.</strong><p>Select the event contact roles to suggest when this template is chosen. Leave them clear to choose contacts when composing. Lower <strong>Display order</strong> numbers appear first. Speakers are always a separate sender choice; inserting Speaker names into the message does not add recipients.</p></section></li>
+                        <li><span>04</span><section><strong>Save and review.</strong><p>Select <strong>Create Template</strong> or <strong>Save Changes</strong>. Choose the saved template in an engagement email to review the filled subject, message, and recipients before queuing. When you entered the library from an engagement, <strong>Return to Email</strong> takes you back to its composer.</p></section></li>
+                    </ol>
+                    <section class="manual-card-grid manual-card-grid-two">
+                        <article class="manual-card"><h4>Archive and Restore</h4><p>Search the library by name or subject. <strong>Archive</strong> removes a template from new emails in both composers. Open <strong>Archived</strong> to view it or select <strong>Restore</strong> to make it available again. Restore an archived template before editing it.</p></article>
+                        <article class="manual-card"><h4>Delete and Access</h4><p>Editors and administrators can add, edit, archive, and restore templates. Reviewers can view them. Only administrators can permanently <strong>Delete</strong> an archived template, after confirming their access. Deletion cannot be undone; sent messages, their template names, and Chron history remain available.</p></article>
+                    </section>
+                    <p class="manual-note"><strong>Changes apply to future messages.</strong> A draft already open in a composer keeps its reviewed text. If its template is archived or deleted before sending, review the preserved draft as <strong>Custom message</strong> or choose another template. If another session changed a template while you were editing, keep a copy of your draft, reload, and review the latest version before saving. <strong>Custom message</strong> is always available, even when every saved template is archived.</p>
+                </section>
+
                 <section class="manual-subsection" id="qr-statistics">
                     <h3>Review QR Code Activity</h3>
                     <ul class="manual-check-list">
@@ -353,9 +370,9 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Send and Track Event Email</h3>
                     <p>Editors and administrators can send email from an active engagement. Use <strong>Send Email</strong> near the page heading or <strong>Send Message</strong> in the Correspondence section. Every message remains easy to find there afterward.</p>
                     <ol class="manual-steps">
-                        <li><span>01</span><section><strong>Choose a starting template.</strong><p>Use Booking confirmation, Travel and lodging request, Final-detail reconfirmation, Presentation schedule, Post-event thank-you, or Custom message. Template text is only a starting point; edit the subject and body before sending.</p></section></li>
-                        <li><span>02</span><section><strong>Select event contacts.</strong><p>Use the Primary host, On-site contact, Billing, Travel, or Materials shortcuts, or select individual assigned contacts. Only active assigned contacts with an email address can receive the message. Every unique address receives a separate email, so recipients never see one another.</p></section></li>
-                        <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every built-in subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
+                        <li><span>01</span><section><strong>Choose a starting template.</strong><p>Choose an active template from the shared library, or <strong>Custom message</strong> to write from scratch. Event fields are filled from this engagement. Template text is only a starting point; edit the subject and body before sending. Use <a href="#email-templates">Manage Email Templates</a> to learn how to maintain the library.</p></section></li>
+                        <li><span>02</span><section><strong>Select recipients.</strong><p>Use the Primary host, On-site contact, Billing, Travel, Materials, or Speaker shortcuts, or select individual recipient cards. Speakers assigned to active presentations are optional and unchecked by default. Choose the Speaker shortcut or check a speaker card to include them. You may send to speakers alone. Changing templates keeps your speaker selection. Only assigned contacts and speakers with a valid email address can receive the message. Every unique address receives a separate email, so recipients never see one another. A speaker and contact sharing one address receive only one copy.</p></section></li>
+                        <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every template subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
                         <li><span>04</span><section><strong>Optionally append the event brief.</strong><p>The share-safe brief includes the public event schedule, venue, description, and presentations. It deliberately excludes Chron, internal notes, compensation, giving, and financial-closeout information. Preview it before queuing.</p></section></li>
                         <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry Failed Deliveries</strong>.</p></section></li>
                     </ol>
@@ -745,7 +762,7 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Send Engagement Email From Mattermost</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Start from the right engagement.</strong><p>In a linked channel, select the MOED chain icon and choose <strong>Send MOED email</strong>. To include a particular conversation, open that post's <strong>Message actions</strong> and choose <strong>Send via MOED email</strong>.</p></section></li>
-                        <li><span>02</span><section><strong>Choose a starting point.</strong><p>Select a MOED message template, then choose from the contacts already assigned to the engagement. Each unique address receives a separate message.</p></section></li>
+                        <li><span>02</span><section><strong>Choose a starting point.</strong><p>Select an active template from the shared Email Templates library, or Custom message, then choose from the contacts already assigned to the engagement. To include an assigned speaker, use the engagement email composer in MOED. Each unique address receives a separate message.</p></section></li>
                         <li><span>03</span><section><strong>Decide what to include.</strong><p>Edit the subject and message. You may append the share-safe event brief and, when you started from a post, the selected post or a short thread excerpt.</p></section></li>
                         <li><span>04</span><section><strong>Review before sending.</strong><p>Check the recipients, routing marker, subject, message, and any added context on the review screen. Nothing is sent until you choose <strong>Send and add to Chron</strong>.</p></section></li>
                         <li><span>05</span><section><strong>Confirm the result.</strong><p>The form shows whether each delivery is pending, sent, or failed and links to the full delivery record in MOED. The message is also recorded in the Engagement, Organization, and selected Contact Chron logs.</p></section></li>
@@ -866,7 +883,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 13</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -896,7 +913,15 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Outbound Email Failed or Cannot Be Queued</span><i aria-hidden="true">+</i></summary>
-                        <p>Confirm that the Engagement has at least one assigned Contact with a valid email address. Open the outbound message to see which recipient failed. Correct the address if needed, then select <strong>Retry Failed Deliveries</strong>. If sending is unavailable for every message, ask an administrator to check the mail setup.</p>
+                        <p>Confirm that the engagement has a selected contact or a speaker assigned to an active presentation with a valid email address. Open the outbound message to see which recipient failed. Correct the address if needed, then select <strong>Retry Failed Deliveries</strong>. If sending is unavailable for every message, ask an administrator to check the mail setup.</p>
+                    </details>
+                    <details>
+                        <summary><span>A Template Is Missing or My Changes Cannot Be Saved</span><i aria-hidden="true">+</i></summary>
+                        <p>Clear the library search and check <strong>Archived</strong>. Restore a template to make it available for new emails; permanently deleted templates cannot be restored. If another session changed the template, keep a copy of your edits, reload, and compare with the current version. Use only the listed event fields with matching double braces; Presentation schedule is allowed in the message only.</p>
+                    </details>
+                    <details>
+                        <summary><span>A Speaker Is Missing from Email Recipients</span><i aria-hidden="true">+</i></summary>
+                        <p>Check that the speaker is assigned to an active presentation on this engagement. Add or correct their email on the speaker record, then reload the composer and select the speaker. Archived presentations do not supply recipients. Putting a speaker's name in template text does not select that person as a recipient.</p>
                     </details>
                     <details>
                         <summary><span>A Calendar Stopped Refreshing</span><i aria-hidden="true">+</i></summary>

@@ -9,6 +9,8 @@ Reference text, the topic finder, and the README use two columns. Walkthrough
 screenshots span the columns for legibility, with their numbered instructions in
 two columns underneath. The cover draws the paths from `src/assets/dnr-logo.svg`
 as native PDF vectors and omits the light asset's white background path.
+New template screenshots retain the original browser image; optional `crop` bounds
+in `screenshots.json` frame it inside the PDF without resampling the source.
 Reference tables and paragraphs with long unbreakable references span the full
 page width, then text resumes in two columns beneath them when space permits.
 Automatic word splitting and hyphenation are disabled. The build checks table
@@ -32,7 +34,10 @@ checks performed against the finished PDF.
 The September 10, 2026 update identifies application version 2.0.8. The Inbox
 overview and selected-message screenshots were replaced from the current source,
 and the Chron/Email and troubleshooting text uses the current filing controls.
-Other screenshots retain their September 9 capture date.
+The engagement email walkthrough now shows the optional speaker recipient. Three new
+walkthroughs cover the template library, editor, and event fields/contact suggestions.
+The guide documents archive/restore, administrator deletion, draft conflicts, and
+retained sent-message history. Other screenshots retain their September 9 capture date.
 
 ## Rebuild from the checked-in screenshots
 

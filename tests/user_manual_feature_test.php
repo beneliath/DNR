@@ -152,7 +152,8 @@ expectUserManual(
 expectUserManual(
     str_contains($manual, 'Send and Track Event Email')
         && str_contains($manual, 'Booking confirmation')
-        && str_contains($manual, 'Select event contacts')
+        && str_contains($manual, 'Select recipients')
+        && str_contains($manual, 'Speakers assigned to active presentations are optional and unchecked by default')
         && str_contains($manual, 'Every unique address receives a separate email')
         && str_contains($manual, 'share-safe brief')
         && str_contains($manual, 'Queue Email')

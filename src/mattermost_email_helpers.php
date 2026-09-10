@@ -86,7 +86,7 @@ function mattermostEmailComposerPayload(mysqli $conn, int $engagementId): array
     $context = mattermostEmailContext($conn, $engagementId);
     $engagement = $context['engagement'];
     $contacts = mattermostEmailContactPayload($context['contacts']);
-    $templates = engagementEmailTemplates($engagement, $context['presentations']);
+    $templates = engagementEmailTemplates($engagement, $context['presentations'], fetchEmailMessageTemplates($conn));
     $templatePayload = [];
     foreach ($templates as $key => $template) {
         $suggestedIds = [];

@@ -73,9 +73,8 @@ expectEngagementEmailFeature(
 );
 expectEngagementEmailFeature(
     str_contains($helpers, 'function engagementEmailTemplates(')
-        && str_contains($helpers, "'booking_confirmation'")
-        && str_contains($helpers, "'final_reconfirmation'")
-        && str_contains($helpers, "'post_event_thanks'")
+        && str_contains($helpers, 'emailMessageTemplateLabelForSend')
+        && str_contains($composer, 'fetchEmailMessageTemplates($conn)')
         && str_contains($helpers, 'function engagementEmailSafeEventBrief(')
         && str_contains($helpers, 'function engagementEmailReplyToAddress(')
         && str_contains($helpers, 'function queueEngagementEmail(')

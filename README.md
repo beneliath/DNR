@@ -198,10 +198,28 @@ removes the queued day from their schedule. Sent and terminal payloads are erase
 Administrators with fresh elevation can also manage any user’s digest enablement, delivery time,
 and delivery days from **Users → Edit User**.
 
+Email Templates in the sidebar lets editors and administrators create and edit reusable engagement email
+subjects and messages, suggest event contact roles, and set the display order. The five original templates
+are seeded into the library and can be edited, archived, or restored. Archived templates are excluded from
+both the web and Mattermost composers. Administrators can permanently delete an archived template after
+confirming their access. Reviewers can view the library. **Custom message** remains available for writing
+from scratch. Template names and reviewed content are retained with sent messages even if a template is
+later edited or deleted; overlapping edits are rejected instead of overwriting newer changes.
+
+Templates support `{{event_name}}`, `{{organization_name}}`, `{{event_dates}}`, `{{event_start_date}}`,
+`{{event_end_date}}`, `{{event_location}}`, `{{speaker_names}}`, and `{{presentation_schedule}}` (message only).
+Use the editor’s **Personalize with event fields** buttons to insert them. Values are filled when composing;
+the sender can still edit the subject, message, and recipients before sending. The engagement routing
+marker is added automatically. Apply `20260910_add_email_message_templates.sql` and the corresponding
+application-table grant before deploying this feature.
+
 Editors and administrators can also send tracked plain-text correspondence from an active
 Engagement. The composer provides booking-confirmation, travel/lodging, final-reconfirmation,
 presentation-schedule, post-event thank-you, and custom starting templates. Recipients are selected
-from the Engagement's assigned Primary host, On-site contact, Billing, Travel, and Materials roles.
+from the Engagement's assigned Primary host, On-site contact, Billing, Travel, and Materials roles,
+plus speakers assigned to its active presentations. Speakers are optional and unchecked by default;
+select their recipient cards or use the Speaker shortcut to include them. Each speaker appears once,
+even when assigned to multiple presentations, and can also receive a message without any event contacts.
 Every unique address receives an independent delivery so recipients are never disclosed to one
 another. The authoritative Engagement marker is appended to the subject automatically, allowing a
 reply that preserves the subject to return through the normal inbound-mail routing workflow when

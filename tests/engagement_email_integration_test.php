@@ -14,6 +14,7 @@ putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('E', 32)));
 putenv('DNR_INBOUND_ROUTING_KEY=' . base64_encode(str_repeat('R', 32)));
 putenv('DNR_MAIL_TRANSPORT=smtp');
 putenv('DNR_INBOUND_ADDRESS=replies@example.test');
+putenv('DNR_PUBLIC_BASE_URL=https://example.test');
 require_once $sourceDirectory . '/config.php';
 require_once $sourceDirectory . '/functions.php';
 require_once $sourceDirectory . '/chron_log_helpers.php';
@@ -32,6 +33,8 @@ $organizationId = 0;
 $engagementId = 0;
 $contactId = 0;
 $secondaryContactId = 0;
+$speakerIds = [];
+$templateId = 0;
 try {
     $username = 'engagement-email-' . $suffix;
     $password = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
@@ -410,9 +413,121 @@ try {
             ),
         'a committed Chron entry should expose a durable memo reaction that can be acknowledged.'
     );
+    foreach ([
+        ['Speaker One', 'speaker-' . $suffix . '@example.test'],
+        ['Shared Address Speaker', strtoupper($email)],
+        ['Archived Speaker', 'archived-' . $suffix . '@example.test'],
+    ] as [$speakerName, $speakerEmail]) {
+        $speaker = $conn->prepare("INSERT INTO speakers (name, email, phone) VALUES (?, ?, '+12025550100')");
+        $speaker->bind_param('ss', $speakerName, $speakerEmail);
+        $speaker->execute();
+        $speakerIds[] = (int) $conn->insert_id;
+        $speaker->close();
+    }
+    foreach ([$speakerIds[0], $speakerIds[0], $speakerIds[1], $speakerIds[2]] as $speakerId) {
+        $archived = $speakerId === $speakerIds[2] ? 1 : 0;
+        $presentation = $conn->prepare(
+            "INSERT INTO presentations (engagement_id, speaker_id, topic_title, is_archived)
+             VALUES (?, ?, 'Email test presentation', ?)"
+        );
+        $presentation->bind_param('iii', $engagementId, $speakerId, $archived);
+        $presentation->execute();
+        $presentation->close();
+    }
+    $availableSpeakers = fetchEngagementEmailSpeakers($conn, $engagementId);
+    $availableSpeakerIds = array_map(static fn(array $speaker): int => (int) $speaker['id'], $availableSpeakers);
+    sort($availableSpeakerIds);
+    expectEngagementEmailIntegration(
+        $availableSpeakerIds === [$speakerIds[0], $speakerIds[1]],
+        'the picker should include each active presentation speaker once and exclude archived presentations.'
+    );
+    $queueTo = static fn(array $contacts, array $speakers): int => queueEngagementEmail(
+        $conn, $engagementRecord, [], $contacts, 'custom', 'Speaker test', 'Message for selected recipients.',
+        false, $userId, $username, speakerIds: $speakers
+    );
+    $withSpeakerMessageId = $queueTo([$contactId], [$speakerIds[0]]);
+    $speakerDelivery = $conn->query(
+        "SELECT contact_id, recipient_name, recipient_email, recipient_roles_json, payload_ciphertext
+         FROM engagement_email_deliveries WHERE message_id = {$withSpeakerMessageId} AND contact_id IS NULL"
+    )->fetch_assoc();
+    expectEngagementEmailIntegration(
+        $speakerDelivery !== null
+            && $speakerDelivery['recipient_name'] === 'Speaker One'
+            && json_decode($speakerDelivery['recipient_roles_json'], true) === ['speaker']
+            && decryptQueuedEngagementEmail($speakerDelivery['payload_ciphertext'])['recipient'] === $speakerDelivery['recipient_email'],
+        'a selected speaker should receive an encrypted delivery without a contact foreign key.'
+    );
+    $chron = $conn->query(
+        "SELECT entry_text FROM engagement_chron_entries WHERE outbound_email_message_id = {$withSpeakerMessageId}"
+    )->fetch_assoc()['entry_text'];
+    expectEngagementEmailIntegration(
+        str_contains($chron, 'Speaker One <speaker-' . $suffix . '@example.test>')
+            && str_contains($chron, 'Avery Host <' . $email . '>'),
+        'outgoing history should list both the speaker and the contact.'
+    );
+    $speakerOnlyMessageId = $queueTo([], [$speakerIds[0]]);
+    expectEngagementEmailIntegration(
+        (int) $conn->query("SELECT COUNT(*) AS total FROM engagement_email_deliveries WHERE message_id = {$speakerOnlyMessageId}")->fetch_assoc()['total'] === 1
+            && (int) $conn->query("SELECT COUNT(*) AS total FROM contact_chron_entries WHERE outbound_email_message_id = {$speakerOnlyMessageId}")->fetch_assoc()['total'] === 0,
+        'speaker-only email should queue successfully without creating a contact history entry.'
+    );
+    $sharedMessageId = $queueTo([$contactId], [$speakerIds[1]]);
+    $sharedDeliveries = $conn->query(
+        "SELECT contact_id, recipient_roles_json FROM engagement_email_deliveries WHERE message_id = {$sharedMessageId}"
+    )->fetch_all(MYSQLI_ASSOC);
+    expectEngagementEmailIntegration(
+        count($sharedDeliveries) === 1
+            && (int) $sharedDeliveries[0]['contact_id'] === $contactId
+            && json_decode($sharedDeliveries[0]['recipient_roles_json'], true) === ['primary_host', 'speaker'],
+        'a shared speaker/contact email address should retain both roles on one delivery.'
+    );
+    $conn->query("UPDATE presentations SET is_archived = 1 WHERE engagement_id = {$engagementId} AND speaker_id = {$speakerIds[0]}");
+    $messageCount = (int) $conn->query("SELECT COUNT(*) AS total FROM engagement_email_messages WHERE engagement_id = {$engagementId}")->fetch_assoc()['total'];
+    foreach ([[$speakerIds[0]], [$speakerIds[2]], [PHP_INT_MAX]] as $unavailableSpeakerIds) {
+        try {
+            $queueTo([$contactId], $unavailableSpeakerIds);
+            expectEngagementEmailIntegration(false, 'stale or unassigned speaker selections must be rejected when queued.');
+        } catch (InvalidArgumentException) {
+            // Expected: resolve against current assignments, not the earlier form snapshot.
+        }
+    }
+    expectEngagementEmailIntegration(
+        (int) $conn->query("SELECT COUNT(*) AS total FROM engagement_email_messages WHERE engagement_id = {$engagementId}")->fetch_assoc()['total'] === $messageCount,
+        'rejected speaker selections must not leave partial messages or deliveries.'
+    );
+    // A queued message keeps the reviewed content and template name even after library changes.
+    $templateInput = ['name' => 'Saved template ' . $suffix, 'subject_template' => 'Welcome {{event_name}}',
+        'body_template' => 'Dear {{organization_name}}', 'suggested_roles' => ['primary_host'], 'sort_order' => '1'];
+    $templateId = saveEmailMessageTemplate($conn, $templateInput, $userId);
+    $storedTemplate = fetchEmailMessageTemplate($conn, $templateId);
+    $templateKey = (string) $storedTemplate['template_key'];
+    $payload = mattermostEmailComposerPayload($conn, $engagementId);
+    expectEngagementEmailIntegration(isset($payload['templates'][$templateKey]), 'Mattermost must offer saved templates too.');
+    $templateMessageId = queueEngagementEmail($conn, $engagementRecord, [], [$contactId], $templateKey,
+        'Reviewed subject', 'Reviewed message', false, $userId, $username, 'template-test', 'template-' . $suffix);
+    saveEmailMessageTemplate($conn, array_replace($templateInput, ['name' => 'Renamed template']), $userId, $templateId, 1);
+    changeEmailMessageTemplateStatus($conn, $templateId, 2, 'archive', $userId);
+    $payload = mattermostEmailComposerPayload($conn, $engagementId);
+    expectEngagementEmailIntegration(!isset($payload['templates'][$templateKey]), 'Mattermost must hide archived templates.');
+    try {
+        queueEngagementEmail($conn, $engagementRecord, [], [$contactId], $templateKey,
+            'Another message', 'Another message', false, $userId, $username);
+        expectEngagementEmailIntegration(false, 'Archived templates must be rejected by the queue.');
+    } catch (InvalidArgumentException) {}
+    changeEmailMessageTemplateStatus($conn, $templateId, 3, 'delete', $userId);
+    $savedMessage = fetchEngagementEmailMessage($conn, $templateMessageId);
+    expectEngagementEmailIntegration($savedMessage['template_label'] === $templateInput['name']
+        && $savedMessage['body_text'] === 'Reviewed message', 'Deleting a template must preserve sent-message snapshots.');
+    $replayedId = queueEngagementEmail($conn, $engagementRecord, [], [$contactId], $templateKey,
+        'Reviewed subject', 'Reviewed message', false, $userId, $username, 'template-test', 'template-' . $suffix);
+    expectEngagementEmailIntegration($replayedId === $templateMessageId, 'Idempotent retries must work after template deletion.');
 } finally {
+    if ($templateId) $conn->query("DELETE FROM email_message_templates WHERE id = {$templateId}");
     if ($engagementId > 0) {
         $conn->query("DELETE FROM engagements WHERE id = {$engagementId}");
+    }
+    foreach ($speakerIds as $speakerId) {
+        $conn->query("DELETE FROM speakers WHERE id = {$speakerId}");
     }
     if ($contactId > 0) {
         $conn->query("DELETE FROM contacts WHERE id = {$contactId}");
