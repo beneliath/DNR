@@ -5,6 +5,12 @@
 }
 
 .inbound-mail-heading h1 { font-size: clamp(1.8rem, 3vw, 2.3rem); }
+.inbound-mail-body { --inbound-scroll-offset: 16px; }
+.inbound-mail-body.role-preview-active { --inbound-scroll-offset: 84px; }
+@media (max-width: 860px) {
+    .inbound-mail-body { --inbound-scroll-offset: 80px; }
+    .inbound-mail-body.role-preview-active { --inbound-scroll-offset: 164px; }
+}
 .inbound-mail-body .app-footer {
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);
@@ -57,6 +63,7 @@ html body #inbound-queue-search {
     border-radius: 12px 12px 0 0 !important;
     background: var(--surface) !important;
     box-shadow: none;
+    scroll-margin-top: calc(var(--inbound-scroll-offset) + var(--deployment-banner-height, 0px));
 }
 .inbound-queue-search > div { display: grid; gap: 6px; min-width: 0; }
 .inbound-queue-search .inbound-search-field { flex: 1; }
@@ -66,6 +73,7 @@ html body .inbound-queue-search > button { margin: 0; min-height: 42px !importan
 .inbound-clear-search { align-self: center; margin-top: 22px; font-size: .85rem; white-space: nowrap; }
 .inbound-mail-layout {
     display: grid;
+    min-height: calc(100vh - var(--inbound-scroll-offset) - var(--deployment-banner-height, 0px));
     grid-template-columns: minmax(240px, .85fr) minmax(0, 2.3fr);
     align-items: start;
     border: 1px solid var(--border);

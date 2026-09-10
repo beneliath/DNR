@@ -232,7 +232,7 @@ $statusLabels = [
                     $senderLabel = trim((string) ($message['sender_name'] ?? '')) ?: (string) $message['sender_address'];
                     $detailUrl = 'inbound_mail.php?' . http_build_query(array_merge($queueContext, ['id' => (int) $message['id']]));
                     ?>
-                    <a class="inbound-message-card<?php echo (int) $selectedId === (int) $message['id'] ? ' selected' : ''; ?>"<?php echo (int) $selectedId === (int) $message['id'] ? ' aria-current="true"' : ''; ?> href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>#inbound-detail">
+                    <a class="inbound-message-card<?php echo (int) $selectedId === (int) $message['id'] ? ' selected' : ''; ?>"<?php echo (int) $selectedId === (int) $message['id'] ? ' aria-current="true"' : ''; ?> href="<?php echo htmlspecialchars($detailUrl, ENT_QUOTES, 'UTF-8'); ?>#inbound-queue-search">
                         <span class="inbound-message-card-heading"><span class="inbound-sender"><?php echo htmlspecialchars($senderLabel, ENT_QUOTES, 'UTF-8'); ?></span><span class="inbound-status inbound-status-<?php echo htmlspecialchars((string) $message['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusLabels[(string) $message['status']] ?? ucfirst((string) $message['status']), ENT_QUOTES, 'UTF-8'); ?></span></span>
                         <strong class="inbound-subject"><?php echo htmlspecialchars((string) ($message['subject'] ?: '(no subject)'), ENT_QUOTES, 'UTF-8'); ?></strong>
                         <?php if (!empty($message['review_reason'])): ?><span class="inbound-message-excerpt"><?php echo htmlspecialchars((string) $message['review_reason'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
