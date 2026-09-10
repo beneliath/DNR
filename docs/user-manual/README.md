@@ -27,6 +27,13 @@ The local authoring output is `output/pdf/moed-comprehensive-user-manual.pdf`.
 `build-report.json` records page locations and `verification.json` records the
 checks performed against the finished PDF.
 
+## Current edition
+
+The September 10, 2026 update identifies application version 2.0.8. The Inbox
+overview and selected-message screenshots were replaced from the current source,
+and the Chron/Email and troubleshooting text uses the current filing controls.
+Other screenshots retain their September 9 capture date.
+
 ## Rebuild from the checked-in screenshots
 
 Use Python with the dependencies in `scripts/manual/requirements.txt`:
