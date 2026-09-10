@@ -199,6 +199,12 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
 .inquiry-stage-declined .inquiry-stage-dot { background: #9a6666; }
 
 .inquiry-card-list { display: grid; min-width: 0; min-height: 0; align-content: start; gap: .62rem; padding: .45rem; }
+.inquiry-kanban-columns-1 .inquiry-card-list {
+    /* Keep sparse stages compact and cap wide layouts at six cards per row. */
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, max(235px, calc((100% - 3.1rem) / 6))), 1fr));
+    align-items: start;
+}
+.inquiry-kanban-columns-1 .inquiry-column-empty { grid-column: 1 / -1; }
 .inquiry-card {
     position: relative;
     width: 100%;
