@@ -5,7 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/presentation_asset_helpers.php';
 
-const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donations',
+const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donation',
     'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'custom' => 'Custom Links'];
 
 function shortLinkLabel(array $link): string
