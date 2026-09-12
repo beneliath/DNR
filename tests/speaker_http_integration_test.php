@@ -103,7 +103,7 @@ try {
             $input['phone'] = '020 7946 0018';
             $input['bio'] = "Updated biography\nSecond line";
             $invalidLink = $request('edit_speaker.php?id=' . $speakerId, array_replace($input, ['donation_url' => 'javascript:alert(1)']));
-            expectSpeakerHttp($invalidLink['status'] === 200 && str_contains($invalidLink['body'], 'Enter a valid Donation URL')
+            expectSpeakerHttp($invalidLink['status'] === 200 && str_contains($invalidLink['body'], 'Enter a valid Donate URL')
                 && speakerHidden($invalidLink['body'], 'website_url') === $input['website_url']
                 && str_contains($invalidLink['body'], $input['bio']), 'Invalid URLs preserve the other submitted fields.');
             $invalidPhone = $request('edit_speaker.php?id=' . $speakerId, array_replace($input, ['phone' => '123']));
