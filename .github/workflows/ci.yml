@@ -237,7 +237,7 @@ jobs:
           export DNR_INTEGRATION_TARGET=disposable
           export DNR_ENCRYPTION_TEST_PROJECT=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' "$(docker compose ps -q db)")
           python3 tests/database_encryption_runtime_test.py
-          docker compose start web backup
+          docker compose -f docker-compose.yaml -f docker-compose.dev.yaml up -d --no-build --no-deps --wait --wait-timeout 90 web backup
       - name: Exercise HTTP boundaries
         run: |
           sh tests/http_smoke_test.sh

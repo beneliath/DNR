@@ -697,8 +697,8 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "e49345a98cf570e53b83aa2b2eaedf855546bafaea53b797805470b3b48614d2",
-    "bytes": 92418,
+    "sha256": "41b3e0dfd8f5c7f89b3af1dbe110df4f8d1745313e0668fbe0e3f145b59ea328",
+    "bytes": 92548,
     "start_page": 104,
     "sections": 38,
     "attachment": "README.md"
