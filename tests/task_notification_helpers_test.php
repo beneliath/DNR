@@ -194,7 +194,7 @@ expectTaskNotificationHelper(
             'https://moed.example.test/inbound_mail.php?status=review'
         )
         && str_contains($message['html_body'], 'aria-label="ASCII art cat"')
-        && str_contains(strip_tags($message['html_body'], '<br>'), 'Genesis 49: 9, 10 ... Revelation 5:5<br>Do you see Him?')
+        && str_contains(strip_tags($message['html_body'], '<br>'), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
         && str_contains($message['html_body'], 'appointment, appointed time')
         && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/"')
         && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009"')

@@ -116,7 +116,7 @@ expectTaskNotificationsFeature(
         && str_contains($digestTemplate, '#e4f2ff')
         && str_contains($digestTemplate, '#2563eb')
         && str_contains($digestTemplate, 'aria-label="ASCII art cat"')
-        && str_contains(preg_replace('/<\/?a\b[^>]*>/', '', $digestTemplate), 'Genesis 49: 9, 10 ... Revelation 5:5<br>Do you see Him?')
+        && str_contains(preg_replace('/<\/?a\b[^>]*>/', '', $digestTemplate), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
         && str_contains($digestTemplate, 'text-align:left;white-space:pre')
         && str_contains($digestTemplate, 'opacity:0.35')
         && str_contains($digestTemplate, "dailyTaskDigestHtmlUrl('edit_task.php'")
