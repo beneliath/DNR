@@ -3930,6 +3930,26 @@ input[type="radio"] {
   font-size: var(--table-header-font-size);
 }
 
+/* Keep column labels and account names intact when other cells need to wrap. */
+.data-table thead th {
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.data-table .table-username {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+
+.data-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
 .engagement-table,
 .organization-table,
 .contact-table,

@@ -47,7 +47,7 @@ html.dark-mode .tasks-page {
     font-size: .9rem;
     font-weight: 650;
     line-height: 1.25;
-    overflow-wrap: anywhere;
+    overflow-wrap: normal;
     text-overflow: clip;
     white-space: normal;
 }
@@ -57,6 +57,12 @@ html.dark-mode .tasks-page {
     font-variant-numeric: tabular-nums;
     font-weight: 700;
     line-height: 1;
+}
+
+@media (min-width: 1001px) and (max-width: 1200px) {
+    .tasks-page .task-summary-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
 }
 
 .tasks-body .app-footer {

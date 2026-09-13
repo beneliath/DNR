@@ -128,7 +128,7 @@ try {
                     <tbody>
                     <?php foreach ($links as $link): ?>
                         <tr>
-                            <td>@<?php echo htmlspecialchars((string) $link['mattermost_username'], ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><span class="table-username">@<?php echo htmlspecialchars((string) $link['mattermost_username'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                             <td><?php echo htmlspecialchars((string) $link['instance_id'], ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo htmlspecialchars(applicationTimestampLabel($link['linked_at']), ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo $link['last_used_at'] ? htmlspecialchars(applicationTimestampLabel($link['last_used_at']), ENT_QUOTES, 'UTF-8') : 'Never'; ?></td>

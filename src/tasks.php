@@ -406,6 +406,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
     </div>
 
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
+    <div class="data-table-scroll">
     <table class="task-table data-table">
         <thead><tr><th>Due</th><th>Task</th><th>Related record</th><th>Owner</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
@@ -449,7 +450,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     <?php if ($task['status'] === 'waiting' && !empty($task['waiting_on'])): ?><small class="task-waiting-on">Waiting on: <?php echo htmlspecialchars($task['waiting_on'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
                 <td><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a><small><?php echo htmlspecialchars(ucfirst($subject['type']), ENT_QUOTES, 'UTF-8'); ?></small></td>
-                <td><?php echo htmlspecialchars($task['assignee_username'] ?: 'Unassigned', ENT_QUOTES, 'UTF-8'); ?></td>
+                <td><span class="table-username"><?php echo htmlspecialchars($task['assignee_username'] ?: 'Unassigned', ENT_QUOTES, 'UTF-8'); ?></span></td>
                 <td><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($status_labels[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></td>
                 <td>
                     <?php if ($can_manage_tasks): ?>
@@ -474,6 +475,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
 </main>

@@ -365,6 +365,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
         <p class="result-context">Showing engagements matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
+    <div class="data-table-scroll">
     <table class="engagement-table data-table">
         <thead>
             <tr>
@@ -444,6 +445,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'engagements', 'Engagement pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
