@@ -102,7 +102,7 @@ function smtpFakeRelayRun($server, string $scenario): array
             return $result;
         }
 
-        if ($scenario === 'html') {
+        if (in_array($scenario, ['html', 'recipient-headers'], true)) {
             $result['message_data'] = smtpFakeRelayEnvelope($first, true);
             $result['messages']++;
             smtpFakeRelayExpect($first, 'QUIT');
@@ -258,7 +258,9 @@ function runSmtpSessionScenario(string $scenario): ?array
             '',
             $scenario === 'html'
                 ? '<!doctype html><html><body><p>Rich message body.</p></body></html>'
-                : null
+                : null,
+            visibleRecipients: $scenario === 'recipient-headers'
+                ? ['to' => ['primary@example.test'], 'cc' => ['copy@example.test']] : null
         );
         if (in_array($scenario, ['reuse', 'pre-data-reconnect'], true)) {
             deliverApplicationEmailWithSession(
@@ -313,6 +315,15 @@ expectSmtpSessionProtocol(
         && $reuse['quits'] === 1,
     'a healthy session should carry two envelopes and emit only one QUIT even when close is repeated.'
 );
+
+$typed = runSmtpSessionScenario('recipient-headers');
+$typedData = $typed['message_data'] ?? '';
+expectSmtpSessionProtocol($typed !== null && $typed['child_status'] === 0
+    && $typed['client_error'] === null && $typed['messages'] === 1
+    && str_contains($typedData, 'To: <primary@example.test>')
+    && str_contains($typedData, 'Cc: <copy@example.test>')
+    && !str_contains($typedData, 'recipient@example.test') && !str_contains($typedData, 'Bcc:'),
+    'Bcc delivery should use its own SMTP envelope with only To and Cc in message headers.');
 
 $html = runSmtpSessionScenario('html');
 $htmlMessage = is_array($html) && is_string($html['message_data'] ?? null)

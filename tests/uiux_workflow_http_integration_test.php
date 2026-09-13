@@ -10,6 +10,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/config.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/functions.php';
 require_once $sourceDirectory . '/financial_report_helpers.php';
 
@@ -64,6 +65,7 @@ try {
     expectUiuxHttp($login['status'] === 200, 'Login form should render');
     $login = $request('login.php', ['csrf_token' => uiuxHidden($login['body'], 'csrf_token'),
         'username' => $username, 'password' => $password]);
+        $login = finishIntegrationTestEnrollment($request, $login);
     expectUiuxHttp($login['status'] === 302 && str_contains($login['headers'], 'dashboard.php'),
         'Editor login should authenticate against the disposable fixture database');
 

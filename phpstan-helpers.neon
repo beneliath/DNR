@@ -11,6 +11,8 @@ parameters:
         - src/contact_photo_helpers.php
         - src/contact_organization_helpers.php
         - src/database_backup_helpers.php
+        - src/database_backup_client.php
+        - src/database_backup_service.php
         - src/deployment_notice_helpers.php
         - src/dashboard_helpers.php
         - src/daily_digest_email.php

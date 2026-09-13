@@ -220,8 +220,10 @@ from the Engagement's assigned Primary host, On-site contact, Billing, Travel, a
 plus speakers assigned to its active presentations. Speakers are optional and unchecked by default;
 select their recipient cards or use the Speaker shortcut to include them. Each speaker appears once,
 even when assigned to multiple presentations, and can also receive a message without any event contacts.
-Every unique address receives an independent delivery so recipients are never disclosed to one
-another. The authoritative Engagement marker is appended to the subject automatically, allowing a
+Choose To, Cc, or Bcc for each selected recipient, and optionally Cc or Bcc the signed-in
+user’s account email. To and Cc addresses are visible in the email headers; Bcc addresses are hidden.
+Every unique address receives an independent delivery, and conflicting types for a shared address
+must be resolved before queuing. Saved recipient types and headers are preserved on retries. The authoritative Engagement marker is appended to the subject automatically, allowing a
 reply that preserves the subject to return through the normal inbound-mail routing workflow when
 `DNR_INBOUND_ADDRESS` is configured. In that mode, tracked Engagement messages set the shared
 inbound mailbox as their `Reply-To` address; other application email keeps the ordinary sender.
@@ -627,7 +629,7 @@ Configure these values as needed:
 - `PORT`: published HTTP port; defaults to `8080`.
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
 - `DNR_DEV_BIND_ADDRESS` and `DNR_DEV_ALLOW_REMOTE_HTTP`: separate development-mode publish controls. Development ignores `DNR_BIND_ADDRESS`, binds to `127.0.0.1` by default, and refuses a non-loopback address unless the plaintext remote-access opt-in is exactly `1`.
-- `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The authenticated export path uses the read-only full-schema backup identity; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
+- `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The isolated `backup` service uses the read-only full-schema backup identity after independently checking the administrator’s current role, password, and fresh 2FA or recovery code; the everyday `web` service has no backup credential; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
 - `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
 - `DNR_MATTERMOST_TOKEN_SECRET_FILE` and `DNR_MATTERMOST_INSTANCE_ID`: host path to the shared Mattermost plugin token and stable identifier for the authorized Mattermost server. They are mounted only when a `*-mattermost` Compose mode is selected. See `docs/mattermost-plugin.md`.
@@ -665,7 +667,7 @@ Configure these values as needed:
 - `DNR_GEOCODER_BATCH_SIZE`, `DNR_GEOCODER_IDLE_SECONDS`, `DNR_GEOCODER_LEASE_SECONDS`, and `DNR_GEOCODER_MAX_ATTEMPTS`: bounded worker throughput, polling, stale-job lease, and retry policy.
 - `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: optional overrides for the bounded map window and result cap normally read from YAML.
 - `DNR_MAP_TILE_URL`, `DNR_MAP_ATTRIBUTION_TEXT`, `DNR_MAP_ATTRIBUTION_URL`, and `DNR_MAP_MAXIMUM_ZOOM`: optional overrides for the validated map provider. The tile origin is also used to construct the page's Content Security Policy.
-- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the separate read-only export connection. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
+- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the isolated exporter’s read-only connection. Keep them out of the everyday web process. Non-Compose web deployments must set `DNR_BACKUP_SERVICE_URL` to their private exporter endpoint; do not publish that service on the Internet. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
 
 ### Build provenance
 
@@ -738,6 +740,16 @@ migration and public readiness; it uses CI-qualified digests with rebuilding dis
 an explicit recovery record. `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR` and
 `DNR_S1_PUBLIC_BASE_URL` can override the deployment user, host, project directory, and public URL.
 
+### Database encryption at rest
+
+The Compose database image loads MySQL’s `component_keyring_file` before InnoDB starts. Application tables (including full-text indexes), the `mysql` system tablespace, redo and undo logs, and new binary/relay logs use native encryption. The migrator encrypts existing application tables, sets the schema encryption default, and blocks startup if verification fails. New tables inherit encryption; the everyday application account cannot disable it. Temporary query tables/files use memory-backed `/tmp`.
+
+The persistent `db_keyring` volume is separate from `db_data`, readable only by MySQL, and never mounted in application containers. Preserve it across container recreation and back up its contents separately with encryption and restricted access. Never delete, replace, or regenerate a keyring for an existing encrypted database. Physical recovery needs the original keys; verified logical backups can be restored into a fresh encrypted database with a new keyring. The existing deployment backup performs a logical restore check using the database image, including its keyring initialization.
+
+Before the first conversion, create and restore-verify a fresh encrypted backup, pause all application writers (including `backup`), and allow time and disk space for table rebuilds. Start the new database image, run the migrator, then verify encryption and restart the application. Retained binary logs created **before** encryption remain plaintext until retired; inspect `SHOW BINARY LOGS` and securely archive them before purging, preserving any replication or recovery dependencies. Never downgrade MySQL or delete its volume as an upgrade rollback.
+
+This protects database files taken without their keys. It does not prevent a running application, an authorized database connection, or an attacker with host/root access and the local keyring from reading data. It also does not encrypt the entire host filesystem or database network traffic. Protect physical snapshots together with separately controlled keys; stronger protection from host compromise requires an external key-management system or encrypted storage with independent key custody.
+
 ### Two-factor authentication
 
 Recovery-email changes are separate from ordinary profile edits. They require the current password and a fresh authenticator code when enabled. The old verified address remains active until the new address is verified, an old-address notice is queued, and successful promotion revokes existing sessions.
@@ -746,7 +758,7 @@ Recovery-email changes are separate from ordinary profile edits. They require th
 - A successful code cannot be reused.
 - Five failed password or second-factor attempts temporarily lock that factor for 15 minutes.
 - Recovery codes are single-use. DNR stores only a keyed HMAC lookup value, never the code itself.
-- Administrators are required to use 2FA and cannot disable it themselves.
+- Every account type (Administrator, Editor, and Reviewer) must use 2FA. Accounts without it are guided through authenticator setup after their next successful password login or invitation acceptance, before accessing application data. Existing password-only sessions must sign in again. Users cannot disable 2FA; an administrator can reset another user’s factor, requiring enrollment at the next login.
 - Administrators can use **Preview access** in the sidebar to navigate with Editor or Reviewer permissions. A persistent banner identifies the active preview and returns the session to Administrator access; actions taken during a preview still affect live data under the administrator's identity.
 - An administrator can reset another user's 2FA from **Manage Users**. Resetting or replacing a factor invalidates that user's other sessions.
 - An administrator can set a temporary password for another user from **Manage Users**. The control appears only during a five-minute sensitive-action window opened with the administrator's password plus a fresh authenticator or recovery code. The route rechecks that elevation, invalidates the target user's sessions, and forces the target to choose a private password after login.

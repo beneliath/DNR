@@ -34,6 +34,11 @@ $context = $stmt->get_result()->fetch_assoc();
 if (!$context) { http_response_code(404); exit('Engagement or presentation not found.'); }
 try {
     $links = fetchPresentationQrPdfLinks($conn, (int) $context['engagement_id'], $presentationId);
+    try {
+        $links = selectPresentationQrPdfLinks($links, $_GET);
+    } catch (InvalidArgumentException $exception) {
+        http_response_code(400); exit($exception->getMessage());
+    }
     $contents = renderPresentationQrPdf($context, $links);
 } catch (Throwable $exception) {
     applicationLog('error', 'Unable to render presentation QR PDF', ['error' => $exception->getMessage()]);

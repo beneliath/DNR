@@ -8,6 +8,22 @@
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
 
+.standard-task-generation-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+}
+
+.standard-task-generation-option input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin-top: 4px;
+}
+
+.standard-task-generation .field-help {
+    margin-top: 10px;
+}
+
 .add-standard-task-body .app-footer {
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);

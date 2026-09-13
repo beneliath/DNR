@@ -154,6 +154,59 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 12%, transparent);
 }
 
+.recipient-selection {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    gap: 11px;
+    cursor: pointer;
+}
+
+.recipient-type {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 5px;
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+}
+
+.recipient-type select {
+    width: auto;
+    min-width: 85px;
+    margin: 0;
+    padding: 8px 30px 8px 10px;
+    color: var(--text);
+    background-color: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+}
+
+.recipient-self-copy {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+}
+
+@media (max-width: 480px) {
+    .recipient-option {
+        flex-wrap: wrap;
+    }
+
+    .recipient-selection {
+        flex-basis: 100%;
+    }
+
+    .recipient-option .recipient-type {
+        margin-left: 27px;
+    }
+}
+
 .recipient-option.is-unavailable {
     cursor: not-allowed;
     opacity: 0.58;

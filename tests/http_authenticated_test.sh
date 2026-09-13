@@ -86,6 +86,15 @@ login_password() {
         --data-urlencode "password=$fixture_password" \
         "$base_url/login.php")
     expect_status "$status" '302' "$role password login"
+    if [ "$expected_location" = 'dashboard.php' ]; then
+        expect_location "$login_headers" 'verify_2fa.php' "$role second factor required"
+        curl -fsS -b "$cookie_jar" -c "$cookie_jar" -o "$login_page" "$base_url/verify_2fa.php"
+        csrf_token=$(csrf_from "$login_page")
+        status=$(curl -sS -b "$cookie_jar" -c "$cookie_jar" -D "$login_headers" -o /dev/null -w '%{http_code}' \
+            --data-urlencode "csrf_token=$csrf_token" --data-urlencode "authentication_code=$login_recovery_code" \
+            "$base_url/verify_2fa.php")
+        expect_status "$status" '302' "$role second-factor login"
+    fi
     expect_location "$login_headers" "$expected_location" "$role password login"
 }
 

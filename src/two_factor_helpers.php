@@ -44,7 +44,8 @@ function requireTwoFactorSchema(mysqli $conn) {
 }
 
 function twoFactorRequiredForRole($role) {
-    return $role === 'admin';
+    // Keep a single policy for existing and future account types.
+    return true;
 }
 
 function twoFactorEncryptionKey() {

@@ -7,6 +7,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $source . '/short_link_helpers.php';
 require_once $source . '/two_factor_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080', '/');
@@ -90,6 +91,7 @@ try {
         startSecureSession();
         $_SESSION = ['user_id' => $userId, 'username' => $name, 'role' => $role, 'authenticated_role' => $role,
             'auth_version' => 1, 'auth_complete' => true, '_csrf_token' => bin2hex(random_bytes(32))];
+        completeIntegrationTestMfaSession();
         $csrf = $_SESSION['_csrf_token'];
         $sessionIds[] = session_id();
         $cookie = session_name() . '=' . session_id();
@@ -105,12 +107,12 @@ try {
         expectStatsReset($gate['status'] === 302 && str_contains($gate['headers'], 'Location: admin_elevation.php?') && $targetVisits() === 28, 'An admin session alone must not reset statistics');
         $elevationPost = ['csrf_token' => $csrf, 'return' => $path, 'admin_password' => $password, 'admin_code' => ''];
         $noMfa = $request('admin_elevation.php', $elevationPost, $cookie);
-        expectStatsReset($noMfa['status'] === 200 && str_contains($noMfa['body'], 'was not accepted'), 'Admins without configured 2FA cannot unlock');
+        expectStatsReset($noMfa['status'] === 200 && str_contains($noMfa['body'], 'was not accepted'), 'Admins without a fresh second factor cannot unlock');
         $secret = generateTotpSecret();
-        enableTwoFactorForUser($conn, $userId, $secret, 0, 1);
+        enableTwoFactorForUser($conn, $userId, $secret, 0, (int) fetchAuthenticationUserById($conn, $userId)['auth_version']);
         session_id(explode('=', $cookie, 2)[1]);
         startSecureSession();
-        $_SESSION['auth_version'] = 2;
+        $_SESSION['auth_version'] = (int) fetchAuthenticationUserById($conn, $userId)['auth_version'];
         session_write_close();
         $badPassword = $request('admin_elevation.php', array_replace($elevationPost, ['admin_password' => 'wrong', 'admin_code' => createTotp($secret, $name)->now()]), $cookie);
         expectStatsReset(str_contains($badPassword['body'], 'was not accepted') && $targetVisits() === 28, 'Wrong passwords cannot authorize a reset');

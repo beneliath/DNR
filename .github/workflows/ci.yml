@@ -231,6 +231,13 @@ jobs:
           DNR_INTEGRATION_TARGET=disposable \
           DNR_MIGRATION_TEST_CONTAINER=$(docker compose ps -q db) \
             python3 tests/speaker_notes_migration_test.py
+      - name: Verify database encryption conversion and restart
+        run: |
+          docker compose stop web backup
+          export DNR_INTEGRATION_TARGET=disposable
+          export DNR_ENCRYPTION_TEST_PROJECT=$(docker inspect --format '{{ index .Config.Labels "com.docker.compose.project" }}' "$(docker compose ps -q db)")
+          python3 tests/database_encryption_runtime_test.py
+          docker compose start web backup
       - name: Exercise HTTP boundaries
         run: |
           sh tests/http_smoke_test.sh
@@ -298,7 +305,7 @@ jobs:
           python3 tests/http_connection_capacity_test.py
           sh tests/http_authenticated_test.sh
           docker compose exec -T web php /opt/dnr/bin/backfill_short_link_qr.php
-          for suite in account_security inbound_email user_lifecycle booking_inquiry; do
+          for suite in mandatory_two_factor_http account_security inbound_email user_lifecycle booking_inquiry; do
             docker compose exec -T -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/tests/${suite}_integration_test.php"
           done
           docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.ci-image.yaml \
@@ -310,7 +317,7 @@ jobs:
             web /opt/dnr/tests/inbound_worker_filing_integration_test.php
       - name: Rehearse the deployment backup and restore gate
         run: |
-          docker compose stop web geocoder
+          docker compose stop web backup geocoder
           export DNR_INTEGRATION_TARGET=disposable
           export DNR_DEPLOYMENT_BACKUP_CONTAINER=$(docker compose ps -q db)
           export DNR_DEPLOYMENT_BACKUP_APP_IMAGE=$(cat release/app.digest)

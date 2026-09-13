@@ -5,6 +5,20 @@ if (PHP_SAPI !== 'cli') {
 }
 
 require_once '/var/www/html/config.php';
+require_once '/var/www/html/two_factor_helpers.php';
+
+try {
+    twoFactorEncryptionKey();
+    if (getenv('DNR_REQUIRE_DATABASE_ENCRYPTION') === '1') {
+        $encrypted = $conn->query("SELECT @@default_table_encryption AND @@innodb_redo_log_encrypt
+            AND @@innodb_undo_log_encrypt AND @@binlog_encryption AND @@table_encryption_privilege_check")->fetch_row()[0];
+        $schema = $conn->query("SELECT DEFAULT_ENCRYPTION FROM information_schema.schemata WHERE SCHEMA_NAME=DATABASE()")->fetch_row()[0];
+        if ((int) $encrypted !== 1 || $schema !== 'YES') throw new RuntimeException('Database encryption is disabled.');
+    }
+} catch (Throwable $exception) {
+    fwrite(STDERR, "Required database encryption or two-factor encryption key is unavailable.\n");
+    exit(1);
+}
 
 try {
     \Dnr\Security\InboundRoutingKey::bytes();

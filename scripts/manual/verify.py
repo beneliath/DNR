@@ -67,6 +67,11 @@ assert reader.attachments['README.md']==[readme], 'Embedded README differs from 
 assert report['readme_appendix']['sha256']==hashlib.sha256(readme).hexdigest()
 spec=importlib.util.spec_from_file_location('manual_build',ROOT/'scripts/manual/build.py')
 manual=importlib.util.module_from_spec(spec);spec.loader.exec_module(manual)
+assert report['version']==manual.VERSION, 'Guide version differs from the release'
+assert report['edition_date']==manual.EDITION_DATE, 'Guide edition date differs from the source'
+assert f'Application source {manual.VERSION}' in texts[0], 'Cover release version is stale'
+assert manual.EDITION_DATE in texts[0], 'Cover edition date is stale'
+assert manual.VERSION in reader.metadata.subject and manual.EDITION_DATE in reader.metadata.subject, 'PDF metadata is stale'
 appendix_text='\n'.join(t.split('\nMOED\n')[0] for t in texts[report['readme_appendix']['start_page']-1:])
 compact=lambda s:re.sub(r'[\s\u0590-\u05ff]+','',manual.clean(s))
 searchable=compact(appendix_text)
@@ -111,5 +116,6 @@ assert 'Administrator' in texts[report['full_width_blocks'][0]['page']-1]
 result={'pages':len(pages),'screenshots':len(shots),'internal_links':links,'bookmarks':outline_count,'chapter_targets':'13/13 valid','walkthrough_layout':'all screenshots, captions, and steps remain on one page','external_pdf_actions':0,'readme_appendix':{'sections':len(manual.README_HEADINGS),'text_fragments_verified':fragments,'attachment_bytes':len(readme),'attachment_matches_current_source':True,'sha256':hashlib.sha256(readme).hexdigest()}}
 result['format']={'reference_text':'two columns','walkthrough_instructions':'two columns below spanning screenshots','readme_reverse_pages':reverse_pages,'readme_colors':'white text on black','cover_logo':'native SVG paths; no raster image or white backdrop','column_gutters':'clear'}
 result['format'].update({'full_width_reference_blocks':len(report['full_width_blocks']),'automatic_word_breaks':0})
+result['release']={'version':manual.VERSION,'edition_date':manual.EDITION_DATE,'cover_and_metadata':'verified'}
 (ROOT/'docs/user-manual/verification.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))

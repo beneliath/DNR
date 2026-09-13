@@ -233,4 +233,44 @@ foreach ([null, '1', [['1']], ['0'], ['1.5'], range(1, 26)] as $invalidIds) {
     }
 }
 
+$sender = ['email' => 'self@example.test', 'first_name' => 'Morgan', 'last_name' => 'Sender'];
+$typed = engagementEmailResolveRecipients($contacts, [1], $speakers, [1],
+    ['contact:1' => 'to', 'speaker:1' => 'cc'], $sender, 'bcc');
+expectEngagementEmailHelper(
+    array_column($typed['deliveries'], 'recipient_type') === ['to', 'cc', 'bcc']
+        && $typed['deliveries'][2]['recipient_email'] === 'self@example.test'
+        && engagementEmailVisibleRecipients($typed['deliveries']) === [
+            'to' => ['shared@example.test'], 'cc' => ['speaker@example.test'],
+        ],
+    'To and Cc should be visible, while the authenticated sender Bcc stays out of headers.'
+);
+expectEngagementEmailHelper(engagementEmailVisibleRecipients($withSpeaker['deliveries']) === null,
+    'legacy private deliveries should not acquire shared headers.');
+$sender['email'] = 'SHARED@example.test';
+$deduped = engagementEmailResolveRecipients($contacts, [1, 2], $speakers, [2],
+    ['contact:1' => 'bcc', 'contact:2' => 'bcc', 'speaker:2' => 'bcc'], $sender, 'bcc');
+expectEngagementEmailHelper(count($deduped['deliveries']) === 1
+    && engagementEmailVisibleRecipients($deduped['deliveries']) === ['to' => [], 'cc' => []],
+    'matching contact, speaker, and sender addresses should receive exactly one hidden copy.');
+foreach ([
+    fn() => engagementEmailResolveRecipients($contacts, [1, 2], [], [], ['contact:2' => 'bcc']),
+    fn() => engagementEmailResolveRecipients($contacts, [1], $speakers, [2], ['speaker:2' => 'cc']),
+    fn() => engagementEmailResolveRecipients($contacts, [1], [], [], [], $sender, 'bcc'),
+    fn() => engagementEmailResolveRecipients([], [], [], [], [], ['email' => 'invalid'], 'cc'),
+    fn() => normalizeEngagementEmailRecipientTypes('bcc'),
+    fn() => normalizeEngagementEmailRecipientTypes(['contact:1' => ['bcc']]),
+    fn() => normalizeEngagementEmailRecipientTypes(['contact:1' => 'private']),
+    fn() => normalizeEngagementEmailSenderCopy('to'),
+] as $invalid) {
+    try {
+        $invalid();
+        expectEngagementEmailHelper(false, 'invalid or conflicting recipient types should be rejected.');
+    } catch (InvalidArgumentException) {
+        // Expected.
+    }
+}
+$typedChron = engagementEmailChronText(1, array_merge($typed['contacts'], $typed['speakers'], $typed['senders']), 'Subject', 'Body');
+expectEngagementEmailHelper(str_contains($typedChron, 'Cc: Casey Speaker')
+    && str_contains($typedChron, 'Bcc: Morgan Sender'), 'saved correspondence should identify copy recipients.');
+
 echo "Engagement email helper tests passed.\n";

@@ -117,5 +117,28 @@ Genesis 49:9, 10   <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
     </div>
 </dialog>
 
+<dialog id="presentation-qr-pdf-dialog" class="confirmation-dialog qr-pdf-dialog" aria-labelledby="presentation-qr-pdf-title" aria-describedby="presentation-qr-pdf-message presentation-qr-pdf-context">
+    <form id="presentation-qr-pdf-form" action="presentation_qr_pdf_view.php" method="get" target="_blank" rel="noopener">
+        <h2 id="presentation-qr-pdf-title">Select QR Codes</h2>
+        <p id="presentation-qr-pdf-message" class="dialog-supporting-text">Choose one or more QR codes to include in your PDF. The PDF will open in a new tab.</p>
+        <p id="presentation-qr-pdf-context" class="qr-pdf-context"></p>
+        <p id="qr-pdf-order-help" class="dialog-supporting-text">Drag any code by its handle to reorder, or focus a handle and use the Up and Down arrow keys. Checked codes appear in that order in the PDF.</p>
+        <input type="hidden" name="presentation_id" id="qr-pdf-presentation-id">
+        <input type="hidden" name="qr_selection" value="1">
+        <div class="qr-pdf-selection-bar">
+            <label class="checkbox-label"><input type="checkbox" id="qr-pdf-select-all" autofocus> Select all</label>
+            <span id="qr-pdf-selection-count" class="dialog-supporting-text" role="status" aria-live="polite"></span>
+        </div>
+        <div id="qr-pdf-options" class="qr-pdf-options" role="group" aria-label="QR codes to include"></div>
+        <span id="qr-pdf-order-status" class="visually-hidden" role="status" aria-live="polite"></span>
+        <p id="qr-pdf-empty" class="dialog-supporting-text" hidden>No QR codes are ready for this presentation yet.</p>
+        <p id="qr-pdf-error" class="dialog-inline-error" role="alert" hidden>Select at least one QR code to prepare the PDF.</p>
+        <div class="confirmation-dialog-actions">
+            <button type="button" id="cancel-qr-pdf" class="button-secondary">Cancel</button>
+            <button type="submit" id="prepare-qr-pdf" class="action-button export-button" disabled>Prepare PDF</button>
+        </div>
+    </form>
+</dialog>
+
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>

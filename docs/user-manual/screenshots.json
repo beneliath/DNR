@@ -194,15 +194,44 @@
     "chapter": 5,
     "id": "presentations",
     "title": "Presentation details and audience resources",
-    "route": "view_engagement.php?id=13",
+    "route": "view_engagement.php?id=28#presentation-30",
     "steps": [
-      "Open Presentations and review each speaker, title, schedule, duration, and attendance.",
-      "Use Copy Text, Copy MD, or View PDF for a presentation brief.",
-      "View saved speaker notes, copy a QR image, download PNG/SVG, or open the QR Codes PDF."
+      "Open Presentations and review the speaker, title, schedule, duration, and attendance.",
+      "Select Combined Presentation Statistics at the right of the pane for activity across all its codes; Statistics beneath a code opens only that code.",
+      "View saved speaker notes, copy a QR image, or download PNG/SVG. Expand Export Presentation to choose a brief or a QR Codes PDF."
     ],
     "tab": "Presentations",
     "focus": "#engagement-workspace",
-    "file": "screenshots/presentations.png"
+    "file": "screenshots/presentations.png",
+    "captured_on": "2026-09-13",
+    "crop": [
+      315,
+      0,
+      550,
+      555
+    ]
+  },
+  {
+    "chapter": 5,
+    "id": "qr-selection",
+    "title": "Select and order QR codes for a PDF",
+    "route": "view_engagement.php?id=28#presentation-30",
+    "tab": "Presentations",
+    "action": "qr-selection",
+    "steps": [
+      "Expand Export Presentation and select View QR Codes PDF. Check one or more codes, or use Select all.",
+      "Drag any row by its handle, whether checked or unchecked. Only checked codes appear in the PDF, in list order from left to right and then top to bottom.",
+      "Keyboard users can focus a handle and use Up or Down to move a code. Select Prepare PDF to open the chosen sheet in a new tab, or Cancel to close the dialog."
+    ],
+    "note": "Speaker Notes is first; Website and Bio are unchecked. Other codes continue below the visible rows.",
+    "file": "screenshots/qr-selection.png",
+    "captured_on": "2026-09-13",
+    "crop": [
+      340,
+      22,
+      570,
+      665
+    ]
   },
   {
     "chapter": 5,
@@ -248,16 +277,23 @@
   {
     "chapter": 5,
     "id": "statistics",
-    "title": "Review presentation QR activity",
-    "route": "short_links.php?engagement_id=13",
+    "title": "Review combined presentation QR activity",
+    "route": "short_links.php?presentation_id=30",
     "steps": [
-      "Select a date range and review the visits and distribution charts.",
-      "A presentation code measures its own activity; the speaker view combines that speaker's presentations.",
-      "Open a single link to change its destination or enable/disable it. Administrators reset all statistics for a presentation from that presentation's card."
+      "Open Combined Presentation Statistics from the presentation pane. Totals combine its QR codes, including historical visits to disabled and previous-speaker codes.",
+      "Choose a UTC date range. Hover or tap the charts, or expand the data tables for exact daily, referrer, browser, country, and operating system counts.",
+      "Clear Filters stays within the presentation. Back to Presentation returns to its pane. A person opening multiple codes contributes multiple visits."
     ],
     "focus": ".short-link-report",
     "note": "The chart uses fictional, seeded visit counts to illustrate the report.",
-    "file": "screenshots/statistics.png"
+    "file": "screenshots/statistics.png",
+    "captured_on": "2026-09-13",
+    "crop": [
+      285,
+      80,
+      930,
+      580
+    ]
   },
   {
     "chapter": 5,
@@ -532,15 +568,25 @@
   {
     "chapter": 7,
     "id": "standard-form",
-    "title": "Define a standard event task",
+    "title": "Schedule a standard task for existing engagements",
     "route": "add_standard_task.php",
     "steps": [
-      "Enter the reusable title and notes.",
-      "Choose the date anchor and number of days before or after it.",
-      "Set priority and display order, then save.",
-      "Add Missing Checklist Tasks on an active engagement creates absent items assigned to the person performing that action."
+      "Enter the reusable title and notes above the Scheduling section. Choose priority, date anchor, day offset, and display order.",
+      "Administrators can check Also add this task to all active, open engagements before Add standard task. Editors can maintain definitions but cannot use bulk generation.",
+      "This adds the task to unarchived engagements with an Active lifecycle and open financial closeout. Copies use the date rule and go to the active Caller, or to the administrator if none is assigned.",
+      "On a saved definition, administrators can use Add to Active, Open Engagements. Existing copies, including completed or canceled tasks, are kept without duplication."
     ],
-    "file": "screenshots/standard-form.png"
+    "file": "screenshots/standard-form.png",
+    "note": "The option is selected for illustration; the form was not submitted.",
+    "captured_on": "2026-09-13",
+    "action": "standard-generation",
+    "focus": ".form-section:has(#standard-task-priority)",
+    "crop": [
+      285,
+      35,
+      930,
+      650
+    ]
   },
   {
     "chapter": 8,
@@ -558,22 +604,23 @@
   {
     "chapter": 8,
     "id": "email",
-    "title": "Choose event recipients and a template",
-    "route": "compose_engagement_email.php?id=1",
+    "title": "Choose To, Cc, Bcc, and a self-copy",
+    "route": "compose_engagement_email.php?id=28",
     "steps": [
-      "Choose an active template or Custom message. Review event fields after they are filled.",
-      "Select event contacts, then use Speaker or an individual speaker card to include an assigned speaker. Speakers are unchecked by default.",
-      "Only speakers assigned to active presentations with valid email addresses can receive mail. Speaker-only messages are allowed.",
-      "Each unique address receives one separate email. Changing templates preserves selected speakers. Review the message and brief before Queue Email."
+      "Choose an active template or Custom message, then select assigned contacts and optional speakers. Changing templates preserves selected speakers.",
+      "Choose To, Cc, or Bcc on each selected recipient card. To and Cc addresses are visible to all recipients; Bcc addresses stay hidden.",
+      "Under Send yourself a copy, choose Cc me or Bcc me for your account email. Matching addresses receive one copy and must use the same recipient type.",
+      "Review the subject, message, and optional brief before Queue Email. Check Correspondence for the delivery result."
     ],
-    "note": "This example selects Casey Speaker explicitly. No email was queued during capture.",
+    "note": "Fictional recipients demonstrate To, Cc, Bcc, and Bcc me. No email was queued during capture.",
     "file": "screenshots/email.png",
-    "captured_on": "2026-09-10",
+    "captured_on": "2026-09-13",
+    "action": "email-recipients",
     "crop": [
-      260,
-      0,
-      1087,
-      924
+      285,
+      20,
+      930,
+      570
     ]
   },
   {
@@ -691,7 +738,7 @@
     "title": "Manage account security",
     "route": "two_factor_settings.php",
     "steps": [
-      "Enroll or replace the authenticator as needed. Administrators must use 2FA.",
+      "Every account type must use 2FA. Accounts without it enroll at their next successful password login. Replace the authenticator from Account Security when needed.",
       "Change your password with the current password and required factor.",
       "Generate fresh recovery codes when needed; save them securely because each works once.",
       "Administrator resets and password changes can invalidate other sessions."
@@ -833,8 +880,8 @@
     "route": "view_engagement.php?id=13",
     "steps": [
       "In Presentations, expand Export Presentation at the bottom of the card.",
-      "Copy Text produces plain text; Copy MD produces Markdown.",
-      "View PDF opens the branded presentation brief. View QR Codes PDF opens the landscape resource sheet for viewing, saving, or printing."
+      "Copy Text produces plain text; Copy MD produces Markdown. View PDF opens the branded presentation brief.",
+      "View QR Codes PDF opens a selection dialog. Choose and order the codes, then select Prepare PDF to view, save, or print the landscape sheet."
     ],
     "tab": "Presentations",
     "action": "exports",
@@ -945,7 +992,7 @@
     "route": "login.php",
     "steps": [
       "Enter the username and your private password.",
-      "Complete the authenticator or recovery-code challenge if your account uses 2FA.",
+      "Complete the required authenticator or recovery-code challenge. If your account is not enrolled yet, complete authenticator setup before accessing the application.",
       "If prompted to change a temporary password or enroll an authenticator, complete that step before continuing.",
       "Use the account menu to sign out when finished."
     ],

@@ -5,7 +5,7 @@
     <button type="button" class="action-button export-button" data-copy-format="text">Copy Text</button>
     <button type="button" class="action-button export-button" data-copy-format="markdown">Copy MD</button>
     <a href="presentation_pdf_view.php?presentation_id=<?php echo (int) $presentation['id']; ?>" class="action-button export-button" target="_blank" rel="noopener">View PDF</a>
-    <a href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $presentation['id']; ?>" class="action-button export-button" target="_blank" rel="noopener">View QR Codes PDF</a>
+    <a href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $presentation['id']; ?>" class="action-button export-button" data-qr-pdf-presentation-id="<?php echo (int) $presentation['id']; ?>" aria-haspopup="dialog" aria-controls="presentation-qr-pdf-dialog" target="_blank" rel="noopener">View QR Codes PDF</a>
     <span class="visually-hidden" data-presentation-copy-status role="status" aria-live="polite"></span>
     <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" data-presentation-export-data><?php echo json_encode([
         'text' => renderEngagementPlainText($presentation_export),

@@ -26,19 +26,32 @@ $standard_task_form_values = [
     'due_anchor' => 'event_start',
     'due_offset_days' => 0,
     'sort_order' => $suggested_sort_order,
+    'generate_existing_engagements' => '',
 ];
 $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])) {
     requireValidCsrfToken();
+    $generate_existing = ($_POST['generate_existing_engagements'] ?? '') === '1';
+    if ($generate_existing && $user_role !== 'admin') {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
     $standard_task_form_values = array_merge($standard_task_form_values, $_POST);
     try {
         $created_by = (int) $_SESSION['user_id'];
+        $conn->begin_transaction();
         $template_id = createStandardEventTask($conn, $_POST, $created_by);
-        $_SESSION['standard_task_action_message'] = 'Standard task added. It will be included automatically when new events are created.';
+        $generated_count = $generate_existing
+            ? generateStandardTaskForOpenEngagements($conn, $template_id, $created_by, false)
+            : 0;
+        $conn->commit();
+        $_SESSION['standard_task_action_message'] = 'Standard task added. It will be included automatically when new events are created.'
+            . ($generate_existing ? ' ' . standardTaskGenerationMessage($generated_count) : '');
         header('Location: view_standard_task.php?id=' . $template_id);
         exit();
     } catch (Throwable $exception) {
+        $conn->rollback();
         $error_message = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
             : 'Unable to save the standard task. Please try again.';
@@ -48,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
 $standard_task_form_action = 'add_standard_task.php';
 $standard_task_form_cancel_url = 'standard_tasks.php';
 $standard_task_form_submit_label = 'Add standard task';
+$standard_task_form_allow_generation = $user_role === 'admin';
 ?>
 <!DOCTYPE html>
 <html lang="en">

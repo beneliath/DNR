@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 
-function composerHarness() {
+function composerHarness(withSender = false) {
     const element = (properties = {}) => ({
         listeners: {},
         addEventListener(event, handler) { this.listeners[event] = handler; },
@@ -16,6 +16,7 @@ function composerHarness() {
         recipient('speaker'), recipient('speaker', true), recipient('primary_host', true)];
     const template = element({ value: 'travel_lodging' });
     const count = element();
+    const senderCopy = withSender ? element({ value: '', disabled: false }) : undefined;
     const all = element();
     const clear = element();
     const speaker = element({ dataset: { selectRecipientRole: 'speaker' } });
@@ -24,7 +25,7 @@ function composerHarness() {
     const body = element();
     const controls = { '[data-email-template]': template, '[data-email-subject]': subject,
         '[data-email-body]': body, '[data-recipient-count]': count,
-        '[data-select-all-recipients]': all, '[data-clear-recipients]': clear };
+        '[data-email-sender-copy]': senderCopy, '[data-select-all-recipients]': all, '[data-clear-recipients]': clear };
     const form = {
         querySelector: selector => controls[selector],
         querySelectorAll: selector => selector === '[data-email-recipient]' ? recipients : [speaker, host],
@@ -36,7 +37,7 @@ function composerHarness() {
             travel_lodging: { subject: 'Travel details', body: 'Please confirm', suggested_roles: ['travel'] },
         }) }) },
     });
-    return { recipients, template, count, all, clear, speaker, host, subject, body };
+    return { recipients, template, count, all, clear, speaker, host, subject, body, senderCopy };
 }
 
 test('speakers are optional and shortcuts count only available recipients', () => {
@@ -81,4 +82,21 @@ test('templates without suggestions clear contact selections and custom preserve
     form.template.listeners.change();
     assert.deepEqual(form.recipients.map(item => item.checked), [false, false, true, false, false]);
     assert.equal(form.count.textContent, '1 recipient selected.');
+});
+
+
+test('sender copies count, survive template changes, and clear with recipients', () => {
+    const form = composerHarness(true);
+    form.senderCopy.value = 'bcc';
+    form.senderCopy.listeners.change();
+    assert.equal(form.count.textContent, '2 recipients selected.');
+    form.template.listeners.change();
+    assert.equal(form.senderCopy.value, 'bcc');
+    assert.equal(form.count.textContent, '2 recipients selected.');
+    form.senderCopy.disabled = true;
+    form.senderCopy.listeners.change();
+    assert.equal(form.count.textContent, '1 recipient selected.');
+    form.clear.listeners.click();
+    assert.equal(form.senderCopy.value, '');
+    assert.equal(form.count.textContent, '0 recipients selected.');
 });

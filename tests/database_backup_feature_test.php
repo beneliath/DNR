@@ -9,6 +9,9 @@ function expectDatabaseBackupFeature($condition, $message) {
 
 $root = dirname(__DIR__);
 $page = file_get_contents($root . '/src/database_maintenance.php');
+$exporter = file_get_contents($root . '/src/database_backup_service.php');
+$endpoint = file_get_contents($root . '/scripts/backup_endpoint.php');
+$client = file_get_contents($root . '/src/database_backup_client.php');
 $helpers = file_get_contents($root . '/src/database_backup_helpers.php');
 $header = file_get_contents($root . '/src/templates/header.php');
 $login = file_get_contents($root . '/src/login.php');
@@ -22,20 +25,22 @@ $styles = file_get_contents($root . '/src/assets/css/pages/database_maintenance.
 expectDatabaseBackupFeature(
     str_contains($page, 'requireAdmin();')
         && str_contains($page, 'requireValidCsrfToken();')
-        && str_contains($page, 'PasswordPolicy::verify')
-        && str_contains($page, 'verifyAndConsumeTotp')
-        && str_contains($page, 'consumeRecoveryCode')
-        && str_contains($page, "GET_LOCK('dnr_database_backup_export', 0)")
-        && str_contains($page, "RELEASE_LOCK('dnr_database_backup_export')")
+        && str_contains($exporter, 'PasswordPolicy::verify')
+        && str_contains($exporter, 'verifyAndConsumeTotp')
+        && str_contains($exporter, 'consumeRecoveryCode')
+        && str_contains($exporter, "GET_LOCK('dnr_database_backup_export', 0)")
+        && str_contains($exporter, "RELEASE_LOCK('dnr_database_backup_export')")
         && str_contains($page, 'ignore_user_abort(true)')
-        && strpos($page, 'databaseBackupConnection()')
-            > strrpos($page, 'databaseMaintenanceAuthenticationAccepted('),
+        && strpos($exporter, 'databaseBackupConnection()') > strpos($exporter, 'verifyAndConsumeTotp')
+        && str_contains($page, 'requestEncryptedDatabaseBackup')
+        && !str_contains($page, 'databaseBackupConnection')
+        && !str_contains(explode('  backup:', $compose)[0], 'MYSQL_BACKUP'),
     'backup and restore must require admin authorization, CSRF validation, password re-entry, and a fresh second factor.'
 );
 expectDatabaseBackupFeature(
     !str_contains($page, 'is_uploaded_file')
         && str_contains($page, 'name="backup_password"')
-        && str_contains($page, 'encryptDatabaseBackup')
+        && str_contains($exporter, 'encryptDatabaseBackup')
         && str_contains($restore_command, "PHP_SAPI !== 'cli'")
         && str_contains($restore_command, "\$confirmation !== 'RESTORE'")
         && str_contains($restore_command, 'DNR_BACKUP_PASSWORD_FILE')
@@ -43,17 +48,11 @@ expectDatabaseBackupFeature(
         && str_contains($restore_command, 'restoreDatabaseBackup'),
     'the web process should export only, while restore requires an explicit one-shot CLI confirmation and password secret.'
 );
-$encryptPosition = strpos($page, '$encrypted_backup = encryptDatabaseBackup(');
-$plaintextRemovalPosition = strpos($page, "is_file(\$backup['path'])");
-$streamPosition = strpos($page, "readfile(\$encrypted_backup['path'])");
 expectDatabaseBackupFeature(
-    $encryptPosition !== false
-        && $plaintextRemovalPosition !== false
-        && $streamPosition !== false
-        && $encryptPosition < $plaintextRemovalPosition
-        && $plaintextRemovalPosition < $streamPosition
-        && str_contains($page, '$backup = null;'),
-    'the plaintext archive should be removed immediately after encryption instead of remaining allocated during the download.'
+    strpos($exporter, 'encryptDatabaseBackup(') < strpos($exporter, "unlink(\$backup['path'])")
+        && str_contains($endpoint, "readfile(\$backup['path'])")
+        && str_contains($client, 'DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC'),
+    'the isolated exporter must remove plaintext and the web client must accept only encrypted downloads.'
 );
 expectDatabaseBackupFeature(
     str_contains($helpers, 'SODIUM_CRYPTO_PWHASH_ALG_ARGON2ID13')

@@ -6,6 +6,7 @@
 backups
 secrets
 var/deployment
+var/backups
 vendor
 node_modules
 tmp

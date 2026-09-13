@@ -74,3 +74,4 @@
 20260908_add_presentation_notes_uploader.sql
 20260909_add_notes_cache_purge_queue.sql
 20260910_add_email_message_templates.sql
+20260913_add_email_recipient_types.sql

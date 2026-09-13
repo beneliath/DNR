@@ -99,11 +99,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
             beginPendingAuthentication($user);
             if (!empty($user['two_factor_enabled'])) {
                 header('Location: verify_2fa.php');
-            } elseif (twoFactorRequiredForRole($user['role'])) {
-                header('Location: setup_2fa.php');
             } else {
-                completeAuthentication($conn, $user, false);
-                header('Location: dashboard.php');
+                header('Location: setup_2fa.php');
             }
             exit();
         } catch (InvalidArgumentException $exception) {

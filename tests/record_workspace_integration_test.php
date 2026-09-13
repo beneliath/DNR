@@ -8,6 +8,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/chron_log_helpers.php';
 function expectRecordHttp(bool $condition, string $message): void {
     if (!$condition) throw new RuntimeException($message);
@@ -28,6 +29,7 @@ function recordTestSession(array $user): array {
     $csrf = bin2hex(random_bytes(32));
     $_SESSION = ['user_id' => (int) $user['id'], 'username' => $user['username'], 'role' => $user['role'],
         'auth_version' => (int) $user['auth_version'], 'auth_complete' => true, '_csrf_token' => $csrf];
+        completeIntegrationTestMfaSession();
     $id = session_id();
     session_write_close();
     session_id('');

@@ -1,0 +1,10 @@
+[mysqld]
+default_table_encryption=ON
+table_encryption_privilege_check=ON
+innodb_redo_log_encrypt=ON
+innodb_undo_log_encrypt=ON
+binlog_encryption=ON
+# Temporary query files belong in the container's memory-backed /tmp.
+tmpdir=/tmp
+innodb_temp_data_file_path=/tmp/ibtmp1:12M:autoextend
+innodb_temp_tablespaces_dir=/tmp/innodb-session-temp

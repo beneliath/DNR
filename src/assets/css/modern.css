@@ -4553,6 +4553,127 @@ html.dark-mode body .confirmation-dialog-input {
   object-fit: contain;
 }
 
+.confirmation-dialog.qr-pdf-dialog {
+  width: min(calc(100% - 32px), 560px);
+  max-width: 560px !important;
+  max-height: calc(100dvh - 32px);
+}
+
+.qr-pdf-dialog form {
+  margin: 0;
+}
+
+.qr-pdf-context {
+  color: var(--text);
+  font-weight: 650;
+}
+
+.qr-pdf-selection-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.qr-pdf-options {
+  display: grid;
+  gap: 10px;
+  max-height: 42vh;
+  overflow-y: auto;
+  padding: 3px;
+}
+
+.qr-pdf-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-subtle);
+  color: var(--text) !important;
+}
+
+.qr-pdf-option-choice {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+html body .qr-pdf-drag-handle {
+  flex-shrink: 0;
+  gap: 3px;
+  min-width: 36px;
+  min-height: 44px;
+  padding: 5px !important;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+html body .qr-pdf-drag-handle:disabled {
+  cursor: default;
+}
+
+.qr-pdf-option.is-dragging {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+html body .qr-pdf-option.is-dragging .qr-pdf-drag-handle {
+  cursor: grabbing;
+}
+
+.qr-pdf-option:has(:checked) {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border));
+  background: var(--accent-subtle);
+}
+
+.qr-pdf-option:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.qr-pdf-option-choice:has(:disabled) {
+  cursor: default;
+}
+
+.qr-pdf-option input,
+.qr-pdf-option img {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+html body .qr-pdf-dialog input[type="checkbox"] {
+  accent-color: var(--accent) !important;
+}
+
+.qr-pdf-option img {
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.qr-pdf-option-label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 650;
+}
+
+.qr-pdf-option-label small {
+  display: block;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 /* Authentication */
 body.fullscreen-center,
 html.dark-mode body.fullscreen-center {
@@ -6176,6 +6297,29 @@ html body :is(.inbound-status-filters, .map-list-filters) {
 }
 
 /* Shared generated QR cards in both presentation forms and engagement details. */
+.presentation-item-heading,
+.presentation-generated-links .presentation-qr-actions {
+  display: flex;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.presentation-item-heading > div {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.presentation-combined-stats {
+  margin-inline-start: auto;
+  max-width: 100%;
+  text-align: center;
+}
+
+.presentation-generated-links .presentation-qr-actions {
+  margin-bottom: 1rem;
+}
+
 .presentation-generated-links .presentation-view-qr-grid {
   display: grid;
   /* Keep at most six cards per row, with room for the QR image and padding. */
