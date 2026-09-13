@@ -260,12 +260,6 @@ expectHeaderScope(
     'The footer author should safely open the GitHub profile in a new tab.'
 );
 expectHeaderScope(
-    preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;<span class="footer-moed-translation">=&nbsp;&nbsp;appointment, appointed time<\/span><\/p>/s', preg_replace('/<\/?a\b[^>]*>/', '', $footer_source)) === 1
-        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*font-size:\s*0\.702rem;)(?=[^}]*opacity:\s*0\.35;)[^}]*\}/s', $modern_styles) === 1
-        && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
-    'The shared footer should show a larger Hebrew name in a readable definition one blank line below the copyright notice.'
-);
-expectHeaderScope(
     preg_match('/\.footer-link\s*\{[^}]*text-decoration:\s*none;/s', $modern_styles) === 1,
     'Footer links should not be underlined.'
 );
@@ -282,7 +276,7 @@ expectHeaderScope(
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-size:\s*clamp\(0\.45rem, 1\.935vw, 0\.522rem\);/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.35;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*white-space:\s*pre;/s', $modern_styles) === 1,
-    'The ASCII cat should sit two lines below the Hebrew definition in a small, 35%-opacity, space-preserving monospace font.'
+    'The ASCII cat should sit two lines below the copyright notice in a small, 35%-opacity, space-preserving monospace font.'
 );
 expectHeaderScope(
     preg_match('/@media \(max-width: 860px\).*?\.mobile-app-bar\s*\{(?=[^}]*display:\s*flex\s*!important)(?=[^}]*background:\s*var\(--surface\)\s*!important)(?![^}]*backdrop-filter)[^}]*\}/s', $modern_styles) === 1,

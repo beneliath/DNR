@@ -14,53 +14,16 @@ $footer_repository_url = githubRepositoryUrl();
 ?>
 <footer class="app-footer">
     <p>&copy; <?php echo date("Y"); ?> <a class="footer-link" href="<?php echo htmlspecialchars('https://github.com/' . rawurlencode($footer_repository_owner), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_owner, ENT_QUOTES, 'UTF-8'); ?></a> <span aria-hidden="true">·</span> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_name, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($footer_version, ENT_QUOTES, 'UTF-8'); ?></a><?php if ($footer_push !== null): ?> <span aria-hidden="true">·</span> <time datetime="<?php echo htmlspecialchars($footer_push['pushed_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($footer_push_label, ENT_QUOTES, 'UTF-8'); ?></time> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url . '/commit/' . $footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" title="View commit <?php echo htmlspecialchars($footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?> on GitHub">(<?php echo htmlspecialchars($footer_short_commit, ENT_QUOTES, 'UTF-8'); ?>)</a><?php endif; ?></p>
-    <p class="footer-moed-definition"><a class="footer-link" href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/" target="_blank" rel="noopener noreferrer"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד</span>&nbsp;&nbsp;<span class="footer-moed-translation">=&nbsp;&nbsp;appointment, appointed time</span></a></p>
-    <pre class="footer-ascii-cat" aria-label="ASCII art cat"><button type="button" id="open-footer-lion" class="footer-ascii-trigger" aria-label="Open lion ASCII art" aria-haspopup="dialog" aria-controls="footer-lion-dialog">     ("`-''-/").___..--''"`-.
+    <pre class="footer-ascii-cat" aria-label="ASCII art cat">     ("`-''-/").___..--''"`-.
      `6_ 6  )   `-.  (     ).`-.__.`)
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'
-  (il),-''  (li),'  ((!.-'</button>
+  (il),-''  (li),'  ((!.-'
 
-<a class="footer-link" href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49:9,10</a> ... <a class="footer-link" href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>
-         <a class="footer-link" href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer">Do you see Him?</a>
+Genesis 49:9,10 ... Revelation 5:5
+         Do you see Him?
     </pre>
 </footer>
-
-<dialog id="footer-lion-dialog" class="confirmation-dialog footer-lion-dialog" aria-label="Lion ASCII art">
-    <pre class="footer-lion-art">                   <span class="footer-lion-shape">           ,aodObo,</span>
-<a href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49:9,10</a>    <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
-                   <span class="footer-lion-shape">     ,MMMMMMMMA.</span>
-        |          <span class="footer-lion-shape">   ,M;'     `YV/'</span>
-        |          <span class="footer-lion-shape">  AM' ,OMA,</span>
-        |          <span class="footer-lion-shape"> AM|   `~VMM,.      .,ama,____,amma,..</span>
-        |          <span class="footer-lion-shape"> MML      )MMMD   .AMMMMMMMMMMMMMMMMMMD.</span>
-        |          <span class="footer-lion-shape"> VMMM    .AMMY'  ,AMMMMMMMMMMMMMMMMMMMMD</span>
-        |          <span class="footer-lion-shape"> `VMM, AMMMV'  ,AMMMMMMMMMMMMMMMMMMMMMMM,                ,</span>
-        |          <span class="footer-lion-shape">  VMMMmMMV'  ,AMY~~''  'MMMMMMMMMMMM' '~~             ,aMM</span>
-        |          <span class="footer-lion-shape">  `YMMMM'   AMM'        `VMMMMMMMMP'_              A,aMMMM</span>
-        |          <span class="footer-lion-shape">   AMMM'    VMMA. YVmmmMMMMMMMMMMML MmmmY          MMMMMMM</span>
-        |          <span class="footer-lion-shape">  ,AMMA   _,HMMMMmdMMMMMMMMMMMMMMMML`VMV'         ,MMMMMMM</span>
-        |          <span class="footer-lion-shape">  AMMMA _'MMMMMMMMMMMMMMMMMMMMMMMMMMA `'          MMMMMMMM</span>
-        |          <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMa      ,,,   `MMMMMMM</span>
-        |          <span class="footer-lion-shape"> AMMMMMMMMM'~`YMMMMMMMMMMMMMMMMMMMMMMA    ,AMMV    MMMMMMM</span>
-        |          <span class="footer-lion-shape"> VMV MMMMMV   `YMMMMMMMMMMMMMMMMMMMMMY   `VMMY'  adMMMMMMM</span>
-        |          <span class="footer-lion-shape"> `V  MMMM'      `YMMMMMMMV.~~~~~~~~~,aado,`V''   MMMMMMMMM</span>
-        |          <span class="footer-lion-shape">    aMMMMmv       `YMMMMMMMm,    ,/AMMMMMA,      YMMMMMMMM</span>
-        |          <span class="footer-lion-shape">    VMMMMM,,v       YMMMMMMMMMo oMMMMMMMMM'    a, YMMMMMMM</span>
-        |          <span class="footer-lion-shape">    `YMMMMMY'       `YMMMMMMMY' `YMMMMMMMY     MMmMMMMMMMM</span>
-        |          <span class="footer-lion-shape">     AMMMMM  ,        ~~~~~,aooooa,~~~~~~      MMMMMMMMMMM</span>
-        |          <span class="footer-lion-shape">       YMMMb,d'         dMMMMMMMMMMMMMD,   a,, AMMMMMMMMMM</span>
-        ▼          <span class="footer-lion-shape">        YMMMMM, A       YMMMMMMMMMMMMMY   ,MMMMMMMMMMMMMMM</span>
-                   <span class="footer-lion-shape">       AMMMMMMMMM        `~~~~'  `~~~~'   AMMMMMMMMMMMMMMM</span>
- <a href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>    <span class="footer-lion-shape">       `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM</span>
-                   <span class="footer-lion-shape">     ,AMMMMMMMMMMMMMMA,       ,aAMMMMMMMMMMMMMMMMMMMMMMMMM</span>
-                   <span class="footer-lion-shape">   ,AMMMMMMMMMMMMMMMMMMA,    AMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
- <a href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer">Do you see Him?</a>   <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
-                   <span class="footer-lion-shape">AMMMMMMMMMMMMMMMMMMMMMMMMAaAMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span></pre>
-    <div class="confirmation-dialog-actions">
-        <button type="button" id="close-footer-lion" class="button-secondary" autofocus>Close</button>
-    </div>
-</dialog>
 
 <dialog id="logout-confirmation" class="confirmation-dialog" aria-labelledby="logout-confirmation-title" aria-describedby="logout-confirmation-message">
     <h2 id="logout-confirmation-title">Log Out?</h2>
