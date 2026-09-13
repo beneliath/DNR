@@ -61,6 +61,27 @@
     font-size: var(--font-size-small);
 }
 
+.database-backup-history,
+.database-backup-status {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    background: var(--surface-subtle);
+    overflow-wrap: anywhere;
+}
+
+.database-backup-status[data-state="success"] {
+    border-color: var(--success);
+    background: var(--success-subtle);
+    color: var(--success);
+}
+
+.database-backup-status[data-state="warning"] {
+    border-color: var(--warning);
+    background: var(--warning-subtle);
+    color: var(--warning);
+}
+
 @media (max-width: 1000px) {
     .database-maintenance-grid {
         grid-template-columns: 1fr;

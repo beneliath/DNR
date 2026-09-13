@@ -55,6 +55,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'backup_password' => $backup_password,
                 ], $maximum_backup_bytes);
                 $filename = 'dnr-database-' . gmdate('Ymd-His') . 'Z.dnrbackup';
+                $download_token = $_POST['download_token'] ?? null;
+                if (is_string($download_token) && preg_match('/\A[a-f0-9]{32}\z/', $download_token)) {
+                    // Acknowledge archive creation without buffering large downloads in JavaScript.
+                    // This signals the download response, not a completed save on the user's disk.
+                    setcookie('dnr_backup_' . $download_token, json_encode([
+                        'filename' => $filename,
+                        'createdAt' => applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'M j, Y g:i:s A T'),
+                    ], JSON_THROW_ON_ERROR), [
+                        'expires' => time() + 600,
+                        'path' => '/',
+                        'secure' => requestUsesHttps() || applicationRequiresHttps(),
+                        'httponly' => false,
+                        'samesite' => 'Strict',
+                    ]);
+                }
                 header('Content-Type: application/octet-stream');
                 header('Content-Disposition: attachment; filename="' . $filename . '"');
                 header('Content-Length: ' . $encrypted_backup['size']);
@@ -80,6 +95,20 @@ try {
 } catch (Throwable $exception) {
     applicationLog('warning', 'Backup size estimate unavailable');
 }
+$last_backup_label = 'No successful backup recorded.';
+try {
+    $last_backup_result = $conn->query("SELECT created_at FROM security_audit_log
+        WHERE event_type = 'database_backup_created'
+        ORDER BY created_at DESC, id DESC LIMIT 1");
+    if (!$last_backup_result) throw new RuntimeException('Unable to read backup history.');
+    $last_backup = $last_backup_result->fetch_assoc();
+    if ($last_backup) {
+        $last_backup_label = applicationTimestampLabel($last_backup['created_at'], 'M j, Y g:i:s A T');
+    }
+} catch (Throwable $exception) {
+    applicationLog('warning', 'Backup history unavailable');
+    $last_backup_label = 'Backup history is temporarily unavailable.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -90,6 +119,7 @@ try {
     1 => 'assets/css/modern.min.css',
     2 => 'assets/css/pages/database_maintenance.min.css',
   ),
+  'scripts' => ['assets/js/database-backup.min.js'],
 )); ?>
 <body class="database-maintenance-body">
 <?php include 'templates/header.php'; ?>
@@ -115,6 +145,9 @@ try {
     <div class="database-maintenance-grid">
         <section class="database-maintenance-card">
             <h2>Export Backup</h2>
+            <p class="database-backup-history">Last backup created:<br>
+                <strong id="database-backup-last-created"><?php echo htmlspecialchars($last_backup_label, ENT_QUOTES, 'UTF-8'); ?></strong>
+            </p>
             <?php if ($estimated_backup_bytes !== null): ?>
                 <p class="<?php echo $estimated_backup_bytes >= $maximum_backup_bytes * 0.8 ? 'database-warning' : 'maintenance-note'; ?>">
                     Estimated backup size: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($estimated_backup_bytes)); ?>
@@ -132,6 +165,7 @@ try {
             <form method="post" action="database_maintenance.php" autocomplete="off" id="database-backup-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="backup">
+                <input type="hidden" name="download_token" id="database-backup-token" value="">
 
                 <label for="backup_admin_password">Your Administrator Password</label>
                 <input type="password" name="admin_password" id="backup_admin_password" autocomplete="current-password" maxlength="72" required>
@@ -147,6 +181,7 @@ try {
 
                 <button type="submit" class="button-add">Encrypt and Download Backup</button>
             </form>
+            <p id="database-backup-status" class="database-backup-status" role="status" aria-live="polite" aria-atomic="true" hidden></p>
             <p class="maintenance-note">
                 Encryption uses Argon2id and XChaCha20-Poly1305. Maximum backup data size:
                 <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.

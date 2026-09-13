@@ -261,7 +261,7 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match('/<p>&copy;.*<\/p>\n    <p class="footer-moed-definition"><span class="footer-moed-hebrew" lang="he" dir="rtl">מוֹעֵד<\/span>&nbsp;&nbsp;<span class="footer-moed-translation">=&nbsp;&nbsp;appointment, appointed time<\/span><\/p>/s', preg_replace('/<\/?a\b[^>]*>/', '', $footer_source)) === 1
-        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*opacity:\s*0\.35;)[^}]*\}/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-moed-definition\s*\{(?=[^}]*margin-top:\s*1lh;)(?=[^}]*font-size:\s*0\.702rem;)(?=[^}]*opacity:\s*0\.35;)[^}]*\}/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-moed-hebrew\s*\{[^}]*font-size:\s*1\.21em;/s', $modern_styles) === 1,
     'The shared footer should show a larger Hebrew name in a readable definition one blank line below the copyright notice.'
 );
@@ -279,7 +279,7 @@ expectHeaderScope(
 expectHeaderScope(
     preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*margin:\s*2lh 0 0;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-family:\s*ui-monospace/s', $modern_styles) === 1
-        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-size:\s*clamp\(0\.5rem, 2\.15vw, 0\.58rem\);/s', $modern_styles) === 1
+        && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*font-size:\s*clamp\(0\.45rem, 1\.935vw, 0\.522rem\);/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*opacity:\s*0\.35;/s', $modern_styles) === 1
         && preg_match('/\.app-footer \.footer-ascii-cat\s*\{[^}]*white-space:\s*pre;/s', $modern_styles) === 1,
     'The ASCII cat should sit two lines below the Hebrew definition in a small, 35%-opacity, space-preserving monospace font.'

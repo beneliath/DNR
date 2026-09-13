@@ -1131,6 +1131,7 @@ html body .container > .profile-form {
 
 .app-footer .footer-moed-definition {
   margin-top: 1lh;
+  font-size: 0.702rem;
   opacity: 0.35;
 }
 
@@ -1146,7 +1147,7 @@ html body .container > .profile-form {
 .app-footer .footer-moed-translation,
 .app-footer .footer-ascii-cat {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: clamp(0.5rem, 2.15vw, 0.58rem);
+  font-size: clamp(0.45rem, 1.935vw, 0.522rem);
 }
 
 .app-footer .footer-ascii-cat {

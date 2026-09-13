@@ -20,6 +20,7 @@ $asset_pairs = [
     'assets/js/profile.js' => 'assets/js/profile.min.js',
     'assets/js/contact-photo.js' => 'assets/js/contact-photo.min.js',
     'assets/js/calendar-subscription.js' => 'assets/js/calendar-subscription.min.js',
+    'assets/js/database-backup.js' => 'assets/js/database-backup.min.js',
     'assets/js/task-form.js' => 'assets/js/task-form.min.js',
     'assets/js/presentation-form.js' => 'assets/js/presentation-form.min.js',
     'assets/js/engagement-contacts.js' => 'assets/js/engagement-contacts.min.js',
