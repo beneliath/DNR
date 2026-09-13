@@ -4534,6 +4534,10 @@ html body .app-popover button {
   flex-direction: column;
 }
 
+.footer-lion-dialog a {
+  text-decoration: none;
+}
+
 .footer-lion-art {
   flex-shrink: 0;
   min-height: 0;
@@ -4548,7 +4552,7 @@ html body .app-popover button {
 }
 
 .footer-lion-shape {
-  color: var(--primary);
+  color: #000;
 }
 
 .footer-lion-dialog .confirmation-dialog-actions {

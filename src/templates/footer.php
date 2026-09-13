@@ -21,14 +21,14 @@ $footer_repository_url = githubRepositoryUrl();
    _..`--'_..-_/  /--'_.' ,'
   (il),-''  (li),'  ((!.-'</button>
 
-<a class="footer-link" href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49: 9, 10</a> ... <a class="footer-link" href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>
+<a class="footer-link" href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49:9,10</a> ... <a class="footer-link" href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>
          <a class="footer-link" href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer">Do you see Him?</a>
     </pre>
 </footer>
 
 <dialog id="footer-lion-dialog" class="confirmation-dialog footer-lion-dialog" aria-label="Lion ASCII art">
     <pre class="footer-lion-art">                   <span class="footer-lion-shape">           ,aodObo,</span>
-Genesis 49:9, 10   <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
+<a href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer">Genesis 49:9,10</a>    <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
                    <span class="footer-lion-shape">     ,MMMMMMMMA.</span>
         |          <span class="footer-lion-shape">   ,M;'     `YV/'</span>
         |          <span class="footer-lion-shape">  AM' ,OMA,</span>
@@ -52,10 +52,10 @@ Genesis 49:9, 10   <span class="footer-lion-shape">        ,AMMMMP~~~~</span>
         |          <span class="footer-lion-shape">       YMMMb,d'         dMMMMMMMMMMMMMD,   a,, AMMMMMMMMMM</span>
         ▼          <span class="footer-lion-shape">        YMMMMM, A       YMMMMMMMMMMMMMY   ,MMMMMMMMMMMMMMM</span>
                    <span class="footer-lion-shape">       AMMMMMMMMM        `~~~~'  `~~~~'   AMMMMMMMMMMMMMMM</span>
- Revelation 5:5    <span class="footer-lion-shape">       `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM</span>
+ <a href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer">Revelation 5:5</a>    <span class="footer-lion-shape">       `VMMMMMM'  ,A,                  ,,AMMMMMMMMMMMMMMMM</span>
                    <span class="footer-lion-shape">     ,AMMMMMMMMMMMMMMA,       ,aAMMMMMMMMMMMMMMMMMMMMMMMMM</span>
                    <span class="footer-lion-shape">   ,AMMMMMMMMMMMMMMMMMMA,    AMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
- Do you see Him?   <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
+ <a href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer">Do you see Him?</a>   <span class="footer-lion-shape"> ,AMMMMMMMMMMMMMMMMMMMMMA   AMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span>
                    <span class="footer-lion-shape">AMMMMMMMMMMMMMMMMMMMMMMMMAaAMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM</span></pre>
     <div class="confirmation-dialog-actions">
         <button type="button" id="close-footer-lion" class="button-secondary" autofocus>Close</button>

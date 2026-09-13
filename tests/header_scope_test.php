@@ -272,7 +272,7 @@ expectHeaderScope(
 expectHeaderScope(
     str_contains($footer_source, 'class="footer-ascii-cat"')
         && str_contains($footer_source, 'aria-label="ASCII art cat"')
-        && str_contains(preg_replace('/<\/?(?:a|button)\b[^>]*>/', '', $footer_source), "  (il),-''  (li),'  ((!.-'\n\nGenesis 49: 9, 10 ... Revelation 5:5")
+        && str_contains(preg_replace('/<\/?(?:a|button)\b[^>]*>/', '', $footer_source), "  (il),-''  (li),'  ((!.-'\n\nGenesis 49:9,10 ... Revelation 5:5")
         && str_contains($footer_source, 'Do you see Him?'),
     'The shared footer should leave one blank line between the ASCII cat and the Genesis/Revelation line.'
 );
