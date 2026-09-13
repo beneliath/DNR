@@ -393,8 +393,16 @@ function countUnusedRecoveryCodes(mysqli $conn, $user_id) {
 }
 
 function hasRecentAdminElevation($maximum_age_seconds = 300) {
+    return adminElevationExpiresAt($maximum_age_seconds) !== null;
+}
+
+function adminElevationExpiresAt($maximum_age_seconds = 300, ?int $now = null): ?int {
+    $now ??= time();
     $elevated_at = $_SESSION['_admin_elevated_at'] ?? null;
-    return is_int($elevated_at) && (time() - $elevated_at) <= $maximum_age_seconds;
+    if (!is_int($elevated_at) || $elevated_at > $now || $now >= $elevated_at + $maximum_age_seconds) {
+        return null;
+    }
+    return $elevated_at + $maximum_age_seconds;
 }
 
 function attemptAdminElevation(mysqli $conn, $password, $code) {

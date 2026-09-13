@@ -71,4 +71,17 @@ expectTwoFactor(
     'Enrollment QR codes should be generated locally as SVG data URIs.'
 );
 
+$_SESSION = [];
+expectTwoFactor(adminElevationExpiresAt(300, 1000) === null, 'A locked session must not have an unlock deadline.');
+$_SESSION['_admin_elevated_at'] = 1000;
+expectTwoFactor(adminElevationExpiresAt(300, 1000) === 1300, 'An unlock must last exactly five minutes.');
+expectTwoFactor(adminElevationExpiresAt(300, 1299) === 1300, 'Navigation must preserve the original deadline.');
+expectTwoFactor(adminElevationExpiresAt(300, 1300) === null, 'Elevation must expire at the countdown deadline.');
+expectTwoFactor(adminElevationExpiresAt(300, 1301) === null, 'Expired elevation must remain locked.');
+expectTwoFactor(adminElevationExpiresAt(300, 999) === null, 'Future timestamps must not unlock actions.');
+$_SESSION['_admin_elevated_at'] = '1000';
+expectTwoFactor(adminElevationExpiresAt(300, 1000) === null, 'Malformed elevation timestamps must remain locked.');
+unset($_SESSION['_admin_elevated_at']);
+expectTwoFactor(!hasRecentAdminElevation(), 'Consumed elevation must immediately be locked.');
+
 echo "Two-factor helper tests passed.\n";

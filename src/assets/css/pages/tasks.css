@@ -13,6 +13,13 @@ html.dark-mode .tasks-page {
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
 
+.tasks-page .task-list-controls {
+    padding: 0;
+    border: 0;
+    background: transparent !important;
+    box-shadow: none;
+}
+
 .tasks-page .task-table th:first-child {
     text-transform: none;
 }
