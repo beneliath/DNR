@@ -319,6 +319,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
     <?php endif; ?>
 
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
+    <div class="data-table-scroll">
     <table class="organization-table data-table">
         <thead>
             <tr>
@@ -395,6 +396,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>

@@ -164,6 +164,7 @@ $priority_labels = followUpTaskPriorities();
 
     <p class="result-context">Every active definition is added and assigned to the creator automatically with each new event. “Add missing checklist tasks” remains available for older events. Existing event tasks remain unchanged.</p>
 
+    <div class="data-table-scroll">
     <table class="task-table standard-task-table data-table">
         <thead><tr><th>Order</th><th>Standard task</th><th>Due rule</th><th>Priority</th><th>Generated</th><th>Actions</th></tr></thead>
         <tbody>
@@ -198,6 +199,7 @@ $priority_labels = followUpTaskPriorities();
         <?php endforeach; ?>
         </tbody>
     </table>
+    </div>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

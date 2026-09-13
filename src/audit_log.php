@@ -569,7 +569,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                                     <?php echo htmlspecialchars($category_labels[$entry_category] ?? ucfirst($entry_category), ENT_QUOTES, 'UTF-8'); ?>
                                 </span>
                             </td>
-                            <td><?php echo htmlspecialchars($actor, ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><span class="table-username"><?php echo htmlspecialchars($actor, ENT_QUOTES, 'UTF-8'); ?></span></td>
                             <td>
                                 <?php echo htmlspecialchars($event_label, ENT_QUOTES, 'UTF-8'); ?>
                                 <?php if (!empty($entry['details'])): ?>
