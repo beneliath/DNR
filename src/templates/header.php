@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../application_runtime.php';
+require_once __DIR__ . '/../two_factor_helpers.php';
 // Session is already started by the page entry point.
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
@@ -55,6 +56,9 @@ $username = (string) ($_SESSION['username'] ?? 'Account');
 $user_display_name = (string) ($_SESSION['profile_display_name'] ?? $username);
 $user_role = (string) ($_SESSION['role'] ?? 'user');
 $authenticated_user_role = (string) ($_SESSION['authenticated_role'] ?? $user_role);
+$admin_unlock_expires_at = !empty($_SESSION['user_id']) && $user_role === 'admin'
+    ? adminElevationExpiresAt()
+    : null;
 $role_preview = $authenticated_user_role === 'admin'
     && in_array($user_role, ['editor', 'reviewer'], true)
         ? $user_role
@@ -111,6 +115,19 @@ if (!empty($_SESSION['user_id'])) {
                 <span data-deployment-timer role="timer" aria-live="off"></span>
             </div>
             <span data-deployment-detail></span>
+        </section>
+    <?php endif; ?>
+
+    <?php if ($admin_unlock_expires_at !== null): ?>
+        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator unlock status" hidden>
+            <div class="admin-unlock-copy">
+                <strong role="status">Administrator actions unlocked</strong>
+                <span>Sensitive actions are available until the timer expires.</span>
+            </div>
+            <div class="admin-unlock-countdown">
+                <span>Automatically locks in</span>
+                <span data-admin-unlock-timer role="timer" aria-label="Time until administrator actions lock" aria-live="off"></span>
+            </div>
         </section>
     <?php endif; ?>
 
@@ -257,4 +274,5 @@ if (!empty($_SESSION['user_id'])) {
 <?php renderScript('assets/js/theme.min.js', false); ?>
 <?php renderScript('assets/js/app-shell.min.js', false); ?>
 <?php if (!empty($_SESSION['user_id'])) renderScript('assets/js/deployment-notice.min.js'); ?>
+<?php if ($admin_unlock_expires_at !== null) renderScript('assets/js/admin-unlock.min.js'); ?>
 <?php renderScript('assets/js/phone-input.min.js'); ?>
