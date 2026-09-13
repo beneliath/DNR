@@ -1101,6 +1101,97 @@ function standardEventTaskSelectSql()
             LEFT JOIN users archiver ON archiver.id = template.archived_by";
 }
 
+function generateStandardTaskForOpenEngagements(
+    mysqli $conn,
+    int $template_id,
+    int $created_by,
+    bool $manage_transaction = true
+): int {
+    if ($template_id < 1 || $created_by < 1) {
+        throw new InvalidArgumentException('Select a valid standard task and creator.');
+    }
+    if ($manage_transaction) {
+        $conn->begin_transaction();
+    }
+    try {
+        $template = fetchStandardEventTask($conn, $template_id, true);
+        if (!$template || !empty($template['is_archived'])) {
+            throw new InvalidArgumentException('Only active standard tasks can be added to engagements.');
+        }
+        // Lock eligible events so closing, archiving, and checklist generation cannot race this batch.
+        $engagements = $conn->query(
+            "SELECT engagement.id, engagement.event_start_date, engagement.event_end_date,
+                    caller.id AS caller_user_id
+             FROM engagements engagement
+             INNER JOIN organizations organization ON organization.id = engagement.organization_id
+             LEFT JOIN engagement_financial_reports report ON report.engagement_id = engagement.id
+             LEFT JOIN users caller ON caller.id = engagement.caller_user_id AND caller.account_status = 'active'
+             WHERE engagement.is_deleted = 0 AND organization.is_deleted = 0
+               AND engagement.lifecycle_status = 'active' AND report.engagement_id IS NULL
+             ORDER BY engagement.id
+             FOR UPDATE"
+        )->fetch_all(MYSQLI_ASSOC);
+        $creator = $conn->prepare("SELECT id FROM users WHERE id = ? AND account_status = 'active' FOR UPDATE");
+        $creator->bind_param('i', $created_by);
+        $creator->execute();
+        $active_creator = $creator->get_result()->num_rows === 1;
+        $creator->close();
+        if (!$active_creator) {
+            throw new InvalidArgumentException('An active account is required to generate tasks.');
+        }
+
+        $existing = $conn->prepare(
+            'SELECT id FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ? FOR UPDATE'
+        );
+        $insert = $conn->prepare(
+            "INSERT INTO follow_up_tasks
+                (title, details, status, priority, due_date, subject_type, engagement_id,
+                 assigned_to, created_by, template_key, due_date_overridden)
+             VALUES (?, ?, 'open', ?, ?, 'engagement', ?, ?, ?, ?, 0)"
+        );
+        $inserted = 0;
+        foreach ($engagements as $engagement) {
+            $engagement_id = (int) $engagement['id'];
+            $existing->bind_param('is', $engagement_id, $template['template_key']);
+            $existing->execute();
+            if ($existing->get_result()->num_rows > 0) {
+                continue;
+            }
+            $scheduled = engagementFollowUpChecklistTemplates(
+                $engagement['event_start_date'], $engagement['event_end_date'], [$template]
+            )[0];
+            if (!validIsoDate($scheduled['due_date'])) {
+                throw new InvalidArgumentException('The due-date rule falls outside the supported date range for an engagement.');
+            }
+            $assigned_to = initialEngagementChecklistAssigneeId($engagement['caller_user_id'], $created_by);
+            $insert->bind_param('ssssiiis', $scheduled['title'], $scheduled['details'],
+                $scheduled['priority'], $scheduled['due_date'], $engagement_id, $assigned_to,
+                $created_by, $scheduled['key']);
+            $insert->execute();
+            $inserted += $insert->affected_rows;
+        }
+        $existing->close();
+        $insert->close();
+        if ($manage_transaction) {
+            $conn->commit();
+        }
+        return $inserted;
+    } catch (Throwable $exception) {
+        if ($manage_transaction) {
+            $conn->rollback();
+        }
+        throw $exception;
+    }
+}
+
+function standardTaskGenerationMessage(int $count): string
+{
+    return $count > 0
+        ? $count . ' task' . ($count === 1 ? ' was' : 's were')
+            . ' added to active, open engagements. Assigned to each active Caller, or to you when no active Caller is assigned.'
+        : 'No tasks were added. Eligible engagements already have this task, or none are active with an open financial closeout.';
+}
+
 function fetchStandardEventTask(mysqli $conn, $template_id, $lock = false)
 {
     $template_id = (int) $template_id;

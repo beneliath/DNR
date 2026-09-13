@@ -7,6 +7,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/email_template_helpers.php';
 $baseUrl = rtrim((string) (getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080'), '/');
 if (!in_array(parse_url($baseUrl, PHP_URL_HOST), ['localhost', '127.0.0.1'], true)) throw new RuntimeException('Use a loopback test server.');
@@ -42,6 +43,7 @@ try {
         startSecureSession();
         $_SESSION = ['user_id' => $users[$role], 'username' => $name, 'role' => $role, 'authenticated_role' => $role,
             'auth_version' => 1, 'auth_complete' => true, '_csrf_token' => bin2hex(random_bytes(32))];
+        completeIntegrationTestMfaSession();
         $sessions[$role] = ['cookie' => session_name() . '=' . session_id(), 'id' => session_id(), 'csrf' => $_SESSION['_csrf_token']];
         session_write_close();
     }

@@ -31,13 +31,17 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 10, 2026 update identifies application version 2.0.8. The Inbox
-overview and selected-message screenshots were replaced from the current source,
-and the Chron/Email and troubleshooting text uses the current filing controls.
-The engagement email walkthrough now shows the optional speaker recipient. Three new
-walkthroughs cover the template library, editor, and event fields/contact suggestions.
-The guide documents archive/restore, administrator deletion, draft conflicts, and
-retained sent-message history. Other screenshots retain their September 9 capture date.
+The September 13, 2026 release edition identifies application version 2.1.0. Only the
+branch's changed workflows were refreshed: QR selection and ordering, combined
+presentation statistics, To/Cc/Bcc and self-copies, and administrator-only standard
+task generation for active, open engagements. The affected reference sections and
+walkthroughs match the sidebar manual. Four illustrations were replaced and one
+QR-selection illustration was added using fictional records in a disposable local
+preview. No email was queued and no bulk generation form was submitted.
+Inbox and email-template images retain their September 10 capture date; remaining
+images retain their September 9 capture date. The account-security guidance now explains required 2FA for every account type and
+enrollment at the next login. The README appendix includes the isolated backup
+exporter and database encryption/physical-key recovery guidance.
 
 ## Rebuild from the checked-in screenshots
 

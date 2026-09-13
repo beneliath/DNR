@@ -13,7 +13,7 @@ foreach ([0, 1, 4, 7, 8, 15, 57] as $count) {
     $links = [];
     for ($i = 0; $i < $count; $i++) {
         $url = 'https://example.com/surls/' . sprintf('%016x', $i);
-        $links[] = ['link_type' => 'custom', 'custom_label' => $i === 0 ? str_repeat('Long resource label ', 13) : 'Resource ' . ($i + 1),
+        $links[] = ['id' => $i + 1, 'link_type' => 'custom', 'custom_label' => $i === 0 ? str_repeat('Long resource label ', 13) : 'Resource ' . ($i + 1),
             'is_enabled' => $i !== 1, 'topic_title' => 'A presentation with a descriptive title', 'speaker_name' => 'Speaker Name',
             'qr_url' => $url, 'qr_png' => shortLinkQr($url, 'png')];
     }
@@ -43,6 +43,34 @@ foreach ([[], array_slice($links, 0, 4), array_slice($links, 0, 7), $links] as $
     expectQrPdf(preg_match('/\/Type\s*\/Pages\b.*?\/Count\s+1\b/s', $pdf) === 1, 'Presentation metadata and every code still fit on one page.');
     expectQrPdf(preg_match_all('/\/URI\s*\([^)]*\/surls\//', $pdf) === count($presentationLinks), 'Presentation metadata does not remove clickable QR codes.');
 }
+$availableLinks = array_slice($links, 0, 3);
+expectQrPdf(selectPresentationQrPdfLinks($availableLinks, []) === $availableLinks, 'Existing PDF URLs still include all available resources.');
+foreach ([[2], ['3', '1', '3']] as $ids) {
+    $selected = selectPresentationQrPdfLinks($availableLinks, ['qr_selection' => '1', 'link_ids' => $ids]);
+    $expectedIds = count($ids) === 1 ? [2] : [3, 1];
+    expectQrPdf(array_column($selected, 'id') === $expectedIds, 'Selections preserve the user-requested order without duplicating codes.');
+    $pdf = renderPresentationQrPdf($presentationContext, $selected);
+    expectQrPdf(preg_match_all('/\/URI\s*\([^)]*\/surls\//', $pdf) === count($expectedIds), 'The PDF contains exactly the selected codes.');
+    foreach ($availableLinks as $link) {
+        expectQrPdf(str_contains($pdf, $link['qr_url']) === in_array($link['id'], $expectedIds, true), 'Unselected resources are absent from the PDF.');
+    }
+    $lastPosition = -1;
+    foreach ($selected as $link) {
+        $position = strpos($pdf, $link['qr_url']);
+        expectQrPdf(is_int($position) && $position > $lastPosition, 'PDF resources follow the selected order.');
+        $lastPosition = $position;
+    }
+}
+foreach ([null, [], '1', ['bad'], ['1', 'bad'], [0], [-1], [['1']], [999], ['named' => '1']] as $ids) {
+    try {
+        selectPresentationQrPdfLinks($availableLinks, ['qr_selection' => '1', 'link_ids' => $ids]);
+        throw new RuntimeException('Invalid or out-of-scope QR selection was accepted.');
+    } catch (InvalidArgumentException $expected) {}
+}
+try {
+    selectPresentationQrPdfLinks($availableLinks, ['qr_selection' => '1']);
+    throw new RuntimeException('An explicit empty selection exported all QR codes.');
+} catch (InvalidArgumentException $expected) {}
 try {
     renderPresentationQrPdf($context, [['qr_png' => null, 'qr_url' => null]]);
     throw new RuntimeException('A missing QR image was silently omitted.');

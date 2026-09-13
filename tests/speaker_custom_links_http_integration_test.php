@@ -5,6 +5,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $source . '/presentation_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080', '/');
 if (!in_array(parse_url($base, PHP_URL_HOST), ['127.0.0.1', 'localhost'], true)) throw new RuntimeException('Loopback server required.');
@@ -42,6 +43,7 @@ try {
         startSecureSession();
         $_SESSION = ['user_id' => $uid, 'username' => $name, 'role' => $role, 'authenticated_role' => $role,
             'auth_version' => 1, 'auth_complete' => true, '_csrf_token' => bin2hex(random_bytes(32))];
+        completeIntegrationTestMfaSession();
         $csrf = $_SESSION['_csrf_token']; $sessions[] = session_id(); $cookie = session_name() . '=' . session_id(); session_write_close();
         $post = $input + ['csrf_token' => $csrf, 'version' => 1, 'custom_links_present' => 1, 'custom_links' => [
             ['label' => 'Video <Channel>', 'url' => 'https://example.com/videos?a=1&b=2'],
@@ -85,6 +87,17 @@ try {
             && str_contains($pdf['headers'], 'Content-Type: application/pdf'), 'QR PDF opens inline for ' . $role);
         expectCustomLinkHttp(str_contains($pdf['body'], $links[0]['code']) && str_contains($pdf['body'], $links[1]['code'])
             && !str_contains($pdf['body'], $second[0]['code']), 'Presentation PDF contains only its own tracked codes.');
+        $selectedPdf = $request($pdfUrl . '&qr_selection=1&link_ids[]=' . $links[1]['id'], null, $cookie);
+        expectCustomLinkHttp($selectedPdf['status'] === 200 && str_contains($selectedPdf['body'], $links[1]['code'])
+            && !str_contains($selectedPdf['body'], $links[0]['code'])
+            && preg_match_all('/\/URI\s*\([^)]*\/surls\//', $selectedPdf['body']) === 1, 'Only the selected QR code is included for ' . $role);
+        $reorderedPdf = $request($pdfUrl . '&link_ids[]=' . $links[1]['id'] . '&link_ids[]=' . $links[0]['id'], null, $cookie);
+        expectCustomLinkHttp($reorderedPdf['status'] === 200
+            && strpos($reorderedPdf['body'], $links[1]['code']) < strpos($reorderedPdf['body'], $links[0]['code']), 'PDF QR codes follow the requested order.');
+        foreach (['&qr_selection=1', '&link_ids=bad', '&link_ids[]=0', '&link_ids[]=' . $second[0]['id'],
+            '&link_ids[]=' . $links[0]['id'] . '&link_ids[]=bad'] as $invalidSelection) {
+            expectCustomLinkHttp($request($pdfUrl . $invalidSelection, null, $cookie)['status'] === 400, 'Empty, malformed, and other-presentation QR selections are rejected.');
+        }
         $allPdf = $request('presentation_qr_pdf_view.php?engagement_id=' . $event, null, $cookie);
         expectCustomLinkHttp($allPdf['status'] === 200 && preg_match_all('/\/URI\s*\([^)]*\/surls\//', $allPdf['body']) === 4
             && str_contains($allPdf['body'], $second[0]['code']), 'Engagement PDF includes every presentation QR code.');

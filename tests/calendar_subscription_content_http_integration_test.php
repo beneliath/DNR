@@ -6,6 +6,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $source . '/calendar_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1', '/');
 if (!in_array(parse_url($base, PHP_URL_HOST), ['localhost', '127.0.0.1'], true)) {
@@ -110,6 +111,7 @@ try {
     $csrf = bin2hex(random_bytes(32));
     $_SESSION = ['user_id' => $ownerId, 'username' => 'Calendar fixture', 'role' => 'reviewer',
         'authenticated_role' => 'reviewer', 'auth_version' => 1, 'auth_complete' => true, '_csrf_token' => $csrf];
+        completeIntegrationTestMfaSession();
     $cookie = session_name() . '=' . $sessionId;
     session_write_close();
     expectCalendarContent($request('view_calendar.php')['status'] === 302, 'Subscription management requires login');

@@ -110,6 +110,9 @@ if ($action === 'setup') {
             $twoFactorEnabled
         );
         $insertUser->execute();
+        $fixtureId = (int) $conn->insert_id;
+        enableTwoFactorForUser($conn, $fixtureId, generateTotpSecret(), 0, 1);
+        replaceRecoveryCodes($conn, $fixtureId, [HTTP_FIXTURE_LOGIN_RECOVERY_CODE]);
     }
     $username = $usernames['admin'];
     $email = $username . '@example.test';

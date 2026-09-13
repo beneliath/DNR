@@ -85,15 +85,22 @@ $speakers = fetchSpeakerOptions($conn);
 $selectedSpeaker = isset($filters['speaker_id']) ? fetchSpeaker($conn, $filters['speaker_id']) : null;
 $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 $activeLink = $isSingleLink ? ($links[0] ?? null) : null;
-$clearFiltersUrl = 'short_links.php' . ($isSingleLink ? '?id=' . $filters['id'] : '');
+$clearFiltersUrl = 'short_links.php' . ($isSingleLink ? '?id=' . $filters['id']
+    : (isset($filters['presentation_id']) ? '?presentation_id=' . $filters['presentation_id'] : ''));
+$presentationContext = null;
 $context = '';
 if ($activeLink !== null) {
     $reportTitle = shortLinkLabel($activeLink) . ' QR Code Statistics';
     $context = ($activeLink['topic_title'] ?: 'Untitled presentation') . ' · ' . $activeLink['speaker_name'];
 } elseif (isset($filters['presentation_id'])) {
-    $stmt = $conn->prepare('SELECT topic_title FROM presentations WHERE id = ?');
+    $stmt = $conn->prepare('SELECT p.id, p.topic_title, p.engagement_id, e.event_title, s.name AS speaker_name
+        FROM presentations p JOIN engagements e ON e.id = p.engagement_id
+        JOIN speakers s ON s.id = p.speaker_id WHERE p.id = ?');
     $stmt->bind_param('i', $filters['presentation_id']); $stmt->execute();
-    $context = (string) ($stmt->get_result()->fetch_assoc()['topic_title'] ?? '');
+    $presentationContext = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$presentationContext) { http_response_code(404); exit('Presentation not found.'); }
+    $context = ($presentationContext['topic_title'] ?: 'Untitled presentation') . ' · ' . $presentationContext['speaker_name'];
 } elseif (isset($filters['engagement_id'])) {
     $stmt = $conn->prepare('SELECT event_title FROM engagements WHERE id = ?');
     $stmt->bind_param('i', $filters['engagement_id']); $stmt->execute();
@@ -126,8 +133,22 @@ if ($activeLink !== null) {
             <a href="view_engagement.php?id=<?php echo (int) $activeLink['engagement_id']; ?>#engagement-presentations"><?php echo $h($activeLink['topic_title'] ?: 'Untitled presentation'); ?></a><span aria-hidden="true">/</span>
             <span aria-current="page"><?php echo $h($reportTitle); ?></span>
         </nav>
+    <?php elseif ($presentationContext !== null): ?>
+        <nav class="breadcrumb" aria-label="Breadcrumb">
+            <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
+            <a href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>"><?php echo $h($presentationContext['event_title']); ?></a><span aria-hidden="true">/</span>
+            <a href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>#presentation-<?php echo (int) $presentationContext['id']; ?>"><?php echo $h($presentationContext['topic_title'] ?: 'Untitled presentation'); ?></a><span aria-hidden="true">/</span>
+            <span aria-current="page">Presentation Statistics</span>
+        </nav>
     <?php endif; ?>
-    <div class="page-heading"><div><h1><?php echo $h($reportTitle); ?></h1><p class="page-intro"><?php echo $context !== '' ? $h($context) . ' · ' : ''; ?>Track presentation links and share speaker resources.</p></div></div>
+    <div class="page-heading">
+        <div><h1><?php echo $h($reportTitle); ?></h1><p class="page-intro"><?php echo $context !== '' ? $h($context) . ' · ' : ''; ?><?php echo $presentationContext !== null ? 'Combined activity across this presentation’s QR codes.' : 'Track presentation links and share speaker resources.'; ?></p></div>
+        <?php if ($presentationContext !== null): ?>
+            <a class="button-secondary" href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>#presentation-<?php echo (int) $presentationContext['id']; ?>">Back to Presentation</a>
+        <?php elseif ($activeLink !== null): ?>
+            <a class="button-secondary" href="short_links.php?<?php echo $h(http_build_query(['presentation_id' => (int) $activeLink['presentation_id'], 'from' => $from, 'to' => $to])); ?>">Combined Presentation Statistics</a>
+        <?php endif; ?>
+    </div>
     <?php if ($error): ?><p class="error" role="alert"><?php echo $h($error); ?></p><?php endif; ?>
     <?php if ($message): ?><p class="success" role="status"><?php echo $h($message); ?></p><?php endif; ?>
     <form method="get" class="short-link-filters" id="short-link-filters">
@@ -145,6 +166,7 @@ if ($activeLink !== null) {
         <div class="short-link-filter-actions"><button type="submit" class="button-primary">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
     </form>
     <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>
+    <?php if ($presentationContext !== null): ?><p class="field-help">Totals combine visits to all matching QR codes for this presentation, including disabled codes and codes for previous speakers. A person opening multiple codes contributes multiple visits.</p><?php endif; ?>
     <section class="short-link-report" aria-label="Traffic statistics">
         <div class="stats-overview">
             <div class="stats-summary">

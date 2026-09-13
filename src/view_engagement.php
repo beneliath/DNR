@@ -499,7 +499,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
         </div>
         <div class="detail-value">
             <?php foreach ($presentations as $presentation): ?>
-            <div class="presentation-item">
+            <div class="presentation-item" id="presentation-<?php echo (int) $presentation['id']; ?>">
+                <div class="presentation-item-heading">
+                <div>
                 <strong><?php echo htmlspecialchars(trim((string) $presentation['topic_title']) ?: 'Presentation'); ?></strong>
                 <?php if (!empty($presentation['speaker_name'])): ?>
                 <div>Speaker: <a href="view_speaker.php?id=<?php echo (int) $presentation['speaker_id']; ?>"><?php echo htmlspecialchars($presentation['speaker_name']); ?></a></div>
@@ -518,6 +520,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <?php if ($presentation['actual_attendance'] !== null): ?>
                 <div>Actual attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                 <?php endif; ?>
+                </div>
+                <a class="button-secondary presentation-combined-stats" href="short_links.php?presentation_id=<?php echo (int) $presentation['id']; ?>">Combined Presentation Statistics</a>
+                </div>
                 <div class="presentation-view-assets">
                     <?php if (!empty($presentation['has_speaker_notes'])): ?>
                         <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes" target="_blank" rel="noopener">View PDF Speaker Notes</a>
@@ -525,8 +530,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     <?php
                     $short_link_presentation_id = (int) $presentation['id'];
                     $short_link_show_pdf_action = false;
+                    $short_link_show_stats_action = false;
                     include __DIR__ . '/templates/presentation_short_links.php';
-                    unset($short_link_show_pdf_action);
+                    unset($short_link_show_pdf_action, $short_link_show_stats_action);
                     ?>
                 </div>
                 <?php include __DIR__ . '/templates/presentation_export_actions.php'; ?>

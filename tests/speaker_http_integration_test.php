@@ -6,6 +6,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/speaker_helpers.php';
 $baseUrl = rtrim((string) (getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080'), '/');
 if (!in_array(parse_url($baseUrl, PHP_URL_HOST), ['localhost', '127.0.0.1'], true)) {
@@ -60,6 +61,7 @@ try {
         $userIds[] = (int) $conn->insert_id;
         $form = $request('login.php');
         $login = $request('login.php', ['csrf_token' => speakerHidden($form['body'], 'csrf_token'), 'username' => $username, 'password' => $password]);
+        $login = finishIntegrationTestEnrollment($request, $login);
         expectSpeakerHttp($login['status'] === 302, 'Test user can sign in.');
         $directory = $request('speakers.php');
         expectSpeakerHttp($directory['status'] === 200 && str_contains($directory['body'], 'Olivier Melnick'), 'Both roles can view speakers.');

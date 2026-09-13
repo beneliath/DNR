@@ -88,14 +88,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['two_factor_verified_at'] = time();
                 header('Location: two_factor_recovery_codes.php');
                 exit();
-            } elseif ($action === 'disable' && !twoFactorRequiredForRole($user['role'])) {
-                disableTwoFactorForUser($conn, $user_id);
-                logSecurityEvent($conn, 'two_factor_disabled', $user_id, $user_id);
-                $user = fetchAuthenticationUserById($conn, $user_id);
-                $_SESSION['auth_version'] = (int) $user['auth_version'];
-                $_SESSION['two_factor_verified_at'] = null;
-                header('Location: two_factor_settings.php?disabled=1');
-                exit();
             } else {
                 $error = 'That security action is not permitted.';
             }
@@ -135,8 +127,6 @@ $remaining_codes = !empty($user['two_factor_enabled'])
         <p class="success">Your password was reset, other sessions were signed out, and you are now signed in.</p>
     <?php elseif (isset($_GET['password_changed'])): ?>
         <p class="success">Your password was changed and your other sessions were signed out.</p>
-    <?php elseif (isset($_GET['disabled'])): ?>
-        <p class="success">Two-factor authentication was disabled.</p>
     <?php endif; ?>
 
     <div class="account-security-grid">
@@ -146,7 +136,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
         <?php if (empty($user['two_factor_enabled'])): ?>
             <p><strong>Status:</strong> Not enabled</p>
             <?php if (twoFactorRequiredForRole($user['role'])): ?>
-                <p>Two-factor authentication is required for administrators.</p>
+                <p>Two-factor authentication is required for every account.</p>
             <?php endif; ?>
             <p><a href="setup_2fa.php" class="security-button">Set Up 2FA</a></p>
         <?php else: ?>
@@ -189,21 +179,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             </form>
         </section>
 
-        <?php if (!twoFactorRequiredForRole($user['role'])): ?>
-            <section class="security-card danger-card">
-                <h2>Disable Two-Factor Authentication</h2>
-                <p>This makes the account less secure.</p>
-                <form method="post" action="two_factor_settings.php" class="security-form" data-confirm="Disable two-factor authentication for this account?">
-                    <?php echo csrfInput(); ?>
-                    <input type="hidden" name="action" value="disable">
-                    <label for="disable_password">Current password</label>
-                    <input type="password" name="password" id="disable_password" autocomplete="current-password" maxlength="72" required>
-                    <label for="disable_current_code">Current authenticator code</label>
-                    <input type="text" name="current_code" id="disable_current_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
-                    <button type="submit" class="danger-button">Disable 2FA</button>
-                </form>
-            </section>
-        <?php endif; ?>
+
     <?php endif; ?>
     </div>
 </main>

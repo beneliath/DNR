@@ -1,5 +1,9 @@
 # Apply after dev.yaml: tests exercise the image's PHP source, migrations and ini.
 services:
+  backup:
+    volumes: !override
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+      - ./docker/apache-backup.conf:/etc/apache2/sites-enabled/000-default.conf:ro
   web:
     volumes: !override
       - ./tests:/opt/dnr/tests:ro

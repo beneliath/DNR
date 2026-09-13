@@ -130,6 +130,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if (!$enrollment) {
             $error = 'The enrollment session expired. Start again.';
+        } elseif (!empty($user['two_factor_is_locked'])) {
+            $error = 'Two-factor verification is temporarily locked. Try again later.';
         } else {
             $step = matchingTotpStep(
                 $enrollment['secret'],
@@ -138,6 +140,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             );
 
             if ($step === null) {
+                recordAuthenticationFailure($conn, $user_id, 'two_factor');
                 if ($is_pending_login) {
                     recordFailedLoginAttempt(
                         $conn,
@@ -226,6 +229,9 @@ if ($enrollment) {
 <?php if (!$is_pending_login) include 'templates/header.php'; ?>
 <main class="container security-container">
     <h1><?php echo !empty($user['two_factor_enabled']) ? 'Replace Authenticator' : 'Set Up Two-Factor Authentication'; ?></h1>
+    <?php if ($is_pending_login): ?>
+        <p>Two-factor authentication is required for every account. Set up your authenticator and confirm a code to finish signing in. You will then receive recovery codes to keep somewhere safe.</p>
+    <?php endif; ?>
 
     <?php if (isset($error)): ?>
         <?php echo formErrorSummary($error); ?>
@@ -270,7 +276,7 @@ if ($enrollment) {
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="confirm">
             <label for="authentication_code">Six-digit authentication code</label>
-            <input type="text" name="authentication_code" id="authentication_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required autofocus>
+            <input type="text" name="authentication_code" id="authentication_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
             <button type="submit" class="security-button setup-2fa-enable-button">Enable 2FA</button>
         </form>
     <?php endif; ?>

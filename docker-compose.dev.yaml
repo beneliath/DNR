@@ -15,6 +15,11 @@ services:
   maintenance:
     volumes:
       - ./tests:/opt/dnr/tests:ro
+  backup:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./scripts/backup_endpoint.php:/opt/dnr/backup-public/export.php:ro
+      - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
 
   # Plaintext development HTTP is deliberately isolated from the production
   # publish address. Remote exposure requires a separate, explicit opt-in.

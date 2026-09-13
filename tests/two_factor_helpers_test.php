@@ -10,6 +10,10 @@ function expectTwoFactor($condition, $message) {
     }
 }
 
+foreach (['admin', 'editor', 'reviewer', 'future-role'] as $role) {
+    expectTwoFactor(twoFactorRequiredForRole($role), 'Every account type must require two-factor authentication.');
+}
+
 $lockedActiveUser = ['account_status' => 'active', 'login_is_locked' => 1, 'two_factor_enabled' => 0];
 expectTwoFactor(
     !passwordAuthenticationIsAccepted($lockedActiveUser, true)

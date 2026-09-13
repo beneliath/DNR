@@ -8,6 +8,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 
 function expectAffiliationHttp(bool $condition, string $message): void {
     if (!$condition) throw new RuntimeException($message);
@@ -46,6 +47,7 @@ try {
     $csrf = bin2hex(random_bytes(32));
     $_SESSION = ['user_id' => $userId, 'username' => $username, 'role' => 'editor',
         'auth_version' => (int) $user['auth_version'], 'auth_complete' => true, '_csrf_token' => $csrf];
+        completeIntegrationTestMfaSession();
     $sessionId = session_id(); session_write_close(); session_id('');
     foreach (['Church', 'Research', 'Foundation'] as $label) {
         $conn->query("INSERT INTO organizations (organization_name) VALUES ('Affiliation{$label}{$suffix}')");

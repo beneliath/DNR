@@ -100,6 +100,15 @@ if [ "$lock_acquired" != "1" ]; then
     exit 1
 fi
 
+if [ "${DNR_REQUIRE_DATABASE_ENCRYPTION:-0}" = "1" ]; then
+    encryption_ready=$(mysql_root -Nse "SELECT @@default_table_encryption AND @@innodb_redo_log_encrypt AND @@innodb_undo_log_encrypt AND @@binlog_encryption AND @@table_encryption_privilege_check")
+    if [ "$encryption_ready" != "1" ]; then
+        echo "Database encryption is required. Start the configured database image with its persistent keyring before migrating." >&2
+        exit 1
+    fi
+    mysql_root -e "ALTER DATABASE \`$database_name\` DEFAULT ENCRYPTION='Y'"
+fi
+
 mysql_root "$database_name" -e "
 CREATE TABLE IF NOT EXISTS schema_migrations (
     migration_name VARCHAR(255) PRIMARY KEY,
@@ -210,6 +219,27 @@ do
         WHERE migration_name = '$migration_name'"
     migration_in_progress=
 done < "$migration_order_file"
+
+# Run on every deployment, not as a one-time ledger entry: this also catches a
+# database restored from an older, unencrypted logical backup. The caller must
+# take a verified backup and pause writers before this first conversion.
+if [ "${DNR_REQUIRE_DATABASE_ENCRYPTION:-0}" = "1" ]; then
+    mysql_root -e "ALTER TABLESPACE mysql ENCRYPTION='Y'"
+    mysql_root -Nse "SELECT CONCAT('ALTER TABLE \`', TABLE_SCHEMA, '\`.\`', TABLE_NAME, '\` ENCRYPTION=\"Y\";')
+        FROM information_schema.tables WHERE TABLE_SCHEMA='$database_name'
+        AND TABLE_TYPE='BASE TABLE' AND ENGINE='InnoDB'
+        AND CREATE_OPTIONS NOT LIKE '%ENCRYPTION=\"Y\"%'" > "$migration_runtime/encrypt.sql"
+    mysql_root < "$migration_runtime/encrypt.sql"
+    unencrypted=$(mysql_root -Nse "SELECT COUNT(*) FROM information_schema.innodb_tablespaces
+        WHERE (NAME LIKE '$database_name/%' OR NAME='mysql') AND ENCRYPTION <> 'Y'")
+    unsupported=$(mysql_root -Nse "SELECT COUNT(*) FROM information_schema.tables
+        WHERE TABLE_SCHEMA='$database_name' AND TABLE_TYPE='BASE TABLE' AND ENGINE <> 'InnoDB'")
+    if [ "$unencrypted" != "0" ] || [ "$unsupported" != "0" ]; then
+        echo "Database encryption verification failed; application startup is blocked." >&2
+        exit 1
+    fi
+    echo "Database tablespace encryption verified."
+fi
 
 privilege_script=${DNR_PRIVILEGE_SCRIPT:-/opt/dnr/bin/configure_database_privileges}
 if [ ! -r "$privilege_script" ]; then

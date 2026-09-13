@@ -8,6 +8,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/config.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/functions.php';
 require_once $sourceDirectory . '/map_helpers.php';
 function expectMapHttp(bool $condition, string $message): void {
@@ -17,13 +18,15 @@ $baseUrl = rtrim((string) (getenv('DNR_TEST_BASE_URL') ?: 'http://web'), '/');
 expectMapHttp(in_array(parse_url($baseUrl, PHP_URL_HOST), ['127.0.0.1', 'localhost', 'web'], true), 'Use only the disposable local HTTP server');
 $cookieFile = tempnam(sys_get_temp_dir(), 'dnr-map-test-');
 $request = static function (string $path, ?array $post = null) use ($baseUrl, &$cookieFile): array {
+    $headers = '';
     $curl = curl_init($baseUrl . '/' . $path);
+    curl_setopt($curl, CURLOPT_HEADERFUNCTION, static function ($curl, $line) use (&$headers) { $headers .= $line; return strlen($line); });
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_COOKIEFILE => $cookieFile,
         CURLOPT_COOKIEJAR => $cookieFile, CURLOPT_TIMEOUT => 20, CURLOPT_FOLLOWLOCATION => false]);
     if ($post !== null) curl_setopt($curl, CURLOPT_POSTFIELDS, http_build_query($post));
     $body = curl_exec($curl);
     expectMapHttp(is_string($body), 'HTTP request should complete');
-    return ['status' => (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE), 'body' => $body,
+    return ['headers' => $headers, 'status' => (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE), 'body' => $body,
         'json' => json_decode($body, true)];
 };
 $mapData = static function (array $response): array {
@@ -66,6 +69,7 @@ try {
         $form = $request('login.php');
         preg_match('/name="csrf_token"[^>]*value="([^"]*)"/', $form['body'], $match);
         $result = $request('login.php', ['csrf_token' => html_entity_decode($match[1] ?? '', ENT_QUOTES), 'username' => $username, 'password' => $password]);
+        $result = finishIntegrationTestEnrollment($request, $result);
         expectMapHttp($result['status'] === 302, 'Fixture user should log in');
     };
     $login();

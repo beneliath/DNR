@@ -1,59 +1,13 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/two_factor_helpers.php';
-require_once __DIR__ . '/database_backup_helpers.php';
+require_once __DIR__ . '/database_backup_client.php';
 startSecureSession();
 requireAdmin();
 requireTwoFactorSchema($conn);
 requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
-
-function databaseMaintenanceAuthenticationAccepted(mysqli $conn, array $actor, $password, $code, $action) {
-    $actor_id = (int) $actor['id'];
-    $failure_event = 'database_backup_auth_failed';
-
-    if (!\Dnr\Security\PasswordPolicy::verify($password, $actor['password'])) {
-        if (empty($actor['login_is_locked'])) {
-            recordAuthenticationFailure($conn, $actor_id, 'password');
-        }
-        logSecurityEvent($conn, $failure_event, $actor_id, $actor_id);
-        return false;
-    }
-    if (empty($actor['two_factor_enabled']) || !empty($actor['two_factor_is_locked'])) {
-        return false;
-    }
-
-    resetAuthenticationFailures($conn, $actor_id, 'password');
-    $normalized_code = trim((string) $code);
-    $is_totp_code = preg_match('/^[0-9]{6}$/', $normalized_code) === 1;
-    $factor_verified = $is_totp_code
-        ? verifyAndConsumeTotp($conn, $actor, $normalized_code)
-        : consumeRecoveryCode($conn, $actor_id, $normalized_code);
-
-    if (!$factor_verified) {
-        recordAuthenticationFailure($conn, $actor_id, 'two_factor');
-        logSecurityEvent($conn, $failure_event, $actor_id, $actor_id);
-        return false;
-    }
-
-    resetAuthenticationFailures($conn, $actor_id, 'two_factor');
-    return true;
-}
-
-function acquireDatabaseBackupOperationLock(mysqli $conn): bool {
-    $result = $conn->query("SELECT GET_LOCK('dnr_database_backup_export', 0) AS lock_acquired");
-    if (!$result) {
-        throw new RuntimeException('Unable to check the database backup operation lock.');
-    }
-    return (int) ($result->fetch_assoc()['lock_acquired'] ?? 0) === 1;
-}
-
-function releaseDatabaseBackupOperationLock(mysqli $conn): void {
-    if (!$conn->query("DO RELEASE_LOCK('dnr_database_backup_export')")) {
-        applicationLog('warning', 'Unable to release the database backup operation lock');
-    }
-}
 
 $maximum_backup_bytes = databaseBackupMaximumBytes();
 $actor_id = (int) $_SESSION['user_id'];
@@ -83,103 +37,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $backup_password_confirmation = is_string($_POST['backup_password_confirmation'] ?? null)
             ? $_POST['backup_password_confirmation']
             : '';
-        $backup = null;
-        $backup_connection = null;
         $encrypted_backup = null;
-        $backup_lock_acquired = false;
         $download_completed = false;
-        $previous_ignore_user_abort = null;
-        $backup_started_at = microtime(true);
+        $previous_ignore_user_abort = ignore_user_abort(true);
         try {
-            if (strlen($backup_password) < DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES) {
-                $error = 'The backup encryption password must contain at least '
-                    . DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES . ' characters.';
-            } elseif (preg_match('/[\x00-\x1F\x7F]/', $backup_password) === 1) {
-                $error = 'The backup encryption password cannot contain control characters.';
+            if (strlen($backup_password) < DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES
+                || strlen($backup_password) > 1024 || preg_match('/[\x00-\x1F\x7F]/', $backup_password)) {
+                $error = 'The backup encryption password must contain 16–1024 characters without control characters.';
             } elseif (!hash_equals($backup_password, $backup_password_confirmation)) {
                 $error = 'The backup encryption passwords do not match.';
-            } elseif (!($backup_lock_acquired = acquireDatabaseBackupOperationLock($conn))) {
-                $error = 'Another database backup is already in progress. Try again after it finishes.';
-            } elseif (!databaseMaintenanceAuthenticationAccepted(
-                $conn,
-                $actor,
-                $admin_password,
-                $admin_code,
-                'backup'
-            )) {
-                $error = 'Your administrator password or authentication code was not accepted.';
             } else {
-                // The authenticated backup can take minutes on a large dataset.
-                // Persist the consumed factor and let this user's other requests proceed.
                 releaseApplicationSessionLock();
-                set_time_limit(300);
-                $backup_connection = databaseBackupConnection();
-                $backup = createDatabaseBackup(
-                    $backup_connection,
-                    APP_VERSION,
-                    $maximum_backup_bytes
-                );
-                $backup_connection->close();
-                $backup_connection = null;
-                $encrypted_backup = encryptDatabaseBackup(
-                    $backup['path'],
-                    $backup_password,
-                    $maximum_backup_bytes
-                );
-                if (is_file($backup['path']) && !@unlink($backup['path'])) {
-                    throw new RuntimeException(
-                        'Unable to remove the plaintext database backup after encryption.'
-                    );
-                }
-                $backup = null;
-
-                $audit_recorded = recordAuditEvent($conn, [
-                    'event_category' => 'security',
-                    'event_type' => 'database_backup_created',
-                    'actor_user_id' => $actor_id,
-                    'target_user_id' => $actor_id,
-                    'entity_type' => 'database',
-                    'entity_label' => 'DNR database',
-                    'details' => sprintf(
-                        'Encrypted backup: %d bytes in %d ms',
-                        (int) $encrypted_backup['size'],
-                        (int) round((microtime(true) - $backup_started_at) * 1000)
-                    ),
-                ]);
-                if (!$audit_recorded) {
-                    throw new RuntimeException('Unable to record the database backup audit event.');
-                }
+                set_time_limit(320);
+                $encrypted_backup = requestEncryptedDatabaseBackup([
+                    'user_id' => $actor_id, 'auth_version' => (int) $actor['auth_version'],
+                    'admin_password' => $admin_password, 'admin_code' => $admin_code,
+                    'backup_password' => $backup_password,
+                ], $maximum_backup_bytes);
                 $filename = 'dnr-database-' . gmdate('Ymd-His') . 'Z.dnrbackup';
-
                 header('Content-Type: application/octet-stream');
                 header('Content-Disposition: attachment; filename="' . $filename . '"');
                 header('Content-Length: ' . $encrypted_backup['size']);
                 header('X-Content-Type-Options: nosniff');
-                $previous_ignore_user_abort = ignore_user_abort(true);
-                if (readfile($encrypted_backup['path']) === false) {
-                    throw new RuntimeException('Unable to stream the encrypted database backup.');
-                }
+                if (readfile($encrypted_backup['path']) === false) throw new RuntimeException('Unable to stream the encrypted backup.');
                 $download_completed = true;
             }
         } catch (Throwable $exception) {
-            applicationLog('error', 'Database backup failed', ['error' => $exception->getMessage()]);
-            $error = 'The database backup could not be created. No database data was changed.';
+            applicationLog('error', 'Database backup request failed');
+            $error = $exception->getMessage();
         } finally {
-            if ($backup_connection instanceof mysqli) {
-                $backup_connection->close();
-            }
-            if (is_array($backup) && isset($backup['path'])) {
-                @unlink($backup['path']);
-            }
-            if (is_array($encrypted_backup) && isset($encrypted_backup['path'])) {
-                @unlink($encrypted_backup['path']);
-            }
-            if ($backup_lock_acquired) {
-                releaseDatabaseBackupOperationLock($conn);
-            }
-            if ($previous_ignore_user_abort !== null) {
-                ignore_user_abort((bool) $previous_ignore_user_abort);
-            }
+            if ($encrypted_backup !== null) @unlink($encrypted_backup['path']);
+            ignore_user_abort((bool) $previous_ignore_user_abort);
         }
         if ($download_completed) {
             exit();

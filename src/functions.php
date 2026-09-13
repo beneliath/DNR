@@ -1053,7 +1053,7 @@ function requireLogin() {
 
     $user_id = (int) $_SESSION['user_id'];
     $stmt = $conn->prepare(
-        'SELECT username, role, auth_version, must_change_password, account_status,
+        'SELECT username, role, auth_version, must_change_password, account_status, two_factor_enabled,
                 first_name, last_name, profile_picture_updated_at
          FROM users
          WHERE id = ?'
@@ -1070,6 +1070,8 @@ function requireLogin() {
     if (!$user
         || $user['account_status'] !== 'active'
         || (int) $user['auth_version'] !== (int) $_SESSION['auth_version']
+        || empty($user['two_factor_enabled'])
+        || empty($_SESSION['two_factor_verified_at'])
     ) {
         session_unset();
         session_regenerate_id(true);
@@ -1241,6 +1243,9 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     if (($user['account_status'] ?? 'active') !== 'active') {
         throw new RuntimeException('Inactive accounts cannot complete authentication.');
     }
+    if (empty($user['two_factor_enabled']) || !$two_factor_verified) {
+        throw new RuntimeException('All accounts must complete two-factor authentication before signing in.');
+    }
     $user_id = (int) $user['id'];
     setDatabaseAuditContext($conn, $user_id, (string) $user['username']);
     $stmt = $conn->prepare(
@@ -1269,7 +1274,7 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
         'entity_type' => 'users',
         'entity_id' => $user_id,
         'entity_label' => (string) $user['username'],
-        'details' => $two_factor_verified ? 'Two-factor authentication verified' : 'Password authentication verified',
+        'details' => 'Two-factor authentication verified',
     ]);
 
     session_regenerate_id(true);
@@ -1285,7 +1290,7 @@ function completeAuthentication(mysqli $conn, array $user, $two_factor_verified 
     $_SESSION['authenticated_role'] = (string) $user['role'];
     $_SESSION['auth_version'] = (int) $user['auth_version'];
     $_SESSION['auth_complete'] = true;
-    $_SESSION['two_factor_verified_at'] = $two_factor_verified ? time() : null;
+    $_SESSION['two_factor_verified_at'] = time();
     $_SESSION['must_change_password'] = !empty($user['must_change_password']);
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
 }

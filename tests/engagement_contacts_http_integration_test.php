@@ -8,6 +8,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $sourceDirectory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $sourceDirectory . '/config.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $sourceDirectory . '/functions.php';
 require_once $sourceDirectory . '/engagement_contact_helpers.php';
 
@@ -69,6 +70,7 @@ try {
     $login = $request('login.php');
     $login = $request('login.php', ['csrf_token' => eventContactsHidden($login['body'], 'csrf_token'),
         'username' => $username, 'password' => $password]);
+        $login = finishIntegrationTestEnrollment($request, $login);
     expectEventContactsHttp($login['status'] === 302, 'Editor should authenticate');
     $form = $request('index.php');
     expectEventContactsHttp($form['status'] === 200 && str_contains($form['body'], 'Add Existing Contacts')

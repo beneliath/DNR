@@ -127,4 +127,24 @@ expectSmtpMessageFormat(
     'SMTP delivery should support validated Reply-To and optional HTML while normalizing the envelope exactly once.'
 );
 
+expectSmtpMessageFormat(smtpRecipientHeaders('old@example.test') === ['To: <old@example.test>'],
+    'legacy mail should keep its private recipient header.');
+$headers = smtpRecipientHeaders('hidden@example.test', [
+    'to' => ['first@example.test', 'SECOND@example.test'], 'cc' => ['copy@example.test'],
+]);
+expectSmtpMessageFormat($headers === ["To: <first@example.test>,\n <second@example.test>", 'Cc: <copy@example.test>']
+    && !str_contains(implode("\n", $headers), 'hidden@example.test'),
+    'visible headers should be folded, normalized, and omit the hidden envelope recipient.');
+expectSmtpMessageFormat(smtpRecipientHeaders('hidden@example.test', ['to' => [], 'cc' => []])
+    === ['To: undisclosed-recipients:;'], 'Bcc-only mail must not reveal its envelope recipient.');
+foreach ([['to' => ['valid@example.test' . "\r\nBcc: injected@example.test"], 'cc' => []],
+    ['to' => [], 'cc' => [], 'bcc' => ['hidden@example.test']],
+    ['to' => [], 'cc' => 'invalid'], ['to' => [[]], 'cc' => []]] as $invalid) {
+    try {
+        smtpNormalizeVisibleRecipients($invalid);
+        expectSmtpMessageFormat(false, 'malformed visible headers must be rejected.');
+    } catch (InvalidArgumentException) {
+        // Expected.
+    }
+}
 echo "SMTP message format tests passed.\n";

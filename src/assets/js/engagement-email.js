@@ -19,9 +19,11 @@
     const body = form.querySelector("[data-email-body]");
     const recipients = Array.from(form.querySelectorAll("[data-email-recipient]"));
     const count = form.querySelector("[data-recipient-count]");
+    const senderCopy = form.querySelector("[data-email-sender-copy]");
 
     function updateCount() {
-        const selected = recipients.filter((recipient) => recipient.checked && !recipient.disabled).length;
+        const selected = recipients.filter((recipient) => recipient.checked && !recipient.disabled).length
+            + (senderCopy && !senderCopy.disabled && senderCopy.value ? 1 : 0);
         if (count) {
             count.textContent = selected === 1
                 ? "1 recipient selected."
@@ -89,9 +91,13 @@
         recipients.forEach((recipient) => {
             recipient.checked = false;
         });
+        if (senderCopy) {
+            senderCopy.value = "";
+        }
         updateCount();
     });
 
     recipients.forEach((recipient) => recipient.addEventListener("change", updateCount));
+    senderCopy?.addEventListener("change", updateCount);
     updateCount();
 })();

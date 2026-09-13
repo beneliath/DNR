@@ -152,9 +152,9 @@ $templateLabel = $isInquiryMessage
                 ?>
                 <article class="outbound-delivery-card">
                     <div>
-                        <strong><?php echo htmlspecialchars((string) $delivery['recipient_name'], ENT_QUOTES, 'UTF-8'); ?></strong>
+                        <strong><?php echo engagementEmailRecipientTypeLabel((string) ($delivery['recipient_type'] ?? 'private')); ?>: <?php echo htmlspecialchars((string) $delivery['recipient_name'], ENT_QUOTES, 'UTF-8'); ?></strong>
                         <a href="mailto:<?php echo htmlspecialchars((string) $delivery['recipient_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars((string) $delivery['recipient_email'], ENT_QUOTES, 'UTF-8'); ?></a>
-                        <?php if ($roles !== []): ?><small><?php echo htmlspecialchars(implode(' · ', array_map(static fn(mixed $role): string => $role === 'speaker' ? 'Speaker' : engagementContactRoleLabel($role), $roles)), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                        <?php if ($roles !== []): ?><small><?php echo htmlspecialchars(implode(' · ', array_map(static fn(mixed $role): string => match ($role) { 'speaker' => 'Speaker', 'sender' => 'Sender', default => engagementContactRoleLabel($role) }, $roles)), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     </div>
                     <div class="outbound-delivery-state">
                         <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst((string) $delivery['status']), ENT_QUOTES, 'UTF-8'); ?></span>

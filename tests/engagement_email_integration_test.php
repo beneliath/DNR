@@ -441,6 +441,41 @@ try {
         $availableSpeakerIds === [$speakerIds[0], $speakerIds[1]],
         'the picker should include each active presentation speaker once and exclude archived presentations.'
     );
+    $senderEmail = 'sender-' . $suffix . '@example.test';
+    $senderUpdate = $conn->prepare('UPDATE users SET email = ? WHERE id = ?');
+    $senderUpdate->bind_param('si', $senderEmail, $userId);
+    $senderUpdate->execute();
+    $senderUpdate->close();
+    $typedMessageId = queueEngagementEmail(
+        $conn, $engagementRecord, [], [$contactId], 'custom', 'Recipient types', 'Copied message.',
+        false, $userId, $username, speakerIds: [$speakerIds[0]],
+        recipientTypes: ['contact:' . $contactId => 'to', 'speaker:' . $speakerIds[0] => 'cc'],
+        senderCopy: 'bcc'
+    );
+    $typedMessage = fetchEngagementEmailMessage($conn, $typedMessageId);
+    $typedDeliveries = $typedMessage['deliveries'];
+    expectEngagementEmailIntegration(array_column($typedDeliveries, 'recipient_type') === ['to', 'cc', 'bcc']
+        && $typedDeliveries[2]['recipient_email'] === $senderEmail,
+        'queued recipients should include the authenticated sender with their selected types.');
+    $typedPayloads = $conn->query("SELECT payload_ciphertext FROM engagement_email_deliveries WHERE message_id = {$typedMessageId} ORDER BY id")->fetch_all(MYSQLI_ASSOC);
+    $visible = ['to' => [$typedDeliveries[0]['recipient_email']], 'cc' => [$typedDeliveries[1]['recipient_email']]];
+    foreach ($typedPayloads as $payload) {
+        expectEngagementEmailIntegration(decryptQueuedEngagementEmail($payload['payload_ciphertext'])['visible_recipients'] === $visible,
+            'every delivery should retain the same To/Cc headers without Bcc addresses.');
+    }
+    $conn->query("UPDATE engagement_email_deliveries SET status = 'failed', payload_ciphertext = NULL WHERE message_id = {$typedMessageId}");
+    // A later profile change must not redirect an already queued sender copy.
+    $conn->query("UPDATE users SET email = NULL WHERE id = {$userId}");
+    expectEngagementEmailIntegration(retryFailedEngagementEmailDeliveries($conn, $typedMessageId) === 3,
+        'all failed recipient types should be retryable.');
+    $retryPayloads = $conn->query("SELECT payload_ciphertext FROM engagement_email_deliveries WHERE message_id = {$typedMessageId} ORDER BY id")->fetch_all(MYSQLI_ASSOC);
+    foreach ($retryPayloads as $index => $payload) {
+        $decoded = decryptQueuedEngagementEmail($payload['payload_ciphertext']);
+        expectEngagementEmailIntegration($decoded['visible_recipients'] === $visible
+            && $decoded['recipient'] === $typedDeliveries[$index]['recipient_email'],
+            'retries should preserve original recipients and their visibility after profile changes.');
+    }
+
     $queueTo = static fn(array $contacts, array $speakers): int => queueEngagementEmail(
         $conn, $engagementRecord, [], $contacts, 'custom', 'Speaker test', 'Message for selected recipients.',
         false, $userId, $username, speakerIds: $speakers

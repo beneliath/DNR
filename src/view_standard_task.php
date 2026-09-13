@@ -14,6 +14,25 @@ if (!$standard_task) {
 }
 $is_archived = !empty($standard_task['is_archived']);
 $is_required_standard_task = isRequiredStandardEventTask($standard_task);
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    requireValidCsrfToken();
+    if ($user_role !== 'admin') {
+        http_response_code(403);
+        exit('Forbidden.');
+    }
+    try {
+        if (($_POST['action'] ?? '') !== 'generate_existing_engagements') {
+            throw new InvalidArgumentException('Select a valid standard-task action.');
+        }
+        $generated_count = generateStandardTaskForOpenEngagements($conn, (int) $standard_task['id'], (int) $_SESSION['user_id']);
+        $_SESSION['standard_task_action_message'] = standardTaskGenerationMessage($generated_count);
+    } catch (Throwable $exception) {
+        $_SESSION['standard_task_action_error'] = $exception instanceof InvalidArgumentException
+            ? $exception->getMessage() : 'Unable to generate tasks. Please try again.';
+    }
+    header('Location: view_standard_task.php?id=' . (int) $standard_task['id']);
+    exit();
+}
 $priority_labels = followUpTaskPriorities();
 $action_message = $_SESSION['standard_task_action_message'] ?? '';
 $action_error = $_SESSION['standard_task_action_error'] ?? '';
@@ -62,6 +81,13 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
 
     <div class="engagement-page-actions standard-task-page-actions">
         <a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>" class="cancel-button">Back to Standard Tasks</a>
+        <?php if (!$is_archived && $user_role === 'admin'): ?>
+            <form method="post" action="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>">
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="action" value="generate_existing_engagements">
+                <button type="submit" class="save-button" data-confirm="Add this task to all active engagements with an open financial closeout? Copies use this due-date rule and go to each active Caller, or to you when no active Caller is assigned. Existing copies are kept.">Add to Active, Open Engagements</button>
+            </form>
+        <?php endif; ?>
         <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $is_archived)): ?>
             <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $is_archived ? 'archived' : 'active'; ?>"><input type="hidden" name="action" value="<?php echo $is_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="<?php echo $is_archived ? 'restore-button' : 'archive-button'; ?>"><?php echo $is_archived ? 'Restore standard task' : 'Archive standard task'; ?></button></form>
         <?php endif; ?>

@@ -182,7 +182,8 @@ do {
                 $message['recipient'],
                 $message['subject'],
                 $message['body'],
-                $message['reply_to']
+                $message['reply_to'],
+                visibleRecipients: $message['visible_recipients']
             );
             completeQueuedEngagementEmail($conn, $queued['id']);
         } catch (Throwable $exception) {

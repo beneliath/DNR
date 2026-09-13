@@ -44,13 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 exit();
             }
 
-            if (twoFactorRequiredForRole($user['role'])) {
-                header('Location: setup_2fa.php');
-                exit();
-            }
-
-            completeAuthentication($conn, $user, false);
-            header('Location: ' . authenticationDestination($user));
+            header('Location: setup_2fa.php');
             exit();
         }
 

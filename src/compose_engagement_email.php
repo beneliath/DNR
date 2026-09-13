@@ -50,6 +50,7 @@ if (!empty($engagement['is_deleted']) || !empty($engagement['organization_delete
 try {
     $contacts = fetchEngagementContacts($conn, $engagementId);
     $speakers = fetchEngagementEmailSpeakers($conn, $engagementId);
+    $sender = fetchEngagementEmailSender($conn, (int) $_SESSION['user_id']);
     $presentationStmt = $conn->prepare(
         'SELECT p.topic_title, p.presentation_date, p.presentation_time,
                 s.name AS speaker_name, p.duration_minutes
@@ -110,6 +111,16 @@ $body = is_scalar($_POST['body'] ?? null)
     ? (string) $_POST['body']
     : $templates[$templateKey]['body'];
 $includeEventBrief = isset($_POST['include_event_brief']);
+$recipientTypes = [];
+foreach (is_array($_POST['recipient_types'] ?? null) ? $_POST['recipient_types'] : [] as $key => $type) {
+    if (is_string($key) && is_string($type) && in_array($type, ['to', 'cc', 'bcc'], true)) {
+        $recipientTypes[$key] = $type;
+    }
+}
+$senderCopy = is_string($_POST['sender_copy'] ?? null) && in_array($_POST['sender_copy'], ['cc', 'bcc'], true)
+    ? $_POST['sender_copy'] : '';
+$senderEmail = trim((string) ($sender['email'] ?? ''));
+$senderEmailAvailable = filter_var($senderEmail, FILTER_VALIDATE_EMAIL) !== false;
 $error = '';
 $mailTransport = strtolower(trim((string) (getenv('DNR_MAIL_TRANSPORT') ?: 'disabled')));
 $deliveryAvailable = in_array($mailTransport, ['smtp', 'log'], true);
@@ -127,6 +138,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $contactIds = normalizeEngagementEmailRecipientIds($_POST['contact_ids'] ?? []);
         $speakerIds = normalizeEngagementEmailRecipientIds($_POST['speaker_ids'] ?? []);
+        $recipientTypes = normalizeEngagementEmailRecipientTypes($_POST['recipient_types'] ?? []);
+        $senderCopy = normalizeEngagementEmailSenderCopy($_POST['sender_copy'] ?? '');
         $messageId = queueEngagementEmail(
             $conn,
             $engagement,
@@ -138,7 +151,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $includeEventBrief,
             (int) $_SESSION['user_id'],
             (string) ($_SESSION['username'] ?? ''),
-            speakerIds: $speakerIds
+            speakerIds: $speakerIds,
+            recipientTypes: $recipientTypes,
+            senderCopy: $senderCopy
         );
         $_SESSION['engagement_email_message'] = $mailTransport === 'log'
             ? 'The message was accepted by the development mail transport.'
@@ -170,7 +185,7 @@ $speakersWithEmail = array_values(array_filter(
         FILTER_VALIDATE_EMAIL
     ) !== false
 ));
-$hasRecipientsWithEmail = $contactsWithEmail !== [] || $speakersWithEmail !== [];
+$hasRecipientsWithEmail = $contactsWithEmail !== [] || $speakersWithEmail !== [] || $senderEmailAvailable;
 $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
 ?>
 <!DOCTYPE html>
@@ -229,7 +244,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <section class="email-compose-card">
             <div class="email-section-heading">
                 <div><span>02</span><h2>Select Recipients</h2></div>
-                <p>Each unique address receives a separate message; recipients are never exposed to one another.</p>
+                <p>Choose To, Cc, or Bcc for each selected recipient. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden.</p>
             </div>
             <div class="recipient-shortcuts" aria-label="Recipient selection shortcuts">
                 <?php foreach (engagementContactRoles() as $role => $label): ?>
@@ -249,7 +264,8 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                     $contactEmailAvailable = filter_var($contactEmail, FILTER_VALIDATE_EMAIL) !== false;
                     $contactRoles = (array) ($contact['engagement_contact_roles'] ?? []);
                     ?>
-                    <label class="recipient-option<?php echo !$contactEmailAvailable ? ' is-unavailable' : ''; ?>">
+                    <div class="recipient-option<?php echo !$contactEmailAvailable ? ' is-unavailable' : ''; ?>">
+                        <label class="recipient-selection">
                         <input type="checkbox" name="contact_ids[]" value="<?php echo $contactId; ?>"
                                data-email-recipient data-contact-roles="<?php echo htmlspecialchars(implode(' ', $contactRoles), ENT_QUOTES, 'UTF-8'); ?>"
                                <?php echo isset($selectedContactIds[$contactId]) && $contactEmailAvailable ? 'checked' : ''; ?>
@@ -261,7 +277,15 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                                 <?php foreach ($contactRoles as $role): ?><span><?php echo htmlspecialchars(engagementContactRoleLabel($role), ENT_QUOTES, 'UTF-8'); ?></span><?php endforeach; ?>
                             </span>
                         </span>
-                    </label>
+                        </label>
+                        <label class="recipient-type">Send as:
+                            <select name="recipient_types[contact:<?php echo $contactId; ?>]" aria-label="Recipient type for <?php echo htmlspecialchars($contactName !== '' ? $contactName : $contactEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$contactEmailAvailable ? ' disabled' : ''; ?>>
+                                <?php foreach (['to' => 'To', 'cc' => 'Cc', 'bcc' => 'Bcc'] as $type => $label): ?>
+                                    <option value="<?php echo $type; ?>"<?php echo ($recipientTypes['contact:' . $contactId] ?? 'to') === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
                 <?php endforeach; ?>
                 <?php foreach ($speakers as $speaker): ?>
                     <?php
@@ -270,7 +294,8 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                     $speakerEmail = trim((string) ($speaker['email'] ?? ''));
                     $speakerEmailAvailable = filter_var($speakerEmail, FILTER_VALIDATE_EMAIL) !== false;
                     ?>
-                    <label class="recipient-option<?php echo !$speakerEmailAvailable ? ' is-unavailable' : ''; ?>">
+                    <div class="recipient-option<?php echo !$speakerEmailAvailable ? ' is-unavailable' : ''; ?>">
+                        <label class="recipient-selection">
                         <input type="checkbox" name="speaker_ids[]" value="<?php echo $speakerId; ?>"
                                data-email-recipient data-contact-roles="speaker"
                                <?php echo isset($selectedSpeakerIds[$speakerId]) && $speakerEmailAvailable ? 'checked' : ''; ?>
@@ -280,10 +305,31 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                             <small><?php echo htmlspecialchars($speakerEmailAvailable ? $speakerEmail : 'No valid email address', ENT_QUOTES, 'UTF-8'); ?></small>
                             <span class="recipient-role-list"><span>Speaker</span></span>
                         </span>
-                    </label>
+                        </label>
+                        <label class="recipient-type">Send as:
+                            <select name="recipient_types[speaker:<?php echo $speakerId; ?>]" aria-label="Recipient type for <?php echo htmlspecialchars($speakerName !== '' ? $speakerName : $speakerEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$speakerEmailAvailable ? ' disabled' : ''; ?>>
+                                <?php foreach (['to' => 'To', 'cc' => 'Cc', 'bcc' => 'Bcc'] as $type => $label): ?>
+                                    <option value="<?php echo $type; ?>"<?php echo ($recipientTypes['speaker:' . $speakerId] ?? 'to') === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </label>
+                    </div>
                 <?php endforeach; ?>
                 <?php if ($contacts === [] && $speakers === []): ?><p>No event contacts or speakers are assigned.</p><?php endif; ?>
             </fieldset>
+            <div class="recipient-self-copy">
+                <div class="recipient-copy">
+                    <strong>Send yourself a copy</strong>
+                    <small id="sender-copy-email"><?php echo htmlspecialchars($senderEmailAvailable ? $senderEmail : 'Add a valid email address to your profile to receive a copy', ENT_QUOTES, 'UTF-8'); ?></small>
+                </div>
+                <label class="recipient-type" for="sender-copy">Your copy:
+                    <select id="sender-copy" name="sender_copy" data-email-sender-copy aria-describedby="sender-copy-email"<?php echo !$senderEmailAvailable ? ' disabled' : ''; ?>>
+                        <?php foreach (['' => 'No copy', 'cc' => 'Cc me', 'bcc' => 'Bcc me'] as $type => $label): ?>
+                            <option value="<?php echo $type; ?>"<?php echo $senderCopy === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+            </div>
             <p class="recipient-count" data-recipient-count role="status" aria-live="polite"></p>
         </section>
 

@@ -151,7 +151,7 @@ GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MY
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.email_message_templates TO '${MYSQL_USER}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT (
-    id, message_id, contact_id, recipient_name, recipient_email,
+    id, message_id, contact_id, recipient_name, recipient_email, recipient_type,
     recipient_roles_json, status, attempts, next_attempt_at,
     processing_started_at, sent_at, last_error, created_at, updated_at
 ) ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';

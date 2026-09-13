@@ -25,6 +25,28 @@ function fetchPresentationQrPdfLinks(mysqli $conn, int $engagementId, ?int $pres
     return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 }
 
+/** Preserve the requested order, using only resources allowed for this PDF. */
+function selectPresentationQrPdfLinks(array $links, array $input): array
+{
+    if (!array_key_exists('qr_selection', $input) && !array_key_exists('link_ids', $input)) {
+        return $links;
+    }
+    $ids = $input['link_ids'] ?? null;
+    if (!is_array($ids) || !array_is_list($ids) || $ids === []) {
+        throw new InvalidArgumentException('Select at least one QR code to prepare the PDF.');
+    }
+    $selected = [];
+    $available = array_column($links, null, 'id');
+    foreach ($ids as $value) {
+        $id = \Dnr\Http\RequestInput::positiveInt(['id' => $value], 'id');
+        if ($id === null || !isset($available[$id])) {
+            throw new InvalidArgumentException('Choose QR codes available for this presentation or engagement.');
+        }
+        $selected[$id] = $available[$id];
+    }
+    return array_values($selected);
+}
+
 /** Favor large QR squares and balanced rows while reserving space for labels. */
 function presentationQrPdfGrid(int $count, float $width, float $height, bool $includePresentationLabels = true): array
 {

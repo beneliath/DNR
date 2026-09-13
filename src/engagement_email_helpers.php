@@ -267,6 +267,43 @@ function normalizeEngagementEmailRecipientIds(mixed $submitted): array
     return array_values($ids);
 }
 
+/** @return array<string, string> */
+function normalizeEngagementEmailRecipientTypes(mixed $submitted): array
+{
+    if (!is_array($submitted)) {
+        throw new InvalidArgumentException('Choose To, Cc, or Bcc for each recipient.');
+    }
+    $types = [];
+    foreach ($submitted as $key => $type) {
+        if (!is_string($key) || preg_match('/\A(?:contact|speaker):[1-9][0-9]*\z/', $key) !== 1
+            || !is_string($type) || !in_array($type, ['to', 'cc', 'bcc'], true)) {
+            throw new InvalidArgumentException('Choose To, Cc, or Bcc for each recipient.');
+        }
+        $types[$key] = $type;
+    }
+    return $types;
+}
+
+function normalizeEngagementEmailSenderCopy(mixed $submitted): string
+{
+    if (!is_string($submitted) || !in_array($submitted, ['', 'cc', 'bcc'], true)) {
+        throw new InvalidArgumentException('Choose no copy, Cc, or Bcc for your email address.');
+    }
+    return $submitted;
+}
+
+/** @return array<string, mixed> */
+function fetchEngagementEmailSender(mysqli $conn, int $userId): array
+{
+    $stmt = $conn->prepare("SELECT id, username, first_name, last_name, email FROM users WHERE id = ? AND account_status = 'active'");
+    $stmt->bind_param('i', $userId);
+    $stmt->execute();
+    $sender = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    if (!$sender) throw new InvalidArgumentException('An active sender account is required.');
+    return $sender;
+}
+
 /** @return list<array<string, mixed>> */
 function fetchEngagementEmailSpeakers(mysqli $conn, int $engagementId): array
 {
@@ -292,17 +329,24 @@ function fetchEngagementEmailSpeakers(mysqli $conn, int $engagementId): array
  * @param list<int> $selectedIds
  * @param list<array<string, mixed>> $speakers
  * @param list<int> $selectedSpeakerIds
- * @return array{contacts: list<array<string, mixed>>, speakers: list<array<string, mixed>>, deliveries: list<array<string, mixed>>}
+ * @param array<string, string>|null $recipientTypes
+ * @param array<string, mixed>|null $sender
+ * @return array{contacts: list<array<string, mixed>>, speakers: list<array<string, mixed>>, senders: list<array<string, mixed>>, deliveries: list<array<string, mixed>>}
  */
 function engagementEmailResolveRecipients(
     array $contacts,
     array $selectedIds,
     array $speakers = [],
-    array $selectedSpeakerIds = []
+    array $selectedSpeakerIds = [],
+    ?array $recipientTypes = null,
+    ?array $sender = null,
+    string $senderCopy = ''
 ): array {
     $selectedIds = normalizeEngagementEmailRecipientIds($selectedIds);
     $selectedSpeakerIds = normalizeEngagementEmailRecipientIds($selectedSpeakerIds);
-    $recipientCount = count($selectedIds) + count($selectedSpeakerIds);
+    $senderCopy = normalizeEngagementEmailSenderCopy($senderCopy);
+    $recipientTypes = $recipientTypes !== null ? normalizeEngagementEmailRecipientTypes($recipientTypes) : null;
+    $recipientCount = count($selectedIds) + count($selectedSpeakerIds) + ($senderCopy !== '' ? 1 : 0);
     if ($recipientCount < 1 || $recipientCount > 25) {
         throw new InvalidArgumentException('Select between one and 25 recipients.');
     }
@@ -328,14 +372,20 @@ function engagementEmailResolveRecipients(
         )));
         $contact['normalized_email'] = $email;
         $contact['display_name'] = $name !== '' ? $name : $email;
+        $type = $recipientTypes === null ? 'private' : ($recipientTypes['contact:' . $contactId] ?? 'to');
+        $contact['recipient_type'] = $type;
         $selected[] = $contact;
         if (!isset($deliveriesByAddress[$email])) {
             $deliveriesByAddress[$email] = [
                 'contact_id' => $contactId,
                 'recipient_email' => $email,
+                'recipient_type' => $type,
                 'recipient_names' => [],
                 'recipient_roles' => [],
             ];
+        }
+        if ($deliveriesByAddress[$email]['recipient_type'] !== $type) {
+            throw new InvalidArgumentException('The same email address has different recipient types. Choose the same To, Cc, or Bcc type for matching addresses.');
         }
         $deliveriesByAddress[$email]['recipient_names'][$contactId] = $contact['display_name'];
         foreach ($roles as $role) {
@@ -358,28 +408,70 @@ function engagementEmailResolveRecipients(
         $name = trim((string) ($speaker['name'] ?? ''));
         $speaker['normalized_email'] = $email;
         $speaker['display_name'] = $name !== '' ? $name : $email;
+        $type = $recipientTypes === null ? 'private' : ($recipientTypes['speaker:' . $speakerId] ?? 'to');
+        $speaker['recipient_type'] = $type;
         $selectedSpeakers[] = $speaker;
         if (!isset($deliveriesByAddress[$email])) {
             $deliveriesByAddress[$email] = [
                 'contact_id' => null,
                 'recipient_email' => $email,
+                'recipient_type' => $type,
                 'recipient_names' => [],
                 'recipient_roles' => [],
             ];
         }
+        if ($deliveriesByAddress[$email]['recipient_type'] !== $type) {
+            throw new InvalidArgumentException('The same email address has different recipient types. Choose the same To, Cc, or Bcc type for matching addresses.');
+        }
         $deliveriesByAddress[$email]['recipient_names']['speaker:' . $speakerId] = $speaker['display_name'];
         $deliveriesByAddress[$email]['recipient_roles']['speaker'] = 'speaker';
+    }
+    $selectedSenders = [];
+    if ($senderCopy !== '') {
+        $email = normalizeAccountEmail($sender['email'] ?? '');
+        $name = trim((string) ($sender['first_name'] ?? '') . ' ' . (string) ($sender['last_name'] ?? ''));
+        $name = $name !== '' ? $name : (string) ($sender['username'] ?? $email);
+        if (isset($deliveriesByAddress[$email]) && $deliveriesByAddress[$email]['recipient_type'] !== $senderCopy) {
+            throw new InvalidArgumentException('Your email address is already selected with a different recipient type. Use the same type or choose No copy for yourself.');
+        }
+        $deliveriesByAddress[$email] ??= ['contact_id' => null, 'recipient_email' => $email,
+            'recipient_type' => $senderCopy, 'recipient_names' => [], 'recipient_roles' => []];
+        $deliveriesByAddress[$email]['recipient_names']['sender'] = $name;
+        $deliveriesByAddress[$email]['recipient_roles']['sender'] = 'sender';
+        $selectedSenders[] = ['normalized_email' => $email, 'display_name' => $name, 'recipient_type' => $senderCopy];
     }
     $deliveries = [];
     foreach ($deliveriesByAddress as $delivery) {
         $deliveries[] = [
             'contact_id' => $delivery['contact_id'],
             'recipient_email' => (string) $delivery['recipient_email'],
+            'recipient_type' => (string) $delivery['recipient_type'],
             'recipient_name' => mb_substr(implode(' / ', $delivery['recipient_names']), 0, 255, 'UTF-8'),
             'recipient_roles' => array_values($delivery['recipient_roles']),
         ];
     }
-    return ['contacts' => $selected, 'speakers' => $selectedSpeakers, 'deliveries' => $deliveries];
+    return ['contacts' => $selected, 'speakers' => $selectedSpeakers, 'senders' => $selectedSenders, 'deliveries' => $deliveries];
+}
+
+/** @param list<array<string, mixed>> $deliveries
+ * @return array{to: list<string>, cc: list<string>}|null
+ */
+function engagementEmailVisibleRecipients(array $deliveries): ?array
+{
+    $visible = ['to' => [], 'cc' => []];
+    $shared = false;
+    foreach ($deliveries as $delivery) {
+        $type = $delivery['recipient_type'] ?? 'private';
+        if ($type !== 'private') $shared = true;
+        if ($type === 'bcc') continue;
+        $visible[$type === 'cc' ? 'cc' : 'to'][] = normalizeAccountEmail($delivery['recipient_email']);
+    }
+    return $shared ? $visible : null;
+}
+
+function engagementEmailRecipientTypeLabel(string $type): string
+{
+    return match ($type) { 'cc' => 'Cc', 'bcc' => 'Bcc', default => 'To' };
 }
 
 /**
@@ -391,12 +483,17 @@ function engagementEmailChronText(
     string $subject,
     string $body
 ): string {
-    $recipients = [];
+    $recipients = ['To' => [], 'Cc' => [], 'Bcc' => []];
     foreach ($contacts as $contact) {
-        $recipients[] = (string) $contact['display_name'] . ' <' . (string) $contact['normalized_email'] . '>';
+        $label = engagementEmailRecipientTypeLabel((string) ($contact['recipient_type'] ?? 'private'));
+        $recipients[$label][] = (string) $contact['display_name'] . ' <' . (string) $contact['normalized_email'] . '>';
+    }
+    $recipientLines = '';
+    foreach ($recipients as $label => $addresses) {
+        if ($addresses !== []) $recipientLines .= $label . ': ' . implode(', ', array_unique($addresses)) . "\n";
     }
     return "OUTBOUND EMAIL\n"
-        . 'To: ' . implode(', ', $recipients) . "\n"
+        . $recipientLines
         . 'Subject: ' . $subject . "\n\n"
         . $body . "\n\n"
         . 'Delivery record: Outbound message #' . $messageId;
@@ -471,6 +568,7 @@ function queueMattermostPostReactionNotification(
  * @param list<array<string, mixed>> $presentations
  * @param list<int> $contactIds
  * @param list<int> $speakerIds
+ * @param array<string, string>|null $recipientTypes
  */
 function queueEngagementEmail(
     mysqli $conn,
@@ -486,7 +584,9 @@ function queueEngagementEmail(
     string $mattermostInstanceId = '',
     string $mattermostIdempotencyKey = '',
     string $mattermostPostId = '',
-    array $speakerIds = []
+    array $speakerIds = [],
+    ?array $recipientTypes = null,
+    string $senderCopy = ''
 ): int {
     $transport = accountMailTransport();
     $engagementId = (int) ($engagement['id'] ?? 0);
@@ -567,9 +667,12 @@ function queueEngagementEmail(
         $templateLabel = emailMessageTemplateLabelForSend($conn, $templateKey);
         $availableContacts = fetchEngagementContacts($conn, $engagementId);
         $availableSpeakers = $speakerIds !== [] ? fetchEngagementEmailSpeakers($conn, $engagementId) : [];
-        $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds, $availableSpeakers, $speakerIds);
+        $sender = $senderCopy !== '' ? fetchEngagementEmailSender($conn, $createdBy) : null;
+        $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds, $availableSpeakers, $speakerIds,
+            $recipientTypes, $sender, $senderCopy);
         $selectedContacts = $resolved['contacts'];
         $deliveries = $resolved['deliveries'];
+        $visibleRecipients = engagementEmailVisibleRecipients($deliveries);
 
         $messageInsert = $conn->prepare(
             'INSERT INTO engagement_email_messages
@@ -605,9 +708,9 @@ function queueEngagementEmail(
 
         $deliveryInsert = $conn->prepare(
             'INSERT INTO engagement_email_deliveries
-                (message_id, contact_id, recipient_name, recipient_email,
+                (message_id, contact_id, recipient_name, recipient_email, recipient_type,
                  recipient_roles_json, payload_ciphertext)
-             VALUES (?, ?, ?, ?, ?, ?)'
+             VALUES (?, ?, ?, ?, ?, ?, ?)'
         );
         if (!$deliveryInsert) {
             throw new RuntimeException('Unable to prepare the engagement email recipients.');
@@ -615,14 +718,16 @@ function queueEngagementEmail(
         $deliveryContactId = 0;
         $recipientName = '';
         $recipientEmail = '';
+        $recipientType = 'private';
         $recipientRolesJson = '[]';
         $payloadCiphertext = '';
         $deliveryInsert->bind_param(
-            'iissss',
+            'iisssss',
             $messageId,
             $deliveryContactId,
             $recipientName,
             $recipientEmail,
+            $recipientType,
             $recipientRolesJson,
             $payloadCiphertext
         );
@@ -630,6 +735,7 @@ function queueEngagementEmail(
             $deliveryContactId = $delivery['contact_id'];
             $recipientName = (string) $delivery['recipient_name'];
             $recipientEmail = (string) $delivery['recipient_email'];
+            $recipientType = (string) $delivery['recipient_type'];
             $recipientRolesJson = json_encode(
                 $delivery['recipient_roles'],
                 JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES
@@ -639,6 +745,7 @@ function queueEngagementEmail(
                 'subject' => $subject,
                 'body' => $body,
                 'reply_to' => $replyTo,
+                'visible_recipients' => $visibleRecipients,
             ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             $deliveryInsert->execute();
             $deliveryIds[] = (int) $conn->insert_id;
@@ -647,7 +754,7 @@ function queueEngagementEmail(
 
         $chronText = engagementEmailChronText(
             $messageId,
-            array_merge($selectedContacts, $resolved['speakers']),
+            array_merge($selectedContacts, $resolved['speakers'], $resolved['senders']),
             $subject,
             $body
         );
@@ -734,7 +841,8 @@ function queueEngagementEmail(
                     (string) $delivery['recipient_email'],
                     $subject,
                     $body,
-                    $replyTo
+                    $replyTo,
+                    visibleRecipients: $visibleRecipients
                 );
                 completeQueuedEngagementEmail($conn, $deliveryId);
             } catch (Throwable $exception) {
@@ -835,7 +943,7 @@ function claimQueuedEngagementEmail(
     }
 }
 
-/** @return array{recipient: string, subject: string, body: string, reply_to: string} */
+/** @return array{recipient: string, subject: string, body: string, reply_to: string, visible_recipients: array{to: list<string>, cc: list<string>}|null} */
 function decryptQueuedEngagementEmail(string $ciphertext): array
 {
     $json = \Dnr\Security\ApplicationKey::open($ciphertext);
@@ -848,6 +956,7 @@ function decryptQueuedEngagementEmail(string $ciphertext): array
         'subject' => trim((string) ($message['subject'] ?? '')),
         'body' => (string) ($message['body'] ?? ''),
         'reply_to' => engagementEmailNormalizeOptionalAddress($message['reply_to'] ?? ''),
+        'visible_recipients' => smtpNormalizeVisibleRecipients($message['visible_recipients'] ?? null),
     ];
 }
 
@@ -989,7 +1098,7 @@ function fetchEngagementEmailMessage(mysqli $conn, int $messageId): ?array
         return null;
     }
     $deliveries = $conn->prepare(
-        'SELECT id, contact_id, recipient_name, recipient_email,
+        'SELECT id, contact_id, recipient_name, recipient_email, recipient_type,
                 recipient_roles_json, status, attempts, sent_at, last_error,
                 created_at, updated_at
          FROM engagement_email_deliveries
@@ -1063,6 +1172,7 @@ function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId): int
                 'subject' => (string) $message['subject'],
                 'body' => (string) $message['body_text'],
                 'reply_to' => engagementEmailNormalizeOptionalAddress($message['reply_to'] ?? ''),
+                'visible_recipients' => engagementEmailVisibleRecipients($message['deliveries']),
             ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));
             $stmt->execute();
             $retried += $stmt->affected_rows;

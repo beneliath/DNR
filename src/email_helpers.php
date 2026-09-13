@@ -562,6 +562,51 @@ function smtpNormalizeLineEndings($value)
     return str_replace("\n", "\r\n", $value);
 }
 
+/** @return array{to: list<string>, cc: list<string>}|null */
+function smtpNormalizeVisibleRecipients(mixed $recipients): ?array
+{
+    if ($recipients === null) {
+        return null;
+    }
+    if (!is_array($recipients) || array_diff(array_keys($recipients), ['to', 'cc']) !== []
+        || !is_array($recipients['to'] ?? null) || !is_array($recipients['cc'] ?? null)
+        || count($recipients['to']) + count($recipients['cc']) > 25) {
+        throw new InvalidArgumentException('The visible email recipients are invalid.');
+    }
+    $normalized = ['to' => [], 'cc' => []];
+    foreach ($normalized as $type => $_addresses) {
+        foreach ($recipients[$type] as $address) {
+            if (!is_string($address)) {
+                throw new InvalidArgumentException('The visible email recipients are invalid.');
+            }
+            $normalized[$type][] = normalizeAccountEmail($address);
+        }
+        $normalized[$type] = array_values(array_unique($normalized[$type]));
+    }
+    return $normalized;
+}
+
+/** @return list<string> */
+function smtpRecipientHeaders(string $recipient, ?array $visibleRecipients = null): array
+{
+    $visibleRecipients = smtpNormalizeVisibleRecipients($visibleRecipients);
+    if ($visibleRecipients === null) {
+        return ['To: <' . normalizeAccountEmail($recipient) . '>'];
+    }
+    $headers = [];
+    foreach (['to' => 'To', 'cc' => 'Cc'] as $type => $label) {
+        $addresses = $visibleRecipients[$type];
+        if ($addresses !== []) {
+            $headers[] = $label . ': ' . implode(",\n ", array_map(
+                static fn(string $address): string => '<' . $address . '>', $addresses
+            ));
+        } elseif ($type === 'to') {
+            $headers[] = 'To: undisclosed-recipients:;';
+        }
+    }
+    return $headers;
+}
+
 /**
  * @return array{headers: list<string>, body: string}
  */
@@ -697,7 +742,7 @@ final class SmtpSession
         }
     }
 
-    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null): bool
+    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null): bool
     {
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
@@ -718,7 +763,7 @@ final class SmtpSession
         $content = smtpMessageContent($body, $htmlBody);
         $message = smtpNormalizeLineEndings(implode("\n", [
             'From: ' . $encoded_name . ' <' . $this->from . '>',
-            'To: <' . $recipient . '>',
+            ...smtpRecipientHeaders($recipient, $visibleRecipients),
             ...($replyToHeader !== '' ? [$replyToHeader] : []),
             'Subject: ' . $encoded_subject,
             'MIME-Version: 1.0',
@@ -812,18 +857,19 @@ final class SmtpSession
     }
 }
 
-function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null)
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null)
 {
     $session = new SmtpSession();
     try {
-        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody);
+        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
     } finally {
         $session->close();
     }
 }
 
-function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null)
+function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null)
 {
+    $visibleRecipients = smtpNormalizeVisibleRecipients($visibleRecipients);
     $transport = accountMailTransport();
     if ($transport === 'log') {
         applicationLog('info', 'Application email accepted by development transport', [
@@ -832,7 +878,7 @@ function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $ht
         ]);
         return true;
     }
-    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody);
+    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
 }
 
 function deliverApplicationEmailWithSession(
@@ -841,16 +887,17 @@ function deliverApplicationEmailWithSession(
     $subject,
     $body,
     $replyTo = '',
-    $htmlBody = null
+    $htmlBody = null,
+    ?array $visibleRecipients = null
 ): bool {
     if (accountMailTransport() === 'log') {
-        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody);
+        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
     }
     $reconnected = false;
     while (true) {
         $session ??= new SmtpSession();
         try {
-            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody);
+            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
         } catch (SmtpPreDataException $exception) {
             $session->close();
             $session = null;

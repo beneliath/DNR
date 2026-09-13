@@ -3,6 +3,7 @@ declare(strict_types=1);
 if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !== 'disposable') { echo "Short link HTTP tests skipped (disposable server required).\n"; exit; }
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once __DIR__ . '/integration_auth_helpers.php';
 require_once $source . '/presentation_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080','/');
 if (!in_array(parse_url($base,PHP_URL_HOST),['127.0.0.1','localhost'],true)) throw new RuntimeException('Loopback server required.');
@@ -79,7 +80,8 @@ try{
  foreach(['admin','editor','reviewer']as$role){
   $name='qr-http-'.bin2hex(random_bytes(5));$hash=password_hash(bin2hex(random_bytes(20)),PASSWORD_DEFAULT);
   $stmt=$conn->prepare('INSERT INTO users(username,password,role) VALUES(?,?,?)');$stmt->bind_param('sss',$name,$hash,$role);$stmt->execute();$uid=(int)$conn->insert_id;$userIds[]=$uid;
-  startSecureSession();$_SESSION=['user_id'=>$uid,'username'=>$name,'role'=>$role,'authenticated_role'=>$role,'auth_version'=>1,'auth_complete'=>true,'_csrf_token'=>bin2hex(random_bytes(32))];$csrf=$_SESSION['_csrf_token'];$sessionIds[]=session_id();$cookie=session_name().'='.session_id();session_write_close();
+  startSecureSession();$_SESSION=['user_id'=>$uid,'username'=>$name,'role'=>$role,'authenticated_role'=>$role,'auth_version'=>1,'auth_complete'=>true,'_csrf_token'=>bin2hex(random_bytes(32))];
+        completeIntegrationTestMfaSession();$csrf=$_SESSION['_csrf_token'];$sessionIds[]=session_id();$cookie=session_name().'='.session_id();session_write_close();
   foreach(['slides','notes']as$assetType){
    $assetPath='presentation_asset.php?id='.$pid.'&type='.$assetType;
    expectLinkHttp($request($assetPath)['status']===302,'Presentation download button still requires login: '.$assetType);
@@ -92,6 +94,10 @@ try{
   expectLinkHttp($r['status']===200&&str_contains($r['body'],'HTTP QR Fixture'),'All MOED roles can view statistics: '.$role);
   expectLinkHttp(preg_match('/<script[^>]*id="short-link-stats-data"[^>]*>(.*?)<\/script>/s',$r['body'],$chartMatch)===1,'Authenticated chart data is included: '.$role);
   $chartData=json_decode($chartMatch[1],true,512,JSON_THROW_ON_ERROR);
+  expectLinkHttp($chartData['total']===$count()+$notesCount(),'Combined presentation statistics include website and notes traffic: '.$role);
+  $combinedDoc=new DOMDocument();@$combinedDoc->loadHTML($r['body']);$combinedXpath=new DOMXPath($combinedDoc);
+  expectLinkHttp($combinedXpath->query('//form[@id="short-link-filters"]//a[normalize-space()="Clear Filters" and @href="short_links.php?presentation_id='.$pid.'"]')->length===1,'Clearing date and resource filters preserves the presentation');
+  expectLinkHttp($combinedXpath->query('//a[normalize-space()="Back to Presentation" and @href="view_engagement.php?id='.$event.'#presentation-'.$pid.'"]')->length===1,'Combined report returns to the particular presentation');
   expectLinkHttp($chartData['total']>0 && array_sum(array_column($chartData['timeline'],'total'))===$chartData['total'],'Chart series matches the filtered visit total: '.$role);
   expectLinkHttp(str_contains($r['body'],'name="target_url"')===($role!=='reviewer'),'Reviewer sees no edit form');
   $qrReport=$request('short_links.php?id='.$web['id'],null,$cookie);
@@ -102,11 +108,12 @@ try{
   $qrDoc=new DOMDocument();@$qrDoc->loadHTML($qrReport['body']);$qrXpath=new DOMXPath($qrDoc);
   expectLinkHttp($qrXpath->query('//form[@id="short-link-filters"]//input[@name="id" and @value="'.$web['id'].'"]')->length===1,'Date filtering retains the QR ID');
   expectLinkHttp($qrXpath->query('//form[@id="short-link-filters"]//a[normalize-space()="Clear Filters" and @href="short_links.php?id='.$web['id'].'"]')->length===1,'Clear Filters retains the QR ID');
+  expectLinkHttp($qrXpath->query('//a[starts-with(@href,"short_links.php?presentation_id='.$pid.'&") and normalize-space()="Combined Presentation Statistics"]')->length===1,'A per-code report links to combined statistics with the current date range');
   expectLinkHttp($qrXpath->query('//select[@name="speaker_id" or @name="type"]')->length===0,'QR report offers date filters without cross-speaker filters');
   $engagementView=$request('view_engagement.php?id='.$event,null,$cookie);
   $viewDoc=new DOMDocument();@$viewDoc->loadHTML($engagementView['body']);$viewXpath=new DOMXPath($viewDoc);
   foreach($links as$generatedLink)expectLinkHttp($viewXpath->query('//div[contains(@class,"presentation-qr-display")]//a[@href="short_links.php?id='.$generatedLink['id'].'"]')->length===1,'Each presentation QR card opens its own statistics: '.$role);
-  expectLinkHttp($viewXpath->query('//a[starts-with(@href,"short_links.php?presentation_id=")]')->length===0,'Engagement view has no aggregate Presentation Statistics navigation link');
+  expectLinkHttp($viewXpath->query('//a[@href="short_links.php?presentation_id='.$pid.'" and normalize-space()="Combined Presentation Statistics"]')->length===1,'Each presentation offers combined statistics alongside its per-code links');
   expectLinkHttp($viewXpath->query('//a[@href="reset_presentation_stats.php?presentation_id='.$pid.'"]')->length===($role==='admin'?1:0),'Only admins see the separate presentation statistics reset action');
   expectLinkHttp($viewXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$pid.'&type=notes" and @target="_blank" and @rel="noopener" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Each uploaded notes file has its own correctly labelled new-tab button: '.$role);
   $preview=$viewXpath->query('//div[contains(@class,"presentation-qr-display")]//img')->item(0);
