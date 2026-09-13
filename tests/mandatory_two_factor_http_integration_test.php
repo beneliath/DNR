@@ -88,11 +88,19 @@ try {
     $admin = $clients['admin']; $page = $admin('database_maintenance.php');
     $payload = ['action' => 'backup', 'csrf_token' => mfaCsrf($page), 'admin_password' => $password,
         'admin_code' => array_shift($recovery['admin']), 'backup_password' => 'Integration archive password!',
-        'backup_password_confirmation' => 'Integration archive password!'];
+        'backup_password_confirmation' => 'Integration archive password!', 'download_token' => bin2hex(random_bytes(16))];
     $bad = $admin('database_maintenance.php', array_replace($payload, ['admin_password' => 'wrong']));
     mfaExpect(!str_starts_with($bad['body'], DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC), 'Wrong password cannot export');
+    mfaExpect(!str_contains($bad['headers'], 'dnr_backup_'), 'Failed exports must not acknowledge a successful download');
     $download = $admin('database_maintenance.php', $payload);
     mfaExpect($download['status'] === 200 && str_starts_with($download['body'], DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC), 'Admin receives an encrypted download from the isolated exporter');
+    preg_match('/Set-Cookie: dnr_backup_' . $payload['download_token'] . '=([^;]+);/i', $download['headers'], $acknowledgement);
+    $receipt = json_decode(urldecode($acknowledgement[1] ?? ''), true);
+    mfaExpect(is_array($receipt) && str_contains($download['headers'], 'filename="' . $receipt['filename'] . '"')
+        && !empty($receipt['createdAt']), 'Successful exports acknowledge this request with the actual filename and timestamp');
+    $history = $admin('database_maintenance.php');
+    mfaExpect(str_contains($history['body'], 'id="database-backup-last-created"')
+        && !str_contains($history['body'], 'No successful backup recorded.'), 'Backup creation remains visible after reloading the page');
     $path = tempnam(sys_get_temp_dir(), 'dnr-export-test-');
     try {
         file_put_contents($path, $download['body']);
@@ -107,6 +115,7 @@ try {
     } finally { unlink($path); }
     $replay = $admin('database_maintenance.php', $payload);
     mfaExpect(!str_starts_with($replay['body'], DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC), 'Backup recovery code is single-use');
+    mfaExpect(!str_contains($replay['headers'], 'dnr_backup_'), 'A replayed code cannot produce another success acknowledgement');
     $editor = fetchAuthenticationUserById($conn, $ids['editor']);
     try {
         $illegal = requestEncryptedDatabaseBackup(['user_id' => $ids['editor'], 'auth_version' => $editor['auth_version'],
