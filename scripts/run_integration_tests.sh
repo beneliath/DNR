@@ -67,7 +67,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
+    if [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
+        || [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
         || [ "$test_name" = 'email_templates_http_integration_test.php' ] \
         || [ "$test_name" = 'standard_task_generation_http_integration_test.php' ] \
         || [ "$test_name" = 'short_links_http_integration_test.php' ] \
