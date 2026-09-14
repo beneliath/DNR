@@ -52,7 +52,7 @@ if ($childPid === 0) {
     }
     stream_set_timeout($connection, 5);
     fwrite($connection, "* OK DNR test IMAP ready\r\n");
-    $expectedCommands = ['LOGIN', 'SELECT', 'UID SEARCH', 'UID FETCH', 'UID STORE', 'LOGOUT'];
+    $expectedCommands = ['LOGIN', 'SELECT', 'UID SEARCH', 'UID SEARCH', 'UID FETCH', 'UID STORE', 'LOGOUT'];
     foreach ($expectedCommands as $expectedCommand) {
         $line = fgets($connection);
         if (!is_string($line)
@@ -64,10 +64,12 @@ if ($childPid === 0) {
         }
         $tag = $matches[1];
         if ($expectedCommand === 'SELECT') {
-            fwrite($connection, "* 1 EXISTS\r\n* OK [UIDVALIDITY 918273] UIDs valid\r\n");
+            fwrite($connection, "* 1 EXISTS\r\n* OK [UIDVALIDITY 918273] UIDs valid\r\n* OK [UIDNEXT 10] Predicted next UID\r\n");
         } elseif ($expectedCommand === 'UID SEARCH') {
-            fwrite($connection, "* SEARCH 7 9\r\n");
+            if (!in_array(trim($matches[2]), ['UID SEARCH UNSEEN', 'UID SEARCH UID 7:9'], true)) exit(4);
+            fwrite($connection, "* SEARCH 9 7 9\r\n");
         } elseif ($expectedCommand === 'UID FETCH') {
+            if (!str_contains($matches[2], 'BODY.PEEK[]')) exit(5);
             $length = strlen($rawMessage);
             fwrite($connection, "* 1 FETCH (UID 7 RFC822.SIZE {$length} BODY[] {{$length}}\r\n");
             fwrite($connection, $rawMessage);
@@ -87,7 +89,10 @@ $client = new ImapClient('127.0.0.1', $port, 'none', true, 5, 1048576);
 try {
     $client->connect('fixture-user', 'fixture-password');
     expectImapClient($client->uidValidity() === 918273, 'UIDVALIDITY should be parsed.');
+    expectImapClient($client->uidNext() === 10, 'UIDNEXT should be parsed.');
     expectImapClient($client->unseenUids() === [7, 9], 'unseen UIDs should be parsed and sorted.');
+    expectImapClient($client->uidsBetween(7, 9) === [7, 9], 'UID discovery should include read messages and deduplicate/sort results.');
+    expectImapClient($client->uidsBetween(10, 9) === [], 'An empty range must not issue an IMAP reversed-range command.');
     expectImapClient(
         hash_equals($rawMessage, $client->fetchRawMessage(7)),
         'an IMAP literal should be returned without changing its bytes.'

@@ -67,6 +67,7 @@ COPY --chmod=0644 scripts/check_config.php /opt/dnr/bin/check_config.php
 COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php
 COPY --chmod=0644 scripts/process_notes_cache_purges.php /opt/dnr/bin/process_notes_cache_purges.php
 COPY --chmod=0644 scripts/process_inbound_mail.php /opt/dnr/bin/process_inbound_mail.php
+COPY --chmod=0644 scripts/reconcile_inbound_mail.php /opt/dnr/bin/reconcile_inbound_mail.php
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
 COPY --chmod=0644 scripts/native_backup_crypto.php /opt/dnr/bin/native_backup_crypto.php
 COPY --chmod=0644 scripts/backup_endpoint.php /opt/dnr/backup-public/export.php

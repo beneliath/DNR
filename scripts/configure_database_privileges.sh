@@ -138,6 +138,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.authentication_rat
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.network_performance_samples TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${MYSQL_USER}'@'%';
 GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.inbound_mailbox_state TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.inbound_mail_reconciliation TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.calendar_subscriptions TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.calendar_feed_revision TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.organizations TO '${MYSQL_USER}'@'%';
@@ -203,7 +205,13 @@ GRANT SELECT ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_ingest_user}'@'%'
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_ingest_user}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${mail_ingest_user}'@'%';
-GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_mailbox_state TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.inbound_mail_reconciliation TO '${mail_ingest_user}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.inbound_email_import_receipts TO '${mail_ingest_user}'@'%';
+-- MySQL requires an UPDATE privilege for the locking receipt read. Limit it
+-- to the import timestamp; the worker cannot erase purge or ignore evidence.
+GRANT UPDATE (imported_at) ON \`${MYSQL_DATABASE}\`.inbound_email_import_receipts TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.booking_inquiry_chron_entries TO '${mail_ingest_user}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.contact_chron_entries TO '${mail_ingest_user}'@'%';
