@@ -84,7 +84,7 @@ $manual_access_summary = match ($manual_role) {
         </aside>
 
         <section class="manual-content" data-manual-content>
-            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar mobile theme light dark action icons archive delete keyboard getting around pagination records per page list size remember search sort">
+            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar fixed logo profile scroll mobile theme light dark action icons archive delete keyboard getting around pagination records per page list size remember search sort footer version">
                 <header class="manual-chapter-heading">
                     <span>Chapter 01</span>
                     <h2>Getting Oriented</h2>
@@ -103,7 +103,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-card-number">1</span>
                         <h3>Use the Sidebar</h3>
-                        <p>The main areas are always in the left sidebar. Under Work, open <strong>Email Templates</strong> to maintain reusable engagement messages. On a narrow screen, use the menu button in the top bar and tap outside the panel or press <kbd>Esc</kbd> to close it.</p>
+                        <p>The logo stays at the top of the sidebar and your profile and sign-out controls stay at the bottom. Scroll the menu between them to reach every destination. Under Work, open <strong>Email Templates</strong>; under Schedule, open <strong>Calendar</strong>. Administrators also have <strong>Network</strong> under Administration.</p>
+                        <p>On a narrow screen, use the menu button in the top bar. The drawer keeps its logo, close button, and account controls visible while the menu scrolls. Select <strong>Close navigation</strong>, tap outside the panel, or press <kbd>Esc</kbd> to close it.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-card-number">2</span>
@@ -113,14 +114,14 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-card-number">3</span>
                         <h3>Open Your Account</h3>
-                        <p>Select your name and picture to edit your profile. Calendar, account security, this manual, and sign-out controls are grouped in the lower sidebar.</p>
+                        <p>Select your fixed name and picture block to edit your profile, or its adjacent sign-out icon to log out. <strong>Account Security</strong>, <strong>User Manual</strong>, Mattermost, and the theme switch are in the lower part of the scrollable menu.</p>
                     </article>
                 </section>
 
                 <section class="manual-subsection">
                     <h3>A Practical First Session</h3>
                     <ol class="manual-steps">
-                        <li><span>01</span><section><strong>Complete your profile.</strong><p>Add your name, verified email, phone, and picture in <a href="profile.php">My Profile</a>.</p></section></li>
+                        <li><span>01</span><section><strong>Complete your profile.</strong><p>Review your name, phone, picture, and verified recovery email in <a href="profile.php">My Profile</a>.</p></section></li>
                         <li><span>02</span><section><strong>Protect the account.</strong><p>Enroll an authenticator and store the one-time recovery codes from <a href="two_factor_settings.php">Account Security</a>.</p></section></li>
                         <li><span>03</span><section><strong>Check the daily view.</strong><p>Use the <a href="dashboard.php">Dashboard</a> to scan upcoming engagements, assigned work, and missing details.</p></section></li>
                         <li><span>04</span><section><strong>Find the relationship.</strong><p>Open the organization and relevant contacts before an event to review relationship details, financial history, Chron, and open work.</p></section></li>
@@ -134,12 +135,22 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
+                    <h3>Read Lists and Tables</h3>
+                    <p>Table headings stay together where space permits, while long owner names can wrap within their column. On narrow screens, scroll wide tables horizontally or use the page’s card layout to read the full record.</p>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Read the Page Footer</h3>
+                    <p>The footer identifies the application version and, when available, its build date and source revision. Use that information when reporting a problem. The cat illustration, scripture references, and “Do you see Him?” text are static; the earlier lion dialog and linked definition have been removed.</p>
+                </section>
+
+                <section class="manual-subsection">
                     <h3>Common Action Icons</h3>
                     <section class="manual-icon-legend">
                         <span><i class="manual-action-icon action-view" aria-hidden="true">◉</i><strong>View</strong><small>Open details</small></span>
                         <span><i class="manual-action-icon action-edit" aria-hidden="true">✎</i><strong>Edit</strong><small>Change a record</small></span>
                         <span><i class="manual-action-icon action-start" aria-hidden="true">▶</i><strong>Start</strong><small>Begin a task</small></span>
-                        <span><i class="manual-action-icon action-complete" aria-hidden="true">✓</i><strong>Complete</strong><small>Finish a task</small></span>
+                        <span><i class="manual-action-icon action-complete" aria-hidden="true">✓</i><strong>Complete</strong><small>Confirm and finish a task</small></span>
                         <span><i class="manual-action-icon action-archive" aria-hidden="true">□</i><strong>Archive</strong><small>Hide reversibly</small></span>
                         <span><i class="manual-action-icon action-restore" aria-hidden="true">↺</i><strong>Restore</strong><small>Return to active</small></span>
                         <span><i class="manual-action-icon action-delete" aria-hidden="true">×</i><strong>Delete</strong><small>Remove permanently</small></span>
@@ -171,7 +182,7 @@ $manual_access_summary = match ($manual_role) {
                             <tr><td>Manage tasks, Chron entries, closeouts, and engagement email</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Add, edit, archive, and restore email templates</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
                             <tr><td>Archive and restore shared records</td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td><td><span class="manual-yes">Yes</span></td></tr>
-                            <tr><td>Manage users, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
+                            <tr><td>Manage users, network diagnostics, audit history, backups, and permanent deletion</td><td><span class="manual-no">No</span></td><td><span class="manual-no">No</span></td><td><span class="manual-yes">Yes</span></td></tr>
                         </tbody>
                     </table>
                 </section>
@@ -190,7 +201,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card<?php echo $manual_role === 'admin' ? ' is-current-role' : ''; ?>">
                         <span class="manual-role-badge role-admin">Administrator</span>
                         <h3>Govern and Recover</h3>
-                        <p>Administrators add user lifecycle controls, audit inspection, encrypted backups, permanent deletion, and access to deployment signals. Sensitive actions require fresh password and 2FA confirmation.</p>
+                        <p>Administrators add user profile and lifecycle controls, remote network diagnostics, audit inspection, encrypted backups, permanent deletion, and access to deployment signals. Sensitive actions require fresh password and 2FA confirmation.</p>
                     </article>
                 </section>
             </section>
@@ -206,7 +217,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Scan</span>
                         <h3>Daily Summary</h3>
-                        <p>The compact top cards distinguish all active work from your own active and overdue work. Shared counts link to the booking pipeline, financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
+                        <p>The compact top cards distinguish all active work from your own active and overdue work. The Dashboard loads its workload and readiness summaries efficiently as records grow. Shared counts link to the booking pipeline, financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Act</span>
@@ -449,6 +460,12 @@ $manual_access_summary = match ($manual_role) {
                     </ul>
                 </section>
 
+                <section class="manual-subsection">
+                    <h3>Choose a Profile, Contact, or Speaker Photo</h3>
+                    <p>Use a JPEG, PNG, or WebP image up to 5 MB. Keep the face near the center: saved portraits use a centered square crop and appear in circular frames. The application creates compact list and detail images so contact directories and profile views load faster.</p>
+                    <p>Review the selected picture before saving. Choose a different source image if the crop cuts off important detail, or use the remove-picture option to return to the default portrait. Administrators can also update a user’s picture from the user editor after unlocking sensitive actions.</p>
+                </section>
+
                 <section class="manual-subsection" id="speakers">
                     <h3>Keep Speaker Profiles Ready to Use</h3>
                     <p>Open <strong>Relationships → Speakers</strong> to find a speaker by name, email, or phone. Select <strong>Name</strong> to switch alphabetical order, then open the speaker’s name or View icon for their details. Administrators and editors can use <strong>New Speaker</strong> or <strong>Edit Speaker</strong>; reviewers can view profiles and statistics.</p>
@@ -474,7 +491,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen duplicate copy another event destination pulsing blinking cascade orange hover reduced motion">
+            <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen confirmation confirm cancel check mark duplicate copy another event destination pulsing blinking cascade orange hover reduced motion">
                 <header class="manual-chapter-heading">
                     <span>Chapter 07</span>
                     <h2>Work Queue</h2>
@@ -510,6 +527,12 @@ $manual_access_summary = match ($manual_role) {
                     </ol>
                 </section>
 
+                <section class="manual-subsection">
+                    <h3>Fast Actions and Record-Level Work</h3>
+                    <p>The green check-mark icon opens <strong>Complete Task?</strong> and asks, “Are you sure you want to mark this task complete?” Select <strong>Complete Task</strong> to save the change, or <strong>Cancel</strong> or <kbd>Esc</kbd> to leave the task unchanged. This confirmation applies in the Work Queue and in record-level Follow-Up Work.</p>
+                    <p>From the queue, editors and administrators can assign an unowned task to themselves, start, complete, reopen, edit, or—administrators only—delete it. Engagement, organization, and contact detail pages show their open tasks in <strong>Follow-Up Work</strong>, where you can add a task or open a filtered queue.</p>
+                </section>
+
                 <section class="manual-table-wrap" tabindex="0" aria-label="Task status reference">
                     <table class="manual-table data-table">
                         <thead><tr><th>Status</th><th>Use It When</th><th>What Happens Next</th></tr></thead>
@@ -527,24 +550,21 @@ $manual_access_summary = match ($manual_role) {
                     <h3>Duplicate a Task to Another Event</h3>
                     <ol class="manual-steps manual-steps-compact">
                         <li><span>01</span><section><strong>Open the task for editing.</strong><p>Select <strong>Duplicate to Another Event</strong> at the bottom of the Edit Task page.</p></section></li>
-                        <li><span>02</span><section><strong>Choose the destination event.</strong><p>Enter at least three characters in <strong>Search events</strong>, then select a different event from the results. The source event cannot be selected as its own destination.</p></section></li>
-                        <li><span>03</span><section><strong>Review the copied work.</strong><p>The title, notes, assignee, due date, and priority are copied so you can adjust them before saving. The duplicate starts <strong>Open</strong>, and any “Waiting on” text is cleared.</p></section></li>
-                        <li><span>04</span><section><strong>Create the duplicate.</strong><p>Select <strong>Duplicate task</strong> to add a new task to the destination event. The original task remains unchanged.</p></section></li>
+                        <li><span>02</span><section><strong>Choose the destination event.</strong><p>In <strong>Search events</strong>, type at least three characters and choose a different event from the results.</p></section></li>
+                        <li><span>03</span><section><strong>Review the copied work.</strong><p>Adjust the copied title, notes, assignee, due date, and priority. The duplicate starts <strong>Open</strong> with “Waiting on” cleared.</p></section></li>
+                        <li><span>04</span><section><strong>Create the duplicate.</strong><p>Select <strong>Duplicate task</strong>. The new task is added to the destination event; the original is unchanged.</p></section></li>
                     </ol>
                 </section>
 
-                <section class="manual-subsection">
-                    <h3>Fast Actions and Record-Level Work</h3>
-                    <p>From the queue, editors and administrators can assign an unowned task to themselves, start, complete, reopen, edit, or—administrators only—delete it. Engagement, organization, and contact detail pages show their open tasks in <strong>Follow-Up Work</strong>, where you can add a task or open a filtered queue.</p>
-                </section>
+
 
                 <section class="manual-subsection">
                     <h3>Standard Event Tasks</h3>
                     <p>Standard tasks are reusable definitions copied when a new active engagement is first saved. Each has content, priority, display order, and a due date offset from event start or end.</p>
-                    <p>Administrators can select <strong>Also add this task to all active, open engagements</strong> when adding a standard task to generate it for existing unarchived engagements with an Active lifecycle and an open financial closeout. Administrators can also select <strong>Add to Active, Open Engagements</strong> on the saved definition. Each copy uses the definition’s due-date rule and goes to the engagement’s active Caller, or to the administrator when no active Caller is assigned. Existing copies, including completed or canceled tasks, are kept without duplication.</p>
-                    <p>If the new engagement has a selected <strong>Caller</strong>, every initial standard task is assigned to that Caller. If no Caller is selected, the tasks are assigned to the user creating the engagement. This ownership decision happens only once: changing the engagement’s Caller later does not reassign its initial tasks, which remain independently editable.</p>
+                    <p>Administrators can select <strong>Also add this task to all active, open engagements</strong> when creating a definition, or <strong>Add to Active, Open Engagements</strong> afterward. This generates its checklist item for existing unarchived engagements with an Active lifecycle and open financial closeout. Each copy follows the definition’s due-date rule and goes to the active Caller, or to the administrator if none is active. Existing copies, including completed and canceled tasks, are not duplicated.</p>
+                    <p>Initial standard tasks go to the selected <strong>Caller</strong>, or to the event creator when no Caller is selected. Changing the Caller later does not reassign these tasks; each remains independently editable.</p>
                     <p>Changing an engagement’s dates reschedules its active generated tasks from the standard schedule. A task whose due date was manually overridden keeps that date. Editing a standard definition does not rewrite an existing task’s title, notes, priority, or current due date.</p>
-                    <p>Editors and administrators manage reusable definitions from <strong>Standard Event Tasks</strong>. Use <strong>Add Missing Checklist Tasks</strong> on an active engagement to generate any standard items that are absent; tasks added this way are assigned to the user performing the action. The built-in financial closeout reminder is fixed at one week after event end and cannot be edited, archived, or deleted.</p>
+                    <p>Editors and administrators manage definitions in <strong>Standard Event Tasks</strong>. <strong>Add Missing Checklist Tasks</strong> creates absent standard items on an active engagement and assigns them to the acting user. The built-in financial closeout reminder is due one week after event end and cannot be edited, archived, or deleted.</p>
                     <p>Sending a booking, reconfirmation, or thank-you message from an engagement does not complete its related checklist task automatically. Check the Correspondence result, then complete the task when the follow-up itself is finished.</p>
                     <?php if ($manual_can_manage): ?><p><a href="standard_tasks.php" class="manual-inline-link">Manage Standard Event Tasks</a></p><?php endif; ?>
                 </section>
@@ -641,8 +661,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
-                        <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. The feed contains all-day engagement blocks plus timed presentation entries using each presentation’s recorded duration.</p>
-                        <p>Revoke one link without affecting the others. Revoked token records can be purged. Never share a subscription URL: it grants access to schedule data, though not contacts, Chron, travel, lodging, or compensation.</p>
+                        <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. Choose Events, Presentations, My Active Work, All Active Work, and/or Birthdays (from Contacts) for each link. All Active Work includes everyone’s due-dated active tasks and disables My Active Work. Events, Presentations, and Birthdays are selected by default.</p>
+                        <p>Revoke one link without affecting the others. Revoked token records can be purged. Share a subscription URL only with the intended device or calendar service: it grants access to the selected schedule, task titles, and contact birthday names. Internal Chron, travel, lodging, and compensation are excluded.</p>
                         <a href="view_calendar.php" class="manual-inline-link">Manage calendar links</a>
                     </article>
                 </section>
@@ -656,11 +676,12 @@ $manual_access_summary = match ($manual_role) {
                                 <tr><td><strong>Events</strong></td><td>Engagements that overlap the displayed dates.</td><td>Event color, with distinct border tones for tentative/postponed, canceled, and completed events.</td></tr>
                                 <tr><td><strong>My Tasks</strong></td><td>Your active tasks that have a due date in the displayed calendar grid.</td><td>Your task accent color.</td></tr>
                                 <tr><td><strong>All Tasks</strong></td><td>Every active due-dated task in the grid, including unassigned work.</td><td>Your tasks use the accent color; other or unassigned tasks use a contrasting color.</td></tr>
-                                <tr><td><strong>Everything</strong></td><td>Events plus all active due-dated tasks.</td><td>All event and task colors appear together.</td></tr>
+                                <tr><td><strong>Birthdays</strong></td><td>Annual birthday reminders from active contacts.</td><td>Birthday styling; open the contact for details.</td></tr>
+                                <tr><td><strong>Everything</strong></td><td>Events, all active due-dated tasks, and contact birthdays.</td><td>Event, task, and birthday colors appear together.</td></tr>
                             </tbody>
                         </table>
                     </section>
-                    <p>The selected filter remains active as you move between months. The summary above the grid reports how many matching events and tasks fall in that month.</p>
+                    <p>On a phone, the calendar becomes a daily agenda with previous/next day controls and Today. The selected filter remains active as you move between dates. The summary above the grid reports how many matching events and tasks fall in that month.</p>
                 </section>
             </section>
 
@@ -674,8 +695,9 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-card-grid manual-card-grid-two">
                     <article class="manual-card">
                         <h3>Profile and Notifications</h3>
-                        <p>Add your name, phone, email, and optional profile picture. Changing email clears its verified state and pauses the daily digest until the new address is verified. Resending verification preserves the profile draft and chosen photo; disabled digest schedules do not require a delivery time or day.</p>
+                        <p>Maintain your name, phone, optional profile picture, and notification schedule. Use the separate Change Recovery Email panel to verify a new address; the current recovery address remains active until verification succeeds. Successful verification signs out all sessions and pauses the daily digest. Resending verification preserves the profile draft and chosen photo; disabled digest schedules do not require a delivery time or day.</p>
                         <p>A verified email enables password recovery and a Dashboard-style Daily Digest of upcoming engagements, My Work, event readiness, and financial closeouts. Overdue and due-today tasks are highlighted, and editor/admin digests also include inbound mail awaiting review. The digest defaults to enabled on weekdays at 7:00 a.m.; disable it or choose a different time and set of days at any time.</p>
+                        <p>The digest footer retains a static cat, scripture references, and “Do you see Him?” as plain text. The Hebrew definition line has been removed, and footer text has no hyperlinks. To adjust delivery, open My Profile and find Notification Preferences. Dashboard and record links in the message remain available.</p>
                         <a href="profile.php" class="manual-inline-link">Open My Profile</a>
                     </article>
                     <article class="manual-card">
@@ -831,7 +853,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes">
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile">
                 <header class="manual-chapter-heading">
                     <span>Chapter 12</span>
                     <h2>Administration</h2>
@@ -847,7 +869,8 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Unlock Sensitive Actions</h3>
-                    <p>On Users—or when a destructive action redirects for confirmation—enter the administrator password plus a fresh authenticator or recovery code. Elevation lasts five minutes, and some lifecycle actions consume it immediately. Locked user controls remain hidden until confirmation succeeds.</p>
+                    <p>On Users, or when a sensitive action directs you to confirmation, enter your administrator password plus a fresh authenticator or recovery code. Select <strong>Unlock Sensitive Actions</strong> to return to the requested page. Locked user controls appear after confirmation succeeds.</p>
+                    <p>The <strong>Administrator actions unlocked</strong> banner shows the remaining time beside <strong>Automatically locks in</strong>. Unlock lasts five minutes in the current signed-in session; another administrator or browser session does not inherit it. Moving between pages preserves the original deadline. At expiry the banner disappears and the server requires a new unlock for sensitive actions. Some account lifecycle actions consume the unlock earlier.</p>
                 </section>
 
                 <section class="manual-card-grid manual-card-grid-two">
@@ -855,7 +878,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Identity</span>
                         <h3>Users</h3>
                         <p>Invite a username, verified-on-acceptance email, and Reviewer, Editor, or Admin role. Review account status, profile, email verification, 2FA, password-change requirement, and activity timestamps.</p>
-                        <p>Elevated actions can resend invitations, edit username, role, and daily work digest settings, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
+                        <p>Elevated actions can resend invitations, edit profile details, username, role, and daily work digest settings, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
                         <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage users</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
@@ -869,6 +892,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Continuity</span>
                         <h3>Encrypted Backup</h3>
                         <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 16 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
+                        <p>While the export runs, the page shows <strong>Creating Encrypted Backup</strong> and asks you to keep it open. A success message identifies the file, updates <strong>Last backup created</strong>, and confirms that the download started. Check your browser’s Downloads to verify the file finished saving. If confirmation is delayed, check Downloads before retrying with a fresh authenticator or recovery code.</p>
                         <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Database restore is intentionally a deployment-host procedure, not a web action.</p>
                         <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
                     </article>
@@ -878,6 +902,39 @@ $manual_access_summary = match ($manual_role) {
                         <p>The internal operations view summarizes task backlog, geocoding retries, inbound mail review/failures, recent authentication failures, migration readiness, and the last encrypted backup. Use it to identify operational work that needs attention before it becomes a user-facing problem.</p>
                         <?php if ($manual_is_admin): ?><a href="operations.php" class="manual-inline-link">Open operations</a><?php endif; ?>
                     </article>
+                </section>
+
+                <section class="manual-subsection">
+                    <h3>Edit a User’s Profile</h3>
+                    <ol class="manual-steps manual-steps-compact">
+                        <li><span>01</span><section><strong>Unlock and choose the account.</strong><p>Open Users, unlock sensitive actions, and select the account’s Edit control.</p></section></li>
+                        <li><span>02</span><section><strong>Review identity and contact details.</strong><p>Edit the first name, last name, country-aware phone number, username, and role. Upload, replace, or remove the profile picture; JPEG, PNG, and WebP files up to 5 MB are supported.</p></section></li>
+                        <li><span>03</span><section><strong>Review the daily digest.</strong><p>Adjust notification preferences and save. A paused digest remains paused when you only change profile details. Recovery-email changes still use the account holder’s separate verification flow.</p></section></li>
+                    </ol>
+                    <p>The updated name and portrait appear wherever that account is shown. Profile edits retain the user’s authentication and recovery protections and are recorded in the audit history.</p>
+                </section>
+
+                <section class="manual-subsection" id="network-performance">
+                    <h3>Compare Remote Network Performance</h3>
+                    <p>Administrators open <strong>Network</strong> in the sidebar to view <strong>Remote Network Performance</strong>. It compares measured page loads from signed-in public IPv4 and IPv6 clients during the last 24 hours. Select <strong>Refresh</strong> for current results; the page also refreshes every 30 seconds.</p>
+                    <ul class="manual-check-list">
+                        <li><strong>IPv4 and IPv6 cards:</strong> review the median page-load time, sample count, 75th percentile, median TTFB (time to first byte), and most-seen Cloudflare edge when available. Lower durations mean faster observed loads.</li>
+                        <li><strong>Contact images:</strong> compare the median duration of the slowest contact image on pages that loaded at least one contact photo. The accompanying count is the number of those pages.</li>
+                        <li><strong>Slowest Observed Pages:</strong> compare each page’s IPv4 and IPv6 75th-percentile load times and sample counts. On narrow screens, each page becomes a labeled card.</li>
+                        <li><strong>Assessment:</strong> the banner highlights a material gap between the two families. Compare sample counts and page mix as well as timing; the samples come from ordinary traffic on different devices and connections.</li>
+                    </ul>
+                    <p>Local and private-address sessions are excluded. An empty card means no sample from that public address family has arrived; it does not establish whether the connection is healthy or broken. The server determines the family from the trusted client connection. Measurements store page names and timings without client IP addresses or user identities. Samples older than 30 days expire automatically; the dashboard shows the newest 24 hours.</p>
+                    <?php if ($manual_is_admin): ?><p><a href="network_diagnostics.php" class="manual-inline-link">Open Network</a></p><?php endif; ?>
+                </section>
+
+                <section class="manual-subsection" id="reset-network-statistics">
+                    <h3>Reset Network Traffic Statistics</h3>
+                    <ol class="manual-steps manual-steps-compact">
+                        <li><span>01</span><section><strong>Choose Reset Statistics.</strong><p>Select the rose button beside Refresh on Remote Network Performance. If access is locked, confirm your administrator password and a fresh authenticator or recovery code, then return to Network.</p></section></li>
+                        <li><span>02</span><section><strong>Check the countdown and scope.</strong><p>The shared five-minute unlock banner shows the remaining time. Select Reset Statistics again to review the confirmation. It clears all recorded IPv4 and IPv6 samples, including page and image timings outside the 24-hour dashboard window.</p></section></li>
+                        <li><span>03</span><section><strong>Confirm or cancel.</strong><p>Select Reset Statistics in the dialog to clear the measurements, or Cancel to keep them. The reset is permanent and recorded in the audit log. QR and presentation-link statistics are preserved.</p></section></li>
+                        <li><span>04</span><section><strong>Watch new traffic arrive.</strong><p>A success message appears and the dashboard loads current results. New public page loads begin accumulating immediately, so a fresh sample may already appear. If the unlock expired, authenticate again before resetting.</p></section></li>
+                    </ol>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">
@@ -894,6 +951,14 @@ $manual_access_summary = match ($manual_role) {
                 </header>
 
                 <section class="manual-faq">
+                    <details>
+                        <summary><span>Network Shows Only IPv4 or Only IPv6</span><i aria-hidden="true">+</i></summary>
+                        <p>The dashboard needs signed-in public traffic from both address families. Local or private-address browsing does not add samples. Wait for public page loads, then select Refresh; a missing family alone is not evidence of a network failure. After Reset Statistics, previous samples have been cleared and new traffic must arrive.</p>
+                    </details>
+                    <details>
+                        <summary><span>The Administrator Countdown Has Ended</span><i aria-hidden="true">+</i></summary>
+                        <p>Unlock sensitive actions again with your password and a fresh factor. The five-minute deadline is shared by pages in your current session and does not restart when you navigate. Another browser session needs its own unlock.</p>
+                    </details>
                     <details>
                         <summary><span>I Cannot See an Edit or Delete Button</span><i aria-hidden="true">+</i></summary>
                         <p>Reviewers are read only. Editors can edit and archive but cannot permanently delete. Administrators must freshly unlock sensitive access before many delete and user-management controls appear. Archived records are viewed separately and generally must be restored before editing.</p>

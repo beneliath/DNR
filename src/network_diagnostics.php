@@ -3,8 +3,41 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/network_diagnostics_helpers.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 startSecureSession();
 requireAdmin();
+header('Cache-Control: no-store, max-age=0');
+header('Pragma: no-cache');
+
+$method = (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET');
+if (!in_array($method, ['GET', 'POST'], true)) {
+    header('Allow: GET, POST');
+    http_response_code(405);
+    exit;
+}
+
+$resetError = '';
+if ($method === 'POST') {
+    requireValidCsrfToken();
+    if (\Dnr\Http\RequestInput::string($_POST, 'action') !== 'reset_statistics') {
+        http_response_code(400);
+        exit('Select a valid reset action.');
+    }
+    requireRecentAdminElevation('network_diagnostics.php');
+    try {
+        resetNetworkPerformanceStatistics($conn, (int) $_SESSION['user_id']);
+        $_SESSION['_network_statistics_reset'] = true;
+        header('Location: network_diagnostics.php', true, 303);
+        exit;
+    } catch (Throwable $exception) {
+        http_response_code(500);
+        $resetError = 'Unable to reset network statistics. Try again.';
+        applicationLog('error', 'Network statistics reset failed', ['error' => $exception->getMessage()]);
+    }
+}
+$resetSucceeded = !empty($_SESSION['_network_statistics_reset']);
+unset($_SESSION['_network_statistics_reset']);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -24,8 +57,26 @@ requireAdmin();
             <h1>Remote Network Performance</h1>
             <p class="page-intro">Compare actual MOED page loads from public IPv4 and IPv6 clients during the last 24 hours.</p>
         </div>
-        <button type="button" class="button-add" data-network-refresh>Refresh</button>
+        <div class="network-diagnostics-actions">
+            <button type="button" class="button-add" data-network-refresh>Refresh</button>
+            <?php if (hasRecentAdminElevation()): ?>
+                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page and image timings? This cannot be undone. New traffic will start counting from zero.">
+                    <?php echo csrfInput(); ?>
+                    <input type="hidden" name="action" value="reset_statistics">
+                    <button type="submit" class="button-secondary statistics-reset-button">Reset Statistics</button>
+                </form>
+            <?php else: ?>
+                <a href="admin_elevation.php?return=network_diagnostics.php" class="button-secondary statistics-reset-button">Reset Statistics</a>
+            <?php endif; ?>
+        </div>
     </div>
+
+    <?php if ($resetSucceeded): ?>
+        <p class="success" role="status">Network traffic statistics cleared. New IPv4 and IPv6 measurements will appear as traffic arrives.</p>
+    <?php endif; ?>
+    <?php if ($resetError !== ''): ?>
+        <p class="error" role="alert"><?php echo htmlspecialchars($resetError, ENT_QUOTES, 'UTF-8'); ?></p>
+    <?php endif; ?>
 
     <section class="network-diagnostics-summary" aria-labelledby="network-result-heading" data-network-summary data-state="pending">
         <div>

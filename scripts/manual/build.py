@@ -47,6 +47,8 @@ STYLE={
 }
 STYLE['table_cell']=ParagraphStyle('table-cell',parent=STYLE['body'],fontSize=9,leading=12,spaceAfter=0)
 for style in STYLE.values():
+    style.allowWidows=0
+    style.allowOrphans=0
     style.splitLongWords=0
     style.embeddedHyphenation=0
     style.uriWasteReduce=0
@@ -57,7 +59,7 @@ REVERSE['code'].backColor=colors.black
 CHAPTERS=json.loads((DATA/'online-chapters.json').read_text())
 SHOTS=json.loads((DATA/'screenshots.json').read_text())
 VERSION=(ROOT/'VERSION').read_text().strip()
-EDITION_DATE='September 13, 2026'
+EDITION_DATE='September 14, 2026'
 README_BYTES=(ROOT/'README.md').read_bytes()
 README=json.loads((DATA/'readme-appendix.json').read_text())
 if README['sha256']!=hashlib.sha256(README_BYTES).hexdigest():
@@ -66,7 +68,7 @@ README_ROOT=LH.fragment_fromstring(README['html'],create_parent='div')
 README_HEADINGS=[]
 for index,element in enumerate(README_ROOT.xpath('.//h1|.//h2|.//h3|.//h4|.//h5|.//h6'),1):
     element.set('data-pdf-id','readme-section-'+str(index))
-    README_HEADINGS.append({'title':' '.join(element.text_content().split()),'key':element.get('data-pdf-id')})
+    README_HEADINGS.append({'title':' '.join(element.text_content().split()),'key':element.get('data-pdf-id'),'level':int(element.tag[1])})
 CH_IDS={c['id']:'chapter-'+str(i+1) for i,c in enumerate(CHAPTERS)}
 CH_IDS['email-templates']='topic-5-manage-email-templates'
 ROUTE_CH={
@@ -75,7 +77,7 @@ ROUTE_CH={
  'organizations.php':6,'contacts.php':6,'speakers.php':6,'add_contact.php':6,'add_organization.php':6,
  'email_templates.php':5,'edit_email_template.php':5,'compose_engagement_email.php':5,
  'tasks.php':7,'standard_tasks.php':7,'inbound_mail.php':8,'map.php':9,'view_calendar.php':9,
- 'profile.php':10,'two_factor_settings.php':10,'mattermost.php':11,'users.php':12,'audit_log.php':12,'database_maintenance.php':12,'operations.php':12,
+ 'profile.php':10,'two_factor_settings.php':10,'mattermost.php':11,'users.php':12,'audit_log.php':12,'database_maintenance.php':12,'operations.php':12,'network_diagnostics.php':12,'edit_user.php':12,'admin_elevation.php':12,
 }
 RELATED={1:[2,3,10],2:[10,12],3:[4,5,7],4:[5,7,8],5:[6,7,8,9],6:[4,5,8],7:[3,5,9],8:[4,5,11],9:[5,7,10],10:[2,9,12],11:[5,7,8],12:[2,10,13],13:[1,5,8,12]}
 SHORT=['Getting oriented','Roles and access','Daily dashboard','Booking pipeline','Engagements','People and organizations','Work queue','Chron and email','Map and calendar','Profile and security','Mattermost','Administration','Troubleshooting']
@@ -320,7 +322,7 @@ def nodes(e,ch):
 
 SUPPLEMENTS={
  1:[('Save, cancel, and recover a draft',['Required fields are marked in the forms. Correct the listed errors and save again if validation fails. Cancel returns without saving the current form.','When you create a related organization or contact from an inquiry/contact form, MOED carries the draft back to the original form. Confirm the selected relationship after returning.','If another person changes a record while you are editing, MOED may report a conflict. Preserve your unsaved text, reload the latest record, and reapply only the changes that still belong. A reload is also the first step after an expired request.','Keyboard users can use the Skip to main content link, Tab/Shift+Tab, and the visible focus indication. Reduce-motion preferences suppress attention animations while retaining due-state color cues.'])],
- 5:[('Presentation reference and file history',['A complete presentation needs its topic, date, time, selected speaker, duration, and expected attendance. Its date must be inside the engagement range before the event can be confirmed.','PDF Speaker Notes displays upload metadata, including who uploaded the current file and when, where available. Old files without stored uploader metadata can show an unavailable uploader.','Speaker Notes QR links open the PDF directly without signing in. Replacement keeps the public code; removal makes the notes unavailable. Website/resource codes and speaker-note downloads are recorded as visitor activity; viewing internal QR sheets does not add visits.','Archive and restore presentations separately from the engagement. A restored presentation must fit the current dates. Changing its speaker changes the current resource set; previous speaker codes remain part of historical statistics.']),('Readiness, closeout, and lifecycle effects',['Use the readiness panel to find missing presentations, contact details, or planning information. Resolve the source record and revisit the panel.','Canceling an engagement requires a reason and cancels its open event tasks. A task canceled for convenience still fails a required Completed prerequisite for financial closeout.','Changing event dates updates generated active task dates unless a date was manually overridden. Postponed/canceled originals can link to a replacement from the same organization; circular reschedule links are rejected.'])],
+ 5:[('Presentation reference and file history',['Presentations record topic, date, time, speaker, duration, and expected attendance. Their dates must fit the engagement before it can be confirmed.','PDF Speaker Notes shows who uploaded the current file and when, where metadata exists; older files may have no uploader.','Speaker Notes QR links open the PDF directly without signing in. Replacement keeps the public code; removal makes the notes unavailable. Website/resource codes and speaker-note downloads are recorded as visitor activity; viewing internal QR sheets does not add visits.','Changing the speaker changes a presentation’s current resources; previous-speaker codes remain in historical statistics. Archive or restore presentations separately from their engagement.']),('Readiness, closeout, and lifecycle effects',['Use readiness to find missing presentations, contact details, or planning information. Correct the source record and revisit the panel.','Canceling an event requires a reason and cancels its open tasks. Canceled tasks still block a closeout prerequisite that requires Completed.','Changing event dates reschedules active generated tasks unless their dates were manually overridden. Postponed/canceled events can link to replacements at the same organization; circular links are rejected.'])],
  6:[('Birthdays and organization affiliations',['A contact can also store an optional birthday. Birthday-enabled calendar subscriptions create yearly all-day entries; they do not expose the birth year or internal contact notes.','Additional affiliations are independent relationships, each with its own role or title. A contact can remain associated with another organization when one organization is removed. Event-specific assignments belong to each engagement.'])],
  8:[('Email delivery states and retries',['Queued messages can be Pending or Processing before becoming Sent, Failed, or partially delivered across recipients. Open the delivery record to inspect individual recipient outcomes and timestamps.','Retry Failed Deliveries retries the failures rather than re-sending successful recipients. Correct a bad destination before retrying. Inquiry delivery retries are available while the inquiry is active.','After booking conversion, replies to earlier inquiry email route into the resulting engagement. The original inquiry retains the pre-booking record and any tasks not moved.','The Inbox filing panel saves an email to existing destinations. Create a new booking request from New Inquiry in Booking Pipeline when needed, then return to the Inbox and review the appropriate destinations.'])],
  9:[('Choose the content of each private feed',['Each new subscription has a Device or Service label and one or more content options: Events, Presentations, My Active Work, All Active Work, and Birthdays (from Contacts). The defaults are Events, Presentations, and Birthdays.','My Active Work includes assigned work; All Active Work includes everyone and unassigned work. Active work appears on its due date. A subscription can therefore reveal task titles and schedule context: share it only with the intended device or service.','The private URL is shown only once. Save it immediately or create a new subscription if it is lost. Revoke one link without changing others, and purge revoked token records when no longer needed.','The in-app month selector and a private feed are separate controls. Changing the month selector does not change the saved subscription content.']),('Correct a map location',['Use Edit location to correct the written event address. If the address is right but the lookup pin is wrong, open the pin editor, choose the intended coordinates, and save the manual confirmation.','A manual override is tied to the address it confirms. Check it again after changing the address. Clear the override to return to normal address lookup. The map/list can still show an event awaiting lookup or without enough address information.'])],
@@ -329,28 +331,15 @@ SUPPLEMENTS={
 }
 
 def corrected_root(ch):
-    e=LH.fragment_fromstring(CHAPTERS[ch-1]['html'],create_parent='div')
-    # The application has features added after the sidebar guide text. Keep the PDF accurate.
-    if ch==9:
-        for title in e.findall('.//h3'):
-            if text_of(title)=='Private Calendar':
-                ps=title.getparent().findall('./p')
-                ps[0].text='Create a separate subscription for each device or service. Choose Events, Presentations, My Active Work, All Active Work, and/or Birthdays (from Contacts). Copy the private URL when it is shown; it is shown only once.'
-                ps[1].text='Revoke one link without affecting the others; revoked records can be purged. A link grants access to its selected feed content, including work when selected. It does not grant application access to internal Chron or financial records.'
-        for table in e.findall('.//table'):
-            if 'My Tasks' in text_of(table):
-                body=table.find('tbody')
-                body.insert(3,LH.fragment_fromstring('<tr><td><strong>Birthdays</strong></td><td>Annual birthday reminders from active contacts.</td><td>Birthday styling; open the contact for details.</td></tr>'))
-                for row in body.findall('tr'):
-                    cells=row.findall('td')
-                    if cells and text_of(cells[0])=='Everything':cells[1].text='Events, all active due-dated tasks, and contact birthdays.'
-        for para in e.findall('.//p'):
-            if 'Events plus all' in text_of(para):para.text='Everything includes events, due-dated active tasks, and contact birthdays.'
-    if ch==10:
-        for title in e.findall('.//h3'):
-            if text_of(title)=='Profile and Notifications':
-                ps=title.getparent().findall('./p');ps[0].text='Maintain your name, phone, optional profile picture, and notification schedule in My Profile. Use Change Recovery Email for a protected email change: the current address remains active until the new address is verified. Verification signs out existing sessions and pauses the daily digest. Resending verification preserves your draft and chosen photo.'
-    return e
+    root=LH.fragment_fromstring(CHAPTERS[ch-1]['html'],create_parent='div')
+    # The PDF omits decorative application footers and their explanatory copy.
+    for para in root.xpath('.//p'):
+        value=text_of(para)
+        if value.startswith('The footer identifies the application version'):
+            para.text='The copyright line identifies the application version and, when available, its build date and source revision. Use that information when reporting a problem.'
+        elif value.startswith('The digest footer retains a static cat'):
+            para.text='To adjust Daily Digest delivery, open My Profile and find Notification Preferences. Dashboard and record links in the message remain available.'
+    return root
 
 # Features added after the original sidebar guide's chapter text.
 SUPPLEMENTS[9].append(('Birthdays and the mobile daily agenda',[
@@ -358,8 +347,7 @@ SUPPLEMENTS[9].append(('Birthdays and the mobile daily agenda',[
     'On a phone-sized display the calendar becomes a daily agenda. Use the previous/next day controls or Today, keep the desired content selector, and open the linked record. Desktop uses the month grid. The agenda and month view preserve the chosen content scope.'
 ]))
 SUPPLEMENTS[5].append(('Reset presentation statistics',[
-    'Administrators can choose Reset Presentation Statistics from a presentation card. Fresh administrator confirmation is required before Reset Statistics to Zero.',
-    'The reset permanently removes every recorded link visit for that presentation across all dates, including disabled and previous-speaker links. It preserves QR codes, destinations, uploaded notes, and presentation details. Other presentations are unaffected, and future visits start counting from zero.'
+    'After fresh administrator confirmation, choose Reset Presentation Statistics on a presentation card, then Reset Statistics to Zero. This permanently removes all of its recorded link visits, including disabled and previous-speaker links. QR codes, destinations, uploaded notes, and presentation details remain intact. Other presentations are unaffected; future visits start from zero.'
 ]))
 # State the counting boundary precisely: direct asset requests are not link visits.
 SUPPLEMENTS[5][0][1][2]='Speaker Notes QR links open the PDF directly without signing in. Replacement keeps the code; removal makes the notes unavailable. A visit through the notes short link counts before the PDF opens, including cached delivery. Opening a copied direct PDF URL does not count. Internal QR sheets do not add visits.'
@@ -373,8 +361,7 @@ SUPPLEMENTS[8].append(('Archive and restore Chron in batches',[
     'Open Restore Archived Chron Log Entries, select the entries to return, and choose Restore Selected. The parent must be active. Restored entries retain their historical authorship and dates.'
 ]))
 SUPPLEMENTS[5].append(('Restore archived presentations',[
-    'Open the engagement editor and choose Restore Archived Presentations. Select the desired presentations, correct their dates or times when needed, and choose Restore Selected.',
-    'Restored presentation dates must fit the event\'s current range. The active engagement and selected speaker must be valid. Administrators can delete an archived presentation permanently from the restore view after fresh confirmation.'
+    'In the engagement editor, choose Restore Archived Presentations, select presentations, adjust dates/times to fit the active event, and choose Restore Selected. Each selected speaker must be valid. Administrators can permanently delete an archived presentation from this view after fresh confirmation.'
 ]))
 
 def related(ch,known):
@@ -384,11 +371,13 @@ def related(ch,known):
     return p('<b>Related chapters:</b> '+'  /  '.join(links),'small')
 
 TOPICS=[
+ ('Administrator five-minute countdown','topic-12-unlock-sensitive-actions'),('Administrator profile editing','topic-12-edit-a-user-s-profile'),('Confirm task completion','shot-task-confirmation'),('Fixed sidebar logo and profile','shot-manual'),('IPv4 and IPv6 performance','shot-network'),('Network statistics reset','shot-network-reset'),('Photo cropping and thumbnails','topic-6-choose-a-profile-contact-or-speaker-photo'),
+
  ('Account activation and invitations','shot-invite'),('Account recovery','chapter-10'),('Administrator confirmation','shot-elevation'),('Archive, restore, and permanent deletion','topic-5-archive-and-delete-carefully'),('Audit log and retention','shot-audit'),('Backup and restoration','shot-backup'),('Birthdays','topic-9-choose-the-content-of-each-private-feed'),('Booking conversion','shot-conversion'),('Booking stages and board filters','shot-pipeline'),('Calendar content selectors','shot-calendar'),('Calendar subscriptions and revocation','shot-subscription'),('Caller and generated task ownership','chapter-7'),('Change recovery email','topic-10-change-the-recovery-email-securely'),('Chron log entries','shot-chron'),('Closeout prerequisites','shot-closeout'),('Confirmation vs. lifecycle','shot-lifecycle'),('Contact affiliations and event roles','shot-contact-form'),('Contact photographs','shot-contact-form'),('Countries, addresses, states, and provinces','shot-organization-form'),('Daily digest','shot-profile'),('Dashboard and readiness','shot-dashboard'),('Dates, rescheduling, and task offsets','chapter-7'),('Decline and reopen an inquiry','shot-inquiry'),('Deployment notices','topic-12-deployment-notices-and-recovery-boundaries'),('Duplicate a task','shot-duplicate-task'),('Email delivery and retry','topic-8-email-delivery-states-and-retries'),('Email recipients and templates','shot-email'),('Cc, Bcc, and sender copies','shot-email'),('Email templates: add and edit','shot-email-template-editor'),('Email templates: archive, restore, and delete','shot-email-templates'),('Event fields in email templates','shot-email-template-fields'),('Email routing and signed markers','shot-inbound-message'),('Event contacts','shot-event-contacts'),('Event logistics and planning estimates','shot-logistics'),('Financial drafts and final reports','shot-closeout'),('Financial history by organization','shot-organization-financial'),('Inbound mail triage','shot-inbox'),('Inquiry correspondence','shot-inquiry-email'),('Keyboard navigation','chapter-1'),('Map and missing addresses','shot-map'),('Manual map pin','shot-map-pin'),('Mattermost commands and account linking','chapter-11'),('Mattermost message actions','topic-11-turn-a-mattermost-post-into-moed-work'),('Mobile sidebar and theme','shot-mobile'),('Next action on an inquiry','shot-inquiry-action'),('Operations and readiness','shot-operations'),('Passwords and 2FA','shot-security'),('PDF speaker notes','shot-presentation-form'),('Presentation export: text, Markdown, PDF','shot-presentations'),('Presentation schedule and attendance','shot-presentation-form'),('QR code resources and downloads','shot-presentations'),('QR code selection and PDF order','shot-qr-selection'),('Combined presentation statistics','shot-statistics'),('QR code statistics and link controls','shot-statistics'),('Recovery codes','chapter-10'),('Roles: reviewer, editor, administrator','chapter-2'),('Search and records per page','chapter-1'),('Speaker biography and links','shot-speaker'),('Speaker email recipients','shot-email'),('Speaker custom resource links','shot-speaker-links'),('Standard event checklists','shot-standard-tasks'),('Add a standard task to active, open engagements','shot-standard-form'),('Task status, ownership, priority, and due date','shot-task-form'),('Troubleshooting','chapter-13'),('User deactivation and deletion','topic-12-user-lifecycle-effects'),('Work queue and reminders','shot-tasks')]
 
 class ScreenshotRegion(Flowable):
     """Frame an original browser screenshot inside the PDF without resampling it."""
-    def __init__(self,path,size,region,scale):
+    def __init__(self,path,size,region,scale,omitted_regions=None):
         super().__init__()
         self.path=str(path);self.source_width,self.source_height=size
         self.x,self.y,self.region_width,self.region_height=region;self.scale=scale
@@ -396,9 +385,24 @@ class ScreenshotRegion(Flowable):
                 and self.x+self.region_width<=self.source_width and self.y+self.region_height<=self.source_height):
             raise ValueError('Screenshot region is outside the original image: '+self.path)
         self.width=self.region_width*scale;self.height=self.region_height*scale;self.hAlign='LEFT'
+        self.omitted_regions=omitted_regions or []
+        for omitted in self.omitted_regions:
+            x,y,w,h=omitted['box']
+            if x<0 or y<0 or w<=0 or h<=0 or x+w>self.source_width or y+h>self.source_height:
+                raise ValueError('Omitted region is outside the screenshot: '+self.path)
     def draw(self):
         canvas=self.canv;canvas.saveState()
         path=canvas.beginPath();path.rect(0,0,self.width,self.height);canvas.clipPath(path,stroke=0,fill=0)
+        # Preserve the sidebar/profile when excluding decorative main-area footers.
+        # Source captures stay intact; only the included PDF illustration changes.
+        image_clip=canvas.beginPath();image_clip.rect(0,0,self.width,self.height)
+        for omitted in self.omitted_regions:
+            x,y,w,h=omitted['box']
+            px=(x-self.x)*self.scale;py=(self.y+self.region_height-y-h)*self.scale
+            canvas.setFillColor(colors.HexColor(omitted['fill']))
+            canvas.rect(px,py,w*self.scale,h*self.scale,stroke=0,fill=1)
+            image_clip.rect(px,py,w*self.scale,h*self.scale)
+        canvas.clipPath(image_clip,stroke=0,fill=0,fillMode=0)
         canvas.drawImage(self.path,-self.x*self.scale,(self.y+self.region_height-self.source_height)*self.scale,
                          width=self.source_width*self.scale,height=self.source_height*self.scale)
         canvas.restoreState()
@@ -414,7 +418,7 @@ def screenshot_page(s,number,known):
     _,instruction_height=instructions.wrap(CW,H)
     file=DATA/s['file'];im=PILImage.open(file)
     region=s.get('crop',[0,0,*im.size]);iw,ih=region[2:];scale=min(CW/iw,min(430,585-instruction_height)/ih)
-    out.append(ScreenshotRegion(file,im.size,region,scale) if 'crop' in s else Image(str(file),width=iw*scale,height=ih*scale,hAlign='LEFT'))
+    out.append(ScreenshotRegion(file,im.size,region,scale,s.get('omitted_regions')) if 'crop' in s or s.get('omitted_regions') else Image(str(file),width=iw*scale,height=ih*scale,hAlign='LEFT'))
     out.append(Spacer(1,5))
     out.append(p(f'Figure {number:02}. {esc(s["title"])}. Actual preview screen; fictional records.','caption'))
     instructions.end_tag='end-shot-'+s['id'];out.append(instructions);return out
@@ -467,7 +471,9 @@ def readme_nodes(e):
 def readme_appendix(known):
     out=[NextPageTemplate('readme-index'),PageBreak(),rp('APPENDIX A  /  CURRENT REPOSITORY README','kicker'),heading('README.md','appendix-readme',0,'h2',14,reverse=True),rp(f'Complete README for application source {VERSION}','intro'),rp('The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly.'),rp(f'Source: README.md · {len(README_BYTES):,} bytes · {EDITION_DATE}. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks.','small')]
     columns=[]
-    for group in (README_HEADINGS[:19],README_HEADINGS[19:]):
+    sections=[item for item in README_HEADINGS if item['level']==2]
+    midpoint=(len(sections)+1)//2
+    for group in (sections[:midpoint],sections[midpoint:]):
         columns.append([rp(f'<link href="#{item["key"]}" color="#ffffff">{esc(item["title"])}</link> - p. {known.get(item["key"],"...")}','small') for item in group])
     toc=Table([[columns[0],columns[1]]],colWidths=[CW/2,CW/2],hAlign='LEFT')
     toc.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),18)]))
@@ -484,7 +490,7 @@ def story(known):
     toc=Table([[contents[0],'',contents[1]]],colWidths=[COL,GUTTER,COL]);toc.setStyle(TableStyle([('VALIGN',(0,0),(-1,-1),'TOP'),('LEFTPADDING',(0,0),(-1,-1),0),('RIGHTPADDING',(0,0),(-1,-1),0)]));out.append(toc)
     out.extend([Spacer(1,16),p(f'<link href="#topics" color="#2457d6"><b>Alphabetical topic finder</b> - p. {known.get("topics","...")}</link>')])
     out.append(p(f'<link href="#appendix-readme" color="#2457d6"><b>Appendix A: complete current README.md</b> - p. {known.get("appendix-readme","...")}</link>'))
-    out.extend([NextPageTemplate('columns'),PageBreak(),heading('How to use this manual','how-to-use',0,'h2',0),p('A complete reference with illustrated walkthroughs','intro'),card('Navigate in four ways',['Use the clickable contents for chapters; use the bookmarks panel for sections and screenshots; follow Related chapters links for connected work; or use the alphabetical topic finder. Every page has Contents, Topic finder, Previous, Next, and Chapter start links.']),Spacer(1,16),p('Scope and edition','h3'),p(f'This manual describes the MOED browser application at source version {VERSION}, updated on {EDITION_DATE}. It covers reviewer, editor, and administrator workflows and the configured Mattermost integration. Deployment-specific settings may change names, reminder windows, available integrations, or branding.'),p('The 13 chapters follow the sidebar User Manual. Each begins with the reference guidance and continues with illustrated walkthroughs. Section and figure headings also appear as PDF bookmarks.'),p('Screenshots and example records','h3'),p('Screenshots were captured from the current source in an isolated local preview. Cedar Grove Community, Jordan Parker, Alex Morgan, Example Conference, Avery Host, Casey Speaker, and their events and inquiries are fictional training examples. A few existing preview records and the preview account name may appear in directory or account views. No production messages were sent and no invitations were submitted.'),p('The previews have no connected Mattermost service. Mail is disabled or uses a local development log; no email was queued during screenshot capture. Those capabilities are documented from the application guide and source; screenshots label the configuration limitation. Empty financial/statistics views represent a new training record, not a claim that the feature is unavailable.'),p('Screenshots show selected viewports and form sections. Scroll in the application to continue longer forms. Zoom into the PDF for fine control labels. Most screenshots use the light theme; dark theme and mobile navigation are illustrated separately.'),p('Meaning of access labels','h3'),p('<b>Reviewer:</b> read records, export, inspect statistics, and manage the personal account.<br/><b>Editor:</b> additionally create, edit, archive/restore, manage work, and correspond.<br/><b>Administrator:</b> additionally govern users, audit, backups, and permanent deletion.'),related(1,known)])
+    out.extend([NextPageTemplate('columns'),PageBreak(),heading('How to use this manual','how-to-use',0,'h2',0),p('A complete reference with illustrated walkthroughs','intro'),card('Navigate in four ways',['Use the clickable contents for chapters; use the bookmarks panel for sections and screenshots; follow Related chapters links for connected work; or use the alphabetical topic finder. Every page has Contents, Topic finder, Previous, Next, and Chapter start links.']),Spacer(1,16),p('Scope and edition','h3'),p(f'This manual describes the MOED browser application at source version {VERSION}, updated on {EDITION_DATE}, including the sidebar, statistics reset, task confirmation, and digest footer changes prepared with this edition. It covers reviewer, editor, and administrator workflows and the configured Mattermost integration. Deployment-specific settings may change names, reminder windows, available integrations, or branding.'),p('The 13 chapters follow the sidebar User Manual. Each begins with the reference guidance and continues with illustrated walkthroughs. Section and figure headings also appear as PDF bookmarks.'),p('Screenshots and example records','h3'),p('Screenshots use isolated local previews, with the changed workflows refreshed for this edition and earlier captures retained where their controls still apply. Cedar Grove Community, Jordan Parker, Alex Morgan, Example Conference, Avery Host, Casey Speaker, and their events and inquiries are fictional training examples. A few existing preview records and the preview account name may appear in directory or account views. No production messages were sent and no invitations were submitted.'),p('The previews have no connected Mattermost service. Mail is disabled or uses a local development log; no email was queued during screenshot capture. Those capabilities are documented from the application guide and source; screenshots label the configuration limitation. Empty financial/statistics views represent a new training record, not a claim that the feature is unavailable.'),p('Screenshots show selected viewports and form sections. Scroll in the application to continue longer forms. Zoom into the PDF for fine control labels. Most screenshots use the light theme; dark theme and mobile navigation are illustrated separately.'),p('Meaning of access labels','h3'),p('<b>Reviewer:</b> read records, export, inspect statistics, and manage the personal account.<br/><b>Editor:</b> additionally create, edit, archive/restore, manage work, and correspond.<br/><b>Administrator:</b> additionally govern users, audit, backups, and permanent deletion.'),related(1,known)])
     figure=0
     for ch,c in enumerate(CHAPTERS,1):
         root=corrected_root(ch)
@@ -493,7 +499,7 @@ def story(known):
         if intro:chapter_flow.append(p(inline(intro[0]),'intro'))
         chapter_flow.append(related(ch,known));chapter_flow+=nodes(root,ch)
         for title,paras in SUPPLEMENTS.get(ch,[]):
-            chapter_flow.append(heading(title,f'topic-{ch}-{slug(title)}',1,'h3'))
+            chapter_flow.append(heading(title,f'topic-{ch}-{slug(title)}',1,'h4'))
             chapter_flow.extend(p(esc(v)) for v in paras)
         out+=responsive_flow(chapter_flow)
         for s in SHOTS:
@@ -504,7 +510,7 @@ def story(known):
     for title,key in sorted(TOPICS,key=lambda x:x[0].lower()):
         if known and key not in known:raise RuntimeError('Unknown topic target '+key)
         out.append(p(f'<link href="#{key}" color="#2457d6">{esc(title)}</link> <font color="#667085">- p. {known.get(key,"...")}</font>','small'))
-    out.extend([Spacer(1,14),heading('Edition and source notes','edition-notes',0,'h3'),p(f'Application source: MOED / DNR {VERSION}. Guide updated: {EDITION_DATE}. Presentation controls, QR selection, combined statistics, email recipients, and standard-task scheduling screenshots were refreshed on September 13, 2026. Inbox and email template screenshots retain their September 10 capture date; other screenshots retain their September 9 capture date. Source basis: src/help.php, application page/forms/controllers, and the Mattermost integration guide.'),p('The PDF expands the online guide with current private-calendar content options, birthdays, recovery-email verification, map-pin correction, and additional form walkthroughs. Infrastructure-only procedures are referenced at the point where a deployment operator is required.'),p('Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available.'),p('<link href="#contents" color="#2457d6">Return to contents</link>')])
+    out.extend([Spacer(1,14),heading('Edition and source notes','edition-notes',0,'h3'),p(f'Application source: MOED / DNR {VERSION}. Guide updated: {EDITION_DATE}. Sidebar navigation, task completion, administrator profile editing and countdown, network diagnostics/reset, backup, and Dashboard illustrations were refreshed on September 14, 2026. Network timings and Dashboard records are synthetic examples. Presentation and scheduling captures from September 13, inbox/template captures from September 10, and other September 9 views are retained where unchanged. Per-figure metadata records refreshed captures. Source basis: src/help.php, application page/forms/controllers, and the Mattermost integration guide.'),p('The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required.'),p('Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available.'),p('<link href="#contents" color="#2457d6">Return to contents</link>')])
     out+=readme_appendix(known)
     return out
 
@@ -524,11 +530,13 @@ def main():
     for shot in SHOTS:
         if known['shot-'+shot['id']]!=known['end-shot-'+shot['id']]:raise RuntimeError('Screenshot walkthrough spills onto a second page: '+shot['id'])
     links=sum(len(p.get('/Annots',[])) for p in reader.pages)
-    report={'version':VERSION,'edition_date':EDITION_DATE,'pages':len(reader.pages),'screenshots':len(SHOTS),'link_annotations':links,'destinations':known,'outline_entries':len(doc.entries),'sources':['src/help.php','src/view_calendar.php','src/profile.php','src/map_pin.php','src/templates/presentation_form.php']}
+    report={'version':VERSION,'edition_date':EDITION_DATE,'pages':len(reader.pages),'screenshots':len(SHOTS),'link_annotations':links,'destinations':known,'outline_entries':len(doc.entries),'sources':['src/help.php','src/view_calendar.php','src/profile.php','src/map_pin.php','src/templates/presentation_form.php','src/network_diagnostics.php','src/network_diagnostics_helpers.php','src/edit_user.php','src/database_maintenance.php','src/daily_digest_email.php','src/tasks.php','src/templates/header.php']}
     report['page_layouts']=doc.page_layouts
     report['column_regions']=doc.column_regions
     report['full_width_blocks']=doc.wide_blocks
     report['automatic_word_breaks']=0
+    report['screenshot_footer_policy']='Copyright line only; decorative footer artwork and text omitted'
+    report['footer_adjusted_figures']=[shot['id'] for shot in SHOTS if shot.get('footer_removed')]
     report['cover_logo']={'source':'src/assets/dnr-logo.svg','rendering':'native PDF vector paths','white_backdrop':'omitted'}
     report['readme_appendix']={'source':'README.md','sha256':README['sha256'],'bytes':len(README_BYTES),'start_page':known['appendix-readme'],'sections':len(README_HEADINGS),'attachment':'README.md'}
     (DATA/'build-report.json').write_text(json.dumps(report,indent=2)+'\n')
