@@ -34,6 +34,17 @@ function speakerInitialsSvg(array $speaker): string
     return contactInitialsSvg(speakerPhotoIdentity($speaker));
 }
 
+function validatedSpeakerPhotoFile(string $path): array
+{
+    return normalizedUploadedImage(
+        $path,
+        SPEAKER_PHOTO_MAX_BYTES,
+        CONTACT_PHOTO_MAX_PIXELS,
+        CONTACT_PHOTO_MAX_DIMENSION,
+        'speaker photo'
+    );
+}
+
 function speakerPhotoFromUpload(array $upload): ?array
 {
     $error = (int) ($upload['error'] ?? UPLOAD_ERR_NO_FILE);
@@ -50,8 +61,7 @@ function speakerPhotoFromUpload(array $upload): ?array
     if (!is_string($path) || $path === '' || !is_uploaded_file($path)) {
         throw new InvalidArgumentException('The speaker photo upload was not accepted.');
     }
-    return normalizedUploadedImage($path, SPEAKER_PHOTO_MAX_BYTES,
-        CONTACT_PHOTO_MAX_PIXELS, CONTACT_PHOTO_MAX_DIMENSION, 'speaker photo');
+    return validatedSpeakerPhotoFile($path);
 }
 
 /** @return array<int, array<string, mixed>> */

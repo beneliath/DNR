@@ -75,7 +75,7 @@ try {
     expectContactPhotoIntegration(
         is_string($stored['contact_photo'])
             && hash_equals(hash('sha256', $photo_data), hash('sha256', $stored['contact_photo']))
-            && $stored['contact_photo_mime'] === 'image/png'
+            && $stored['contact_photo_mime'] === (function_exists('imagewebp') ? 'image/webp' : 'image/png')
             && hash_equals(hash('sha256', $thumbnail_data), hash('sha256', $stored['contact_photo_thumbnail']))
             && $stored['contact_photo_thumbnail_mime'] === $thumbnail_mime
             && $stored['contact_photo_updated_at'] !== null,

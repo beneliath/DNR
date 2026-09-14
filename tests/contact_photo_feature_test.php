@@ -27,7 +27,7 @@ file_put_contents(
 $photo = validatedContactPhotoFile($png_path);
 $thumbnail_dimensions = getimagesizefromstring($photo['thumbnail_data']);
 expectContactPhoto(
-    $photo['mime_type'] === 'image/png'
+    $photo['mime_type'] === (function_exists('imagewebp') ? 'image/webp' : 'image/png')
         && $photo['width'] === 1
         && $photo['height'] === 1
         && $photo['size'] > 0
@@ -37,6 +37,21 @@ expectContactPhoto(
     'a valid PNG should be accepted and accompanied by a decodable thumbnail.'
 );
 unlink($png_path);
+
+$landscape_path = tempnam(sys_get_temp_dir(), 'dnr-contact-photo-landscape-');
+$landscape_image = imagecreatetruecolor(800, 500);
+imagefill($landscape_image, 0, 0, imagecolorallocate($landscape_image, 35, 95, 170));
+imagejpeg($landscape_image, $landscape_path, 92);
+$landscape_photo = validatedContactPhotoFile($landscape_path);
+unlink($landscape_path);
+$landscape_thumbnail = getimagesizefromstring($landscape_photo['thumbnail_data']);
+expectContactPhoto(
+    $landscape_photo['width'] === UPLOADED_IMAGE_DETAIL_DIMENSION
+        && $landscape_photo['height'] === UPLOADED_IMAGE_DETAIL_DIMENSION
+        && ($landscape_thumbnail[0] ?? 0) === UPLOADED_IMAGE_THUMBNAIL_DIMENSION
+        && ($landscape_thumbnail[1] ?? 0) === UPLOADED_IMAGE_THUMBNAIL_DIMENSION,
+    'saved portraits should be center-cropped to sharp 2x list and detail display sizes.'
+);
 
 $noise_path = tempnam(sys_get_temp_dir(), 'dnr-contact-photo-noise-');
 $noise_image = imagecreatetruecolor(320, 320);
@@ -120,6 +135,20 @@ expectContactPhoto(
     'contact photos should use authenticated, type-safe responses with an initials fallback.'
 );
 
+$optimizer = $read('scripts/optimize_existing_photos.php');
+$deployment_host = $read('scripts/deploy_release_host.py');
+$dockerfile = $read('Dockerfile');
+expectContactPhoto(
+    str_contains($optimizer, "'table' => 'users'")
+        && str_contains($optimizer, "'table' => 'contacts'")
+        && str_contains($optimizer, "'table' => 'speakers'")
+        && str_contains($optimizer, 'storedPhotoIsOptimized(')
+        && str_contains($deployment_host, "save('optimizing-photos')")
+        && str_contains($deployment_host, '/opt/dnr/bin/optimize_existing_photos.php')
+        && str_contains($dockerfile, 'scripts/optimize_existing_photos.php /opt/dnr/bin/optimize_existing_photos.php'),
+    'the guarded deployment should idempotently optimize existing profile, contact, and speaker photos while writers are paused.'
+);
+
 $contacts_page = $read('src/contacts.php');
 $view_contact = $read('src/view_contact.php');
 expectContactPhoto(
@@ -145,11 +174,20 @@ expectContactPhoto(
 );
 
 $styles = $read('src/assets/css/modern.css');
+$user_styles = $read('src/assets/css/pages/users.css');
 expectContactPhoto(
     str_contains($styles, '.contact-list-avatar')
         && str_contains($styles, '.contact-details-photo')
         && str_contains($styles, '.contact-photo-field'),
     'contact photo controls and avatars should use shared responsive styling.'
+);
+expectContactPhoto(
+    UPLOADED_IMAGE_THUMBNAIL_DIMENSION >= 52 * 2
+        && UPLOADED_IMAGE_DETAIL_DIMENSION >= 152 * 2
+        && preg_match('/\.user-list-avatar\s*\{[^}]*width:\s*52px;/s', $user_styles) === 1
+        && preg_match('/\.contact-list-avatar\s*\{[^}]*width:\s*42px;/s', $styles) === 1
+        && preg_match('/\.contact-details-photo,[^{]*\{[^}]*width:\s*clamp\(112px,\s*16vw,\s*152px\);/s', $styles) === 1,
+    'stored list and detail variants should cover the largest rendered portraits at 2x density.'
 );
 expectContactPhoto(
     preg_match(

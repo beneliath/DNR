@@ -75,6 +75,7 @@ COPY --chmod=0644 scripts/prune_audit_log.php /opt/dnr/bin/prune_audit_log.php
 COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php
 COPY --chmod=0644 scripts/initial_speaker_seed.php /opt/dnr/bin/initial_speaker_seed.php
 COPY --chmod=0644 scripts/backfill_short_link_qr.php /opt/dnr/bin/backfill_short_link_qr.php
+COPY --chmod=0644 scripts/optimize_existing_photos.php /opt/dnr/bin/optimize_existing_photos.php
 COPY --chmod=0755 docker/mattermost-secret-entrypoint.sh /usr/local/bin/dnr-mattermost-secret-entrypoint
 COPY migrations/ /opt/dnr/migrations/
 RUN install -d -m 0755 /opt/dnr/config

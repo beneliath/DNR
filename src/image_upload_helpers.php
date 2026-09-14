@@ -2,7 +2,11 @@
 
 declare(strict_types=1);
 
-const UPLOADED_IMAGE_THUMBNAIL_DIMENSION = 256;
+// Every stored portrait is displayed as a circle. Keep a 2x-density list
+// variant for the largest 52px avatar and a 2x-density detail variant for the
+// largest 152px profile/contact/speaker portrait, with a little rounding room.
+const UPLOADED_IMAGE_DETAIL_DIMENSION = 320;
+const UPLOADED_IMAGE_THUMBNAIL_DIMENSION = 112;
 const UPLOADED_IMAGE_THUMBNAIL_MAX_BYTES = 60000;
 
 function encodeUploadedGdImage(GdImage $image, string $mime_type, int $quality): bool
@@ -72,9 +76,15 @@ function normalizedUploadedImage(
     if (!$source instanceof GdImage) {
         throw new InvalidArgumentException('The selected file could not be decoded as an image.');
     }
-    $scale = min(1, $maximum_dimension / max($width, $height));
-    $target_width = max(1, (int) round($width * $scale));
-    $target_height = max(1, (int) round($height * $scale));
+    // The UI always renders these images as square, object-fit portraits.
+    // Cropping once at save time avoids transferring pixels the browser will
+    // discard and guarantees equal detail in both axes at the rendered size.
+    $source_dimension = min($width, $height);
+    $source_x = intdiv($width - $source_dimension, 2);
+    $source_y = intdiv($height - $source_dimension, 2);
+    $target_dimension = min((int) $maximum_dimension, $source_dimension);
+    $target_width = max(1, $target_dimension);
+    $target_height = $target_width;
     $target = imagecreatetruecolor($target_width, $target_height);
     if (!$target instanceof GdImage) {
         throw new RuntimeException('The image could not be resized.');
@@ -90,16 +100,23 @@ function normalizedUploadedImage(
         $source,
         0,
         0,
-        0,
-        0,
+        $source_x,
+        $source_y,
         $target_width,
         $target_height,
-        $width,
-        $height
+        $source_dimension,
+        $source_dimension
     );
 
+    // WebP materially reduces photo payloads while retaining alpha support.
+    // Fall back to the validated source format only when WebP is unavailable.
+    $normalized_mime = function_exists('imagewebp') ? 'image/webp' : $mime_type;
     ob_start();
-    $encoded = encodeUploadedGdImage($target, $mime_type, $mime_type === 'image/png' ? 6 : 85);
+    $encoded = encodeUploadedGdImage(
+        $target,
+        $normalized_mime,
+        $normalized_mime === 'image/png' ? 6 : 85
+    );
     $normalized = ob_get_clean();
     if (!$encoded || !is_string($normalized) || $normalized === '') {
         throw new RuntimeException('The image could not be safely re-encoded.');
@@ -202,7 +219,7 @@ function normalizedUploadedImage(
     }
 
     return [
-        'mime_type' => $mime_type,
+        'mime_type' => $normalized_mime,
         'data' => $normalized,
         'sha256' => hash('sha256', $normalized, true),
         'size' => strlen($normalized),

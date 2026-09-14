@@ -34,7 +34,7 @@ file_put_contents(
 $picture = validatedProfilePictureFile($png_path);
 $thumbnail_dimensions = getimagesizefromstring($picture['thumbnail_data']);
 expectUserProfile(
-    $picture['mime_type'] === 'image/png'
+    $picture['mime_type'] === (function_exists('imagewebp') ? 'image/webp' : 'image/png')
         && $picture['width'] === 1
         && $picture['height'] === 1
         && $picture['size'] > 0
