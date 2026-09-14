@@ -83,7 +83,7 @@ $lifecycle_filter = \Dnr\Http\RequestInput::enum(
     $_GET,
     'lifecycle',
     ['all', 'active', 'postponed', 'canceled', 'completed'],
-    'active'
+    'all'
 );
 
 // Determine which column to sort by based on which button was clicked
