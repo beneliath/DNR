@@ -92,7 +92,7 @@ $context_status_labels = followUpTaskStatuses();
                         <input type="hidden" name="task_id" value="<?php echo (int) $context_task['id']; ?>">
                         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($context_task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete"><?php echo actionIconSvg('complete'); ?></button>
+                        <button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete" data-confirm="Are you sure you want to mark this task complete?" data-confirm-title="Complete Task?" data-confirm-label="Complete Task"><?php echo actionIconSvg('complete'); ?></button>
                     </form>
                 </div>
                 <?php endif; ?>

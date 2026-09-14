@@ -5,12 +5,13 @@
     "title": "The online manual and navigation",
     "route": "help.php",
     "steps": [
-      "Open User Manual near the bottom of the sidebar. Its 13 chapters match this PDF.",
-      "Use the chapter rail or popular-topic cards to jump to an area.",
-      "Press / in the online manual to focus search. In this PDF use your reader's Find command."
+      "Open User Manual near the bottom of the scrollable sidebar. Its 13 chapters match this PDF.",
+      "The logo stays at the top and your profile/sign-out block stays at the bottom; scroll only the menu between them.",
+      "Use the chapter rail, topic cards, or / to search. Use your PDF reader’s Find command for this guide."
     ],
     "shell": true,
-    "file": "screenshots/manual.png"
+    "file": "screenshots/manual.png",
+    "captured_at": "2026-09-14"
   },
   {
     "chapter": 1,
@@ -23,7 +24,15 @@
     ],
     "action": "dark",
     "shell": true,
-    "file": "screenshots/dark.png"
+    "file": "screenshots/dark.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      0,
+      0,
+      1250,
+      840
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 1,
@@ -31,13 +40,14 @@
     "title": "Navigation on a phone",
     "route": "dashboard.php",
     "steps": [
-      "Tap the menu button in the top bar to open navigation.",
-      "Choose an area, tap outside the panel, or press Esc to close it.",
-      "Long lists and forms continue vertically; use their own filters and actions."
+      "Tap the menu button to open navigation. The close button, logo, and profile/sign-out block stay in place.",
+      "Scroll the menu between the fixed controls to reach other areas, including User Manual.",
+      "Choose an area, use Close navigation, tap outside the panel, or press Esc."
     ],
     "action": "mobile",
     "shell": true,
-    "file": "screenshots/mobile.png"
+    "file": "screenshots/mobile.png",
+    "captured_at": "2026-09-14"
   },
   {
     "chapter": 2,
@@ -51,7 +61,26 @@
     ],
     "action": "roles",
     "shell": true,
-    "file": "screenshots/roles.png"
+    "file": "screenshots/roles.png",
+    "captured_at": "2026-09-14",
+    "omitted_regions": [
+      {
+        "box": [
+          260,
+          810,
+          1020,
+          130
+        ],
+        "fill": "#f6f7fb"
+      }
+    ],
+    "copyright_line_box": [
+      299,
+      774,
+      467,
+      802
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 3,
@@ -60,10 +89,19 @@
     "route": "dashboard.php",
     "steps": [
       "Scan the summary cards for your workload, the booking pipeline, and items needing review.",
-      "Work through My Work, then review upcoming engagements and incomplete details.",
+      "Work through My Work and promptly follow up on overdue items, then review upcoming engagements and incomplete details.",
       "Open the linked record to make the change, then return to the Dashboard."
     ],
-    "file": "screenshots/dashboard.png"
+    "file": "screenshots/dashboard.png",
+    "crop": [
+      270,
+      0,
+      980,
+      835
+    ],
+    "captured_at": "2026-09-14",
+    "note": "Fictional task dates illustrate prompt follow-up: the oldest overdue example is five days late.",
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 4,
@@ -75,7 +113,20 @@
       "Open a card to review the request and its next step.",
       "The default view includes active inquiries and bookings from this month. Other stages remain available in the filter."
     ],
-    "file": "screenshots/pipeline.png"
+    "file": "screenshots/pipeline.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1197
+    ],
+    "copyright_line_box": [
+      44,
+      1165,
+      654,
+      1182
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 4,
@@ -87,7 +138,14 @@
       "Use Activity, Correspondence, and Tasks to switch the working panel.",
       "Change stage as the request develops; a decline needs a reason and can be reopened."
     ],
-    "file": "screenshots/inquiry.png"
+    "file": "screenshots/inquiry.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1227
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 4,
@@ -99,7 +157,14 @@
       "Record preferred dates, alternate dates, event type, and location.",
       "Choose an owner, priority, source, next action, and due date, then save."
     ],
-    "file": "screenshots/inquiry-form.png"
+    "file": "screenshots/inquiry-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      963
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 4,
@@ -112,7 +177,21 @@
       "Use Source Detail for a referral, mailbox, form, or campaign reference."
     ],
     "focus": "#inquiry-next-action",
-    "file": "screenshots/inquiry-action.png"
+    "file": "screenshots/inquiry-action.png",
+    "crop": [
+      0,
+      320,
+      1515,
+      844
+    ],
+    "copyright_line_box": [
+      44,
+      1132,
+      654,
+      1149
+    ],
+    "footer_removed": true,
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 4,
@@ -125,7 +204,14 @@
       "Carry an unresolved next action forward as a task, or resolve it with a reason.",
       "Acknowledge any availability warnings before confirming the conversion."
     ],
-    "file": "screenshots/conversion.png"
+    "file": "screenshots/conversion.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      992
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 4,
@@ -138,7 +224,14 @@
       "Queue the message when ready; its signed inquiry marker keeps replies connected."
     ],
     "note": "The screenshot preview has mail delivery disabled. The form is shown without sending a message.",
-    "file": "screenshots/inquiry-email.png"
+    "file": "screenshots/inquiry-email.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1045
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -150,7 +243,20 @@
       "Sort by organization, date, confirmation, or lifecycle.",
       "Open the event title or View action. Financial closeout is a separate status from planning confirmation."
     ],
-    "file": "screenshots/engagement-list.png"
+    "file": "screenshots/engagement-list.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1140
+    ],
+    "copyright_line_box": [
+      44,
+      1108,
+      654,
+      1125
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 5,
@@ -162,7 +268,14 @@
       "Switch among Activity, Correspondence, Tasks, Presentations, Contacts, Logistics, and Financials.",
       "Use the nearby routing-marker copy control when continuing a conversation in another email application."
     ],
-    "file": "screenshots/engagement.png"
+    "file": "screenshots/engagement.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      636
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -174,7 +287,14 @@
       "Set valid start and end dates. Choose Other and describe the type when presets do not fit.",
       "Assign a Caller for the initial checklist; later Caller changes do not transfer existing tasks."
     ],
-    "file": "screenshots/engagement-form.png"
+    "file": "screenshots/engagement-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      838
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -245,7 +365,14 @@
       "The nearby Save Changes button saves the whole engagement form."
     ],
     "focus": ".presentation-entry",
-    "file": "screenshots/presentation-form.png"
+    "file": "screenshots/presentation-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1195
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -265,14 +392,22 @@
     "chapter": 5,
     "id": "lifecycle",
     "title": "Lifecycle and rescheduling",
-    "route": "edit_engagement.php?id=13",
+    "route": "edit_engagement.php?id=1",
     "steps": [
       "Use Active, Postponed, Canceled, or Completed to describe the operational state.",
       "Keep Work in Progress, Under Review, or Confirmed as the separate planning confidence.",
       "Provide a cancellation reason. When rescheduling, link the replacement event from the same organization."
     ],
     "focus": "[name=lifecycle_status]",
-    "file": "screenshots/lifecycle.png"
+    "file": "screenshots/lifecycle.png",
+    "crop": [
+      285,
+      285,
+      940,
+      240
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "captured_at": "2026-09-14"
   },
   {
     "chapter": 5,
@@ -397,7 +532,20 @@
       "Review location, active contacts, last giving, and lifetime giving.",
       "Use Active/Archived, sorting, and Records per page to manage a longer directory."
     ],
-    "file": "screenshots/organizations.png"
+    "file": "screenshots/organizations.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      675
+    ],
+    "copyright_line_box": [
+      44,
+      643,
+      654,
+      660
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 6,
@@ -409,7 +557,14 @@
       "Switch to Contacts, Engagements, Tasks, or Financials for related information.",
       "Use Edit Organization to maintain details and add or move contacts."
     ],
-    "file": "screenshots/organization.png"
+    "file": "screenshots/organization.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1163
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 6,
@@ -424,7 +579,14 @@
     "tab": "Financials",
     "focus": "#organization-financials",
     "note": "Amounts are fictional examples.",
-    "file": "screenshots/organization-financial.png"
+    "file": "screenshots/organization-financial.png",
+    "crop": [
+      0,
+      340,
+      1515,
+      734
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 6,
@@ -436,7 +598,14 @@
       "Choose country before state or province. US and Canadian regions use dropdowns; other countries accept typed regions.",
       "Use Same as Physical Address when mailing details match."
     ],
-    "file": "screenshots/organization-form.png"
+    "file": "screenshots/organization-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1245
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 6,
@@ -448,7 +617,20 @@
       "Sort by last name or organization and adjust Records per page.",
       "Open a contact to review their own history and all affiliations."
     ],
-    "file": "screenshots/contacts.png"
+    "file": "screenshots/contacts.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      782
+    ],
+    "copyright_line_box": [
+      44,
+      750,
+      654,
+      767
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 6,
@@ -460,7 +642,14 @@
       "Keep person-specific conversations in this contact's Chron.",
       "Create follow-up work here to retain the relationship context."
     ],
-    "file": "screenshots/contact.png"
+    "file": "screenshots/contact.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1210
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 6,
@@ -473,7 +662,14 @@
       "Use Other with Describe Other Role for a custom title.",
       "Upload a JPEG, PNG, or WebP photo up to 5 MB and save. Create Organization preserves the contact draft."
     ],
-    "file": "screenshots/contact-form.png"
+    "file": "screenshots/contact-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1190
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 6,
@@ -485,7 +681,20 @@
       "Open the speaker or choose New Speaker to create a profile.",
       "Speaker profiles are permanent; update an existing profile instead of duplicating it."
     ],
-    "file": "screenshots/speakers.png"
+    "file": "screenshots/speakers.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      702
+    ],
+    "copyright_line_box": [
+      44,
+      670,
+      654,
+      687
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 6,
@@ -511,7 +720,14 @@
       "Removing or renaming a profile link preserves already-published codes. Manage an individual code in Statistics."
     ],
     "focus": "#speaker-links-heading",
-    "file": "screenshots/speaker-links.png"
+    "file": "screenshots/speaker-links.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1138
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 7,
@@ -519,12 +735,20 @@
     "title": "Work the queue",
     "route": "tasks.php?owner=me",
     "steps": [
-      "Choose Mine, Everyone, or Unassigned.",
-      "Use status, due-date, priority, search, and related-record controls to focus the list.",
-      "Use row actions to assign, start, complete, reopen, or edit work.",
-      "Overdue and due-today highlights draw attention; the sidebar badge counts your active assigned tasks."
+      "Choose My work, Everyone’s work, or Unassigned work, then a due-date/status filter.",
+      "Use the check-mark action to complete a task; review the Complete Task? dialog before confirming.",
+      "Cancel or press Esc to keep its current status. The same confirmation appears in related-record task lists."
     ],
-    "file": "screenshots/tasks.png"
+    "file": "screenshots/tasks.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      270,
+      0,
+      980,
+      740
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "note": "Fictional task examples are at most five days overdue. Review overdue work promptly."
   },
   {
     "chapter": 7,
@@ -537,7 +761,14 @@
       "Set assignee, due date, priority, and status. Waiting work should name the person or decision it needs.",
       "Save task to persist the change."
     ],
-    "file": "screenshots/task-form.png"
+    "file": "screenshots/task-form.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1210
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 7,
@@ -550,7 +781,14 @@
       "Review copied title and notes, ownership, due date, priority, and status before saving.",
       "The original task remains unchanged."
     ],
-    "file": "screenshots/duplicate-task.png"
+    "file": "screenshots/duplicate-task.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1078
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 7,
@@ -563,7 +801,14 @@
       "Changes affect generation; existing task content is independently editable.",
       "The required financial reminder is fixed at one week after event end."
     ],
-    "file": "screenshots/standard-tasks.png"
+    "file": "screenshots/standard-tasks.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1165
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 7,
@@ -599,7 +844,14 @@
       "Save the entry; its author and time appear in reverse chronological history."
     ],
     "action": "chron",
-    "file": "screenshots/chron.png"
+    "file": "screenshots/chron.png",
+    "crop": [
+      70,
+      20,
+      900,
+      700
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 8,
@@ -634,7 +886,21 @@
       "The event marker is maintained for routing. A sent checklist email does not complete its related task automatically."
     ],
     "focus": "#body",
-    "file": "screenshots/email-message.png"
+    "file": "screenshots/email-message.png",
+    "crop": [
+      0,
+      102,
+      1515,
+      1061
+    ],
+    "copyright_line_box": [
+      44,
+      1131,
+      654,
+      1148
+    ],
+    "footer_removed": true,
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 8,
@@ -648,7 +914,14 @@
       "Select a message to read it. Search messages stays visible at a consistent vertical position. On a phone, use Back to messages to return to the queue."
     ],
     "file": "screenshots/inbox.png",
-    "shell": true
+    "shell": true,
+    "crop": [
+      280,
+      0,
+      960,
+      650
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 8,
@@ -663,7 +936,14 @@
     ],
     "file": "screenshots/inbound-message.png",
     "shell": true,
-    "focus": "#inbound-queue-search"
+    "focus": "#inbound-queue-search",
+    "crop": [
+      280,
+      0,
+      960,
+      701
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 9,
@@ -690,7 +970,14 @@
       "A later address change requires checking the pin again."
     ],
     "focus": "#pin-editor-map",
-    "file": "screenshots/map-pin.png"
+    "file": "screenshots/map-pin.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1100
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 9,
@@ -703,7 +990,14 @@
       "Tasks need an active status and a due date to appear.",
       "Click an event, task, or birthday to open its record. The rose Today cell is separate from event/task colors."
     ],
-    "file": "screenshots/calendar.png"
+    "file": "screenshots/calendar.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1188
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 9,
@@ -722,15 +1016,44 @@
   {
     "chapter": 10,
     "id": "profile",
-    "title": "Profile and daily work digest",
+    "title": "Manage your personal profile",
     "route": "profile.php",
     "steps": [
-      "Maintain name, email, phone, and optional picture.",
-      "Verify an email change to re-enable recovery and the digest.",
-      "Choose digest time and days, or turn the digest off.",
-      "Resending verification preserves the current profile draft and chosen photo."
+      "Open My Profile from your name at the bottom of the sidebar. Update your name, phone, or optional picture.",
+      "Use JPEG, PNG, or WebP for a photo, then review the crop before saving. The maximum upload is 5 MB.",
+      "The recovery email is displayed here. Use the separate Change Recovery Email form to verify a new address.",
+      "Scroll to Notifications to choose Daily Digest delivery time and days, then select Save Changes."
     ],
-    "file": "screenshots/profile.png"
+    "file": "screenshots/profile.png",
+    "crop": [
+      275,
+      0,
+      960,
+      600
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "captured_at": "2026-09-14"
+  },
+  {
+    "id": "digest-preferences",
+    "chapter": 10,
+    "title": "Choose Daily Digest time and days",
+    "route": "profile.php",
+    "file": "screenshots/digest-preferences.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      285,
+      87,
+      940,
+      676
+    ],
+    "framing": "Complete Notifications panel and Save Changes controls.",
+    "steps": [
+      "Open My Profile and scroll to Notifications. Enable Daily work digest to receive the Dashboard summary by email.",
+      "Choose Delivery time in the displayed business timezone and select the days. Weekdays, Weekends, and Every day provide shortcuts.",
+      "Select Save Changes. Delivery starts at the selected time; the mail worker may send a few minutes later.",
+      "To change delivery settings later, return to My Profile. The email footer contains plain text; Dashboard and record links remain available in the message."
+    ]
   },
   {
     "chapter": 10,
@@ -743,7 +1066,14 @@
       "Generate fresh recovery codes when needed; save them securely because each works once.",
       "Administrator resets and password changes can invalidate other sessions."
     ],
-    "file": "screenshots/security.png"
+    "file": "screenshots/security.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      956
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 10,
@@ -756,7 +1086,20 @@
       "Enter the generated six-digit code to verify enrollment, then store the recovery codes."
     ],
     "note": "Only the initial confirmation screen is illustrated. Enrollment secrets and recovery codes are intentionally absent.",
-    "file": "screenshots/setup.png"
+    "file": "screenshots/setup.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      962
+    ],
+    "copyright_line_box": [
+      44,
+      930,
+      653,
+      947
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 11,
@@ -782,7 +1125,15 @@
       "Invite a user with their own email and role. The invitation is valid for seven days.",
       "Unlock sensitive actions with your administrator password and a fresh factor before changing another account."
     ],
-    "file": "screenshots/users.png"
+    "file": "screenshots/roles.png",
+    "crop": [
+      275,
+      85,
+      960,
+      645
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "captured_at": "2026-09-14"
   },
   {
     "chapter": 12,
@@ -804,11 +1155,18 @@
     "title": "Confirm administrator access",
     "route": "admin_elevation.php",
     "steps": [
-      "Enter your administrator password and a fresh authenticator or recovery code.",
-      "Continue to the sensitive action and review the target.",
-      "Elevation lasts five minutes; some lifecycle operations consume it immediately."
+      "Open a locked sensitive action or Unlock Sensitive Actions on Users.",
+      "Enter the administrator password and a fresh authenticator or unused recovery code.",
+      "Unlock Sensitive Actions returns to the requested page and starts a five-minute countdown for this signed-in session."
     ],
-    "file": "screenshots/elevation.png"
+    "file": "screenshots/elevation.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      295,
+      75,
+      925,
+      475
+    ]
   },
   {
     "chapter": 12,
@@ -820,7 +1178,14 @@
       "Review actor, action, affected record, and local/UTC timestamps.",
       "Individual audit records cannot be edited or removed through ordinary record controls."
     ],
-    "file": "screenshots/audit.png"
+    "file": "screenshots/audit.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1260
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 12,
@@ -833,7 +1198,14 @@
       "Fresh administrator confirmation, the exact PRUNE phrase, and the final in-app confirmation are required."
     ],
     "focus": "#audit-retention-title",
-    "file": "screenshots/retention.png"
+    "file": "screenshots/retention.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1145
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 12,
@@ -841,12 +1213,20 @@
     "title": "Export an encrypted database backup",
     "route": "database_maintenance.php",
     "steps": [
-      "Review estimated size against the 512 MB browser export limit.",
-      "Provide your administrator password and fresh factor. Choose and confirm a unique backup password of at least 16 characters.",
-      "Encrypt and Download Backup creates a .dnrbackup snapshot. Keep its password and the separate 2FA encryption key securely available.",
-      "Restoration is a deployment-host procedure described in the repository runbook."
+      "Open Database. Last backup created records the latest successful export.",
+      "Supply your administrator password, a fresh factor, and matching backup encryption passwords. Select Encrypt and Download Backup.",
+      "Keep the page open while Creating Encrypted Backup is shown. The success message names the file and confirms the download started; check browser Downloads for completion.",
+      "If confirmation is delayed, check Downloads before retrying with a fresh code. Use the README restore runbook for recovery."
     ],
-    "file": "screenshots/backup.png"
+    "file": "screenshots/backup.png",
+    "note": "The export form is shown before submission; no backup was created during screenshot capture.",
+    "captured_at": "2026-09-14",
+    "crop": [
+      295,
+      100,
+      455,
+      792
+    ]
   },
   {
     "chapter": 12,
@@ -871,7 +1251,14 @@
       "In this PDF use the contents, bookmarks, related-topic links, topic finder, or your reader's text search."
     ],
     "action": "search",
-    "file": "screenshots/manual-search.png"
+    "file": "screenshots/manual-search.png",
+    "crop": [
+      0,
+      0,
+      1515,
+      1000
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -886,7 +1273,14 @@
     "tab": "Presentations",
     "action": "exports",
     "focus": ".presentation-export",
-    "file": "screenshots/presentation-exports.png"
+    "file": "screenshots/presentation-exports.png",
+    "crop": [
+      50,
+      25,
+      860,
+      215
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -900,7 +1294,14 @@
       "For speaker notes, replace the PDF on the presentation; its destination is managed automatically."
     ],
     "focus": "[name=target_url]",
-    "file": "screenshots/link-controls.png"
+    "file": "screenshots/link-controls.png",
+    "crop": [
+      0,
+      18,
+      1515,
+      1056
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -927,7 +1328,14 @@
       "Save draft while prerequisites remain unresolved. Enter all three amounts and confirm they are final before finalizing."
     ],
     "focus": ".closeout-form",
-    "file": "screenshots/closeout-amounts.png"
+    "file": "screenshots/closeout-amounts.png",
+    "crop": [
+      130,
+      70,
+      1250,
+      980
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 5,
@@ -942,20 +1350,36 @@
     "tab": "Financials",
     "focus": "#engagement-workspace",
     "note": "This completed report contains fictional amounts.",
-    "file": "screenshots/final-report.png"
+    "file": "screenshots/final-report.png",
+    "crop": [
+      28,
+      128,
+      940,
+      747
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 12,
     "id": "edit-user",
-    "title": "Edit role and digest preferences",
-    "route": "edit_user.php?id=24",
+    "title": "Edit a user’s profile and digest preferences",
+    "route": "edit_user.php?id=2",
     "steps": [
-      "After confirming administrator access, open the user editor.",
-      "Change username or role and review the daily digest time and days.",
-      "Save the changes. Recheck the intended role before granting administrator access."
+      "Unlock sensitive administrator actions, then select Edit user on the Users page.",
+      "Edit first/last name, country-aware phone, username, and role. Replace or remove the profile picture; JPEG, PNG, and WebP uploads allow up to 5 MB.",
+      "Review daily digest settings and save. Ordinary profile edits preserve a paused digest.",
+      "The account holder changes recovery email through the separate verification flow in My Profile."
     ],
     "elevated": true,
-    "file": "screenshots/edit-user.png"
+    "file": "screenshots/edit-user.png",
+    "note": "Fictional Casey Taylor account. Scroll to review the remaining digest controls and Save changes.",
+    "captured_at": "2026-09-14",
+    "crop": [
+      270,
+      0,
+      980,
+      880
+    ]
   },
   {
     "chapter": 9,
@@ -969,7 +1393,14 @@
     ],
     "action": "mobile-calendar",
     "shell": true,
-    "file": "screenshots/calendar-agenda.png"
+    "file": "screenshots/calendar-agenda.png",
+    "crop": [
+      0,
+      0,
+      585,
+      1175
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
     "chapter": 10,
@@ -983,7 +1414,15 @@
       "Cancel a pending change or resend verification from My Profile if needed."
     ],
     "focus": "#recovery-email-heading",
-    "file": "screenshots/recovery-email.png"
+    "file": "screenshots/recovery-email.png",
+    "crop": [
+      285,
+      325,
+      940,
+      400
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "captured_at": "2026-09-14"
   },
   {
     "chapter": 10,
@@ -1014,5 +1453,92 @@
     "anonymous": true,
     "shell": true,
     "file": "screenshots/forgot-password.png"
+  },
+  {
+    "chapter": 7,
+    "id": "task-confirmation",
+    "title": "Confirm task completion",
+    "route": "tasks.php?view=my",
+    "steps": [
+      "Select the check-mark Complete task action in the queue or a related record’s task list.",
+      "Read Complete Task? and select Complete Task only when the work is finished.",
+      "Cancel or press Esc to return without changing the task."
+    ],
+    "shell": true,
+    "action": "task-confirmation",
+    "note": "The confirmation was canceled; no task was completed during capture.",
+    "file": "screenshots/task-confirmation.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      270,
+      0,
+      980,
+      740
+    ],
+    "framing": "Complete rows or form sections; adjacent partial content excluded."
+  },
+  {
+    "chapter": 12,
+    "id": "network",
+    "title": "Compare remote IPv4 and IPv6 traffic",
+    "route": "network_diagnostics.php",
+    "steps": [
+      "Open Network in the administrator sidebar. Read median page load, 75th percentile, median TTFB, and sample counts for each family.",
+      "Compare both sample counts and page mix. An empty family has no received samples, not a measured speed.",
+      "Review the slowest contact-image metric and per-page detail below. Refresh updates immediately; the page also refreshes every 30 seconds."
+    ],
+    "note": "Synthetic timing samples illustrate the comparison; they do not describe a real network.",
+    "file": "screenshots/network.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      270,
+      0,
+      980,
+      835
+    ]
+  },
+  {
+    "chapter": 12,
+    "id": "admin-countdown",
+    "title": "Track the administrator unlock countdown",
+    "route": "network_diagnostics.php",
+    "steps": [
+      "After administrator confirmation, the top banner shows Automatically locks in and the remaining minutes and seconds.",
+      "Navigation preserves the original five-minute deadline. Other sessions do not inherit the unlock.",
+      "At expiry, sensitive actions require fresh authentication; some account lifecycle actions consume the unlock earlier."
+    ],
+    "elevated": true,
+    "note": "The countdown and synthetic network samples are from a disposable preview.",
+    "file": "screenshots/admin-countdown.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      270,
+      0,
+      980,
+      900
+    ]
+  },
+  {
+    "chapter": 12,
+    "id": "network-reset",
+    "title": "Reset network traffic statistics",
+    "route": "network_diagnostics.php",
+    "steps": [
+      "Select the rose Reset Statistics button next to Refresh. If locked, authenticate and select Reset Statistics again after returning.",
+      "Review the confirmation: all recorded IPv4/IPv6 page and image timings across every date will be cleared.",
+      "Confirm Reset Statistics before the unlock expires, or Cancel to keep the samples. New traffic starts counting from zero; presentation QR visits are unaffected."
+    ],
+    "shell": true,
+    "elevated": true,
+    "action": "network-reset",
+    "note": "The confirmation was canceled; no statistics were reset during screenshot capture.",
+    "file": "screenshots/network-reset.png",
+    "captured_at": "2026-09-14",
+    "crop": [
+      260,
+      0,
+      1005,
+      929
+    ]
   }
 ]

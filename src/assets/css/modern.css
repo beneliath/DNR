@@ -449,10 +449,33 @@ body.has-app-shell.admin-unlock-active {
   width: var(--sidebar-width);
   flex-direction: column;
   padding: 24px 16px 18px;
-  overflow-y: auto;
+  overflow: hidden;
   background: var(--surface) !important;
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
+}
+
+.app-sidebar > .sidebar-close-button,
+.app-sidebar > .app-brand,
+.app-sidebar > .sidebar-account {
+  flex-shrink: 0;
+}
+
+.sidebar-scroll-area {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  /* Preserve room for navigation focus rings inside the scroll boundary. */
+  margin: -4px;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+}
+
+.sidebar-scroll-area > * {
+  flex-shrink: 0;
 }
 
 .app-brand {
@@ -6372,22 +6395,26 @@ html body .presentation-generated-links .presentation-view-qr-button img {
   background: white;
 }
 
-html body .presentation-stats-reset {
+html body .presentation-stats-reset,
+html body .statistics-reset-button {
   border: 1px solid #fda4af !important;
   background: #fff1f2 !important;
   color: #9f1239 !important;
 }
-html body .presentation-stats-reset:is(:hover, :focus-visible) {
+html body .presentation-stats-reset:is(:hover, :focus-visible),
+html body .statistics-reset-button:is(:hover, :focus-visible) {
   border-color: #e11d48 !important;
   background: #ffe4e6 !important;
   color: #881337 !important;
 }
-html.dark-mode body .presentation-stats-reset {
+html.dark-mode body .presentation-stats-reset,
+html.dark-mode body .statistics-reset-button {
   border-color: #9f3657 !important;
   background: #4c1325 !important;
   color: #fecdd3 !important;
 }
-html.dark-mode body .presentation-stats-reset:is(:hover, :focus-visible) {
+html.dark-mode body .presentation-stats-reset:is(:hover, :focus-visible),
+html.dark-mode body .statistics-reset-button:is(:hover, :focus-visible) {
   border-color: #fb7185 !important;
   background: #6b1a35 !important;
   color: #fff1f2 !important;

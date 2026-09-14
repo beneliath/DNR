@@ -9,11 +9,15 @@ Reference text, the topic finder, and the README use two columns. Walkthrough
 screenshots span the columns for legibility, with their numbered instructions in
 two columns underneath. The cover draws the paths from `src/assets/dnr-logo.svg`
 as native PDF vectors and omits the light asset's white background path.
-New template screenshots retain the original browser image; optional `crop` bounds
-in `screenshots.json` frame it inside the PDF without resampling the source.
+Screenshots retain the original browser image; optional `crop` bounds in
+`screenshots.json` frame complete rows and form sections inside the PDF without
+resampling the source. The PDF keeps only the copyright line wherever a captured
+application footer appears. `omitted_regions` excludes decorative footer content
+while preserving the sidebar and its profile controls in full-shell views.
 Reference tables and paragraphs with long unbreakable references span the full
 page width, then text resumes in two columns beneath them when space permits.
-Automatic word splitting and hyphenation are disabled. The build checks table
+Automatic word splitting, hyphenation, and paragraph widows/orphans are disabled.
+Verification rejects reference pages with only stray lines of content. The build checks table
 cell widths and rejects forced word breaks; verification checks mixed-page
 column boundaries and all full-width blocks.
 
@@ -31,17 +35,34 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 13, 2026 release edition identifies application version 2.1.0. Only the
-branch's changed workflows were refreshed: QR selection and ordering, combined
-presentation statistics, To/Cc/Bcc and self-copies, and administrator-only standard
-task generation for active, open engagements. The affected reference sections and
-walkthroughs match the sidebar manual. Four illustrations were replaced and one
-QR-selection illustration was added using fictional records in a disposable local
-preview. No email was queued and no bulk generation form was submitted.
-Inbox and email-template images retain their September 10 capture date; remaining
-images retain their September 9 capture date. The account-security guidance now explains required 2FA for every account type and
-enrollment at the next login. The README appendix includes the isolated backup
-exporter and database encryption/physical-key recovery guidance.
+The September 14, 2026 edition covers source version 2.1.9 and the sidebar,
+network-statistics reset, task-completion confirmation, and daily-digest footer
+changes prepared on this branch. It incorporates the features added since the
+September 13 version 2.1.0 guide: readable table headings and owner names,
+session-specific five-minute administrator unlock, backup download feedback,
+current footer branding, administrator profile editing, public IPv4/IPv6 timing
+comparisons, and optimized contact photos and Dashboard summaries.
+
+The online and PDF chapter text agree on calendar subscriptions, birthdays,
+recovery-email verification, account editing, and network diagnostics. The PDF
+adds walkthroughs for task confirmation, network comparison/reset, the unlock
+countdown, and digest delivery time and days. The PDF omits the decorative footer
+artwork and associated lines, including the former dedicated digest-footer figure.
+Its README appendix reproduces the reorganized repository README, including
+encryption and recovery procedures, with an index of its main sections and
+bookmarks for every subsection.
+
+Seventeen source images were refreshed or added on September 14 using CUA browser
+captures: manual, dark, mobile, roles, tasks, task-confirmation, elevation,
+edit-user, backup, network, admin-countdown, network-reset, dashboard, profile,
+recovery-email, lifecycle, and digest-preferences. The users figure reuses the
+complete user cards from the roles capture. The `captured_at` fields identify
+refreshed figures. Dashboard and Work Queue examples show at most five days
+overdue. Synthetic network timings are explicitly labeled as examples.
+The network reset and task completion dialogs
+were canceled. No email or invitation was sent, and no export was submitted.
+Presentation/scheduling images from September 13, inbox/template images from
+September 10, and remaining September 9 images are retained where applicable.
 
 ## Rebuild from the checked-in screenshots
 
@@ -72,10 +93,12 @@ section destinations, and the exact embedded source attachment.
 
 Use a **disposable** local preview with current migrations and fictional data.
 Do not point fixture scripts or capture automation at a production database.
-The edition in this branch used the isolated `dnr-rolling007-preview` containers
-with development bind mounts of the current source. Its older image footer does
-not identify the source edition; the PDF identifies the checked-out source in
-its edition notes. Mail transport was disabled and Mattermost was unconfigured.
+Earlier editions used `dnr-rolling007-preview`. The September 14 refresh used a
+fresh `dnr-network-reset-test` Compose project with development bind mounts and
+fictional Avery Morgan and Casey Taylor accounts. Its older image footer does
+not identify the source edition; the PDF identifies the checked-out source.
+All temporary services and disposable volumes were removed after verification.
+Mail used a development log and Mattermost was unconfigured.
 
 `scripts/manual/seed.php` creates the connected fictional records. It requires
 `DNR_MANUAL_FIXTURE=disposable` and `DNR_MANUAL_USER` naming an existing preview
@@ -84,7 +107,13 @@ account, and refuses to overwrite an existing manual organization.
 birthday, user, and manually confirmed map pin. Pass the seed's ID JSON as its
 first argument. These scripts are CLI-only and never send mail.
 
-Capture with `node scripts/manual/capture.cjs`, supplying:
+For a manual refresh, use CUA to sign in, navigate, and save screenshots with the
+viewports and crops described in `screenshots.json`. Export each
+`[data-manual-section]` element’s id, h2 text, inner HTML, and keywords to
+`online-chapters.json`. Do not capture entered passwords or authentication codes.
+
+The existing CLI capture utility can also be run by an operator with
+`node scripts/manual/capture.cjs`, supplying:
 
 - `PLAYWRIGHT_MODULE`: installed Playwright module path, if not on Node's path.
 - `CHROMIUM_EXECUTABLE`: compatible Chromium executable, if not installed by Playwright.
@@ -106,9 +135,12 @@ are required to read the manual.
 ## Content maintenance
 
 `online-chapters.json` is the captured sidebar guide, and `screenshots.json`
-records each illustrated view and its steps. `scripts/manual/build.py` expands
-the source guide with current calendar-feed/birthday, recovery-email, map-pin,
-statistics-reset, and form guidance. Reconcile these supplements with the live
-source when updating the manual. The Mattermost chapter describes the configured
+records each illustrated view and its steps. `scripts/manual/build.py` renders
+the shared chapter text, replaces two decorative-footer descriptions for the
+PDF edition, and adds calendar, recovery-email, map-pin, presentation, and form
+details. Reconcile these supplements with the
+live source when updating the manual. The CLI capture utility preserves
+supplementary CUA figures that are absent from its capture list; refresh those
+figures explicitly when their workflows change. The Mattermost chapter describes the configured
 plugin from the application guide; the preview screenshot explicitly shows the
 unconfigured state rather than a simulated connected service.

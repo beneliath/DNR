@@ -1,8 +1,25 @@
-## DNR: MOED מוֹעֵד
-
-### Description
+# DNR: MOED מוֹעֵד
 
 DNR (MOED מוֹעֵד) is a web-based application for managing speaking engagements, presentations, and organizational contacts.
+
+Under active development.
+
+Use the sidebar **User Manual** for day-to-day application help, or download the
+[Comprehensive Guide](src/assets/docs/moed-comprehensive-user-manual.pdf). This README
+covers installation, workflows, configuration, operations, and development.
+
+- [Getting started and deployment](#getting-started-and-deployment)
+- [Application workflows](#application-workflows)
+- [Email and integrations](#email-and-integrations)
+- [Configuration reference](#configuration-reference)
+- [Security and operations](#security-and-operations)
+- [Development and contributing](#development-and-contributing)
+- [License](#license)
+
+For a release or upgrade, start with the [release and recovery workflow](docs/release-workflow.md).
+For database recovery, use the [exact restore runbook](#exact-database-restore-runbook).
+
+## Getting started and deployment
 
 ### Installation
 
@@ -104,7 +121,7 @@ replacement. Deprecated password and calendar-token values are discarded. The
 helper refuses an already-secured, unrecognized, or partially migrated setup.
 This legacy credential-conversion helper is not the release deployment command. Before using it for a structural or database-version upgrade, complete the fresh, restore-verified backup procedure in the runbook; do not rely on its unverified SQL dump alone.
 
-The migration runner obtains database-administrator access only in the isolated migrator/database services. It holds a MySQL advisory lock, records `applying`, `applied`, or `failed` state plus each filename and SHA-256 checksum, and refuses to guess after interrupted DDL. Fresh installs and upgrades both start with `migrations/20260813_baseline.sql` and then follow the same ordered forward migrations. Add a new migration instead of editing an applied file. Existing administrators will be required to enroll 2FA after their next password login; other roles can enable it from **Account Security**.
+The migration runner obtains database-administrator access only in the isolated migrator/database services. It holds a MySQL advisory lock, records `applying`, `applied`, or `failed` state plus each filename and SHA-256 checksum, and refuses to guess after interrupted DDL. Fresh installs and upgrades both start with `migrations/20260813_baseline.sql` and then follow the same ordered forward migrations. Add a new migration instead of editing an applied file. All account roles must enroll 2FA after their next successful password login before accessing application data.
 
 If the upgraded database predates password hashing and still contains plaintext user passwords, run the one-time CLI migration. It leaves recognized password hashes unchanged, invalidates sessions for migrated accounts, and requires those users to choose a new password after login:
 
@@ -116,60 +133,341 @@ There is intentionally no browser-accessible password migration page.
 
 The audit-log and Chron-entry migrations use the database administrator account because they install triggers; MySQL requires elevated privileges for that operation when binary logging is enabled. The application continues to connect with the restricted `dnruser` account. The migrations record successful logins, security events, and row-level inserts, updates, and deletes for users, organizations, contacts, engagements, Chron entries, and presentations. Administrators can review this history from **Users → Audit Log**. Audit entries identify the actor, affected record, IP address, and UTC timestamp without storing passwords, authentication secrets, recovery codes, Chron contents, or before/after field values.
 
-### Configuration
+### Ubuntu 24.04 deployment with Proton Mail
 
-For installations outside Docker, Composer validates the PHP runtime used by
-the application. Install the cURL, Fileinfo, GD, mbstring, mysqli, OpenSSL, and
-Sodium extensions before running `composer install`.
+The Linux deployment is supported on the existing Ubuntu 24.04 host; it does not require an Ubuntu
+release upgrade. Proton Bridge runs as a non-root, headless sidecar built from Proton's checksum-
+verified official Debian package. Only `mail-ingest` shares its network namespace, so Bridge's IMAP
+listener remains on `127.0.0.1` and is never published to the host, LAN, or Internet. Its account,
+keychain, and generated credentials persist in the `proton_bridge_data` volume.
 
-### Front-end assets
+Outbound mail should use a Proton [SMTP submission token](https://proton.me/support/smtp-submission)
+directly at `smtp.protonmail.ch:587` with STARTTLS. This keeps `mail-dispatch` independent of Bridge
+and leaves Bridge responsible only for inbound IMAP.
 
-The application serves committed minified CSS and JavaScript while retaining readable source files in `src/assets`. After changing a source asset, rebuild the production files with:
+The Ubuntu ingress also differs from the Docker Desktop deployment: it publishes no host port.
+Traefik and MOED share a dedicated `/29` network, while Cloudflared receives one stable address on
+the existing proxy network. DNR trusts those exact hops. Do not replace the exact Cloudflared
+address with the entire shared proxy subnet; another container on that subnet could otherwise
+present forged Cloudflare client headers.
 
-```sh
-npm ci
-npm run build:assets
-```
-
-Page heads and asset cache keys are generated by `renderPageHead()` and `assetUrl()`. The asset build also emits a deterministic PHP fingerprint manifest, allowing OPcache-backed requests to avoid hashing large bundles; development falls back to direct hashing for files not yet present in the manifest. Page-specific source styles live in `src/assets/css/pages`; executable page behavior lives in `src/assets/js/page-actions.js`. Inline executable scripts and style attributes are intentionally avoided so the application can enforce a strict content security policy. The map alone permits runtime inline positioning because MapLibre GL requires it.
-
-### Architecture and quality checks
-
-HTTP entry points load `src/bootstrap.php`, which initializes Composer/local autoloading, structured request logging, database configuration, and shared application helpers. Reusable validation and reference data live under `src/app/Domain`; create and edit routes use the same normalizers. PHPStan checks migrated request/controller routes at level 3, the remaining HTTP surface at level 0, the legacy helper layer at level 5, and the typed domain/runtime layer at level 6 so newly extracted code can move progressively into the stricter configurations.
-
-Telephone numbers are validated with libphonenumber metadata and stored in canonical E.164 form. National and international formatting is applied only when values are rendered or returned to an edit form.
-
-Run the complete local quality gate before opening a pull request:
+Prepare the network and merge the tracked proxy overlay with the existing Traefik stack.
+Replace `/path/to/traefik` with that stack's directory:
 
 ```sh
-composer install
-npm ci
-composer validate --strict --no-check-publish
-composer audit --no-interaction
-npm audit --audit-level=high
-composer check
-npm test
+docker network create --driver bridge --subnet 172.29.255.0/29 moed_edge
+install -m 600 deploy/traefik-moed-edge.yaml \
+  /path/to/traefik/docker-compose.moed-edge.yml
+cd /path/to/traefik
+docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml config --quiet
+docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml up -d traefik cloudflared
 ```
 
-`composer check` runs PHP syntax checks, PHPStan level 6 on the typed domain/runtime layer, PHPStan level 5 on the legacy helper layer, level 3 on migrated request/controller routes, level 0 on the remaining HTTP surface, and all unit/feature tests. `npm test` rebuilds every committed production asset and runs JavaScript syntax and behavior tests. GitHub Actions runs the PHP checks on PHP 8.4 and 8.5 while frontend checks, locked-dependency audits, plugin checks, and integration checks run once in parallel. Dependency audits have bounded retries so an advisory-service outage fails promptly without weakening the security threshold, and superseded runs for the same branch or pull request are cancelled. CI also validates every Compose overlay combination and starts a disposable Docker/MySQL environment through the documented automatic-migration path before exercising HTTP and database behavior. Dependabot proposes weekly Composer, npm, Docker, and pinned GitHub Actions updates.
+Use both Traefik Compose files for every future update to that stack. The overlay pins Traefik to
+`172.29.255.2` on `moed_edge` and Cloudflared to `172.18.0.254` on `proxy`; the matching defaults are
+already in `.env.example`. If either subnet conflicts on another host, change all matching values
+together before creating the network.
 
-Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Run them only against the disposable Compose environment with `sh scripts/run_integration_tests.sh disposable`; the runner sends destructive backup/restore coverage to the isolated maintenance container.
+Those commands preserve the current MOED host layout. For a separate deployment, merge
+`deploy/traefik-edge.yaml` instead and set the same `DNR_EDGE_NETWORK`, Traefik address, and
+Cloudflared address in both Compose projects; its defaults match the generalized Ubuntu overlay.
 
-`VERSION` is the single source of release-version metadata. DNR uses the project ontology
-`[super].[major].[minor]` = `x.y.z`: a minor release is `[x].[y].[z+1]` (for example,
-`1.10.3` becomes `1.10.4`), a major release is `[x].[y+1].0`, and a super release is
-`[x+1].0.0`. Update it once when preparing a release; runtime responses, fallback asset cache keys, the
-footer, backups, and container images read that value automatically.
+Create the normal database/application secrets, an empty mode-`600` IMAP password file, and a mode-
+`600` SMTP token file. Copy `.env.example` to `.env`, set the public URL and mail identities, and
+leave `DNR_TRAEFIK_ENABLE=false` during staging. Native Linux Compose mounts local secrets with
+their host ownership, while MOED deliberately drops the capability that would bypass file modes.
+Run `./scripts/prepare_linux_secrets.sh` after creating or replacing any secret. It keeps the host
+directory private and grants read-only ACLs only to the container root and `www-data` identities;
+do not make the secret files world-readable. For Proton SMTP Submission, set:
 
-### Health and operations
+```dotenv
+DNR_MAIL_FROM=dnr@example.org
+DNR_SMTP_HOST=smtp.protonmail.ch
+DNR_SMTP_PORT=587
+DNR_SMTP_ENCRYPTION=starttls
+DNR_SMTP_USERNAME=dnr@example.org
+DNR_SMTP_PASSWORD_SECRET_FILE=./secrets/smtp_password
+DNR_IMAP_USERNAME=
+DNR_IMAP_PASSWORD_FILE=./secrets/imap_password
+DNR_TRAEFIK_ENABLE=false
+```
 
-- `/health.php` is a dependency-free liveness response.
-- `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
-- Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
+Put the SMTP token—not the Proton account password—in `secrets/smtp_password`. Then initialize the
+Bridge volume and sign in interactively:
 
-Every DNR Compose service opts out of host-wide Watchtower polling. Production images are built and qualified by CI on the final merged commit, then promoted by digest through the [guarded deployment workflow](docs/release-workflow.md).
-The opt-out prevents Watchtower from treating Compose's local `project-service:latest` image names
-as Docker Hub repositories or trying to update dependencies outside the reviewed deployment path.
+```sh
+./scripts/proton_bridge_cli.sh configure
+```
+
+At the Bridge prompt run `login`, complete Proton authentication, run
+`updates autoupdates disable`, and run `info`. Put the generated IMAP username in
+`DNR_IMAP_USERNAME` and its generated password in `secrets/imap_password`; do not use the Proton
+account password. Exit the prompt and start the staged stack:
+
+```sh
+./scripts/compose_with_provenance.sh production-ubuntu-proton up -d --build
+./scripts/proton_bridge_cli.sh status
+./scripts/proton_bridge_cli.sh logs
+```
+
+Before cutover, restore and verify the encrypted DNR backup on Ubuntu and confirm Traefik can reach
+the staged ingress with `docker exec traefik wget -qO- http://172.29.255.3/health.php`. The final
+cutover has two coordinated changes: remove the old `moed-router` and `moed-service` entries from
+Traefik's file-provider configuration, then set `DNR_TRAEFIK_ENABLE=true` and recreate the Ubuntu
+`ingress` service. Keeping the label disabled until that moment prevents the staged router from
+competing with the live Mac route. Rollback is the reverse: disable the label and restore the old
+file-provider route.
+
+Database initialization uses only the ordered files under `migrations/`. The Compose `migrator`
+service applies the minimal baseline and every forward migration, records immutable checksums and
+state, and then applies the single privilege manifest. There is no independent schema snapshot to
+drift from the upgrade path.
+
+### Deploying the tracked MOED release to s1
+
+Follow [Release and recovery workflow](docs/release-workflow.md) to prepare the version, merge through the six protected checks, qualify immutable images, and verify main and the release tag on both remotes. Then deploy the exact final commit:
+
+```sh
+./scripts/deploy_s1.sh "$(git rev-parse HEAD)"
+```
+
+The command targets the configured s1 deployment and uses the complete
+`production-ubuntu-proton-mattermost` topology.
+It creates and restore-verifies a fresh encrypted database backup before changing the checkout,
+database image/schema, or application version. This is a standing [deployment directive](.cursor/rules/backup-before-database-upgrade.mdc), including for manual structural/version upgrades.
+
+Configure the private s1 backup password file first (`DNR_S1_BACKUP_PASSWORD_FILE`, default
+`secrets/deployment_backup_password` under the deployment's project directory). Deployment holds a host lock through backup,
+migration and public readiness; it uses CI-qualified digests with rebuilding disabled and retains
+an explicit recovery record. `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR` and
+`DNR_S1_PUBLIC_BASE_URL` can override the deployment user, host, project directory, and public URL.
+
+### Build provenance
+
+Use `scripts/compose_with_provenance.sh` instead of invoking a Compose build directly. It derives
+the checked-out commit and UTC commit timestamp, validates both values, exports them as Docker build
+arguments, and then runs Compose. It refuses a dirty worktree because a footer commit would not
+accurately identify uncommitted source files.
+
+```sh
+# Local HTTP development
+./scripts/compose_with_provenance.sh development
+
+# Production behind the configured HTTPS proxy
+./scripts/compose_with_provenance.sh production
+
+# Production with the inbound IMAP worker
+./scripts/compose_with_provenance.sh production-mail
+
+# Local HTTP development with the inbound IMAP worker
+./scripts/compose_with_provenance.sh development-mail
+
+# Production with encrypted queued SMTP delivery
+./scripts/compose_with_provenance.sh production-smtp
+
+# Production SMTP with a private pinned trust anchor
+./scripts/compose_with_provenance.sh production-smtp-ca
+
+# Production with both inbound IMAP and outbound SMTP workers
+./scripts/compose_with_provenance.sh production-mail-smtp
+
+# Ubuntu production with private Traefik ingress and headless Proton Bridge
+./scripts/compose_with_provenance.sh production-ubuntu-proton
+
+# Production IMAP and SMTP with a private pinned SMTP trust anchor
+./scripts/compose_with_provenance.sh production-mail-smtp-ca
+
+# Local equivalents
+./scripts/compose_with_provenance.sh development-smtp
+./scripts/compose_with_provenance.sh development-smtp-ca
+./scripts/compose_with_provenance.sh development-mail-smtp
+./scripts/compose_with_provenance.sh development-mail-smtp-ca
+
+# Forward a specific Compose command or service selection
+./scripts/compose_with_provenance.sh development up -d --build web ingress
+
+# Display the metadata without running Docker
+./scripts/compose_with_provenance.sh --print-metadata
+```
+
+For CI source archives without `.git`, export a complete 40-character `DNR_BUILD_COMMIT` and a UTC
+`DNR_BUILD_TIMESTAMP` in `YYYY-MM-DDTHH:MM:SSZ` format before invoking the wrapper. Both values must
+be supplied together.
+
+## Application workflows
+
+### Daily operations dashboard
+
+The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
+view. It combines active engagements in the configured upcoming window, the signed-in user's active and overdue
+work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
+identify unconfirmed events, missing venue addresses, missing presentations, and organizations
+without an assigned event contact. The greeting uses the signed-in user's first name when it is
+available. Administrators and editors also see inbound messages awaiting routing
+review and quick actions for creating engagements and tasks; reviewers receive the same operational
+context without write controls.
+
+### Inquiry and booking pipeline
+
+Potential events begin as first-class **Inquiries** instead of incomplete Engagements. The Booking
+Pipeline organizes active records across **New**, **Contacted**, **Qualified**, **Awaiting Details**,
+and **Proposal Sent**, with separate **Booked** and **Declined** outcomes. Each Inquiry can retain an
+optional Organization and primary Contact, preferred and alternate date ranges, request and location
+details, source, owner, priority, next action, Chron, outbound correspondence, stage history, and
+linked follow-up work. Declining requires a reason and remains reversible until the Inquiry is booked.
+
+Create inquiries with **New Inquiry** in the Booking Pipeline. Inquiry email templates cover the initial response, request for details,
+date options, and proposal follow-up. Messages use the existing isolated delivery worker and add a
+signed Inquiry reply marker; matching replies return to the active Inquiry Chron. Delivery history is
+visible on the Inquiry and is also recorded on the selected Contact and Organization when present.
+
+**Review booking** validates the required Organization, title, and preferred dates; surfaces
+overlapping active Engagements and qualified Inquiries; and lets the user choose which open Inquiry
+tasks should move. Acknowledged warnings do not become unexplained hard blocks. Conversion runs in
+one transaction: it creates the Engagement, assigns the primary Contact as Primary host when
+available, moves selected tasks, generates the standard event checklist, marks the Inquiry Booked,
+and preserves the Inquiry as a read-only source record linked to the new Engagement.
+
+### Work queue and standard event tasks
+
+Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
+general or linked to one inquiry, engagement, organization, or contact. Each task supports an owner,
+due date, priority, notes, and the states **Open**, **In progress**, **Waiting**, **Completed**,
+and **Canceled**. The queue provides personal, overdue, due-today, next-seven-days, waiting,
+unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and
+editors can create, edit, assign, and complete them; permanent deletion remains limited to
+administrators.
+
+The navigation badge and the **My reminders** panel summarize only the signed-in user's actionable
+work: overdue, due today, next seven days, and waiting tasks. Administrators and editors also see
+their open financial closeouts. Each count links to the matching personal queue. Users with a
+verified email address can enable the optional daily email version under **My Profile →
+Notifications**.
+
+Engagement, organization, and contact detail pages show their open follow-up work. Active
+engagements also offer an optional, idempotent standard checklist covering location, travel,
+presentations, materials, host reconfirmation, post-event thanks, outcome capture, and financial
+closeout. Every active standard item is automatically added and assigned to the creator when a new
+engagement is saved; re-running **Add missing checklist tasks** on an older engagement only adds
+missing active items. Open **Standard event tasks** from the Work Queue to add, view, or edit the
+reusable task content, priority, event-relative due rule, and order. Archived definitions are
+excluded from future checklists and may be restored;
+administrators can permanently delete archived definitions after fresh authentication. Editing,
+archiving, or deleting a definition does not rewrite tasks already generated for events.
+The required built-in **Complete the event financial closeout** task cannot be edited, archived, or
+deleted; it is due seven days after the event end date and directs staff to finalize giving/income,
+lodging, and travel received.
+
+### Event contacts and roles
+
+Engagement create and edit forms can assign multiple contacts with one or more event-specific roles:
+**Primary host**, **On-site contact**, **Billing**, **Travel**, and **Materials**. Search the contact
+directory to add existing people, or use **Add new contact** repeatedly without leaving the event.
+New people and additional organization affiliations are saved together with the event; validation
+errors leave the draft available for correction.
+
+A contact can belong to several organizations, each with its own role or title. Contact forms retain
+a primary organization and allow additional affiliations, such as Pastor at one church and Chairman
+at a research center. Organization contact lists, event pickers, searches, and event exports use the
+matching affiliation. Removing an affiliation clears only the event assignments that depended on it;
+assignments at other organizations remain intact. Deleting an organization retains shared contacts
+and promotes a remaining affiliation to primary.
+
+PDF exports
+carry the configured digest-email wordmark on a white masthead for consistent graphical branding.
+They include only active work linked to the exported event and mirror the Work Queue's labeled
+overdue and due-today colors and semantic edge.
+
+### Engagement lifecycle
+
+Engagements track operational lifecycle separately from planning confirmation. Lifecycle states are
+**Active**, **Postponed**, **Canceled**, and **Completed**; confirmation remains **Work in
+progress**, **Under review**, or **Confirmed**. Canceling an engagement requires a reason, and a
+postponed or canceled engagement may link to a replacement event from the same organization.
+Replacement links cannot point to the same event or form a cycle.
+
+Canceling an engagement also cancels its open, in-progress, and waiting follow-up tasks while
+preserving completed work. Postponed and canceled events cannot receive a new standard checklist or
+financial closeout. Finalizing the first financial report marks an active event completed, and an
+event with a final report cannot be moved back to another lifecycle state. Engagement lists,
+exports, maps, calendar feeds, and detail screens expose lifecycle and confirmation independently;
+daily operational queues default to active events so postponed, canceled, and completed records do
+not appear as current work.
+
+### Speaker records
+
+Under **Relationships → Speakers**, all signed-in users can view speakers; administrators and
+editors can add and edit their name, email address, telephone number, and optional bio. The bio
+uses the same six-row text field and safe link rendering as Contact Notes. Telephone numbers
+use the Contacts country picker and formatting and are stored in E.164 format.
+Speakers also have optional website, bio, donation, connection, blog, and books URLs.
+These accept HTTP/HTTPS links up to 2,048 characters and appear on the speaker detail page.
+Speaker photos can be uploaded, replaced, or removed with the same JPEG/PNG/WebP validation,
+5 MB limit, resized originals, and thumbnails as contact photos. The Speakers directory shares
+the Contacts theme, search/sort controls, view/edit icons, and upper/lower pagination rules.
+Speakers cannot be archived or deleted.
+Presentation forms select a saved speaker from a dropdown. Edits to a speaker apply to all
+associated presentations, including their calendar entries and exports.
+
+The `20260907_add_speakers.sql` migration creates an initial speaker record and assigns **every existing presentation**,
+including archived records, to that speaker. It then replaces the old free-text speaker name
+with a required foreign key. Apply it through the normal backed-up migration workflow together
+with the application changes. The application database account receives SELECT, INSERT, and
+UPDATE rights for speakers only; the offline exact-restore account retains its recovery access.
+
+### Presentation QR codes
+
+See [Presentation QR Codes](docs/qr-code-system.md) for generated speaker links, public notes downloads, statistics, and country-detection configuration.
+
+### Financial closeout and giving history
+
+Editors and administrators can close an active event from its detail page by finalizing the actual
+giving/income, lodging, and travel amounts received. These actual receipts are stored separately
+from the anticipated travel, lodging, and compensation fields used during planning. Before the first
+report can be finalized, every event task due on or before the last active presentation must be
+marked Completed. Tasks due after that presentation and tasks without due dates do not hold the
+closeout. A report can be corrected later without changing its original closer or close timestamp;
+concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and
+correction is captured by the database audit log.
+
+Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
+event, and aggregate lodging and travel receipts from finalized reports only. “Latest event” follows
+the event end date, even if its report was entered later, and archived events remain part of the
+historical totals. The organization list also shows latest-event and lifetime giving for quick review.
+
+### Map and venue locations
+
+Authenticated users can open **Map** in the primary navigation to view engagements on an interactive,
+zoomable map. The initial view contains active lifecycle records; lifecycle, confirmation, and date
+filters can include other records when needed. Active pins use confirmation colors, while
+postponed, canceled, and completed pins display their lifecycle state. Selecting a pin opens the
+event summary and a link to the full engagement. Events without an address are counted but cannot
+be placed.
+
+The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. The tile URL and attribution are supplied by the selected deployment profile; geocoding uses its separately allowlisted worker endpoint.
+
+### Calendar and private subscriptions
+
+Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
+private subscription URLs per device. The feed includes non-archived engagements in the configured
+bounded calendar window, regardless of lifecycle. Entries are all-day events covering the event
+date range and include lifecycle, confirmation, organization, title, type, and location. Canceled
+events use the calendar-standard `CANCELLED` status; postponed and canceled entries are marked
+transparent, and their descriptions include any cancellation reason and replacement event.
+Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+
+When creating a link, choose any combination of **Events**, **Presentations**, **My Active Work**,
+**All Active Work**, and **Birthdays (from Contacts)**. Select at least one category. Each link
+keeps its own content settings, displayed beneath its label. All Active Work disables My Active
+Work and includes everyone's active work, including unassigned tasks. My Active Work uses the
+subscription owner's assignments. Open, in-progress, and waiting tasks with a due date appear as
+transparent all-day reminders within the feed window; completed, canceled, and undated tasks do
+not appear. Task changes invalidate cached feeds. Existing links retain events, presentations,
+and birthdays without adding work automatically.
+
+Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest and redacts all query strings from Apache access logs. Depending on the selected content, a feed can include contact names and birthdays or work titles, due dates, status, and priority. Contact details, task details, chronological notes, travel, lodging, and compensation remain excluded.
+
+## Email and integrations
 
 ### Outbound email and task digests
 
@@ -179,6 +477,8 @@ SMTP credential and the only SMTP egress path. The web service never connects to
 single-use link remains valid while its replacement is pending and is invalidated only after the
 relay accepts the new message. Failed deliveries retry with bounded exponential backoff, and the
 encrypted payload is erased after success or terminal failure.
+
+#### Daily digests
 
 Verified users receive a daily work digest by default on weekdays at 7:00 a.m. under
 **My Profile → Notifications**. Each user can disable it, choose a different local delivery time,
@@ -198,6 +498,8 @@ removes the queued day from their schedule. Sent and terminal payloads are erase
 Administrators with fresh elevation can also manage any user’s digest enablement, delivery time,
 and delivery days from **Users → Edit User**.
 
+#### Reusable email templates
+
 Email Templates in the sidebar lets editors and administrators create and edit reusable engagement email
 subjects and messages, suggest event contact roles, and set the display order. The five original templates
 are seeded into the library and can be edited, archived, or restored. Archived templates are excluded from
@@ -212,6 +514,8 @@ Use the editor’s **Personalize with event fields** buttons to insert them. Val
 the sender can still edit the subject, message, and recipients before sending. The engagement routing
 marker is added automatically. Apply `20260910_add_email_message_templates.sql` and the corresponding
 application-table grant before deploying this feature.
+
+#### Tracked engagement correspondence
 
 Editors and administrators can also send tracked plain-text correspondence from an active
 Engagement. The composer provides booking-confirmation, travel/lodging, final-reconfirmation,
@@ -237,6 +541,8 @@ retained inbound mail. The separate SMTP delivery payload is sealed with the app
 pending and erased after successful or terminal delivery. Each recipient retries independently with
 bounded exponential backoff; editors and administrators can explicitly reconstruct and re-queue a
 terminal failed delivery from the retained source record.
+
+#### SMTP setup
 
 Create `secrets/smtp_password`, configure the sender and relay in `.env`, and use
 `production-smtp` or `development-smtp`. Combine inbound and outbound mail with
@@ -300,13 +606,62 @@ The routing policy is deliberately conservative:
   Inbound Mail and the activity entry; email HTML itself is never rendered.
 - Automatic routing requires authenticated sender results by default. The bundled Proton Bridge
   adapter supplies signed assertions from Proton's API metadata for internal mail and external
-  mail that passed DMARC, as described below. For other IMAP providers, list the exact trusted
+  mail that passed DMARC, as described in [Proton sender authentication](#proton-sender-authentication-incident-fix-and-verification). For other IMAP providers, list the exact trusted
   mailbox `authserv-id` values in `DNR_INBOUND_TRUSTED_AUTH_SERVERS`; until then, messages remain in
   **Inbound Mail** for review. The topmost `Authentication-Results` header must come from a listed
   server and report an aligned `dmarc=pass` for the visible `From` domain. Missing, forged, failing,
   or mismatched results fail closed. Set `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM=0` only as an
   explicit compatibility exception for a trusted mailbox that cannot expose provider-generated
   results. DNR intentionally does not trust a later sender-supplied `Authentication-Results` header.
+
+#### Worker setup and retained mail
+
+An Engagement marker is a signed routing capability, so do not expose it outside the intended
+correspondence. Unsigned legacy markers intentionally require review after this upgrade. Exact
+address matching remains a routing aid, not proof of sender identity, and inbound entries are always
+attributed to the Email Gateway rather than the visible `From` identity. The mailbox provider should
+still enforce its normal spam and SPF/DKIM/DMARC checks.
+
+Both `Cc` and `Bcc` delivery to the configured `DNR_INBOUND_ADDRESS` work. A Bcc delivery normally omits the
+gateway address from the stored message headers, which is expected; DNR routes using the remaining
+participants. For example, mail from a verified DNR user to a unique Contact routes to the Contact
+and its Organization, while a reply from that Contact is recognized from `From`.
+
+Apply the tracked database migration before enabling the worker. Then create the ignored IMAP
+password secret, set the inbound variables in `.env`, and start a mail-enabled Compose mode:
+
+```sh
+install -m 600 /dev/null secrets/imap_password
+# Put the exact IMAP/Bridge password in secrets/imap_password without committing it.
+./scripts/compose_with_provenance.sh production-mail
+```
+
+For local development, use `development-mail`. The worker imports unseen messages in bounded
+batches, marks a message seen only after DNR has stored it, and retries transient routing failures.
+Oversized or unparseable poison messages are recorded in `inbound_email_quarantine` before being
+marked seen so they cannot starve later UIDs; transient mailbox or database failures remain unseen.
+It does not delete or move the source message, including after successful routing; the IMAP mailbox
+remains a recoverable source of record. The web and worker accounts retain only the database
+privileges needed for this workflow.
+
+An administrator with a recent elevated session can purge an individual retained mail entry from
+its **Inbound Mail** detail view. Purging removes the DNR mail card and its retained source content,
+but preserves every associated Contact, Organization, and Engagement Chron Log entry; only the
+source-email link on those Chron entries is cleared. The original message in the IMAP mailbox is not
+deleted or moved.
+
+Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
+and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password
+shown by Bridge—not the Proton account password. Bridge uses a local, self-signed IMAP endpoint and
+is designed for clients on the same computer. Set `DNR_IMAP_VERIFY_PEER=0` only for that local or
+tightly isolated Bridge connection; keep certificate verification enabled for any remote IMAP
+server. Because a Docker container may not be able to reach a Bridge listener bound only to the
+host's loopback interface, confirm network reachability from the `mail-ingest` service before using
+the production mail mode. If Bridge cannot be made reachable without exposing it, run the worker
+beside Bridge or use a dedicated standards-compliant IMAP mailbox rather than publishing Bridge to
+an untrusted network. Proton documents the local-only design in its
+[Bridge overview](https://proton.me/support/why-you-need-bridge) and
+[Bridge CLI guide](https://proton.me/support/bridge-cli-guide).
 
 #### Proton sender authentication: incident, fix, and verification
 
@@ -442,142 +797,24 @@ Both ordinary integration CI and exact-release-image qualification run this regr
 filing integration used the web account, while worker-privilege tests only checked account-column
 access, which allowed the mismatch to escape testing.
 
-An Engagement marker is a signed routing capability, so do not expose it outside the intended
-correspondence. Unsigned legacy markers intentionally require review after this upgrade. Exact
-address matching remains a routing aid, not proof of sender identity, and inbound entries are always
-attributed to the Email Gateway rather than the visible `From` identity. The mailbox provider should
-still enforce its normal spam and SPF/DKIM/DMARC checks.
+### Mattermost plugin
 
-Both `Cc` and `Bcc` delivery to the configured `DNR_INBOUND_ADDRESS` work. A Bcc delivery normally omits the
-gateway address from the stored message headers, which is expected; DNR routes using the remaining
-participants. For example, mail from a verified DNR user to a unique Contact routes to the Contact
-and its Organization, while a reply from that Contact is recognized from `From`.
+The installable server plugin under `mattermost-plugin/` exposes private daily
+summaries, engagement search/cards, editor/admin channel bindings, and
+role-checked follow-up buttons while keeping MOED authoritative. It uses
+single-use account-link codes and a deployment secret; it never connects to the
+database directly. Build it with `make -C mattermost-plugin dist` and follow
+the complete deployment, installation, verification, and rotation guide in
+[`docs/mattermost-plugin.md`](docs/mattermost-plugin.md). End-user behavior is
+documented in the in-app **User Manual → Mattermost** chapter.
 
-Apply the tracked database migration before enabling the worker. Then create the ignored IMAP
-password secret, set the inbound variables in `.env`, and start a mail-enabled Compose mode:
+## Configuration reference
 
-```sh
-install -m 600 /dev/null secrets/imap_password
-# Put the exact IMAP/Bridge password in secrets/imap_password without committing it.
-./scripts/compose_with_provenance.sh production-mail
-```
+### PHP runtime requirements
 
-For local development, use `development-mail`. The worker imports unseen messages in bounded
-batches, marks a message seen only after DNR has stored it, and retries transient routing failures.
-Oversized or unparseable poison messages are recorded in `inbound_email_quarantine` before being
-marked seen so they cannot starve later UIDs; transient mailbox or database failures remain unseen.
-It does not delete or move the source message, including after successful routing; the IMAP mailbox
-remains a recoverable source of record. The web and worker accounts retain only the database
-privileges needed for this workflow.
-
-An administrator with a recent elevated session can purge an individual retained mail entry from
-its **Inbound Mail** detail view. Purging removes the DNR mail card and its retained source content,
-but preserves every associated Contact, Organization, and Engagement Chron Log entry; only the
-source-email link on those Chron entries is cleared. The original message in the IMAP mailbox is not
-deleted or moved.
-
-Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
-and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password
-shown by Bridge—not the Proton account password. Bridge uses a local, self-signed IMAP endpoint and
-is designed for clients on the same computer. Set `DNR_IMAP_VERIFY_PEER=0` only for that local or
-tightly isolated Bridge connection; keep certificate verification enabled for any remote IMAP
-server. Because a Docker container may not be able to reach a Bridge listener bound only to the
-host's loopback interface, confirm network reachability from the `mail-ingest` service before using
-the production mail mode. If Bridge cannot be made reachable without exposing it, run the worker
-beside Bridge or use a dedicated standards-compliant IMAP mailbox rather than publishing Bridge to
-an untrusted network. Proton documents the local-only design in its
-[Bridge overview](https://proton.me/support/why-you-need-bridge) and
-[Bridge CLI guide](https://proton.me/support/bridge-cli-guide).
-
-### Ubuntu 24.04 deployment with Proton Mail
-
-The Linux deployment is supported on the existing Ubuntu 24.04 host; it does not require an Ubuntu
-release upgrade. Proton Bridge runs as a non-root, headless sidecar built from Proton's checksum-
-verified official Debian package. Only `mail-ingest` shares its network namespace, so Bridge's IMAP
-listener remains on `127.0.0.1` and is never published to the host, LAN, or Internet. Its account,
-keychain, and generated credentials persist in the `proton_bridge_data` volume.
-
-Outbound mail should use a Proton [SMTP submission token](https://proton.me/support/smtp-submission)
-directly at `smtp.protonmail.ch:587` with STARTTLS. This keeps `mail-dispatch` independent of Bridge
-and leaves Bridge responsible only for inbound IMAP.
-
-The Ubuntu ingress also differs from the Docker Desktop deployment: it publishes no host port.
-Traefik and MOED share a dedicated `/29` network, while Cloudflared receives one stable address on
-the existing proxy network. DNR trusts those exact hops. Do not replace the exact Cloudflared
-address with the entire shared proxy subnet; another container on that subnet could otherwise
-present forged Cloudflare client headers.
-
-Prepare the network and merge the tracked proxy overlay with the existing Traefik stack.
-Replace `/path/to/traefik` with that stack's directory:
-
-```sh
-docker network create --driver bridge --subnet 172.29.255.0/29 moed_edge
-install -m 600 deploy/traefik-moed-edge.yaml \
-  /path/to/traefik/docker-compose.moed-edge.yml
-cd /path/to/traefik
-docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml config --quiet
-docker compose -f docker-compose.yml -f docker-compose.moed-edge.yml up -d traefik cloudflared
-```
-
-Use both Traefik Compose files for every future update to that stack. The overlay pins Traefik to
-`172.29.255.2` on `moed_edge` and Cloudflared to `172.18.0.254` on `proxy`; the matching defaults are
-already in `.env.example`. If either subnet conflicts on another host, change all matching values
-together before creating the network.
-
-Those commands preserve the current MOED host layout. For a separate deployment, merge
-`deploy/traefik-edge.yaml` instead and set the same `DNR_EDGE_NETWORK`, Traefik address, and
-Cloudflared address in both Compose projects; its defaults match the generalized Ubuntu overlay.
-
-Create the normal database/application secrets, an empty mode-`600` IMAP password file, and a mode-
-`600` SMTP token file. Copy `.env.example` to `.env`, set the public URL and mail identities, and
-leave `DNR_TRAEFIK_ENABLE=false` during staging. Native Linux Compose mounts local secrets with
-their host ownership, while MOED deliberately drops the capability that would bypass file modes.
-Run `./scripts/prepare_linux_secrets.sh` after creating or replacing any secret. It keeps the host
-directory private and grants read-only ACLs only to the container root and `www-data` identities;
-do not make the secret files world-readable. For Proton SMTP Submission, set:
-
-```dotenv
-DNR_MAIL_FROM=dnr@example.org
-DNR_SMTP_HOST=smtp.protonmail.ch
-DNR_SMTP_PORT=587
-DNR_SMTP_ENCRYPTION=starttls
-DNR_SMTP_USERNAME=dnr@example.org
-DNR_SMTP_PASSWORD_SECRET_FILE=./secrets/smtp_password
-DNR_IMAP_USERNAME=
-DNR_IMAP_PASSWORD_FILE=./secrets/imap_password
-DNR_TRAEFIK_ENABLE=false
-```
-
-Put the SMTP token—not the Proton account password—in `secrets/smtp_password`. Then initialize the
-Bridge volume and sign in interactively:
-
-```sh
-./scripts/proton_bridge_cli.sh configure
-```
-
-At the Bridge prompt run `login`, complete Proton authentication, run
-`updates autoupdates disable`, and run `info`. Put the generated IMAP username in
-`DNR_IMAP_USERNAME` and its generated password in `secrets/imap_password`; do not use the Proton
-account password. Exit the prompt and start the staged stack:
-
-```sh
-./scripts/compose_with_provenance.sh production-ubuntu-proton up -d --build
-./scripts/proton_bridge_cli.sh status
-./scripts/proton_bridge_cli.sh logs
-```
-
-Before cutover, restore and verify the encrypted DNR backup on Ubuntu and confirm Traefik can reach
-the staged ingress with `docker exec traefik wget -qO- http://172.29.255.3/health.php`. The final
-cutover has two coordinated changes: remove the old `moed-router` and `moed-service` entries from
-Traefik's file-provider configuration, then set `DNR_TRAEFIK_ENABLE=true` and recreate the Ubuntu
-`ingress` service. Keeping the label disabled until that moment prevents the staged router from
-competing with the live Mac route. Rollback is the reverse: disable the label and restore the old
-file-provider route.
-
-Database initialization uses only the ordered files under `migrations/`. The Compose `migrator`
-service applies the minimal baseline and every forward migration, records immutable checksums and
-state, and then applies the single privilege manifest. There is no independent schema snapshot to
-drift from the upgrade path.
+For installations outside Docker, Composer validates the PHP runtime used by
+the application. Install the cURL, Fileinfo, GD, mbstring, mysqli, OpenSSL, and
+Sodium extensions before running `composer install`.
 
 ### Deployment configuration profiles
 
@@ -626,13 +863,36 @@ event tasks** after running its profile seed.
 
 Configure these values as needed:
 
+#### Deployment identity and workflow defaults
+
+- `DNR_CONFIG_FILE_HOST`: host path to the selected non-secret deployment YAML; defaults to the tracked MOED profile for backward compatibility.
+- `DNR_BRAND_DISPLAY_NAME`, `DNR_TOTP_ISSUER`, `DNR_CALENDAR_NAME`, `DNR_INBOUND_MARKER_PREFIX`, and `DNR_INBOUND_ACCEPTED_MARKER_PREFIXES`: optional highest-precedence identity overrides. The accepted marker value is a comma-separated list and must include the emitted prefix.
+- `DNR_DEFAULT_SPEAKER`: optional name used to preselect a matching saved speaker record for new presentations; otherwise the first-created speaker is selected. The legacy `DEFAULT_SPEAKER` name remains accepted during migration.
+- `DNR_DEFAULT_COUNTRY`, `DNR_DEFAULT_PHONE_COUNTRY_CODE`, and `DNR_TIMEZONE`: optional overrides for the corresponding profile defaults. Invalid values fail startup.
+- `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, `DNR_PDF_MAX_CHRON_ENTRIES`, and `DNR_PDF_MAX_TASKS`: optional overrides for validated workflow windows and PDF export limits normally read from YAML.
+
+#### Networking, HTTPS, and sessions
+
 - `PORT`: published HTTP port; defaults to `8080`.
 - `DNR_BIND_ADDRESS`: address on which Docker publishes the HTTP port; defaults to `127.0.0.1`.
 - `DNR_DEV_BIND_ADDRESS` and `DNR_DEV_ALLOW_REMOTE_HTTP`: separate development-mode publish controls. Development ignores `DNR_BIND_ADDRESS`, binds to `127.0.0.1` by default, and refuses a non-loopback address unless the plaintext remote-access opt-in is exactly `1`.
+- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
+- `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
+- `DNR_SESSION_IDLE_SECONDS`, `DNR_SESSION_ABSOLUTE_SECONDS`, and `DNR_SESSION_ROTATION_SECONDS`: authenticated-session idle lifetime, absolute lifetime, and identifier-rotation interval. Defaults are 12 hours, 24 hours, and 15 minutes.
+- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` hops DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. DNR walks the forwarding chain from the nearest hop outward, skips only configured proxies, and uses the first untrusted address so a client-controlled leftmost value cannot override audit or throttling attribution. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers, including `X-Forwarded-Proto`.
+- `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.254`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
+- `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
+
+#### Database and protected secrets
+
 - `DNR_MYSQL_ROOT_PASSWORD_FILE`, `DNR_MYSQL_APP_PASSWORD_FILE`, `DNR_MYSQL_BACKUP_PASSWORD_FILE`, `DNR_MYSQL_MAINTENANCE_PASSWORD_FILE`, `DNR_MYSQL_GEOCODER_PASSWORD_FILE`, `DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE`, and `DNR_MYSQL_MAIL_DISPATCH_PASSWORD_FILE`: host paths to independent secret files. The isolated `backup` service uses the read-only full-schema backup identity after independently checking the administrator’s current role, password, and fresh 2FA or recovery code; the everyday `web` service has no backup credential; ordinary web requests, geocoding, inbound parsing, outbound delivery, migration, and destructive maintenance retain separate identities with only their required privileges.
 - `DNR_BACKUP_PASSWORD_FILE`: host path to the temporary file containing the exact password of the backup being restored. It is mounted only in the maintenance profile and should be emptied or removed immediately after the restore is verified.
-- `DNR_PUBLIC_BASE_URL`: externally visible HTTPS origin used to construct calendar, invitation, verification, recovery, and task-digest links.
-- `DNR_MATTERMOST_TOKEN_SECRET_FILE` and `DNR_MATTERMOST_INSTANCE_ID`: host path to the shared Mattermost plugin token and stable identifier for the authorized Mattermost server. They are mounted only when a `*-mattermost` Compose mode is selected. See `docs/mattermost-plugin.md`.
+- `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
+- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `536870912` bytes (512 MiB), with coordinated temporary-storage and worker memory budgets. The maintenance page estimates capacity; larger databases use the native encrypted deployment backup. Backup and restore plaintext exists only in the relevant container's memory-backed `/tmp`.
+- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the isolated exporter’s read-only connection. Keep them out of the everyday web process. Non-Compose web deployments must set `DNR_BACKUP_SERVICE_URL` to their private exporter endpoint; do not publish that service on the Internet. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
+
+#### Outbound mail
+
 - `DNR_MAIL_TRANSPORT`: `smtp` enables account and task-digest email delivery; the secure default is `disabled`. `log` acknowledges messages without logging their bearer links and is intended only for automated tests.
 - `DNR_MAIL_FROM`: validated sender address for outbound email. The sender display name comes from `brand.mail_name`; `DNR_MAIL_FROM_NAME` remains an optional highest-precedence override.
 - `DNR_SMTP_HOST`, `DNR_SMTP_PORT`, and `DNR_SMTP_ENCRYPTION`: SMTP relay connection. Encryption accepts `starttls` (the default), implicit `tls`, or `none` for a trusted internal relay.
@@ -642,113 +902,76 @@ Configure these values as needed:
 - `DNR_NOTIFICATION_OUTBOX_BATCH_SIZE`: bounded task-digest messages claimed per worker cycle; defaults to 20.
 - `DNR_ENGAGEMENT_EMAIL_OUTBOX_BATCH_SIZE`: bounded Engagement-recipient deliveries claimed per worker cycle; defaults to 20.
 - `DNR_NOTIFICATION_SCHEDULE_INTERVAL_SECONDS`: interval between checks for newly due task digests; defaults to 300 seconds.
+
+#### Inbound mail
+
 - `DNR_INBOUND_ADDRESS`: required dedicated mailbox address copied on messages when a mail-ingest Compose mode is enabled.
 - `DNR_INBOUND_ROUTING_KEY_FILE`: host path to the independent base64-encoded 32-byte key used to sign Engagement reply-routing markers and derive a separate HMAC key for the bundled Bridge's sender-authentication assertions. Generate it with `scripts/ensure_inbound_routing_key.sh`, back it up securely, and do not rotate it while issued reply markers or retained assertions are still in use.
 - `DNR_INBOUND_MAX_BYTES`, `DNR_INBOUND_BATCH_SIZE`, and `DNR_INBOUND_IDLE_SECONDS`: maximum raw message size, bounded messages per polling cycle, and idle polling interval. Defaults are 10 MiB, 20 messages, and 30 seconds.
-- `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM` and `DNR_INBOUND_TRUSTED_AUTH_SERVERS`: fail-closed automatic-routing gate. It defaults on. The bundled Bridge supplies signed assertions from Proton's internal-mail or DMARC metadata. Other IMAP providers require a topmost `Authentication-Results` header from a listed trusted `authserv-id` with an aligned DMARC pass. An empty trusted-server list blocks that generic path but does not block valid Bridge assertions. Set the gate to `0` only as an explicit compatibility exception for a trusted mailbox that cannot expose provider authentication results. See the Proton authentication incident and rollout notes above.
+- `DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM` and `DNR_INBOUND_TRUSTED_AUTH_SERVERS`: fail-closed automatic-routing gate. It defaults on. The bundled Bridge supplies signed assertions from Proton's internal-mail or DMARC metadata. Other IMAP providers require a topmost `Authentication-Results` header from a listed trusted `authserv-id` with an aligned DMARC pass. An empty trusted-server list blocks that generic path but does not block valid Bridge assertions. Set the gate to `0` only as an explicit compatibility exception for a trusted mailbox that cannot expose provider authentication results. See [Proton sender authentication](#proton-sender-authentication-incident-fix-and-verification) for incident and rollout notes.
 - `DNR_IMAP_HOST`, `DNR_IMAP_PORT`, and `DNR_IMAP_SECURITY`: inbound mailbox endpoint. Security accepts `starttls` (the default), implicit `tls`, or `none` only for a trusted isolated connection.
 - `DNR_IMAP_USERNAME`, `DNR_IMAP_PASSWORD_FILE`, and `DNR_IMAP_MAILBOX`: mailbox credentials and selected folder. The mail Compose overlay mounts the password as a Docker secret; `DNR_IMAP_PASSWORD` is accepted only for simple non-Compose or development execution.
 - `DNR_IMAP_VERIFY_PEER`: verifies the IMAP server certificate by default. Disable it only for a local Proton Bridge endpoint using Bridge's self-signed certificate.
-- `DNR_CONFIG_FILE_HOST`: host path to the selected non-secret deployment YAML; defaults to the tracked MOED profile for backward compatibility.
-- `DNR_BRAND_DISPLAY_NAME`, `DNR_TOTP_ISSUER`, `DNR_CALENDAR_NAME`, `DNR_INBOUND_MARKER_PREFIX`, and `DNR_INBOUND_ACCEPTED_MARKER_PREFIXES`: optional highest-precedence identity overrides. The accepted marker value is a comma-separated list and must include the emitted prefix.
-- `DNR_DEFAULT_SPEAKER`: optional name used to preselect a matching saved speaker record for new presentations; otherwise the first-created speaker is selected. The legacy `DEFAULT_SPEAKER` name remains accepted during migration.
-- `DNR_DEFAULT_COUNTRY`, `DNR_DEFAULT_PHONE_COUNTRY_CODE`, and `DNR_TIMEZONE`: optional overrides for the corresponding profile defaults. Invalid values fail startup.
-- `DNR_2FA_KEY_FILE`: host path to the Docker secret containing the base64-encoded 2FA encryption key; defaults to `./secrets/dnr_2fa_encryption_key`.
-- `DNR_REQUIRE_HTTPS`: rejects non-HTTPS requests in production; defaults to `1`. The development Compose override sets it to `0` for loopback-only HTTP.
-- `DNR_SESSION_IDLE_SECONDS`, `DNR_SESSION_ABSOLUTE_SECONDS`, and `DNR_SESSION_ROTATION_SECONDS`: authenticated-session idle lifetime, absolute lifetime, and identifier-rotation interval. Defaults are 12 hours, 24 hours, and 15 minutes.
-- `DNR_TRUSTED_PROXY_IPS`: comma-separated reverse-proxy IP addresses or CIDR networks whose `X-Forwarded-For` hops DNR may trust; defaults to Docker Desktop's published-port proxy at `192.168.65.1`. DNR walks the forwarding chain from the nearest hop outward, skips only configured proxies, and uses the first untrusted address so a client-controlled leftmost value cannot override audit or throttling attribution. Other deployments can set an explicit proxy address or use `docker-gateway` to resolve the container's default route dynamically. If the published port is reachable beyond the reverse proxy, restrict it with a firewall and ensure the proxy replaces client-supplied forwarding headers, including `X-Forwarded-Proto`.
-- `DNR_BACKEND_SUBNET` and `DNR_INGRESS_PROXY_IP`: private backend network and fixed address of the localhost ingress proxy. The defaults are `172.30.255.0/24` and `172.30.255.254`. Override both together if that subnet conflicts with another Docker network. Only the fixed proxy address is added to the application's trusted proxy list; the web container remains on the internal backend without an outbound route.
-- `DNR_TRUSTED_CLOUDFLARE_PROXY_IPS`: comma-separated IP addresses or CIDR networks used by the trusted Cloudflare tunnel hop in `X-Forwarded-For`; defaults to this deployment's `172.18.0.0/24` private proxy network so container address changes do not break client-IP detection. On that route DNR records Cloudflare's `CF-Connecting-IP` value instead of the tunnel container address.
-- `DNR_DASHBOARD_UPCOMING_DAYS`, `DNR_TASK_UPCOMING_DAYS`, `DNR_CALENDAR_PAST_DAYS`, `DNR_CALENDAR_FUTURE_DAYS`, `DNR_PDF_MAX_CHRON_ENTRIES`, and `DNR_PDF_MAX_TASKS`: optional overrides for validated workflow windows and PDF export limits normally read from YAML.
-- `DNR_DATABASE_BACKUP_MAX_BYTES`: maximum unencrypted backup size; defaults to `536870912` bytes (512 MiB), with coordinated temporary-storage and worker memory budgets. The maintenance page estimates capacity; larger databases use the native encrypted deployment backup. Backup and restore plaintext exists only in the relevant container's memory-backed `/tmp`.
-- `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
+
+#### Maps and geocoding
+
 - `DNR_GEOCODER_BASE_URL` and `DNR_GEOCODER_ALLOWED_HOSTS`: public HTTPS endpoint and explicit hostname allowlist used only by the background geocoder worker.
 - `DNR_GEOCODER_USER_AGENT`: identifying user agent sent to the configured geocoder. Set this to the deployment name and a contact URL or email. When omitted, DNR identifies itself with its version and repository URL.
 - `DNR_GEOCODER_BATCH_SIZE`, `DNR_GEOCODER_IDLE_SECONDS`, `DNR_GEOCODER_LEASE_SECONDS`, and `DNR_GEOCODER_MAX_ATTEMPTS`: bounded worker throughput, polling, stale-job lease, and retry policy.
 - `DNR_MAP_PAST_DAYS`, `DNR_MAP_FUTURE_DAYS`, and `DNR_MAP_MAX_EVENTS`: optional overrides for the bounded map window and result cap normally read from YAML.
 - `DNR_MAP_TILE_URL`, `DNR_MAP_ATTRIBUTION_TEXT`, `DNR_MAP_ATTRIBUTION_URL`, and `DNR_MAP_MAXIMUM_ZOOM`: optional overrides for the validated map provider. The tile origin is also used to construct the page's Content Security Policy.
-- `DB_HOST`, `MYSQL_DATABASE`, `MYSQL_USER`, and `MYSQL_PASSWORD_FILE`: runtime database connection settings for non-Compose deployments. `MYSQL_BACKUP_USER` and `MYSQL_BACKUP_PASSWORD_FILE` configure the isolated exporter’s read-only connection. Keep them out of the everyday web process. Non-Compose web deployments must set `DNR_BACKUP_SERVICE_URL` to their private exporter endpoint; do not publish that service on the Internet. Compose uses the fixed `dnr` database with restricted `dnruser` and `dnrbackup` accounts.
 
-### Build provenance
+#### Mattermost and build metadata
 
-Use `scripts/compose_with_provenance.sh` instead of invoking a Compose build directly. It derives
-the checked-out commit and UTC commit timestamp, validates both values, exports them as Docker build
-arguments, and then runs Compose. It refuses a dirty worktree because a footer commit would not
-accurately identify uncommitted source files.
+- `DNR_MATTERMOST_TOKEN_SECRET_FILE` and `DNR_MATTERMOST_INSTANCE_ID`: host path to the shared Mattermost plugin token and stable identifier for the authorized Mattermost server. They are mounted only when a `*-mattermost` Compose mode is selected. See `docs/mattermost-plugin.md`.
+- `DNR_GITHUB_REPOSITORY`, `DNR_BUILD_COMMIT`, and `DNR_BUILD_TIMESTAMP`: repository link and immutable build provenance displayed in the footer. The Compose wrapper derives the full hash and UTC commit timestamp automatically. CI builds from source archives without `.git` may export both values explicitly. Page rendering never calls GitHub or another third-party API.
 
-```sh
-# Local HTTP development
-./scripts/compose_with_provenance.sh development
+### Worldwide address lookup with Geoapify
 
-# Production behind the configured HTTPS proxy
-./scripts/compose_with_provenance.sh production
+Use the optional `docker-compose.geoapify.yaml` overlay for Geoapify geocoding.
+Create a project at <https://myprojects.geoapify.com>, then save its API key in
+`secrets/geoapify_api_key` (excluded from Git). The overlay mounts the key only
+into the egress-enabled geocoder worker; PHP pages, browser scripts, and map
+payloads never receive it. The existing map renderer and tile provider remain
+independently configurable. Geoapify attribution is shown with its results.
 
-# Production with the inbound IMAP worker
-./scripts/compose_with_provenance.sh production-mail
-
-# Local HTTP development with the inbound IMAP worker
-./scripts/compose_with_provenance.sh development-mail
-
-# Production with encrypted queued SMTP delivery
-./scripts/compose_with_provenance.sh production-smtp
-
-# Production SMTP with a private pinned trust anchor
-./scripts/compose_with_provenance.sh production-smtp-ca
-
-# Production with both inbound IMAP and outbound SMTP workers
-./scripts/compose_with_provenance.sh production-mail-smtp
-
-# Ubuntu production with private Traefik ingress and headless Proton Bridge
-./scripts/compose_with_provenance.sh production-ubuntu-proton
-
-# Production IMAP and SMTP with a private pinned SMTP trust anchor
-./scripts/compose_with_provenance.sh production-mail-smtp-ca
-
-# Local equivalents
-./scripts/compose_with_provenance.sh development-smtp
-./scripts/compose_with_provenance.sh development-smtp-ca
-./scripts/compose_with_provenance.sh development-mail-smtp
-./scripts/compose_with_provenance.sh development-mail-smtp-ca
-
-# Forward a specific Compose command or service selection
-./scripts/compose_with_provenance.sh development up -d --build web ingress
-
-# Display the metadata without running Docker
-./scripts/compose_with_provenance.sh --print-metadata
-```
-
-For CI source archives without `.git`, export a complete 40-character `DNR_BUILD_COMMIT` and a UTC
-`DNR_BUILD_TIMESTAMP` in `YYYY-MM-DDTHH:MM:SSZ` format before invoking the wrapper. Both values must
-be supplied together.
-
-### Deploying the tracked MOED release to s1
-
-Follow [Release and recovery workflow](docs/release-workflow.md) to prepare the version, merge through the six protected checks, qualify immutable images, and verify main and the release tag on both remotes. Then deploy the exact final commit:
+After applying current migrations, activate it in the local preview with:
 
 ```sh
-./scripts/deploy_s1.sh "$(git rev-parse HEAD)"
+docker compose -f docker-compose.yaml -f docker-compose.dev.yaml \
+  -f docker-compose.geoapify.yaml up -d --no-deps web geocoder
 ```
 
-The command targets the configured s1 deployment and uses the complete
-`production-ubuntu-proton-mattermost` topology.
-It creates and restore-verifies a fresh encrypted database backup before changing the checkout,
-database image/schema, or application version. This is a standing [deployment directive](.cursor/rules/backup-before-database-upgrade.mdc), including for manual structural/version upgrades.
+The deployment wrapper automatically includes this overlay when a nonempty
+key file is provisioned on the host, so subsequent s1 releases retain Geoapify.
+Provision the secret separately before deployment. On Linux, keep the file
+owner-only and grant the container worker (UID 33) read access with a file ACL,
+as for the other worker secrets. Set `DNR_GEOCODER_PROVIDER=nominatim` when
+invoking the wrapper to explicitly opt out, or `geoapify` to require the key.
+`DNR_GEOAPIFY_API_KEY_FILE` can override the host secret path. Never commit the
+key, place it in a tile URL, or paste it into a command argument. Configure key
+restrictions for the worker's outgoing IP if desired; browser referrer-only
+restrictions do not work for background requests.
 
-Configure the private s1 backup password file first (`DNR_S1_BACKUP_PASSWORD_FILE`, default
-`secrets/deployment_backup_password` under the deployment's project directory). Deployment holds a host lock through backup,
-migration and public readiness; it uses CI-qualified digests with rebuilding disabled and retains
-an explicit recovery record. `DNR_S1_USER`, `DNR_S1_HOST`, `DNR_S1_PROJECT_DIR` and
-`DNR_S1_PUBLIC_BASE_URL` can override the deployment user, host, project directory, and public URL.
+Lookups retain provider, confidence, match type, and matched-address metadata.
+Automatic Geoapify pins require a building or amenity result with at least 0.95
+provider confidence, matching the requested house number and explicit country
+code when present. Confidence is a provider score, not a guarantee of accuracy.
+Broad or uncertain results remain unresolved instead of placing a city-center
+pin. Searches preserve street directions and the stored address; bounded
+fallbacks remove a venue prefix or normalize US highway wording. Provider
+errors are retried by the worker and never cached as address misses.
 
-### Database encryption at rest
+**Show missing addresses** filters for records needing address details;
+**Retry lookup** explicitly requeues a missed or failed lookup without resetting
+active jobs or their backoff. Empty results show guidance and a return action.
+Editors can also use **Set map pin** to click, drag, or enter coordinates and
+explicitly confirm the venue. Confirmed pins are stored per engagement, take
+priority over worker results, and apply only while the address hash still
+matches. **Use automatic lookup** removes the override. Both actions require
+CSRF and editing access, reject stale addresses, and record an audit event.
 
-The Compose database image loads MySQL’s `component_keyring_file` before InnoDB starts. Application tables (including full-text indexes), the `mysql` system tablespace, new redo/undo log pages, and new binary/relay logs use native encryption. The migrator encrypts existing application tables, sets the schema encryption default, and blocks startup if verification fails. New tables inherit encryption; the everyday application account cannot disable it. Temporary query tables/files use memory-backed `/tmp`.
-
-The persistent `db_keyring` volume is separate from `db_data`, readable only by MySQL, and never mounted in application containers. Preserve it across container recreation and back up its contents separately with encryption and restricted access. Never delete, replace, or regenerate a keyring for an existing encrypted database. Physical recovery needs the original keys; verified logical backups can be restored into a fresh encrypted database with a new keyring. The existing deployment backup performs a logical restore check using the database image, including its keyring initialization.
-
-Before the first conversion, create and restore-verify a fresh encrypted backup, pause all application writers (including `backup`), and allow time and disk space for table rebuilds. Start the new database image, run the migrator, then verify encryption and restart the application. Existing redo/undo log pages are not retroactively encrypted; they remain in their earlier format until MySQL recycles them. Retained binary logs created **before** encryption remain plaintext until retired; inspect `SHOW BINARY LOGS` and securely archive them before purging, preserving any replication or recovery dependencies. Never downgrade MySQL or delete its volume as an upgrade rollback.
-
-This protects database files taken without their keys. It does not prevent a running application, an authorized database connection, or an attacker with host/root access and the local keyring from reading data. It also does not encrypt the entire host filesystem or database network traffic. Protect physical snapshots together with separately controlled keys; stronger protection from host compromise requires an external key-management system or encrypted storage with independent key custody.
+## Security and operations
 
 ### Two-factor authentication
 
@@ -781,7 +1004,29 @@ Recovery-email changes are separate from ordinary profile edits. They require th
 - Deactivation retains the user and every audit reference while incrementing the authentication version, revoking all calendar subscriptions, invalidating outstanding email links, removing task assignments, and making any session-held administrator elevation unusable.
 - Reactivation restores sign-in access only. Revoked calendar links and prior task assignments are intentionally not restored.
 
-### Usage
+### Database encryption at rest
+
+The Compose database image loads MySQL’s `component_keyring_file` before InnoDB starts. Application tables (including full-text indexes), the `mysql` system tablespace, new redo/undo log pages, and new binary/relay logs use native encryption. The migrator encrypts existing application tables, sets the schema encryption default, and blocks startup if verification fails. New tables inherit encryption; the everyday application account cannot disable it. Temporary query tables/files use memory-backed `/tmp`.
+
+The persistent `db_keyring` volume is separate from `db_data`, readable only by MySQL, and never mounted in application containers. Preserve it across container recreation and back up its contents separately with encryption and restricted access. Never delete, replace, or regenerate a keyring for an existing encrypted database. Physical recovery needs the original keys; verified logical backups can be restored into a fresh encrypted database with a new keyring. The existing deployment backup performs a logical restore check using the database image, including its keyring initialization.
+
+Before the first conversion, create and restore-verify a fresh encrypted backup, pause all application writers (including `backup`), and allow time and disk space for table rebuilds. Start the new database image, run the migrator, then verify encryption and restart the application. Existing redo/undo log pages are not retroactively encrypted; they remain in their earlier format until MySQL recycles them. Retained binary logs created **before** encryption remain plaintext until retired; inspect `SHOW BINARY LOGS` and securely archive them before purging, preserving any replication or recovery dependencies. Never downgrade MySQL or delete its volume as an upgrade rollback.
+
+This protects database files taken without their keys. It does not prevent a running application, an authorized database connection, or an attacker with host/root access and the local keyring from reading data. It also does not encrypt the entire host filesystem or database network traffic. Protect physical snapshots together with separately controlled keys; stronger protection from host compromise requires an external key-management system or encrypted storage with independent key custody.
+
+### Health and operations
+
+- `/health.php` is a dependency-free liveness response.
+- `/ready.php` verifies database connectivity and every migration filename/checksum before reporting ready.
+- Application errors are logged as structured JSON with a request ID. Public error responses omit database and exception details and include the request ID for correlation.
+
+Every DNR Compose service opts out of host-wide Watchtower polling. Production images are built and qualified by CI on the final merged commit, then promoted by digest through the [guarded deployment workflow](docs/release-workflow.md).
+The opt-out prevents Watchtower from treating Compose's local `project-service:latest` image names
+as Docker Hub repositories or trying to update dependencies outside the reviewed deployment path.
+
+<a id="usage"></a>
+
+### Encrypted database backups
 
 Administrators can open **Database** in the primary navigation to download a DNR database backup.
 Export requires the administrator's password, a fresh authenticator or recovery code, and a new
@@ -998,201 +1243,46 @@ retention period ends, remove the plaintext rollback dump with
 `rm -f backups/pre-restore-safety.sql`; filesystem-level secure erasure must follow the host's
 encrypted-storage and media-disposal policy.
 
-## Mattermost plugin
+## Development and contributing
 
-The installable server plugin under `mattermost-plugin/` exposes private daily
-summaries, engagement search/cards, editor/admin channel bindings, and
-role-checked follow-up buttons while keeping MOED authoritative. It uses
-single-use account-link codes and a deployment secret; it never connects to the
-database directly. Build it with `make -C mattermost-plugin dist` and follow
-the complete deployment, installation, verification, and rotation guide in
-[`docs/mattermost-plugin.md`](docs/mattermost-plugin.md). End-user behavior is
-documented in the in-app **User Manual → Mattermost** chapter.
+### Front-end assets
 
-## Daily operations dashboard
-
-The application root and completed sign-ins open **Dashboard**, a role-aware daily operations
-view. It combines active engagements in the configured upcoming window, the signed-in user's active and overdue
-work, event-readiness gaps, and ended events that still need a financial closeout. Readiness flags
-identify unconfirmed events, missing venue addresses, missing presentations, and organizations
-without an assigned event contact. The greeting uses the signed-in user's first name when it is
-available. Administrators and editors also see inbound messages awaiting routing
-review and quick actions for creating engagements and tasks; reviewers receive the same operational
-context without write controls.
-
-## Event contacts and roles
-
-Engagement create and edit forms can assign multiple contacts with one or more event-specific roles:
-**Primary host**, **On-site contact**, **Billing**, **Travel**, and **Materials**. Search the contact
-directory to add existing people, or use **Add new contact** repeatedly without leaving the event.
-New people and additional organization affiliations are saved together with the event; validation
-errors leave the draft available for correction.
-
-A contact can belong to several organizations, each with its own role or title. Contact forms retain
-a primary organization and allow additional affiliations, such as Pastor at one church and Chairman
-at a research center. Organization contact lists, event pickers, searches, and event exports use the
-matching affiliation. Removing an affiliation clears only the event assignments that depended on it;
-assignments at other organizations remain intact. Deleting an organization retains shared contacts
-and promotes a remaining affiliation to primary.
-
-PDF exports
-carry the configured digest-email wordmark on a white masthead for consistent graphical branding.
-They include only active work linked to the exported event and mirror the Work Queue's labeled
-overdue and due-today colors and semantic edge.
-
-## Engagement lifecycle
-
-Engagements track operational lifecycle separately from planning confirmation. Lifecycle states are
-**Active**, **Postponed**, **Canceled**, and **Completed**; confirmation remains **Work in
-progress**, **Under review**, or **Confirmed**. Canceling an engagement requires a reason, and a
-postponed or canceled engagement may link to a replacement event from the same organization.
-Replacement links cannot point to the same event or form a cycle.
-
-Canceling an engagement also cancels its open, in-progress, and waiting follow-up tasks while
-preserving completed work. Postponed and canceled events cannot receive a new standard checklist or
-financial closeout. Finalizing the first financial report marks an active event completed, and an
-event with a final report cannot be moved back to another lifecycle state. Engagement lists,
-exports, maps, calendar feeds, and detail screens expose lifecycle and confirmation independently;
-daily operational queues default to active events so postponed, canceled, and completed records do
-not appear as current work.
-
-## Inquiry and booking pipeline
-
-Potential events begin as first-class **Inquiries** instead of incomplete Engagements. The Booking
-Pipeline organizes active records across **New**, **Contacted**, **Qualified**, **Awaiting Details**,
-and **Proposal Sent**, with separate **Booked** and **Declined** outcomes. Each Inquiry can retain an
-optional Organization and primary Contact, preferred and alternate date ranges, request and location
-details, source, owner, priority, next action, Chron, outbound correspondence, stage history, and
-linked follow-up work. Declining requires a reason and remains reversible until the Inquiry is booked.
-
-Create inquiries with **New Inquiry** in the Booking Pipeline. Inquiry email templates cover the initial response, request for details,
-date options, and proposal follow-up. Messages use the existing isolated delivery worker and add a
-signed Inquiry reply marker; matching replies return to the active Inquiry Chron. Delivery history is
-visible on the Inquiry and is also recorded on the selected Contact and Organization when present.
-
-**Review booking** validates the required Organization, title, and preferred dates; surfaces
-overlapping active Engagements and qualified Inquiries; and lets the user choose which open Inquiry
-tasks should move. Acknowledged warnings do not become unexplained hard blocks. Conversion runs in
-one transaction: it creates the Engagement, assigns the primary Contact as Primary host when
-available, moves selected tasks, generates the standard event checklist, marks the Inquiry Booked,
-and preserves the Inquiry as a read-only source record linked to the new Engagement.
-
-Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
-general or linked to one inquiry, engagement, organization, or contact. Each task supports an owner,
-due date, priority, notes, and the states **Open**, **In progress**, **Waiting**, **Completed**,
-and **Canceled**. The queue provides personal, overdue, due-today, next-seven-days, waiting,
-unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and
-editors can create, edit, assign, and complete them; permanent deletion remains limited to
-administrators.
-
-The navigation badge and the **My reminders** panel summarize only the signed-in user's actionable
-work: overdue, due today, next seven days, and waiting tasks. Administrators and editors also see
-their open financial closeouts. Each count links to the matching personal queue. Users with a
-verified email address can enable the optional daily email version under **My Profile →
-Notifications**.
-
-Engagement, organization, and contact detail pages show their open follow-up work. Active
-engagements also offer an optional, idempotent standard checklist covering location, travel,
-presentations, materials, host reconfirmation, post-event thanks, outcome capture, and financial
-closeout. Every active standard item is automatically added and assigned to the creator when a new
-engagement is saved; re-running **Add missing checklist tasks** on an older engagement only adds
-missing active items. Open **Standard event tasks** from the Work Queue to add, view, or edit the
-reusable task content, priority, event-relative due rule, and order. Archived definitions are
-excluded from future checklists and may be restored;
-administrators can permanently delete archived definitions after fresh authentication. Editing,
-archiving, or deleting a definition does not rewrite tasks already generated for events.
-The required built-in **Complete the event financial closeout** task cannot be edited, archived, or
-deleted; it is due seven days after the event end date and directs staff to finalize giving/income,
-lodging, and travel received.
-
-## Financial closeout and giving history
-
-Editors and administrators can close an active event from its detail page by finalizing the actual
-giving/income, lodging, and travel amounts received. These actual receipts are stored separately
-from the anticipated travel, lodging, and compensation fields used during planning. Before the first
-report can be finalized, every event task due on or before the last active presentation must be
-marked Completed. Tasks due after that presentation and tasks without due dates do not hold the
-closeout. A report can be corrected later without changing its original closer or close timestamp;
-concurrent corrections are rejected rather than silently overwriting newer figures. Every insert and
-correction is captured by the database audit log.
-
-Organization detail pages calculate lifetime giving, latest-event giving, average giving per closed
-event, and aggregate lodging and travel receipts from finalized reports only. “Latest event” follows
-the event end date, even if its report was entered later, and archived events remain part of the
-historical totals. The organization list also shows latest-event and lifetime giving for quick review.
-
-Authenticated users can open **Map** in the primary navigation to view engagements on an interactive,
-zoomable map. The initial view contains active lifecycle records; lifecycle, confirmation, and date
-filters can include other records when needed. Active pins use confirmation colors, while
-postponed, canceled, and completed pins display their lifecycle state. Selecting a pin opens the
-event summary and a link to the full engagement. Events without an address are counted but cannot
-be placed.
-
-The web request never calls the geocoder. New or changed addresses enter a database queue; the dedicated egress-enabled worker resolves them at no more than one request per 1.1 seconds and caches results by normalized address, so events at the same address share one result. The initial map window and result count are bounded. The tile URL and attribution are supplied by the selected deployment profile; geocoding uses its separately allowlisted worker endpoint.
-
-#### Worldwide address lookup with Geoapify
-
-Use the optional `docker-compose.geoapify.yaml` overlay for Geoapify geocoding.
-Create a project at <https://myprojects.geoapify.com>, then save its API key in
-`secrets/geoapify_api_key` (excluded from Git). The overlay mounts the key only
-into the egress-enabled geocoder worker; PHP pages, browser scripts, and map
-payloads never receive it. The existing map renderer and tile provider remain
-independently configurable. Geoapify attribution is shown with its results.
-
-After applying current migrations, activate it in the local preview with:
+The application serves committed minified CSS and JavaScript while retaining readable source files in `src/assets`. After changing a source asset, rebuild the production files with:
 
 ```sh
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml \
-  -f docker-compose.geoapify.yaml up -d --no-deps web geocoder
+npm ci
+npm run build:assets
 ```
 
-The deployment wrapper automatically includes this overlay when a nonempty
-key file is provisioned on the host, so subsequent s1 releases retain Geoapify.
-Provision the secret separately before deployment. On Linux, keep the file
-owner-only and grant the container worker (UID 33) read access with a file ACL,
-as for the other worker secrets. Set `DNR_GEOCODER_PROVIDER=nominatim` when
-invoking the wrapper to explicitly opt out, or `geoapify` to require the key.
-`DNR_GEOAPIFY_API_KEY_FILE` can override the host secret path. Never commit the
-key, place it in a tile URL, or paste it into a command argument. Configure key
-restrictions for the worker's outgoing IP if desired; browser referrer-only
-restrictions do not work for background requests.
+Page heads and asset cache keys are generated by `renderPageHead()` and `assetUrl()`. The asset build also emits a deterministic PHP fingerprint manifest, allowing OPcache-backed requests to avoid hashing large bundles; development falls back to direct hashing for files not yet present in the manifest. Page-specific source styles live in `src/assets/css/pages`; executable page behavior lives in `src/assets/js/page-actions.js`. Inline executable scripts and style attributes are intentionally avoided so the application can enforce a strict content security policy. The map alone permits runtime inline positioning because MapLibre GL requires it.
 
-Lookups retain provider, confidence, match type, and matched-address metadata.
-Automatic Geoapify pins require a building or amenity result with at least 0.95
-provider confidence, matching the requested house number and explicit country
-code when present. Confidence is a provider score, not a guarantee of accuracy.
-Broad or uncertain results remain unresolved instead of placing a city-center
-pin. Searches preserve street directions and the stored address; bounded
-fallbacks remove a venue prefix or normalize US highway wording. Provider
-errors are retried by the worker and never cached as address misses.
+### Architecture and quality checks
 
-**Show missing addresses** filters for records needing address details;
-**Retry lookup** explicitly requeues a missed or failed lookup without resetting
-active jobs or their backoff. Empty results show guidance and a return action.
-Editors can also use **Set map pin** to click, drag, or enter coordinates and
-explicitly confirm the venue. Confirmed pins are stored per engagement, take
-priority over worker results, and apply only while the address hash still
-matches. **Use automatic lookup** removes the override. Both actions require
-CSRF and editing access, reject stale addresses, and record an audit event.
+HTTP entry points load `src/bootstrap.php`, which initializes Composer/local autoloading, structured request logging, database configuration, and shared application helpers. Reusable validation and reference data live under `src/app/Domain`; create and edit routes use the same normalizers. PHPStan checks migrated request/controller routes at level 3, the remaining HTTP surface at level 0, the legacy helper layer at level 5, and the typed domain/runtime layer at level 6 so newly extracted code can move progressively into the stricter configurations.
 
-Authenticated users can open **Calendar** in the navigation to create, label, copy, and revoke
-private subscription URLs per device. The feed includes non-archived engagements in the configured
-bounded calendar window, regardless of lifecycle. Entries are all-day events covering the event
-date range and include lifecycle, confirmation, organization, title, type, and location. Canceled
-events use the calendar-standard `CANCELLED` status; postponed and canceled entries are marked
-transparent, and their descriptions include any cancellation reason and replacement event.
-Calendar clients choose their own refresh schedule, so database changes may not appear immediately.
+Telephone numbers are validated with libphonenumber metadata and stored in canonical E.164 form. National and international formatting is applied only when values are rendered or returned to an edit form.
 
-When creating a link, choose any combination of **Events**, **Presentations**, **My Active Work**,
-**All Active Work**, and **Birthdays (from Contacts)**. Select at least one category. Each link
-keeps its own content settings, displayed beneath its label. All Active Work disables My Active
-Work and includes everyone's active work, including unassigned tasks. My Active Work uses the
-subscription owner's assignments. Open, in-progress, and waiting tasks with a due date appear as
-transparent all-day reminders within the feed window; completed, canceled, and undated tasks do
-not appear. Task changes invalidate cached feeds. Existing links retain events, presentations,
-and birthdays without adding work automatically.
+Run the complete local quality gate before opening a pull request:
 
-Each subscription URL contains a revocable bearer token and does not use a browser login. Treat it as a password; revoke only the affected device token if it is disclosed. DNR stores only a SHA-256 token digest and redacts all query strings from Apache access logs. Depending on the selected content, a feed can include contact names and birthdays or work titles, due dates, status, and priority. Contact details, task details, chronological notes, travel, lodging, and compensation remain excluded.
+```sh
+composer install
+npm ci
+composer validate --strict --no-check-publish
+composer audit --no-interaction
+npm audit --audit-level=high
+composer check
+npm test
+```
+
+`composer check` runs PHP syntax checks, PHPStan level 6 on the typed domain/runtime layer, PHPStan level 5 on the legacy helper layer, level 3 on migrated request/controller routes, level 0 on the remaining HTTP surface, and all unit/feature tests. `npm test` rebuilds every committed production asset and runs JavaScript syntax and behavior tests. GitHub Actions runs the PHP checks on PHP 8.4 and 8.5 while frontend checks, locked-dependency audits, plugin checks, and integration checks run once in parallel. Dependency audits have bounded retries so an advisory-service outage fails promptly without weakening the security threshold, and superseded runs for the same branch or pull request are cancelled. CI also validates every Compose overlay combination and starts a disposable Docker/MySQL environment through the documented automatic-migration path before exercising HTTP and database behavior. Dependabot proposes weekly Composer, npm, Docker, and pinned GitHub Actions updates.
+
+Database integration suites are discovered automatically from `tests/*_integration_test.php` and `tests/integration_*_test.php`. Run them only against the disposable Compose environment with `sh scripts/run_integration_tests.sh disposable`; the runner sends destructive backup/restore coverage to the isolated maintenance container.
+
+`VERSION` is the single source of release-version metadata. DNR uses the project ontology
+`[super].[major].[minor]` = `x.y.z`: a minor release is `[x].[y].[z+1]` (for example,
+`1.10.3` becomes `1.10.4`), a major release is `[x].[y+1].0`, and a super release is
+`[x+1].0.0`. Update it once when preparing a release; runtime responses, fallback asset cache keys, the
+footer, backups, and container images read that value automatically.
 
 ### Contributing
 
@@ -1230,37 +1320,14 @@ Contributions to the DNR project are welcome. To contribute:
 
 Please ensure that your contributions adhere to the project's coding standards and include appropriate tests.
 
-### Authors and Acknowledgment
+### Maintaining the user documentation
 
-### License
+Update `src/help.php` when an application workflow changes, then refresh the
+Comprehensive Guide using [the manual build instructions](docs/user-manual/README.md).
+The PDF includes the current README as an appendix and an exact embedded attachment;
+refresh its Markdown snapshot after changing this file. Review rendered PDF pages for
+screenshot boundaries, readable examples, and isolated lines before installing the download.
 
-This project is licensed under the MIT License. See the LICENSE file for more details.
+## License
 
-### Project Status
-
-Under active development
-
-### Speaker records
-
-Under **Relationships → Speakers**, all signed-in users can view speakers; administrators and
-editors can add and edit their name, email address, telephone number, and optional bio. The bio
-uses the same six-row text field and safe link rendering as Contact Notes. Telephone numbers
-use the Contacts country picker and formatting and are stored in E.164 format.
-Speakers also have optional website, bio, donation, connection, blog, and books URLs.
-These accept HTTP/HTTPS links up to 2,048 characters and appear on the speaker detail page.
-Speaker photos can be uploaded, replaced, or removed with the same JPEG/PNG/WebP validation,
-5 MB limit, resized originals, and thumbnails as contact photos. The Speakers directory shares
-the Contacts theme, search/sort controls, view/edit icons, and upper/lower pagination rules.
-Speakers cannot be archived or deleted.
-Presentation forms select a saved speaker from a dropdown. Edits to a speaker apply to all
-associated presentations, including their calendar entries and exports.
-
-The `20260907_add_speakers.sql` migration creates an initial speaker record and assigns **every existing presentation**,
-including archived records, to that speaker. It then replaces the old free-text speaker name
-with a required foreign key. Apply it through the normal backed-up migration workflow together
-with the application changes. The application database account receives SELECT, INSERT, and
-UPDATE rights for speakers only; the offline exact-restore account retains its recovery access.
-
-### Presentation QR codes
-
-See [Presentation QR Codes](docs/qr-code-system.md) for generated speaker links, public notes downloads, statistics, and country-detection configuration.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
