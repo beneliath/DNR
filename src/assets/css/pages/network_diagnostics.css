@@ -1,0 +1,295 @@
+.network-diagnostics-page {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    padding-inline: var(--app-content-padding);
+}
+
+.network-diagnostics-body .app-footer {
+    width: min(100%, var(--app-content-max));
+    max-width: var(--app-content-max);
+    margin-inline: auto !important;
+    padding-inline: var(--app-content-padding);
+    text-align: left !important;
+}
+
+.network-diagnostics-heading {
+    align-items: center;
+}
+
+.network-diagnostics-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.network-diagnostics-summary[data-state="success"] {
+    border-left-color: var(--success);
+}
+
+.network-diagnostics-summary[data-state="warning"] {
+    border-left-color: var(--warning);
+}
+
+.network-diagnostics-summary[data-state="danger"] {
+    border-left-color: var(--danger);
+}
+
+.network-diagnostics-summary h2,
+.network-metric-card h2,
+.network-contact-card h2,
+.network-page-breakdown h2,
+.network-diagnostics-notes h2 {
+    margin: 0;
+}
+
+.network-diagnostics-summary p:last-child {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+}
+
+.network-eyebrow {
+    margin: 0 0 4px;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.network-status-pill,
+.network-path-state {
+    display: inline-flex;
+    min-height: var(--status-pill-min-height);
+    align-items: center;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: var(--status-pill-padding);
+    color: var(--text-muted);
+    background: var(--surface-subtle);
+    font-size: var(--status-pill-font-size);
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.network-diagnostics-summary[data-state="success"] .network-status-pill,
+.network-metric-card[data-state="available"] .network-path-state {
+    border-color: var(--success);
+    color: var(--success);
+    background: var(--success-subtle);
+}
+
+.network-diagnostics-summary[data-state="warning"] .network-status-pill {
+    border-color: var(--warning);
+    color: var(--warning);
+    background: var(--warning-subtle);
+}
+
+.network-diagnostics-summary[data-state="danger"] .network-status-pill,
+.network-metric-card[data-state="unavailable"] .network-path-state {
+    border-color: var(--danger);
+    color: var(--danger);
+    background: var(--danger-subtle);
+}
+
+.network-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.network-metric-card {
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.network-card-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.network-latency {
+    margin: 24px 0 10px;
+    color: var(--text-muted);
+}
+
+.network-latency strong {
+    color: var(--text);
+    font-size: clamp(2.2rem, 6vw, 4rem);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.network-samples {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+    font-variant-numeric: tabular-nums;
+}
+
+.network-route-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 24px 0 0;
+}
+
+.network-route-details div {
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+}
+
+.network-route-details dt {
+    margin-bottom: 4px;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+}
+
+.network-route-details dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.network-diagnostics-notes {
+    margin-top: 18px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface-subtle);
+}
+
+.network-diagnostics-notes ul {
+    margin-bottom: 0;
+    padding-left: 1.25rem;
+}
+
+.network-diagnostics-notes li + li {
+    margin-top: 8px;
+}
+
+.network-privacy-note {
+    margin: 16px 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+}
+
+.network-contact-card,
+.network-page-breakdown {
+    margin-top: 18px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--surface);
+}
+
+.network-contact-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.8fr);
+    align-items: center;
+    gap: 28px;
+}
+
+.network-contact-card > div > p:last-child,
+.network-section-heading > p {
+    margin: 6px 0 0;
+    color: var(--text-muted);
+}
+
+.network-contact-comparison {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 0;
+}
+
+.network-contact-comparison > div {
+    min-width: 0;
+    padding: 14px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-subtle);
+}
+
+.network-contact-comparison dt {
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+    font-weight: 700;
+}
+
+.network-contact-comparison dd {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin: 8px 0 0;
+}
+
+.network-contact-comparison strong {
+    font-size: 1.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.network-contact-comparison span {
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+}
+
+.network-section-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+}
+
+.network-page-breakdown th,
+.network-page-breakdown td {
+    font-variant-numeric: tabular-nums;
+}
+
+.network-page-breakdown th:not(:first-child),
+.network-page-breakdown td:not(:first-child) {
+    text-align: right;
+}
+
+.network-page-breakdown td:first-child {
+    font-weight: 700;
+}
+
+@media (max-width: 760px) {
+    .network-diagnostics-heading,
+    .network-diagnostics-summary,
+    .network-section-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .network-diagnostics-heading .button-add {
+        width: 100%;
+    }
+
+    .network-metric-grid,
+    .network-route-details,
+    .network-contact-card,
+    .network-contact-comparison {
+        grid-template-columns: 1fr;
+    }
+
+    .network-page-breakdown th:not(:first-child),
+    .network-page-breakdown td:not(:first-child) {
+        text-align: left;
+    }
+}

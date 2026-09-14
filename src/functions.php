@@ -1000,6 +1000,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'audit_log.php',
         'database_maintenance.php',
         'edit_user.php',
+        'network_diagnostics.php',
         'operations.php',
         'register.php',
         'reset_presentation_stats.php',

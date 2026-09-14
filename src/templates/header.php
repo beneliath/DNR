@@ -27,6 +27,7 @@ $nav_groups = [
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
     'database' => ['database_maintenance.php'],
+    'network' => ['network_diagnostics.php'],
     'profile' => ['profile.php'],
     'mattermost' => ['mattermost.php'],
     'help' => ['help.php'],
@@ -213,6 +214,9 @@ if (!empty($_SESSION['user_id'])) {
                     </a></li>
                     <li><a href="database_maintenance.php" class="nav-link admin-nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
+                    </a></li>
+                    <li><a href="network_diagnostics.php" class="nav-link admin-nav-link<?php echo $active_nav === 'network' ? ' active' : ''; ?>"<?php echo $active_nav === 'network' ? ' aria-current="page"' : ''; ?>>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Network</span>
                     </a></li>
                 </ul>
             </section>
