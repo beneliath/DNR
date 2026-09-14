@@ -130,7 +130,8 @@ try {
             && $saved['first_name'] === 'Avery <Admin>' && $saved['last_name'] === 'Morgan'
             && $saved['phone'] === '+12025550123' && $saved['email'] === $before['email']
             && $saved['email_verified_at'] === $before['email_verified_at']
-            && $saved['profile_picture_mime'] === 'image/png' && strlen($saved['profile_picture_sha256']) === 32
+            && $saved['profile_picture_mime'] === (function_exists('imagewebp') ? 'image/webp' : 'image/png')
+            && strlen($saved['profile_picture_sha256']) === 32
             && is_array(getimagesizefromstring($saved['profile_picture_thumbnail']))
             && (int) $saved['task_digest_enabled'] === 0 && $saved['task_digest_time'] === '16:45:00'
             && (int) $saved['task_digest_days'] === 21,

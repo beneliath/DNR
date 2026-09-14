@@ -135,6 +135,7 @@ GRANT SELECT (token_id, status) ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQ
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_recovery_codes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.authentication_rate_limits TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.network_performance_samples TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.inbound_email_messages TO '${MYSQL_USER}'@'%';
 GRANT SELECT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.inbound_email_quarantine TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.calendar_subscriptions TO '${MYSQL_USER}'@'%';

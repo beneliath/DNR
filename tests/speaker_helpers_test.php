@@ -52,4 +52,18 @@ foreach (['-1', '0', '1.5', '2147483648', 'Olivier', ['1']] as $invalidId) {
 $rows = normalizeEngagementPresentations([['topic_title' => 'Test', 'speaker_id' => '2']], '', '', 1);
 expectSpeaker($rows[0]['speaker_id'] === 2, 'Presentation speaker selections become integer IDs.');
 expectSpeaker(!engagementPresentationMatches($rows[0], array_replace($rows[0], ['speaker_id' => 1])), 'Changing only the speaker must be saved.');
+$photoPath = tempnam(sys_get_temp_dir(), 'dnr-speaker-photo-');
+$photoImage = imagecreatetruecolor(500, 800);
+imagefill($photoImage, 0, 0, imagecolorallocate($photoImage, 20, 110, 80));
+imagejpeg($photoImage, $photoPath, 92);
+$speakerPhoto = validatedSpeakerPhotoFile($photoPath);
+unlink($photoPath);
+$speakerThumbnail = getimagesizefromstring($speakerPhoto['thumbnail_data']);
+expectSpeaker(
+    $speakerPhoto['width'] === UPLOADED_IMAGE_DETAIL_DIMENSION
+        && $speakerPhoto['height'] === UPLOADED_IMAGE_DETAIL_DIMENSION
+        && ($speakerThumbnail[0] ?? 0) === UPLOADED_IMAGE_THUMBNAIL_DIMENSION
+        && ($speakerThumbnail[1] ?? 0) === UPLOADED_IMAGE_THUMBNAIL_DIMENSION,
+    'Speaker uploads use the same bounded portrait variants as profiles and contacts.'
+);
 echo "Speaker helper tests passed.\n";

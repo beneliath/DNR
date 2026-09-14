@@ -145,6 +145,14 @@ def main():
                 output = speaker_seed('apply')
                 record['speaker_seed'] = json.loads(output.splitlines()[-1])
                 save('speaker-seed-verified')
+            save('optimizing-photos')
+            # Re-encode legacy profile, contact and speaker photos through the
+            # same bounded portrait pipeline used for all new uploads.
+            record['photo_optimization'] = compose(
+                'run', '--rm', '--no-deps', '--entrypoint', 'php',
+                'maintenance', '/opt/dnr/bin/optimize_existing_photos.php'
+            )
+            save('photos-optimized')
             save('preparing-qr-images')
             # Render existing links once while writers remain paused. Page and
             # download requests only serve the stored PNG/SVG files.

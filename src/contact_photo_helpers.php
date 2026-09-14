@@ -6,7 +6,7 @@ require_once __DIR__ . '/image_upload_helpers.php';
 
 const CONTACT_PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 const CONTACT_PHOTO_MAX_PIXELS = 16000000;
-const CONTACT_PHOTO_MAX_DIMENSION = 1024;
+const CONTACT_PHOTO_MAX_DIMENSION = UPLOADED_IMAGE_DETAIL_DIMENSION;
 
 function contactInitials(array $contact) {
     $parts = array_values(array_filter([

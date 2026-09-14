@@ -130,8 +130,13 @@ try {
             $full = $request('speaker_photo.php?id=' . $speakerId . '&size=full');
             $thumbSize = getimagesizefromstring($thumbnail['body']);
             $fullSize = getimagesizefromstring($full['body']);
-            expectSpeakerHttp($thumbnail['status'] === 200 && max($thumbSize[0], $thumbSize[1]) <= 256
-                && $full['status'] === 200 && $fullSize[0] === 640, 'Lists get thumbnails and detail pages get resized full photos.');
+            expectSpeakerHttp($thumbnail['status'] === 200
+                && $thumbSize[0] === UPLOADED_IMAGE_THUMBNAIL_DIMENSION
+                && $thumbSize[1] === UPLOADED_IMAGE_THUMBNAIL_DIMENSION
+                && $full['status'] === 200
+                && $fullSize[0] === UPLOADED_IMAGE_DETAIL_DIMENSION
+                && $fullSize[1] === UPLOADED_IMAGE_DETAIL_DIMENSION,
+                'Lists get 2x thumbnails and detail pages get 2x center-cropped portraits.');
             preg_match('/ETag: (.+)\r/i', $thumbnail['headers'], $etag);
             expectSpeakerHttp(isset($etag[1]) && $request('speaker_photo.php?id=' . $speakerId, null, ['If-None-Match: ' . trim($etag[1])])['status'] === 304, 'Photo ETags support conditional requests.');
             expectSpeakerHttp($request('speaker_photo.php?id=' . $speakerId . '&size=full', null, ['If-None-Match: ' . trim($etag[1])])['status'] === 200, 'Thumbnail ETags do not suppress full photos.');

@@ -78,9 +78,10 @@ expectHeaderScope(
     'Desktop and mobile brand links should return to the daily dashboard.'
 );
 expectHeaderScope(
-    substr_count($header_markup, 'class="nav-link admin-nav-link') === 2
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 3
         && str_contains($header_markup, '<span>Users</span>')
-        && str_contains($header_markup, '<span>Database</span>'),
+        && str_contains($header_markup, '<span>Database</span>')
+        && str_contains($header_markup, '<span>Network</span>'),
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
 
@@ -163,6 +164,7 @@ expectHeaderScope(
     !str_contains($reviewer_preview_markup, '<span>Inbox</span>')
         && !str_contains($reviewer_preview_markup, '<span>Users</span>')
         && !str_contains($reviewer_preview_markup, '<span>Database</span>')
+        && !str_contains($reviewer_preview_markup, '<span>Network</span>')
         && str_contains($reviewer_preview_markup, '<option value="reviewer" selected>Reviewer</option>'),
     'Reviewer preview should hide Editor and Administrator navigation while retaining the preview control.'
 );
@@ -180,7 +182,8 @@ expectHeaderScope(
     str_contains($editor_preview_markup, '<strong>Viewing as Editor</strong>')
         && str_contains($editor_preview_markup, '<span>Inbox</span>')
         && !str_contains($editor_preview_markup, '<span>Users</span>')
-        && !str_contains($editor_preview_markup, '<span>Database</span>'),
+        && !str_contains($editor_preview_markup, '<span>Database</span>')
+        && !str_contains($editor_preview_markup, '<span>Network</span>'),
     'Editor preview should retain Editor navigation while hiding Administrator-only areas.'
 );
 expectHeaderScope(

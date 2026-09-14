@@ -75,3 +75,4 @@
 20260909_add_notes_cache_purge_queue.sql
 20260910_add_email_message_templates.sql
 20260913_add_email_recipient_types.sql
+20260913_add_network_performance_samples.sql

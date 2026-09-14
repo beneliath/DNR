@@ -6,7 +6,7 @@ require_once __DIR__ . '/image_upload_helpers.php';
 
 const PROFILE_PICTURE_MAX_BYTES = 5 * 1024 * 1024;
 const PROFILE_PICTURE_MAX_PIXELS = 16000000;
-const PROFILE_PICTURE_MAX_DIMENSION = 1024;
+const PROFILE_PICTURE_MAX_DIMENSION = UPLOADED_IMAGE_DETAIL_DIMENSION;
 
 function profileDisplayName(array $user) {
     $name = trim(implode(' ', array_filter([
