@@ -232,7 +232,7 @@
         }
         .user-digest-day.is-selected {
             background: var(--primary);
-            color: #ffffff;
+            color: var(--primary-button-fg);
         }
         .user-digest-status {
             color: var(--text-muted);
