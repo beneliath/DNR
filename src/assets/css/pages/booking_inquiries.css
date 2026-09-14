@@ -279,8 +279,11 @@ html body .inquiry-conversion-page > .inquiry-conversion-form {
     position: absolute;
     top: 28px;
     right: -.9rem;
-    width: min(230px, calc(100vw - 2rem));
+    width: min(270px, calc(100vw - 2rem));
     margin-top: .35rem;
+}
+.inquiry-stage-popover .app-popover-actions {
+    grid-template-columns: minmax(0, 1fr) max-content;
 }
 .inquiry-card:focus-within,
 .inquiry-card-stage-menu[open] { z-index: 7; }

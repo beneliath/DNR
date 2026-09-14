@@ -199,6 +199,44 @@
             color: var(--text-subtle);
             font-style: italic;
         }
+        .user-digest-summary {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px 14px;
+            margin: 10px 0 14px;
+            font-size: 0.8rem;
+        }
+        .user-digest-label {
+            font-weight: 600;
+        }
+        .user-digest-days {
+            display: flex;
+            gap: 6px;
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+        .user-digest-day {
+            display: grid;
+            width: 32px;
+            height: 32px;
+            flex: 0 0 auto;
+            place-items: center;
+            border: 1px solid var(--primary);
+            border-radius: 50%;
+            background: var(--surface);
+            color: var(--primary);
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .user-digest-day.is-selected {
+            background: var(--primary);
+            color: var(--primary-button-fg);
+        }
+        .user-digest-status {
+            color: var(--text-muted);
+        }
         @media (min-width: 761px) {
             .user-timestamps {
                 margin-left: 66px;

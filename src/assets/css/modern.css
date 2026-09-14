@@ -624,22 +624,12 @@ html.dark-mode .app-sidebar .nav-link.admin-nav-link.active {
 
 .role-preview-control {
   margin: auto 0 0;
-  padding: 16px 8px;
-  border-top: 1px solid var(--border);
+  padding: 4px 8px 12px;
+  border: 0;
 }
 
 .role-preview-control + .utility-navigation {
   margin-top: 0;
-}
-
-.role-preview-control label {
-  display: block;
-  margin-bottom: 7px;
-  color: var(--warning);
-  font-size: 0.78rem;
-  font-weight: 750;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 .role-preview-fields {
@@ -2749,6 +2739,10 @@ html body .chron-restore-page-actions a:focus-visible {
   border-radius: var(--radius-md);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
+}
+
+.standard-task-details + .result-context {
+  margin-top: 16px;
 }
 
 .standard-task-detail {
@@ -6129,8 +6123,7 @@ html body .app-sidebar .nav-group-heading {
 .app-sidebar .utility-navigation { margin-top: auto; }
 .role-preview-disclosure { margin: 0 0 14px; color: var(--text-muted); font-size: 0.8rem; }
 .role-preview-disclosure > summary { padding: 8px 12px; cursor: pointer; text-align: left !important; }
-html body .app-sidebar .role-preview-disclosure > summary,
-html body .app-sidebar .role-preview-control > label { color: var(--accent) !important; }
+html body .app-sidebar .role-preview-disclosure > summary { color: var(--accent) !important; }
 .role-preview-disclosure .role-preview-control { margin: 8px 0 0; }
 html body .sidebar-close-button { display: none !important; }
 .form-error-summary {

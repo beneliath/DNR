@@ -226,13 +226,12 @@ if (!empty($_SESSION['user_id'])) {
 
             <?php if ($authenticated_user_role === 'admin'): ?>
                 <details class="role-preview-disclosure">
-                <summary>Preview access</summary>
+                <summary id="role-preview-label">Preview access</summary>
                 <form method="post" action="role_preview.php" class="role-preview-control">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                    <label for="role-preview-role">Preview access</label>
                     <div class="role-preview-fields">
-                        <select name="role" id="role-preview-role" aria-describedby="role-preview-help">
+                        <select name="role" id="role-preview-role" aria-labelledby="role-preview-label" aria-describedby="role-preview-help">
                             <option value="admin"<?php echo $role_preview === null ? ' selected' : ''; ?>>Administrator</option>
                             <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
                             <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>

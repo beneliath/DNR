@@ -61,6 +61,7 @@ $users_stmt = $conn->prepare(
             profile_picture_mime, profile_picture_updated_at,
             role, account_status, activated_at, deactivated_at,
             email_verified_at, two_factor_enabled,
+            task_digest_enabled, task_digest_days,
             created_at, last_updated_at, last_login_at, must_change_password
      FROM users
      ORDER BY username, id
@@ -73,6 +74,15 @@ $users_stmt->bind_param('ii', $page_size, $page_offset);
 $users_stmt->execute();
 $users = $users_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $users_stmt->close();
+$task_digest_day_options = [
+    1 => ['short' => 'M', 'label' => 'Monday'],
+    2 => ['short' => 'T', 'label' => 'Tuesday'],
+    4 => ['short' => 'W', 'label' => 'Wednesday'],
+    8 => ['short' => 'Th', 'label' => 'Thursday'],
+    16 => ['short' => 'F', 'label' => 'Friday'],
+    32 => ['short' => 'Sa', 'label' => 'Saturday'],
+    64 => ['short' => 'Su', 'label' => 'Sunday'],
+];
 ?>
 
 <!DOCTYPE html>
@@ -148,6 +158,15 @@ $users_stmt->close();
                 || trim((string) ($user['last_name'] ?? '')) !== '';
             $display_phone = formatPhoneNumberForDisplay($user['phone'] ?? '');
             $display_email = trim((string) ($user['email'] ?? ''));
+            $digest_status = '';
+            if (empty($user['task_digest_enabled'])) {
+                $digest_status = 'Off';
+            } elseif ($user['account_status'] !== 'active') {
+                $digest_status = 'Paused · Account not active';
+            } elseif ($display_email === '' || empty($user['email_verified_at'])) {
+                $digest_status = 'Paused · Verified email required';
+            }
+            $digest_delivery_days = $digest_status === '' ? (int) $user['task_digest_days'] : 0;
             $picture_version = strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0;
             $profile_thumbnail_url = 'profile_picture.php?id=' . (int) $user['id']
                 . '&v=' . $picture_version;
@@ -233,6 +252,24 @@ $users_stmt->close();
                             </form>
                         <?php endif; ?>
                     </div>
+                </div>
+                <div class="user-digest-summary">
+                    <span class="user-digest-label">Daily Digest</span>
+                    <ul class="user-digest-days" aria-label="Daily Digest delivery days">
+                        <?php foreach ($task_digest_day_options as $day_value => $day_option): ?>
+                            <?php
+                            $digest_day_selected = ($digest_delivery_days & $day_value) !== 0;
+                            $digest_day_label = $day_option['label'] . ': ' . ($digest_day_selected ? 'Scheduled' : 'No delivery');
+                            ?>
+                            <li class="user-digest-day<?php echo $digest_day_selected ? ' is-selected' : ''; ?>" title="<?php echo htmlspecialchars($digest_day_label, ENT_QUOTES, 'UTF-8'); ?>">
+                                <span aria-hidden="true"><?php echo htmlspecialchars($day_option['short'], ENT_QUOTES, 'UTF-8'); ?></span>
+                                <span class="visually-hidden"><?php echo htmlspecialchars($digest_day_label, ENT_QUOTES, 'UTF-8'); ?></span>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <?php if ($digest_status !== ''): ?>
+                        <span class="user-digest-status"><?php echo htmlspecialchars($digest_status, ENT_QUOTES, 'UTF-8'); ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="user-timestamps">
                     <span class="timestamp">
