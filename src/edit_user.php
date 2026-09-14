@@ -274,12 +274,14 @@ $task_digest_day_options = [
                 <?php endif; ?>
             </div>
         </section>
-        <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
-        <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
-            <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
-                <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
-            <?php endforeach; ?>
-        </select></div>
+        <div class="profile-field-grid">
+            <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
+            <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
+                <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>
+                    <option value="<?php echo htmlspecialchars($available_role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $user['role'] === $available_role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($available_role), ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
+            </select></div>
+        </div>
         <section class="form-section" aria-labelledby="digest-settings-heading">
             <h2 id="digest-settings-heading">Daily Work Digest</h2>
             <label class="profile-notification-option">
