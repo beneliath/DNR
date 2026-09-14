@@ -182,10 +182,10 @@ expectUserManual(
 expectUserManual(
     str_contains($manual, 'Enter a required event title')
         && str_contains($manual, 'a valid start and end date')
-        && str_contains($manual, 'every initial standard task is assigned to that Caller')
-        && str_contains($manual, 'changing the engagement’s Caller later does not reassign')
+        && str_contains($manual, 'Initial standard tasks go to the selected <strong>Caller</strong>')
+        && str_contains($manual, 'Changing the Caller later does not reassign these tasks')
         && str_contains($manual, 'reassign those tasks in the Work Queue')
-        && str_contains($manual, 'tasks added this way are assigned to the user performing the action')
+        && str_contains($manual, 'creates absent standard items on an active engagement and assigns them to the acting user')
         && str_contains($manual, 'reschedules its active generated tasks')
         && str_contains($manual, 'due date was manually overridden keeps that date')
         && str_contains($manual, 'Mine, Everyone, or Unassigned')
@@ -201,9 +201,9 @@ expectUserManual(
     str_contains($manual, 'Duplicate a Task to Another Event')
         && str_contains($manual, '<strong>Duplicate to Another Event</strong>')
         && str_contains($manual, '<strong>Search events</strong>')
-        && str_contains($manual, 'source event cannot be selected as its own destination')
+        && str_contains($manual, 'choose a different event from the results')
         && str_contains($manual, 'duplicate starts <strong>Open</strong>')
-        && str_contains($manual, 'The original task remains unchanged.'),
+        && str_contains($manual, 'the original is unchanged.'),
     'the manual should explain how to duplicate a task safely to a different event.'
 );
 

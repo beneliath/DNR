@@ -108,6 +108,32 @@ function storeNetworkPerformanceSample(
     );
 }
 
+/** Clear recorded traffic measurements and audit the reset in one transaction. */
+function resetNetworkPerformanceStatistics(mysqli $conn, int $actorId): void
+{
+    if ($actorId < 1) {
+        throw new InvalidArgumentException('Select a valid administrator.');
+    }
+    $conn->begin_transaction();
+    try {
+        $conn->query('DELETE FROM network_performance_samples');
+        $removed = $conn->affected_rows;
+        if (!recordAuditEvent($conn, [
+            'event_category' => 'database_change',
+            'event_type' => 'network_statistics_reset',
+            'actor_user_id' => $actorId,
+            'entity_type' => 'network_performance_samples',
+            'details' => 'Cleared IPv4 and IPv6 traffic statistics; removed ' . $removed . ' samples.',
+        ])) {
+            throw new RuntimeException('Unable to audit the network statistics reset.');
+        }
+        $conn->commit();
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
 /** @param list<float|int|string> $values */
 function networkPerformancePercentile(array $values, float $percentile): ?float
 {

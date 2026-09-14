@@ -47,9 +47,9 @@ for number,shot in enumerate(shots,1):
     assert 'Figure ' in texts[index],('Figure caption missing',shot['id'])
     assert report['destinations']['end-shot-'+shot['id']]==index+1,('Split walkthrough',shot['id'])
 all_text='\n'.join(texts)
-for expected in ['Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
-    assert expected in all_text,('Missing required topic',expected)
-for forbidden in ['Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable']:
+for expected in ['Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
+    assert expected in ' '.join(all_text.split()),('Missing required topic',expected)
+for forbidden in ['Genesis 49:9,10','Revelation 5:5','Do you see Him?','ASCII art cat','Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)
 # Double braces are now intentional, documented template fields. Reject unknown tokens.
 allowed_fields={'event_name','organization_name','event_dates','event_start_date','event_end_date','event_location','speaker_names','presentation_schedule'}
@@ -85,8 +85,10 @@ for element in manual.README_ROOT.xpath('.//p|.//pre|.//li[not(p) and not(ul) an
             # reads the actual glyph positions independently for these lines.
             import pdfplumber
             with pdfplumber.open(ROOT/'output/pdf/moed-comprehensive-user-manual.pdf') as document:
-                page=document.pages[report['destinations']['readme-section-2']-1]
-                page_text=page.crop((manual.M,44,manual.M+manual.COL,748)).extract_text()
+                page_text='\n'.join(page.crop(box).extract_text() or ''
+                    for page in document.pages[report['readme_appendix']['start_page']-1:]
+                    for box in [(manual.M,44,manual.M+manual.COL,748),
+                                (manual.M+manual.COL+manual.GUTTER,44,manual.W-manual.M,748)])
             assert compact(fragment) in compact(page_text),('Missing mixed-direction README text',fragment)
         else:assert compact(fragment) in searchable,('README text omitted',fragment[:120])
 for section in manual.README_HEADINGS:
@@ -94,8 +96,15 @@ for section in manual.README_HEADINGS:
 assert len(pages[0].images)==0, 'The cover logo must remain vector, not a raster image'
 assert sum(operator==b'c' for _,operator in pages[0].get_contents().operations)>100, 'SVG logo vector paths missing'
 reverse_pages=0
+sparse_pages_checked=0
 with pdfplumber.open(ROOT/'output/pdf/moed-comprehensive-user-manual.pdf') as document:
     for number,page in enumerate(document.pages,1):
+        layout=report['page_layouts'][str(number)]
+        if layout in ('columns','mixed','readme-columns','readme-mixed','readme-wide'):
+            body=page.crop((manual.M,42,manual.W-manual.M,740)).extract_text() or ''
+            lines=[line for line in body.splitlines() if line.strip()]
+            assert len(lines)>=4 and len(body.split())>=30,('Stray continuation page',number,body)
+            sparse_pages_checked+=1
         reverse=number>=report['readme_appendix']['start_page']
         if reverse:
             reverse_pages+=1
@@ -116,6 +125,7 @@ assert 'Administrator' in texts[report['full_width_blocks'][0]['page']-1]
 result={'pages':len(pages),'screenshots':len(shots),'internal_links':links,'bookmarks':outline_count,'chapter_targets':'13/13 valid','walkthrough_layout':'all screenshots, captions, and steps remain on one page','external_pdf_actions':0,'readme_appendix':{'sections':len(manual.README_HEADINGS),'text_fragments_verified':fragments,'attachment_bytes':len(readme),'attachment_matches_current_source':True,'sha256':hashlib.sha256(readme).hexdigest()}}
 result['format']={'reference_text':'two columns','walkthrough_instructions':'two columns below spanning screenshots','readme_reverse_pages':reverse_pages,'readme_colors':'white text on black','cover_logo':'native SVG paths; no raster image or white backdrop','column_gutters':'clear'}
 result['format'].update({'full_width_reference_blocks':len(report['full_width_blocks']),'automatic_word_breaks':0})
+result['format'].update({'sparse_reference_pages_checked':sparse_pages_checked,'stray_continuation_pages':0,'paragraph_widows_and_orphans':'disabled','screenshot_footer_policy':report['screenshot_footer_policy']})
 result['release']={'version':manual.VERSION,'edition_date':manual.EDITION_DATE,'cover_and_metadata':'verified'}
 (ROOT/'docs/user-manual/verification.json').write_text(json.dumps(result,indent=2)+'\n')
 print(json.dumps(result,indent=2))

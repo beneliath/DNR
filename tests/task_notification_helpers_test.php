@@ -157,7 +157,8 @@ expectTaskNotificationHelper(
         && str_contains($message['body'], 'Mail For Review: 2')
         && str_contains($message['body'], 'https://moed.example.test/tasks.php?view=my')
         && str_contains($message['body'], 'https://moed.example.test/dashboard.php')
-        && str_contains($message['body'], 'https://moed.example.test/profile.php'),
+        && str_contains($message['body'], 'Manage delivery settings in My Profile > Notification Preferences.')
+        && !str_contains($message['body'], 'https://moed.example.test/profile.php'),
     'the text alternative should contain the same personal Dashboard snapshot and navigation as the HTML digest.'
 );
 expectTaskNotificationHelper(
@@ -195,14 +196,13 @@ expectTaskNotificationHelper(
         )
         && str_contains($message['html_body'], 'aria-label="ASCII art cat"')
         && str_contains(strip_tags($message['html_body'], '<br>'), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
-        && str_contains($message['html_body'], 'appointment, appointed time')
-        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/"')
-        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009"')
-        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005"')
-        && str_contains($message['html_body'], 'href="https://www.blueletterbible.org/faq/knowgod.cfm"')
+        && !str_contains($message['html_body'], 'appointment, appointed time')
+        && !str_contains($message['html_body'], 'lang="he"')
+        && !str_contains($message['html_body'], 'blueletterbible.org')
+        && !str_contains(substr($message['html_body'], strpos($message['html_body'], 'This is your scheduled')), '<a ')
         && str_contains($message['html_body'], 'display:inline-block')
         && str_contains($message['html_body'], 'text-align:left;white-space:pre')
-        && substr_count($message['html_body'], 'opacity:0.35;filter:alpha(opacity=35);') === 3
+        && substr_count($message['html_body'], 'opacity:0.35;filter:alpha(opacity=35);') === 2
         && str_contains($message['html_body'], 'Call &lt;the&gt; host &amp; confirm')
         && !str_contains($message['html_body'], 'Call <the> host & confirm'),
     'the HTML alternative should mirror the light Dashboard, link its records, escape data, and preserve the exact due-date highlights.'
