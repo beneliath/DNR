@@ -43,6 +43,8 @@ try {
         SUM(status = 'failed') AS failed_count,
         SUM(status IN ('pending', 'processing')) AS queued_count
         FROM inbound_email_messages");
+    $mailboxes = inboundMailboxOperationalStates($conn);
+    $quarantine = $metric($conn, 'SELECT COUNT(*) AS total FROM inbound_email_quarantine WHERE reviewed_at IS NULL');
     $backup = $metric($conn, "SELECT created_at AS last_backup_at, details AS last_backup_details
         FROM security_audit_log
         WHERE event_type = 'database_backup_created'
@@ -70,6 +72,26 @@ try {
         <div class="summary-card"><span><small>Failed authentication, 24h</small><strong><?php echo (int) ($authentication['failed_last_24_hours'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Applied migrations</small><strong><?php echo (int) ($migration['applied'] ?? 0); ?></strong></span></div>
     </div>
+    <section class="record-section">
+        <h2>Mail Ingestion</h2>
+        <p>Mailbox checks and imported messages are tracked separately from read or unread status. Times below are UTC.</p>
+        <?php if (!$mailboxes): ?>
+            <p>No mailbox check has been recorded.</p>
+        <?php endif; ?>
+        <?php foreach ($mailboxes as $mailbox): ?>
+            <h3><?php echo htmlspecialchars((string) $mailbox['mailbox_label'], ENT_QUOTES, 'UTF-8'); ?></h3>
+            <dl class="operations-details">
+                <div><dt>Mailbox scan</dt><dd><?php echo (int) $mailbox['consecutive_failures'] > 0 ? 'Failing' : ((int) $mailbox['stale'] ? 'Check overdue' : ((int) $mailbox['catching_up'] ? 'Catching up' : 'Up to date')); ?></dd></div>
+                <div><dt>Last successful check</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_checked_at'] ?? 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Last imported message</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_imported_at'] ?? 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Consecutive failed checks</dt><dd><?php echo (int) $mailbox['consecutive_failures']; ?></dd></div>
+                <div><dt>Latest mailbox error</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_error'] ?? 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Historical messages awaiting import review</dt><dd><?php echo (int) $mailbox['reconciliation_count']; ?></dd></div>
+            </dl>
+        <?php endforeach; ?>
+        <p>Quarantined messages awaiting review: <?php echo (int) $quarantine['total']; ?>. Historical messages require an explicit import or ignore decision before they can enter the normal mail queue.</p>
+        <p><a href="inbound_mail.php?status=all" class="button-secondary">View Inbound Mail</a></p>
+    </section>
     <section class="record-section">
             <h2>Deployment State</h2>
         <dl class="operations-details">

@@ -12,6 +12,7 @@ $source_directory = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source_directory . '/config.php';
 require_once $source_directory . '/functions.php';
 require_once $source_directory . '/database_backup_helpers.php';
+require_once $source_directory . '/inbound_ingestion_helpers.php';
 
 function expectDatabaseBackupIntegration($condition, $message) {
     if (!$condition) {
@@ -79,6 +80,21 @@ $chron_stmt->execute();
 $chron_entry_id = (int) $conn->insert_id;
 $chron_stmt->close();
 
+// Include retained mail, an already-purged receipt and mailbox progress. The
+// restore's DELETE/INSERT triggers must not invent or overwrite receipt history.
+$backup_mail_raw = "From: sender@example.test\r\nTo: gateway@example.test\r\nSubject: Backup mail\r\n"
+    . "Message-ID: <backup-{$suffix}@example.test>\r\n\r\nBackup fixture";
+$backup_mail = parseInboundEmail($backup_mail_raw);
+$backup_mail_id = storeInboundEmailMessage($conn, 'file', 'backup-' . $suffix, $backup_mail, 'gateway@example.test')['id'];
+$purged_hash = hash('sha256', 'purged-backup-' . $suffix, true);
+$conn->execute_query("INSERT INTO inbound_email_import_receipts (deduplication_hash, imported_at, purged_at)
+    VALUES (?, '2026-09-01 01:02:03', '2026-09-02 03:04:05')", [$purged_hash]);
+$mailbox_key = inboundMailboxKey('backup.example.test', 993, $suffix, 'INBOX');
+$conn->execute_query("INSERT INTO inbound_mailbox_state (mailbox_key, mailbox_label, uid_validity, scanned_uid, reconcile_through_uid)
+    VALUES (?, 'Backup fixture', 123, 8, 4)", [$mailbox_key]);
+$receipts_before = $conn->query('SELECT HEX(deduplication_hash) AS fingerprint, imported_at, purged_at, ignored_at
+    FROM inbound_email_import_receipts ORDER BY deduplication_hash')->fetch_all(MYSQLI_ASSOC);
+
 $backup_conn = databaseBackupConnection();
 $expected_table_count = (int) $conn->query(
     "SELECT COUNT(*) AS table_count
@@ -121,6 +137,10 @@ $conn->query(
      SET entry_text = 'Changed after backup', updated_at = UTC_TIMESTAMP()
      WHERE id = {$chron_entry_id}"
 );
+$conn->execute_query('DELETE FROM inbound_email_messages WHERE id = ?', [$backup_mail_id]);
+$extra_mail = parseInboundEmail(str_replace('backup-' . $suffix, 'extra-' . $suffix, $backup_mail_raw));
+storeInboundEmailMessage($conn, 'file', 'extra-backup-' . $suffix, $extra_mail, 'gateway@example.test');
+$conn->execute_query('UPDATE inbound_mailbox_state SET scanned_uid = 99 WHERE mailbox_key = ?', [$mailbox_key]);
 
 $restored = restoreDatabaseBackup(
     $conn,
@@ -133,6 +153,14 @@ expectDatabaseBackupIntegration(
     $restored['row_count'] === $inspection['row_count'],
     'restore should consume every backed-up row.'
 );
+$receipts_after = $conn->query('SELECT HEX(deduplication_hash) AS fingerprint, imported_at, purged_at, ignored_at
+    FROM inbound_email_import_receipts ORDER BY deduplication_hash')->fetch_all(MYSQLI_ASSOC);
+expectDatabaseBackupIntegration($receipts_before === $receipts_after,
+    'restore must preserve receipt timestamps and remove trigger side effects from post-backup mail.');
+expectDatabaseBackupIntegration((int) inboundSyncRow($conn, 'SELECT scanned_uid FROM inbound_mailbox_state WHERE mailbox_key = ?', [$mailbox_key])['scanned_uid'] === 8,
+    'restore must recover the mailbox checkpoint from the snapshot.');
+expectDatabaseBackupIntegration(inboundSyncRow($conn, 'SELECT id FROM inbound_email_messages WHERE id = ?', [$backup_mail_id]) !== [],
+    'retained mail must be restored with its original receipt.');
 
 $restored_organization = $conn->query(
     "SELECT organization_name, notes FROM organizations WHERE id = {$organization_id}"

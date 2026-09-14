@@ -76,3 +76,4 @@
 20260910_add_email_message_templates.sql
 20260913_add_email_recipient_types.sql
 20260913_add_network_performance_samples.sql
+20260914_durable_inbound_mail.sql

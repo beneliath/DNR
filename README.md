@@ -636,19 +636,58 @@ install -m 600 /dev/null secrets/imap_password
 ./scripts/compose_with_provenance.sh production-mail
 ```
 
-For local development, use `development-mail`. The worker imports unseen messages in bounded
-batches, marks a message seen only after DNR has stored it, and retries transient routing failures.
-Oversized or unparseable poison messages are recorded in `inbound_email_quarantine` before being
-marked seen so they cannot starve later UIDs; transient mailbox or database failures remain unseen.
-It does not delete or move the source message, including after successful routing; the IMAP mailbox
-remains a recoverable source of record. The web and worker accounts retain only the database
-privileges needed for this workflow.
+For local development, use `development-mail`. The worker discovers new messages by IMAP UID,
+regardless of their read/unread flags. It saves a mailbox checkpoint identified by the server,
+account, folder, and UIDVALIDITY. Each bounded batch fetches with `BODY.PEEK[]`, leaving the source
+message and its flags unchanged. Durable storage and the checkpoint commit in the same database
+transaction; a failed fetch or storage write is retried without skipping that message. Routing then
+uses the existing retryable queue. Oversized or unparseable messages advance the checkpoint only
+after an `inbound_email_quarantine` entry is stored, so they cannot starve later messages.
+
+Content-free import receipts survive source purges and retention cleanup. The migration seeds
+receipts from currently retained mail, but cannot reconstruct records purged before the upgrade.
+Consequently, the **first mailbox scan**, and any later **UIDVALIDITY reset**, hold unknown existing
+messages for explicit reconciliation instead of automatically importing them. Known receipts prevent
+reimport; new arrivals beyond that initial snapshot enter the normal queue automatically. The
+Operations page shows the last successful mailbox check/import, failures, and counts of historical
+and quarantined messages awaiting review. The mailbox remains a recoverable source of record.
+
+After starting the upgraded worker, list historical candidates from the running mail-ingest service
+(append the deployment's usual Compose override files as needed):
+
+```sh
+docker compose -f docker-compose.yaml -f docker-compose.mail.yaml exec -T mail-ingest \
+  php /opt/dnr/bin/reconcile_inbound_mail.php --list
+```
+
+The listing contains at most 100 pending candidates, each with sender, subject, sent time, UID and
+UIDVALIDITY. Review that metadata against retained mail/Chron history. To import one selected
+message, or deliberately leave it out, use exactly one of these commands with the listed values:
+
+```sh
+# Replace the example numbers with the UID and UIDVALIDITY from the listing
+docker compose -f docker-compose.yaml -f docker-compose.mail.yaml exec -T mail-ingest \
+  php /opt/dnr/bin/reconcile_inbound_mail.php --import=13 --uid-validity=112563446
+docker compose -f docker-compose.yaml -f docker-compose.mail.yaml exec -T mail-ingest \
+  php /opt/dnr/bin/reconcile_inbound_mail.php --ignore=13 --uid-validity=112563446
+```
+
+Import rechecks the message fingerprint and sends it through normal routing/authentication rules.
+Ignore saves a content-free receipt so redelivery stays ignored. Re-run the listing after decisions
+to see any remaining candidates; there is intentionally no bulk-import command. Both reconciliation
+and the worker acquire the same mailbox lock. Neither changes IMAP read flags, moves mail, or sends
+email. Apply the migration and refreshed database grants before starting the upgraded worker.
 
 An administrator with a recent elevated session can purge an individual retained mail entry from
 its **Inbound Mail** detail view. Purging removes the DNR mail card and its retained source content,
 but preserves every associated Contact, Organization, and Engagement Chron Log entry; only the
 source-email link on those Chron entries is cleared. The original message in the IMAP mailbox is not
 deleted or moved.
+
+The permanent receipt retains only the message fingerprint and import/purge/ignore timestamps;
+it cannot reconstruct deleted message content. Restoring a database backup also restores its
+mailbox checkpoints and receipts. A mailbox reset after restoration uses the same reconciliation
+process described above.
 
 Proton Mail accounts require [Proton Mail Bridge](https://proton.me/support/imap-smtp-and-pop3-setup)
 and a paid Proton plan. Configure DNR with the IMAP hostname, port, username, and generated password

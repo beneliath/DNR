@@ -6,12 +6,13 @@ namespace Dnr\Infrastructure;
 
 use RuntimeException;
 
-final class ImapClient
+final class ImapClient implements InboundMailbox
 {
     /** @var resource|null */
     private $stream = null;
     private int $tagCounter = 0;
     private int $uidValidity = 0;
+    private int $uidNext = 0;
 
     public function __construct(
         private readonly string $host,
@@ -83,7 +84,9 @@ final class ImapClient
             foreach ($response['lines'] as $line) {
                 if (preg_match('/\[UIDVALIDITY\s+(\d+)\]/i', $line, $match) === 1) {
                     $this->uidValidity = (int) $match[1];
-                    break;
+                }
+                if (preg_match('/\[UIDNEXT\s+(\d+)\]/i', $line, $match) === 1) {
+                    $this->uidNext = (int) $match[1];
                 }
             }
             if ($this->uidValidity < 1) {
@@ -101,6 +104,42 @@ final class ImapClient
             throw new RuntimeException('The IMAP mailbox is not selected.');
         }
         return $this->uidValidity;
+    }
+
+    public function uidNext(): int
+    {
+        if ($this->uidNext < 1 || $this->uidNext > 4294967295) {
+            throw new RuntimeException('The IMAP mailbox did not report a valid UIDNEXT.');
+        }
+        return $this->uidNext;
+    }
+
+    /** @return list<int> */
+    public function uidsBetween(int $first, int $last): array
+    {
+        if ($first < 1 || $last > 4294967295) {
+            throw new RuntimeException('The IMAP UID range is invalid.');
+        }
+        // IMAP reversed ranges also match messages. Never issue one at EOF,
+        // and never use "*", which can resolve below the requested start.
+        if ($last < $first) {
+            return [];
+        }
+        $response = $this->command('UID SEARCH UID ' . $first . ':' . $last);
+        $uids = [];
+        foreach ($response['lines'] as $line) {
+            if (preg_match('/\A\* SEARCH(?:\s+(.*))?\r?\n?\z/i', $line, $match) !== 1) {
+                continue;
+            }
+            foreach (preg_split('/\s+/', trim($match[1] ?? '')) ?: [] as $value) {
+                if (ctype_digit($value) && (int) $value >= $first && (int) $value <= $last) {
+                    $uids[(int) $value] = true;
+                }
+            }
+        }
+        $result = array_keys($uids);
+        sort($result, SORT_NUMERIC);
+        return $result;
     }
 
     /** @return list<int> */
@@ -155,6 +194,7 @@ final class ImapClient
         if (!is_resource($this->stream)) {
             $this->stream = null;
             $this->uidValidity = 0;
+            $this->uidNext = 0;
             return;
         }
         try {
@@ -176,6 +216,7 @@ final class ImapClient
         }
         $this->stream = null;
         $this->uidValidity = 0;
+        $this->uidNext = 0;
     }
 
     public function __destruct()

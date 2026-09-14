@@ -18,6 +18,7 @@ $engagementMigration = file_get_contents(
 $quarantineMigration = file_get_contents($root . '/migrations/20260823_add_inbound_email_quarantine.sql');
 $helper = file_get_contents($root . '/src/inbound_email_helpers.php');
 $worker = file_get_contents($root . '/scripts/process_inbound_mail.php');
+$sync = file_get_contents($root . '/src/inbound_ingestion_helpers.php');
 $review = file_get_contents($root . '/src/inbound_mail.php');
 $reviewStyles = file_get_contents($root . '/src/assets/css/pages/inbound_mail.css');
 $engagementView = file_get_contents($root . '/src/view_engagement.php');
@@ -67,12 +68,13 @@ expectInboundFeature(
     'routing should require signed markers and recognized senders, preserve standalone Contacts, use gateway attribution, and deduplicate delivery.'
 );
 expectInboundFeature(
-    str_contains($worker, 'unseenUids')
-        && str_contains($worker, 'markSeen')
+    str_contains($worker, 'syncInboundMailbox')
+        && !str_contains($worker, 'unseenUids')
+        && !str_contains($worker, 'markSeen')
         && str_contains($worker, 'claimInboundEmailMessage')
-        && str_contains($worker, 'quarantineInboundEmailMessage')
-        && str_contains($worker, '$client->abort()')
-        && str_contains($worker, 'UIDVALIDITY changed after reconnecting')
+        && str_contains($sync, 'quarantineInboundEmailMessage')
+        && str_contains($sync, '$mailbox->abort()')
+        && str_contains($sync, 'reconcile_through_uid')
         && str_contains($compose, 'DNR_IMAP_PASSWORD_FILE: /run/secrets/dnr_imap_password')
         && str_contains($compose, 'DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key')
         && str_contains($compose, 'DNR_INBOUND_REQUIRE_AUTHENTICATED_FROM')
@@ -130,7 +132,8 @@ expectInboundFeature(
         && str_contains($readme, 'production-mail')
         && str_contains($readme, 'Attachment contents are not stored')
         && str_contains($readme, 'aligned `dmarc=pass`')
-        && str_contains($readme, 'does not delete or move the source message'),
+        && str_contains($readme, 'leaving the source')
+        && str_contains($readme, 'message and its flags unchanged'),
     'the gateway, deployment modes, routing limits, and attachment policy should be documented.'
 );
 

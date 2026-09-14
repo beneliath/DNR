@@ -939,6 +939,15 @@ function restoreDatabaseBackup(
             }
         }
 
+        // Source deletion retains mail receipts via a trigger. Drain those
+        // generated receipts after all clears, before restoring the snapshot's
+        // own receipts. Normal application purges still retain their history.
+        if (in_array('inbound_email_import_receipts', array_column($current_schema, 'name'), true)
+            && !$conn->query('DELETE FROM inbound_email_import_receipts')
+        ) {
+            throw new RuntimeException('Unable to prepare mail receipts for restore.');
+        }
+
         $inspection = inspectDatabaseBackup(
             $path,
             $current_schema,
