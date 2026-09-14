@@ -247,8 +247,7 @@ function renderDailyTaskDigestText(
         'view' => 'my',
     ]);
     $lines[] = 'Open your Dashboard: ' . applicationPublicUrl('dashboard.php');
-    $lines[] = 'Manage this digest: ' . applicationPublicUrl('profile.php')
-        . '#notification-preferences-heading';
+    $lines[] = 'Manage delivery settings in My Profile > Notification Preferences.';
 
     return implode("\n", $lines);
 }
@@ -341,11 +340,6 @@ function renderDailyTaskDigestHtml(
     ]);
     $closeoutsUrl = dailyTaskDigestHtmlUrl('dashboard.php', [], 'financial-closeouts');
     $inboundUrl = dailyTaskDigestHtmlUrl('inbound_mail.php', ['status' => 'review']);
-    $profileUrl = dailyTaskDigestHtmlUrl(
-        'profile.php',
-        [],
-        'notification-preferences-heading'
-    );
     $newTaskUrl = dailyTaskDigestHtmlUrl('add_task.php', [
         'return_to' => 'dashboard.php',
     ]);
@@ -701,18 +695,17 @@ function renderDailyTaskDigestHtml(
                     <tr>
                         <td align="center" class="content-padding" style="padding:26px 20px 10px;">
                             <a href="<?php echo $dashboardUrl; ?>" style="display:inline-block;padding:11px 17px;border-radius:9px;background:#2457d6;color:#ffffff;font-size:13px;font-weight:700;">Open Your Dashboard</a>
-                            <div style="margin-top:16px;color:#8992a3;font-size:11px;line-height:1.6;">This is your scheduled <?php echo dailyTaskDigestHtmlEscape($brandName); ?> Daily Digest. <a href="<?php echo $profileUrl; ?>" style="color:#667085;text-decoration:underline;">Manage Delivery Settings</a>.</div>
+                            <div style="margin-top:16px;color:#8992a3;font-size:11px;line-height:1.6;">This is your scheduled <?php echo dailyTaskDigestHtmlEscape($brandName); ?> Daily Digest. Manage delivery settings in My Profile &gt; Notification Preferences.</div>
                         </td>
                     </tr>
                     <tr>
                         <td align="center" style="padding:18px 8px 2px;">
-                            <div style="margin:0 0 22px;color:#667085;font-size:11px;line-height:1.6;text-align:center;opacity:0.35;filter:alpha(opacity=35);"><a href="https://www.blueletterbible.org/lexicon/h4150/wlc/wlc/0-1/" target="_blank" rel="noopener noreferrer" style="color:#667085;text-decoration:none;"><span lang="he" dir="rtl" style="font-size:1.21em;">מוֹעֵד</span>&nbsp;&nbsp;<span style="font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;">=&nbsp;&nbsp;appointment, appointed time</span></a></div>
                             <pre aria-label="ASCII art cat" style="display:inline-block;margin:0;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:left;white-space:pre;opacity:0.35;filter:alpha(opacity=35);mso-line-height-rule:exactly;">     (&quot;`-''-/&quot;).___..--''&quot;`-.
      `6_ 6  )   `-.  (     ).`-.__.`)
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'
   (il),-''  (li),'  ((!.-'</pre>
-                            <div style="margin-top:6px;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:center;opacity:0.35;filter:alpha(opacity=35);mso-line-height-rule:exactly;"><a href="https://www.blueletterbible.org/nkjv/gen/49/9-10/s_49009" target="_blank" rel="noopener noreferrer" style="color:#667085;font-family:inherit;text-decoration:none;">Genesis 49:9,10</a> ... <a href="https://www.blueletterbible.org/nkjv/rev/5/5/s_1172005" target="_blank" rel="noopener noreferrer" style="color:#667085;font-family:inherit;text-decoration:none;">Revelation 5:5</a><br><a href="https://www.blueletterbible.org/faq/knowgod.cfm" target="_blank" rel="noopener noreferrer" style="color:#667085;font-family:inherit;text-decoration:none;">Do you see Him?</a></div>
+                            <div style="margin-top:6px;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:center;opacity:0.35;filter:alpha(opacity=35);mso-line-height-rule:exactly;">Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?</div>
                         </td>
                     </tr>
                 </table>

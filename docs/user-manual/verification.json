@@ -1,31 +1,35 @@
 {
-  "pages": 124,
-  "screenshots": 72,
-  "internal_links": 1078,
-  "bookmarks": 251,
+  "pages": 133,
+  "screenshots": 77,
+  "internal_links": 1117,
+  "bookmarks": 283,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
-    "sections": 38,
-    "text_fragments_verified": 1069,
-    "attachment_bytes": 92548,
+    "sections": 57,
+    "text_fragments_verified": 1099,
+    "attachment_bytes": 94922,
     "attachment_matches_current_source": true,
-    "sha256": "41b3e0dfd8f5c7f89b3af1dbe110df4f8d1745313e0668fbe0e3f145b59ea328"
+    "sha256": "a452d517a46ee1fb5469c1a78678543697047b9c2279d6d978613c8948bc3910"
   },
   "format": {
     "reference_text": "two columns",
     "walkthrough_instructions": "two columns below spanning screenshots",
-    "readme_reverse_pages": 21,
+    "readme_reverse_pages": 24,
     "readme_colors": "white text on black",
     "cover_logo": "native SVG paths; no raster image or white backdrop",
     "column_gutters": "clear",
-    "full_width_reference_blocks": 5,
-    "automatic_word_breaks": 0
+    "full_width_reference_blocks": 7,
+    "automatic_word_breaks": 0,
+    "sparse_reference_pages_checked": 53,
+    "stray_continuation_pages": 0,
+    "paragraph_widows_and_orphans": "disabled",
+    "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.1.0",
-    "edition_date": "September 13, 2026",
+    "version": "2.1.9",
+    "edition_date": "September 14, 2026",
     "cover_and_metadata": "verified"
   }
 }

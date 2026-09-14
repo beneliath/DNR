@@ -16,6 +16,26 @@
     align-items: center;
 }
 
+.network-diagnostics-actions {
+    display: flex;
+    flex-shrink: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.network-statistics-reset-form {
+    display: flex;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+}
+
+.network-diagnostics-actions :is(button, a) {
+    margin: 0;
+}
+
 .network-diagnostics-summary {
     display: flex;
     align-items: center;
@@ -333,7 +353,11 @@
         flex-direction: column;
     }
 
-    .network-diagnostics-heading .button-add {
+    .network-diagnostics-actions > * {
+        flex: 1;
+    }
+
+    .network-statistics-reset-form button {
         width: 100%;
     }
 
