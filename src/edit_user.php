@@ -1,17 +1,19 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/profile_helpers.php';
 include 'two_factor_helpers.php';
 include 'notification_helpers.php';
 startSecureSession();
 requireAdmin();
 
 // Fetch the user ID from the URL parameter
-if (isset($_GET['id']) && is_numeric($_GET['id'])) {
-    $user_id = (int) $_GET['id'];
+$user_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
+if ($user_id !== null) {
 
     // Fetch user details from the database
     $stmt = $conn->prepare(
-        "SELECT id, username, role, email, email_verified_at,
+        "SELECT id, username, role, first_name, last_name, phone, email, email_verified_at,
+                profile_picture_mime, profile_picture_updated_at,
                 task_digest_enabled, task_digest_time, task_digest_days
          FROM users WHERE id = ?"
     );
@@ -19,6 +21,7 @@ if (isset($_GET['id']) && is_numeric($_GET['id'])) {
     $stmt->execute();
     $result = $stmt->get_result();
     $user = $result->fetch_assoc();
+    $stmt->close();
 
     if (!$user) {
         // If no user is found, redirect to the users list
@@ -35,8 +38,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     requireValidCsrfToken();
     requireRecentAdminElevation('edit_user.php?id=' . $user_id);
 
-    $username = trim($_POST['username'] ?? '');
-    $role = $_POST['role'] ?? '';
+    $username = \Dnr\Http\RequestInput::string($_POST, 'username');
+    $role = \Dnr\Http\RequestInput::string($_POST, 'role');
+    $first_name = \Dnr\Http\RequestInput::string($_POST, 'first_name');
+    $last_name = \Dnr\Http\RequestInput::string($_POST, 'last_name');
+    $phone = \Dnr\Http\RequestInput::string($_POST, 'phone');
+    $phone_country_code = \Dnr\Http\RequestInput::string($_POST, 'phone_country_code', applicationDefaultPhoneCountryCode());
+    $remove_profile_picture = isset($_POST['remove_profile_picture']);
+    $picture = null;
     $valid_roles = \Dnr\Domain\ReferenceData::userRoles();
     $task_digest_enabled = ($_POST['task_digest_enabled'] ?? '') === '1' ? 1 : 0;
     $task_digest_time = taskDigestDeliveryTimeFromInput(
@@ -47,28 +56,34 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $task_digest_days = TASK_DIGEST_WEEKDAYS;
     }
     try {
-        $task_digest_time = taskDigestDeliveryTimeFromInput(
-            $_POST['task_digest_time'] ?? null
-        );
-        $task_digest_days = taskDigestDaysFromInput(
-            $_POST['task_digest_days'] ?? null
-        );
+        if ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
+            throw new InvalidArgumentException('Username is required and must be 50 characters or fewer.');
+        }
+        if (!in_array($role, $valid_roles, true)) {
+            throw new InvalidArgumentException('Invalid role selected.');
+        }
+        if (mb_strlen($first_name, 'UTF-8') > 100 || mb_strlen($last_name, 'UTF-8') > 100) {
+            throw new InvalidArgumentException('First and last names must be 100 characters or fewer.');
+        }
+        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone number');
+        $picture = profilePictureFromUpload($_FILES['profile_picture'] ?? []);
+        if ($picture !== null && $remove_profile_picture) {
+            throw new InvalidArgumentException('Choose either a new profile picture or remove the current picture.');
+        }
+        // Disabled schedule controls are omitted by the browser; keep the saved schedule.
+        if ($task_digest_enabled) {
+            $task_digest_time = taskDigestDeliveryTimeFromInput(
+                $_POST['task_digest_time'] ?? null
+            );
+            $task_digest_days = taskDigestDaysFromInput(
+                $_POST['task_digest_days'] ?? null
+            );
+        }
     } catch (InvalidArgumentException $exception) {
         $error = $exception->getMessage();
     }
 
-    if (isset($error)) {
-        // Keep the submitted values below so the administrator can correct them.
-        $user['username'] = $username;
-        $user['role'] = $role;
-        $user['task_digest_enabled'] = $task_digest_enabled;
-        $user['task_digest_time'] = $task_digest_time;
-        $user['task_digest_days'] = $task_digest_days;
-    } elseif ($username === '' || mb_strlen($username, 'UTF-8') > 50) {
-        $error = "Username is required and must be 50 characters or fewer.";
-    } elseif (!in_array($role, $valid_roles, true)) {
-        $error = "Invalid role selected.";
-    } else {
+    if (!isset($error)) {
         $conn->begin_transaction();
         try {
             $lock_stmt = $conn->prepare(
@@ -103,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             $stmt = $conn->prepare(
                 'UPDATE users
-                 SET username = ?, role = ?,
+                 SET username = ?, role = ?, first_name = ?, last_name = ?, phone = ?,
                      task_digest_enabled = ?, task_digest_time = ?, task_digest_days = ?,
                      auth_version = auth_version + 1
                  WHERE id = ?'
@@ -112,9 +127,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 throw new RuntimeException('Unable to prepare the user update.');
             }
             $stmt->bind_param(
-                'ssisii',
+                'sssssisii',
                 $username,
                 $role,
+                $first_name,
+                $last_name,
+                $phone,
                 $task_digest_enabled,
                 $task_digest_time,
                 $task_digest_days,
@@ -124,23 +142,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 throw new RuntimeException('Unable to update the user.');
             }
             $stmt->close();
+            if ($picture !== null) {
+                $conn->execute_query(
+                    'UPDATE users SET profile_picture = ?, profile_picture_thumbnail = ?,
+                        profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
+                        profile_picture_sha256 = ?, profile_picture_updated_at = UTC_TIMESTAMP()
+                     WHERE id = ?',
+                    [$picture['data'], $picture['thumbnail_data'], $picture['thumbnail_mime_type'],
+                        $picture['mime_type'], $picture['sha256'], $user_id]
+                );
+            } elseif ($remove_profile_picture) {
+                $conn->execute_query(
+                    'UPDATE users SET profile_picture = NULL, profile_picture_thumbnail = NULL,
+                        profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
+                        profile_picture_sha256 = NULL, profile_picture_updated_at = UTC_TIMESTAMP()
+                     WHERE id = ?',
+                    [$user_id]
+                );
+            }
+            if (!logSecurityEvent($conn, 'user_profile_updated', $user_id, (int) $_SESSION['user_id'])) {
+                throw new RuntimeException('Unable to audit the user update.');
+            }
             $conn->commit();
             header("Location: users.php");
             exit();
         } catch (Throwable $exception) {
             $conn->rollback();
+            applicationLog('error', 'Unable to update user details', ['error' => $exception->getMessage()]);
             $error = $exception instanceof InvalidArgumentException
                 ? $exception->getMessage()
                 : 'Unable to update user details. The username may already exist.';
-            $user['username'] = $username;
-            $user['role'] = $role;
-            $user['task_digest_enabled'] = $task_digest_enabled;
-            $user['task_digest_time'] = $task_digest_time;
-            $user['task_digest_days'] = $task_digest_days;
         }
     }
+    $user['username'] = $username;
+    $user['role'] = $role;
+    $user['first_name'] = $first_name;
+    $user['last_name'] = $last_name;
+    $user['phone'] = $phone;
+    $user['task_digest_enabled'] = $task_digest_enabled;
+    $user['task_digest_time'] = $task_digest_time;
+    $user['task_digest_days'] = $task_digest_days;
 }
 
+[$phone_country_code_value, $phone_local_value] = phoneNumberInputParts(
+    $user['phone'] ?? '',
+    $phone_country_code ?? applicationDefaultPhoneCountryCode()
+);
+$profile_picture_version = (string) (strtotime((string) ($user['profile_picture_updated_at'] ?? '')) ?: 0);
 $task_digest_time_value = taskDigestDeliveryTimeInputValue(
     $user['task_digest_time'] ?? null
 );
@@ -179,12 +227,53 @@ $task_digest_day_options = [
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="users.php">Users</a><span aria-hidden="true">/</span><span>Edit User</span></nav>
-    <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Change account access and daily work digest settings.</p></div></div>
+    <div class="page-heading form-page-heading"><div><h1>Edit User</h1><p class="page-intro">Manage this user's profile, account access, and daily work digest settings.</p></div></div>
 
     <?php if (isset($error)) echo "<p class='error'>" . htmlspecialchars($error, ENT_QUOTES, 'UTF-8') . "</p>"; ?>
 
-    <form method="post" action="edit_user.php?id=<?php echo $user['id']; ?>">
+    <form method="post" action="edit_user.php?id=<?php echo (int) $user['id']; ?>" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
+        <section class="form-section" aria-labelledby="personal-details-heading">
+            <h2 id="personal-details-heading">Personal Details</h2>
+            <div class="profile-field-grid">
+                <div class="form-group">
+                    <label for="first_name">First name</label>
+                    <input type="text" id="first_name" name="first_name" maxlength="100" autocomplete="given-name" value="<?php echo htmlspecialchars((string) ($user['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="form-group">
+                    <label for="last_name">Last name</label>
+                    <input type="text" id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="<?php echo htmlspecialchars((string) ($user['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email" id="email" readonly value="<?php echo htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                    <p class="field-help">The user can change their recovery email in My Profile after confirming their password and authenticator code.</p>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Phone number</label>
+                    <div class="phone-input-group" data-phone-input-group>
+                        <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Phone country code'); ?>
+                        <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="tel-national" inputmode="tel" data-phone-number>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section class="form-section profile-picture-card" aria-labelledby="profile-picture-heading">
+            <div class="profile-picture-preview">
+                <img src="profile_picture.php?id=<?php echo (int) $user['id']; ?>&amp;size=full&amp;v=<?php echo rawurlencode($profile_picture_version); ?>" alt="Current profile picture" data-profile-picture-preview>
+            </div>
+            <div class="profile-picture-controls">
+                <h2 id="profile-picture-heading">Profile Picture</h2>
+                <label for="profile_picture">Choose a new picture</label>
+                <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>">
+                <input type="file" id="profile_picture" name="profile_picture" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>" data-profile-picture-input>
+                <p class="field-help">JPEG, PNG, or WebP. Maximum file size: 5 MB.</p>
+                <p class="profile-picture-preview-status" hidden aria-live="polite" data-profile-picture-preview-status></p>
+                <?php if (!empty($user['profile_picture_mime'])): ?>
+                    <label class="profile-picture-remove"><input type="checkbox" name="remove_profile_picture" value="1" data-remove-profile-picture> Remove current picture</label>
+                <?php endif; ?>
+            </div>
+        </section>
         <div class="form-group"><label for="username">Username</label><input type="text" id="username" name="username" autocomplete="username" value="<?php echo htmlspecialchars($user['username']); ?>" required></div>
         <div class="form-group"><label for="role">Role</label><select id="role" name="role" required>
             <?php foreach (\Dnr\Domain\ReferenceData::userRoles() as $available_role): ?>

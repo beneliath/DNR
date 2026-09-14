@@ -775,6 +775,7 @@ Recovery-email changes are separate from ordinary profile edits. They require th
 
 ### User lifecycle and invitations
 
+- Administrators can edit any user's first and last name, phone number, profile picture, account access, and daily digest settings from **Manage Users → Edit**. Saves require a recent administrator unlock and record the acting administrator in the audit log. Recovery email changes use the user's verification flow in **My Profile**.
 - Freshly invited accounts cannot authenticate. The seven-day invitation link lets the recipient choose a private password, verifies the invited email address, and activates the account.
 - A self-service email change retains the current verified address while a new 24-hour verification link is pending. Successful verification promotes the new address and revokes existing sessions. Only verified addresses can receive password-recovery links.
 - Deactivation retains the user and every audit reference while incrementing the authentication version, revoking all calendar subscriptions, invalidating outstanding email links, removing task assignments, and making any session-held administrator elevation unusable.
