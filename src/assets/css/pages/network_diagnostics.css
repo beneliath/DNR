@@ -190,6 +190,7 @@
 
 .network-contact-card,
 .network-page-breakdown {
+    min-width: 0;
     margin-top: 18px;
     padding: 20px;
     border: 1px solid var(--border);
@@ -257,7 +258,62 @@
 
 .network-page-breakdown th,
 .network-page-breakdown td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
     font-variant-numeric: tabular-nums;
+}
+
+.network-page-breakdown .responsive-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+}
+
+.network-page-breakdown table {
+    width: 100%;
+    min-width: 720px;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.network-page-breakdown .network-page-column {
+    width: 45%;
+}
+
+.network-page-breakdown .network-family-column {
+    width: 13.75%;
+}
+
+.network-page-breakdown thead th {
+    vertical-align: bottom;
+}
+
+.network-page-breakdown thead tr:first-child th {
+    padding-bottom: 5px;
+}
+
+.network-page-breakdown thead tr:last-child th {
+    padding-top: 5px;
+}
+
+.network-page-breakdown th:first-child,
+.network-page-breakdown td:first-child {
+    text-align: left;
+}
+
+.network-page-breakdown .network-family-heading {
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.network-page-breakdown .network-family-divider,
+.network-page-breakdown tbody td:nth-child(4) {
+    border-left: 1px solid var(--border-strong);
+}
+
+.network-page-breakdown tbody tr:last-child td {
+    border-bottom: 0;
 }
 
 .network-page-breakdown th:not(:first-child),
@@ -290,6 +346,78 @@
 
     .network-page-breakdown th:not(:first-child),
     .network-page-breakdown td:not(:first-child) {
+        text-align: left;
+    }
+
+    .network-page-breakdown {
+        overflow: hidden;
+    }
+
+    .network-page-breakdown .responsive-table {
+        overflow: visible;
+    }
+
+    .network-page-breakdown table,
+    .network-page-breakdown tbody,
+    .network-page-breakdown tr,
+    .network-page-breakdown td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .network-page-breakdown colgroup {
+        display: none;
+    }
+
+    .network-page-breakdown thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .network-page-breakdown tbody {
+        display: grid;
+        gap: 12px;
+    }
+
+    .network-page-breakdown tbody tr {
+        overflow: hidden;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-sm);
+        background: var(--surface-subtle);
+    }
+
+    .network-page-breakdown tbody td:not([colspan]) {
+        display: grid;
+        grid-template-columns: minmax(7.5rem, 0.8fr) minmax(0, 1fr);
+        gap: 12px;
+        border-left: 0;
+        overflow-wrap: anywhere;
+        text-align: right;
+    }
+
+    .network-page-breakdown tbody td:not([colspan])::before {
+        color: var(--text-muted);
+        font-size: var(--font-size-small);
+        font-weight: 700;
+        text-align: left;
+    }
+
+    .network-page-breakdown tbody td:nth-child(1):not([colspan])::before { content: "Page"; }
+    .network-page-breakdown tbody td:nth-child(2):not([colspan])::before { content: "IPv4 p75"; }
+    .network-page-breakdown tbody td:nth-child(3):not([colspan])::before { content: "IPv4 samples"; }
+    .network-page-breakdown tbody td:nth-child(4):not([colspan])::before { content: "IPv6 p75"; }
+    .network-page-breakdown tbody td:nth-child(5):not([colspan])::before { content: "IPv6 samples"; }
+
+    .network-page-breakdown tbody td[colspan] {
+        padding: 12px;
         text-align: left;
     }
 }

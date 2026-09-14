@@ -73,7 +73,24 @@ requireAdmin();
         </div>
         <div class="responsive-table">
             <table class="data-table">
-                <thead><tr><th>Page</th><th>IPv4 p75</th><th>IPv4 samples</th><th>IPv6 p75</th><th>IPv6 samples</th></tr></thead>
+                <colgroup>
+                    <col class="network-page-column">
+                    <col span="2" class="network-family-column">
+                    <col span="2" class="network-family-column">
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col" rowspan="2">Page</th>
+                        <th scope="colgroup" colspan="2" class="network-family-heading">IPv4</th>
+                        <th scope="colgroup" colspan="2" class="network-family-heading network-family-divider">IPv6</th>
+                    </tr>
+                    <tr>
+                        <th scope="col">75th percentile</th>
+                        <th scope="col">Samples</th>
+                        <th scope="col" class="network-family-divider">75th percentile</th>
+                        <th scope="col">Samples</th>
+                    </tr>
+                </thead>
                 <tbody data-network-pages><tr><td colspan="5">Loading remote measurements…</td></tr></tbody>
             </table>
         </div>

@@ -216,7 +216,7 @@ $contact_query = "SELECT
                     c.contact_phone,
                     c.contact_email,
                     c.contact_photo_mime,
-                    c.contact_photo_updated_at,
+                    LOWER(HEX(c.contact_photo_sha256)) AS contact_photo_version,
                     o.organization_name,
                     o.is_deleted AS organization_is_archived
                   {$contact_from}
@@ -365,7 +365,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                     <?php if (!empty($contact['contact_photo_mime'])): ?>
                                         <img class="contact-list-avatar" src="<?php echo htmlspecialchars(
                                             'contact_photo.php?id=' . (int) $contact['id']
-                                                . '&v=' . (strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0),
+                                                . '&v=' . (string) ($contact['contact_photo_version'] ?? ''),
                                             ENT_QUOTES,
                                             'UTF-8'
                                         ); ?>" alt="">
