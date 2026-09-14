@@ -76,7 +76,12 @@ expectNetworkDiagnostics(
         && str_contains($dashboardScript, "credentials: 'same-origin'")
         && str_contains($dashboardScript, 'This does not establish whether IPv6 is healthy.')
         && str_contains($functions, "'network_diagnostics.php'")
-        && str_contains($styles, '@media (max-width: 760px)'),
+        && str_contains($styles, '@media (max-width: 760px)')
+        && str_contains($styles, '.network-page-breakdown tbody td:not([colspan])')
+        && str_contains($styles, 'grid-template-columns: minmax(7.5rem, 0.8fr) minmax(0, 1fr)')
+        && str_contains($styles, '.network-page-breakdown .network-family-divider')
+        && str_contains($page, '<th scope="col" rowspan="2">Page</th>')
+        && str_contains($page, '<th scope="colgroup" colspan="2" class="network-family-heading">IPv4</th>'),
     'the responsive admin page should compare both public families, contact images, and observed page loads.'
 );
 

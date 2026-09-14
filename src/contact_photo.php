@@ -37,8 +37,16 @@ if (!$contact) {
 $allowed_mime_types = ['image/jpeg', 'image/png', 'image/webp'];
 $mime_type = (string) ($contact['contact_photo_mime'] ?? '');
 $photo_hash = strtolower((string) ($contact['contact_photo_sha256'] ?? ''));
+$requested_version = strtolower(\Dnr\Http\RequestInput::string($_GET, 'v', '', 64));
+$has_content_version = preg_match('/^[0-9a-f]{64}$/', $requested_version) === 1
+    && preg_match('/^[0-9a-f]{64}$/', $photo_hash) === 1
+    && hash_equals($photo_hash, $requested_version);
 
-header('Cache-Control: private, max-age=300');
+header(
+    $has_content_version
+        ? 'Cache-Control: private, max-age=31536000, immutable'
+        : 'Cache-Control: private, max-age=300'
+);
 header('X-Content-Type-Options: nosniff');
 
 if (preg_match('/^[0-9a-f]{64}$/', $photo_hash) === 1

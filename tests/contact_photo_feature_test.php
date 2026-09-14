@@ -129,6 +129,8 @@ $photo_endpoint = $read('src/contact_photo.php');
 expectContactPhoto(
     str_contains($photo_endpoint, 'requireLogin()')
         && str_contains($photo_endpoint, "header('Cache-Control: private")
+        && str_contains($photo_endpoint, "'Cache-Control: private, max-age=31536000, immutable'")
+        && str_contains($photo_endpoint, 'hash_equals($photo_hash, $requested_version)')
         && str_contains($photo_endpoint, "'image/jpeg', 'image/png', 'image/webp'")
         && str_contains($photo_endpoint, "header('X-Content-Type-Options: nosniff')")
         && str_contains($photo_endpoint, 'contactInitialsSvg('),
@@ -154,6 +156,8 @@ $view_contact = $read('src/view_contact.php');
 expectContactPhoto(
     str_contains($contacts_page, 'class="contact-list-avatar"')
         && str_contains($contacts_page, 'contact_photo.php?id=')
+        && str_contains($contacts_page, 'LOWER(HEX(c.contact_photo_sha256)) AS contact_photo_version')
+        && str_contains($contacts_page, "\$contact['contact_photo_version']")
         && !str_contains($contacts_page, 'contact_photo_thumbnail')
         && !str_contains($contacts_page, 'uploadedImageDataUrl(')
         && str_contains($photo_endpoint, 'contact_photo_thumbnail_size')

@@ -18,7 +18,9 @@ $contact_stmt = $conn->prepare(
     "SELECT
         c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
         c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
-        c.contact_birthday, c.contact_notes, c.contact_photo_updated_at, c.is_deleted,
+        c.contact_birthday, c.contact_notes,
+        LOWER(HEX(c.contact_photo_sha256)) AS contact_photo_version,
+        c.is_deleted,
         o.organization_name,
         o.is_deleted AS organization_is_archived
      FROM contacts c
@@ -73,7 +75,7 @@ if (!empty($contact['contact_birthday'])) {
         $contact_birthday_display = $birthday->format('F j');
     }
 }
-$contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+$contact_photo_version = (string) ($contact['contact_photo_version'] ?? '');
 try {
     $chron_page_size = paginationPageSizePreference('view_contact_chron', $_GET['chron_per_page'] ?? null, 20);
     $chron_entry_count = countEntityChronLogEntries($conn, 'contact', $contact_id);

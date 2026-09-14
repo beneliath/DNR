@@ -25,6 +25,7 @@ $contact_stmt = $conn->prepare(
     "SELECT c.id, c.organization_id, c.contact_first_name, c.contact_last_name,
             c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
             c.contact_birthday, c.contact_notes, c.contact_photo_mime, c.contact_photo_sha256,
+            LOWER(HEX(c.contact_photo_sha256)) AS contact_photo_version,
             c.contact_photo_updated_at, c.created_at, c.updated_at, c.is_deleted
      FROM contacts c
      LEFT JOIN organizations o ON o.id = c.organization_id
@@ -403,7 +404,7 @@ foreach ($contact_organizations as $affiliation) {
 }
 
 $cancel_url = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, ($_GET['from'] ?? '') === 'view' ? 'view_contact.php?id=' . $contact_id : 'contacts.php');
-$contact_photo_version = strtotime((string) ($contact['contact_photo_updated_at'] ?? '')) ?: 0;
+$contact_photo_version = (string) ($contact['contact_photo_version'] ?? '');
 $chron_action_message = (string) ($_SESSION['chron_action_message'] ?? '');
 $chron_action_error = (string) ($_SESSION['chron_action_error'] ?? '');
 unset($_SESSION['chron_action_message'], $_SESSION['chron_action_error']);
