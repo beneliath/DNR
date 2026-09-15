@@ -45,7 +45,7 @@ if ($entity_type === 'contact') {
     $entity_stmt = $conn->prepare(
         "SELECT id, title
          FROM booking_inquiries
-         WHERE id = ? AND stage <> 'booked'"
+         WHERE id = ? AND stage <> 'booked' AND archived_at IS NULL"
     );
     $entity_label = 'Inquiry';
     $list_url = 'inquiries.php';
@@ -90,6 +90,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_selected'])) 
     }
 
     try {
+        if ($entity_type === 'inquiry') {
+            require_once __DIR__ . '/booking_inquiry_helpers.php';
+            $conn->begin_transaction();
+            $lockedInquiry = fetchBookingInquiry($conn, $entity_id, true);
+            if (!$lockedInquiry || $lockedInquiry['stage'] === 'booked' || !empty($lockedInquiry['archived_at'])) {
+                throw new InvalidArgumentException('Booked and archived inquiries are read-only.');
+            }
+        }
         $restored_count = restoreEntityChronLogEntries(
             $conn,
             $entity_type,
@@ -97,6 +105,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_selected'])) 
             $selected_ids,
             (int) $_SESSION['user_id']
         );
+        if ($entity_type === 'inquiry') {
+            $conn->commit();
+        }
         $_SESSION['chron_restore_message'] = $restored_count === 1
             ? '1 Chron entry restored.'
             : $restored_count . ' Chron entries restored.';
@@ -106,6 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['restore_selected'])) 
         ]));
         exit();
     } catch (Throwable $exception) {
+        if ($entity_type === 'inquiry') {
+            $conn->rollback();
+        }
         $restore_error = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
             : 'Unable to restore the selected Chron entries. Please try again.';

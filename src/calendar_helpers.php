@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/task_visibility_helpers.php';
 
 function calendarStatusLabel($status) {
     $status = trim((string) $status);
@@ -213,7 +214,7 @@ function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $ass
          LEFT JOIN organizations o ON o.id = e.organization_id
          WHERE t.due_date BETWEEN ? AND ?
            AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0"
-        . $assigned_filter .
+        . ' AND ' . followUpTaskUnarchivedParentSql() . $assigned_filter .
         " ORDER BY t.due_date,
                    FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
                    t.id"

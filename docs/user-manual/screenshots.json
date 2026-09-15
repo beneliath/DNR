@@ -7,11 +7,18 @@
     "steps": [
       "Open User Manual near the bottom of the scrollable sidebar. Its 13 chapters match this PDF.",
       "The logo stays at the top and your profile/sign-out block stays at the bottom; scroll only the menu between them.",
-      "Use the chapter rail, topic cards, or / to search. Use your PDF reader’s Find command for this guide."
+      "Use the chapter rail, topic cards, or / to search. Use your PDF reader\u2019s Find command for this guide."
     ],
     "shell": true,
     "file": "screenshots/manual.png",
-    "captured_at": "2026-09-14"
+    "captured_at": "2026-09-15",
+    "crop": [
+      0,
+      0,
+      1265,
+      712
+    ],
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
   },
   {
     "chapter": 1,
@@ -110,23 +117,18 @@
     "route": "inquiries.php",
     "steps": [
       "Search requests and narrow by owner, stage, or next action.",
-      "Open a card to review the request and its next step.",
-      "The default view includes active inquiries and bookings from this month. Other stages remain available in the filter."
+      "Open a card to review the request and its next step. The default view includes active inquiries and bookings from this month.",
+      "Archive Inquiry is available for declined requests and recorded bookings. Archived Inquiries opens retained records outside the current pipeline."
     ],
     "file": "screenshots/pipeline.png",
     "crop": [
-      0,
-      0,
-      1515,
-      1197
+      278,
+      12,
+      950,
+      643
     ],
-    "copyright_line_box": [
-      44,
-      1165,
-      654,
-      1182
-    ],
-    "footer_removed": true
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
   },
   {
     "chapter": 4,
@@ -234,29 +236,64 @@
     "framing": "Complete rows or form sections; adjacent partial content excluded."
   },
   {
+    "chapter": 4,
+    "id": "inquiry-archive",
+    "title": "Archive a booked or declined inquiry",
+    "route": "view_inquiry.php?id=6",
+    "steps": [
+      "Finish declining the request or booking and converting it to an engagement. Open the inquiry.",
+      "Select Archive Inquiry. Its details, history, correspondence, tasks, and engagement link are retained.",
+      "The inquiry leaves ordinary pipeline views. Archiving this source inquiry does not archive its engagement."
+    ],
+    "file": "screenshots/inquiry-archive.png",
+    "crop": [
+      278,
+      28,
+      950,
+      504
+    ],
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls framed from the original screenshot; decorative footer excluded."
+  },
+  {
+    "chapter": 4,
+    "id": "inquiry-archived",
+    "title": "Find and restore archived inquiries",
+    "route": "inquiries.php?view=archived",
+    "steps": [
+      "Choose Archived Inquiries from the pipeline or the archive panel on an inquiry.",
+      "Search retained Booked and Declined records. Export downloads the filtered archived view.",
+      "Open a title to read its retained information. Restore Inquiry returns it to its original stage; restore a declined inquiry before reopening it."
+    ],
+    "file": "screenshots/inquiry-archived.png",
+    "crop": [
+      278,
+      26,
+      950,
+      496
+    ],
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls framed from the original screenshot; decorative footer excluded."
+  },
+  {
     "chapter": 5,
     "id": "engagement-list",
     "title": "Find an engagement",
     "route": "engagements.php",
     "steps": [
-      "Search the complete list, then use lifecycle and current/archive filters.",
-      "Sort by organization, date, confirmation, or lifecycle.",
-      "Open the event title or View action. Financial closeout is a separate status from planning confirmation."
+      "Start with All lifecycle states, or select Active, Postponed, Canceled, or Completed. Your choice is remembered for your account in this browser.",
+      "Current and Archived are separate from Lifecycle. Clear both filters when looking for a missing record.",
+      "Sort by organization, date, confirmation, or lifecycle. Open the event title or View action to continue planning."
     ],
     "file": "screenshots/engagement-list.png",
     "crop": [
-      0,
-      0,
-      1515,
-      1140
+      278,
+      24,
+      950,
+      660
     ],
-    "copyright_line_box": [
-      44,
-      1108,
-      654,
-      1125
-    ],
-    "footer_removed": true
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
   },
   {
     "chapter": 5,
@@ -735,20 +772,20 @@
     "title": "Work the queue",
     "route": "tasks.php?owner=me",
     "steps": [
-      "Choose My work, Everyone’s work, or Unassigned work, then a due-date/status filter.",
-      "Use the check-mark action to complete a task; review the Complete Task? dialog before confirming.",
-      "Cancel or press Esc to keep its current status. The same confirmation appears in related-record task lists."
+      "Choose My work, Everyone\u2019s work, or Unassigned work, then a due-date/status filter.",
+      "The green check-mark opens Complete Task? before changing status. The box icon archives the task with its current status and details.",
+      "Use Archived to find retained tasks. Use Completed or canceled when archiving finished work. The same archive control appears in record-level Follow-Up Work."
     ],
     "file": "screenshots/tasks.png",
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-15",
     "crop": [
-      270,
-      0,
-      980,
-      740
+      278,
+      22,
+      950,
+      445
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded.",
-    "note": "Fictional task examples are at most five days overdue. Review overdue work promptly."
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
+    "note": "Fictional task examples are one day overdue. Review overdue work promptly."
   },
   {
     "chapter": 7,
@@ -1122,18 +1159,19 @@
     "route": "users.php",
     "steps": [
       "Review role, activation, verified email, 2FA, and activity.",
-      "Invite a user with their own email and role. The invitation is valid for seven days.",
-      "Unlock sensitive actions with your administrator password and a fresh factor before changing another account."
+      "Filled Daily Digest day chips show scheduled days. Off or paused indicates that delivery is disabled or suspended.",
+      "Unlock administrator actions and select the pencil icon to review a user\u2019s digest time, time zone, and days. Account holders can use My Profile."
     ],
-    "file": "screenshots/roles.png",
+    "file": "screenshots/users.png",
+    "captured_at": "2026-09-15",
     "crop": [
-      275,
-      85,
-      960,
-      645
+      285,
+      211,
+      939,
+      293
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded.",
-    "captured_at": "2026-09-14"
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
+    "note": "Avery has weekday delivery; Casey has delivery turned off. These are fictional training accounts."
   },
   {
     "chapter": 12,
@@ -1155,18 +1193,19 @@
     "title": "Confirm administrator access",
     "route": "admin_elevation.php",
     "steps": [
-      "Open a locked sensitive action or Unlock Sensitive Actions on Users.",
-      "Enter the administrator password and a fresh authenticator or unused recovery code.",
-      "Unlock Sensitive Actions returns to the requested page and starts a five-minute countdown for this signed-in session."
+      "Select Admin Unlock in the sidebar, or open a protected action. Users also provides its own unlock panel.",
+      "Enter your current administrator password and a fresh authenticator or unused recovery code.",
+      "Select Unlock Sensitive Actions to return to the requested page. The five-minute unlock applies only to this signed-in session."
     ],
     "file": "screenshots/elevation.png",
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-15",
     "crop": [
-      295,
-      75,
-      925,
-      475
-    ]
+      280,
+      30,
+      950,
+      422
+    ],
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
   },
   {
     "chapter": 12,
@@ -1231,14 +1270,24 @@
   {
     "chapter": 12,
     "id": "operations",
-    "title": "Review operational health",
+    "title": "Review mail ingestion health",
     "route": "operations.php",
     "steps": [
-      "Inspect task backlog, geocoding queues, mail review/failures, and authentication failures.",
-      "Check migration readiness and the latest recorded encrypted backup.",
-      "Follow the linked application view for work you can resolve; give deployment faults to the operator."
+      "Open Operations from the Administration chapter and scroll to Mail Ingestion. The summary above covers task backlog and other queues.",
+      "Compare Last checked with Last imported: a successful check need not import a new message.",
+      "Ask the deployment operator to investigate failures, overdue checks, or historical mail awaiting review. Use Inbox for imported messages that need routing.",
+      "Scroll to Deployment State for migration readiness and the last recorded encrypted backup."
     ],
-    "file": "screenshots/operations.png"
+    "file": "screenshots/operations.png",
+    "crop": [
+      278,
+      4,
+      950,
+      560
+    ],
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
+    "note": "Synthetic mailbox state illustrates an overdue check and one historical message awaiting review. No mailbox service is connected to this preview."
   },
   {
     "chapter": 13,
@@ -1362,7 +1411,7 @@
   {
     "chapter": 12,
     "id": "edit-user",
-    "title": "Edit a user’s profile and digest preferences",
+    "title": "Edit a user\u2019s profile and digest preferences",
     "route": "edit_user.php?id=2",
     "steps": [
       "Unlock sensitive administrator actions, then select Edit user on the Users page.",
@@ -1372,14 +1421,15 @@
     ],
     "elevated": true,
     "file": "screenshots/edit-user.png",
-    "note": "Fictional Casey Taylor account. Scroll to review the remaining digest controls and Save changes.",
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-15",
     "crop": [
-      270,
-      0,
-      980,
-      880
-    ]
+      280,
+      99,
+      940,
+      537
+    ],
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
+    "note": "The current form groups personal details together. Scroll to profile picture, username, role, digest preferences, and Save changes. No profile changes were saved."
   },
   {
     "chapter": 9,
@@ -1460,7 +1510,7 @@
     "title": "Confirm task completion",
     "route": "tasks.php?view=my",
     "steps": [
-      "Select the check-mark Complete task action in the queue or a related record’s task list.",
+      "Select the check-mark Complete task action in the queue or a related record\u2019s task list.",
       "Read Complete Task? and select Complete Task only when the work is finished.",
       "Cancel or press Esc to return without changing the task."
     ],
@@ -1476,6 +1526,26 @@
       740
     ],
     "framing": "Complete rows or form sections; adjacent partial content excluded."
+  },
+  {
+    "chapter": 7,
+    "id": "task-archived",
+    "title": "Restore a task with its original status",
+    "route": "tasks.php?view=archived&scope=mine",
+    "steps": [
+      "Select Archived in the Work Queue, or View Archived Tasks from a related record.",
+      "Review the status badge as well as the Archived badge. This example remains Completed.",
+      "Select the curved-arrow Restore task control. Details, status, owner, and due date are retained. An open overdue task becomes eligible for active reminders again."
+    ],
+    "file": "screenshots/task-archived.png",
+    "crop": [
+      278,
+      43,
+      950,
+      463
+    ],
+    "captured_at": "2026-09-15",
+    "framing": "Complete controls framed from the original screenshot; decorative footer excluded."
   },
   {
     "chapter": 12,
@@ -1500,23 +1570,24 @@
   {
     "chapter": 12,
     "id": "admin-countdown",
-    "title": "Track the administrator unlock countdown",
-    "route": "network_diagnostics.php",
+    "title": "Unlock temporarily and lock again when finished",
+    "route": "users.php",
     "steps": [
-      "After administrator confirmation, the top banner shows Automatically locks in and the remaining minutes and seconds.",
-      "Navigation preserves the original five-minute deadline. Other sessions do not inherit the unlock.",
-      "At expiry, sensitive actions require fresh authentication; some account lifecycle actions consume the unlock earlier."
+      "The orange banner shows Automatically locks in and the remaining minutes and seconds.",
+      "Navigation keeps the original five-minute deadline. Other sessions do not inherit the unlock.",
+      "Select Lock Admin Actions as soon as sensitive work is finished. At expiry or explicit locking, protected actions require fresh confirmation."
     ],
     "elevated": true,
-    "note": "The countdown and synthetic network samples are from a disposable preview.",
     "file": "screenshots/admin-countdown.png",
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-15",
     "crop": [
-      270,
+      278,
       0,
-      980,
-      900
-    ]
+      950,
+      405
+    ],
+    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
+    "note": "The countdown is from a disposable preview."
   },
   {
     "chapter": 12,

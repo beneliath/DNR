@@ -269,6 +269,11 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card"><span class="manual-kicker">Protect History</span><h3>Keep the Source Record</h3><p>Do not copy pre-booking Chron Log Entries by hand. The booked Inquiry retains its source email, stage history, Chron, correspondence, and any work not moved to the Engagement. Resolve or reassign active Inquiries before archiving their Contact or Organization.</p></article>
                 </section>
                 <p>The default board shows active inquiries and those booked this month. Use the <strong>Stage</strong> filter for <strong>Booked</strong>, <strong>Declined</strong>, or <strong>All Stages</strong>. In All Stages, Declined starts on a separate row. The stages wrap to fit your screen; scroll down to see the remaining rows.</p>
+                <section class="manual-subsection">
+                    <h3>Archive Finished Inquiries</h3>
+                    <p>After declining an Inquiry or converting a booked Inquiry to an Engagement, administrators and editors can select <strong>Archive Inquiry</strong> on its card or detail page. It leaves the Booking Pipeline and its Dashboard count while all details, history, correspondence, tasks, and the Engagement link remain available.</p>
+                    <p>Open <strong>Archived Inquiries</strong> from the Booking Pipeline to search, filter, export, or review retained records. Select <strong>Restore Inquiry</strong> to return one to its previous outcome. Restore a declined Inquiry before editing or reopening it. Its Engagement and follow-up tasks keep their existing state.</p>
+                </section>
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
 
@@ -330,6 +335,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                 </section>
                 <p class="manual-note"><strong>Lifecycle and confirmation are independent.</strong> A postponed event can retain its former confirmation state, while a completed event may reflect the confirmation state it reached during planning.</p>
+                <p>The Engagements list starts with <strong>All</strong> lifecycle states. Your selection is remembered for your account in this browser. Use <strong>Lifecycle</strong> to narrow the list to Active, Postponed, Canceled, or Completed; the separate <strong>Current</strong>/<strong>Archived</strong> view controls whether archived records appear.</p>
 
                 <section class="manual-subsection">
                     <h3>Presentation Files, QR Codes, and History</h3>
@@ -533,6 +539,7 @@ $manual_access_summary = match ($manual_role) {
                     <p>From the queue, editors and administrators can assign an unowned task to themselves, start, complete, reopen, edit, or—administrators only—delete it. Engagement, organization, and contact detail pages show their open tasks in <strong>Follow-Up Work</strong>, where you can add a task or open a filtered queue.</p>
                     <p>Administrators can also select the trash icon beside a task in <strong>Follow-Up Work</strong>, including on an engagement’s <strong>Tasks</strong> tab. If admin actions are locked, complete the unlock workflow first, then select the trash icon again. Confirm <strong>Delete Task</strong> to permanently remove the task and return to the record. Deletion cannot be undone.</p>
                     <p>Editors and administrators can select the <strong>Archive task</strong> box icon beside a task in Follow-Up Work or the Work Queue. Archiving removes it from active work, reminders, calendars, and digests while keeping its details and status. Use <strong>View Archived Tasks</strong> on the record or <strong>Archived</strong> in the Work Queue, then select <strong>Restore task</strong> to bring it back. Archived checklist tasks are retained when you add missing checklist tasks.</p>
+                    <p>Archiving an engagement or inquiry also hides its tasks from active work and reminders. Restoring the record brings back its <strong>Open</strong>, <strong>In Progress</strong>, and <strong>Waiting</strong> tasks. Completed, canceled, and individually archived tasks stay out of active work; all task details and statuses are preserved.</p>
                 </section>
 
                 <section class="manual-table-wrap" tabindex="0" aria-label="Task status reference">
@@ -606,6 +613,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>How Inbound Email Finds Its Records</h3>
+                    <p>Reading a message in your mail application does not prevent MOED from importing it. Importing leaves the original message and its read/unread state unchanged. If older mail is missing after mailbox setup or recovery, ask the deployment operator to review historical mail; marking it unread will not trigger an import.</p>
                     <p>One unique, valid signed engagement marker routes directly to that active engagement only when the sender also uniquely matches an active record. Unknown senders and unsigned legacy markers require review. When participant matching is uncertain, only the signed engagement receives the Chron entry.</p>
                 </section>
 
@@ -881,6 +889,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Identity</span>
                         <h3>Users</h3>
                         <p>Invite a username, verified-on-acceptance email, and Reviewer, Editor, or Admin role. Review account status, profile, email verification, 2FA, password-change requirement, and activity timestamps.</p>
+                        <p>Each user card shows the <strong>Daily Digest</strong> delivery days and whether delivery is off or paused. Use <strong>Edit</strong> after unlocking administrator actions to review its time, time zone, and days; users can also adjust their own Notification Preferences in My Profile.</p>
                         <p>Elevated actions can resend invitations, edit profile details, username, role, and daily work digest settings, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
                         <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage users</a><?php endif; ?>
                     </article>
@@ -903,6 +912,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Health</span>
                         <h3>Operations</h3>
                         <p>The internal operations view summarizes task backlog, geocoding retries, inbound mail review/failures, recent authentication failures, migration readiness, and the last encrypted backup. Use it to identify operational work that needs attention before it becomes a user-facing problem.</p>
+                        <p><strong>Mail Ingestion</strong> shows the latest mailbox check and import separately, plus failures and historical messages awaiting review. Ask the deployment operator to resolve a failing scan or review historical mail; use Inbox for messages already imported that need routing.</p>
                         <?php if ($manual_is_admin): ?><a href="operations.php" class="manual-inline-link">Open operations</a><?php endif; ?>
                     </article>
                 </section>

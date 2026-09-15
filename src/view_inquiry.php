@@ -28,6 +28,8 @@ $userRole = (string) ($_SESSION['role'] ?? '');
 $canManage = canManageBookingInquiries($userRole);
 $currentUserId = (int) $_SESSION['user_id'];
 $isBooked = $inquiry['stage'] === 'booked';
+$isArchived = !empty($inquiry['archived_at']);
+$isReadOnly = $isBooked || $isArchived;
 $editChronId = \Dnr\Http\RequestInput::positiveInt($_GET, 'edit_chron');
 $chronDraft = null;
 $chronDraftVersion = null;
@@ -64,9 +66,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 (string) $_SESSION['username']
             );
             $_SESSION['inquiry_action_message'] = 'Inquiry stage updated.';
+        } elseif ($action === 'archive' || $action === 'restore') {
+            setBookingInquiryArchived(
+                $conn,
+                $inquiryId,
+                $action === 'archive',
+                \Dnr\Http\RequestInput::string($_POST, 'inquiry_version'),
+                $currentUserId
+            );
+            $_SESSION['inquiry_action_message'] = $action === 'archive'
+                ? 'Inquiry archived. All information is retained in Archived Inquiries.'
+                : 'Inquiry restored to the booking pipeline.';
         } elseif (in_array($action, ['add_chron', 'edit_chron', 'archive_chron', 'delete_chron'], true)) {
-            if ($isBooked) {
-                throw new InvalidArgumentException('Booked inquiries are preserved as read-only source records.');
+            if ($isReadOnly) {
+                throw new InvalidArgumentException('Booked and archived inquiries are preserved as read-only source records.');
             }
             if ($action !== 'add_chron' && $entryId === null) {
                 throw new InvalidArgumentException('Select a valid Chron Log Entry.');
@@ -77,8 +90,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $conn->begin_transaction();
             $chronTransaction = true;
             $lockedInquiry = fetchBookingInquiry($conn, $inquiryId, true);
-            if (!$lockedInquiry || $lockedInquiry['stage'] === 'booked') {
-                throw new InvalidArgumentException('Booked inquiries are preserved as read-only source records.');
+            if (!$lockedInquiry || $lockedInquiry['stage'] === 'booked' || !empty($lockedInquiry['archived_at'])) {
+                throw new InvalidArgumentException('Booked and archived inquiries are preserved as read-only source records.');
             }
             if ($action === 'add_chron') {
                 insertEntityChronLogEntry(
@@ -132,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     if ($chronEditError === '') {
         $returnAnchor = $action === 'edit_chron' ? '#chron-log-entry-' . $entryId
-            : ($action === 'change_stage' ? '' : '#inquiry-activity');
+            : (in_array($action, ['change_stage', 'archive', 'restore'], true) ? '' : '#inquiry-activity');
         header('Location: view_inquiry.php?id=' . $inquiryId . $returnAnchor);
         exit();
     }
@@ -143,12 +156,14 @@ $error = $chronEditError !== '' ? $chronEditError : (string) ($_SESSION['inquiry
 unset($_SESSION['inquiry_action_message'], $_SESSION['inquiry_action_error']);
 $inquiry = fetchBookingInquiry($conn, $inquiryId);
 $isBooked = $inquiry['stage'] === 'booked';
+$isArchived = !empty($inquiry['archived_at']);
+$isReadOnly = $isBooked || $isArchived;
 $isActive = in_array((string) $inquiry['stage'], bookingInquiryActiveStages(), true);
 $tasks = fetchFollowUpTasksForSubject($conn, 'inquiry', $inquiryId);
 $history = fetchBookingInquiryStageHistory($conn, $inquiryId);
 $chronEntries = fetchEntityChronLogEntries($conn, 'inquiry', $inquiryId, false, 100, 0);
 $editChronEntry = null;
-if ($canManage && !$isBooked && $editChronId !== null) {
+if ($canManage && !$isReadOnly && $editChronId !== null) {
     foreach ($chronEntries as $chronEntry) {
         if ((int) $chronEntry['id'] === $editChronId) {
             $editChronEntry = $chronEntry;
@@ -199,11 +214,32 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="inquiries.php">Booking Pipeline</a><span aria-hidden="true">/</span><span><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></span></nav>
     <header class="page-heading inquiry-detail-heading">
         <div><h1><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['title']), ENT_QUOTES, 'UTF-8'); ?></h1><p class="inquiry-title-meta"><span><?php echo htmlspecialchars((string) (bookingInquiryDisplayLabel($inquiry['organization_name']) ?: 'Organization not identified'), ENT_QUOTES, 'UTF-8'); ?></span><span class="inquiry-stage-badge stage-<?php echo htmlspecialchars($inquiry['stage'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($stages[$inquiry['stage']], ENT_QUOTES, 'UTF-8'); ?></span><span class="inquiry-priority priority-<?php echo htmlspecialchars($inquiry['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']], ENT_QUOTES, 'UTF-8'); ?></span></p></div>
-        <?php if ($canManage): ?><div class="page-heading-actions"><?php if (!$isBooked): ?><a href="edit_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-secondary">Edit Inquiry</a><?php endif; ?><?php if ($isActive): ?><a href="#workflow-controls" class="button-secondary inquiry-decline-action" data-inquiry-stage-target="declined">Mark Declined</a><a href="convert_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-add inquiry-primary-action<?php echo !$readyToBook ? ' is-disabled' : ''; ?>"<?php echo !$readyToBook ? ' aria-disabled="true" title="Add organization and preferred dates before booking"' : ''; ?>><span class="inquiry-button-icon" aria-hidden="true">+</span>Convert to Engagement</a><?php endif; ?></div><?php endif; ?>
+        <?php if ($canManage): ?><div class="page-heading-actions"><?php if (!$isReadOnly): ?><a href="edit_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-secondary">Edit Inquiry</a><?php endif; ?><?php if ($isActive): ?><a href="#workflow-controls" class="button-secondary inquiry-decline-action" data-inquiry-stage-target="declined">Mark Declined</a><a href="convert_inquiry.php?id=<?php echo $inquiryId; ?>" class="button-add inquiry-primary-action<?php echo !$readyToBook ? ' is-disabled' : ''; ?>"<?php echo !$readyToBook ? ' aria-disabled="true" title="Add organization and preferred dates before booking"' : ''; ?>><span class="inquiry-button-icon" aria-hidden="true">+</span>Convert to Engagement</a><?php endif; ?></div><?php endif; ?>
     </header>
     <?php if ($notice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($isBooked): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked</strong><span>This inquiry is now a read-only source record.</span></div><?php if (!empty($inquiry['converted_engagement_id'])): ?><a href="view_engagement.php?id=<?php echo (int) $inquiry['converted_engagement_id']; ?>" class="button-secondary">Open Engagement</a><?php endif; ?></div><?php elseif ($inquiry['stage'] === 'declined'): ?><div class="inquiry-terminal-banner"><div><strong>Declined</strong><span><?php echo htmlspecialchars((string) $inquiry['decline_reason'], ENT_QUOTES, 'UTF-8'); ?></span></div></div><?php endif; ?>
+
+    <?php if ($isArchived || canArchiveBookingInquiry($inquiry)): ?>
+        <section class="inquiry-terminal-banner inquiry-archive-banner" aria-label="Inquiry archive">
+            <div>
+                <strong><?php echo $isArchived ? 'Archived Inquiry' : 'Archive This Inquiry'; ?></strong>
+                <span><?php echo $isArchived
+                    ? 'Archived ' . htmlspecialchars(applicationTimestampLabel($inquiry['archived_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8') . '. All information is retained as a read-only record.'
+                    : 'Remove this inquiry from the booking pipeline while retaining its details, history, correspondence, tasks, and engagement link.'; ?></span>
+                <a href="inquiries.php?view=archived">View Archived Inquiries</a>
+            </div>
+            <?php if ($canManage): ?>
+                <form method="post" action="view_inquiry.php" class="inquiry-archive-action">
+                    <?php echo csrfInput(); ?>
+                    <input type="hidden" name="id" value="<?php echo $inquiryId; ?>">
+                    <input type="hidden" name="action" value="<?php echo $isArchived ? 'restore' : 'archive'; ?>">
+                    <input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($inquiry['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <button type="submit" class="button-secondary"><?php echo $isArchived ? 'Restore Inquiry' : 'Archive Inquiry'; ?></button>
+                </form>
+            <?php endif; ?>
+        </section>
+    <?php endif; ?>
 
     <section class="inquiry-stage-path" aria-label="Inquiry progression">
         <?php foreach ($activeStages as $index => $stage): ?><?php $stageComplete = $index < $progressStageIndex || (!$isActive && $index <= $progressStageIndex); ?><div class="<?php echo $inquiry['stage'] === $stage ? 'is-current ' : ''; ?><?php echo $stageComplete ? 'is-complete' : ''; ?>"><span><?php echo $stageComplete ? '✓' : $index + 1; ?></span><strong><?php echo htmlspecialchars($stages[$stage], ENT_QUOTES, 'UTF-8'); ?></strong></div><?php endforeach; ?><div class="inquiry-terminal-stage <?php echo $isBooked ? 'is-current is-complete' : ''; ?>"><span><?php echo $isBooked ? '✓' : '6'; ?></span><strong>Booked</strong></div><div class="inquiry-terminal-stage is-declined <?php echo $inquiry['stage'] === 'declined' ? 'is-current' : ''; ?>"><span>!</span><strong>Declined</strong></div>
@@ -227,7 +263,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
             <section class="record-section inquiry-workspace" data-inquiry-tabs>
                 <div class="inquiry-tab-list" role="tablist" aria-label="Inquiry work"><button type="button" role="tab" id="inquiry-activity-tab" aria-controls="inquiry-activity" aria-selected="true">Activity</button><button type="button" role="tab" id="inquiry-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($correspondence); ?></span></button><button type="button" role="tab" id="inquiry-tasks-tab" aria-controls="follow-up-work" aria-selected="false">Tasks <span><?php echo count($tasks); ?></span></button></div>
                 <div class="inquiry-tab-panel" id="inquiry-activity" role="tabpanel" aria-labelledby="inquiry-activity-tab">
-                    <?php if ($canManage && !$isBooked): ?><details class="inquiry-add-note"><summary>Add Chron Log Entry</summary><form method="post" action="view_inquiry.php" class="inquiry-chron-form"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>"><input type="hidden" name="action" value="add_chron"><label for="inquiry-chron-entry">Chron Log Entry</label><textarea id="inquiry-chron-entry" name="chron_entry" rows="4" maxlength="100000" required placeholder="Decision, conversation outcome, commitment, or context"></textarea><button type="submit" class="save-button inquiry-primary-action">Save Chron Log Entry</button></form></details><?php endif; ?>
+                    <?php if ($canManage && !$isReadOnly): ?><details class="inquiry-add-note"><summary>Add Chron Log Entry</summary><form method="post" action="view_inquiry.php" class="inquiry-chron-form"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>"><input type="hidden" name="action" value="add_chron"><label for="inquiry-chron-entry">Chron Log Entry</label><textarea id="inquiry-chron-entry" name="chron_entry" rows="4" maxlength="100000" required placeholder="Decision, conversation outcome, commitment, or context"></textarea><button type="submit" class="save-button inquiry-primary-action">Save Chron Log Entry</button></form></details><?php endif; ?>
                     <?php if ($chronDraft !== null && $editChronEntry === null): ?>
                         <div class="chron-view-editor">
                             <label for="inquiry-unsaved-chron">Your unsaved Chron edit</label>
@@ -272,7 +308,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                                     <?php else: ?>
                                         <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($entry['entry_text']); ?></div>
                                     <?php endif; ?>
-                                    <?php if ($canManage && !$isBooked): ?>
+                                    <?php if ($canManage && !$isReadOnly): ?>
                                         <div class="chron-view-actions" role="group" aria-label="Chron Log Entry actions">
                                             <a href="view_inquiry.php?id=<?php echo $inquiryId; ?>&amp;edit_chron=<?php echo $entryId; ?>#chron-log-entry-<?php echo $entryId; ?>" class="action-button action-icon-button edit-button" aria-label="Edit Chron Log Entry" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                                             <form method="post" action="view_inquiry.php" data-confirm="Archive this Chron Log Entry?">
@@ -299,7 +335,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                         <?php foreach ($history as $entry): ?><article><span class="inquiry-activity-icon inquiry-stage-activity-icon" aria-hidden="true">✓</span><div><strong>Moved to <?php echo htmlspecialchars($stages[$entry['to_stage']], ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars(applicationTimestampLabel($entry['changed_at'], 'M j, Y g:i A T') . ' · ' . ($entry['changed_by_username'] ?: 'Former user'), ENT_QUOTES, 'UTF-8'); ?></small><?php if (!empty($entry['reason'])): ?><p><?php echo htmlspecialchars($entry['reason'], ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?></div></article><?php endforeach; ?>
                         <?php if ($chronEntries === [] && $history === []): ?><p class="empty-state">No inquiry activity has been recorded.</p><?php endif; ?>
                     </div>
-                    <?php if ($canManage && !$isBooked && $archivedChronCount > 0): ?><a href="restore_entity_chron_entries.php?entity_type=inquiry&amp;entity_id=<?php echo $inquiryId; ?>" class="button-secondary">Restore Archived Chron Log Entries (<?php echo $archivedChronCount; ?>)</a><?php endif; ?>
+                    <?php if ($canManage && !$isReadOnly && $archivedChronCount > 0): ?><a href="restore_entity_chron_entries.php?entity_type=inquiry&amp;entity_id=<?php echo $inquiryId; ?>" class="button-secondary">Restore Archived Chron Log Entries (<?php echo $archivedChronCount; ?>)</a><?php endif; ?>
                 </div>
                 <div class="inquiry-tab-panel" id="correspondence" role="tabpanel" aria-labelledby="inquiry-correspondence-tab">
                     <div class="inquiry-correspondence-list"><?php foreach ($correspondence as $message): ?><article><div><a href="outbound_mail.php?id=<?php echo (int) $message['id']; ?>"><strong><?php echo htmlspecialchars($message['subject'], ENT_QUOTES, 'UTF-8'); ?></strong></a><span class="email-status email-status-<?php echo htmlspecialchars($message['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst($message['status']), ENT_QUOTES, 'UTF-8'); ?></span></div><p>To <?php echo htmlspecialchars($message['recipient_name'] . ' <' . $message['recipient_email'] . '>', ENT_QUOTES, 'UTF-8'); ?></p><small><?php echo htmlspecialchars(applicationTimestampLabel($message['created_at'], 'M j, Y g:i A T') . ' · ' . ($message['created_by_username'] ?: 'Former user'), ENT_QUOTES, 'UTF-8'); ?></small><?php if (!empty($message['last_error'])): ?><p class="error"><?php echo htmlspecialchars($message['last_error'], ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?></article><?php endforeach; ?><?php if ($correspondence === []): ?><p class="empty-state">No outbound correspondence has been sent from this inquiry.</p><?php endif; ?></div>
@@ -307,14 +343,14 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                 <div class="inquiry-tab-panel" id="follow-up-work" role="tabpanel" aria-labelledby="inquiry-tasks-tab">
                     <div class="inquiry-task-list"><?php foreach ($tasks as $task): ?><article><span class="task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryPriorities()[$task['priority']], ENT_QUOTES, 'UTF-8'); ?></span><div><a href="edit_task.php?id=<?php echo (int) $task['id']; ?>&amp;return_to=<?php echo urlencode($taskReturn); ?>"><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong></a><small><?php echo htmlspecialchars((string) ($task['assignee_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars(bookingInquirySingleDateLabel($task['due_date'] ?? null, 'No due date'), ENT_QUOTES, 'UTF-8'); ?></small></div><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(followUpTaskStatuses()[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></article><?php endforeach; ?><?php if ($tasks === []): ?><p class="empty-state">No active follow-up work is linked to this inquiry.</p><?php endif; ?></div>
                 </div>
-                <footer class="inquiry-workspace-actions"><?php if ($canManage && !$isBooked): ?><button type="button" class="button-secondary" data-inquiry-open-note>Add Chron Log Entry</button><?php endif; ?><?php if ($canManage && $isActive && empty($inquiry['contact_deleted']) && !empty($inquiry['contact_email'])): ?><a href="compose_inquiry_email.php?id=<?php echo $inquiryId; ?>" class="button-secondary">Send Email</a><?php endif; ?></footer>
+                <footer class="inquiry-workspace-actions"><?php if ($canManage && !$isReadOnly): ?><button type="button" class="button-secondary" data-inquiry-open-note>Add Chron Log Entry</button><?php endif; ?><?php if ($canManage && $isActive && empty($inquiry['contact_deleted']) && !empty($inquiry['contact_email'])): ?><a href="compose_inquiry_email.php?id=<?php echo $inquiryId; ?>" class="button-secondary">Send Email</a><?php endif; ?></footer>
             </section>
         </div>
 
         <aside class="inquiry-detail-sidebar">
-            <section class="inquiry-next-action-card"><h2>Next Action</h2><div class="inquiry-next-action-content"><span class="inquiry-next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span><div><strong><?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'Not set'), ENT_QUOTES, 'UTF-8'); ?></strong><span>Due <?php echo htmlspecialchars(bookingInquirySingleDateLabel($inquiry['next_action_due_date'] ?? null, 'date not set'), ENT_QUOTES, 'UTF-8'); ?></span><span>Owner <b><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></b></span></div></div><?php if ($canManage && !$isBooked): ?><a href="edit_inquiry.php?id=<?php echo $inquiryId; ?>#inquiry-next-action" class="button-add inquiry-primary-action inquiry-card-wide-action">Update Next Action</a><?php endif; ?></section>
+            <section class="inquiry-next-action-card"><h2>Next Action</h2><div class="inquiry-next-action-content"><span class="inquiry-next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span><div><strong><?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'Not set'), ENT_QUOTES, 'UTF-8'); ?></strong><span>Due <?php echo htmlspecialchars(bookingInquirySingleDateLabel($inquiry['next_action_due_date'] ?? null, 'date not set'), ENT_QUOTES, 'UTF-8'); ?></span><span>Owner <b><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></b></span></div></div><?php if ($canManage && !$isReadOnly): ?><a href="edit_inquiry.php?id=<?php echo $inquiryId; ?>#inquiry-next-action" class="button-add inquiry-primary-action inquiry-card-wide-action">Update Next Action</a><?php endif; ?></section>
             <section class="inquiry-readiness-card"><h2>Readiness</h2><ul><?php foreach (['organization' => 'Organization Linked', 'contact' => 'Primary Contact Linked', 'dates' => 'Event Dates Identified', 'request' => 'Request Captured', 'title' => 'Event Title Captured'] as $key => $label): ?><li class="<?php echo $readiness[$key] ? 'is-ready' : ''; ?>"><span><?php echo $readiness[$key] ? '✓' : '!'; ?></span><?php echo $label; ?></li><?php endforeach; ?></ul><?php if ($canManage && $isActive): ?><a href="add_task.php?subject_type=inquiry&amp;subject_id=<?php echo $inquiryId; ?>&amp;return_to=<?php echo urlencode($taskReturn); ?>" class="button-secondary inquiry-card-wide-action">Add Task</a><?php endif; ?></section>
-            <?php if ($canManage && !$isBooked): ?><section class="inquiry-stage-control" id="workflow-controls"><h2>Workflow Controls</h2><form method="post" action="view_inquiry.php"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>"><input type="hidden" name="action" value="change_stage"><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($inquiry['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><label for="inquiry-stage">Move to Stage</label><select id="inquiry-stage" name="stage" required><option value="" selected disabled>Select Stage</option><?php foreach ($stages as $key => $label): ?><?php if ($key === 'booked' || $key === $inquiry['stage']) continue; ?><option value="<?php echo $key; ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select><label for="inquiry-stage-reason">Reason / Note</label><textarea id="inquiry-stage-reason" name="stage_reason" rows="3" maxlength="1000" placeholder="Required when declining"></textarea><button type="submit" class="button-secondary">Update Stage</button></form></section><?php endif; ?>
+            <?php if ($canManage && !$isReadOnly): ?><section class="inquiry-stage-control" id="workflow-controls"><h2>Workflow Controls</h2><form method="post" action="view_inquiry.php"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>"><input type="hidden" name="action" value="change_stage"><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($inquiry['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><label for="inquiry-stage">Move to Stage</label><select id="inquiry-stage" name="stage" required><option value="" selected disabled>Select Stage</option><?php foreach ($stages as $key => $label): ?><?php if ($key === 'booked' || $key === $inquiry['stage']) continue; ?><option value="<?php echo $key; ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select><label for="inquiry-stage-reason">Reason / Note</label><textarea id="inquiry-stage-reason" name="stage_reason" rows="3" maxlength="1000" placeholder="Required when declining"></textarea><button type="submit" class="button-secondary">Update Stage</button></form></section><?php endif; ?>
             <section class="inquiry-marker-card">
                 <h2>Email Routing Marker</h2>
                 <div class="inquiry-email-marker">

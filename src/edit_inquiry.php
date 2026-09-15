@@ -21,7 +21,7 @@ if (!$inquiry) {
     header('Location: inquiries.php');
     exit();
 }
-if ($inquiry['stage'] === 'booked') {
+if ($inquiry['stage'] === 'booked' || !empty($inquiry['archived_at'])) {
     header('Location: view_inquiry.php?id=' . $inquiry_id);
     exit();
 }

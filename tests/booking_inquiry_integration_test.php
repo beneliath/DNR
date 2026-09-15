@@ -196,6 +196,57 @@ try {
         'an empty stage selection must not move an Inquiry to a default stage.'
     );
 
+    $activeArchiveRejected = false;
+    try {
+        setBookingInquiryArchived($conn, $inquiryId, true, (string) $inquiry['updated_at'], $userId);
+    } catch (InvalidArgumentException $exception) {
+        $activeArchiveRejected = true;
+    }
+    expectBookingInquiryIntegration($activeArchiveRejected, 'active inquiries cannot be archived.');
+    expectBookingInquiryIntegration(
+        canArchiveBookingInquiry(['stage' => 'booked', 'converted_at' => '2026-09-15', 'converted_engagement_id' => null]),
+        'a recorded booking remains archivable after the converted engagement is deleted.'
+    );
+    changeBookingInquiryStage($conn, $inquiryId, 'declined', 'Host postponed the request.', (string) $inquiry['updated_at'], $userId, $username);
+    $declined = fetchBookingInquiry($conn, $inquiryId);
+    $historyBeforeArchive = fetchBookingInquiryStageHistory($conn, $inquiryId);
+    setBookingInquiryArchived($conn, $inquiryId, true, (string) $declined['updated_at'], $userId);
+    $archived = fetchBookingInquiry($conn, $inquiryId);
+    foreach ($declined as $key => $value) {
+        if (in_array($key, ['archived_at', 'archived_by', 'updated_at'], true)) {
+            continue;
+        }
+        expectBookingInquiryIntegration($archived[$key] === $value, 'archiving preserves inquiry field ' . $key);
+    }
+    expectBookingInquiryIntegration(
+        !empty($archived['archived_at']) && (int) $archived['archived_by'] === $userId
+            && fetchBookingInquiryStageHistory($conn, $inquiryId) === $historyBeforeArchive,
+        'archiving records its actor and time without changing stage history.'
+    );
+    foreach (['edit', 'stage', 'stale_restore', 'duplicate_archive'] as $attempt) {
+        $rejected = false;
+        try {
+            if ($attempt === 'edit') {
+                updateBookingInquiry($conn, $inquiryId, $normalized, (string) $archived['updated_at']);
+            } elseif ($attempt === 'stage') {
+                changeBookingInquiryStage($conn, $inquiryId, 'new', null, (string) $archived['updated_at'], $userId, $username);
+            } else {
+                setBookingInquiryArchived($conn, $inquiryId, $attempt === 'duplicate_archive',
+                    (string) ($attempt === 'stale_restore' ? $declined['updated_at'] : $archived['updated_at']), $userId);
+            }
+        } catch (InvalidArgumentException $exception) {
+            $rejected = true;
+        }
+        expectBookingInquiryIntegration($rejected, 'archived inquiry rejects ' . $attempt);
+    }
+    setBookingInquiryArchived($conn, $inquiryId, false, (string) $archived['updated_at'], $userId);
+    $inquiry = fetchBookingInquiry($conn, $inquiryId);
+    expectBookingInquiryIntegration(
+        $inquiry['archived_at'] === null && $inquiry['archived_by'] === null
+            && $inquiry['stage'] === 'declined' && $inquiry['decline_reason'] === $declined['decline_reason'],
+        'restoring preserves the declined outcome and reason before reopening.'
+    );
+
     changeBookingInquiryStage(
         $conn,
         $inquiryId,
@@ -431,6 +482,23 @@ try {
     expectBookingInquiryIntegration(
         $bookedRetryRejected,
         'a failed message should not be re-sent from the read-only Booked Inquiry.'
+    );
+
+    $historyBeforeArchive = fetchBookingInquiryStageHistory($conn, $inquiryId);
+    $chronBeforeArchive = fetchEntityChronLogEntries($conn, 'inquiry', $inquiryId, false, 100, 0);
+    $emailBeforeArchive = fetchBookingInquiryEmailMessages($conn, $inquiryId);
+    $tasksBeforeArchive = fetchFollowUpTasksForSubject($conn, 'inquiry', $inquiryId);
+    setBookingInquiryArchived($conn, $inquiryId, true, (string) $booked['updated_at'], $userId);
+    $booked = fetchBookingInquiry($conn, $inquiryId);
+    expectBookingInquiryIntegration(
+        !empty($booked['archived_at']) && $booked['stage'] === 'booked'
+            && (int) $booked['converted_engagement_id'] === $engagementId
+            && fetchBookingInquiryStageHistory($conn, $inquiryId) === $historyBeforeArchive
+            && fetchEntityChronLogEntries($conn, 'inquiry', $inquiryId, false, 100, 0) === $chronBeforeArchive
+            && fetchBookingInquiryEmailMessages($conn, $inquiryId) === $emailBeforeArchive
+            && fetchFollowUpTasksForSubject($conn, 'inquiry', $inquiryId) === $tasksBeforeArchive
+            && (int) $conn->query("SELECT is_deleted FROM engagements WHERE id = {$engagementId}")->fetch_assoc()['is_deleted'] === 0,
+        'archiving a converted inquiry retains all related records and leaves its engagement active.'
     );
 
     $postConversionTransportKey = 'booked-inquiry-reply-' . $suffix;

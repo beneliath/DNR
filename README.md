@@ -328,6 +328,13 @@ one transaction: it creates the Engagement, assigns the primary Contact as Prima
 available, moves selected tasks, generates the standard event checklist, marks the Inquiry Booked,
 and preserves the Inquiry as a read-only source record linked to the new Engagement.
 
+Administrators and editors can select **Archive Inquiry** on a declined Inquiry or a booked
+Inquiry that has been converted to an Engagement. Archived inquiries leave every Booking Pipeline
+view and its Dashboard count. **Archived Inquiries** provides search, filters, export, and read-only
+access to the retained details, outcome, history, correspondence, tasks, and Engagement link.
+**Restore Inquiry** returns the record to its previous outcome; restore a declined inquiry before
+editing or reopening it. Archiving an Inquiry does not archive its Engagement or follow-up tasks.
+
 ### Work queue and standard event tasks
 
 Authenticated users can open **Work Queue** to review assignable follow-up work. Tasks may be
@@ -337,6 +344,12 @@ and **Canceled**. The queue provides personal, overdue, due-today, next-seven-da
 unassigned, completed, and all-active views. Reviewers can inspect tasks; administrators and
 editors can create, edit, assign, and complete them; permanent deletion remains limited to
 administrators.
+
+Archiving an engagement or inquiry hides its associated tasks from active Work Queue views,
+counts, reminders, calendars, and digests without changing any task fields. Restoring the parent
+returns its **Open**, **In progress**, and **Waiting** tasks automatically. Completed, canceled,
+and individually archived tasks remain outside active work. Task history stays available, and
+archiving an inquiry does not affect tasks already moved to its engagement.
 
 The navigation badge and the **My reminders** panel summarize only the signed-in user's actionable
 work: overdue, due today, next seven days, and waiting tasks. Administrators and editors also see

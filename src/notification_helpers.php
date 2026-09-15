@@ -53,7 +53,8 @@ function fetchTaskReminderCounts(
             SUM(status = 'waiting') AS waiting_count
          FROM follow_up_tasks
          WHERE assigned_to = ?
-           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
+           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0
+           AND " . followUpTaskUnarchivedParentSql('follow_up_tasks')
     );
     if (!$taskStatement) {
         throw new RuntimeException('Unable to prepare work reminder counts.');
@@ -332,6 +333,7 @@ function fetchDailyTaskDigestData(
                   ON inquiry.id = task.inquiry_id
                 WHERE task.assigned_to = ?
                   AND task.status IN ('open', 'in_progress', 'waiting') AND task.is_archived = 0
+                  AND " . followUpTaskUnarchivedParentSql('task') . "
             ) categorized
          ) ranked
          WHERE digest_rank <= 12

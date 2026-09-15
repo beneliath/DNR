@@ -557,6 +557,10 @@ html.dark-mode .inquiry-form input[type="date"] { color-scheme: dark; }
 .inquiry-stage-badge.stage-awaiting_details { background: var(--warning-subtle); color: var(--warning); }
 .inquiry-stage-badge.stage-proposal_sent { background: color-mix(in srgb, #d9f4f3 78%, var(--surface)); color: #078b96; }
 .inquiry-decline-action { color: var(--danger) !important; }
+.inquiry-archive-action { margin: .65rem 0 0; }
+.inquiry-archive-banner { margin-bottom: 1rem; border-color: var(--border); background: var(--surface); }
+.inquiry-archive-banner > div { display: grid; gap: .35rem; }
+.inquiry-archive-banner .inquiry-archive-action { flex: 0 0 auto; margin: 0; }
 
 .inquiry-stage-path {
     display: grid;

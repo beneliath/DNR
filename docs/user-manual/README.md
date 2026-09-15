@@ -35,34 +35,28 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 14, 2026 edition covers source version 2.1.9 and the sidebar,
-network-statistics reset, task-completion confirmation, and daily-digest footer
-changes prepared on this branch. It incorporates the features added since the
-September 13 version 2.1.0 guide: readable table headings and owner names,
-session-specific five-minute administrator unlock, backup download feedback,
-current footer branding, administrator profile editing, public IPv4/IPv6 timing
-comparisons, and optimized contact photos and Dashboard summaries.
+The September 15, 2026 edition covers source version 2.1.14. It updates the
+version 2.1.9 guide with inquiry and task archive/restore workflows, remembered engagement
+lifecycle filters, Daily Digest day/status indicators on user cards, explicit
+administrator locking, and inbound-mail import/reconciliation behavior.
+It also explains how archiving an engagement or inquiry hides its unfinished
+tasks from active work until the parent is restored, preserving each task's
+status and independent archive flag.
 
-The online and PDF chapter text agree on calendar subscriptions, birthdays,
-recovery-email verification, account editing, and network diagnostics. The PDF
-adds walkthroughs for task confirmation, network comparison/reset, the unlock
-countdown, and digest delivery time and days. The PDF omits the decorative footer
-artwork and associated lines, including the former dedicated digest-footer figure.
-Its README appendix reproduces the reorganized repository README, including
-encryption and recovery procedures, with an index of its main sections and
-bookmarks for every subsection.
+The sidebar guide receives brief usability guidance about the changed controls
+and their effects. The PDF adds illustrated procedures, preserved-status and
+restore details, mailbox health interpretation, and the full current README
+appendix. Its cover, source notes, bookmarks, topic finder, and download all
+identify this edition.
 
-Seventeen source images were refreshed or added on September 14 using CUA browser
-captures: manual, dark, mobile, roles, tasks, task-confirmation, elevation,
-edit-user, backup, network, admin-countdown, network-reset, dashboard, profile,
-recovery-email, lifecycle, and digest-preferences. The users figure reuses the
-complete user cards from the roles capture. The `captured_at` fields identify
-refreshed figures. Dashboard and Work Queue examples show at most five days
-overdue. Synthetic network timings are explicitly labeled as examples.
-The network reset and task completion dialogs
-were canceled. No email or invitation was sent, and no export was submitted.
-Presentation/scheduling images from September 13, inbox/template images from
-September 10, and remaining September 9 images are retained where applicable.
+Twelve figures were refreshed or added with CUA in an isolated disposable preview:
+manual, pipeline, inquiry-archive, inquiry-archived, engagement-list, tasks,
+task-archived, users, elevation, edit-user, admin-countdown, and operations.
+The `captured_at` fields identify these figures. Avery Morgan, Casey Taylor,
+and the associated records are fictional. The mailbox panel uses explicitly
+labeled synthetic state; no mailbox service is connected. No email or invitation
+was sent, and no record form was saved during capture. Earlier illustrations
+remain where their controls still apply. Decorative footer artwork is excluded.
 
 ## Rebuild from the checked-in screenshots
 
@@ -93,10 +87,10 @@ section destinations, and the exact embedded source attachment.
 
 Use a **disposable** local preview with current migrations and fictional data.
 Do not point fixture scripts or capture automation at a production database.
-Earlier editions used `dnr-rolling007-preview`. The September 14 refresh used a
-fresh `dnr-network-reset-test` Compose project with development bind mounts and
-fictional Avery Morgan and Casey Taylor accounts. Its older image footer does
-not identify the source edition; the PDF identifies the checked-out source.
+Earlier editions used `dnr-rolling007-preview`. The September 15 refresh used
+`dnr-manual-refresh-web` and `dnr-manual-refresh-db`, with current source bind
+mounts, all migrations, and fictional Avery Morgan and Casey Taylor accounts.
+The PDF identifies both the current source version and branch feature.
 All temporary services and disposable volumes were removed after verification.
 Mail used a development log and Mattermost was unconfigured.
 
