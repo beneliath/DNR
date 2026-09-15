@@ -21,6 +21,11 @@ if (!$task) {
     header('Location: tasks.php');
     exit();
 }
+if (!empty($task['is_archived']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    $_SESSION['task_action_message'] = 'Restore this archived task before updating it.';
+    header('Location: tasks.php?view=archived&scope=everyone');
+    exit();
+}
 
 $task_return_to = safeFollowUpTaskReturnUrl(
     \Dnr\Http\RequestInput::string(
@@ -47,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
         if (!$locked_task) {
             throw new InvalidArgumentException('That task is no longer available.');
         }
+        requireUnarchivedFollowUpTask($locked_task);
         if ((int) ($locked_task['engagement_id'] ?? 0)
                 !== (int) ($task['engagement_id'] ?? 0)
             || followUpTaskSubjectValue($locked_task) !== followUpTaskSubjectValue($task)

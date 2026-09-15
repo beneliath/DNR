@@ -25,7 +25,8 @@ $nav_groups = [
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
-    'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php', 'admin_elevation.php'],
+    'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
+    'admin_unlock' => ['admin_elevation.php'],
     'database' => ['database_maintenance.php'],
     'network' => ['network_diagnostics.php'],
     'profile' => ['profile.php'],
@@ -70,6 +71,11 @@ $role_preview_return_url = safeRolePreviewReturnUrl(
         . (!empty($_SERVER['QUERY_STRING']) ? '?' . (string) $_SERVER['QUERY_STRING'] : ''),
     $user_role
 );
+$admin_unlock_url = 'admin_elevation.php?' . http_build_query([
+    'return' => $shell_current_page === 'admin_elevation.php'
+        ? safeAdminElevationReturnUrl($_GET['return'] ?? 'dashboard.php')
+        : $role_preview_return_url,
+]);
 $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
@@ -125,6 +131,12 @@ if (!empty($_SESSION['user_id'])) {
                 <strong role="status">Administrator actions unlocked</strong>
                 <span>Sensitive actions are available until the timer expires.</span>
             </div>
+            <form method="post" action="admin_lock.php" class="admin-unlock-lock-form" data-admin-lock-form>
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
+                <button type="submit" class="admin-unlock-lock-button">Lock Admin Actions</button>
+                <span data-admin-lock-error role="alert" hidden></span>
+            </form>
             <div class="admin-unlock-countdown">
                 <span>Automatically locks in</span>
                 <span data-admin-unlock-timer role="timer" aria-label="Time until administrator actions lock" aria-live="off"></span>
@@ -210,6 +222,9 @@ if (!empty($_SESSION['user_id'])) {
                 <section class="nav-group" aria-labelledby="nav-administration">
                     <h2 class="nav-group-heading" id="nav-administration">Administration</h2>
                     <ul>
+                        <li><a href="<?php echo htmlspecialchars($admin_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="nav-link admin-nav-link<?php echo $active_nav === 'admin_unlock' ? ' active' : ''; ?>" data-admin-unlock-link<?php echo $active_nav === 'admin_unlock' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2M12 15v2"/></svg><span>Admin Unlock</span>
+                        </a></li>
                         <li><a href="users.php" class="nav-link admin-nav-link<?php echo $active_nav === 'users' ? ' active' : ''; ?>"<?php echo $active_nav === 'users' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg><span>Users</span>
                         </a></li>
@@ -231,14 +246,13 @@ if (!empty($_SESSION['user_id'])) {
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="role-preview-fields">
-                        <select name="role" id="role-preview-role" aria-labelledby="role-preview-label" aria-describedby="role-preview-help">
+                        <select name="role" id="role-preview-role" aria-labelledby="role-preview-label">
                             <option value="admin"<?php echo $role_preview === null ? ' selected' : ''; ?>>Administrator</option>
                             <option value="editor"<?php echo $role_preview === 'editor' ? ' selected' : ''; ?>>Editor</option>
                             <option value="reviewer"<?php echo $role_preview === 'reviewer' ? ' selected' : ''; ?>>Reviewer</option>
                         </select>
                         <button type="submit">Apply</button>
                     </div>
-                    <small id="role-preview-help">menus/access as another role</small>
                 </form>
                 </details>
             <?php endif; ?>

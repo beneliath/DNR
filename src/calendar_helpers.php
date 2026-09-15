@@ -212,7 +212,7 @@ function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $ass
          LEFT JOIN engagements e ON e.id = t.engagement_id
          LEFT JOIN organizations o ON o.id = e.organization_id
          WHERE t.due_date BETWEEN ? AND ?
-           AND t.status IN ('open', 'in_progress', 'waiting')"
+           AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0"
         . $assigned_filter .
         " ORDER BY t.due_date,
                    FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),

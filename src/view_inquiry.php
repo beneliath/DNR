@@ -283,7 +283,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                                                 <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive Chron Log Entry" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                                             </form>
                                             <?php if ($userRole === 'admin'): ?>
-                                                <form method="post" action="view_inquiry.php" data-confirm="Permanently delete this Chron Log Entry? This cannot be undone.">
+                                                <form method="post" action="view_inquiry.php" data-admin-unlock-required data-confirm="Permanently delete this Chron Log Entry? This cannot be undone.">
                                                     <?php echo csrfInput(); ?>
                                                     <input type="hidden" name="id" value="<?php echo $inquiryId; ?>">
                                                     <input type="hidden" name="action" value="delete_chron">

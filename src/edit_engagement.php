@@ -1055,7 +1055,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                             <div class="chron-entry-actions">
                                 <button type="submit" name="chron_action" value="archive" class="archive-button">Archive</button>
                                 <?php if ($user_role === 'admin'): ?>
-                                    <button type="submit" name="chron_action" value="delete" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
+                                    <button type="submit" name="chron_action" value="delete" class="delete-button" data-admin-unlock-required data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
                                 <?php endif; ?>
                             </div>
                         </form>

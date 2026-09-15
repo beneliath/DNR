@@ -159,7 +159,7 @@ function fetchDashboardTaskSummary(mysqli $conn, int $user_id, string $business_
                 COALESCE(SUM(assigned_to = ? AND due_date < ?), 0) AS overdue_count,
                 COALESCE(SUM(assigned_to = ? AND due_date = ?), 0) AS today_count
          FROM follow_up_tasks
-         WHERE status IN ('open', 'in_progress', 'waiting')"
+         WHERE status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare dashboard task totals.');
@@ -203,7 +203,7 @@ function fetchDashboardMyTasks(mysqli $conn, int $user_id, int $limit = 8): arra
          LEFT JOIN contacts c ON c.id = t.contact_id
          LEFT JOIN booking_inquiries inquiry ON inquiry.id = t.inquiry_id
          WHERE t.assigned_to = ?
-           AND t.status IN ('open', 'in_progress', 'waiting')
+           AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0
          ORDER BY COALESCE(t.due_date, '9999-12-31'),
                   FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
                   t.id

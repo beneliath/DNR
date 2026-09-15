@@ -872,7 +872,7 @@ function convertBookingInquiry(
                 "UPDATE follow_up_tasks
                  SET subject_type = 'engagement', engagement_id = ?, inquiry_id = NULL
                  WHERE inquiry_id = ?
-                   AND status IN ('open', 'in_progress', 'waiting')
+                   AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0
                    AND id IN ({$placeholders})"
             );
             $types = 'ii' . str_repeat('i', count($taskIds));

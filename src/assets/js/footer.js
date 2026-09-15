@@ -1,4 +1,59 @@
 (function () {
+    'use strict';
+
+    const checkingAdminUnlock = new WeakSet();
+
+    // Fragments are client-side state, so preserve the current tab for proactive unlocks.
+    document.querySelectorAll('[data-admin-unlock-link]').forEach(function (link) {
+        link.addEventListener('click', function () {
+            if (window.location.pathname.endsWith('/admin_elevation.php')) return;
+            const destination = new URL(link.href, window.location.href);
+            destination.searchParams.set('return', window.location.pathname.split('/').pop()
+                + window.location.search + window.location.hash);
+            link.href = destination.href;
+        });
+    });
+
+    async function confirmAdminUnlock(form, submitter) {
+        if (!form.matches('[data-delete-confirmation], [data-sensitive-action], [data-admin-unlock-required]')
+            && !submitter?.matches('[data-admin-unlock-required]')) return true;
+        if (checkingAdminUnlock.has(form)) return false;
+        checkingAdminUnlock.add(form);
+
+        // Keep the current filters and return to the section containing the action.
+        const returnUrl = new URL(window.location.href);
+        const actionUrl = new URL(form.getAttribute('action') || returnUrl.href, returnUrl);
+        const section = form.closest('section[id], [role="tabpanel"]');
+        if (actionUrl.pathname === returnUrl.pathname && actionUrl.hash) {
+            returnUrl.hash = actionUrl.hash;
+        } else if (section) {
+            returnUrl.hash = section.id;
+        }
+        const unlockUrl = new URL('admin_elevation.php', returnUrl);
+        unlockUrl.searchParams.set('return', returnUrl.pathname.split('/').pop() + returnUrl.search + returnUrl.hash);
+
+        try {
+            const response = await fetch('admin_unlock_status.php', {
+                credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' }
+            });
+            if (response.ok && !response.redirected) {
+                const status = await response.json();
+                if (status.unlocked === true && typeof status.csrf_token === 'string' && status.csrf_token !== '') {
+                    const token = form.querySelector('input[name="csrf_token"]');
+                    if (token) token.value = status.csrf_token;
+                    return true;
+                }
+            }
+        } catch (error) {
+            // If the session cannot be checked, use the normal authenticated unlock flow.
+        } finally {
+            checkingAdminUnlock.delete(form);
+        }
+        window.location.assign(unlockUrl.href);
+        return false;
+    }
+
+(function () {
     const logoutForm = document.getElementById('logout-form');
     const confirmation = document.getElementById('logout-confirmation');
     const cancelButton = document.getElementById('cancel-logout');
@@ -32,9 +87,11 @@
     if (!confirmation || !confirmationMessage || !cancelButton || !archiveButton || !confirmButton) return;
 
     document.querySelectorAll('form[data-delete-confirmation]').forEach(function (form) {
-        form.addEventListener('submit', function (event) {
+        form.addEventListener('submit', async function (event) {
+            if (event.defaultPrevented) return;
             if (form.dataset.deleteConfirmed === 'true') return;
             event.preventDefault();
+            if (!await confirmAdminUnlock(form, event.submitter)) return;
             pendingForm = form;
             pendingSubmitter = event.submitter;
             confirmationMessage.textContent = form.dataset.deleteConfirmation;
@@ -101,7 +158,7 @@
         pendingSubmitter = null;
     }
 
-    document.addEventListener('submit', function (event) {
+    document.addEventListener('submit', async function (event) {
         if (event.defaultPrevented) return;
         const form = event.target.closest('form');
         if (!form) return;
@@ -116,6 +173,7 @@
         if (!confirmationTarget) return;
 
         event.preventDefault();
+        if (!await confirmAdminUnlock(form, event.submitter)) return;
         pendingForm = form;
         pendingSubmitter = event.submitter;
         const destructive = confirmationTarget.dataset.confirmTone === 'danger'
@@ -185,7 +243,7 @@
         confirmationError.hidden = true;
     }
 
-    document.addEventListener('submit', function (event) {
+    document.addEventListener('submit', async function (event) {
         if (event.defaultPrevented) return;
         const form = event.target.closest('form[data-sensitive-action]');
         if (!form) return;
@@ -195,6 +253,7 @@
         }
 
         event.preventDefault();
+        if (!await confirmAdminUnlock(form, event.submitter)) return;
         const deleting = form.dataset.sensitiveAction === 'delete-user';
         pendingForm = form;
         pendingSubmitter = event.submitter;
@@ -267,4 +326,6 @@
         previewImage.alt = 'QR code preview';
         previewTitle.textContent = 'QR Code Preview';
     });
+})();
+
 })();

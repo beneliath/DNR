@@ -30,7 +30,7 @@ if ($fulltext_query === '') {
     $search = '';
 }
 $page_size = paginationPageSizePreference('tasks_' . $scope, $_GET['per_page'] ?? null);
-$cursor_keys = $view === 'completed'
+$cursor_keys = in_array($view, ['completed', 'archived'], true)
     ? ['updated_at', 'id']
     : ['due_date', 'priority_rank', 'id'];
 $cursor_value = \Dnr\Http\RequestInput::string($_GET, 'cursor');
@@ -74,6 +74,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $current_user_id
             );
             $_SESSION['task_action_message'] = 'Task status updated.';
+        } elseif ($action === 'archive' || $action === 'restore') {
+            setFollowUpTaskArchived(
+                $conn,
+                (int) filter_input(INPUT_POST, 'task_id', FILTER_VALIDATE_INT),
+                $action === 'archive',
+                \Dnr\Http\RequestInput::string($_POST, 'task_version'),
+                $current_user_id
+            );
+            $_SESSION['task_action_message'] = $action === 'archive'
+                ? 'Task archived. You can restore it from Archived in the work queue.'
+                : 'Task restored.';
         } elseif ($action === 'assign_to_me') {
             $task_id = filter_input(INPUT_POST, 'task_id', FILTER_VALIDATE_INT);
             assignFollowUpTaskToUser(
@@ -168,10 +179,15 @@ if ($view === 'overdue') {
     $bind_values[] = $business_date;
 } elseif ($view === 'waiting') {
     $where[] = "t.status = 'waiting'";
+} elseif ($view === 'archived') {
+    $where[] = 't.is_archived = 1';
 } elseif ($view === 'completed') {
     $where[] = "t.status IN ('completed', 'canceled')";
 } else {
     $where[] = $active_status_sql;
+}
+if ($view !== 'archived') {
+    $where[0] = 't.is_archived = 0 AND (' . $where[0] . ')';
 }
 $view_bind_count = count($bind_values);
 if ($scope === 'mine') {
@@ -233,12 +249,13 @@ $summary_where = array_slice($where, 1);
 $summary_where_sql = $summary_where ? implode(' AND ', array_map(static fn($part) => '(' . $part . ')', $summary_where)) : '1 = 1';
 $summary_from = substr(followUpTaskSelectSql(), strpos(followUpTaskSelectSql(), 'FROM follow_up_tasks'));
 $summary_stmt = $conn->prepare("SELECT
-    SUM(t.status IN ('open', 'in_progress', 'waiting')) AS all_count,
-    SUM(t.status IN ('open', 'in_progress', 'waiting') AND t.due_date < ?) AS overdue_count,
-    SUM(t.status IN ('open', 'in_progress', 'waiting') AND t.due_date = ?) AS today_count,
-    SUM(t.status IN ('open', 'in_progress', 'waiting') AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)) AS upcoming_count,
-    SUM(t.status = 'waiting') AS waiting_count,
-    SUM(t.status IN ('completed', 'canceled')) AS completed_count
+    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting')) AS all_count,
+    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date < ?) AS overdue_count,
+    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date = ?) AS today_count,
+    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)) AS upcoming_count,
+    SUM(t.is_archived = 0 AND t.status = 'waiting') AS waiting_count,
+    SUM(t.is_archived = 0 AND t.status IN ('completed', 'canceled')) AS completed_count,
+    SUM(t.is_archived = 1) AS archived_count
     {$summary_from} WHERE {$summary_where_sql}");
 $summary_types = 'ssss' . substr($bind_types, $view_bind_count);
 $summary_values = array_merge(array_fill(0, 4, $business_date), array_slice($bind_values, $view_bind_count));
@@ -247,13 +264,13 @@ $summary_stmt->execute();
 $summary_row = $summary_stmt->get_result()->fetch_assoc() ?: [];
 $summary_stmt->close();
 $summary = [];
-foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed'] as $summary_key) $summary[$summary_key] = (int) ($summary_row[$summary_key . '_count'] ?? 0);
+foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed', 'archived'] as $summary_key) $summary[$summary_key] = (int) ($summary_row[$summary_key . '_count'] ?? 0);
 
 $where_sql = implode(' AND ', array_map(
     static fn($clause) => '(' . $clause . ')',
     $where
 ));
-$order_sql = $view === 'completed'
+$order_sql = in_array($view, ['completed', 'archived'], true)
     ? 't.updated_at DESC, t.id DESC'
     : "COALESCE(t.due_date, '9999-12-31') ASC,
        FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
@@ -262,7 +279,7 @@ $pagination_types = $bind_types;
 $pagination_values = $bind_values;
 $cursor_sql = '';
 if ($cursor !== null && ctype_digit((string) $cursor['id'])) {
-    if ($view === 'completed') {
+    if (in_array($view, ['completed', 'archived'], true)) {
         $cursor_sql = ' AND (t.updated_at, t.id) < (?, ?)';
         $bind_types .= 'si';
         $bind_values[] = (string) $cursor['updated_at'];
@@ -369,7 +386,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php foreach ($scope_labels as $scope_value => $scope_label): ?><a class="sort-button<?php echo $scope === $scope_value ? ' active' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['scope' => $scope_value]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $scope === $scope_value ? ' aria-current="page"' : ''; ?>><?php echo htmlspecialchars($scope_label, ENT_QUOTES, 'UTF-8'); ?></a><?php endforeach; ?>
     </nav>
     <div class="summary-grid task-summary-grid" aria-label="Filters for the selected work ownership">
-        <?php foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed'] as $summary_view): ?>
+        <?php foreach (['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed', 'archived'] as $summary_view): ?>
             <a class="summary-card<?php echo $view === $summary_view ? ' is-selected' : ''; ?>" href="<?php echo htmlspecialchars($queue_url(['view' => $summary_view]), ENT_QUOTES, 'UTF-8'); ?>"<?php echo $view === $summary_view ? ' aria-current="page"' : ''; ?>><span><small><?php echo htmlspecialchars($view_labels[$summary_view], ENT_QUOTES, 'UTF-8'); ?></small><strong><?php echo $summary[$summary_view]; ?></strong></span></a>
         <?php endforeach; ?>
     </div>
@@ -413,9 +430,10 @@ $active_task_statuses = followUpTaskActiveStatuses();
         <?php if (!$tasks): ?><tr><td colspan="6" class="empty-state">No tasks match this work queue.</td></tr><?php endif; ?>
         <?php foreach ($tasks as $task): ?>
             <?php
+            $is_archived = !empty($task['is_archived']);
             $due = followUpTaskDueState($task['due_date'], $business_date);
-            $due_presentation = followUpTaskDuePresentation($task['due_date'], $task['status'], $business_date);
-            $row_due_key = in_array($task['status'], $active_task_statuses, true)
+            $due_presentation = followUpTaskDuePresentation($task['due_date'], $task['status'], $business_date, $is_archived);
+            $row_due_key = !$is_archived && in_array($task['status'], $active_task_statuses, true)
                 ? $due['key']
                 : 'none';
             $needs_overdue_attention = $row_due_key === 'overdue'
@@ -444,17 +462,18 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     <?php if ($due_presentation['detail'] !== ''): ?><small class="task-due-detail"><?php echo htmlspecialchars($due_presentation['detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
                 <td>
-                    <?php if ($can_manage_tasks): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
+                    <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <div class="task-record-priority"><span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     <?php if ($task['status'] === 'waiting' && !empty($task['waiting_on'])): ?><small class="task-waiting-on">Waiting on: <?php echo htmlspecialchars($task['waiting_on'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>
                 <td><a href="<?php echo htmlspecialchars($subject['url'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($subject['label'], ENT_QUOTES, 'UTF-8'); ?></a><small><?php echo htmlspecialchars(ucfirst($subject['type']), ENT_QUOTES, 'UTF-8'); ?></small></td>
                 <td><span class="table-username"><?php echo htmlspecialchars($task['assignee_username'] ?: 'Unassigned', ENT_QUOTES, 'UTF-8'); ?></span></td>
-                <td><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($status_labels[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></td>
+                <td><?php if ($is_archived): ?><span class="task-status task-status-canceled">Archived</span> <?php endif; ?><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($status_labels[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></td>
                 <td>
                     <?php if ($can_manage_tasks): ?>
                     <div class="task-actions">
+                        <?php if (!$is_archived): ?>
                         <a href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button action-icon-button edit-button" aria-label="Edit task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                         <?php if (in_array($task['status'], ['completed', 'canceled'], true)): ?>
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="open"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button restore-button" aria-label="Reopen task" title="Reopen" data-tooltip="Reopen"><?php echo actionIconSvg('restore'); ?></button></form>
@@ -462,10 +481,16 @@ $active_task_statuses = followUpTaskActiveStatuses();
                             <?php if ($task['status'] !== 'in_progress'): ?><form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="in_progress"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button start-button" aria-label="Start task" title="Start" data-tooltip="Start"><?php echo actionIconSvg('start'); ?></button></form><?php endif; ?>
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="set_status"><input type="hidden" name="status" value="completed"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete" data-confirm="Are you sure you want to mark this task complete?" data-confirm-title="Complete Task?" data-confirm-label="Complete Task"><?php echo actionIconSvg('complete'); ?></button></form>
                         <?php endif; ?>
-                        <?php if (canDeleteEntries($user_role)): ?>
-                            <form method="post" action="tasks.php" data-confirm="Permanently delete this task?"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
                         <?php endif; ?>
-                        <?php if ($task['assigned_to'] === null): ?>
+                        <?php
+                        $archive_task = $task;
+                        $archive_task_return_to = $task_return_to;
+                        include 'templates/task_archive_action.php';
+                        ?>
+                        <?php if (canDeleteEntries($user_role)): ?>
+                            <form method="post" action="tasks.php" data-admin-unlock-required data-confirm="Permanently delete this task?"><?php echo csrfInput(); ?><input type="hidden" name="action" value="delete"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
+                        <?php endif; ?>
+                        <?php if (!$is_archived && $task['assigned_to'] === null): ?>
                             <form method="post" action="tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="action" value="assign_to_me"><input type="hidden" name="task_id" value="<?php echo (int) $task['id']; ?>"><input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>"><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>"><button type="submit" class="task-action-button">Assign to Me</button></form>
                         <?php endif; ?>
                     </div>

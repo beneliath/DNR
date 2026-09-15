@@ -223,7 +223,7 @@ function cancelEngagementFollowUpTasks(mysqli $conn, int $engagement_id): int
          SET status = 'canceled', waiting_on = NULL,
              completed_by = NULL, completed_at = NULL
          WHERE engagement_id = ?
-           AND status IN ('open', 'in_progress', 'waiting')"
+           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the engagement task cancellation.');

@@ -62,8 +62,8 @@ expectLabelPunctuation(
 
 $header = (string) file_get_contents($root . '/src/templates/header.php');
 expectLabelPunctuation(
-    str_contains($header, '<small id="role-preview-help">menus/access as another role</small>'),
-    'the Preview Access helper must use the compact one-line label.'
+    !str_contains($header, 'menus/access as another role'),
+    'the expanded Preview Access control should omit its redundant helper line.'
 );
 
 $booking_inquiry_form = (string) file_get_contents($root . '/src/templates/booking_inquiry_form.php');

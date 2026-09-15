@@ -103,6 +103,11 @@ try {
             expectStatsReset($request($path, null, $cookie)['status'] === 403 && $request($path, $post, $cookie)['status'] === 403 && $targetVisits() === 28, 'Non-admin GET and POST must be denied');
             continue;
         }
+        $lockedConfirmation = $request($path, null, $cookie);
+        expectStatsReset($lockedConfirmation['status'] === 302
+            && str_contains($lockedConfirmation['headers'], 'Location: admin_elevation.php?')
+            && !str_contains($lockedConfirmation['body'], 'Reset Statistics to Zero'),
+            'The statistics confirmation page requires unlock before it is presented');
         $gate = $request($path, $post, $cookie);
         expectStatsReset($gate['status'] === 302 && str_contains($gate['headers'], 'Location: admin_elevation.php?') && $targetVisits() === 28, 'An admin session alone must not reset statistics');
         $elevationPost = ['csrf_token' => $csrf, 'return' => $path, 'admin_password' => $password, 'admin_code' => ''];

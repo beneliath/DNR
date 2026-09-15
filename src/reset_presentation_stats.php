@@ -35,8 +35,8 @@ $resetUrl = 'reset_presentation_stats.php?presentation_id=' . $presentationId;
 $backUrl = 'view_engagement.php?id=' . (int) $presentation['engagement_id'] . '#engagement-presentations';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
-    requireRecentAdminElevation($resetUrl);
 }
+requireRecentAdminElevation($resetUrl);
 $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {

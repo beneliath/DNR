@@ -13,10 +13,10 @@ require_once $sourceDirectory . '/chron_log_helpers.php';
 function expectRecordHttp(bool $condition, string $message): void {
     if (!$condition) throw new RuntimeException($message);
 }
-function recordHttp(string $path, string $sessionId, ?array $post = null): array {
+function recordHttp(string $path, string $sessionId, ?array $post = null, array $headers = [], array $cookies = []): array {
     $curl = curl_init(rtrim((string) getenv('DNR_TEST_BASE_URL'), '/') . '/' . $path);
     curl_setopt_array($curl, [CURLOPT_RETURNTRANSFER => true, CURLOPT_HEADER => true,
-        CURLOPT_COOKIE => 'PHPSESSID=' . $sessionId, CURLOPT_TIMEOUT => 20]);
+        CURLOPT_COOKIE => 'PHPSESSID=' . $sessionId . ($cookies ? '; ' . http_build_query($cookies, '', '; ') : ''), CURLOPT_TIMEOUT => 20, CURLOPT_HTTPHEADER => $headers]);
     if ($post !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($post)]);
     $response = curl_exec($curl);
     if (!is_string($response)) throw new RuntimeException('HTTP test request failed: ' . curl_error($curl));
@@ -38,7 +38,7 @@ function recordTestSession(array $user): array {
 $suffix = bin2hex(random_bytes(5));
 $users = $organizations = $contacts = $engagements = $sessions = [];
 try {
-    foreach (['editor', 'reviewer'] as $role) {
+    foreach (['editor', 'reviewer', 'admin'] as $role) {
         $username = 'record-http-' . $role . '-' . $suffix;
         $password = password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT);
         $stmt = $conn->prepare('INSERT INTO users (username, password, role) VALUES (?, ?, ?)');
@@ -48,6 +48,28 @@ try {
         $sessions[$role] = recordTestSession($row);
     }
     [$editorSession, $csrf] = $sessions['editor'];
+    // Lifecycle filters survive leaving the list and returning without URL state.
+    $preferenceCookie = 'dnr_engagement_lifecycle_' . $users[0];
+    foreach (['active', 'postponed', 'canceled', 'completed', 'all'] as $lifecycle) {
+        $selection = recordHttp('engagements.php?lifecycle=' . $lifecycle, $editorSession);
+        expectRecordHttp($selection['status'] === 200
+            && str_contains($selection['headers'], $preferenceCookie . '=' . $lifecycle),
+            'Explicit lifecycle selection persists, including All');
+        $cookies = [$preferenceCookie => $lifecycle];
+        recordHttp('dashboard.php', $editorSession, null, [], $cookies);
+        foreach (['engagements.php', 'engagements.php?lifecycle=invalid', 'engagements.php?lifecycle[]=active'] as $returnPath) {
+            $returned = recordHttp($returnPath, $editorSession, null, [], $cookies);
+            $dom = new DOMDocument(); @$dom->loadHTML($returned['body']); $xpath = new DOMXPath($dom);
+            $selected = $xpath->query('//div[@aria-label="Engagement lifecycle filter"]//a[@aria-current="true"]')->item(0);
+            expectRecordHttp($returned['status'] === 200 && $selected instanceof DOMElement
+                && trim($selected->textContent) === ucfirst($lifecycle),
+                'Returning restores the saved lifecycle filter and ignores invalid input');
+        }
+        $otherUser = recordHttp('engagements.php', $sessions['reviewer'][0], null, [], $cookies);
+        $dom = new DOMDocument(); @$dom->loadHTML($otherUser['body']); $xpath = new DOMXPath($dom);
+        expectRecordHttp(trim($xpath->query('//div[@aria-label="Engagement lifecycle filter"]//a[@aria-current="true"]')->item(0)->textContent) === 'All',
+            'Lifecycle preferences do not leak between users sharing a browser');
+    }
     $orgName = 'Relationship HTTP ' . $suffix;
     $inline = recordHttp('create_organization_inline.php', $editorSession, ['csrf_token' => $csrf, 'organization_name' => $orgName]);
     $created = json_decode($inline['body'], true);
@@ -64,6 +86,110 @@ try {
     $contactId = $contacts[] = (int) $conn->insert_id;
     $conn->query("INSERT INTO engagements (organization_id, event_title, event_start_date, event_end_date, event_type, confirmation_status) VALUES ({$orgId}, 'Note scope {$suffix}', '2026-09-10', '2026-09-12', 'conference', 'under_review')");
     $eventId = $engagements[] = (int) $conn->insert_id;
+    // Delete directly from the engagement while preserving the record/list context.
+    $conn->execute_query("INSERT INTO follow_up_tasks (title, subject_type, engagement_id, template_key)
+        VALUES (?, 'engagement', ?, 'standard.prepare_materials')", ['Delete task ' . $suffix, $eventId]);
+    $taskId = (int) $conn->insert_id;
+    $conn->execute_query("INSERT INTO follow_up_tasks (title, subject_type, engagement_id)
+        VALUES (?, 'engagement', ?)", ['Keep task ' . $suffix, $eventId]);
+    $keepTaskId = (int) $conn->insert_id;
+    $taskPath = 'view_engagement.php?id=' . $eventId . '&return_to=' . rawurlencode('engagements.php?search=test&per_page=25');
+    $taskReturn = $taskPath . '#follow-up-work';
+    $deleteFields = [];
+    foreach ($sessions as $role => [$sessionId]) {
+        $page = recordHttp($taskPath, $sessionId);
+        expectRecordHttp($page['status'] === 200, 'Engagement tasks render for ' . $role);
+        $dom = new DOMDocument(); @$dom->loadHTML($page['body']); $xpath = new DOMXPath($dom);
+        $forms = $xpath->query('//section[@id="follow-up-work"]//form[input[@name="action" and @value="delete"]]');
+        expectRecordHttp($forms->length === ($role === 'admin' ? 2 : 0), 'Only admins see task delete controls on engagements');
+        if ($role === 'admin') {
+            $form = $xpath->query('//section[@id="follow-up-work"]//form[input[@name="action" and @value="delete"] and input[@name="task_id" and @value="' . $taskId . '"]]')->item(0);
+            expectRecordHttp($form instanceof DOMElement && $form->getAttribute('method') === 'post'
+                && $form->getAttribute('action') === 'tasks.php'
+                && $form->getAttribute('data-confirm-title') === 'Delete Task?'
+                && str_contains($form->getAttribute('data-confirm'), 'cannot be undone')
+                && $xpath->query('.//button[@type="submit" and @aria-label="Delete task"]', $form)->length === 1,
+                'Task deletion uses a labelled POST control and permanent-deletion confirmation');
+            foreach ($xpath->query('.//input', $form) as $input) {
+                $deleteFields[$input->getAttribute('name')] = $input->getAttribute('value');
+            }
+            expectRecordHttp(($deleteFields['return_to'] ?? '') === $taskReturn
+                && ($deleteFields['csrf_token'] ?? '') === $sessions['admin'][1],
+                'Delete form preserves the engagement, Tasks anchor, list filters, and CSRF token');
+        }
+    }
+    foreach (['editor', 'reviewer'] as $role) {
+        $forbidden = recordHttp('tasks.php', $sessions[$role][0], array_replace($deleteFields, ['csrf_token' => $sessions[$role][1]]));
+        expectRecordHttp($forbidden['status'] === 403, 'Non-admin task deletion is forbidden for ' . $role);
+        expectRecordHttp(recordHttp('admin_unlock_status.php', $sessions[$role][0])['status'] === 403,
+            'Unlock status requires administrator access');
+        expectRecordHttp(recordHttp('admin_lock.php', $sessions[$role][0], ['csrf_token' => $sessions[$role][1]])['status'] === 403,
+            'Non-admins cannot use the administrator lock endpoint');
+    }
+    $lockedStatus = recordHttp('admin_unlock_status.php', $sessions['admin'][0]);
+    $lockedState = json_decode($lockedStatus['body'], true);
+    expectRecordHttp($lockedStatus['status'] === 200 && $lockedState['unlocked'] === false
+        && $lockedState['csrf_token'] === null && stripos($lockedStatus['headers'], 'Cache-Control: no-store') !== false,
+        'Locked sessions report fresh locked status without exposing a token');
+    expectRecordHttp(recordHttp('admin_unlock_status.php', $sessions['admin'][0], [])['status'] === 405,
+        'Unlock status is read-only');
+    $invalidDelete = recordHttp('tasks.php', $sessions['admin'][0], array_replace($deleteFields, ['csrf_token' => 'invalid']));
+    expectRecordHttp($invalidDelete['status'] === 400, 'Task deletion requires a valid CSRF token');
+    $lockedDelete = recordHttp('tasks.php', $sessions['admin'][0], $deleteFields);
+    expectRecordHttp($lockedDelete['status'] === 302 && str_contains($lockedDelete['headers'], 'Location: admin_elevation.php?'),
+        'Task deletion requires a recent admin unlock');
+    expectRecordHttp((int) $conn->query('SELECT COUNT(*) AS total FROM follow_up_tasks WHERE engagement_id = ' . $eventId)->fetch_assoc()['total'] === 2,
+        'Rejected delete requests preserve both engagement tasks');
+    session_id($sessions['admin'][0]); session_start();
+    $_SESSION['_admin_elevated_at'] = time();
+    session_write_close(); session_id('');
+    $unlockedState = json_decode(recordHttp('admin_unlock_status.php', $sessions['admin'][0])['body'], true);
+    expectRecordHttp($unlockedState['unlocked'] === true && $unlockedState['csrf_token'] === $sessions['admin'][1]
+        && $unlockedState['expires_at'] > $unlockedState['server_now'], 'Active unlock status includes its current token and deadline');
+    $alreadyUnlocked = recordHttp('admin_elevation.php?return=' . rawurlencode($taskReturn), $sessions['admin'][0]);
+    expectRecordHttp($alreadyUnlocked['status'] === 302 && str_contains($alreadyUnlocked['headers'], 'Location: ' . $taskReturn),
+        'An already unlocked session returns without asking for another password');
+    expectRecordHttp(recordHttp('admin_lock.php', $sessions['admin'][0])['status'] === 405,
+        'Early locking cannot be triggered with GET');
+    expectRecordHttp(recordHttp('admin_lock.php', $sessions['admin'][0], ['csrf_token' => 'invalid'])['status'] === 400,
+        'Early locking requires a valid CSRF token');
+    expectRecordHttp(json_decode(recordHttp('admin_unlock_status.php', $sessions['admin'][0])['body'], true)['unlocked'] === true,
+        'Rejected lock requests do not clear the unlock');
+    $sessions['other-admin-session'] = recordTestSession($conn->query('SELECT * FROM users WHERE id = ' . $users[2])->fetch_assoc());
+    session_id($sessions['other-admin-session'][0]); session_start();
+    $_SESSION['_admin_elevated_at'] = time();
+    session_write_close(); session_id('');
+    $lockResult = recordHttp('admin_lock.php', $sessions['admin'][0], ['csrf_token' => $sessions['admin'][1]], ['Accept: application/json']);
+    expectRecordHttp($lockResult['status'] === 200 && json_decode($lockResult['body'], true)['locked'] === true,
+        'The banner can immediately lock administrator actions without navigating');
+    expectRecordHttp(json_decode(recordHttp('admin_unlock_status.php', $sessions['admin'][0])['body'], true)['unlocked'] === false
+        && json_decode(recordHttp('admin_unlock_status.php', $sessions['other-admin-session'][0])['body'], true)['unlocked'] === true,
+        'Early lock clears only the requesting session, including when both sessions belong to the same admin');
+    $lockedPage = recordHttp($taskPath, $sessions['admin'][0]);
+    expectRecordHttp($lockedPage['status'] === 200 && !str_contains($lockedPage['body'], 'data-admin-unlock '),
+        'Early lock preserves login and removes the banner on subsequent pages');
+    $deleteAfterLock = recordHttp('tasks.php', $sessions['admin'][0], $deleteFields);
+    expectRecordHttp($deleteAfterLock['status'] === 302 && str_contains($deleteAfterLock['headers'], 'Location: admin_elevation.php?')
+        && $conn->query('SELECT id FROM follow_up_tasks WHERE id = ' . $taskId)->num_rows === 1,
+        'Early locking immediately blocks a stale tab from deleting a task');
+    session_id($sessions['admin'][0]); session_start();
+    $_SESSION['_admin_elevated_at'] = time() - 300;
+    session_write_close(); session_id('');
+    expectRecordHttp(json_decode(recordHttp('admin_unlock_status.php', $sessions['admin'][0])['body'], true)['unlocked'] === false,
+        'Expired sessions cannot pass the confirmation preflight');
+    session_id($sessions['admin'][0]); session_start();
+    $_SESSION['_admin_elevated_at'] = time();
+    session_write_close(); session_id('');
+    $deleted = recordHttp('tasks.php', $sessions['admin'][0], $deleteFields);
+    expectRecordHttp($deleted['status'] === 302 && str_contains($deleted['headers'], 'Location: ' . $taskReturn . "\r\n"),
+        'Successful deletion returns directly to the engagement Tasks section and preserves list context');
+    $remainingTasks = $conn->query('SELECT id FROM follow_up_tasks WHERE engagement_id = ' . $eventId)->fetch_all(MYSQLI_ASSOC);
+    expectRecordHttp(array_map(static fn(array $task): int => (int) $task['id'], $remainingTasks) === [$keepTaskId],
+        'Deleting a standard checklist task removes only the selected engagement task');
+    $afterDelete = recordHttp($taskReturn, $sessions['admin'][0]);
+    expectRecordHttp($afterDelete['status'] === 200 && str_contains($afterDelete['body'], 'Task permanently deleted.')
+        && !str_contains($afterDelete['body'], 'Delete task ' . $suffix) && str_contains($afterDelete['body'], 'Keep task ' . $suffix),
+        'The refreshed engagement shows deletion feedback and its remaining task');
     foreach (['organization' => $orgId, 'contact' => $contactId, 'engagement' => $eventId] as $type => $id) {
         $note = ucfirst($type) . ' note ' . $suffix;
         $path = 'view_' . $type . '.php?id=' . $id . '&return_to=' . rawurlencode($type === 'engagement' ? 'engagements.php?search=test&per_page=25' : ($type === 'contact' ? 'contacts.php?search=test' : 'organizations.php?search=test'));

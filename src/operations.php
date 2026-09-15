@@ -27,7 +27,7 @@ try {
         SUM(status IN ('open', 'in_progress', 'waiting')) AS active,
         SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < ?) AS overdue,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned
-        FROM follow_up_tasks");
+        FROM follow_up_tasks WHERE is_archived = 0");
     if (!$task_metric) {
         throw new RuntimeException('Unable to prepare operational task metrics.');
     }

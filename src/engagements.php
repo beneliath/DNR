@@ -79,11 +79,9 @@ $lifecycle_sort = \Dnr\Http\RequestInput::string($_GET, 'lifecycle_sort') === 'd
     ? 'desc'
     : 'asc';
 $org_sort = \Dnr\Http\RequestInput::string($_GET, 'org_sort') === 'desc' ? 'desc' : 'asc';
-$lifecycle_filter = \Dnr\Http\RequestInput::enum(
-    $_GET,
-    'lifecycle',
-    ['all', 'active', 'postponed', 'canceled', 'completed'],
-    'all'
+$lifecycle_filter = engagementLifecycleFilterPreference(
+    $_GET['lifecycle'] ?? null,
+    (int) $_SESSION['user_id']
 );
 
 // Determine which column to sort by based on which button was clicked

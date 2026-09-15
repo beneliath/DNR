@@ -355,7 +355,8 @@ body.has-app-shell.deployment-notice-active.role-preview-active { padding-top: c
   position: fixed;
   z-index: 86;
   inset: var(--deployment-banner-height, 0px) 0 auto var(--sidebar-width);
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   justify-content: space-between;
   gap: 20px;
@@ -373,7 +374,31 @@ html.dark-mode .admin-unlock-banner { background: #fb923c !important; }
 .admin-unlock-banner[hidden] { display: none !important; }
 .admin-unlock-copy { display: flex; flex-direction: column; gap: 1px; }
 .admin-unlock-copy strong { color: inherit; font-size: 0.98rem; }
-.admin-unlock-countdown { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.admin-unlock-lock-form { justify-self: center; margin: 0; text-align: center; }
+.admin-unlock-banner .admin-unlock-lock-button {
+  padding: 8px 14px;
+  border: 1px solid #2b1106 !important;
+  border-radius: 6px;
+  background: transparent !important;
+  color: #2b1106 !important;
+  font: inherit;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+.admin-unlock-banner .admin-unlock-lock-button:hover,
+.admin-unlock-banner .admin-unlock-lock-button:focus-visible {
+  background: var(--control-hover-bg) !important;
+  border-color: var(--control-hover-border) !important;
+  color: var(--control-hover-fg) !important;
+  outline: 2px solid var(--control-hover-border);
+  outline-offset: 2px;
+  box-shadow: var(--focus-ring);
+}
+.admin-unlock-lock-button:disabled { opacity: 0.65; cursor: wait; }
+[data-admin-lock-error]:not([hidden]) { display: block; margin-top: 4px; }
+.admin-unlock-countdown { display: flex; align-items: center; justify-self: end; gap: 12px; flex-shrink: 0; }
 [data-admin-unlock-timer] {
   padding: 3px 10px;
   border: 1px solid currentColor;
@@ -394,7 +419,9 @@ body.has-app-shell.admin-unlock-active {
     inset: calc(64px + var(--deployment-banner-height, 0px)) 0 auto;
     gap: 8px;
     padding: 9px 14px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
+  .admin-unlock-lock-form { grid-column: 1 / -1; grid-row: 2; }
   .admin-unlock-countdown { flex-direction: column; align-items: flex-end; gap: 2px; }
   .admin-unlock-countdown > span:first-child { font-size: 0.7rem; }
   body.has-app-shell.admin-unlock-active {
@@ -618,13 +645,13 @@ html.dark-mode .app-sidebar .nav-link.admin-nav-link.active {
 
 .utility-navigation {
   margin-top: auto;
-  padding-top: 20px;
+  padding-top: 8px;
   border-top: 1px solid var(--border);
 }
 
 .role-preview-control {
   margin: auto 0 0;
-  padding: 4px 8px 12px;
+  padding: 4px 8px 6px;
   border: 0;
 }
 
@@ -703,7 +730,7 @@ html.dark-mode .theme-icon-dark {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 18px;
+  margin-top: 8px;
   padding: 16px 4px 0;
   border-top: 1px solid var(--border);
 }
@@ -2499,7 +2526,7 @@ html body .chron-restore-page-actions a:focus-visible {
 }
 
 .task-summary-grid {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 @media (max-width: 900px) {
@@ -6108,6 +6135,7 @@ html.dark-mode { --primary-button-fg: #101828; }
 }
 .skip-link:focus { transform: translateY(0); }
 html body .app-sidebar .nav-group { margin: 0 0 20px; padding: 0; border: 0; background: transparent; }
+html body .app-sidebar .nav-group:last-child { margin-bottom: 4px; }
 html body .app-sidebar .nav-group-heading {
   text-align: left !important;
   margin: 0 0 7px;
@@ -6121,10 +6149,10 @@ html body .app-sidebar .nav-group-heading {
 }
 .app-sidebar .app-brand { margin-bottom: 24px; }
 .app-sidebar .utility-navigation { margin-top: auto; }
-.role-preview-disclosure { margin: 0 0 14px; color: var(--text-muted); font-size: 0.8rem; }
+.role-preview-disclosure { margin: 0 0 6px; color: var(--text-muted); font-size: 0.8rem; }
 .role-preview-disclosure > summary { padding: 8px 12px; cursor: pointer; text-align: left !important; }
 html body .app-sidebar .role-preview-disclosure > summary { color: var(--accent) !important; }
-.role-preview-disclosure .role-preview-control { margin: 8px 0 0; }
+.role-preview-disclosure .role-preview-control { margin: 0; }
 html body .sidebar-close-button { display: none !important; }
 .form-error-summary {
   grid-column: 1 / -1;

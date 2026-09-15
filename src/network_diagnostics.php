@@ -60,7 +60,7 @@ unset($_SESSION['_network_statistics_reset']);
         <div class="network-diagnostics-actions">
             <button type="button" class="button-add" data-network-refresh>Refresh</button>
             <?php if (hasRecentAdminElevation()): ?>
-                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page and image timings? This cannot be undone. New traffic will start counting from zero.">
+                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-admin-unlock-required data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page and image timings? This cannot be undone. New traffic will start counting from zero.">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="reset_statistics">
                     <button type="submit" class="button-secondary statistics-reset-button">Reset Statistics</button>

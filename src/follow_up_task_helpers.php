@@ -32,7 +32,7 @@ function followUpTaskQueueState(array $input, bool $hasSubject = false): array
         $scope = ($input['owner'] ?? '') === 'me' || $view === 'my' ? 'mine'
             : ($view === 'unassigned' ? 'unassigned' : ($view !== '' || $hasSubject ? 'everyone' : 'mine'));
     }
-    if (!in_array($view, ['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed'], true)) $view = 'all';
+    if (!in_array($view, ['all', 'overdue', 'today', 'upcoming', 'waiting', 'completed', 'archived'], true)) $view = 'all';
     return ['scope' => $scope, 'view' => $view];
 }
 
@@ -47,6 +47,7 @@ function followUpTaskQueueViews()
         'waiting' => 'Waiting',
         'unassigned' => 'Unassigned',
         'completed' => 'Completed',
+        'archived' => 'Archived',
         'all' => 'All active',
     ];
 }
@@ -760,6 +761,40 @@ function fetchFollowUpTask(mysqli $conn, $task_id, $lock = false)
     return $task ?: null;
 }
 
+/** Archive independently of status, rejecting stale forms and repeated actions. */
+function setFollowUpTaskArchived(
+    mysqli $conn,
+    int $taskId,
+    bool $archived,
+    string $expectedVersion,
+    int $actorUserId
+): void {
+    if ($taskId < 1 || $actorUserId < 1 || $expectedVersion === '') {
+        throw new InvalidArgumentException('Select a valid task action and reload the work queue.');
+    }
+    $archiveValue = $archived ? 1 : 0;
+    $archivedBy = $archived ? $actorUserId : null;
+    $archivedAt = $archived ? gmdate('Y-m-d H:i:s') : null;
+    $stmt = $conn->prepare(
+        'UPDATE follow_up_tasks SET is_archived = ?, archived_by = ?, archived_at = ?
+         WHERE id = ? AND updated_at = ? AND is_archived <> ?'
+    );
+    $stmt->bind_param('iisisi', $archiveValue, $archivedBy, $archivedAt, $taskId, $expectedVersion, $archiveValue);
+    $stmt->execute();
+    $changed = $stmt->affected_rows;
+    $stmt->close();
+    if ($changed !== 1) {
+        throw new InvalidArgumentException('That task changed in another session or is no longer available. Reload the work queue before updating it.');
+    }
+}
+
+function requireUnarchivedFollowUpTask(array $task): void
+{
+    if (!empty($task['is_archived'])) {
+        throw new InvalidArgumentException('Restore this archived task before updating it.');
+    }
+}
+
 function setFollowUpTaskStatus(
     mysqli $conn,
     $task_id,
@@ -803,6 +838,7 @@ function setFollowUpTaskStatus(
             throw new InvalidArgumentException('That task changed in another session. Reload the work queue before updating it.');
         }
 
+        requireUnarchivedFollowUpTask($task);
         $completed_by = $status === 'completed' ? $actor_user_id : null;
         $completed_at = $status === 'completed' ? gmdate('Y-m-d H:i:s') : null;
         if ($status === 'completed' && $task['status'] === 'completed') {
@@ -868,6 +904,7 @@ function assignFollowUpTaskToUser(
         ) {
             throw new InvalidArgumentException('That task changed in another session. Reload the work queue before assigning it.');
         }
+        requireUnarchivedFollowUpTask($task);
         $stmt = $conn->prepare('UPDATE follow_up_tasks SET assigned_to = ? WHERE id = ?');
         if (!$stmt) {
             throw new RuntimeException('Unable to prepare the task assignment.');
@@ -914,7 +951,7 @@ function fetchFollowUpTasksForSubject(
 
     $sql = followUpTaskSelectSql()
         . " WHERE {$where}
-            AND t.status IN ('open', 'in_progress', 'waiting')
+            AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0
             ORDER BY
                 t.due_date IS NULL,
                 t.due_date ASC,
@@ -955,7 +992,7 @@ function followUpTaskDueState($due_date, $today = null)
     return ['key' => 'upcoming', 'label' => 'Due ' . $due_date];
 }
 
-function followUpTaskDuePresentation($due_date, $status, $today = null)
+function followUpTaskDuePresentation($due_date, $status, $today = null, bool $archived = false)
 {
     $today = $today ?: applicationBusinessDate();
     if ($due_date === null || trim((string) $due_date) === '') {
@@ -964,9 +1001,9 @@ function followUpTaskDuePresentation($due_date, $status, $today = null)
     $date = new DateTimeImmutable((string) $due_date, applicationTimezone());
     $business_day = new DateTimeImmutable($today, applicationTimezone());
     $days_overdue = $date < $business_day ? (int) $date->diff($business_day)->days : 0;
-    $active = in_array($status, followUpTaskActiveStatuses(), true);
+    $active = !$archived && in_array($status, followUpTaskActiveStatuses(), true);
     $detail = !$active
-        ? (followUpTaskStatuses()[$status] ?? '')
+        ? ($archived ? 'Archived' : (followUpTaskStatuses()[$status] ?? ''))
         : ($days_overdue > 0
             ? $days_overdue . ' day' . ($days_overdue === 1 ? '' : 's') . ' overdue'
             : ($due_date === $today ? 'Due today' : 'Upcoming'));
@@ -1298,7 +1335,7 @@ function rescheduleGeneratedEngagementTasks(
          WHERE task.engagement_id = ?
            AND task.template_key IS NOT NULL
            AND task.due_date_overridden = 0
-           AND task.status IN ('open', 'in_progress', 'waiting')"
+           AND task.status IN ('open', 'in_progress', 'waiting') AND task.is_archived = 0"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare checklist rescheduling.');
