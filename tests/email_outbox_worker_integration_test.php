@@ -105,6 +105,24 @@ try {
             && $stale_outbox['payload_ciphertext'] === null,
         'replacement delivery should consume only older links and erase stale queued payloads.'
     );
+    foreach ([['expired', 8, 1200], ['live', 8, 0], ['retryable', 7, 1200]] as [$label, $attempts, $age]) {
+        $tokenHash = random_bytes(32);
+        $conn->execute_query("INSERT INTO user_email_tokens
+            (user_id, purpose, email, auth_version, token_hash, expires_at)
+            VALUES (?, 'recovery', ?, 2, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 HOUR))", [$user_id, $email, $tokenHash]);
+        $tokenId = (int) $conn->insert_id;
+        $conn->execute_query("INSERT INTO email_outbox
+            (token_id, user_id, purpose, payload_ciphertext, status, attempts, processing_started_at)
+            VALUES (?, ?, 'recovery', 'lease-fixture', 'processing', ?, DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? SECOND))",
+            [$tokenId, $user_id, $attempts, $age]);
+        $outboxId = (int) $conn->insert_id;
+        maintainQueuedAccountEmail($conn);
+        $row = $conn->execute_query('SELECT status, payload_ciphertext, processing_started_at FROM email_outbox WHERE id = ?', [$outboxId])->fetch_assoc();
+        expectEmailOutboxWorker($label === 'expired'
+            ? $row['status'] === 'failed' && $row['payload_ciphertext'] === null && $row['processing_started_at'] === null
+            : $row['status'] === 'processing' && $row['payload_ciphertext'] !== null,
+            'final-attempt cleanup handles ' . $label . ' leases without disturbing an active or retryable delivery.');
+    }
 } finally {
     try {
         $conn->rollback();

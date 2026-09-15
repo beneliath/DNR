@@ -134,7 +134,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
             ? $exception->getMessage()
             : 'Unable to update the task. Please try again.';
         $task_form_values = array_merge($task, $_POST);
-        $task_form_values['updated_at'] = $task['updated_at'];
+        $task_form_values['updated_at'] = $submitted_version;
     }
 }
 

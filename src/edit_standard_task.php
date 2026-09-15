@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
             ? $exception->getMessage()
             : 'Unable to update the standard task. Please try again.';
         $standard_task_form_values = array_merge($standard_task, $_POST);
-        $standard_task_form_values['updated_at'] = $standard_task['updated_at'];
+        $standard_task_form_values['updated_at'] = $submitted_version;
     }
 }
 $standard_task_form_action = 'edit_standard_task.php?id=' . $template_id;

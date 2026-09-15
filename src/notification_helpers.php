@@ -623,6 +623,11 @@ function maintainQueuedNotificationEmail(
     int $leaseSeconds = 600
 ): void {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    $conn->query("UPDATE notification_outbox
+        SET status = 'failed', payload_ciphertext = NULL, processing_started_at = NULL,
+            last_error = 'Delivery attempts exhausted after the processing lease expired.'
+        WHERE status = 'processing' AND attempts >= 8
+          AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)");
     $discard = $conn->prepare(
         "UPDATE notification_outbox outbox
          INNER JOIN users user ON user.id = outbox.user_id

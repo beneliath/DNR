@@ -89,12 +89,22 @@ try {
     expectContactOrganizationsIntegration(count(fetchEngagementContactAssignments($conn, $events[1])) === 1, 'secondary event assignments should survive becoming primary.');
 
     $conn->query("UPDATE engagements SET updated_at = '2026-01-01 00:00:00' WHERE id = {$events[0]}");
+    $beforeAffiliationSave = $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'];
     syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []);
+    $afterAffiliationSave = $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'];
+    expectContactOrganizationsIntegration($beforeAffiliationSave !== $afterAffiliationSave, 'affiliation-only removals invalidate stale contact forms.');
     expectContactOrganizationsIntegration(fetchEngagementContactAssignments($conn, $events[0]) === [], 'removing an affiliation should prune its event assignments.');
     expectContactOrganizationsIntegration(count(fetchEngagementContactAssignments($conn, $events[1])) === 1, 'removing another affiliation must retain valid event assignments.');
     $updated = $conn->query("SELECT updated_at FROM engagements WHERE id = {$events[0]}")->fetch_assoc()['updated_at'];
     expectContactOrganizationsIntegration($updated !== '2026-01-01 00:00:00.000000', 'pruning assignments should invalidate stale event edit forms.');
     expectContactOrganizationsIntegration(!syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []), 'unchanged affiliations should avoid writes.');
+    expectContactOrganizationsIntegration($afterAffiliationSave === $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'], 'unchanged affiliations preserve the version.');
+    syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', [['organization_id' => $orgs[0], 'role_title' => 'Pastor']]);
+    $afterAddition = $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'];
+    expectContactOrganizationsIntegration($afterAddition !== $afterAffiliationSave, 'affiliation-only additions invalidate stale forms.');
+    syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', [['organization_id' => $orgs[0], 'role_title' => 'Director']]);
+    expectContactOrganizationsIntegration($afterAddition !== $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'], 'affiliation-only title edits invalidate stale forms.');
+    syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []);
 
     $conn->query("UPDATE engagements SET organization_id = {$orgs[2]} WHERE id = {$events[1]}");
     expectContactOrganizationsIntegration(fetchEngagementContactAssignments($conn, $events[1]) === [], 'changing event organization should prune incompatible contacts.');
