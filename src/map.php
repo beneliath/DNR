@@ -332,7 +332,7 @@ $map_payload = [
     JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 ); ?></script>
 <?php renderScript('assets/js/map-list.min.js'); ?>
-<?php renderScript('assets/js/map.min.js'); ?>
+<?php renderScript('assets/js/map.min.js', true, true); ?>
 <?php include 'templates/footer.php'; ?>
 </body>
 </html>

@@ -537,23 +537,34 @@ function mattermostSearchEngagements(mysqli $conn, string $query, int $limit = 1
         throw new InvalidArgumentException('Search terms must contain at least two characters.');
     }
     $limit = max(1, min($limit, 20));
-    $like = '%' . addcslashes($query, '%_\\') . '%';
+    $terms = fulltextSearchQuery($query);
+    $prefix = addcslashes(mb_substr($query, 0, 256), '%_\\') . '%';
     $stmt = $conn->prepare(
         "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                 e.confirmation_status, e.lifecycle_status, o.organization_name
-         FROM engagements e
-         INNER JOIN organizations o ON o.id = e.organization_id
-         WHERE e.is_deleted = 0
-           AND o.is_deleted = 0
-           AND (e.event_title LIKE ? ESCAPE '\\\\'
-                OR o.organization_name LIKE ? ESCAPE '\\\\')
+         FROM (
+             SELECT id FROM engagements WHERE is_deleted = 0
+               AND MATCH(event_title) AGAINST (? IN BOOLEAN MODE)
+             UNION
+             SELECT event.id FROM organizations org
+             INNER JOIN engagements event ON event.organization_id = org.id AND event.is_deleted = 0
+             WHERE org.is_deleted = 0 AND MATCH(org.organization_name) AGAINST (? IN BOOLEAN MODE)
+             UNION
+             SELECT id FROM engagements WHERE is_deleted = 0 AND event_title LIKE ?
+             UNION
+             SELECT event.id FROM organizations org
+             INNER JOIN engagements event ON event.organization_id = org.id AND event.is_deleted = 0
+             WHERE org.is_deleted = 0 AND org.organization_name LIKE ?
+         ) matches
+         INNER JOIN engagements e ON e.id = matches.id
+         INNER JOIN organizations o ON o.id = e.organization_id AND o.is_deleted = 0
          ORDER BY e.event_start_date DESC, e.id DESC
          LIMIT ?"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare engagement search.');
     }
-    $stmt->bind_param('ssi', $like, $like, $limit);
+    $stmt->bind_param('ssssi', $terms, $terms, $prefix, $prefix, $limit);
     $stmt->execute();
     $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();

@@ -62,7 +62,8 @@ foreach ($source_iterator as $source_file) {
     // Generated map bundles contain the MapLibre runtime. Its upstream color
     // constants are not application hover styles and are covered by the
     // generated-asset tests instead.
-    if (in_array($source_file->getFilename(), ['map.min.js', 'map-pin.min.js', 'maplibre-worker.min.js'], true)) {
+    if (in_array($source_file->getFilename(), ['map.min.js', 'map-pin.min.js', 'maplibre-worker.min.js'], true)
+        || preg_match('/^map-shared-[A-Z0-9]+\.min\.js$/', $source_file->getFilename()) === 1) {
         continue;
     }
     if (in_array(strtolower($source_file->getExtension()), ['php', 'css', 'js'], true)) {

@@ -169,8 +169,7 @@ try {
     expectCalendarContent(str_contains($reassignedEvent, 'Owner: ' . $userNames[1] . '\\n'), 'Reassigned work must identify the new owner');
     expectCalendarContent(str_contains($taskEvent($allFeed, $taskIds[2]), 'DESCRIPTION:Engagement: None\\nOwner: Unassigned\\n'), 'General unassigned work needs explicit fallbacks');
 
-    // Owner edits do not increment calendar_feed_revision; conditional refresh must
-    // still return the new name and an advancing sequence on the same task UID.
+    // Owner name edits advance the revision and refresh the same task UID.
     $renameTime = gmdate('Y-m-d H:i:s', time() + 5);
     $renamedOwner = $userNames[1] . '-renamed';
     $stmt = $conn->prepare('UPDATE users SET username=?, last_updated_at=? WHERE id=?');
@@ -181,6 +180,15 @@ try {
     $renamedEvent = $taskEvent($renamedFeed, $taskIds[0]);
     expectCalendarContent(str_contains($renamedEvent, 'Owner: ' . $renamedOwner . '\\n')
         && $taskSequence($renamedEvent) > $taskSequence($reassignedEvent), 'Renaming the owner must refresh the existing calendar entry');
+
+    $conn->query("UPDATE users SET last_login_at=UTC_TIMESTAMP() WHERE id=$otherId");
+    expectCalendarContent($request($allPath, null, '', $renamedFeed['etag'])['status'] === 304,
+        'A login must not invalidate unchanged calendar content');
+    $conn->query("UPDATE users SET username=UPPER(username) WHERE id=$otherId");
+    $caseChangedFeed = $request($allPath, null, '', $renamedFeed['etag']);
+    expectCalendarContent($caseChangedFeed['status'] === 200
+        && str_contains($taskEvent($caseChangedFeed, $taskIds[0]), 'Owner: ' . strtoupper($renamedOwner)),
+        'Case-only name changes must invalidate the calendar even on a case-insensitive database');
 
     $engagementTime = gmdate('Y-m-d H:i:s', time() + 10);
     $conn->query("UPDATE engagements SET event_title='Renamed calendar engagement', updated_at='$engagementTime' WHERE id=$engagementId");
@@ -206,9 +214,31 @@ try {
     $conn->query("DELETE FROM follow_up_tasks WHERE id={$taskIds[1]}");
     $deletedFeed = $request($allPath, null, '', $completedFeed['etag']);
     $assertContent($deletedFeed, ['unassigned_work']);
+    $conn->query("INSERT INTO booking_inquiries (title, owner_user_id, created_by) VALUES ('Calendar inquiry', $ownerId, $ownerId)");
+    $inquiryId = (int) $conn->insert_id;
+    $conn->query("UPDATE follow_up_tasks SET subject_type='inquiry', inquiry_id=$inquiryId WHERE id={$taskIds[2]}");
+    $inquiryFeed = $request($allPath);
+    $assertContent($inquiryFeed, ['unassigned_work']);
+    $conn->query("UPDATE booking_inquiries SET stage='declined', decline_reason='Fixture', archived_at=UTC_TIMESTAMP(), archived_by=$ownerId WHERE id=$inquiryId");
+    $archivedInquiryFeed = $request($allPath, null, '', $inquiryFeed['etag']);
+    $assertContent($archivedInquiryFeed, []);
+    $conn->query("UPDATE booking_inquiries SET archived_at=NULL, archived_by=NULL WHERE id=$inquiryId");
+    $restoredInquiryFeed = $request($allPath, null, '', $archivedInquiryFeed['etag']);
+    $assertContent($restoredInquiryFeed, ['unassigned_work']);
+    $conn->query("DELETE FROM booking_inquiries WHERE id=$inquiryId");
+    $assertContent($request($allPath, null, '', $restoredInquiryFeed['etag']), []);
+    $conn->query("INSERT INTO follow_up_tasks (title,assigned_to,created_by,due_date) VALUES ('Owner deletion fixture',$otherId,$ownerId,'$date')");
+    $ownerTaskId = (int) $conn->insert_id;
+    $beforeDelete = $request($allPath);
+    $conn->query("DELETE FROM users WHERE id=$otherId");
+    $afterDelete = $request($allPath, null, '', $beforeDelete['etag']);
+    expectCalendarContent($afterDelete['status'] === 200
+        && str_contains($taskEvent($afterDelete, $ownerTaskId), 'Owner: Unassigned'),
+        'Deleting an owner must invalidate work changed by foreign-key SET NULL');
     $conn->query("UPDATE users SET account_status='inactive' WHERE id=$ownerId");
     expectCalendarContent($request($allPath, null, '', $deletedFeed['etag'])['status'] === 404, 'Inactive owners must lose feed access');
 } finally {
+    if (!empty($inquiryId)) $conn->query("DELETE FROM booking_inquiries WHERE id=$inquiryId");
     if ($sessionId !== '') @unlink(session_save_path() . '/sess_' . $sessionId);
     if ($userIds !== []) {
         $ids = implode(',', array_map('intval', $userIds));

@@ -117,6 +117,6 @@ $escape = static fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'U
     </form>
 </main>
 <script nonce="<?php echo $escape(contentSecurityPolicyNonce()); ?>" type="application/json" id="pin-editor-data"><?php echo json_encode($pin_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>
-<?php renderScript('assets/js/map-pin.min.js'); ?>
+<?php renderScript('assets/js/map-pin.min.js', true, true); ?>
 <?php include 'templates/footer.php'; ?>
 </body></html>
