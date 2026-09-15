@@ -105,6 +105,7 @@ expectServiceDatabaseIsolation(
             'event_address_line_1, event_address_line_2, event_city, event_state'
         )
         && str_contains($mailDispatchGrantSection, 'event_zipcode, event_country')
+        && str_contains($mailDispatchGrantSection, 'id, title, archived_at')
         && str_contains($mailDispatchGrantSection, 'GRANT SELECT (engagement_id, is_archived)')
         && str_contains($mailDispatchGrantSection, '.presentations TO')
         && str_contains($mailDispatchGrantSection, 'GRANT SELECT (engagement_id, contact_id)')
