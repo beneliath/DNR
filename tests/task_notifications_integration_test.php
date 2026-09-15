@@ -296,6 +296,23 @@ try {
         'per-day failure markers should let later user IDs progress across bounded scheduling calls.'
     );
 
+    foreach ([['expired', 8, 1200], ['live', 8, 0], ['retryable', 7, 1200]] as $index => [$label, $attempts, $age]) {
+        // Use a future digest to prove exhausted-lease cleanup is independent
+        // of the separate stale-digest check.
+        $digestDate = '2099-01-0' . ($index + 1);
+        $conn->execute_query("UPDATE users SET task_digest_enabled = 1, task_digest_days = 127 WHERE id = ?", [$userId]);
+        $conn->execute_query("INSERT INTO notification_outbox
+            (user_id, notification_type, digest_date, recipient_hash, payload_ciphertext, status, attempts, processing_started_at)
+            SELECT id, 'daily_task_digest', ?, UNHEX(SHA2(LOWER(TRIM(email)), 256)), 'lease-fixture', 'processing', ?,
+                DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? SECOND) FROM users WHERE id = ?", [$digestDate, $attempts, $age, $userId]);
+        $outboxId = (int) $conn->insert_id;
+        maintainQueuedNotificationEmail($conn, $digestDate);
+        $row = $conn->execute_query('SELECT status, payload_ciphertext, processing_started_at FROM notification_outbox WHERE id = ?', [$outboxId])->fetch_assoc();
+        expectTaskNotificationIntegration($label === 'expired'
+            ? $row['status'] === 'failed' && $row['payload_ciphertext'] === null && $row['processing_started_at'] === null
+            : $row['status'] === 'processing' && $row['payload_ciphertext'] !== null,
+            'final-attempt cleanup handles ' . $label . ' leases without disturbing an active or retryable digest.');
+    }
 } finally {
     if ($userId > 0) {
         $conn->query("DELETE FROM follow_up_tasks WHERE created_by = {$userId}");

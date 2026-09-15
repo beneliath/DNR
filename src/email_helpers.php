@@ -341,6 +341,13 @@ function completeQueuedAccountEmail(
 function maintainQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): void
 {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    // A worker can die after incrementing its final attempt but before recording
+    // a result. Expired final leases must enter a terminal, purgeable state.
+    $conn->query("UPDATE email_outbox
+        SET status = 'failed', payload_ciphertext = NULL, processing_started_at = NULL,
+            last_error = 'Delivery attempts exhausted after the processing lease expired.'
+        WHERE status = 'processing' AND attempts >= 8
+          AND processing_started_at <= DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND)");
     $discard = $conn->query(
         "UPDATE email_outbox outbox
          INNER JOIN user_email_tokens token ON token.id = outbox.token_id

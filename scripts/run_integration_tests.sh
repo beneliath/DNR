@@ -96,7 +96,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         || [ "$test_name" = 'task_archiving_http_integration_test.php' ] \
         || [ "$test_name" = 'parent_archived_tasks_http_integration_test.php' ] \
         || [ "$test_name" = 'booking_inquiry_archive_http_integration_test.php' ] \
-        || [ "$test_name" = 'record_workspace_integration_test.php' ]; then
+        || [ "$test_name" = 'record_workspace_integration_test.php' ] \
+        || [ "$test_name" = 'review_regressions_http_integration_test.php' ]; then
         # CLI fixtures share Apache's session directory and filesystem identity.
         compose exec -T -u www-data \
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \

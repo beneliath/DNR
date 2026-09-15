@@ -111,6 +111,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ''
         ),
         'q' => \Dnr\Http\RequestInput::string($returnInput, 'q', '', 100),
+        'page' => \Dnr\Http\RequestInput::positiveInt($returnInput, 'page') ?? 1,
+        'per_page' => paginationPageSize($returnInput['per_page'] ?? null, 50),
     ], static fn($value): bool => $value !== ''));
     header('Location: inquiries.php' . ($returnQuery !== '' ? '?' . $returnQuery : ''));
     exit();
@@ -119,6 +121,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $notice = (string) ($_SESSION['inquiry_pipeline_message'] ?? '');
 $error = (string) ($_SESSION['inquiry_pipeline_error'] ?? '');
 unset($_SESSION['inquiry_pipeline_message'], $_SESSION['inquiry_pipeline_error']);
+generateCsrfToken();
+releaseApplicationSessionLock();
 
 $where = [$view === 'archived' ? 'inquiry.archived_at IS NOT NULL' : 'inquiry.archived_at IS NULL'];
 $types = '';
@@ -181,6 +185,26 @@ if ($search !== '') {
     array_push($values, $fulltext, $search, $search, $search);
 }
 $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
+$fromSql = "FROM booking_inquiries inquiry
+     LEFT JOIN organizations organization ON organization.id = inquiry.organization_id
+     LEFT JOIN contacts contact ON contact.id = inquiry.primary_contact_id
+     LEFT JOIN users owner ON owner.id = inquiry.owner_user_id
+     {$whereSql}";
+$exportCsv = \Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv';
+$pageSize = paginationPageSizePreference('inquiries', $_GET['per_page'] ?? null, 50);
+$displayCounts = array_fill_keys(array_keys(bookingInquiryStages()), 0);
+$limitSql = '';
+if (!$exportCsv) {
+    $countStmt = $conn->prepare("SELECT inquiry.stage, COUNT(*) AS total {$fromSql} GROUP BY inquiry.stage");
+    if ($types !== '') $countStmt->bind_param($types, ...$values);
+    $countStmt->execute();
+    foreach ($countStmt->get_result()->fetch_all(MYSQLI_ASSOC) as $countRow) {
+        $displayCounts[$countRow['stage']] = (int) $countRow['total'];
+    }
+    $countStmt->close();
+    $pagination = paginationState(array_sum($displayCounts), $pageSize, $_GET['page'] ?? null);
+    $limitSql = "LIMIT {$pageSize} OFFSET {$pagination['offset']}";
+}
 $stmt = $conn->prepare(
     "SELECT inquiry.*, organization.organization_name,
             TRIM(CONCAT_WS(' ', contact.contact_first_name, contact.contact_last_name)) AS contact_name,
@@ -189,17 +213,13 @@ $stmt = $conn->prepare(
              WHERE task.inquiry_id = inquiry.id
                AND task.status IN ('open', 'in_progress', 'waiting') AND task.is_archived = 0) AS open_task_count,
             TIMESTAMPDIFF(DAY, inquiry.stage_changed_at, UTC_TIMESTAMP()) AS days_in_stage
-     FROM booking_inquiries inquiry
-     LEFT JOIN organizations organization ON organization.id = inquiry.organization_id
-     LEFT JOIN contacts contact ON contact.id = inquiry.primary_contact_id
-     LEFT JOIN users owner ON owner.id = inquiry.owner_user_id
-     {$whereSql}
+     {$fromSql}
      ORDER BY
        FIELD(inquiry.stage, 'new', 'contacted', 'qualified', 'awaiting_details',
              'proposal_sent', 'booked', 'declined'),
        FIELD(inquiry.priority, 'urgent', 'high', 'normal', 'low'),
        COALESCE(inquiry.next_action_due_date, '9999-12-31'), inquiry.id DESC
-     LIMIT 500"
+     {$limitSql}"
 );
 if (!$stmt) {
     abortApplication(503, 'The booking pipeline is temporarily unavailable.');
@@ -213,10 +233,7 @@ if ($types !== '') {
     $stmt->bind_param(...$bind);
 }
 $stmt->execute();
-$inquiries = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
-if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
+if ($exportCsv) {
     header('Content-Type: text/csv; charset=UTF-8');
     header('Content-Disposition: attachment; filename="' . ($view === 'archived' ? 'archived-inquiries-' : 'booking-pipeline-') . applicationBusinessDate() . '.csv"');
     $output = fopen('php://output', 'wb');
@@ -224,7 +241,7 @@ if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
         abortApplication(503, 'The pipeline export could not be created.');
     }
     fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks', 'Archived at (UTC)'], ',', '"', '');
-    foreach ($inquiries as $inquiry) {
+    foreach (\Dnr\Infrastructure\StatementRows::stream($stmt) as $inquiry) {
         $safe = static function (mixed $value): string {
             $text = trim((string) $value);
             return preg_match('/^[=+\-@]/', $text) === 1 ? "'" . $text : $text;
@@ -244,19 +261,18 @@ if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
             $safe($inquiry['archived_at']),
         ], ',', '"', '');
     }
+    $stmt->close();
     fclose($output);
     exit();
 }
 
+$inquiries = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+$stmt->close();
 $byStage = array_fill_keys(array_keys(bookingInquiryStages()), []);
 foreach ($inquiries as $inquiry) {
     $boardStage = (string) $inquiry['stage'];
     $byStage[$boardStage][] = $inquiry;
 }
-$displayCounts = array_map(
-    static fn(array $stageInquiries): int => count($stageInquiries),
-    $byStage
-);
 $displayStages = $view === 'active'
     ? ['new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent', 'booked']
     : ($view === 'booked' ? ['booked'] : ($view === 'declined' ? ['declined'] : array_keys(bookingInquiryStages())));
@@ -275,6 +291,7 @@ $stageIcons = [
 ];
 $returnQuery = http_build_query(array_filter([
     'view' => $view, 'owner' => $owner, 'priority' => $priority, 'timing' => $timing, 'q' => $search,
+    'page' => $pagination['page'], 'per_page' => $pageSize,
 ], static fn($value): bool => $value !== ''));
 $exportQuery = http_build_query(array_filter([
     'view' => $view, 'owner' => $owner, 'priority' => $priority,
@@ -308,6 +325,7 @@ $exportQuery = http_build_query(array_filter([
         </div>
     </form>
 
+    <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, 'inquiries.php?' . $returnQuery, 'inquiries', 'Inquiry pages'); ?>
     <div class="inquiry-kanban inquiry-kanban-columns-<?php echo count($displayStages); ?>">
         <?php foreach ($displayStages as $stage): ?>
             <section class="inquiry-kanban-column inquiry-stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>">
@@ -361,11 +379,12 @@ $exportQuery = http_build_query(array_filter([
                             <?php endif; ?>
                         </article>
                     <?php endforeach; ?>
-                    <?php if ($byStage[$stage] === []): ?><p class="inquiry-column-empty">No inquiries in this stage.</p><?php endif; ?>
+                    <?php if ($byStage[$stage] === []): ?><p class="inquiry-column-empty"><?php echo $displayCounts[$stage] > 0 ? 'No inquiries on this page.' : 'No inquiries in this stage.'; ?></p><?php endif; ?>
                 </div>
             </section>
         <?php endforeach; ?>
     </div>
+    <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, 'inquiries.php?' . $returnQuery, 'inquiries', 'Inquiry pages'); ?>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

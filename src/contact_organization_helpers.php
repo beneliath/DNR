@@ -297,5 +297,14 @@ function syncContactOrganizations(
         $delete_stmt->close();
         $changed = true;
     }
+    if ($changed) {
+        // The contact form's version also covers its affiliation rows.
+        $touch = $conn->prepare('UPDATE contacts
+            SET updated_at = GREATEST(CURRENT_TIMESTAMP(6), updated_at + INTERVAL 1 MICROSECOND)
+            WHERE id = ?');
+        $touch->bind_param('i', $contact_id);
+        $touch->execute();
+        $touch->close();
+    }
     return $changed;
 }
