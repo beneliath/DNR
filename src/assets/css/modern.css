@@ -4091,7 +4091,9 @@ input[type="radio"] {
 .organization-table tbody tr:hover,
 .contact-table tbody tr:hover,
 .audit-table tbody tr:hover,
-.task-table tbody tr:hover {
+.task-table tbody tr:hover,
+.context-task-card:hover,
+.context-task-card:focus-within {
   background: var(--surface-hover) !important;
 }
 
