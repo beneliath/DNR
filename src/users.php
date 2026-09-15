@@ -233,7 +233,7 @@ $task_digest_day_options = [
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="deactivate">
-                                <button type="submit" class="action-button delete-button" data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
+                                <button type="submit" class="action-button delete-button" data-admin-unlock-required data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
                             </form>
                         <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'inactive'): ?>
                             <form method="post" action="user_lifecycle.php">

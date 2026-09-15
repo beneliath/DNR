@@ -25,12 +25,29 @@ $cases = [
 
 foreach ($cases as $description => [$session, $expected]) {
     $html = renderAdminUnlockHeader($session);
+    if (str_contains($html, 'data-admin-unlock-link') !== (($session['role'] ?? '') === 'admin')) {
+        throw new RuntimeException('Only administrators should have the proactive Admin Unlock navigation link.');
+    }
     if (str_contains($html, 'data-admin-unlock ') !== $expected
         || str_contains($html, 'assets/js/admin-unlock.min.js') !== $expected
+        || str_contains($html, 'data-admin-lock-form') !== $expected
     ) {
         fwrite(STDERR, "Incorrect admin unlock banner visibility for {$description}.\n");
         exit(1);
     }
+}
+
+$html = renderAdminUnlockHeader($unlocked);
+$dom = new DOMDocument();
+@$dom->loadHTML($html);
+$xpath = new DOMXPath($dom);
+$lockForm = $xpath->query('//section[@data-admin-unlock]/form[@data-admin-lock-form]')->item(0);
+if (!$lockForm instanceof DOMElement || $lockForm->getAttribute('method') !== 'post'
+    || $lockForm->getAttribute('action') !== 'admin_lock.php'
+    || $xpath->query('.//input[@name="csrf_token" and string-length(@value) > 0]', $lockForm)->length !== 1
+    || $xpath->query('.//button[@type="submit" and normalize-space(.)="Lock Admin Actions"]', $lockForm)->length !== 1
+) {
+    throw new RuntimeException('The unlock banner needs a CSRF-protected early-lock button.');
 }
 
 echo "Admin unlock banner session isolation tests passed.\n";

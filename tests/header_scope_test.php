@@ -78,7 +78,8 @@ expectHeaderScope(
     'Desktop and mobile brand links should return to the daily dashboard.'
 );
 expectHeaderScope(
-    substr_count($header_markup, 'class="nav-link admin-nav-link') === 3
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 4
+        && str_contains($header_markup, '<span>Admin Unlock</span>')
         && str_contains($header_markup, '<span>Users</span>')
         && str_contains($header_markup, '<span>Database</span>')
         && str_contains($header_markup, '<span>Network</span>'),
@@ -120,7 +121,7 @@ expectHeaderScope(
         && str_contains($header_markup, '<option value="editor">Editor</option>')
         && str_contains($header_markup, '<option value="reviewer">Reviewer</option>')
         && str_contains($header_markup, 'name="return_to" value="contacts.php?status=archived&amp;cursor=example"')
-        && str_contains($header_markup, '>menus/access as another role</small>')
+        && !str_contains($header_markup, 'role-preview-help')
         && !str_contains($header_markup, 'data-role-preview-banner'),
     'Administrators should be able to choose an access preview without seeing a false active-preview banner.'
 );

@@ -440,7 +440,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                                 <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive Chron Log Entry" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                             </form>
                             <?php if ($user_role === 'admin'): ?>
-                                <form method="post" action="<?php echo htmlspecialchars($chron_view_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" data-confirm="Permanently delete this Chron Log Entry? This cannot be undone.">
+                                <form method="post" action="<?php echo htmlspecialchars($chron_view_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" data-admin-unlock-required data-confirm="Permanently delete this Chron Log Entry? This cannot be undone.">
                                     <?php echo csrfInput(); ?>
                                     <input type="hidden" name="action" value="delete_chron">
                                     <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">

@@ -8,6 +8,13 @@ header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
 $return_url = safeAdminElevationReturnUrl($_POST['return'] ?? $_GET['return'] ?? 'users.php');
+if (basename((string) parse_url($return_url, PHP_URL_PATH)) === 'admin_elevation.php') {
+    $return_url = 'dashboard.php';
+}
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && hasRecentAdminElevation()) {
+    header('Location: ' . $return_url);
+    exit();
+}
 $error = $_SESSION['_admin_elevation_error'] ?? '';
 unset($_SESSION['_admin_elevation_error']);
 

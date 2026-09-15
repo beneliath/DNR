@@ -75,7 +75,7 @@ function fetchEngagementCloseoutTaskReadiness(
     $task_sql =
         "SELECT id, title, status, due_date
          FROM follow_up_tasks
-         WHERE engagement_id = ?
+         WHERE engagement_id = ? AND is_archived = 0
            AND due_date <= ?
            AND status <> 'completed'
          ORDER BY due_date, id";

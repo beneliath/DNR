@@ -234,7 +234,7 @@ GRANT SELECT (
     task_digest_time, task_digest_days
 ) ON \`${MYSQL_DATABASE}\`.users TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
-    id, title, status, priority, due_date, waiting_on, assigned_to,
+    id, title, status, priority, due_date, waiting_on, assigned_to, is_archived,
     subject_type, engagement_id, organization_id, contact_id, inquiry_id
 ) ON \`${MYSQL_DATABASE}\`.follow_up_tasks TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (

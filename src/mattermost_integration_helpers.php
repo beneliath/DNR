@@ -471,7 +471,7 @@ function mattermostTaskSummaryForUser(mysqli $conn, int $userId): array
             SUM(status = 'waiting') AS waiting_count
          FROM follow_up_tasks
          WHERE assigned_to = ?
-           AND status IN ('open', 'in_progress', 'waiting')"
+           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the Mattermost task summary.');
@@ -612,7 +612,7 @@ function mattermostEngagement(mysqli $conn, int $engagementId): ?array
             SUM(status IN ('open', 'in_progress', 'waiting')
                 AND assigned_to IS NULL) AS unassigned_count
          FROM follow_up_tasks
-         WHERE engagement_id = ?"
+         WHERE engagement_id = ? AND is_archived = 0"
     );
     if (!$taskStmt) {
         throw new RuntimeException('Unable to prepare the engagement work summary.');

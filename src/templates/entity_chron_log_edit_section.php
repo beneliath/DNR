@@ -72,7 +72,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="chron_entry_id" value="<?php echo (int) $chron_entry['id']; ?>">
                                 <input type="hidden" name="chron_action" value="delete">
-                                <button type="submit" class="delete-button" data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
+                                <button type="submit" class="delete-button" data-admin-unlock-required data-confirm="Permanently delete this Chron entry? This cannot be undone.">Delete</button>
                             </form>
                         <?php endif; ?>
                     </div>

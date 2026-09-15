@@ -454,7 +454,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                         <a href="<?php echo htmlspecialchars($retention_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Unlock Pruning</a>
                     <?php else: ?>
                         <form method="post" action="audit_log.php" class="audit-retention-prune-form" autocomplete="off"
-                              data-confirm="Permanently prune <?php echo $preview_count; ?> audit entries? This cannot be undone.">
+                              data-admin-unlock-required data-confirm="Permanently prune <?php echo $preview_count; ?> audit entries? This cannot be undone.">
                             <?php echo csrfInput(); ?>
                             <input type="hidden" name="action" value="prune">
                             <input type="hidden" name="retention_days" value="<?php echo (int) $retention_days; ?>">

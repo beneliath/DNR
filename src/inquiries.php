@@ -173,7 +173,7 @@ $stmt = $conn->prepare(
             owner.username AS owner_username,
             (SELECT COUNT(*) FROM follow_up_tasks task
              WHERE task.inquiry_id = inquiry.id
-               AND task.status IN ('open', 'in_progress', 'waiting')) AS open_task_count,
+               AND task.status IN ('open', 'in_progress', 'waiting') AND task.is_archived = 0) AS open_task_count,
             TIMESTAMPDIFF(DAY, inquiry.stage_changed_at, UTC_TIMESTAMP()) AS days_in_stage
      FROM booking_inquiries inquiry
      LEFT JOIN organizations organization ON organization.id = inquiry.organization_id

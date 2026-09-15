@@ -2,6 +2,31 @@
 
 declare(strict_types=1);
 
+/** Remember the lifecycle choice for this user in the current browser. */
+function engagementLifecycleFilterPreference(mixed $requested, int $userId): string
+{
+    $allowed = ['all', 'active', 'postponed', 'canceled', 'completed'];
+    $cookieName = 'dnr_engagement_lifecycle_' . $userId;
+    $remembered = $_COOKIE[$cookieName] ?? 'all';
+    if (!in_array($remembered, $allowed, true)) {
+        $remembered = 'all';
+    }
+    if (!in_array($requested, $allowed, true)) {
+        return $remembered;
+    }
+    if (($_COOKIE[$cookieName] ?? null) !== $requested && !headers_sent()) {
+        setcookie($cookieName, $requested, [
+            'expires' => time() + 365 * 86400,
+            'path' => '/',
+            'secure' => requestUsesHttps() || applicationRequiresHttps(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        $_COOKIE[$cookieName] = $requested;
+    }
+    return $requested;
+}
+
 /**
  * Display the recorded workflow only; dates, finances, and archiving do not advance it.
  * Exceptions leave the linear stages neutral and have their own current marker.

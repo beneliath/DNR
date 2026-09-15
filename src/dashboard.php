@@ -57,7 +57,7 @@ try {
         $conn, $user_id, $user_role, $business_date,
         $financial_closeouts === [] ? 0 : (int) $financial_closeouts[0]['dashboard_total']
     );
-    $all_tasks = $conn->query("SELECT COUNT(*) AS total FROM follow_up_tasks WHERE status IN ('open', 'in_progress', 'waiting')");
+    $all_tasks = $conn->query("SELECT COUNT(*) AS total FROM follow_up_tasks WHERE is_archived = 0 AND status IN ('open', 'in_progress', 'waiting')");
     $task_summary = [
         'all' => (int) $all_tasks->fetch_assoc()['total'],
         'active' => $request_reminder_counts['active'],

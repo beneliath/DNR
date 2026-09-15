@@ -77,3 +77,4 @@
 20260913_add_email_recipient_types.sql
 20260913_add_network_performance_samples.sql
 20260914_durable_inbound_mail.sql
+20260915_archive_follow_up_tasks.sql

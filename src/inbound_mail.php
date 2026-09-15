@@ -314,7 +314,7 @@ $statusLabels = [
                             <details class="inbound-admin-actions">
                                 <summary>Manage retained email</summary>
                                 <p class="field-help">Permanently remove this source email. Existing Chron entries are kept. Administrator confirmation is required.</p>
-                            <form method="post" action="inbound_mail.php" data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
+                            <form method="post" action="inbound_mail.php" data-admin-unlock-required data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="message_id" value="<?php echo (int) $selectedMessage['id']; ?>">
                                 <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">

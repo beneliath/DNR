@@ -21,6 +21,12 @@ $context_task_list_url = 'tasks.php?' . http_build_query([
     'subject_type' => $context_task_subject_type,
     'subject_id' => $context_task_subject_id,
 ]);
+$context_task_archive_url = 'tasks.php?' . http_build_query([
+    'view' => 'archived',
+    'scope' => 'everyone',
+    'subject_type' => $context_task_subject_type,
+    'subject_id' => $context_task_subject_id,
+]);
 $context_task_add_url = 'add_task.php?' . http_build_query([
     'subject_type' => $context_task_subject_type,
     'subject_id' => $context_task_subject_id,
@@ -35,6 +41,7 @@ $context_status_labels = followUpTaskStatuses();
             <p>Open commitments connected to this record.</p>
         </div>
         <div class="context-task-heading-actions">
+            <a href="<?php echo htmlspecialchars($context_task_archive_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">View Archived Tasks</a>
             <a href="<?php echo htmlspecialchars($context_task_list_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">View in Work Queue</a>
             <?php if ($context_task_can_manage && $context_task_subject_active): ?>
                 <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add">+ Add Task</a>
@@ -94,6 +101,20 @@ $context_status_labels = followUpTaskStatuses();
                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
                         <button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete" data-confirm="Are you sure you want to mark this task complete?" data-confirm-title="Complete Task?" data-confirm-label="Complete Task"><?php echo actionIconSvg('complete'); ?></button>
                     </form>
+                    <?php
+                    $archive_task = $context_task;
+                    $archive_task_return_to = $context_task_return_to;
+                    include __DIR__ . '/task_archive_action.php';
+                    ?>
+                    <?php if (canDeleteEntries($_SESSION['role'] ?? '')): ?>
+                    <form method="post" action="tasks.php" data-admin-unlock-required data-confirm="Permanently delete this task? This cannot be undone." data-confirm-title="Delete Task?" data-confirm-label="Delete Task">
+                        <?php echo csrfInput(); ?>
+                        <input type="hidden" name="action" value="delete">
+                        <input type="hidden" name="task_id" value="<?php echo (int) $context_task['id']; ?>">
+                        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                    </form>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </article>
