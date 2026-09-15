@@ -202,6 +202,7 @@ expectTaskNotificationsFeature(
         && str_contains($mailDispatchGrantSection, 'confirmation_status')
         && str_contains($mailDispatchGrantSection, 'event_address_line_1')
         && str_contains($mailDispatchGrantSection, 'event_country')
+        && str_contains($mailDispatchGrantSection, 'id, title, archived_at')
         && str_contains($mailDispatchGrantSection, '.presentations TO')
         && str_contains($mailDispatchGrantSection, '.engagement_contacts TO')
         && str_contains($mailDispatchGrantSection, '.contacts TO')

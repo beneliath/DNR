@@ -243,7 +243,7 @@ GRANT SELECT (
     event_address_line_1, event_address_line_2, event_city, event_state,
     event_zipcode, event_country, is_deleted, lifecycle_status
 ) ON \`${MYSQL_DATABASE}\`.engagements TO '${mail_dispatch_user}'@'%';
-GRANT SELECT (id, title)
+GRANT SELECT (id, title, archived_at)
     ON \`${MYSQL_DATABASE}\`.booking_inquiries TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (id, organization_name, is_deleted)
     ON \`${MYSQL_DATABASE}\`.organizations TO '${mail_dispatch_user}'@'%';
