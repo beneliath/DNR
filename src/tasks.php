@@ -162,7 +162,8 @@ $request_reminder_counts = fetchTaskReminderCounts(
 $where = [];
 $bind_types = '';
 $bind_values = [];
-$active_status_sql = "t.status IN ('open', 'in_progress', 'waiting')";
+$parent_active_sql = followUpTaskUnarchivedParentSql();
+$active_status_sql = "t.status IN ('open', 'in_progress', 'waiting') AND {$parent_active_sql}";
 if ($view === 'overdue') {
     $where[] = $active_status_sql . ' AND t.due_date < ?';
     $bind_types .= 's';
@@ -178,7 +179,7 @@ if ($view === 'overdue') {
     $bind_values[] = $business_date;
     $bind_values[] = $business_date;
 } elseif ($view === 'waiting') {
-    $where[] = "t.status = 'waiting'";
+    $where[] = "t.status = 'waiting' AND {$parent_active_sql}";
 } elseif ($view === 'archived') {
     $where[] = 't.is_archived = 1';
 } elseif ($view === 'completed') {
@@ -249,11 +250,11 @@ $summary_where = array_slice($where, 1);
 $summary_where_sql = $summary_where ? implode(' AND ', array_map(static fn($part) => '(' . $part . ')', $summary_where)) : '1 = 1';
 $summary_from = substr(followUpTaskSelectSql(), strpos(followUpTaskSelectSql(), 'FROM follow_up_tasks'));
 $summary_stmt = $conn->prepare("SELECT
-    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting')) AS all_count,
-    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date < ?) AS overdue_count,
-    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date = ?) AS today_count,
-    SUM(t.is_archived = 0 AND t.status IN ('open', 'in_progress', 'waiting') AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)) AS upcoming_count,
-    SUM(t.is_archived = 0 AND t.status = 'waiting') AS waiting_count,
+    SUM(t.is_archived = 0 AND {$active_status_sql}) AS all_count,
+    SUM(t.is_archived = 0 AND {$active_status_sql} AND t.due_date < ?) AS overdue_count,
+    SUM(t.is_archived = 0 AND {$active_status_sql} AND t.due_date = ?) AS today_count,
+    SUM(t.is_archived = 0 AND {$active_status_sql} AND t.due_date > ? AND t.due_date <= DATE_ADD(?, INTERVAL {$task_upcoming_days} DAY)) AS upcoming_count,
+    SUM(t.is_archived = 0 AND t.status = 'waiting' AND {$parent_active_sql}) AS waiting_count,
     SUM(t.is_archived = 0 AND t.status IN ('completed', 'canceled')) AS completed_count,
     SUM(t.is_archived = 1) AS archived_count
     {$summary_from} WHERE {$summary_where_sql}");

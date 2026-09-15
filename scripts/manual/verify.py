@@ -47,7 +47,8 @@ for number,shot in enumerate(shots,1):
     assert 'Figure ' in texts[index],('Figure caption missing',shot['id'])
     assert report['destinations']['end-shot-'+shot['id']]==index+1,('Split walkthrough',shot['id'])
 all_text='\n'.join(texts)
-for expected in ['Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
+assert 'Archiving an engagement or inquiry also hides its tasks' in ' '.join(all_text.split())
+for expected in ['Archive a finished inquiry','Restore Inquiry','Archive tasks without changing their status','Restore task','Lock Admin Actions','Mail Ingestion','Historical mailbox review','Daily Digest delivery days','Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
     assert expected in ' '.join(all_text.split()),('Missing required topic',expected)
 for forbidden in ['Genesis 49:9,10','Revelation 5:5','Do you see Him?','ASCII art cat','Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)

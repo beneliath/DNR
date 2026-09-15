@@ -14,7 +14,7 @@ $currentUserId = (int) $_SESSION['user_id'];
 $view = \Dnr\Http\RequestInput::enum(
     $_GET,
     'view',
-    ['active', 'booked', 'declined', 'all'],
+    ['active', 'booked', 'declined', 'all', 'archived'],
     'active'
 );
 $owner = \Dnr\Http\RequestInput::enum(
@@ -54,20 +54,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     $inquiryId = filter_input(INPUT_POST, 'inquiry_id', FILTER_VALIDATE_INT);
     try {
-        changeBookingInquiryStage(
-            $conn,
-            (int) $inquiryId,
-            (string) ($_POST['stage'] ?? ''),
-            is_scalar($_POST['stage_reason'] ?? null) ? (string) $_POST['stage_reason'] : null,
-            (string) ($_POST['inquiry_version'] ?? ''),
-            $currentUserId,
-            (string) $_SESSION['username']
-        );
-        $_SESSION['inquiry_pipeline_message'] = 'Inquiry stage updated.';
+        $action = \Dnr\Http\RequestInput::enum($_POST, 'action', ['change_stage', 'archive', 'restore'], 'change_stage');
+        if ($action === 'archive' || $action === 'restore') {
+            setBookingInquiryArchived(
+                $conn,
+                (int) $inquiryId,
+                $action === 'archive',
+                \Dnr\Http\RequestInput::string($_POST, 'inquiry_version'),
+                $currentUserId
+            );
+            $_SESSION['inquiry_pipeline_message'] = $action === 'archive'
+                ? 'Inquiry archived. All information is retained in Archived Inquiries.'
+                : 'Inquiry restored to the booking pipeline.';
+        } else {
+            changeBookingInquiryStage(
+                $conn,
+                (int) $inquiryId,
+                (string) ($_POST['stage'] ?? ''),
+                is_scalar($_POST['stage_reason'] ?? null) ? (string) $_POST['stage_reason'] : null,
+                (string) ($_POST['inquiry_version'] ?? ''),
+                $currentUserId,
+                (string) $_SESSION['username']
+            );
+            $_SESSION['inquiry_pipeline_message'] = 'Inquiry stage updated.';
+        }
     } catch (Throwable $exception) {
         $_SESSION['inquiry_pipeline_error'] = $exception instanceof InvalidArgumentException
             ? $exception->getMessage()
-            : 'The inquiry stage could not be updated.';
+            : 'The inquiry could not be updated.';
     }
     $returnInput = [];
     parse_str(
@@ -76,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
     $returnQuery = http_build_query(array_filter([
         'view' => \Dnr\Http\RequestInput::enum(
-            $returnInput, 'view', ['active', 'booked', 'declined', 'all'], 'active'
+            $returnInput, 'view', ['active', 'booked', 'declined', 'all', 'archived'], 'active'
         ),
         'owner' => \Dnr\Http\RequestInput::enum(
             $returnInput,
@@ -106,7 +120,7 @@ $notice = (string) ($_SESSION['inquiry_pipeline_message'] ?? '');
 $error = (string) ($_SESSION['inquiry_pipeline_error'] ?? '');
 unset($_SESSION['inquiry_pipeline_message'], $_SESSION['inquiry_pipeline_error']);
 
-$where = [];
+$where = [$view === 'archived' ? 'inquiry.archived_at IS NOT NULL' : 'inquiry.archived_at IS NULL'];
 $types = '';
 $values = [];
 if ($view === 'active') {
@@ -204,12 +218,12 @@ $stmt->close();
 
 if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
     header('Content-Type: text/csv; charset=UTF-8');
-    header('Content-Disposition: attachment; filename="booking-pipeline-' . applicationBusinessDate() . '.csv"');
+    header('Content-Disposition: attachment; filename="' . ($view === 'archived' ? 'archived-inquiries-' : 'booking-pipeline-') . applicationBusinessDate() . '.csv"');
     $output = fopen('php://output', 'wb');
     if ($output === false) {
         abortApplication(503, 'The pipeline export could not be created.');
     }
-    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks'], ',', '"', '');
+    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks', 'Archived at (UTC)'], ',', '"', '');
     foreach ($inquiries as $inquiry) {
         $safe = static function (mixed $value): string {
             $text = trim((string) $value);
@@ -227,6 +241,7 @@ if (\Dnr\Http\RequestInput::enum($_GET, 'export', ['', 'csv'], '') === 'csv') {
             $safe($inquiry['next_action_due_date']),
             $safe($inquiry['owner_username'] ?: 'Unassigned'),
             (int) $inquiry['open_task_count'],
+            $safe($inquiry['archived_at']),
         ], ',', '"', '');
     }
     fclose($output);
@@ -245,6 +260,10 @@ $displayCounts = array_map(
 $displayStages = $view === 'active'
     ? ['new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent', 'booked']
     : ($view === 'booked' ? ['booked'] : ($view === 'declined' ? ['declined'] : array_keys(bookingInquiryStages())));
+if ($view === 'archived') {
+    $displayStages = ['booked', 'declined'];
+}
+$pageTitle = $view === 'archived' ? 'Archived Inquiries' : 'Booking Pipeline';
 $stageIcons = [
     'new' => '<svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg>',
     'contacted' => '<svg viewBox="0 0 24 24"><path d="M7 4h3l1.4 4-2 1.6a15 15 0 0 0 5 5l1.6-2L20 14v3c0 1.7-1.3 3-3 3C9.8 20 4 14.2 4 7c0-1.7 1.3-3 3-3Z"/></svg>',
@@ -264,7 +283,7 @@ $exportQuery = http_build_query(array_filter([
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle('Booking Pipeline'), ['styles' => [
+<?php renderPageHead(applicationPageTitle($pageTitle), ['styles' => [
     'assets/css/style.min.css', 'assets/css/modern.min.css',
     'assets/css/pages/booking_inquiries.min.css',
 ]]); ?>
@@ -272,7 +291,7 @@ $exportQuery = http_build_query(array_filter([
 <?php include 'templates/header.php'; ?>
 <main class="container inquiry-pipeline-page">
     <header class="page-heading inquiry-pipeline-heading">
-        <div><h1>Booking Pipeline</h1><p class="page-intro">Capture and qualify opportunities before they become engagements.</p></div>
+        <div><h1><?php echo $pageTitle; ?></h1><p class="page-intro"><?php echo $view === 'archived' ? 'Review retained inquiries or restore them to the booking pipeline.' : 'Capture and qualify opportunities before they become engagements.'; ?></p><a href="inquiries.php<?php echo $view === 'archived' ? '' : '?view=archived'; ?>"><?php echo $view === 'archived' ? 'Back to Booking Pipeline' : 'Archived Inquiries'; ?></a></div>
         <div class="page-heading-actions"><a href="inquiries.php?<?php echo htmlspecialchars($exportQuery, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary inquiry-export-action"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12M8 7l4-4 4 4M5 13v7h14v-7"/></svg>Export</a><?php if ($canManage): ?><a href="add_inquiry.php" class="button-add inquiry-primary-action"><span class="inquiry-button-icon" aria-hidden="true">+</span>New Inquiry</a><?php endif; ?></div>
     </header>
     <?php if ($notice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
@@ -283,7 +302,7 @@ $exportQuery = http_build_query(array_filter([
         <div class="inquiry-filter-controls">
             <label><span class="visually-hidden">Owner</span><select name="owner" aria-label="Owner"><option value="">All</option><option value="mine_or_unassigned"<?php echo $owner === 'mine_or_unassigned' ? ' selected' : ''; ?>>Mine &amp; Unassigned</option><option value="me"<?php echo $owner === 'me' ? ' selected' : ''; ?>>My Inquiries</option><option value="unassigned"<?php echo $owner === 'unassigned' ? ' selected' : ''; ?>>Unassigned</option></select></label>
             <label><span class="visually-hidden">Next action due</span><select name="timing" aria-label="Next action due"><option value="">Next action due</option><option value="overdue"<?php echo $timing === 'overdue' ? ' selected' : ''; ?>>Overdue</option><option value="today"<?php echo $timing === 'today' ? ' selected' : ''; ?>>Due Today</option><option value="next_7_days"<?php echo $timing === 'next_7_days' ? ' selected' : ''; ?>>Next 7 Days</option><option value="unscheduled"<?php echo $timing === 'unscheduled' ? ' selected' : ''; ?>>No action due date</option><option value="missing_action"<?php echo $timing === 'missing_action' ? ' selected' : ''; ?>>Missing Next Action</option></select></label>
-            <label><span class="visually-hidden">Stage</span><select name="view" aria-label="Stage"><option value="active"<?php echo $view === 'active' ? ' selected' : ''; ?>>Stage</option><option value="booked"<?php echo $view === 'booked' ? ' selected' : ''; ?>>Booked</option><option value="declined"<?php echo $view === 'declined' ? ' selected' : ''; ?>>Declined</option><option value="all"<?php echo $view === 'all' ? ' selected' : ''; ?>>All Stages</option></select></label>
+            <label><span class="visually-hidden">Stage</span><select name="view" aria-label="Stage"><option value="active"<?php echo $view === 'active' ? ' selected' : ''; ?>>Stage</option><option value="booked"<?php echo $view === 'booked' ? ' selected' : ''; ?>>Booked</option><option value="declined"<?php echo $view === 'declined' ? ' selected' : ''; ?>>Declined</option><option value="all"<?php echo $view === 'all' ? ' selected' : ''; ?>>All Stages</option><option value="archived"<?php echo $view === 'archived' ? ' selected' : ''; ?>>Archived</option></select></label>
             <button type="submit" class="visually-hidden inquiry-filter-submit">Apply Filters</button>
             <?php if ($search !== '' || $owner !== '' || $priority !== '' || $timing !== '' || $view !== 'active'): ?><a href="inquiries.php" class="clear-search">Clear</a><?php endif; ?>
         </div>
@@ -292,7 +311,7 @@ $exportQuery = http_build_query(array_filter([
     <div class="inquiry-kanban inquiry-kanban-columns-<?php echo count($displayStages); ?>">
         <?php foreach ($displayStages as $stage): ?>
             <section class="inquiry-kanban-column inquiry-stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>">
-                <header><div><span class="inquiry-stage-icon" aria-hidden="true"><?php echo $stageIcons[$stage]; ?></span><h2 id="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryStages()[$stage], ENT_QUOTES, 'UTF-8'); ?></h2><strong><?php echo $displayCounts[$stage]; ?></strong></div><?php if ($canManage): ?><a href="add_inquiry.php" aria-label="Add an inquiry to the pipeline">+</a><?php endif; ?></header>
+                <header><div><span class="inquiry-stage-icon" aria-hidden="true"><?php echo $stageIcons[$stage]; ?></span><h2 id="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryStages()[$stage], ENT_QUOTES, 'UTF-8'); ?></h2><strong><?php echo $displayCounts[$stage]; ?></strong></div><?php if ($canManage && $view !== 'archived'): ?><a href="add_inquiry.php" aria-label="Add an inquiry to the pipeline">+</a><?php endif; ?></header>
                 <div class="inquiry-card-list">
                     <?php foreach ($byStage[$stage] as $inquiry): ?>
                         <?php
@@ -304,9 +323,19 @@ $exportQuery = http_build_query(array_filter([
                             <p class="inquiry-card-relationship"><?php echo htmlspecialchars((string) (bookingInquiryDisplayLabel($inquiry['organization_name']) ?: 'Organization not identified'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($inquiry['contact_name'])): ?><span><?php echo htmlspecialchars($inquiry['contact_name'], ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?></p>
                             <?php if (!empty($inquiry['preferred_start_date'])): ?><p class="inquiry-card-date"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg><?php echo htmlspecialchars(bookingInquiryDateLabel($inquiry), ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
                             <div class="inquiry-card-owner"><span class="inquiry-owner-avatar" aria-hidden="true"><?php echo htmlspecialchars(bookingInquiryInitials($inquiry['owner_username'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></span><small><?php echo (int) $inquiry['days_in_stage']; ?>d</small></div>
-                            <footer><span class="inquiry-card-next<?php echo $stage === 'booked' ? '' : $dueClass; ?>"><?php if ($stage === 'booked'): ?>Booked<?php if (!empty($inquiry['converted_at'])): ?> <?php echo htmlspecialchars(applicationTimestampLabel($inquiry['converted_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?><?php else: ?>Next: <?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'set next action'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span><span class="inquiry-priority"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']], ENT_QUOTES, 'UTF-8'); ?></span></footer>
+                            <footer><span class="inquiry-card-next<?php echo $stage === 'booked' || $view === 'archived' ? '' : $dueClass; ?>"><?php if ($view === 'archived'): ?>Archived <?php echo htmlspecialchars(applicationTimestampLabel($inquiry['archived_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?><?php elseif ($stage === 'booked'): ?>Booked<?php if (!empty($inquiry['converted_at'])): ?> <?php echo htmlspecialchars(applicationTimestampLabel($inquiry['converted_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?><?php else: ?>Next: <?php echo htmlspecialchars((string) ($inquiry['next_action'] ?: 'set next action'), ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span><span class="inquiry-priority"><?php echo htmlspecialchars(bookingInquiryPriorities()[$inquiry['priority']], ENT_QUOTES, 'UTF-8'); ?></span></footer>
                             <?php if ((int) $inquiry['open_task_count'] > 0): ?><a class="inquiry-card-task-count" href="tasks.php?view=all&amp;subject_type=inquiry&amp;subject_id=<?php echo (int) $inquiry['id']; ?>"><?php echo (int) $inquiry['open_task_count']; ?> open task<?php echo (int) $inquiry['open_task_count'] === 1 ? '' : 's'; ?></a><?php endif; ?>
-                            <?php if ($canManage && $stage !== 'booked'): ?>
+                            <?php if ($canManage && ($view === 'archived' || canArchiveBookingInquiry($inquiry))): ?>
+                                <form method="post" action="inquiries.php" class="inquiry-archive-action">
+                                    <?php echo csrfInput(); ?>
+                                    <input type="hidden" name="action" value="<?php echo $view === 'archived' ? 'restore' : 'archive'; ?>">
+                                    <input type="hidden" name="inquiry_id" value="<?php echo (int) $inquiry['id']; ?>">
+                                    <input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($inquiry['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="return_query" value="<?php echo htmlspecialchars($returnQuery, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <button type="submit" class="button-secondary"><?php echo $view === 'archived' ? 'Restore Inquiry' : 'Archive Inquiry'; ?></button>
+                                </form>
+                            <?php endif; ?>
+                            <?php if ($canManage && $stage !== 'booked' && $view !== 'archived'): ?>
                                 <details class="inquiry-card-stage-menu" data-disclosure-popover>
                                     <summary><span aria-hidden="true">•••</span><span class="visually-hidden">Move Stage</span></summary>
                                     <form method="post" action="inquiries.php" class="app-popover inquiry-stage-popover" aria-label="Move Inquiry Stage">

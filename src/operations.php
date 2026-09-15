@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/operations_helpers.php';
+require_once __DIR__ . '/task_visibility_helpers.php';
 startSecureSession();
 requireAdmin();
 
@@ -27,7 +28,8 @@ try {
         SUM(status IN ('open', 'in_progress', 'waiting')) AS active,
         SUM(status IN ('open', 'in_progress', 'waiting') AND due_date < ?) AS overdue,
         SUM(status IN ('open', 'in_progress', 'waiting') AND assigned_to IS NULL) AS unassigned
-        FROM follow_up_tasks WHERE is_archived = 0");
+        FROM follow_up_tasks WHERE is_archived = 0
+          AND " . followUpTaskUnarchivedParentSql('follow_up_tasks'));
     if (!$task_metric) {
         throw new RuntimeException('Unable to prepare operational task metrics.');
     }

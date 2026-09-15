@@ -436,7 +436,8 @@ function mattermostTasksForUser(mysqli $conn, array $user, int $limit = 10): arr
     $userId = (int) $user['id'];
     $sql = followUpTaskSelectSql()
         . " WHERE t.assigned_to = ?
-              AND t.status IN ('open', 'in_progress', 'waiting')
+              AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0
+              AND " . followUpTaskUnarchivedParentSql() . "
             ORDER BY
               CASE WHEN t.due_date IS NULL THEN 1 ELSE 0 END,
               t.due_date ASC,
@@ -471,7 +472,8 @@ function mattermostTaskSummaryForUser(mysqli $conn, int $userId): array
             SUM(status = 'waiting') AS waiting_count
          FROM follow_up_tasks
          WHERE assigned_to = ?
-           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
+           AND status IN ('open', 'in_progress', 'waiting') AND is_archived = 0
+           AND " . followUpTaskUnarchivedParentSql('follow_up_tasks')
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare the Mattermost task summary.');

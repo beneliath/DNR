@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/task_visibility_helpers.php';
+
 /**
  * @param array<string, mixed> $engagement
  * @return list<string>
@@ -159,7 +161,8 @@ function fetchDashboardTaskSummary(mysqli $conn, int $user_id, string $business_
                 COALESCE(SUM(assigned_to = ? AND due_date < ?), 0) AS overdue_count,
                 COALESCE(SUM(assigned_to = ? AND due_date = ?), 0) AS today_count
          FROM follow_up_tasks
-         WHERE status IN ('open', 'in_progress', 'waiting') AND is_archived = 0"
+         WHERE status IN ('open', 'in_progress', 'waiting') AND is_archived = 0
+           AND " . followUpTaskUnarchivedParentSql('follow_up_tasks')
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare dashboard task totals.');
@@ -204,6 +207,7 @@ function fetchDashboardMyTasks(mysqli $conn, int $user_id, int $limit = 8): arra
          LEFT JOIN booking_inquiries inquiry ON inquiry.id = t.inquiry_id
          WHERE t.assigned_to = ?
            AND t.status IN ('open', 'in_progress', 'waiting') AND t.is_archived = 0
+           AND " . followUpTaskUnarchivedParentSql() . "
          ORDER BY COALESCE(t.due_date, '9999-12-31'),
                   FIELD(t.priority, 'urgent', 'high', 'normal', 'low'),
                   t.id
@@ -235,7 +239,7 @@ function fetchDashboardBookingInquiries(
          FROM booking_inquiries inquiry
          LEFT JOIN organizations organization ON organization.id = inquiry.organization_id
          LEFT JOIN users owner ON owner.id = inquiry.owner_user_id
-         WHERE inquiry.stage IN (
+         WHERE inquiry.archived_at IS NULL AND inquiry.stage IN (
             'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
          )
            AND (inquiry.owner_user_id = ? OR inquiry.owner_user_id IS NULL)
@@ -262,14 +266,14 @@ function fetchDashboardOpenBookingInquiryCount(
     $stmt = $conn->prepare(
         "SELECT COUNT(*) AS total
          FROM booking_inquiries inquiry
-         WHERE inquiry.stage IN (
+         WHERE inquiry.archived_at IS NULL AND (inquiry.stage IN (
             'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
          )
             OR (
                 inquiry.stage = 'booked'
                 AND inquiry.converted_at >= ?
                 AND inquiry.converted_at < ?
-            )"
+            ))"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare dashboard booking inquiry count.');
@@ -297,7 +301,7 @@ function fetchDashboardBookingPipelineHealth(
                 inquiry.next_action IS NULL OR TRIM(inquiry.next_action) = ''
             ), 0) AS missing_next_action_count
          FROM booking_inquiries inquiry
-         WHERE inquiry.stage IN (
+         WHERE inquiry.archived_at IS NULL AND inquiry.stage IN (
             'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent'
          )"
     );
