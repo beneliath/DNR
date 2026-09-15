@@ -1,5 +1,6 @@
 import {shortMOEDSidebarChannelDisplayName} from './sidebar_channel_label.mjs';
 import {channelBindingRefreshDelay} from './channel_binding_refresh.mjs';
+import {updateTaskDashboard} from './task_dashboard_state.mjs';
 
 const React = window.React;
 const {useEffect, useLayoutEffect, useRef, useState} = React;
@@ -221,14 +222,15 @@ function TaskRow({task, businessDate, channelId, onUpdate}) {
 
 function TaskDashboard({post, mode}) {
     const data = payloadFor(post);
-    const [tasks, setTasks] = useState(Array.isArray(data.tasks) ? data.tasks : []);
+    const [{tasks, summary}, setDashboard] = useState(() => ({
+        tasks: Array.isArray(data.tasks) ? data.tasks : [], summary: data.task_summary || {},
+    }));
     const [feedback, setFeedback] = useState('');
-    const summary = data.task_summary || {};
     const businessDate = data.business_date || new Date().toISOString().slice(0, 10);
     const openURL = mode === 'today' ? data.dashboard_url : data.work_queue_url;
     const activeTasks = tasks.filter((task) => !['completed', 'canceled'].includes(task.status));
     const updateTask = (next, message) => {
-        setTasks((current) => current.map((task) => task.id === next.id ? next : task));
+        setDashboard((current) => updateTaskDashboard(current, next, businessDate));
         setFeedback(message || 'Task updated.');
     };
     return <div className='moed-card'>

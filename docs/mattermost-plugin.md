@@ -10,7 +10,7 @@ channel-visible receipt reactions after confirmed MOED actions.
 - Mattermost Server 9.0 or newer with permission to install custom plugins.
 - A network path from the Mattermost server to the canonical MOED HTTPS URL.
 - A deployed MOED version containing the Mattermost integration migration.
-- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.7.tar.gz`.
+- The bundle `mattermost-plugin/dist/org.moed.mattermost-0.4.8.tar.gz`.
 
 ## 1. Generate the shared secret
 
@@ -85,7 +85,7 @@ Then:
 
 1. open **System Console → Plugins → Plugin Management**;
 2. choose **Upload Plugin**;
-3. select `org.moed.mattermost-0.4.7.tar.gz`;
+3. select `org.moed.mattermost-0.4.8.tar.gz`;
 4. open the **MOED** plugin settings;
 5. enter the canonical **MOED URL**, for example `https://moed.example.org`;
 6. paste the shared token into **Service Token**;
@@ -115,7 +115,8 @@ linked. Each user then:
 
 The two commands render a theme-aware MOED dashboard inside Mattermost. It
 shows Overdue, Due today, Next 7 days, and Waiting counts, followed by the
-user's active tasks and only the actions that MOED permits. Engagement cards
+user's active tasks and only the actions that MOED permits. Task actions update
+the counts immediately, including totals beyond the displayed task list. Engagement cards
 use the same webapp bundle and adapt to the available message width. A private
 `/moed event show ID` card displays the engagement's email routing marker with
 a quick-copy button. The deliberate channel-visible card created by `/moed
@@ -138,6 +139,9 @@ once, and is never placed in a channel-visible message. Users revoke a link
 from **MOED → Mattermost**.
 
 ## Commands and permissions
+
+Engagement search matches word prefixes in event titles and organization names.
+Two-character searches match the beginning of a title or organization name.
 
 - Everyone can use `help`, `status`, `connect`, personal summaries, engagement
   search, and engagement cards after linking.

@@ -109,8 +109,9 @@ function formErrorSummary(array|string $errors, array $field_ids = []): string {
     return $html . '</ul></div>';
 }
 
-function renderScript($path, $defer = true) {
+function renderScript($path, $defer = true, $module = false) {
     echo '<script src="' . htmlspecialchars(assetUrl((string) $path), ENT_QUOTES, 'UTF-8') . '"'
+        . ($module ? ' type="module"' : '')
         . ($defer ? ' defer' : '') . '></script>' . PHP_EOL;
 }
 

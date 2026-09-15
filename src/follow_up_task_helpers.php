@@ -1157,19 +1157,6 @@ function generateStandardTaskForOpenEngagements(
         if (!$template || !empty($template['is_archived'])) {
             throw new InvalidArgumentException('Only active standard tasks can be added to engagements.');
         }
-        // Lock eligible events so closing, archiving, and checklist generation cannot race this batch.
-        $engagements = $conn->query(
-            "SELECT engagement.id, engagement.event_start_date, engagement.event_end_date,
-                    caller.id AS caller_user_id
-             FROM engagements engagement
-             INNER JOIN organizations organization ON organization.id = engagement.organization_id
-             LEFT JOIN engagement_financial_reports report ON report.engagement_id = engagement.id
-             LEFT JOIN users caller ON caller.id = engagement.caller_user_id AND caller.account_status = 'active'
-             WHERE engagement.is_deleted = 0 AND organization.is_deleted = 0
-               AND engagement.lifecycle_status = 'active' AND report.engagement_id IS NULL
-             ORDER BY engagement.id
-             FOR UPDATE"
-        )->fetch_all(MYSQLI_ASSOC);
         $creator = $conn->prepare("SELECT id FROM users WHERE id = ? AND account_status = 'active' FOR UPDATE");
         $creator->bind_param('i', $created_by);
         $creator->execute();
@@ -1179,38 +1166,48 @@ function generateStandardTaskForOpenEngagements(
             throw new InvalidArgumentException('An active account is required to generate tasks.');
         }
 
-        $existing = $conn->prepare(
-            'SELECT id FROM follow_up_tasks WHERE engagement_id = ? AND template_key = ? FOR UPDATE'
-        );
+        $anchor = match ($template['due_anchor']) {
+            'event_start' => 'event_start_date',
+            'event_end' => 'event_end_date',
+            default => throw new RuntimeException('A standard event task has an invalid due-date rule.'),
+        };
+        // One locking INSERT SELECT avoids materializing the engagement directory
+        // and two database round trips per row. Share locks preserve the same
+        // ordering against concurrent closeout, archive, date and owner changes.
+        // Existing copies (including archived/completed ones) are left untouched.
         $insert = $conn->prepare(
             "INSERT INTO follow_up_tasks
                 (title, details, status, priority, due_date, subject_type, engagement_id,
                  assigned_to, created_by, template_key, due_date_overridden)
-             VALUES (?, ?, 'open', ?, ?, 'engagement', ?, ?, ?, ?, 0)"
+             SELECT ?, ?, 'open', ?, DATE_ADD(engagement.{$anchor}, INTERVAL ? DAY),
+                    'engagement', engagement.id, COALESCE(caller.id, ?), ?, ?, 0
+             FROM engagements engagement
+             INNER JOIN organizations organization ON organization.id = engagement.organization_id
+             LEFT JOIN engagement_financial_reports report ON report.engagement_id = engagement.id
+             LEFT JOIN users caller ON caller.id = engagement.caller_user_id AND caller.account_status = 'active'
+             WHERE engagement.is_deleted = 0 AND organization.is_deleted = 0
+               AND engagement.lifecycle_status = 'active' AND report.engagement_id IS NULL
+               AND NOT EXISTS (
+                   SELECT 1 FROM follow_up_tasks existing
+                   WHERE existing.engagement_id = engagement.id AND existing.template_key = ?
+               )
+             ORDER BY engagement.id
+             FOR SHARE"
         );
-        $inserted = 0;
-        foreach ($engagements as $engagement) {
-            $engagement_id = (int) $engagement['id'];
-            $existing->bind_param('is', $engagement_id, $template['template_key']);
-            $existing->execute();
-            if ($existing->get_result()->num_rows > 0) {
-                continue;
-            }
-            $scheduled = engagementFollowUpChecklistTemplates(
-                $engagement['event_start_date'], $engagement['event_end_date'], [$template]
-            )[0];
-            if (!validIsoDate($scheduled['due_date'])) {
-                throw new InvalidArgumentException('The due-date rule falls outside the supported date range for an engagement.');
-            }
-            $assigned_to = initialEngagementChecklistAssigneeId($engagement['caller_user_id'], $created_by);
-            $insert->bind_param('ssssiiis', $scheduled['title'], $scheduled['details'],
-                $scheduled['priority'], $scheduled['due_date'], $engagement_id, $assigned_to,
-                $created_by, $scheduled['key']);
+        $insert->bind_param('sssiiiss', $template['title'], $template['details'],
+            $template['priority'], $template['due_offset_days'], $created_by, $created_by,
+            $template['template_key'], $template['template_key']);
+        try {
             $insert->execute();
-            $inserted += $insert->affected_rows;
+            $inserted = $insert->affected_rows;
+        } catch (mysqli_sql_exception $exception) {
+            if ($exception->getCode() === 1441) {
+                throw new InvalidArgumentException('A generated task due date is outside the supported date range.', 0, $exception);
+            }
+            throw $exception;
+        } finally {
+            $insert->close();
         }
-        $existing->close();
-        $insert->close();
         if ($manage_transaction) {
             $conn->commit();
         }

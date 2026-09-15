@@ -34,6 +34,7 @@ function expectBookingInquiryIntegration(bool $condition, string $message): void
 $suffix = bin2hex(random_bytes(5));
 $userId = 0;
 $organizationId = 0;
+$primaryOrganizationId = 0;
 $contactId = 0;
 $inboundEmailId = 0;
 $replyInboundEmailId = 0;
@@ -364,6 +365,19 @@ try {
         'Inquiry email should reject an Engagement marker that would make reply routing ambiguous.'
     );
 
+    // The inquiry organization may be a secondary affiliation of its contact.
+    $conn->query("INSERT INTO organizations (organization_name) VALUES ('Secondary affiliation email fixture')");
+    $primaryOrganizationId = (int) $conn->insert_id;
+    $conn->query("UPDATE contacts SET organization_id = {$primaryOrganizationId} WHERE id = {$contactId}");
+    $conn->query("DELETE FROM contact_organizations WHERE contact_id = {$contactId} AND organization_id = {$organizationId}");
+    $unaffiliatedRejected = false;
+    try {
+        queueBookingInquiryEmail($conn, $inquiry, 'proposal_follow_up', 'Proposal', 'Hello', $userId, $username);
+    } catch (InvalidArgumentException $exception) {
+        $unaffiliatedRejected = true;
+    }
+    expectBookingInquiryIntegration($unaffiliatedRejected, 'email must reject a removed affiliation.');
+    $conn->query("INSERT INTO contact_organizations (contact_id, organization_id) VALUES ({$contactId}, {$organizationId})");
     $messageId = queueBookingInquiryEmail(
         $conn,
         $inquiry,
@@ -395,6 +409,7 @@ try {
             && $inquiryChronCount === 1,
         'outbound inquiry email should use the isolated queue and create linked Chron history.'
     );
+    $conn->query("UPDATE contacts SET organization_id = {$organizationId} WHERE id = {$contactId}");
     $outboundMessage = fetchEngagementEmailMessage($conn, $messageId);
     expectBookingInquiryIntegration(
         $outboundMessage !== null
@@ -634,6 +649,9 @@ try {
     }
     if ($contactId > 0) {
         $conn->query("DELETE FROM contacts WHERE id = {$contactId}");
+    }
+    if ($primaryOrganizationId > 0) {
+        $conn->query("DELETE FROM organizations WHERE id = {$primaryOrganizationId}");
     }
     if ($organizationId > 0) {
         $conn->query("DELETE FROM organizations WHERE id = {$organizationId}");

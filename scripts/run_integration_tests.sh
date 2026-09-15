@@ -91,6 +91,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         || [ "$test_name" = 'speaker_http_integration_test.php' ] \
         || [ "$test_name" = 'engagement_contacts_http_integration_test.php' ] \
         || [ "$test_name" = 'contact_affiliation_http_integration_test.php' ] \
+        || [ "$test_name" = 'inquiry_relationship_search_http_integration_test.php' ] \
         || [ "$test_name" = 'uiux_workflow_http_integration_test.php' ] \
         || [ "$test_name" = 'task_archiving_http_integration_test.php' ] \
         || [ "$test_name" = 'parent_archived_tasks_http_integration_test.php' ] \

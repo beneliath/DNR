@@ -198,6 +198,10 @@ function fetchCalendarViewerBirthdays(mysqli $conn) {
 function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $assigned_user_id = null) {
     $assigned_user_id = $assigned_user_id === null ? null : (int) $assigned_user_id;
     $assigned_filter = $assigned_user_id !== null ? ' AND t.assigned_to = ?' : '';
+    // Parent-visibility subqueries can make MySQL prefer the archive-list index
+    // and scan the backlog. Offer the date-window index for all-work calendars;
+    // personal calendars can still choose their more selective assignee index.
+    $task_index = $assigned_user_id === null ? ' USE INDEX (idx_follow_up_task_calendar)' : '';
     $stmt = $conn->prepare(
         "SELECT t.id, t.title, t.due_date, t.status, t.priority, t.assigned_to, t.engagement_id,
                 assignee.username AS assignee_username,
@@ -208,7 +212,7 @@ function fetchCalendarViewerTasks(mysqli $conn, $window_start, $window_end, $ass
                     COALESCE(o.updated_at, t.updated_at),
                     COALESCE(assignee.last_updated_at, t.updated_at)
                 )) AS calendar_updated_at
-         FROM follow_up_tasks t
+         FROM follow_up_tasks t{$task_index}
          LEFT JOIN users assignee ON assignee.id = t.assigned_to
          LEFT JOIN engagements e ON e.id = t.engagement_id
          LEFT JOIN organizations o ON o.id = e.organization_id

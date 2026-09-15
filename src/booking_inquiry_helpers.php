@@ -1161,7 +1161,7 @@ function queueBookingInquiryEmail(
         $name = trim((string) ($activeContact['contact_name'] ?? '')) ?: $email;
         $organizationId = (int) ($locked['organization_id'] ?? 0) ?: null;
         if ($organizationId !== null
-            && (int) ($activeContact['organization_id'] ?? 0) !== $organizationId
+            && !contactBelongsToOrganization($conn, $contactId, $organizationId)
         ) {
             throw new InvalidArgumentException(
                 'The primary contact no longer belongs to the inquiry organization.'
