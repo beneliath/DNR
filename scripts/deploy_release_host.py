@@ -138,6 +138,7 @@ def main():
             compose('up', '-d', '--no-build', '--no-deps', '--wait', 'db')
             save('migrating')
             compose('run', '--rm', '--no-deps', 'migrator')
+            compose('run', '--rm', '--no-deps', 'file-migrator')
             if speaker_seed_sha256:
                 save('seeding-speaker')
                 # The import checks every profile field/photo and all presentation

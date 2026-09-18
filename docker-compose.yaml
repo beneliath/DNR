@@ -15,6 +15,7 @@ x-app-environment: &app-environment
   MYSQL_DATABASE: dnr
   MYSQL_USER: dnruser
   MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+  DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
   DNR_BACKUP_SERVICE_URL: http://backup/export.php
   DNR_REQUIRE_DATABASE_ENCRYPTION: "1"
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
@@ -70,7 +71,7 @@ services:
       - no-new-privileges:true
     labels: *watchtower-disabled-labels
     depends_on:
-      migrator:
+      file-migrator:
         condition: service_completed_successfully
     secrets:
       - dnr_2fa_encryption_key
@@ -78,6 +79,7 @@ services:
       - dnr_mysql_app_password
     environment: *app-environment
     volumes:
+      - uploaded_files:/var/lib/dnr/files
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
       - ./var/deployment:/run/dnr/deployment:ro
     networks: [backend]
@@ -87,6 +89,31 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  file-migrator:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    restart: "no"
+    read_only: true
+    user: www-data
+    mem_limit: 512m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    labels: *watchtower-disabled-labels
+    entrypoint: ["php", "/opt/dnr/bin/migrate_persistent_files.php"]
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    environment: *app-environment
+    secrets:
+      - dnr_mysql_app_password
+      - dnr_2fa_encryption_key
+      - dnr_inbound_routing_key
+    volumes:
+      - uploaded_files:/var/lib/dnr/files
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
 
   backup:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
@@ -104,13 +131,14 @@ services:
     security_opt: [no-new-privileges:true]
     labels: *watchtower-disabled-labels
     depends_on:
-      migrator:
+      file-migrator:
         condition: service_completed_successfully
     secrets:
       - dnr_2fa_encryption_key
       - dnr_mysql_app_password
       - dnr_mysql_backup_password
     environment:
+      DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
       DB_HOST: db
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnruser
@@ -121,6 +149,7 @@ services:
       DNR_DATABASE_BACKUP_MAX_BYTES: ${DNR_DATABASE_BACKUP_MAX_BYTES:-536870912}
       DNR_CONFIG_FILE: /run/dnr/config/application.yaml
     volumes:
+      - uploaded_files:/var/lib/dnr/files:ro
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
       - ./docker/apache-backup.conf:/etc/apache2/sites-enabled/000-default.conf:ro
     networks: [backend]
@@ -237,6 +266,7 @@ services:
       migrator:
         condition: service_completed_successfully
     volumes:
+      - uploaded_files:/var/lib/dnr/files
       - ./backups:/backups:ro
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     secrets:
@@ -244,6 +274,7 @@ services:
       - dnr_mysql_backup_password
       - dnr_backup_password
     environment:
+      DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
       DB_HOST: db
       MYSQL_DATABASE: dnr
       MYSQL_USER: dnrmaintenance
@@ -354,6 +385,7 @@ services:
     networks: [backend]
 
 volumes:
+  uploaded_files:
   db_data:
   db_keyring:
   db_socket:

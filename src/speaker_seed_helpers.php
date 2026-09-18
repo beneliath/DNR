@@ -11,6 +11,12 @@ function exportInitialSpeakerSeed(mysqli $conn): array
     }
     $row = $rows[0];
     $speaker = normalizeSpeakerInput($row);
+    foreach (['photo', 'photo_thumbnail'] as $field) {
+        if (!empty($row[$field . '_key'])) {
+            $handle = openPersistentFile(persistentFileMetadata($conn, $row[$field . '_key']), true);
+            try { $row[$field] = stream_get_contents($handle); } finally { fclose($handle); }
+        }
+    }
     $photo = null;
     if ($row['photo'] !== null) {
         $photo = [

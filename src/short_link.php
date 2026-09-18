@@ -31,7 +31,7 @@ if ($link['link_type'] === 'notes') {
         exit;
     }
     $notes = $conn->prepare('SELECT 1 FROM presentation_notes
-        WHERE presentation_id = ? AND speaker_id = ? AND pdf IS NOT NULL');
+        WHERE presentation_id = ? AND speaker_id = ? AND (storage_key IS NOT NULL OR pdf IS NOT NULL)');
     $notes->bind_param('ii', $link['presentation_id'], $link['speaker_id']);
     $notes->execute();
     if (!$notes->get_result()->fetch_row()) { http_response_code(404); exit('Notes are not available yet.'); }

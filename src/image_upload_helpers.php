@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/persistent_file_helpers.php';
+
 // Every stored portrait is displayed as a circle. Keep a 2x-density list
 // variant for the largest 52px avatar and a 2x-density detail variant for the
 // largest 152px profile/contact/speaker portrait, with a little rounding room.

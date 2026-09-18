@@ -57,9 +57,10 @@ try {
         $maximum_bytes
     );
     fwrite(STDOUT, sprintf(
-        "Database restore completed: %d rows across %d tables. All existing sessions were invalidated.\n",
+        "Database and file restore completed: %d rows across %d tables; %d persistent files. All existing sessions were invalidated.\n",
         $inspection['row_count'],
-        $inspection['table_count']
+        $inspection['table_count'],
+        $inspection['file_count']
     ));
 } catch (Throwable $exception) {
     fwrite(STDERR, "Database restore failed: " . $exception->getMessage() . "\n");

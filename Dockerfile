@@ -51,7 +51,8 @@ RUN a2enconf zz-dnr-security zz-dnr-capacity zz-dnr-short-links \
 # bind mount cannot hide or expose them.
 COPY --from=dependencies /app/vendor/ /opt/dnr/vendor/
 COPY VERSION /opt/dnr/VERSION
-RUN install -d -m 0755 /opt/dnr/bin /opt/dnr/backup-public
+RUN install -d -m 0755 /opt/dnr/bin /opt/dnr/backup-public \
+    && install -d -o www-data -g www-data -m 0700 /var/lib/dnr/files
 COPY --chmod=0644 scripts/compile_device_detector_yaml.php /opt/dnr/bin/compile_device_detector_yaml.php
 RUN php /opt/dnr/bin/compile_device_detector_yaml.php
 COPY --chmod=0644 scripts/create_admin.php /opt/dnr/bin/create_admin.php
@@ -71,6 +72,7 @@ COPY --chmod=0644 scripts/reconcile_inbound_mail.php /opt/dnr/bin/reconcile_inbo
 COPY --chmod=0644 scripts/process_email_outbox.php /opt/dnr/bin/process_email_outbox.php
 COPY --chmod=0644 scripts/native_backup_crypto.php /opt/dnr/bin/native_backup_crypto.php
 COPY --chmod=0644 scripts/backup_endpoint.php /opt/dnr/backup-public/export.php
+COPY --chmod=0644 scripts/migrate_persistent_files.php /opt/dnr/bin/migrate_persistent_files.php
 COPY --chmod=0644 scripts/restore_database.php /opt/dnr/bin/restore_database.php
 COPY --chmod=0644 scripts/prune_audit_log.php /opt/dnr/bin/prune_audit_log.php
 COPY --chmod=0644 scripts/seed_standard_tasks.php /opt/dnr/bin/seed_standard_tasks.php

@@ -190,7 +190,7 @@ $engagement_marker = applicationInboundMarker($engagement_id);
 $presentation_stmt = $conn->prepare(
     "SELECT p.id, p.speaker_id, p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name, p.duration_minutes,
             p.expected_attendance, p.actual_attendance,
-            EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND n.pdf IS NOT NULL) AS has_speaker_notes,
+            EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_speaker_notes,
             p.speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
             p.speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
             p.speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr

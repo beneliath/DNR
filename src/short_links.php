@@ -73,7 +73,7 @@ if ($showPresentationLinks) {
     s.name AS speaker_name, p.topic_title, p.speaker_id AS current_speaker_id,
     e.event_title, (SELECT COALESCE(SUM(v.visits), 0) FROM short_link_stats v
         WHERE v.link_id = l.id AND v.visit_hour >= ? AND v.visit_hour < ?) AS visits,
-    EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND n.pdf IS NOT NULL) AS has_notes
+    EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes
     FROM short_links l JOIN speakers s ON s.id = l.speaker_id JOIN presentations p ON p.id = l.presentation_id
     JOIN engagements e ON e.id = l.engagement_id LEFT JOIN short_link_qr_images q ON q.link_id = l.id
     WHERE $whereSql ORDER BY l.engagement_id DESC, l.presentation_id DESC, l.id LIMIT 50 OFFSET $offset");

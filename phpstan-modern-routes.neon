@@ -37,6 +37,7 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/persistent_file_helpers.php
         - src/email_template_helpers.php
         - src/speaker_helpers.php
         - src/short_link_helpers.php

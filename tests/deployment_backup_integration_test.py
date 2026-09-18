@@ -29,6 +29,12 @@ class DeploymentBackupIntegration(unittest.TestCase):
             archive = Path(receipt['backup_path'])
             self.assertTrue(archive.is_file())
             self.assertEqual(json.loads(archive.with_name('receipt.json').read_text()), receipt)
+            if 'stored_files' in receipt['database_state']['row_counts']:
+                self.assertIsNotNone(receipt['persistent_files'])
+                self.assertTrue(Path(receipt['persistent_files']['backup_path']).is_file())
+                self.assertEqual(receipt['persistent_files']['file_count'], receipt['database_state']['row_counts']['stored_files'])
+                self.assertFalse(archive.with_name('uploaded-files.tar.gz').exists())
+                self.assertFalse(archive.with_name('verified-files.tar.gz').exists())
             self.assertFalse(archive.with_name('database.sql.gz').exists())
             self.assertFalse(archive.with_name('verified.sql.gz').exists())
 

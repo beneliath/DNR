@@ -113,7 +113,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web php -d disable_functions= "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'database_backup_integration_test.php' ]; then
+    if [ "$test_name" = 'database_backup_integration_test.php' ] \
+        || [ "$test_name" = 'persistent_file_storage_integration_test.php' ]; then
         isolated_octet=$((($$ % 200) + 20))
         isolated_project="dnr-backup-test-$(date +%s)-$$"
         isolated_backend_subnet="10.253.${isolated_octet}.0/24"
@@ -130,12 +131,14 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
             -v "${PWD}/src:/var/www/html:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
-        compose_isolated run --rm --no-deps --entrypoint php \
-            -e DNR_INTEGRATION_TARGET=disposable \
-            -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
-            -e DNR_TEST_SOURCE_DIR=/var/www/html \
-            -v "${PWD}/src:/var/www/html:ro" \
-            maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null
+        if [ "$test_name" = 'database_backup_integration_test.php' ]; then
+            compose_isolated run --rm --no-deps --entrypoint php \
+                -e DNR_INTEGRATION_TARGET=disposable \
+                -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
+                -e DNR_TEST_SOURCE_DIR=/var/www/html \
+                -v "${PWD}/src:/var/www/html:ro" \
+                maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null
+        fi
         cleanup_isolated_backup
         trap - EXIT HUP INT TERM
         continue

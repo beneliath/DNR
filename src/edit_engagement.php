@@ -610,7 +610,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 $presentations_query = "SELECT p.id, p.engagement_id, p.topic_title, p.presentation_date,
                                p.presentation_time, p.speaker_id, p.duration_minutes,
                                p.expected_attendance, p.actual_attendance,
-                               n.pdf IS NOT NULL AS has_speaker_notes,
+                               (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL) AS has_speaker_notes,
                                n.filename AS speaker_notes_filename,
                                n.size AS speaker_notes_size,
                                n.updated_at AS speaker_notes_updated_at,

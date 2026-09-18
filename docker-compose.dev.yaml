@@ -1,4 +1,8 @@
 services:
+  file-migrator:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./scripts/migrate_persistent_files.php:/opt/dnr/bin/migrate_persistent_files.php:ro
   web:
     volumes:
       - ./src:/var/www/html:ro

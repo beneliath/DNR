@@ -1,11 +1,17 @@
 # Apply after dev.yaml: tests exercise the image's PHP source, migrations and ini.
 services:
+  file-migrator:
+    volumes: !override
+      - uploaded_files:/var/lib/dnr/files
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
   backup:
     volumes: !override
+      - uploaded_files:/var/lib/dnr/files:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
       - ./docker/apache-backup.conf:/etc/apache2/sites-enabled/000-default.conf:ro
   web:
     volumes: !override
+      - uploaded_files:/var/lib/dnr/files
       - ./tests:/opt/dnr/tests:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
       - ./var/deployment:/run/dnr/deployment:ro
@@ -15,5 +21,6 @@ services:
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
   maintenance:
     volumes: !override
+      - uploaded_files:/var/lib/dnr/files
       - ./tests:/opt/dnr/tests:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro

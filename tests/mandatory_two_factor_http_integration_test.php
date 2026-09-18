@@ -83,6 +83,8 @@ try {
         mfaExpect($replayed['status'] === 200, 'Enrollment code cannot be replayed for login');
         mfaExpect(mfaLocation($client('verify_2fa.php', ['csrf_token' => $verifyCsrf, 'authentication_code' => array_shift($recovery[$role])]), 'dashboard.php'), 'Recovery code completes mandatory verification');
     }
+    $fileContents = '%PDF-1.4 admin backup fixture ' . bin2hex(random_bytes(8));
+    $fileKey = storePersistentFile($conn, $fileContents, 'admin-backup.pdf', 'application/pdf');
     // The web worker has no backup secret, yet admin downloads still work.
     mfaExpect(configurationSecret('MYSQL_BACKUP_PASSWORD') === '', 'Web worker must not have the backup credential');
     $admin = $clients['admin']; $page = $admin('database_maintenance.php');
@@ -110,6 +112,7 @@ try {
             $handle = fopen($plain['path'], 'rb');
             $header = json_decode(fgets($handle), true, 512, JSON_THROW_ON_ERROR); fclose($handle);
             $inspection = inspectDatabaseBackup($plain['path'], $header['tables'], 16777216);
+            mfaExpect($inspection['file_count'] > 0, 'Admin download includes checksum-verified persistent files');
             mfaExpect($inspection['row_count'] > 0, 'Export decrypts and passes archive integrity/schema validation');
         } finally { unlink($plain['path']); }
     } finally { unlink($path); }

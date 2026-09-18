@@ -1085,6 +1085,41 @@ as Docker Hub repositories or trying to update dependencies outside the reviewed
 
 <a id="usage"></a>
 
+### Persistent uploaded files
+
+Uploaded speaker-note PDFs and user, contact, and speaker portraits (including thumbnails) live
+in the Docker `uploaded_files` volume at `/var/lib/dnr/files`, outside the web document root.
+`stored_files` contains each immutable storage key, filename, content type, byte size, and SHA-256
+checksum; the owning database row holds the key. Downloads retain the existing authentication,
+public-note link rules, cache headers, and PDF byte-range support. Small generated QR assets
+remain in the database and are included in the database portion of the backup.
+
+The `web` and `maintenance` services have read/write access; the isolated `backup` service mounts
+the volume read-only. Non-Compose installations must set `DNR_FILE_STORAGE_PATH` to an absolute,
+private persistent directory owned by the PHP user and share it with the exporter and restore
+process. Use encrypted host/volume storage for encryption at rest: these files are outside
+MySQL's encrypted tablespaces. Never put this directory under a public document root or in the
+container's temporary filesystem, and do not remove the volume with `docker compose down -v`.
+
+On an upgrade, take a verified backup and stop application writers before running migrations.
+The SQL migration adds file metadata and nullable storage keys without deleting existing bytes.
+The `file-migrator` service then copies each legacy BLOB, verifies its checksum, and commits the
+storage key and removal of the BLOB together, one row at a time. It runs before web/backup startup
+and can be safely rerun after a failure:
+
+```sh
+docker compose run --rm migrator
+docker compose run --rm --no-deps file-migrator
+```
+
+A failed conversion blocks startup; correct the storage/space problem and rerun it. Legacy BLOB
+columns remain nullable for this resumable transition; ordinary uploads now write only file
+keys and metadata to the database. File contents are immutable, and replacements/removals detach
+the previous key. Old registered files are retained and included in backups; automatic file
+pruning is deliberately disabled so a concurrent snapshot or rollback cannot lose its files.
+Unregistered files left by interrupted transactions are not included in admin backups. Do not
+manually prune the volume while backups, restores, or writers are running.
+
 ### Encrypted database backups
 
 Administrators can open **Database** in the primary navigation to download a DNR database backup.
@@ -1094,13 +1129,19 @@ complete `.dnrbackup` archive is encrypted with a key derived by Argon2id using 
 moderate resource profile and authenticated with XChaCha20-Poly1305 secretstream. New backup
 passwords must contain at least 16 characters. The versioned reader retains support for older
 `DNRBACKUP-ENC-1` archives while new exports use the stronger `DNRBACKUP-ENC-2` profile. Backups contain
-every application table, including user authentication and audit data. Treat encrypted files as
+every application table, including user authentication and audit data, plus all registered
+persistent uploaded files. Version 3 archives stream file chunks and verify each file against its
+stored size and SHA-256 checksum. Missing or damaged files cause export to fail rather than
+producing an incomplete backup. The configured size limit includes both the database and files. Treat encrypted files as
 secrets, use a strong unique backup password, and keep the password separately in a password
 manager. A forgotten backup password cannot be recovered.
 
 A restore is accepted only when the backup schema exactly matches the deployed database schema.
 Install the matching DNR version and run its migrations before restoring. The data replacement is
-transactional and automatically rolls back on failure; a successful restore invalidates all
+transactional and automatically rolls back on failure. Restore first validates the complete archive,
+then installs and verifies its immutable files before changing database rows. Existing files are
+never overwritten or deleted, so a failed restore preserves the old database and its files; it
+may leave harmless unreferenced files. A successful restore invalidates all
 existing sessions and requires everyone to sign in again. Restore is not exposed by HTTP: it runs
 in a one-shot, non-egress maintenance container using a database credential that the web and
 geocoder containers never receive. Database backups do not contain the
@@ -1158,7 +1199,9 @@ and terminal queue history cannot be recovered from the application.
 
 ### Exact database restore runbook
 
-The following procedure is complete for the Docker Compose deployment. Run every step from the
+The following procedure restores both database rows and persistent files for the Docker Compose deployment.
+For an older archive, restore it using its matching older release first, then upgrade and run the
+file migration to move its embedded BLOBs into persistent storage. Run every step from the
 repository root. The example deliberately renames the selected archive to
 `backups/restore.dnrbackup`, so the commands can be copied without shell globs or unresolved path
 variables.
@@ -1208,7 +1251,9 @@ variables.
 
 4. Before stopping the application, make an independent plaintext SQL safety dump of the current
    database. This file is the rollback point and contains secrets, so retain mode `600` and store it
-   only on the deployment host:
+   only on the deployment host. Keep the existing `uploaded_files` volume intact: the SQL dump
+   contains storage keys, not file bytes, and is not a standalone disaster-recovery backup.
+   Before any destructive volume operation, download a complete admin `.dnrbackup` as well:
 
    ```sh
    docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysqldump --single-transaction --routines --triggers --no-tablespaces -uroot dnr' > backups/pre-restore-safety.sql
@@ -1220,11 +1265,11 @@ variables.
    overlay set as well:
 
    ```sh
-   docker compose stop ingress web geocoder
+   docker compose stop ingress web backup geocoder
    docker compose ps
    ```
 
-   Verify that `ingress`, `web`, and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
+   Verify that `ingress`, `web`, `backup`, and `geocoder` show `Exited` and `db` shows `Up (healthy)` before continuing.
 
 6. Run the one-shot restore with the literal confirmation word `RESTORE`:
 
@@ -1232,11 +1277,16 @@ variables.
    docker compose --profile maintenance run --rm --no-deps maintenance /backups/restore.dnrbackup RESTORE
    ```
 
-   Success prints the restored row and table counts. The command authenticates and decrypts the
+   Success prints the restored row, table, and file counts. Uploaded files are restored automatically
+   into the shared `uploaded_files` volume; no separate extraction command is required. A fresh
+   deployment starts with an empty volume. Retain an existing volume when restoring over a deployment.
+   The command authenticates and decrypts the
    complete archive, checks its size, format, schema fingerprint, declared row counts, content hash,
-   and trailing data, replaces all tables in one transaction, verifies every restored table count,
+   and trailing data, verifies every file size/checksum, installs the files, replaces all tables in
+   one transaction, verifies every restored table count,
    records `database_restored`, and invalidates sessions. A wrong password, damaged archive,
-   schema mismatch, insertion error, or count mismatch rolls the transaction back.
+   schema mismatch, missing/corrupted file, storage write failure, insertion error, or count mismatch
+   leaves the original database unchanged (or rolls its transaction back).
 
 7. If step 6 failed, do not run the remaining success steps. Because the restore transaction was
    rolled back, restart the stopped services. If you will not immediately correct the problem and
@@ -1244,7 +1294,7 @@ variables.
    error:
 
    ```sh
-   docker compose up -d web geocoder ingress
+   docker compose up -d web backup geocoder ingress
    install -m 600 /dev/null secrets/backup_password
    rm -f backups/restore.dnrbackup
    ```
@@ -1254,7 +1304,8 @@ variables.
 
    ```sh
    docker compose run --rm migrator
-   docker compose up -d web geocoder ingress
+   docker compose run --rm --no-deps file-migrator
+   docker compose up -d web backup geocoder ingress
    ```
 
 9. Wait for the health check, inspect service status, and run the schema health check directly:
@@ -1264,12 +1315,13 @@ variables.
    docker compose exec web php /opt/dnr/bin/check_schema.php
    ```
 
-   Do not declare the restore complete until `ingress`, `web`, `geocoder`, and `db` are running;
+   Do not declare the restore complete until `ingress`, `web`, `backup`, `geocoder`, and `db` are running;
    `ingress`, `web`, and `db` are healthy; and the schema command exits successfully.
 
 10. Sign in with an administrator account that exists in the restored backup. Verify at least one
     known engagement, organization, contact, and user; open **Users → Audit Log** and verify the
-    `database_restored` event. Also verify 2FA decryption by completing a fresh authenticator check.
+    `database_restored` event. Open an uploaded PDF and full-size/thumbnail portraits to verify
+    persistent file recovery. Also verify 2FA decryption by completing a fresh authenticator check.
     All pre-restore browser sessions should require sign-in again.
 
 11. Empty the temporary restore password and remove the extra working copy only after verification. Keep
@@ -1291,7 +1343,7 @@ docker compose stop ingress web geocoder
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr' < backups/pre-restore-safety.sql
 docker compose exec -T db sh -c 'MYSQL_PWD="$(cat "$MYSQL_ROOT_PASSWORD_FILE")" mysql -uroot dnr -e "UPDATE users SET auth_version = auth_version + 1"'
 docker compose run --rm migrator
-docker compose up -d web geocoder ingress
+docker compose up -d web backup geocoder ingress
 docker compose exec web php /opt/dnr/bin/check_schema.php
 ```
 

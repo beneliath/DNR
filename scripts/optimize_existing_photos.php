@@ -96,12 +96,14 @@ function optimizeStoredPhotoCollection(mysqli $connection, array $definition): a
         $rows = $connection->execute_query(
             "SELECT id,
                     {$definition['full']} AS full_data,
+                    {$definition['full']}_key AS full_key,
+                    {$definition['thumbnail']}_key AS thumbnail_key,
                     {$definition['full_mime']} AS full_mime,
                     {$definition['thumbnail']} AS thumbnail_data,
                     {$definition['thumbnail_mime']} AS thumbnail_mime,
                     {$definition['sha256']} AS full_sha256
              FROM {$definition['table']}
-             WHERE id > ? AND {$definition['full']} IS NOT NULL
+             WHERE id > ? AND ({$definition['full']} IS NOT NULL OR {$definition['full']}_key IS NOT NULL)
              ORDER BY id
              LIMIT 50",
             [$last_id]
@@ -115,6 +117,12 @@ function optimizeStoredPhotoCollection(mysqli $connection, array $definition): a
             foreach ($rows as $row) {
                 $id = (int) $row['id'];
                 $last_id = $id;
+                foreach (['full', 'thumbnail'] as $variant) {
+                    if (!empty($row[$variant . '_key'])) {
+                        $file = openPersistentFile(persistentFileMetadata($connection, $row[$variant . '_key']), true);
+                        try { $row[$variant . '_data'] = stream_get_contents($file); } finally { fclose($file); }
+                    }
+                }
                 if (storedPhotoIsOptimized($row)) {
                     $preserved++;
                     continue;
@@ -128,11 +136,13 @@ function optimizeStoredPhotoCollection(mysqli $connection, array $definition): a
                         $exception
                     );
                 }
+                $photo = storePersistentPortrait($connection, $photo, $definition['kind']);
                 $version_sql = $definition['version'] ? ', version = version + 1' : '';
                 $connection->execute_query(
                     "UPDATE {$definition['table']}
-                     SET {$definition['full']} = ?,
-                         {$definition['thumbnail']} = ?,
+                     SET {$definition['full']} = NULL, {$definition['thumbnail']} = NULL,
+                         {$definition['full']}_key = ?,
+                         {$definition['thumbnail']}_key = ?,
                          {$definition['thumbnail_mime']} = ?,
                          {$definition['full_mime']} = ?,
                          {$definition['sha256']} = ?,
@@ -140,8 +150,8 @@ function optimizeStoredPhotoCollection(mysqli $connection, array $definition): a
                          {$version_sql}
                      WHERE id = ?",
                     [
-                        $photo['data'],
-                        $photo['thumbnail_data'],
+                        $photo['storage_key'],
+                        $photo['thumbnail_key'],
                         $photo['thumbnail_mime_type'],
                         $photo['mime_type'],
                         $photo['sha256'],

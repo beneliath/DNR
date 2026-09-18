@@ -8,6 +8,8 @@ from pathlib import Path
 import secrets
 import shutil
 import subprocess
+import tarfile
+import re
 import time
 
 ROOT_CLIENT = '''if [ -n "${MYSQL_ROOT_PASSWORD_FILE:-}" ]; then
@@ -38,6 +40,53 @@ def fingerprint(container):
 def sha(path):
     with path.open('rb') as handle: return hashlib.file_digest(handle, 'sha256').hexdigest()
 
+def backup_persistent_files(db_container, app_image, archive):
+    """Preserve the file volume alongside native SQL; callers have paused writers."""
+    exists = query(db_container, "SELECT COUNT(*) FROM information_schema.tables WHERE TABLE_SCHEMA='dnr' AND TABLE_NAME='stored_files'")
+    if exists == '0':
+        return None  # Releases before persistent storage keep all bytes in SQL.
+    rows = query(db_container, 'SELECT storage_key, size, checksum FROM dnr.stored_files ORDER BY storage_key')
+    expected = {}
+    for line in rows.splitlines():
+        key, size, checksum = line.split('\t')
+        if not re.fullmatch('[0-9a-f]{64}', key):
+            raise ValueError('Invalid persistent file key in database')
+        expected[key] = (int(size), checksum)
+    project = json.loads(subprocess.check_output(['docker', 'inspect', db_container]))[0]['Config']['Labels']['com.docker.compose.project']
+    web_ids = subprocess.check_output(['docker', 'ps', '-aq', '--filter', 'label=com.docker.compose.project=' + project,
+        '--filter', 'label=com.docker.compose.service=web'], text=True).split()
+    if len(web_ids) != 1:
+        raise ValueError('Cannot identify the persistent file volume for deployment backup')
+    mounts = json.loads(subprocess.check_output(['docker', 'inspect', web_ids[0]]))[0]['Mounts']
+    volume = next((mount for mount in mounts if mount['Destination'] == '/var/lib/dnr/files'), None)
+    if volume is None or volume['Type'] != 'volume':
+        raise ValueError('The deployment backup requires the configured named uploaded_files volume')
+    with archive.open('xb') as output:
+        archive.chmod(0o600)
+        subprocess.run(['docker', 'run', '--rm', '--network', 'none', '--read-only', '--user', 'www-data',
+            '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+            '--mount', 'type=volume,src=' + volume['Name'] + ',dst=/files,readonly',
+            '--entrypoint', 'tar', app_image, '-czf', '-', '--exclude=./.*', '-C', '/files', '.'],
+            stdout=output, check=True)
+    seen = set()
+    with tarfile.open(archive, mode='r|gz') as stream:
+        for member in stream:
+            if member.name == '.' and member.isdir():
+                continue
+            key = member.name.removeprefix('./')
+            if not member.isfile() or not re.fullmatch('[0-9a-f]{64}', key) or key in seen:
+                raise ValueError('Unsafe or duplicate persistent file in native backup')
+            seen.add(key)
+            if key in expected:
+                size, checksum = expected[key]
+                with stream.extractfile(member) as contents:
+                    actual = hashlib.file_digest(contents, 'sha256').hexdigest()
+                if member.size != size or actual != checksum:
+                    raise ValueError('Persistent file checksum mismatch in deployment backup')
+    if set(expected) - seen:
+        raise ValueError('Deployment backup is missing persistent files')
+    return dict(volume=volume['Name'], file_count=len(expected))
+
 def create_verified_backup(db_container, database_image, app_image, previous_commit, previous_version, password_file, directory):
     """Writers must already be paused. No active image, checkout, or schema is changed here."""
     password_file = Path(password_file).resolve()
@@ -52,11 +101,15 @@ def create_verified_backup(db_container, database_image, app_image, previous_com
     archive = working / 'database.sql.gz'
     encrypted = working / 'database.sql.gz.dnrenc'
     verified_plaintext = working / 'verified.sql.gz'
+    file_archive = working / 'uploaded-files.tar.gz'
+    file_encrypted = working / 'uploaded-files.tar.gz.dnrenc'
+    file_verified = working / 'verified-files.tar.gz'
     root_password = working / 'restore-root-password'
     root_password.write_text(secrets.token_hex(32)); root_password.chmod(0o600)
     restore_container = 'dnr-restore-check-' + backup_id.lower()
     try:
         before = fingerprint(db_container)
+        file_receipt = backup_persistent_files(db_container, app_image, file_archive)
         with (working / 'dump.log').open('wb') as error, archive.open('xb') as output:
             archive.chmod(0o600)
             dump = subprocess.Popen(root_command(db_container, 'mysqldump', '-uroot', '--single-transaction',
@@ -101,7 +154,12 @@ def create_verified_backup(db_container, database_image, app_image, previous_com
         crypto('encrypt',archive,encrypted)
         crypto('decrypt',encrypted,verified_plaintext)
         if sha(archive)!=sha(verified_plaintext): raise ValueError('Encrypted backup did not round-trip')
-        receipt = dict(backup_path=str(encrypted),backup_sha256=sha(encrypted),format='native-sql-gzip-secretstream-v2',
+        if file_receipt is not None:
+            crypto('encrypt', file_archive, file_encrypted)
+            crypto('decrypt', file_encrypted, file_verified)
+            if sha(file_archive) != sha(file_verified): raise ValueError('Encrypted file backup did not round-trip')
+            file_receipt.update(backup_path=str(file_encrypted), backup_sha256=sha(file_encrypted), format='tar-gzip-secretstream-v2')
+        receipt = dict(persistent_files=file_receipt, backup_path=str(encrypted),backup_sha256=sha(encrypted),format='native-sql-gzip-secretstream-v2',
             verified_at=datetime.datetime.now(datetime.timezone.utc).isoformat(),restore_verified=True,
             previous_commit=previous_commit,previous_version=previous_version,database_image=database_image,
             database_version=query(db_container,'SELECT VERSION()'),database_state=before)
@@ -109,4 +167,4 @@ def create_verified_backup(db_container, database_image, app_image, previous_com
         return receipt
     finally:
         subprocess.run(['docker','rm','-fv',restore_container],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        for path in (archive,verified_plaintext,root_password): path.unlink(missing_ok=True)
+        for path in (archive,verified_plaintext,root_password,file_archive,file_verified): path.unlink(missing_ok=True)

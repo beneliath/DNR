@@ -12,7 +12,7 @@ if (!$contact_id) {
 }
 
 $stmt = $conn->prepare(
-    'SELECT contact_first_name, contact_last_name, contact_photo_mime,
+    'SELECT contact_photo_key, contact_photo_thumbnail_key, contact_first_name, contact_last_name, contact_photo_mime,
             contact_photo_thumbnail_mime,
             OCTET_LENGTH(contact_photo_thumbnail) AS contact_photo_thumbnail_size,
             HEX(contact_photo_sha256) AS contact_photo_sha256
@@ -31,6 +31,14 @@ $stmt->close();
 
 if (!$contact) {
     http_response_code(404);
+    exit;
+}
+
+if (!empty($contact['contact_photo_key'])) {
+    $key = \Dnr\Http\RequestInput::string($_GET, 'size') !== 'full'
+        ? ($contact['contact_photo_thumbnail_key'] ?: $contact['contact_photo_key'])
+        : $contact['contact_photo_key'];
+    servePersistentPortrait($conn, (string) $key);
     exit;
 }
 
