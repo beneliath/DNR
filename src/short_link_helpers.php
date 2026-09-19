@@ -8,7 +8,7 @@ require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/presentation_asset_helpers.php';
 
 const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donate',
-    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'custom' => 'Custom Links'];
+    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'slidedeck' => 'PPT Slidedeck', 'custom' => 'Custom Links'];
 
 function shortLinkLabel(array $link): string
 {
@@ -70,7 +70,9 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $c
 {
     $stmt = $conn->prepare('SELECT p.engagement_id, p.speaker_id, s.*,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id
-            AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes FROM presentations p
+            AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
+        EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = p.id
+            AND d.speaker_id = p.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck FROM presentations p
         JOIN speakers s ON s.id = p.speaker_id WHERE p.id = ?');
     $stmt->bind_param('i', $presentationId);
     $stmt->execute();
@@ -87,9 +89,10 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $c
     $definitions = [];
     if (!$customOnly) {
         foreach (SHORT_LINK_TYPES as $type => $label) {
-            if ($type === 'custom' || ($type === 'notes' && !$speaker['has_notes'])) continue;
+            if ($type === 'custom' || ($type === 'notes' && !$speaker['has_notes'])
+                || ($type === 'slidedeck' && !$speaker['has_slidedeck'])) continue;
             $definitions[] = ['type' => $type, 'key' => '', 'label' => null,
-                'url' => $type === 'notes' ? null : trim((string) ($speaker[$type . '_url'] ?? ''))];
+                'url' => in_array($type, ['notes', 'slidedeck'], true) ? null : trim((string) ($speaker[$type . '_url'] ?? ''))];
         }
     }
     foreach (speakerCustomLinks($speaker) as $link) {
@@ -134,7 +137,9 @@ function fetchPresentationShortLinks(mysqli $conn, int $presentationId): array
     $stmt = $conn->prepare('SELECT l.*, q.encoded_url AS qr_url, q.png AS qr_png,
         s.name AS speaker_name, p.speaker_id AS current_speaker_id,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id
-            AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes
+            AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
+        EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = l.presentation_id
+            AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck
         FROM short_links l JOIN speakers s ON s.id = l.speaker_id
         JOIN presentations p ON p.id = l.presentation_id
         LEFT JOIN short_link_qr_images q ON q.link_id = l.id
@@ -151,7 +156,7 @@ function updateShortLink(mysqli $conn, int $id, int $version, string $target, bo
     $stmt->execute();
     $link = $stmt->get_result()->fetch_assoc();
     if (!$link) throw new InvalidArgumentException('Link not found.');
-    $targetUrl = $link['link_type'] === 'notes' ? null : shortLinkTarget($target);
+    $targetUrl = in_array($link['link_type'], ['notes', 'slidedeck'], true) ? null : shortLinkTarget($target);
     $stmt = $conn->prepare('UPDATE short_links SET target_url = ?, is_enabled = ?, version = version + 1,
         updated_at = UTC_TIMESTAMP(6) WHERE id = ? AND version = ?');
     $stmt->bind_param('siii', $targetUrl, $enabled, $id, $version);
@@ -327,6 +332,8 @@ function backfillShortLinkQrImages(mysqli $conn, int $batchSize = 100): int
             WHERE l.id > $lastId AND q.link_id IS NULL
                 AND (l.link_type <> 'notes' OR EXISTS(SELECT 1 FROM presentation_notes n
                     WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)))
+                AND (l.link_type <> 'slidedeck' OR EXISTS(SELECT 1 FROM presentation_slidedecks d
+                    WHERE d.presentation_id = l.presentation_id AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL))
             ORDER BY l.id LIMIT $batchSize")->fetch_all(MYSQLI_ASSOC);
         foreach ($links as $link) {
             $lastId = (int) $link['id'];

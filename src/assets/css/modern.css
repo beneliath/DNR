@@ -6442,3 +6442,13 @@ html.dark-mode body .statistics-reset-button:is(:hover, :focus-visible) {
   background: #6b1a35 !important;
   color: #fff1f2 !important;
 }
+
+html body .presentation-generated-links button.presentation-copy-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+}
+.presentation-copy-link svg {
+  flex: none;
+}

@@ -10,6 +10,7 @@ RUN --mount=type=cache,target=/tmp/composer-cache \
     --prefer-dist \
     --ignore-platform-req=ext-gd \
     --ignore-platform-req=ext-mysqli \
+    --ignore-platform-req=ext-zip \
     --classmap-authoritative
 
 FROM php:8.5-apache@sha256:609de4eac65a03f20975441c9c3f313811d785575f0d02413c630753ab5c5532
@@ -21,9 +22,9 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev zlib1g-dev \
+        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev zlib1g-dev \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli \
+    && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli zip \
     && a2enmod headers proxy proxy_http deflate expires rewrite \
     && a2disconf other-vhosts-access-log \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \

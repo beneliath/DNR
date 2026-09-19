@@ -138,7 +138,9 @@ test("new edit-page cards submit the PDF Speaker Notes upload to notes storage",
     assert.match(markup, /PDF Speaker Notes/);
     assert.match(markup, /name="presentations\[2\]\[speaker_notes\]"/);
     assert.doesNotMatch(markup, /\[slide_deck\]|PDF Slide Deck/);
-    assert.equal((markup.match(/class="presentation-notes-card"/g) || []).length, 1);
+    assert.equal((markup.match(/class="presentation-notes-card"/g) || []).length, 2);
+    assert.match(markup, /name="presentations\[2\]\[ppt_slidedeck\]"/);
+    assert.match(markup, /accept=".ppt,.pptx,/);
 });
 
 test("blank and partial presentations can be saved and followed by another presentation", function () {

@@ -44,7 +44,7 @@ try {
     $rows = normalizeEngagementPresentations([array_replace($presentations[0],['speaker_id'=>$other]),$presentations[1]],'2026-10-01','2026-10-02',$speaker,true);
     syncEngagementPresentations($conn,$event,$rows);
     expectLinks(count(fetchPresentationShortLinks($conn,$pid)) === 3,'Speaker replacement creates a separate website link without a notes placeholder');
-    expectLinks($conn->query("SELECT pdf FROM presentation_notes WHERE presentation_id=$pid AND speaker_id=$speaker")->fetch_assoc()['pdf'] === $pdf,'Original notes remain attached to original speaker');
+    expectLinks(file_get_contents(persistentFilePath($conn->query("SELECT storage_key FROM presentation_notes WHERE presentation_id=$pid AND speaker_id=$speaker")->fetch_assoc()['storage_key'])) === $pdf,'Original notes remain attached to original speaker');
     $linkId = (int) $links[0]['id'];
     updateShortLink($conn,$linkId,1,'https://example.com/explicit',false);
     expectLinks(fetchPresentationShortLinks($conn,$pid)[0]['code'] === $links[0]['code'],'Explicit update preserves code');

@@ -68,6 +68,9 @@ function presentationAssetDefinitions(): array
             'data_column' => 'pdf', 'mime_column' => null, 'filename_column' => 'filename',
             'size_column' => 'size', 'sha_column' => 'sha256', 'updated_column' => 'updated_at',
         ],
+        'ppt_slidedeck' => [
+            'kind' => 'powerpoint', 'label' => 'PPT Slidedeck', 'query_type' => 'slidedeck',
+        ],
         'speaker_notes_qr' => [
             'kind' => 'image',
             'label' => 'speaker notes QR code',
@@ -309,7 +312,12 @@ function attachPresentationAssetChanges(
                 );
             }
             if ($upload !== null) {
-                $asset = presentationSpeakerNotesFromUpload($upload);
+                if ($asset_key === 'ppt_slidedeck') {
+                    require_once __DIR__ . '/presentation_slidedeck_helpers.php';
+                    $asset = presentationSlidedeckFromUpload($upload);
+                } else {
+                    $asset = presentationSpeakerNotesFromUpload($upload);
+                }
                 $changes[$asset_key] = ['action' => 'replace', 'asset' => $asset];
             } elseif ($remove) {
                 $changes[$asset_key] = ['action' => 'remove'];
@@ -341,6 +349,11 @@ function applyPresentationAssetChanges(
         if ($asset_key === 'speaker_notes') {
             require_once __DIR__ . '/short_link_helpers.php';
             applyPresentationNotesChange($conn, $presentation_id, $engagement_id, $change, $uploaded_by);
+            continue;
+        }
+        if ($asset_key === 'ppt_slidedeck') {
+            require_once __DIR__ . '/presentation_slidedeck_helpers.php';
+            applyPresentationSlidedeckChange($conn, $presentation_id, $engagement_id, $change, $uploaded_by);
             continue;
         }
         $definition = $definitions[$asset_key];
@@ -422,6 +435,8 @@ function mergeStoredPresentationAssetMetadata(array $submitted_rows, array $stor
         foreach ([
             'has_speaker_notes', 'speaker_notes_filename', 'speaker_notes_size',
             'speaker_notes_updated_at', 'speaker_notes_uploaded_by_username',
+            'has_ppt_slidedeck', 'ppt_slidedeck_filename', 'ppt_slidedeck_size',
+            'ppt_slidedeck_updated_at', 'ppt_slidedeck_uploaded_by_username',
             'has_speaker_notes_qr', 'speaker_notes_qr_updated_at',
             'has_speaker_website_qr', 'speaker_website_qr_updated_at',
             'has_speaker_donation_qr', 'speaker_donation_qr_updated_at',

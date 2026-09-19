@@ -11,6 +11,8 @@ require_once $source . '/bootstrap.php';
 require_once $source . '/persistent_file_migration_helpers.php';
 require_once $source . '/database_backup_helpers.php';
 require_once $source . '/short_link_helpers.php';
+require_once $source . '/presentation_slidedeck_helpers.php';
+require_once __DIR__ . '/presentation_slidedeck_fixture.php';
 
 function expectPersistentStorage(bool $condition, string $message): void
 {
@@ -56,6 +58,15 @@ applyPresentationNotesChange($conn, $presentation, $engagement, ['action' => 're
 $conn->commit();
 $notes = $conn->execute_query('SELECT pdf, storage_key FROM presentation_notes WHERE presentation_id = ?', [$presentation])->fetch_assoc();
 expectPersistentStorage($notes['pdf'] === null && file_get_contents(persistentFilePath($notes['storage_key'])) === $pdf, 'New PDF uploads must use persistent storage.');
+$deckPath = tempnam(sys_get_temp_dir(), 'backup-deck-');
+try {
+    writeTestSlidedeck($deckPath, 'Backup and restore');
+    $deckAsset = presentationSlidedeckFromPath($deckPath, 'backup-deck.pptx', false);
+    $conn->begin_transaction();
+    applyPresentationSlidedeckChange($conn, $presentation, $engagement, ['action' => 'replace', 'asset' => $deckAsset], $user);
+    $conn->commit();
+} finally { unlink($deckPath); }
+$deckKey = $conn->execute_query('SELECT storage_key FROM presentation_slidedecks WHERE presentation_id = ?', [$presentation])->fetch_row()[0];
 $conn->begin_transaction();
 $rolledBackKey = storePersistentFile($conn, 'uncommitted', 'rollback.txt', 'text/plain');
 $conn->rollback();
@@ -83,6 +94,8 @@ try {
         fclose($handle);
     }
     expectPersistentStorage($conn->execute_query('SELECT organization_name FROM organizations WHERE id = ?', [$organization])->fetch_row()[0] === 'Storage ' . $suffix, 'Database and files must restore together.');
+    expectPersistentStorage($conn->execute_query('SELECT storage_key FROM presentation_slidedecks WHERE presentation_id = ?', [$presentation])->fetch_row()[0] === $deckKey
+        && file_get_contents(persistentFilePath($deckKey)) === $deckAsset['data'], 'PowerPoint file and presentation association restore together onto an empty volume.');
     // A missing file must make export fail; never offer an incomplete archive.
     $filePath = persistentFilePath($notes['storage_key']);
     rename($filePath, $filePath . '.saved');

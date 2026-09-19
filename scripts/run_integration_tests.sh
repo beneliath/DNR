@@ -84,6 +84,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         || [ "$test_name" = 'email_templates_http_integration_test.php' ] \
         || [ "$test_name" = 'standard_task_generation_http_integration_test.php' ] \
         || [ "$test_name" = 'short_links_http_integration_test.php' ] \
+        || [ "$test_name" = 'presentation_slidedeck_http_integration_test.php' ] \
         || [ "$test_name" = 'calendar_subscription_content_http_integration_test.php' ] \
         || [ "$test_name" = 'presentation_stats_reset_http_integration_test.php' ] \
         || [ "$test_name" = 'network_statistics_reset_http_integration_test.php' ] \

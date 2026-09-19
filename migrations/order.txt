@@ -81,3 +81,4 @@
 20260915_add_booking_inquiry_archiving.sql
 20260915_review_performance.sql
 20260918_add_persistent_files.sql
+20260919_add_presentation_slidedecks.sql

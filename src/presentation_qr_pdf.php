@@ -19,6 +19,8 @@ function fetchPresentationQrPdfLinks(mysqli $conn, int $engagementId, ?int $pres
         WHERE p.engagement_id = ? AND p.is_archived = 0 AND (? IS NULL OR p.id = ?)
         AND (l.link_type <> 'notes' OR EXISTS(SELECT 1 FROM presentation_notes n
             WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)))
+        AND (l.link_type <> 'slidedeck' OR EXISTS(SELECT 1 FROM presentation_slidedecks d
+            WHERE d.presentation_id = p.id AND d.speaker_id = p.speaker_id AND d.storage_key IS NOT NULL))
         ORDER BY p.presentation_date, p.presentation_time, p.id, l.id");
     $stmt->bind_param('iii', $engagementId, $presentationId, $presentationId);
     $stmt->execute();

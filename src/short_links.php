@@ -73,7 +73,8 @@ if ($showPresentationLinks) {
     s.name AS speaker_name, p.topic_title, p.speaker_id AS current_speaker_id,
     e.event_title, (SELECT COALESCE(SUM(v.visits), 0) FROM short_link_stats v
         WHERE v.link_id = l.id AND v.visit_hour >= ? AND v.visit_hour < ?) AS visits,
-    EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes
+    EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
+    EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = l.presentation_id AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck
     FROM short_links l JOIN speakers s ON s.id = l.speaker_id JOIN presentations p ON p.id = l.presentation_id
     JOIN engagements e ON e.id = l.engagement_id LEFT JOIN short_link_qr_images q ON q.link_id = l.id
     WHERE $whereSql ORDER BY l.engagement_id DESC, l.presentation_id DESC, l.id LIMIT 50 OFFSET $offset");
@@ -241,7 +242,8 @@ if ($activeLink !== null) {
     <?php if (!$links): ?><p>No links match these filters. Save a presentation to generate its codes.</p><?php endif; ?>
     <div class="short-link-cards">
     <?php foreach ($links as $link): ?>
-        <?php if ($link['link_type'] === 'notes' && !$link['has_notes']) continue; ?>
+        <?php if (($link['link_type'] === 'notes' && !$link['has_notes'])
+            || ($link['link_type'] === 'slidedeck' && !$link['has_slidedeck'])) continue; ?>
         <?php $id = (int) $link['id']; $label = shortLinkLabel($link); $qr = 'short_link_qr.php?id=' . $id;
         $url = (string) ($link['qr_url'] ?? ''); ?>
         <article class="short-link-card">
@@ -255,14 +257,15 @@ if ($activeLink !== null) {
             <?php else: ?><p class="error">QR images awaiting setup</p><?php endif; ?>
             <?php if (!$isSingleLink): ?><p><a href="short_links.php?<?php echo $h(http_build_query(['id' => $id, 'from' => $from, 'to' => $to])); ?>">Link Statistics</a> · <a href="short_links.php?presentation_id=<?php echo (int) $link['presentation_id']; ?>">Presentation Statistics</a> · <a href="short_links.php?engagement_id=<?php echo (int) $link['engagement_id']; ?>">Event Statistics</a></p><?php endif; ?>
             <?php if ($link['link_type'] === 'notes'): ?><p>Notes PDF ready</p><?php endif; ?>
+            <?php if ($link['link_type'] === 'slidedeck'): ?><p>PPT Slidedeck ready</p><?php endif; ?>
             <?php if ($canEdit): ?>
             <form method="post" class="short-link-edit">
                 <?php echo csrfInput(); ?><input type="hidden" name="link_id" value="<?php echo $id; ?>"><input type="hidden" name="version" value="<?php echo (int) $link['version']; ?>">
-                <?php if ($link['link_type'] !== 'notes'): ?><label for="target_<?php echo $id; ?>">Destination</label><input id="target_<?php echo $id; ?>" type="url" name="target_url" value="<?php echo $h($link['target_url']); ?>" maxlength="2048" required><?php endif; ?>
+                <?php if (!in_array($link['link_type'], ['notes', 'slidedeck'], true)): ?><label for="target_<?php echo $id; ?>">Destination</label><input id="target_<?php echo $id; ?>" type="url" name="target_url" value="<?php echo $h($link['target_url']); ?>" maxlength="2048" required><?php endif; ?>
                 <label class="short-link-enabled"><input type="checkbox" name="is_enabled" value="1" <?php echo $link['is_enabled'] ? 'checked' : ''; ?>> Link enabled</label>
                 <button type="submit" class="button-primary">Save Link</button>
             </form>
-            <?php else: ?><p><?php echo $h($link['target_url'] ?? 'MOED notes download'); ?></p><p><?php echo $link['is_enabled'] ? 'Enabled' : 'Disabled'; ?></p><?php endif; ?>
+            <?php else: ?><p><?php echo $h($link['target_url'] ?? (shortLinkLabel($link) . ' download')); ?></p><p><?php echo $link['is_enabled'] ? 'Enabled' : 'Disabled'; ?></p><?php endif; ?>
         </article>
     <?php endforeach; ?>
     </div>

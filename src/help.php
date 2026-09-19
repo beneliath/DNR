@@ -346,8 +346,13 @@ $manual_access_summary = match ($manual_role) {
                             <p>Use this file for notes you intend to share: anyone with its QR code can open the PDF without signing in.</p>
                         </article>
                         <article class="manual-card">
+                            <h4>PPT Slidedeck</h4>
+                            <p>Attach one PowerPoint .ppt or .pptx file up to 100 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 120 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>View PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
+                            <p>Anyone with the PPT Slidedeck QR link can download the file without signing in. Replacing it keeps the same QR code and statistics. Removing it hides the code and stops downloads; uploading again restores the same link.</p>
+                        </article>
+                        <article class="manual-card">
                             <h4>Speaker QR Codes</h4>
-                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, and notes. Select a displayed code to copy it. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
+                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck. Select a displayed code to copy its image. Select the Copy link icon to copy the URL encoded in that code. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
                             <p>The Speaker Notes code appears after its PDF is saved. Replacing the PDF keeps the same code. Removing the file hides the code; adding notes again reuses the code and its statistics.</p>
                         </article>
                     </section>
@@ -379,7 +384,7 @@ $manual_access_summary = match ($manual_role) {
                         <li>Choose a date range to focus on a recent event or a longer period. In the speaker view, use <strong>Link Type</strong> to focus on notes, donations, or <strong>Custom Links</strong>, then select <strong>Apply Filters</strong>.</li>
                         <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count. Speaker Notes records the link visit before opening the PDF, including cached delivery; opening a copied direct PDF address does not add a visit.</li>
                     </ul>
-                    <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes, replace the PDF on the presentation instead of editing a destination.</p>
+                    <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes or PPT Slidedeck, replace the file on the presentation instead of editing a destination.</p>
                     <p>Select <strong>Combined Presentation Statistics</strong> in the upper-right of a presentation’s pane to see total visits, activity over time, and combined referrer, browser, country, and operating system breakdowns. Date filters use UTC, and <strong>Clear Filters</strong> keeps the report scoped to that presentation. Disabled codes and previous speakers’ codes retain their historical visits. A person opening multiple codes contributes multiple visits. Use <strong>Statistics</strong> on an individual code for its own report, or <strong>Back to Presentation</strong> to return to the presentation.</p>
                     <p>Editing a speaker’s profile does not change destinations already shared with audiences. Previous speakers’ links and notes remain separate when you change a presentation’s speaker.</p>
                 </section>

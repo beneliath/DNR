@@ -885,6 +885,21 @@
     function initializeQrCopy() {
         let latestRequestId = 0;
         document.addEventListener('click', async function (event) {
+            const linkButton = event.target.closest('[data-copy-qr-link]');
+            if (linkButton && !linkButton.hidden) {
+                const requestId = ++latestRequestId;
+                activateQrCopyFeedback(linkButton);
+                linkButton.disabled = true;
+                try {
+                    await copyText(linkButton.dataset.copyQrLink || '');
+                    if (requestId === latestRequestId) qrCopyStatus(linkButton, 'QR link copied to the clipboard.', false);
+                } catch (error) {
+                    if (requestId === latestRequestId) qrCopyStatus(linkButton, 'The link could not be copied. Please try again.', true);
+                } finally {
+                    linkButton.disabled = false;
+                }
+                return;
+            }
             const button = event.target.closest('[data-copy-qr-url]');
             if (!button || button.hidden) return;
             const url = button.dataset.copyQrUrl || '';

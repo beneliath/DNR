@@ -96,9 +96,10 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                         <div class="presentation-assets">
                             <div class="presentation-assets-heading">
                                 <h3>Presentation Files &amp; QR Codes</h3>
-                                <p>PDF Speaker Notes may be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>
+                                <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may also be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>
                             </div>
                             <?php include __DIR__ . '/presentation_pdf_upload.php'; ?>
+                            <?php include __DIR__ . '/presentation_slidedeck_upload.php'; ?>
                             <?php if ($is_saved_presentation): ?>
                                 <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/presentation_short_links.php'; ?>
                             <?php else: ?>

@@ -24,6 +24,22 @@ if (!$link) { http_response_code(404); exit('Link not found.'); }
 if (!$link['is_enabled']) { http_response_code(410); exit('This link is no longer available.'); }
 $download = \Dnr\Http\RequestInput::string($_GET, 'download') === '1';
 if ($download && $link['link_type'] !== 'notes') { http_response_code(404); exit('Notes not found.'); }
+$slidedeckDownload = \Dnr\Http\RequestInput::string($_GET, 'download') === 'slidedeck';
+if ($slidedeckDownload && $link['link_type'] !== 'slidedeck') { http_response_code(404); exit('Slidedeck not found.'); }
+if ($link['link_type'] === 'slidedeck') {
+    if ($slidedeckDownload) {
+        require_once __DIR__ . '/presentation_slidedeck_helpers.php';
+        deliverPresentationSlidedeck($conn, (int) $link['presentation_id'], (int) $link['speaker_id']);
+        exit;
+    }
+    $deck = $conn->execute_query('SELECT 1 FROM presentation_slidedecks
+        WHERE presentation_id = ? AND speaker_id = ? AND storage_key IS NOT NULL',
+        [$link['presentation_id'], $link['speaker_id']])->fetch_row();
+    if (!$deck) { http_response_code(404); exit('PPT Slidedeck is not available yet.'); }
+    recordShortLinkVisit($conn, (int) $link['id'], $_SERVER);
+    header('Location: /surls/' . $code . '/ppt-slidedeck', true, 302);
+    exit;
+}
 if ($link['link_type'] === 'notes') {
     if ($download) {
         $edgeTtl = $link['edge_cache_ready'] ? notesEdgeCacheTtl($code, $_SERVER) : 0;

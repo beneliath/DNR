@@ -148,7 +148,7 @@ try{
    }
    $input=$xpath->query('//input[@type="file" and contains(@name,"[speaker_notes]")]')->item(0);
    expectLinkHttp($input instanceof DOMElement,'Notes upload field present');
-   expectLinkHttp($xpath->query('//div[contains(@class,"presentation-entry")]//input[@type="file"]')->length===1,'Exactly one PDF upload appears per presentation');
+   expectLinkHttp($xpath->query('//div[contains(@class,"presentation-entry")]//input[@type="file" and contains(@name,"[speaker_notes]")]')->length===1,'Exactly one PDF upload appears per presentation');
    expectLinkHttp(str_contains($edit['body'],'No replacement selected'),'Saved PDF is distinguished from a pending replacement');
    $path=tempnam(sys_get_temp_dir(),'qr-notes-upload-');
    $uploadedPdf="%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\nxref\n0 2\n0000000000 65535 f \n0000000009 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n52\n%%EOF\n";

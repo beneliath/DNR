@@ -1,5 +1,31 @@
 # Presentation QR Codes
 
+**PPT Slidedeck:** Each presentation can also have one PowerPoint `.ppt` or `.pptx`
+file (100 MB maximum). Choose/replace/remove it on the presentation form and save.
+**View PPT Slidedeck** appears beside **View PDF Speaker Notes** and downloads the
+original PowerPoint file; browsers generally open it using an installed application.
+The public QR link requires no login and redirects to `/surls/{code}/ppt-slidedeck`.
+Replacement and re-upload retain the code, images, and visit history. Removal hides
+the card and makes the download unavailable. Speaker changes retain old resources
+under the original speaker, matching notes. The 120 MB total per-save limit includes
+both notes and PowerPoint uploads.
+
+Every presentation QR card has a **Copy link** icon that copies its saved encoded
+URL, preserving the QR destination and visit tracking. Clicking the QR image still
+copies the image. Both controls report success or failure accessibly.
+
+PowerPoint bytes use the same private `DNR_FILE_STORAGE_PATH` volume and
+`stored_files` registry as PDF notes and portraits. `presentation_slidedecks` holds
+only the file reference and upload metadata. The existing coordinated database/file
+backup and restore includes these files automatically. Files are immutable and
+retained by the existing storage system after replacement, removal, or a rollback;
+no application URL exposes the volume. Downloads support HEAD, conditional requests,
+and a single byte range. Only navigation through the short link counts a visit.
+
+Deployment requires the ordered `20260918_add_persistent_files.sql` and
+`20260919_add_presentation_slidedecks.sql` migrations, the existing file migrator,
+and an updated app image containing PHP's ZIP extension and the new Apache route.
+
 Saving a presentation creates one random `/surls/{code}` link for each populated
 speaker URL (website, bio, donations, connection, blog, books). A notes link is
 created only after a PDF is uploaded. Presentations without notes display no notes
