@@ -76,7 +76,9 @@ pdftoppm -r 90 -png output/pdf/moed-comprehensive-user-manual.pdf tmp/pdfs/manua
 
 Inspect the rendered pages after any content or layout change. Then install the
 verified download with `python3 scripts/manual/build.py --install`, and rerun
-`verify.py`. The builder uses Arial when installed and Helvetica otherwise.
+`verify.py`. Run `node scripts/build-asset-manifest.mjs` after installing the PDF
+and include the updated asset manifest in the release so the download's cache
+identity matches its contents. The builder uses Arial when installed and Helvetica otherwise.
 
 When the root README changes, refresh its Markdown snapshot before building.
 Use Node with `marked` installed; set `MARKED_MODULE` to its module path if needed:
