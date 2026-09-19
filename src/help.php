@@ -223,7 +223,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Act</span>
                         <h3>Primary Panels</h3>
                         <p><strong>My Work</strong> leads with assigned tasks by urgency and due date, alongside <strong>Upcoming Engagements</strong>. Open the <strong>Booking pipeline</strong> disclosure below Needs Attention for inquiry next actions and pipeline health.</p>
-                        <p>My Work and Inquiry Next Actions show a short due date with a second line such as <strong>1 day overdue</strong>, <strong>Due today</strong>, or <strong>Upcoming</strong>. Items more than 3 days overdue pulse red in a repeating cascade to draw your attention. For inquiries, this is based on the next-action due date.</p>
+                        <p>My Work and Inquiry Next Actions show a short due date with a second line such as <strong>1 day overdue</strong>, <strong>Due today</strong>, <strong>Due tomorrow</strong>, or <strong>Upcoming</strong> for later dates. Items more than 3 days overdue pulse red in a repeating cascade to draw your attention. For inquiries, this is based on the next-action due date.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Prepare</span>
@@ -517,7 +517,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Due Dates and Overdue Pulses</h3>
-                    <p>The due date appears as a short date, such as <strong>Sep 4</strong>, with a second line showing the number of days overdue, <strong>Due today</strong>, or <strong>Upcoming</strong>. Days are counted by calendar date in the application’s time zone. Priority and workflow status appear separately.</p>
+                    <p>The due date appears as a short date, such as <strong>Sep 4</strong>, with a second line showing the number of days overdue, <strong>Due today</strong>, <strong>Due tomorrow</strong>, or <strong>Upcoming</strong> for later dates. Days are counted by calendar date in the application’s time zone. Priority and workflow status appear separately.</p>
                     <p>Active tasks <strong>more than 3 days overdue</strong>—starting at 4 days overdue—have a pulsing red row background. When several items qualify, the pulse moves down the list in a repeating cascade, with each pulse overlapping the next. Tasks 1–3 days overdue keep a steady red highlight; tasks due today have a blue highlight. Completed and canceled tasks do not pulse.</p>
                     <p>The same attention cues appear in the Dashboard’s <strong>My Work</strong> and <strong>Inquiry Next Actions</strong> lists. An active inquiry qualifies when its <strong>next-action due date</strong> is more than 3 days overdue.</p>
                     <p>Hovering over a row, or moving keyboard focus to a control within it, shows an <strong>orange highlight</strong> over the pulse so you can clearly follow the item you are using. The pulse becomes visible again when the pointer and focus leave the row. If your device or browser prefers <strong>reduced motion</strong>, overdue items use a steady stronger red highlight instead of blinking.</p>
