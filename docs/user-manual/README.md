@@ -35,9 +35,9 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 19, 2026 edition covers source version 2.1.17 plus local changes
-since the last S1 production deployment (commit `cd2b64d`). It does not declare
-a new release or imply those changes have already been deployed to S1.
+The September 19, 2026 edition applies to application version **2.2.1**. Its
+cover, scope and edition notes, README appendix version reference, and PDF
+metadata identify that release.
 
 The sidebar guide keeps the user workflows high level: upload/replace/remove a
 PPT Slidedeck, download the PowerPoint, copy any presentation QR link, recognize
@@ -59,6 +59,13 @@ remain where their controls still apply. Decorative footer artwork is excluded.
 
 ## Rebuild from the checked-in screenshots
 
+For a requested s1 deployment that includes a changed Comprehensive Guide, finalize
+the release `VERSION` before rebuilding. The installed PDF must identify the app
+version it documents in that deployment across its cover, scope/edition notes,
+appendix version reference, and metadata. Reconcile stale draft wording and include
+the verified PDF and updated sources/reports in the release commit. Follow the
+[s1 guide version requirement](../release-workflow.md#comprehensive-guide-version-for-s1).
+
 Use Python with the dependencies in `scripts/manual/requirements.txt`:
 
 ```sh
@@ -69,7 +76,9 @@ pdftoppm -r 90 -png output/pdf/moed-comprehensive-user-manual.pdf tmp/pdfs/manua
 
 Inspect the rendered pages after any content or layout change. Then install the
 verified download with `python3 scripts/manual/build.py --install`, and rerun
-`verify.py`. The builder uses Arial when installed and Helvetica otherwise.
+`verify.py`. Run `node scripts/build-asset-manifest.mjs` after installing the PDF
+and include the updated asset manifest in the release so the download's cache
+identity matches its contents. The builder uses Arial when installed and Helvetica otherwise.
 
 When the root README changes, refresh its Markdown snapshot before building.
 Use Node with `marked` installed; set `MARKED_MODULE` to its module path if needed:
@@ -89,7 +98,7 @@ Do not point fixture scripts or capture automation at a production database.
 Earlier editions used `dnr-rolling007-preview`. The September 15 refresh used
 `dnr-manual-refresh-web` and `dnr-manual-refresh-db`, with current source bind
 mounts, all migrations, and fictional Avery Morgan and Casey Taylor accounts.
-The September 19 refresh used its own Compose project, database, and uploaded-file volume on port 18129. The PDF identifies the source version and post-production-deployment scope.
+The September 19 refresh used its own Compose project, database, and uploaded-file volume on port 18129. The PDF identifies the application version it documents.
 All temporary services and disposable volumes were removed after verification.
 Mail used a development log and Mattermost was unconfigured.
 

@@ -48,7 +48,7 @@ for number,shot in enumerate(shots,1):
     assert report['destinations']['end-shot-'+shot['id']]==index+1,('Split walkthrough',shot['id'])
 all_text='\n'.join(texts)
 assert 'Archiving an engagement or inquiry also hides its tasks' in ' '.join(all_text.split())
-for expected in ['PPT Slidedeck', 'Download PPT Slidedeck', 'Copy link', 'Due tomorrow', 'Backups include uploaded files', 'v2.1.17 production deployment', 'Archive a finished inquiry','Restore Inquiry','Archive tasks without changing their status','Restore task','Lock Admin Actions','Mail Ingestion','Historical mailbox review','Daily Digest delivery days','Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
+for expected in ['PPT Slidedeck', 'Download PPT Slidedeck', 'Copy link', 'Due tomorrow', 'Backups include uploaded files', 'Archive a finished inquiry','Restore Inquiry','Archive tasks without changing their status','Restore task','Lock Admin Actions','Mail Ingestion','Historical mailbox review','Daily Digest delivery days','Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
     assert expected in ' '.join(all_text.split()),('Missing required topic',expected)
 for forbidden in ['Genesis 49:9,10','Revelation 5:5','Do you see Him?','ASCII art cat','Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)
@@ -70,9 +70,18 @@ spec=importlib.util.spec_from_file_location('manual_build',ROOT/'scripts/manual/
 manual=importlib.util.module_from_spec(spec);spec.loader.exec_module(manual)
 assert report['version']==manual.VERSION, 'Guide version differs from the release'
 assert report['edition_date']==manual.EDITION_DATE, 'Guide edition date differs from the source'
-assert f'Application source {manual.VERSION}' in texts[0], 'Cover release version is stale'
+assert f'Application version {manual.VERSION}' in texts[0], 'Cover release version is stale'
 assert manual.EDITION_DATE in texts[0], 'Cover edition date is stale'
 assert manual.VERSION in reader.metadata.subject and manual.EDITION_DATE in reader.metadata.subject, 'PDF metadata is stale'
+assert report['edition_scope']==f'Application release {manual.VERSION}', 'Guide release scope is stale'
+for destination, expected in [
+    ('how-to-use', f'at application version {manual.VERSION}'),
+    ('edition-notes', f'Application version: MOED / DNR {manual.VERSION}.'),
+    ('appendix-readme', f'Complete README for application source {manual.VERSION}'),
+]:
+    text=' '.join(texts[report['destinations'][destination]-1].split())
+    assert expected in text, ('Guide application version is stale', destination)
+assert 'local changes since' not in all_text.lower(), 'Guide still describes a draft edition'
 appendix_text='\n'.join(t.split('\nMOED\n')[0] for t in texts[report['readme_appendix']['start_page']-1:])
 compact=lambda s:re.sub(r'[\s\u0590-\u05ff]+','',manual.clean(s))
 searchable=compact(appendix_text)
