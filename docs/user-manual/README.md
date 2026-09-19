@@ -35,27 +35,25 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 15, 2026 edition covers source version 2.1.14. It updates the
-version 2.1.9 guide with inquiry and task archive/restore workflows, remembered engagement
-lifecycle filters, Daily Digest day/status indicators on user cards, explicit
-administrator locking, and inbound-mail import/reconciliation behavior.
-It also explains how archiving an engagement or inquiry hides its unfinished
-tasks from active work until the parent is restored, preserving each task's
-status and independent archive flag.
+The September 19, 2026 edition covers source version 2.1.17 plus local changes
+since the last S1 production deployment (commit `cd2b64d`). It does not declare
+a new release or imply those changes have already been deployed to S1.
 
-The sidebar guide receives brief usability guidance about the changed controls
-and their effects. The PDF adds illustrated procedures, preserved-status and
-restore details, mailbox health interpretation, and the full current README
-appendix. Its cover, source notes, bookmarks, topic finder, and download all
-identify this edition.
+The sidebar guide keeps the user workflows high level: upload/replace/remove a
+PPT Slidedeck, download the PowerPoint, copy any presentation QR link, recognize
+Due tomorrow labels, and understand that encrypted backups include uploaded files.
+The PDF adds illustrated procedures, stable-link and statistics behavior, upload
+limits, file-storage/recovery context, and the complete current README appendix.
+Email logo contrast and administrator unlock alignment need no new user steps;
+the PDF edition notes identify these refinements.
 
-Twelve figures were refreshed or added with CUA in an isolated disposable preview:
-manual, pipeline, inquiry-archive, inquiry-archived, engagement-list, tasks,
-task-archived, users, elevation, edit-user, admin-countdown, and operations.
-The `captured_at` fields identify these figures. Avery Morgan, Casey Taylor,
-and the associated records are fictional. The mailbox panel uses explicitly
-labeled synthetic state; no mailbox service is connected. No email or invitation
-was sent, and no record form was saved during capture. Earlier illustrations
+Nine figures were refreshed or added through CUA in the isolated
+`dnr-manual-sept19` preview: manual, presentations, presentation-ppt-qr,
+qr-selection, presentation-form, presentation-files, tasks, backup, and elevation.
+Their `captured_at` fields record September 19. Avery Morgan and the connected
+Cedar Grove records are fictional. The PowerPoint is an illustrative fixture.
+Mail used a development log and Mattermost was unconfigured. No message,
+invitation, or backup export was submitted during capture. Earlier illustrations
 remain where their controls still apply. Decorative footer artwork is excluded.
 
 ## Rebuild from the checked-in screenshots
@@ -90,7 +88,7 @@ Do not point fixture scripts or capture automation at a production database.
 Earlier editions used `dnr-rolling007-preview`. The September 15 refresh used
 `dnr-manual-refresh-web` and `dnr-manual-refresh-db`, with current source bind
 mounts, all migrations, and fictional Avery Morgan and Casey Taylor accounts.
-The PDF identifies both the current source version and branch feature.
+The September 19 refresh used its own Compose project, database, and uploaded-file volume on port 18129. The PDF identifies the source version and post-production-deployment scope.
 All temporary services and disposable volumes were removed after verification.
 Mail used a development log and Mattermost was unconfigured.
 
@@ -135,6 +133,6 @@ PDF edition, and adds calendar, recovery-email, map-pin, presentation, and form
 details. Reconcile these supplements with the
 live source when updating the manual. The CLI capture utility preserves
 supplementary CUA figures that are absent from its capture list; refresh those
-figures explicitly when their workflows change. The Mattermost chapter describes the configured
+figures explicitly when their workflows change. The September 19 supplementary figures are presentation-files and presentation-ppt-qr; attach an illustrative .pptx to the first fictional presentation before capturing its QR selector. Set a fictional task due on the day after capture to illustrate Due tomorrow. The refreshed figures use the normal 1280 by 720 browser viewport, with crop bounds in source-image pixels. The Mattermost chapter describes the configured
 plugin from the application guide; the preview screenshot explicitly shows the
 unconfigured state rather than a simulated connected service.

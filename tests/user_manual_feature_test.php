@@ -142,7 +142,7 @@ expectUserManual(
         && str_contains($manual, 'PDF up to 100 MB')
         && str_contains($manual, 'Speaker QR Codes')
         && str_contains($manual, 'website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck')
-        && str_contains($manual, 'Copy link icon')
+        && str_contains($manual, '<strong>Copy link</strong> icon')
         && str_contains($manual, 'Speakers → Edit Speaker → Custom Links')
         && str_contains($manual, 'Download PNG or SVG')
         && str_contains($manual, 'Save Changes')
