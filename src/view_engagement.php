@@ -530,7 +530,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                         <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes" target="_blank" rel="noopener">View PDF Speaker Notes</a>
                     <?php endif; ?>
                     <?php if (!empty($presentation['has_ppt_slidedeck'])): ?>
-                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slidedeck" target="_blank" rel="noopener">View PPT Slidedeck</a>
+                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slidedeck" target="_blank" rel="noopener">Download PPT Slidedeck</a>
                     <?php endif; ?>
                     </div>
                     <?php

@@ -2,7 +2,7 @@
 
 **PPT Slidedeck:** Each presentation can also have one PowerPoint `.ppt` or `.pptx`
 file (100 MB maximum). Choose/replace/remove it on the presentation form and save.
-**View PPT Slidedeck** appears beside **View PDF Speaker Notes** and downloads the
+**Download PPT Slidedeck** appears beside **View PDF Speaker Notes** and downloads the
 original PowerPoint file; browsers generally open it using an installed application.
 The public QR link requires no login and redirects to `/surls/{code}/ppt-slidedeck`.
 Replacement and re-upload retain the code, images, and visit history. Removal hides

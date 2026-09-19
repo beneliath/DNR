@@ -91,7 +91,7 @@ try {
         foreach ($links as $link) {
             expectLinkHttp($xpath->query('//button[@data-copy-qr-link="'.$link['qr_url'].'"]')->length === 1, 'Every visible QR code copies its stored URL on '.$page);
         }
-        expectLinkHttp(str_contains($response['body'], $page === 'view_engagement.php' ? 'View PPT Slidedeck' : 'Replace PPT'), 'PowerPoint action present on '.$page);
+        expectLinkHttp(str_contains($response['body'], $page === 'view_engagement.php' ? 'Download PPT Slidedeck' : 'Replace PPT'), 'PowerPoint action present on '.$page);
     }
     expectLinkHttp(in_array($deck['id'], array_column(fetchPresentationQrPdfLinks($conn, $event, $pid), 'id')), 'PPT QR code is included in the QR PDF selection.');
     $stats = $request('short_links.php?id='.$deck['id'], null, $cookie);
@@ -113,7 +113,7 @@ try {
     [$form, $field] = $editForm(); $form[$removeField] = '1';
     expectLinkHttp($request('edit_engagement.php?id='.$event, $form, $cookie)['status'] === 302, 'Removal through the form succeeds.');
     expectLinkHttp($request($short)['status'] === 404 && $request($download)['status'] === 404, 'Removed decks cannot be downloaded.');
-    expectLinkHttp(!str_contains($request('view_engagement.php?id='.$event, null, $cookie)['body'], 'View PPT Slidedeck'), 'Removed decks hide the view button.');
+    expectLinkHttp(!str_contains($request('view_engagement.php?id='.$event, null, $cookie)['body'], 'Download PPT Slidedeck'), 'Removed decks hide the view button.');
     expectLinkHttp(!in_array($deck['id'], array_column(fetchPresentationQrPdfLinks($conn, $event, $pid), 'id')), 'Removed decks are excluded from QR PDF exports.');
     writeTestSlidedeck($path, 'Re-upload'); clearstatcache();
     expectLinkHttp($upload()['status'] === 302 && $request($download)['body'] === file_get_contents($path), 'Re-upload reuses the original URL.');

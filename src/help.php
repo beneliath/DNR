@@ -347,7 +347,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                         <article class="manual-card">
                             <h4>PPT Slidedeck</h4>
-                            <p>Attach one PowerPoint .ppt or .pptx file up to 100 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 120 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>View PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
+                            <p>Attach one PowerPoint .ppt or .pptx file up to 100 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 120 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
                             <p>Anyone with the PPT Slidedeck QR link can download the file without signing in. Replacing it keeps the same QR code and statistics. Removing it hides the code and stops downloads; uploading again restores the same link.</p>
                         </article>
                         <article class="manual-card">
