@@ -2,9 +2,11 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/persistent_file_backup_helpers.php';
+
 const DNR_DATABASE_BACKUP_FORMAT = 'dnr-database-backup';
 const DNR_DATABASE_BACKUP_LEGACY_VERSION = 1;
-const DNR_DATABASE_BACKUP_VERSION = 2;
+const DNR_DATABASE_BACKUP_VERSION = 3;
 const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
@@ -41,7 +43,7 @@ function databaseBackupMaximumBytes() {
     );
 
     if (getenv('DNR_DATABASE_BACKUP_MAX_BYTES') && $configured === false) {
-        throw new RuntimeException('Backup limit must be between 1 and 512 MiB; use a database-native backup beyond this capacity.');
+        throw new RuntimeException('Backup limit must be between 1 and 512 MiB; use a coordinated database and file-storage backup beyond this capacity.');
     }
     return $configured ?: DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES;
 }
@@ -52,8 +54,9 @@ function databaseBackupEstimatedBytes(mysqli $conn): int {
         COALESCE(SUM(TABLE_ROWS), 0) AS row_count FROM information_schema.tables
         WHERE table_schema = DATABASE() AND table_type = 'BASE TABLE'");
     $row = $result->fetch_assoc();
-    // Base64 plus JSON record/column overhead and the schema header.
-    return databaseBackupBase64EncodedBytes((int) $row['data_bytes'])
+    $fileBytes = (int) $conn->query('SELECT COALESCE(SUM(size), 0) FROM stored_files')->fetch_row()[0];
+    // Include external files, base64 framing, database rows and the schema header.
+    return databaseBackupBase64EncodedBytes((int) $row['data_bytes'] + $fileBytes) + (int) ceil($fileBytes / 49152) * 200
         + (int) $row['row_count'] * 512 + 131072;
 }
 
@@ -579,6 +582,7 @@ function databaseBackupWriteRow($handle, string $table, array $row, array $colum
 }
 
 function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes = null) {
+    lockPersistentFiles();
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
     $temporary_path = tempnam(sys_get_temp_dir(), 'dnr-backup-');
     if ($temporary_path === false) {
@@ -657,8 +661,11 @@ function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes
             throw new RuntimeException('The database changed while the backup was being created.');
         }
 
+        $fileCount = in_array('stored_files', array_column($tables, 'name'), true)
+            ? writePersistentFilesToBackup($conn, $handle, $bytes_written, $maximum_bytes, $hash) : 0;
         $footer = [
             'type' => 'end',
+            'file_count' => $fileCount,
             'row_count' => $written_rows,
             'sha256' => hash_final($hash),
         ];
@@ -674,6 +681,7 @@ function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes
             'row_count' => $written_rows,
             'table_count' => count($tables),
             'size' => $bytes_written,
+            'file_count' => $fileCount,
         ];
     } catch (Throwable $exception) {
         if (is_resource($handle)) {
@@ -737,7 +745,7 @@ function databaseBackupHeaderTables(array $header) {
     return $header['tables'];
 }
 
-function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = null, $row_consumer = null) {
+function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = null, $row_consumer = null, bool $restore_files = false) {
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
     $file_size = @filesize($path);
     if ($file_size === false || $file_size < 1 || $file_size > $maximum_bytes) {
@@ -752,6 +760,10 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
         throw new RuntimeException('The uploaded backup could not be opened.');
     }
 
+    $fileState = ['expected' => [], 'key' => null, 'count' => 0, 'handle' => null, 'path' => null];
+    $filesStarted = false;
+    $fileReferences = [];
+    $registeredFiles = [];
     try {
         $bytes_read = 0;
         $header_line = databaseBackupReadLine($handle, $bytes_read, $maximum_bytes);
@@ -814,6 +826,14 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
                 $footer = $record;
                 break;
             }
+            if (in_array($record['type'] ?? null, ['file_chunk', 'file_end'], true)) {
+                if ($backup_version < 3) throw new RuntimeException('Unexpected files in a legacy backup.');
+                $filesStarted = true;
+                consumePersistentBackupRecord($record, $fileState, $restore_files);
+                hash_update($hash, $line);
+                continue;
+            }
+            if ($filesStarted) throw new RuntimeException('Database rows cannot follow backup files.');
             if (($record['type'] ?? null) !== 'row'
                 || !isset($record['table'], $record['values'])
                 || !is_string($record['table'])
@@ -832,6 +852,24 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
             $column_names = databaseBackupExportColumnNames($table, $backup_version);
             $values = databaseBackupDecodedValues($record['values'], count($column_names));
 
+            if ($record['table'] === 'stored_files') {
+                $metadata = persistentBackupMetadata(array_combine($column_names, $values));
+                $key = $metadata['storage_key'];
+                if (isset($fileState['expected'][$key])) throw new RuntimeException('Duplicate file metadata in backup.');
+                $fileState['expected'][$key] = $metadata;
+                $registeredFiles[$key] = true;
+            }
+            $referenceColumns = match ($record['table']) {
+                'users' => ['profile_picture_key', 'profile_picture_thumbnail_key'],
+                'contacts' => ['contact_photo_key', 'contact_photo_thumbnail_key'],
+                'speakers' => ['photo_key', 'photo_thumbnail_key'],
+                'presentation_notes' => ['storage_key'],
+                default => [],
+            };
+            foreach ($referenceColumns as $column) {
+                $position = array_search($column, $column_names, true);
+                if ($position !== false && $values[$position] !== null) $fileReferences[$values[$position]] = true;
+            }
             $actual_counts[$record['table']]++;
             if ($actual_counts[$record['table']] > $expected_counts[$record['table']]) {
                 throw new RuntimeException('The backup contains more rows than its header declares.');
@@ -854,6 +892,13 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
         ) {
             throw new RuntimeException('The backup is incomplete.');
         }
+        if (array_diff_key($fileReferences, $registeredFiles) !== []) {
+            throw new RuntimeException('The backup contains dangling persistent file references.');
+        }
+        if ($fileState['expected'] !== [] || $fileState['key'] !== null
+            || ($footer['file_count'] ?? 0) !== $fileState['count']) {
+            throw new RuntimeException('The backup is missing persistent files.');
+        }
         if ($footer['row_count'] !== $total_rows || $actual_counts !== $expected_counts) {
             throw new RuntimeException('The backup row counts do not match its header.');
         }
@@ -874,8 +919,10 @@ function inspectDatabaseBackup($path, array $current_schema, $maximum_bytes = nu
             'row_count' => $total_rows,
             'table_count' => count($backup_tables),
             'size' => $bytes_read,
+            'file_count' => $fileState['count'],
         ];
     } catch (Throwable $exception) {
+        cleanupPersistentBackupState($fileState);
         fclose($handle);
         throw $exception;
     }
@@ -903,6 +950,12 @@ function restoreDatabaseBackup(
     $maximum_bytes = null
 ) {
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
+    lockPersistentFiles();
+    // Validate the entire archive first, then install immutable files before
+    // changing any database rows. Existing files are never removed or replaced;
+    // a failed restore leaves the original database and its files usable.
+    inspectDatabaseBackup($path, $current_schema, $maximum_bytes);
+    inspectDatabaseBackup($path, $current_schema, $maximum_bytes, null, true);
     $prepared_inserts = [];
     $foreign_keys_disabled = false;
     $transaction_started = false;

@@ -222,11 +222,12 @@ function saveSpeaker(mysqli $conn, array $input, ?int $id = null, ?int $version 
         $types .= 's';
     }
     if ($photo !== null || $removePhoto) {
-        $columns = array_merge($columns, ['photo', 'photo_thumbnail', 'photo_mime', 'photo_thumbnail_mime', 'photo_sha256', 'photo_updated_at']);
-        $values = array_merge($values, [$photo['data'] ?? null, $photo['thumbnail_data'] ?? null,
+        if ($photo !== null) $photo = storePersistentPortrait($conn, $photo, 'speaker');
+        $columns = array_merge($columns, ['photo', 'photo_thumbnail', 'photo_key', 'photo_thumbnail_key', 'photo_mime', 'photo_thumbnail_mime', 'photo_sha256', 'photo_updated_at']);
+        $values = array_merge($values, [null, null, $photo['storage_key'] ?? null, $photo['thumbnail_key'] ?? null,
             $photo['mime_type'] ?? null, $photo['thumbnail_mime_type'] ?? null, $photo['sha256'] ?? null,
             gmdate('Y-m-d H:i:s')]);
-        $types .= 'ssssss';
+        $types .= 'ssssssss';
     }
     if ($id === null) {
         $sql = 'INSERT INTO speakers (' . implode(', ', $columns) . ') VALUES ('

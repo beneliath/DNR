@@ -20,7 +20,7 @@ if ($user_id < 1 || ($user_id !== $current_user_id && !checkRole('admin'))) {
 }
 releaseApplicationSessionLock();
 $stmt = $conn->prepare(
-    'SELECT username, first_name, last_name, profile_picture_mime,
+    'SELECT profile_picture_key, profile_picture_thumbnail_key, username, first_name, last_name, profile_picture_mime,
             HEX(profile_picture_sha256) AS profile_picture_sha256,
             profile_picture_thumbnail_mime,
             OCTET_LENGTH(profile_picture_thumbnail) AS profile_picture_thumbnail_size,
@@ -41,6 +41,14 @@ $stmt->close();
 
 if (!$user) {
     http_response_code(404);
+    exit;
+}
+
+if (!empty($user['profile_picture_key'])) {
+    $key = \Dnr\Http\RequestInput::string($_GET, 'size') !== 'full'
+        ? ($user['profile_picture_thumbnail_key'] ?: $user['profile_picture_key'])
+        : $user['profile_picture_key'];
+    servePersistentPortrait($conn, (string) $key);
     exit;
 }
 

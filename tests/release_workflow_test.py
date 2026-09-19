@@ -156,7 +156,7 @@ class DeploymentBackupGate(unittest.TestCase):
                 return {'backup_path':'private.sql.gz.dnrenc','restore_verified':True}
             cwd=Path.cwd()
             try:
-                with patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), self.assertRaisesRegex(ValueError,'synthetic'):
+                with patch.object(deploy_release_host,'require_encrypted_upload_storage',return_value={'encryption':'dm-crypt'}), patch.object(deploy_release_host,'DeploymentNotice',return_value=notice), patch.object(deploy_release_host,'run',side_effect=run), patch.object(deploy_release_host,'create_verified_backup',side_effect=backup), patch.object(deploy_release_host.subprocess,'run'), patch.object(deploy_release_host.subprocess,'check_output',return_value=b'SELECT 1;'), patch.object(sys,'argv',['host',str(root),expected,str(manifest),'/password','https://example.test','e'*32,seed_sha]), self.assertRaisesRegex(ValueError,'synthetic'):
                     deploy_release_host.main()
                 record=json.loads((root/'.git/dnr-deploy'/f'{expected}.json').read_text())
                 self.assertEqual(record['outcome'],'failed')

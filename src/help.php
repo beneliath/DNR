@@ -277,7 +277,7 @@ $manual_access_summary = match ($manual_role) {
                 <p class="manual-open-area"><a href="inquiries.php">Open the Booking Pipeline <span aria-hidden="true">→</span></a></p>
             </section>
 
-            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes upload QR code speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template library add edit archive restore delete display order event fields placeholders booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
+            <section class="manual-chapter" id="engagements" data-manual-section data-keywords="engagement event search quote terms lifecycle active postponed canceled completed confirmation work in progress under review confirmed caller initial task owner creator schedule presentations speaker attendance contacts primary host travel materials logistics compensation closeout PDF Speaker Notes PPT Slidedeck PowerPoint pptx download replace upload QR code copy link speaker notes website donations copy clipboard marker markdown archive restore save changes outbound correspondence send email template library add edit archive restore delete display order event fields placeholders booking confirmation travel lodging reconfirmation thank you delivery retry event brief">
                 <header class="manual-chapter-heading">
                     <span>Chapter 05</span>
                     <h2>Engagements</h2>
@@ -346,12 +346,17 @@ $manual_access_summary = match ($manual_role) {
                             <p>Use this file for notes you intend to share: anyone with its QR code can open the PDF without signing in.</p>
                         </article>
                         <article class="manual-card">
+                            <h4>PPT Slidedeck</h4>
+                            <p>Attach one PowerPoint .ppt or .pptx file up to 100 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 120 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
+                            <p>Anyone with the PPT Slidedeck QR link can download the file without signing in. Replacing it keeps the same QR code and statistics. Removing it hides the code and stops downloads; uploading again restores the same link.</p>
+                        </article>
+                        <article class="manual-card">
                             <h4>Speaker QR Codes</h4>
-                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, and notes. Select a displayed code to copy it. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
-                            <p>The Speaker Notes code appears after its PDF is saved. Replacing the PDF keeps the same code. Removing the file hides the code; adding notes again reuses the code and its statistics.</p>
+                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck. Select a displayed code to copy its image. Select the <strong>Copy link</strong> icon beneath a code’s image to copy its web address for an email, message, or document. These controls appear when viewing or editing a presentation. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
+                            <p>File codes appear after you upload and save the corresponding PDF or PowerPoint. Replacing a file keeps its existing QR code and link, so shared slides and handouts continue to work. Removing a file hides its code; uploading it again reuses the link and its statistics.</p>
                         </article>
                     </section>
-                    <p>Select <strong>View QR Codes PDF</strong>, choose the codes to include, then select <strong>Prepare PDF</strong> to view, save, or print a single landscape sheet with those labeled codes, schedule, and venue. Use <strong>Select all</strong> to include every available code. Drag any code by its handle to reorder the list, whether checked or unchecked. Only checked codes appear in the PDF, in that order from left to right and then top to bottom. Keyboard users can focus a handle and press the Up or Down arrow key. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; notes without a PDF and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
+                    <p>Select <strong>View QR Codes PDF</strong>, choose the codes to include, then select <strong>Prepare PDF</strong> to view, save, or print a single landscape sheet with those labeled codes, schedule, and venue. Use <strong>Select all</strong> to include every available code. Drag any code by its handle to reorder the list, whether checked or unchecked. Only checked codes appear in the PDF, in that order from left to right and then top to bottom. Keyboard users can focus a handle and press the Up or Down arrow key. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; file codes without an uploaded PDF or PowerPoint and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
                     <p>Each saved presentation has a nearby <strong>Save Changes</strong> button. It saves the engagement form, including other changes on the page. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
@@ -377,11 +382,11 @@ $manual_access_summary = match ($manual_role) {
                     <ul class="manual-check-list">
                         <li>In the <strong>Presentations</strong> tab, select <strong>Statistics</strong> beneath a code to see its visits. Open a speaker’s record and choose <strong>Statistics</strong> for activity across that speaker’s presentations.</li>
                         <li>Choose a date range to focus on a recent event or a longer period. In the speaker view, use <strong>Link Type</strong> to focus on notes, donations, or <strong>Custom Links</strong>, then select <strong>Apply Filters</strong>.</li>
-                        <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count. Speaker Notes records the link visit before opening the PDF, including cached delivery; opening a copied direct PDF address does not add a visit.</li>
+                        <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count. Opening a shared QR link records a visit. Use <strong>Copy link</strong> to share that same link; copying an image or link does not itself add a visit.</li>
                     </ul>
-                    <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes, replace the PDF on the presentation instead of editing a destination.</p>
+                    <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes or PPT Slidedeck, replace the file on the presentation instead of editing a destination.</p>
                     <p>Select <strong>Combined Presentation Statistics</strong> in the upper-right of a presentation’s pane to see total visits, activity over time, and combined referrer, browser, country, and operating system breakdowns. Date filters use UTC, and <strong>Clear Filters</strong> keeps the report scoped to that presentation. Disabled codes and previous speakers’ codes retain their historical visits. A person opening multiple codes contributes multiple visits. Use <strong>Statistics</strong> on an individual code for its own report, or <strong>Back to Presentation</strong> to return to the presentation.</p>
-                    <p>Editing a speaker’s profile does not change destinations already shared with audiences. Previous speakers’ links and notes remain separate when you change a presentation’s speaker.</p>
+                    <p>Editing a speaker’s profile does not change destinations already shared with audiences. Previous speakers’ links and uploaded files remain separate when you change a presentation’s speaker.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -392,7 +397,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>02</span><section><strong>Select recipients.</strong><p>Use the Primary host, On-site contact, Billing, Travel, Materials, or Speaker shortcuts, or select individual recipient cards. Speakers assigned to active presentations are optional and unchecked by default. Choose the Speaker shortcut or check a speaker card to include them. You may send to speakers alone. Changing templates keeps your speaker selection. Choose <strong>To</strong>, <strong>Cc</strong>, or <strong>Bcc</strong> in each selected card. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden. Under <strong>Send yourself a copy</strong>, choose <strong>Cc me</strong> or <strong>Bcc me</strong> to include your account email. Only valid email addresses can receive a message. Matching addresses receive one copy; use the same recipient type for a shared address.</p></section></li>
                         <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every template subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
                         <li><span>04</span><section><strong>Optionally append the event brief.</strong><p>The share-safe brief includes the public event schedule, venue, description, and presentations. It deliberately excludes Chron, internal notes, compensation, giving, and financial-closeout information. Preview it before queuing.</p></section></li>
-                        <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry Failed Deliveries</strong>.</p></section></li>
+                        <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry Failed Deliveries</strong>. If it says <strong>Delivery Uncertain</strong>, check with your mail provider or recipient before selecting <strong>Retry Reviewed Deliveries</strong>; the message may already have arrived.</p></section></li>
                     </ol>
                     <section class="manual-card-grid manual-card-grid-two">
                         <article class="manual-card"><h4>One Place to Check</h4><p>Open the outbound message to review what was sent, who it was sent to, and the result for each address.</p></article>
@@ -863,7 +868,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile">
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile">
                 <header class="manual-chapter-heading">
                     <span>Chapter 12</span>
                     <h2>Administration</h2>
@@ -903,9 +908,10 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Continuity</span>
                         <h3>Encrypted Backup</h3>
+                        <p>The encrypted backup includes application records and uploaded files, including PDF Speaker Notes, PPT Slidedecks, and profile, contact, and speaker photos. The backup page shows current files, retained replacements, and storage health. Ask your administrator to resolve any storage warning before relying on a new backup.</p>
                         <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 16 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
                         <p>While the export runs, the page shows <strong>Creating Encrypted Backup</strong> and asks you to keep it open. A success message identifies the file, updates <strong>Last backup created</strong>, and confirms that the download started. Check your browser’s Downloads to verify the file finished saving. If confirmation is delayed, check Downloads before retrying with a fresh authenticator or recovery code.</p>
-                        <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Database restore is intentionally a deployment-host procedure, not a web action.</p>
+                        <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Ask the deployment operator to restore records and uploaded files together; restoration is handled outside the web application.</p>
                         <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
@@ -956,7 +962,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy clipboard PDF upload logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 13</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -1018,11 +1024,19 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A QR Code Will Not Copy</span><i aria-hidden="true">+</i></summary>
-                        <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. Save the presentation first if its QR codes are not yet available.</p>
+                        <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. To share a web address instead of an image, use the <strong>Copy link</strong> icon beneath the code’s image. If copying is blocked, allow clipboard access for this site and retry. Save the presentation first if its QR codes are not yet available.</p>
                     </details>
                     <details>
                         <summary><span>The Speaker Notes QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
                         <p>Open the engagement for editing, check the speaker selected for that presentation, and choose a Speaker Notes PDF. Save the engagement before looking for the code. A code is not shown when there is no saved PDF for that speaker. If an upload is too large, reduce the PDF to 100 MB or less; when adding several files, keep the combined upload under 120 MB.</p>
+                    </details>
+                    <details>
+                        <summary><span>The PPT Slidedeck QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
+                        <p>Check the presentation’s selected speaker, choose a .ppt or .pptx file, and save. The code appears after the upload succeeds. Each file may be up to 100 MB; keep all files in one save under 120 MB total. Removing the file hides the code until a replacement is saved.</p>
+                    </details>
+                    <details>
+                        <summary><span>The PowerPoint File Downloads Instead of Opening</span><i aria-hidden="true">+</i></summary>
+                        <p><strong>Download PPT Slidedeck</strong> saves the original PowerPoint file. Open it from your browser’s Downloads using PowerPoint or a compatible presentation app. The shared QR link downloads the same file.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>

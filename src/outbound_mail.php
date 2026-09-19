@@ -62,9 +62,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit('Forbidden.');
     }
     try {
-        $retried = retryFailedEngagementEmailDeliveries($conn, $messageId);
+        $retried = retryFailedEngagementEmailDeliveries($conn, $messageId, ($_POST['reviewed_uncertain'] ?? '') === '1');
         $_SESSION['engagement_email_message'] = sprintf(
-            '%d failed deliver%s re-queued.',
+            '%d deliver%s re-queued.',
             $retried,
             $retried === 1 ? 'y was' : 'ies were'
         );
@@ -88,6 +88,7 @@ $statusLabels = [
     'failed' => 'Failed',
     'partial' => 'Partially Sent',
     'pending' => 'Delivery Pending',
+    'delivery_uncertain' => 'Delivery Uncertain',
 ];
 $inquiryTemplateLabels = [
     'initial_response' => 'Initial Response',
@@ -157,13 +158,23 @@ $templateLabel = $isInquiryMessage
                         <?php if ($roles !== []): ?><small><?php echo htmlspecialchars(implode(' · ', array_map(static fn(mixed $role): string => match ($role) { 'speaker' => 'Speaker', 'sender' => 'Sender', default => engagementContactRoleLabel($role) }, $roles)), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     </div>
                     <div class="outbound-delivery-state">
-                        <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst((string) $delivery['status']), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <span class="email-status email-status-<?php echo htmlspecialchars((string) $delivery['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst(str_replace('_', ' ', (string) $delivery['status'])), ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php if ($delivery['status'] === 'delivery_uncertain' && !empty($delivery['smtp_message_id'])): ?><small>Provider reference: <?php echo htmlspecialchars($delivery['smtp_message_id'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                         <?php if (!empty($delivery['sent_at'])): ?><small><?php echo htmlspecialchars(applicationTimestampLabel($delivery['sent_at'], 'M j, Y g:i A T'), ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                         <?php if (!empty($delivery['last_error'])): ?><small class="delivery-error"><?php echo htmlspecialchars((string) $delivery['last_error'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                     </div>
                 </article>
             <?php endforeach; ?>
         </div>
+        <?php if ((int) ($message['uncertain_count'] ?? 0) > 0 && in_array($userRole, ['admin', 'editor'], true) && !$parentUnavailable): ?>
+            <p class="error">Delivery could not be confirmed. Automatic retries are paused to avoid duplicates. Check the provider or recipient before resending.</p>
+            <form method="post" action="outbound_mail.php" class="outbound-retry-form">
+                <?php echo csrfInput(); ?>
+                <input type="hidden" name="id" value="<?php echo $messageId; ?>">
+                <label><input type="checkbox" name="reviewed_uncertain" value="1" required> I checked these uncertain deliveries and want to resend them</label>
+                <button type="submit" class="button-secondary">Retry Reviewed Deliveries</button>
+            </form>
+        <?php endif; ?>
         <?php if ((int) $message['failed_count'] > 0 && in_array($userRole, ['admin', 'editor'], true) && !$parentUnavailable): ?>
             <form method="post" action="outbound_mail.php" class="outbound-retry-form">
                 <?php echo csrfInput(); ?>

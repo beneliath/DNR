@@ -5,6 +5,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 }
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once $source . '/short_link_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://web', '/');
 if (!in_array(parse_url($base,PHP_URL_HOST), ['web','localhost','127.0.0.1'],true)) throw new RuntimeException('Disposable internal server required.');
 function expectCacheHttp(bool $ok,string $message):void { if(!$ok)throw new RuntimeException($message); }
@@ -24,8 +25,8 @@ $code=bin2hex(random_bytes(8));
 try {
     $conn->query("INSERT INTO presentations(engagement_id,speaker_id,topic_title) VALUES ($event,$speaker,'Cache HTTP test')");$pid=(int)$conn->insert_id;
     $pdf="%PDF-1.4\nCache test\n%%EOF\n";
-    $stmt=$conn->prepare('INSERT INTO presentation_notes(presentation_id,speaker_id,pdf,filename,size,sha256) VALUES (?,?,?,\'cache.pdf\',?,UNHEX(SHA2(?,256)))');
-    $size=strlen($pdf);$stmt->bind_param('iisis',$pid,$speaker,$pdf,$size,$pdf);$stmt->execute();
+    applyPresentationNotesChange($conn, $pid, $event, ['action' => 'replace', 'asset' => [
+        'data' => $pdf, 'filename' => 'cache.pdf', 'size' => strlen($pdf), 'sha256' => hash('sha256', $pdf, true)]]);
     $conn->query("INSERT INTO short_links(code,engagement_id,presentation_id,speaker_id,link_type) VALUES ('$code',$event,$pid,$speaker,'notes')");
     $id=(int)$conn->insert_id;$path='surls/'.$code.'/speaker-notes.pdf';
     $r=$request($path);

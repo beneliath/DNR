@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/email_delivery_claim_helpers.php';
 
 require_once __DIR__ . '/application_runtime.php';
 
@@ -304,18 +305,19 @@ function completeQueuedAccountEmail(
     mysqli $conn,
     int $tokenId,
     int $userId,
-    string $purpose
+    string $purpose,
+    ?string $claimToken = null
 ): void {
     $complete = $conn->prepare(
         "UPDATE email_outbox
          SET status = 'sent', sent_at = UTC_TIMESTAMP(), processing_started_at = NULL,
              payload_ciphertext = NULL, last_error = NULL
-         WHERE token_id = ? AND status IN ('pending', 'processing', 'retry')"
+         WHERE token_id = ? AND claim_token <=> ? AND status IN ('pending', 'processing', 'retry')"
     );
     if (!$complete) {
         throw new RuntimeException('Unable to prepare email completion.');
     }
-    $complete->bind_param('i', $tokenId);
+    $complete->bind_param('is', $tokenId, $claimToken);
     $complete->execute();
     if ($complete->affected_rows !== 1) {
         $complete->close();
@@ -341,6 +343,7 @@ function completeQueuedAccountEmail(
 function maintainQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): void
 {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    expireUncertainEmailDeliveries($conn, 'email_outbox', $leaseSeconds);
     // A worker can die after incrementing its final attempt but before recording
     // a result. Expired final leases must enter a terminal, purgeable state.
     $conn->query("UPDATE email_outbox
@@ -382,7 +385,7 @@ function maintainQueuedAccountEmail(mysqli $conn, int $leaseSeconds = 600): void
 }
 
 /**
- * @return array{id: int, token_id: int, user_id: int, purpose: string,
+ * @return array{claim_token: string, smtp_message_id: string, id: int, token_id: int, user_id: int, purpose: string,
  *   payload_ciphertext: string, expires_at: string}|null
  */
 function claimQueuedAccountEmail(
@@ -418,7 +421,7 @@ function claimQueuedAccountEmail(
                AND (
                     (outbox.status IN ('pending', 'retry')
                         AND outbox.next_attempt_at <= UTC_TIMESTAMP())
-                    OR (outbox.status = 'processing'
+                    OR (outbox.status = 'processing' AND outbox.delivery_started_at IS NULL
                         AND outbox.processing_started_at <= DATE_SUB(
                             UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
                         ))
@@ -441,8 +444,10 @@ function claimQueuedAccountEmail(
         $claim->bind_param('i', $id);
         $claim->execute();
         $claim->close();
+        $deliveryClaim = stampEmailDeliveryClaim($conn, 'email_outbox', $id);
         $conn->commit();
         return [
+            ...$deliveryClaim,
             'id' => $id,
             'token_id' => (int) $row['token_id'],
             'user_id' => (int) $row['user_id'],
@@ -484,24 +489,29 @@ function failQueuedAccountEmail(
     int $outboxId,
     int $tokenId,
     Throwable $exception,
-    bool $permanent = false
+    bool $permanent = false,
+    ?string $claimToken = null
 ): void {
+    if ($exception instanceof SmtpUncertainDeliveryException) {
+        markEmailDeliveryUncertain($conn, 'email_outbox', $outboxId, $claimToken);
+        return;
+    }
     $error = mb_substr($exception->getMessage(), 0, 255, 'UTF-8');
     $stmt = $conn->prepare(
         "UPDATE email_outbox
          SET status = IF(? OR attempts >= 8, 'failed', 'retry'),
-             processing_started_at = NULL, last_error = ?,
+             processing_started_at = NULL, delivery_started_at = NULL, last_error = ?,
              payload_ciphertext = IF(? OR attempts >= 8, NULL, payload_ciphertext),
              next_attempt_at = TIMESTAMPADD(
                  MINUTE, LEAST(1440, CAST(POW(2, attempts) AS UNSIGNED)), UTC_TIMESTAMP()
              )
-         WHERE id = ? AND token_id = ? AND status = 'processing'"
+         WHERE id = ? AND claim_token <=> ? AND token_id = ? AND status = 'processing'"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare queued email failure handling.');
     }
     $permanentFlag = $permanent ? 1 : 0;
-    $stmt->bind_param('isiii', $permanentFlag, $error, $permanentFlag, $outboxId, $tokenId);
+    $stmt->bind_param('isiisi', $permanentFlag, $error, $permanentFlag, $outboxId, $claimToken, $tokenId);
     $stmt->execute();
     $stmt->close();
 }
@@ -749,7 +759,7 @@ final class SmtpSession
         }
     }
 
-    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null): bool
+    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null): bool
     {
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
@@ -763,6 +773,10 @@ final class SmtpSession
             throw new InvalidArgumentException('Mail headers contain invalid characters.');
         }
 
+        $messageId ??= '<' . bin2hex(random_bytes(24)) . '@dnr.invalid>';
+        if (!preg_match('/\A<[A-Za-z0-9._-]+@[A-Za-z0-9.-]+>\z/', $messageId)) {
+            throw new InvalidArgumentException('Invalid SMTP Message-ID.');
+        }
         $stream = $this->stream;
         $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
         $encoded_name = '=?UTF-8?B?' . base64_encode($this->fromName) . '?=';
@@ -773,6 +787,7 @@ final class SmtpSession
             ...smtpRecipientHeaders($recipient, $visibleRecipients),
             ...($replyToHeader !== '' ? [$replyToHeader] : []),
             'Subject: ' . $encoded_subject,
+            'Message-ID: ' . $messageId,
             'MIME-Version: 1.0',
             ...$content['headers'],
             'Date: ' . gmdate(DATE_RFC2822),
@@ -812,8 +827,11 @@ final class SmtpSession
             );
         }
         try {
-            if (fwrite($stream, $message . "\r\n.\r\n") === false) {
-                throw new RuntimeException('Unable to send the SMTP message body.');
+            $wire = $message . "\r\n.\r\n";
+            for ($offset = 0; $offset < strlen($wire);) {
+                $written = @fwrite($stream, substr($wire, $offset, 65536));
+                if ($written === false || $written === 0) throw new SmtpUncertainDeliveryException('SMTP connection was lost during DATA.');
+                $offset += $written;
             }
             smtpReadResponse($stream, [250]);
         } catch (SmtpResponseException $exception) {
@@ -825,12 +843,13 @@ final class SmtpSession
                     $exception
                 );
             }
+            if ($exception->statusCode() === 0) throw new SmtpUncertainDeliveryException('SMTP acceptance could not be confirmed.', 0, $exception);
             throw $exception;
         } catch (Throwable $exception) {
             // After DATA begins, delivery state can be ambiguous. Discard this
             // connection so no subsequent envelope inherits a partial transaction.
             $this->disconnect(false);
-            throw $exception;
+            throw new SmtpUncertainDeliveryException('SMTP delivery could not be confirmed.', 0, $exception);
         }
         return true;
     }
@@ -864,17 +883,17 @@ final class SmtpSession
     }
 }
 
-function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null)
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null)
 {
     $session = new SmtpSession();
     try {
-        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
+        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
     } finally {
         $session->close();
     }
 }
 
-function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null)
+function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null)
 {
     $visibleRecipients = smtpNormalizeVisibleRecipients($visibleRecipients);
     $transport = accountMailTransport();
@@ -885,7 +904,7 @@ function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $ht
         ]);
         return true;
     }
-    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
+    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
 }
 
 function deliverApplicationEmailWithSession(
@@ -895,16 +914,17 @@ function deliverApplicationEmailWithSession(
     $body,
     $replyTo = '',
     $htmlBody = null,
-    ?array $visibleRecipients = null
+    ?array $visibleRecipients = null,
+    ?string $messageId = null
 ): bool {
     if (accountMailTransport() === 'log') {
-        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
+        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
     }
     $reconnected = false;
     while (true) {
         $session ??= new SmtpSession();
         try {
-            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients);
+            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
         } catch (SmtpPreDataException $exception) {
             $session->close();
             $session = null;

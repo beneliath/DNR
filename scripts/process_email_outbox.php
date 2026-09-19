@@ -76,24 +76,29 @@ do {
         if ($queued === null) {
             break;
         }
+        $accepted = false;
         try {
             if (strtotime($queued['expires_at'] . ' UTC') <= time()) {
                 throw new DomainException('The queued account link expired before delivery.');
             }
             $message = decryptQueuedAccountEmail($queued['payload_ciphertext']);
+            startEmailDelivery($conn, 'email_outbox', $queued['id'], $queued['claim_token']);
             deliverApplicationEmailWithSession(
                 $smtpSession,
                 $message['recipient'],
                 $message['subject'],
-                $message['body']
+                $message['body'],
+                messageId: $queued['smtp_message_id']
             );
+            $accepted = true;
             $conn->begin_transaction();
             try {
                 completeQueuedAccountEmail(
                     $conn,
                     $queued['token_id'],
                     $queued['user_id'],
-                    $queued['purpose']
+                    $queued['purpose'],
+                    $queued['claim_token']
                 );
                 $conn->commit();
             } catch (Throwable $exception) {
@@ -108,8 +113,9 @@ do {
                     $conn,
                     $queued['id'],
                     $queued['token_id'],
-                    $exception,
-                    $exception instanceof DomainException
+                    $accepted ? new SmtpUncertainDeliveryException('Delivery accepted but completion could not be recorded.', 0, $exception) : $exception,
+                    $exception instanceof DomainException,
+                    $queued['claim_token']
                 );
             } catch (Throwable $recordException) {
             $pass_succeeded = false;
@@ -133,25 +139,30 @@ do {
         if ($queued === null) {
             break;
         }
+        $accepted = false;
         try {
             $message = decryptQueuedNotificationEmail($queued['payload_ciphertext']);
+            startEmailDelivery($conn, 'notification_outbox', $queued['id'], $queued['claim_token']);
             deliverApplicationEmailWithSession(
                 $smtpSession,
                 $message['recipient'],
                 $message['subject'],
                 $message['body'],
                 '',
-                is_string($message['html_body'] ?? null) ? $message['html_body'] : null
+                is_string($message['html_body'] ?? null) ? $message['html_body'] : null,
+                messageId: $queued['smtp_message_id']
             );
-            completeQueuedNotificationEmail($conn, $queued['id']);
+            $accepted = true;
+            completeQueuedNotificationEmail($conn, $queued['id'], $queued['claim_token']);
         } catch (Throwable $exception) {
             $pass_succeeded = false;
             try {
                 failQueuedNotificationEmail(
                     $conn,
                     $queued['id'],
-                    $exception,
-                    $exception instanceof DomainException
+                    $accepted ? new SmtpUncertainDeliveryException('Delivery accepted but completion could not be recorded.', 0, $exception) : $exception,
+                    $exception instanceof DomainException,
+                    $queued['claim_token']
                 );
             } catch (Throwable $recordException) {
             $pass_succeeded = false;
@@ -175,17 +186,21 @@ do {
         if ($queued === null) {
             break;
         }
+        $accepted = false;
         try {
             $message = decryptQueuedEngagementEmail($queued['payload_ciphertext']);
+            startEmailDelivery($conn, 'engagement_email_deliveries', $queued['id'], $queued['claim_token']);
             deliverApplicationEmailWithSession(
                 $smtpSession,
                 $message['recipient'],
                 $message['subject'],
                 $message['body'],
                 $message['reply_to'],
-                visibleRecipients: $message['visible_recipients']
+                visibleRecipients: $message['visible_recipients'],
+                messageId: $queued['smtp_message_id']
             );
-            completeQueuedEngagementEmail($conn, $queued['id']);
+            $accepted = true;
+            completeQueuedEngagementEmail($conn, $queued['id'], $queued['claim_token']);
         } catch (Throwable $exception) {
             $pass_succeeded = false;
             try {
@@ -193,8 +208,9 @@ do {
                     $conn,
                     $queued['id'],
                     $queued['attempts'],
-                    $exception,
-                    $exception instanceof DomainException
+                    $accepted ? new SmtpUncertainDeliveryException('Delivery accepted but completion could not be recorded.', 0, $exception) : $exception,
+                    $exception instanceof DomainException,
+                    $queued['claim_token']
                 );
             } catch (Throwable $recordException) {
             $pass_succeeded = false;

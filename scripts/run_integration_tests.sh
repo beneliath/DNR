@@ -32,8 +32,15 @@ if [ "$mode" != 'disposable' ]; then
     exit 64
 fi
 
+if [ -z "${DNR_INTEGRATION_PROJECT:-}" ]; then
+    exec python3 scripts/integration_environment.py
+fi
+python3 scripts/integration_environment.py verify
+
 compose() {
-    docker compose -f docker-compose.yaml -f docker-compose.dev.yaml "$@"
+    docker compose --env-file "$DNR_INTEGRATION_ENV_FILE" -p "$DNR_INTEGRATION_PROJECT" \
+        -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml \
+        -f "$DNR_INTEGRATION_OVERLAY" "$@"
 }
 
 isolated_project=
@@ -42,13 +49,13 @@ isolated_ingress_proxy_ip=
 compose_isolated() {
     DNR_BACKEND_SUBNET="$isolated_backend_subnet" \
     DNR_INGRESS_PROXY_IP="$isolated_ingress_proxy_ip" \
-        docker compose -p "$isolated_project" \
+        docker compose --env-file "$DNR_INTEGRATION_ENV_FILE" -p "$isolated_project" \
             -f docker-compose.yaml -f docker-compose.dev.yaml "$@"
 }
 
 cleanup_isolated_backup() {
     if [ -n "$isolated_project" ]; then
-        compose_isolated down --volumes --remove-orphans --rmi local >/dev/null 2>&1 || true
+        compose_isolated down --volumes --remove-orphans >/dev/null 2>&1 || true
         isolated_project=
     fi
 }
@@ -79,11 +86,20 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web "/opt/dnr/${test_file}" </dev/null
         continue
     fi
+    if [ "$test_name" = 'presentation_slidedeck_http_integration_test.php' ]; then
+        # Exercise real ingress routing, shared login sessions and the dedicated download pool.
+        compose exec -T -u www-data \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html -e DNR_TEST_BASE_URL=http://ingress \
+            web php "/opt/dnr/${test_file}" </dev/null
+        continue
+    fi
     if [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
         || [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
         || [ "$test_name" = 'email_templates_http_integration_test.php' ] \
         || [ "$test_name" = 'standard_task_generation_http_integration_test.php' ] \
         || [ "$test_name" = 'short_links_http_integration_test.php' ] \
+        || [ "$test_name" = 'presentation_slidedeck_http_integration_test.php' ] \
         || [ "$test_name" = 'calendar_subscription_content_http_integration_test.php' ] \
         || [ "$test_name" = 'presentation_stats_reset_http_integration_test.php' ] \
         || [ "$test_name" = 'network_statistics_reset_http_integration_test.php' ] \
@@ -113,7 +129,9 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web php -d disable_functions= "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'database_backup_integration_test.php' ]; then
+    if [ "$test_name" = 'database_backup_integration_test.php' ] \
+        || [ "$test_name" = 'file_storage_maintenance_integration_test.php' ] \
+        || [ "$test_name" = 'persistent_file_storage_integration_test.php' ]; then
         isolated_octet=$((($$ % 200) + 20))
         isolated_project="dnr-backup-test-$(date +%s)-$$"
         isolated_backend_subnet="10.253.${isolated_octet}.0/24"
@@ -122,7 +140,6 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
 
         compose_isolated up -d --wait db </dev/null
         compose_isolated run --rm --no-deps migrator </dev/null
-        compose_isolated build maintenance </dev/null
         compose_isolated run --rm --no-deps --entrypoint php \
             -e DNR_INTEGRATION_TEST=1 \
             -e DNR_INTEGRATION_TARGET=disposable \
@@ -130,12 +147,14 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
             -v "${PWD}/src:/var/www/html:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
-        compose_isolated run --rm --no-deps --entrypoint php \
-            -e DNR_INTEGRATION_TARGET=disposable \
-            -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
-            -e DNR_TEST_SOURCE_DIR=/var/www/html \
-            -v "${PWD}/src:/var/www/html:ro" \
-            maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null
+        if [ "$test_name" = 'database_backup_integration_test.php' ]; then
+            compose_isolated run --rm --no-deps --entrypoint php \
+                -e DNR_INTEGRATION_TARGET=disposable \
+                -e DNR_DESTRUCTIVE_BACKUP_TEST=isolated-restore -e DNR_LARGE_BACKUP_TEST=1 \
+                -e DNR_TEST_SOURCE_DIR=/var/www/html \
+                -v "${PWD}/src:/var/www/html:ro" \
+                maintenance /opt/dnr/tests/large_backup_capacity_test.php </dev/null
+        fi
         cleanup_isolated_backup
         trap - EXIT HUP INT TERM
         continue
@@ -172,8 +191,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
 done
 
 # Verify the real parser identity has only the account columns routing needs.
-docker compose -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml \
-    run --rm --no-deps --entrypoint php \
+compose run --rm --no-deps --entrypoint php \
     -e DNR_INBOUND_PRIVILEGE_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
     -e DNR_TEST_SOURCE_DIR=/var/www/html -v "${PWD}/tests:/opt/dnr/tests:ro" \
     mail-ingest /opt/dnr/tests/inbound_email_privileges_test.php

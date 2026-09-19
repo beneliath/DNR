@@ -8,6 +8,8 @@ require_once '/var/www/html/config.php';
 require_once '/var/www/html/two_factor_helpers.php';
 
 try {
+    require_once '/var/www/html/file_storage_maintenance_helpers.php';
+    requireHealthyPersistentStorage();
     twoFactorEncryptionKey();
     if (getenv('DNR_REQUIRE_DATABASE_ENCRYPTION') === '1') {
         $encrypted = $conn->query("SELECT @@default_table_encryption AND @@innodb_redo_log_encrypt

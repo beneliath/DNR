@@ -623,6 +623,7 @@ function maintainQueuedNotificationEmail(
     int $leaseSeconds = 600
 ): void {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    expireUncertainEmailDeliveries($conn, 'notification_outbox', $leaseSeconds);
     $conn->query("UPDATE notification_outbox
         SET status = 'failed', payload_ciphertext = NULL, processing_started_at = NULL,
             last_error = 'Delivery attempts exhausted after the processing lease expired.'
@@ -663,7 +664,7 @@ function maintainQueuedNotificationEmail(
 }
 
 /**
- * @return array{id: int, user_id: int, notification_type: string,
+ * @return array{claim_token: string, smtp_message_id: string, id: int, user_id: int, notification_type: string,
  *   digest_date: string, payload_ciphertext: string}|null
  */
 function claimQueuedNotificationEmail(
@@ -695,7 +696,7 @@ function claimQueuedNotificationEmail(
                AND (
                     (outbox.status IN ('pending', 'retry')
                         AND outbox.next_attempt_at <= UTC_TIMESTAMP())
-                    OR (outbox.status = 'processing'
+                    OR (outbox.status = 'processing' AND outbox.delivery_started_at IS NULL
                         AND outbox.processing_started_at <= DATE_SUB(
                             UTC_TIMESTAMP(), INTERVAL {$leaseSeconds} SECOND
                         ))
@@ -728,8 +729,10 @@ function claimQueuedNotificationEmail(
         $claim->bind_param('i', $id);
         $claim->execute();
         $claim->close();
+        $deliveryClaim = stampEmailDeliveryClaim($conn, 'notification_outbox', $id);
         $conn->commit();
         return [
+            ...$deliveryClaim,
             'id' => $id,
             'user_id' => (int) $row['user_id'],
             'notification_type' => (string) $row['notification_type'],
@@ -767,19 +770,19 @@ function decryptQueuedNotificationEmail(string $ciphertext): array
     ];
 }
 
-function completeQueuedNotificationEmail(mysqli $conn, int $outboxId): void
+function completeQueuedNotificationEmail(mysqli $conn, int $outboxId, ?string $claimToken = null): void
 {
     $statement = $conn->prepare(
         "UPDATE notification_outbox
          SET status = 'sent', sent_at = UTC_TIMESTAMP(),
              processing_started_at = NULL, payload_ciphertext = NULL,
              last_error = NULL
-         WHERE id = ? AND status = 'processing'"
+         WHERE id = ? AND claim_token <=> ? AND status = 'processing'"
     );
     if (!$statement) {
         throw new RuntimeException('Unable to prepare notification completion.');
     }
-    $statement->bind_param('i', $outboxId);
+    $statement->bind_param('is', $outboxId, $claimToken);
     $statement->execute();
     if ($statement->affected_rows !== 1) {
         $statement->close();
@@ -792,30 +795,36 @@ function failQueuedNotificationEmail(
     mysqli $conn,
     int $outboxId,
     Throwable $exception,
-    bool $permanent = false
+    bool $permanent = false,
+    ?string $claimToken = null
 ): void {
+    if ($exception instanceof SmtpUncertainDeliveryException) {
+        markEmailDeliveryUncertain($conn, 'notification_outbox', $outboxId, $claimToken);
+        return;
+    }
     $error = mb_substr($exception->getMessage(), 0, 255, 'UTF-8');
     $permanentFlag = $permanent ? 1 : 0;
     $statement = $conn->prepare(
         "UPDATE notification_outbox
          SET status = IF(? OR attempts >= 8, 'failed', 'retry'),
-             processing_started_at = NULL, last_error = ?,
+             processing_started_at = NULL, delivery_started_at = NULL, last_error = ?,
              payload_ciphertext = IF(? OR attempts >= 8, NULL, payload_ciphertext),
              next_attempt_at = TIMESTAMPADD(
                  MINUTE, LEAST(1440, CAST(POW(2, attempts) AS UNSIGNED)),
                  UTC_TIMESTAMP()
              )
-         WHERE id = ? AND status = 'processing'"
+         WHERE id = ? AND claim_token <=> ? AND status = 'processing'"
     );
     if (!$statement) {
         throw new RuntimeException('Unable to prepare notification failure handling.');
     }
     $statement->bind_param(
-        'isii',
+        'isiis',
         $permanentFlag,
         $error,
         $permanentFlag,
-        $outboxId
+        $outboxId,
+        $claimToken
     );
     $statement->execute();
     $statement->close();

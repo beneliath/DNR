@@ -1,5 +1,8 @@
 # Enable only after provisioning the two files and the narrow Cloudflare rule.
 services:
+  downloads:
+    environment:
+      DNR_NOTES_EDGE_CACHE_TTL: "300"
   web:
     environment:
       DNR_NOTES_EDGE_CACHE_TTL: "300"

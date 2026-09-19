@@ -610,7 +610,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 $presentations_query = "SELECT p.id, p.engagement_id, p.topic_title, p.presentation_date,
                                p.presentation_time, p.speaker_id, p.duration_minutes,
                                p.expected_attendance, p.actual_attendance,
-                               n.pdf IS NOT NULL AS has_speaker_notes,
+                               (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL) AS has_speaker_notes,
+                               d.storage_key IS NOT NULL AS has_ppt_slidedeck,
+                               d.filename AS ppt_slidedeck_filename,
+                               d.size AS ppt_slidedeck_size,
+                               d.updated_at AS ppt_slidedeck_updated_at,
+                               COALESCE(deck_uploader.username, d.uploaded_by_username_snapshot) AS ppt_slidedeck_uploaded_by_username,
                                n.filename AS speaker_notes_filename,
                                n.size AS speaker_notes_size,
                                n.updated_at AS speaker_notes_updated_at,
@@ -624,6 +629,8 @@ $presentations_query = "SELECT p.id, p.engagement_id, p.topic_title, p.presentat
                         FROM presentations p
                         LEFT JOIN presentation_notes n ON n.presentation_id = p.id AND n.speaker_id = p.speaker_id
                         LEFT JOIN users uploader ON uploader.id = n.uploaded_by
+                        LEFT JOIN presentation_slidedecks d ON d.presentation_id = p.id AND d.speaker_id = p.speaker_id
+                        LEFT JOIN users deck_uploader ON deck_uploader.id = d.uploaded_by
                         WHERE p.engagement_id = ? AND p.is_archived = 0
                         ORDER BY p.presentation_date, p.presentation_time, p.id";
 $stmt = $conn->prepare($presentations_query);

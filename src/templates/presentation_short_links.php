@@ -4,6 +4,7 @@ $short_links = fetchPresentationShortLinks($conn, $short_link_presentation_id);
 $short_links = array_values(array_filter($short_links, static fn(array $link): bool =>
     (int) $link['speaker_id'] === (int) $link['current_speaker_id']
     && ($link['link_type'] !== 'notes' || (bool) $link['has_notes'])
+    && ($link['link_type'] !== 'slidedeck' || (bool) $link['has_slidedeck'])
 ));
 ?>
 <div class="presentation-generated-links">
@@ -46,13 +47,19 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
                     <span>Click to copy</span>
                 </button>
                 <span class="presentation-qr-status" data-copy-status role="status" aria-live="polite"></span>
+                <?php if (!empty($short_link['qr_url'])): ?>
+                <button type="button" class="button-secondary presentation-copy-link" data-copy-qr-link="<?php echo htmlspecialchars($short_link['qr_url'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="Copy <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR link" title="Copy link">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg>
+                    <span>Copy link</span>
+                </button>
+                <?php endif; ?>
                 <div><a href="<?php echo $qr_url; ?>&amp;format=png&amp;download=1">PNG</a> · <a href="<?php echo $qr_url; ?>&amp;format=svg&amp;download=1">SVG</a></div>
                 <?php else: ?><p>QR images awaiting setup</p><?php endif; ?>
                 <a class="button-secondary" href="short_links.php?id=<?php echo (int) $short_link['id']; ?>" aria-label="<?php echo htmlspecialchars($label); ?> QR Code Statistics">Statistics</a>
             </div>
         <?php endforeach; ?>
     </div>
-    <p>Each code is unique to this presentation. Select Combined Presentation Statistics for activity across all its codes, or Statistics on a code to review its visits and manage its destination. A Speaker Notes code is added after a PDF is uploaded.</p>
+    <p>Each code is unique to this presentation. Select Combined Presentation Statistics for activity across all its codes, or Statistics on a code to review its visits and manage its destination. Speaker Notes and PPT Slidedeck codes are added after their files are uploaded. Use Copy link to copy the URL encoded in a QR code.</p>
     <?php if (hasRole(['admin'])): ?>
         <p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>">Reset Presentation Statistics</a></p>
     <?php endif; ?>

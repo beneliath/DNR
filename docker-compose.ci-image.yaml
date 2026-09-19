@@ -1,11 +1,29 @@
 # Apply after dev.yaml: tests exercise the image's PHP source, migrations and ini.
 services:
+  downloads:
+    volumes: !override
+      - uploaded_files:/var/lib/dnr/files:ro
+      - app_sessions:/var/lib/php/sessions
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+      - ./docker/apache-downloads.conf:/etc/apache2/sites-enabled/000-default.conf:ro
+      - ./docker/php-downloads.ini:/usr/local/etc/php/conf.d/zzz-dnr-downloads.ini:ro
+  file-monitor:
+    volumes: !override
+      - uploaded_files:/var/lib/dnr/files
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
+  file-migrator:
+    volumes: !override
+      - uploaded_files:/var/lib/dnr/files
+      - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
   backup:
     volumes: !override
+      - uploaded_files:/var/lib/dnr/files:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
       - ./docker/apache-backup.conf:/etc/apache2/sites-enabled/000-default.conf:ro
   web:
     volumes: !override
+      - app_sessions:/var/lib/php/sessions
+      - uploaded_files:/var/lib/dnr/files
       - ./tests:/opt/dnr/tests:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
       - ./var/deployment:/run/dnr/deployment:ro
@@ -15,5 +33,6 @@ services:
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro
   maintenance:
     volumes: !override
+      - uploaded_files:/var/lib/dnr/files
       - ./tests:/opt/dnr/tests:ro
       - ./deployments/moed/application.yaml:/run/dnr/config/application.yaml:ro

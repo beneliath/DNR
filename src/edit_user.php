@@ -143,17 +143,19 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             }
             $stmt->close();
             if ($picture !== null) {
+                $picture = storePersistentPortrait($conn, $picture, 'profile');
                 $conn->execute_query(
-                    'UPDATE users SET profile_picture = ?, profile_picture_thumbnail = ?,
+                    'UPDATE users SET profile_picture = NULL, profile_picture_thumbnail = NULL,
+                     profile_picture_key = ?, profile_picture_thumbnail_key = ?,
                         profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                         profile_picture_sha256 = ?, profile_picture_updated_at = UTC_TIMESTAMP()
                      WHERE id = ?',
-                    [$picture['data'], $picture['thumbnail_data'], $picture['thumbnail_mime_type'],
+                    [$picture['storage_key'], $picture['thumbnail_key'], $picture['thumbnail_mime_type'],
                         $picture['mime_type'], $picture['sha256'], $user_id]
                 );
             } elseif ($remove_profile_picture) {
                 $conn->execute_query(
-                    'UPDATE users SET profile_picture = NULL, profile_picture_thumbnail = NULL,
+                    'UPDATE users SET profile_picture = NULL, profile_picture_thumbnail = NULL, profile_picture_key = NULL, profile_picture_thumbnail_key = NULL,
                         profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                         profile_picture_sha256 = NULL, profile_picture_updated_at = UTC_TIMESTAMP()
                      WHERE id = ?',

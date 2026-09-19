@@ -345,14 +345,31 @@
         ].join("");
     }
 
+    function slidedeckUploadMarkup(id) {
+        var key = "ppt_slidedeck";
+        var inputId = key + "_" + id;
+        return [
+            '  <div class="presentation-notes-card">',
+            '    <div class="presentation-asset-label">PPT Slidedeck</div>',
+            '    <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>',
+            '    <div class="presentation-pdf-picker-row">',
+            '    <label class="presentation-file-picker" for="' + inputId + '">Choose PPT</label>',
+            '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" data-presentation-file-name>',
+            '    <span class="presentation-selected-file" data-selected-file-name>No PowerPoint selected</span>',
+            '    </div>',
+            '  </div>'
+        ].join("");
+    }
+
     function presentationAssetsMarkup(id) {
         return [
             '<div class="presentation-assets">',
             '  <div class="presentation-assets-heading">',
             '    <h3>Presentation Files &amp; QR Codes</h3>',
-            '    <p>PDF Speaker Notes may be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>',
+            '    <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may also be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>',
             '  </div>',
             pdfUploadMarkup(id),
+            slidedeckUploadMarkup(id),
             '  <p>Save the presentation to download its unique QR codes.</p>',
             '</div>'
         ].join("");

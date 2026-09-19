@@ -46,7 +46,7 @@ try {
     expectStoredUpload(
         (int) $initial['uploaded_by'] === $users[0]['id']
             && $initial['uploaded_by_username_snapshot'] === $users[0]['username']
-            && !empty($initial['updated_at']) && $initial['pdf'] === $pdf,
+            && !empty($initial['updated_at']) && $initial['pdf'] === null && file_get_contents(persistentFilePath($initial['storage_key'])) === $pdf,
         'Creating a presentation with a PDF persists its uploader and upload time with the file.'
     );
     $rows[0]['id'] = $pid;
@@ -76,12 +76,12 @@ try {
     expectStoredUpload(
         $read()['uploaded_by'] === null
             && $read()['uploaded_by_username_snapshot'] === $users[1]['username']
-            && $read()['pdf'] === $pdf,
+            && $read()['pdf'] === null && file_get_contents(persistentFilePath($read()['storage_key'])) === $pdf,
         'Deleting an account retains the PDF and the uploader username snapshot.'
     );
     applyPresentationAssetChanges($conn, $event, $pid, ['speaker_notes' => ['action' => 'remove']], $users[0]['id']);
     expectStoredUpload(
-        $read()['pdf'] === null && $read()['uploaded_by'] === null && $read()['uploaded_by_username_snapshot'] === null,
+        $read()['pdf'] === null && $read()['storage_key'] === null && $read()['uploaded_by'] === null && $read()['uploaded_by_username_snapshot'] === null,
         'Removing the PDF clears the uploader metadata for that file.'
     );
     echo "Presentation upload metadata integration tests passed.\n";

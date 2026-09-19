@@ -11,6 +11,7 @@ import signal
 import subprocess
 import sys
 from deployment_backup import create_verified_backup
+from storage_encryption_preflight import require_encrypted_upload_storage
 from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
 
@@ -67,12 +68,13 @@ def main():
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
         def application_writers():
             configured = set(compose('config', '--services').splitlines())
-            return [name for name in ('web', 'backup', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache')
+            return [name for name in ('web', 'backup', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache')
                     if name in configured]
         def container(service):
             return compose('ps', '-aq', service).splitlines()[-1]
         def inspect(identifier):
             return json.loads(run(['docker', 'inspect', identifier]))[0]
+        storage_encryption = require_encrypted_upload_storage(container('web'))
         seed_path = Path(manifest_path).resolve().with_name('speaker-seed.json')
         def speaker_seed(action):
             if not re.fullmatch('[0-9a-f]{64}', speaker_seed_sha256) or not seed_path.is_file() \
@@ -102,7 +104,7 @@ def main():
         if speaker_seed_sha256:
             speaker_seed('validate')
         record = dict(commit=expected, previous_commit=previous_commit, previous_images=previous,
-                      backup=None, manifest=release,
+                      backup=None, manifest=release, storage_encryption=storage_encryption,
                       mirrors=json.loads(Path(manifest_path).with_name('mirrors.json').read_text()),
                       phase='preflight', outcome='running', speaker_seed_sha256=speaker_seed_sha256 or None)
         record_path = records / (expected + '.json')
@@ -138,6 +140,7 @@ def main():
             compose('up', '-d', '--no-build', '--no-deps', '--wait', 'db')
             save('migrating')
             compose('run', '--rm', '--no-deps', 'migrator')
+            compose('run', '--rm', '--no-deps', 'file-migrator')
             if speaker_seed_sha256:
                 save('seeding-speaker')
                 # The import checks every profile field/photo and all presentation

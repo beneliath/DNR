@@ -13,7 +13,7 @@ if (!$speaker_id) {
 }
 
 $stmt = $conn->prepare(
-    'SELECT name, photo_mime,
+    'SELECT photo_key, photo_thumbnail_key, name, photo_mime,
             photo_thumbnail_mime,
             OCTET_LENGTH(photo_thumbnail) AS photo_thumbnail_size,
             HEX(photo_sha256) AS photo_sha256
@@ -32,6 +32,14 @@ $stmt->close();
 
 if (!$speaker) {
     http_response_code(404);
+    exit;
+}
+
+if (!empty($speaker['photo_key'])) {
+    $key = \Dnr\Http\RequestInput::string($_GET, 'size') !== 'full'
+        ? ($speaker['photo_thumbnail_key'] ?: $speaker['photo_key'])
+        : $speaker['photo_key'];
+    servePersistentPortrait($conn, (string) $key);
     exit;
 }
 

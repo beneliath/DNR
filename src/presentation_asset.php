@@ -16,14 +16,19 @@ if (!$presentation_id || $presentation_id < 1 || $definition === null) {
     exit;
 }
 
-if ($definition['form_key'] === 'speaker_notes') {
+if (in_array($definition['form_key'], ['speaker_notes', 'ppt_slidedeck'], true)) {
     require_once __DIR__ . '/short_link_helpers.php';
     $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ?');
     $stmt->bind_param('i', $presentation_id);
     $stmt->execute();
     $speaker_id = $stmt->get_result()->fetch_assoc()['speaker_id'] ?? null;
     if ($speaker_id === null) { http_response_code(404); exit; }
-    deliverPresentationNotes($conn, (int) $presentation_id, (int) $speaker_id);
+    if ($definition['form_key'] === 'ppt_slidedeck') {
+        require_once __DIR__ . '/presentation_slidedeck_helpers.php';
+        deliverPresentationSlidedeck($conn, (int) $presentation_id, (int) $speaker_id);
+    } else {
+        deliverPresentationNotes($conn, (int) $presentation_id, (int) $speaker_id);
+    }
     exit;
 }
 

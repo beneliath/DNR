@@ -57,7 +57,7 @@ printf '%s\n' "$public_base_url" | grep -Eq '^https://[A-Za-z0-9.:/_-]+$'
 remote="$s1_user@$s1_host"
 incoming="$s1_project_directory/.git/dnr-deploy/incoming/$expected_commit"
 ssh -o BatchMode=yes -o ConnectTimeout=10 "$remote" "umask 077; mkdir -p '$incoming'"
-scp -q "$release_directory/manifest.json" "$release_directory/mirrors.json" scripts/deploy_release_host.py scripts/deployment_backup.py scripts/deployment_notice.py scripts/release_timestamp.py "$remote:$incoming/"
+scp -q "$release_directory/manifest.json" "$release_directory/mirrors.json" scripts/deploy_release_host.py scripts/deployment_backup.py scripts/storage_encryption_preflight.py scripts/deployment_notice.py scripts/release_timestamp.py "$remote:$incoming/"
 speaker_seed_sha256=''
 if [ -n "${DNR_S1_SPEAKER_SEED_FILE:-}" ]; then
     cp "$DNR_S1_SPEAKER_SEED_FILE" "$release_directory/speaker-seed.json"

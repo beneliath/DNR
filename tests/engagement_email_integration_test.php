@@ -185,7 +185,8 @@ try {
         (int) $claimed['id'],
         (int) $claimed['attempts'],
         new DomainException('Permanent test rejection.'),
-        true
+        true,
+        $claimed['claim_token']
     );
     expectEngagementEmailIntegration(
         retryFailedEngagementEmailDeliveries($conn, $messageId) === 1,
@@ -196,7 +197,7 @@ try {
         $retried !== null && $retried['message_id'] === $messageId,
         'the manually retried delivery should become claimable again.'
     );
-    completeQueuedEngagementEmail($conn, (int) $retried['id']);
+    completeQueuedEngagementEmail($conn, (int) $retried['id'], $retried['claim_token']);
     $completed = $conn->query(
         "SELECT status, payload_ciphertext FROM engagement_email_deliveries
          WHERE id = {$retried['id']}"
@@ -283,7 +284,7 @@ try {
             && (int) $firstMattermostDelivery['message_id'] === $mattermostMessageId,
         'the first Mattermost-context recipient should be claimable.'
     );
-    completeQueuedEngagementEmail($conn, (int) $firstMattermostDelivery['id']);
+    completeQueuedEngagementEmail($conn, (int) $firstMattermostDelivery['id'], $firstMattermostDelivery['claim_token']);
     $pendingReactions = array_values(array_filter(
         mattermostPendingPostReactionNotifications($conn, 'primary'),
         static fn(array $notification): bool =>
@@ -340,7 +341,7 @@ try {
             && (int) $secondMattermostDelivery['message_id'] === $mattermostMessageId,
         'the second Mattermost-context recipient should remain independently claimable.'
     );
-    completeQueuedEngagementEmail($conn, (int) $secondMattermostDelivery['id']);
+    completeQueuedEngagementEmail($conn, (int) $secondMattermostDelivery['id'], $secondMattermostDelivery['claim_token']);
     $pendingAfterSecondDelivery = array_values(array_filter(
         mattermostPendingPostReactionNotifications($conn, 'primary'),
         static fn(array $notification): bool =>

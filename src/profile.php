@@ -167,7 +167,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  SET first_name = ?, last_name = ?, phone = ?,
                      task_digest_enabled = ?,
                      task_digest_time = ?, task_digest_days = ?,
-                     profile_picture = ?, profile_picture_thumbnail = ?,
+                     profile_picture = NULL, profile_picture_thumbnail = NULL,
+                     profile_picture_key = ?, profile_picture_thumbnail_key = ?,
                      profile_picture_thumbnail_mime = ?, profile_picture_mime = ?,
                      profile_picture_sha256 = ?,
                      profile_picture_updated_at = UTC_TIMESTAMP()
@@ -176,8 +177,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$stmt) {
                 throw new RuntimeException('Unable to prepare the profile update.');
             }
-            $picture_data = $picture['data'];
-            $picture_thumbnail = $picture['thumbnail_data'];
+            $picture = storePersistentPortrait($conn, $picture, 'profile');
+            $picture_data = $picture['storage_key'];
+            $picture_thumbnail = $picture['thumbnail_key'];
             $picture_thumbnail_mime = $picture['thumbnail_mime_type'];
             $picture_mime = $picture['mime_type'];
             $picture_sha256 = $picture['sha256'];
@@ -203,7 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                  SET first_name = ?, last_name = ?, phone = ?,
                      task_digest_enabled = ?,
                      task_digest_time = ?, task_digest_days = ?,
-                     profile_picture = NULL, profile_picture_thumbnail = NULL,
+                     profile_picture = NULL, profile_picture_thumbnail = NULL, profile_picture_key = NULL, profile_picture_thumbnail_key = NULL,
                      profile_picture_thumbnail_mime = NULL, profile_picture_mime = NULL,
                      profile_picture_sha256 = NULL,
                      profile_picture_updated_at = UTC_TIMESTAMP()

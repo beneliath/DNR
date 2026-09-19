@@ -170,7 +170,7 @@ try {
             && str_contains($message['html_body'], 'edit_task.php?id='),
         'the daily digest should retain its text fallback and an encrypted linked Dashboard HTML alternative.'
     );
-    completeQueuedNotificationEmail($conn, (int) $claimed['id']);
+    completeQueuedNotificationEmail($conn, (int) $claimed['id'], $claimed['claim_token']);
     $completed = $conn->query(
         "SELECT status, payload_ciphertext FROM notification_outbox
          WHERE id = {$claimed['id']}"

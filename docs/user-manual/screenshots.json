@@ -7,18 +7,18 @@
     "steps": [
       "Open User Manual near the bottom of the scrollable sidebar. Its 13 chapters match this PDF.",
       "The logo stays at the top and your profile/sign-out block stays at the bottom; scroll only the menu between them.",
-      "Use the chapter rail, topic cards, or / to search. Use your PDF reader\u2019s Find command for this guide."
+      "Use the chapter rail, topic cards, or / to search. Use your PDF reader’s Find command for this guide."
     ],
     "shell": true,
     "file": "screenshots/manual.png",
-    "captured_at": "2026-09-15",
+    "captured_at": "2026-09-19",
     "crop": [
       0,
       0,
       1265,
       712
     ],
-    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 1,
@@ -351,28 +351,52 @@
     "chapter": 5,
     "id": "presentations",
     "title": "Presentation details and audience resources",
-    "route": "view_engagement.php?id=28#presentation-30",
+    "route": "view_engagement.php?id=1",
     "steps": [
       "Open Presentations and review the speaker, title, schedule, duration, and attendance.",
-      "Select Combined Presentation Statistics at the right of the pane for activity across all its codes; Statistics beneath a code opens only that code.",
-      "View saved speaker notes, copy a QR image, or download PNG/SVG. Expand Export Presentation to choose a brief or a QR Codes PDF."
+      "Select View PDF Speaker Notes to open the notes, or Download PPT Slidedeck to save the PowerPoint for a compatible presentation app.",
+      "Select Copy link beneath a QR image to share its web address. Select the image to copy the QR graphic, or PNG/SVG to save it.",
+      "Combined Presentation Statistics covers all codes; Statistics beneath a code opens its own activity."
     ],
     "tab": "Presentations",
     "focus": "#engagement-workspace",
     "file": "screenshots/presentations.png",
-    "captured_on": "2026-09-13",
     "crop": [
-      315,
-      0,
-      550,
-      555
-    ]
+      317,
+      12,
+      548,
+      642
+    ],
+    "note": "The first row of resource codes is shown. Scroll down to find the file and custom-resource codes.",
+    "captured_at": "2026-09-19",
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-ppt-qr",
+    "title": "Share a PowerPoint download link",
+    "route": "view_engagement.php?id=1",
+    "file": "screenshots/presentation-ppt-qr.png",
+    "crop": [
+      334,
+      3,
+      511,
+      466
+    ],
+    "steps": [
+      "Save a PPT Slidedeck to generate its presentation-specific code, then find the PPT Slidedeck card.",
+      "Use Copy link to paste its download URL into a message or document. The same control appears on the presentation edit page.",
+      "Use the QR image or PNG/SVG downloads in slides and handouts. Replacing the PowerPoint keeps these previously shared codes usable."
+    ],
+    "note": "Copying a link or image does not add a visit. Opening the shared QR link records activity before delivering the file.",
+    "captured_at": "2026-09-19",
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 5,
     "id": "qr-selection",
     "title": "Select and order QR codes for a PDF",
-    "route": "view_engagement.php?id=28#presentation-30",
+    "route": "view_engagement.php?id=1",
     "tab": "Presentations",
     "action": "qr-selection",
     "steps": [
@@ -380,36 +404,60 @@
       "Drag any row by its handle, whether checked or unchecked. Only checked codes appear in the PDF, in list order from left to right and then top to bottom.",
       "Keyboard users can focus a handle and use Up or Down to move a code. Select Prepare PDF to open the chosen sheet in a new tab, or Cancel to close the dialog."
     ],
-    "note": "Speaker Notes is first; Website and Bio are unchecked. Other codes continue below the visible rows.",
+    "note": "PPT Slidedeck and Speaker Notes are selected and moved to the top. Other available codes remain below the visible rows.",
     "file": "screenshots/qr-selection.png",
-    "captured_on": "2026-09-13",
     "crop": [
-      340,
-      22,
-      570,
-      665
-    ]
+      346,
+      28,
+      562,
+      655
+    ],
+    "captured_at": "2026-09-19",
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 5,
     "id": "presentation-form",
-    "title": "Edit a presentation and speaker notes",
-    "route": "edit_engagement.php?id=13",
+    "title": "Edit presentation details",
+    "route": "edit_engagement.php?id=1",
     "steps": [
-      "Choose a saved speaker and enter topic, date, time, duration, and expected attendance.",
-      "Choose PDF or Replace PDF to attach public speaker notes up to 100 MB. Save to upload it.",
+      "Choose a saved speaker and enter the topic, date, time, duration, and expected attendance.",
       "Record actual attendance after the event. Zero is valid when nobody attended.",
-      "The nearby Save Changes button saves the whole engagement form."
+      "Continue to Presentation Files & QR Codes below these fields to add PDF notes and a PowerPoint file.",
+      "Save Changes saves the whole engagement form, including other edits on the page."
     ],
     "focus": ".presentation-entry",
     "file": "screenshots/presentation-form.png",
     "crop": [
-      0,
-      0,
-      1515,
-      1195
+      322,
+      110,
+      864,
+      361
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded.",
+    "captured_at": "2026-09-19"
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-files",
+    "title": "Upload or replace PDF notes and a PowerPoint",
+    "route": "edit_engagement.php?id=1",
+    "file": "screenshots/presentation-files.png",
+    "crop": [
+      343,
+      55,
+      824,
+      611
+    ],
+    "steps": [
+      "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
+      "Each file may be up to 100 MB. Keep all uploads in one save under 120 MB total; use separate saves for larger combined uploads.",
+      "Use Replace PDF or Replace PPT to select an updated file. Review its name, then Save Changes. The existing QR link and statistics remain.",
+      "To stop sharing a file, select its Remove current checkbox and save. Uploading again restores the same QR link."
+    ],
+    "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in.",
+    "captured_at": "2026-09-19",
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 5,
@@ -772,20 +820,20 @@
     "title": "Work the queue",
     "route": "tasks.php?owner=me",
     "steps": [
-      "Choose My work, Everyone\u2019s work, or Unassigned work, then a due-date/status filter.",
-      "The green check-mark opens Complete Task? before changing status. The box icon archives the task with its current status and details.",
-      "Use Archived to find retained tasks. Use Completed or canceled when archiving finished work. The same archive control appears in record-level Follow-Up Work."
+      "Choose My work, Everyone’s work, or Unassigned work, then a due-date/status filter.",
+      "Read the date and its timing label: overdue, Due today, Due tomorrow, or Upcoming. Dates use the application time zone.",
+      "Select the task to edit it, or the green check-mark to review completion. Archive preserves its status and details; use Archived to restore it."
     ],
     "file": "screenshots/tasks.png",
-    "captured_at": "2026-09-15",
+    "captured_at": "2026-09-19",
     "crop": [
-      278,
-      22,
-      950,
-      445
+      291,
+      46,
+      925,
+      595
     ],
-    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
-    "note": "Fictional task examples are one day overdue. Review overdue work promptly."
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded.",
+    "note": "This fictional task is due the day after capture. Due tomorrow is separate from its High Priority and In progress labels."
   },
   {
     "chapter": 7,
@@ -1160,7 +1208,7 @@
     "steps": [
       "Review role, activation, verified email, 2FA, and activity.",
       "Filled Daily Digest day chips show scheduled days. Off or paused indicates that delivery is disabled or suspended.",
-      "Unlock administrator actions and select the pencil icon to review a user\u2019s digest time, time zone, and days. Account holders can use My Profile."
+      "Unlock administrator actions and select the pencil icon to review a user’s digest time, time zone, and days. Account holders can use My Profile."
     ],
     "file": "screenshots/users.png",
     "captured_at": "2026-09-15",
@@ -1198,14 +1246,14 @@
       "Select Unlock Sensitive Actions to return to the requested page. The five-minute unlock applies only to this signed-in session."
     ],
     "file": "screenshots/elevation.png",
-    "captured_at": "2026-09-15",
+    "captured_at": "2026-09-19",
     "crop": [
-      280,
-      30,
-      950,
-      422
+      294,
+      44,
+      893,
+      426
     ],
-    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded."
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 12,
@@ -1249,23 +1297,24 @@
   {
     "chapter": 12,
     "id": "backup",
-    "title": "Export an encrypted database backup",
+    "title": "Export an encrypted backup with uploaded files",
     "route": "database_maintenance.php",
     "steps": [
-      "Open Database. Last backup created records the latest successful export.",
-      "Supply your administrator password, a fresh factor, and matching backup encryption passwords. Select Encrypt and Download Backup.",
-      "Keep the page open while Creating Encrypted Backup is shown. The success message names the file and confirms the download started; check browser Downloads for completion.",
-      "If confirmation is delayed, check Downloads before retrying with a fresh code. Use the README restore runbook for recovery."
+      "Open Database. The encrypted snapshot includes application records, PDF notes, PowerPoint files, and uploaded portraits.",
+      "Enter your administrator password and a fresh factor. Choose and confirm a unique backup password of at least 16 characters, then Encrypt and Download Backup.",
+      "Keep the page open while the export runs. Check the success message, Last backup created, and browser Downloads for completion.",
+      "Keep the complete .dnrbackup file, its password, and the separate 2FA key securely backed up. Ask the deployment operator to restore records and files together."
     ],
     "file": "screenshots/backup.png",
-    "note": "The export form is shown before submission; no backup was created during screenshot capture.",
-    "captured_at": "2026-09-14",
+    "note": "The credential and download section is shown with empty fields. No backup was exported during capture.",
+    "captured_at": "2026-09-19",
     "crop": [
-      295,
-      100,
-      455,
-      792
-    ]
+      312,
+      104,
+      416,
+      538
+    ],
+    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 12,
@@ -1340,7 +1389,7 @@
       "Review the specific code and its activity.",
       "Edit Destination and save to redirect an already-published resource code without changing its image.",
       "Clear Link enabled and save to stop that code from opening its destination.",
-      "For speaker notes, replace the PDF on the presentation; its destination is managed automatically."
+      "For Speaker Notes and PPT Slidedeck, replace the file on the presentation; its destination is managed automatically."
     ],
     "focus": "[name=target_url]",
     "file": "screenshots/link-controls.png",
@@ -1361,7 +1410,7 @@
       "Administrators open Reset Presentation Statistics on the presentation card.",
       "Confirm the exact presentation and obtain fresh administrator access.",
       "Reset Statistics to Zero permanently clears all dates and all its links, including disabled links and previous speakers.",
-      "Codes, destinations, notes, and other presentations stay intact; new visits start at zero."
+      "Codes, destinations, uploaded files, and other presentations stay intact; new visits start at zero."
     ],
     "note": "The reset review screen is illustrated; no statistics were deleted.",
     "file": "screenshots/reset-statistics.png"
@@ -1411,7 +1460,7 @@
   {
     "chapter": 12,
     "id": "edit-user",
-    "title": "Edit a user\u2019s profile and digest preferences",
+    "title": "Edit a user’s profile and digest preferences",
     "route": "edit_user.php?id=2",
     "steps": [
       "Unlock sensitive administrator actions, then select Edit user on the Users page.",
@@ -1510,7 +1559,7 @@
     "title": "Confirm task completion",
     "route": "tasks.php?view=my",
     "steps": [
-      "Select the check-mark Complete task action in the queue or a related record\u2019s task list.",
+      "Select the check-mark Complete task action in the queue or a related record’s task list.",
       "Read Complete Task? and select Complete Task only when the work is finished.",
       "Cancel or press Esc to return without changing the task."
     ],

@@ -219,8 +219,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                         contact_phone = ?,
                         contact_birthday = ?,
                         contact_notes = ?,
-                        contact_photo = ?,
-                        contact_photo_thumbnail = ?,
+                        contact_photo = NULL, contact_photo_thumbnail = NULL,
+                        contact_photo_key = ?, contact_photo_thumbnail_key = ?,
                         contact_photo_thumbnail_mime = ?,
                         contact_photo_mime = ?,
                         contact_photo_sha256 = ?,
@@ -240,7 +240,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                         contact_birthday = ?,
                         contact_notes = ?,
                         contact_photo = NULL,
-                        contact_photo_thumbnail = NULL,
+                        contact_photo_thumbnail = NULL, contact_photo_key = NULL, contact_photo_thumbnail_key = NULL,
                         contact_photo_thumbnail_mime = NULL,
                         contact_photo_mime = NULL,
                         contact_photo_sha256 = NULL,
@@ -266,8 +266,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 throw new RuntimeException('Unable to prepare the contact update.');
             }
             if ($contact_photo !== null) {
-                $contact_photo_data = $contact_photo['data'];
-                $contact_photo_thumbnail = $contact_photo['thumbnail_data'];
+                $contact_photo = storePersistentPortrait($conn, $contact_photo, 'contact');
+                $contact_photo_data = $contact_photo['storage_key'];
+                $contact_photo_thumbnail = $contact_photo['thumbnail_key'];
                 $contact_photo_thumbnail_mime = $contact_photo['thumbnail_mime_type'];
                 $contact_photo_mime = $contact_photo['mime_type'];
                 $contact_photo_sha256 = $contact_photo['sha256'];

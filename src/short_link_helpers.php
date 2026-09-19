@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/persistent_file_helpers.php';
+
 require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/presentation_asset_helpers.php';
 
 const SHORT_LINK_TYPES = ['website' => 'Website', 'bio' => 'Bio', 'donation' => 'Donate',
-    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'custom' => 'Custom Links'];
+    'connection' => 'Connection', 'blog' => 'Blog', 'books' => 'Books', 'notes' => 'Speaker Notes', 'slidedeck' => 'PPT Slidedeck', 'custom' => 'Custom Links'];
 
 function shortLinkLabel(array $link): string
 {
@@ -68,7 +70,9 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $c
 {
     $stmt = $conn->prepare('SELECT p.engagement_id, p.speaker_id, s.*,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id
-            AND n.speaker_id = p.speaker_id AND n.pdf IS NOT NULL) AS has_notes FROM presentations p
+            AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
+        EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = p.id
+            AND d.speaker_id = p.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck FROM presentations p
         JOIN speakers s ON s.id = p.speaker_id WHERE p.id = ?');
     $stmt->bind_param('i', $presentationId);
     $stmt->execute();
@@ -85,9 +89,10 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $c
     $definitions = [];
     if (!$customOnly) {
         foreach (SHORT_LINK_TYPES as $type => $label) {
-            if ($type === 'custom' || ($type === 'notes' && !$speaker['has_notes'])) continue;
+            if ($type === 'custom' || ($type === 'notes' && !$speaker['has_notes'])
+                || ($type === 'slidedeck' && !$speaker['has_slidedeck'])) continue;
             $definitions[] = ['type' => $type, 'key' => '', 'label' => null,
-                'url' => $type === 'notes' ? null : trim((string) ($speaker[$type . '_url'] ?? ''))];
+                'url' => in_array($type, ['notes', 'slidedeck'], true) ? null : trim((string) ($speaker[$type . '_url'] ?? ''))];
         }
     }
     foreach (speakerCustomLinks($speaker) as $link) {
@@ -132,7 +137,9 @@ function fetchPresentationShortLinks(mysqli $conn, int $presentationId): array
     $stmt = $conn->prepare('SELECT l.*, q.encoded_url AS qr_url, q.png AS qr_png,
         s.name AS speaker_name, p.speaker_id AS current_speaker_id,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id
-            AND n.speaker_id = l.speaker_id AND n.pdf IS NOT NULL) AS has_notes
+            AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
+        EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = l.presentation_id
+            AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck
         FROM short_links l JOIN speakers s ON s.id = l.speaker_id
         JOIN presentations p ON p.id = l.presentation_id
         LEFT JOIN short_link_qr_images q ON q.link_id = l.id
@@ -149,7 +156,7 @@ function updateShortLink(mysqli $conn, int $id, int $version, string $target, bo
     $stmt->execute();
     $link = $stmt->get_result()->fetch_assoc();
     if (!$link) throw new InvalidArgumentException('Link not found.');
-    $targetUrl = $link['link_type'] === 'notes' ? null : shortLinkTarget($target);
+    $targetUrl = in_array($link['link_type'], ['notes', 'slidedeck'], true) ? null : shortLinkTarget($target);
     $stmt = $conn->prepare('UPDATE short_links SET target_url = ?, is_enabled = ?, version = version + 1,
         updated_at = UTC_TIMESTAMP(6) WHERE id = ? AND version = ?');
     $stmt->bind_param('siii', $targetUrl, $enabled, $id, $version);
@@ -209,21 +216,20 @@ function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $en
     $speakerId = $stmt->get_result()->fetch_assoc()['speaker_id'] ?? null;
     if ($speakerId === null) throw new InvalidArgumentException('Presentation not found.');
     if (($change['action'] ?? '') === 'remove') {
-        $stmt = $conn->prepare('UPDATE presentation_notes SET pdf = NULL, filename = NULL, size = NULL,
+        $stmt = $conn->prepare('UPDATE presentation_notes SET pdf = NULL, storage_key = NULL, filename = NULL, size = NULL,
             sha256 = NULL, updated_at = UTC_TIMESTAMP(6), uploaded_by = NULL, uploaded_by_username_snapshot = NULL
             WHERE presentation_id = ? AND speaker_id = ?');
         $stmt->bind_param('ii', $presentationId, $speakerId);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
+        $key = storePersistentFile($conn, $asset['data'], $asset['filename'], 'application/pdf');
         $stmt = $conn->prepare('INSERT INTO presentation_notes
-            (presentation_id, speaker_id, pdf, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
+            (presentation_id, speaker_id, storage_key, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
             VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6), ?, (SELECT username FROM users WHERE id = ?))
-            ON DUPLICATE KEY UPDATE pdf = VALUES(pdf), filename = VALUES(filename),
+            ON DUPLICATE KEY UPDATE pdf = NULL, storage_key = VALUES(storage_key), filename = VALUES(filename),
             size = VALUES(size), sha256 = VALUES(sha256), updated_at = UTC_TIMESTAMP(6),
             uploaded_by = VALUES(uploaded_by), uploaded_by_username_snapshot = VALUES(uploaded_by_username_snapshot)');
-        $blob = null;
-        $stmt->bind_param('iibsisii', $presentationId, $speakerId, $blob, $asset['filename'], $asset['size'], $asset['sha256'], $uploadedBy, $uploadedBy);
-        $stmt->send_long_data(2, $asset['data']);
+        $stmt->bind_param('iissisii', $presentationId, $speakerId, $key, $asset['filename'], $asset['size'], $asset['sha256'], $uploadedBy, $uploadedBy);
     } else throw new InvalidArgumentException('Invalid notes change.');
     $stmt->execute();
 }
@@ -325,7 +331,9 @@ function backfillShortLinkQrImages(mysqli $conn, int $batchSize = 100): int
             LEFT JOIN short_link_qr_images q ON q.link_id = l.id
             WHERE l.id > $lastId AND q.link_id IS NULL
                 AND (l.link_type <> 'notes' OR EXISTS(SELECT 1 FROM presentation_notes n
-                    WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND n.pdf IS NOT NULL))
+                    WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)))
+                AND (l.link_type <> 'slidedeck' OR EXISTS(SELECT 1 FROM presentation_slidedecks d
+                    WHERE d.presentation_id = l.presentation_id AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL))
             ORDER BY l.id LIMIT $batchSize")->fetch_all(MYSQLI_ASSOC);
         foreach ($links as $link) {
             $lastId = (int) $link['id'];
@@ -355,8 +363,8 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     header('Cloudflare-CDN-Cache-Control: no-store');
     $conn->query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
     $conn->begin_transaction(MYSQLI_TRANS_START_READ_ONLY);
-    $stmt = $conn->prepare('SELECT filename, size, HEX(sha256) AS sha FROM presentation_notes
-        WHERE presentation_id = ? AND speaker_id = ? AND pdf IS NOT NULL');
+    $stmt = $conn->prepare('SELECT storage_key, filename, size, HEX(sha256) AS sha FROM presentation_notes
+        WHERE presentation_id = ? AND speaker_id = ? AND (storage_key IS NOT NULL OR pdf IS NOT NULL)');
     $stmt->bind_param('ii', $presentationId, $speakerId);
     $stmt->execute();
     $notes = $stmt->get_result()->fetch_assoc();
@@ -368,6 +376,43 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
     try { $range = presentationAssetByteRange($rangeHeader, $size); }
     catch (OutOfRangeException $exception) {
         $conn->commit(); http_response_code(416); header('Content-Range: bytes */' . $size); return;
+    }
+    if (!empty($notes['storage_key'])) {
+        try {
+            $metadata = persistentFileMetadata($conn, $notes['storage_key']);
+            if ($metadata['content_type'] !== 'application/pdf' || (int) $metadata['size'] !== $size
+                || !hash_equals($metadata['checksum'], strtolower((string) $notes['sha']))) {
+                throw new RuntimeException('PDF metadata is inconsistent.');
+            }
+            $file = openPersistentFile($metadata);
+        } catch (Throwable $exception) {
+            $conn->commit(); http_response_code(503); return;
+        }
+        $conn->commit();
+        try {
+            $remaining = $range['length'] ?? $size;
+            sendPresentationPdfViewHeaders((string) $notes['filename']);
+            header('Cache-Control: private, no-store');
+            header('ETag: ' . $etag);
+            if ($linkId !== null && $edgeTtl > 0) {
+                header('Cloudflare-CDN-Cache-Control: public, max-age=' . min(300, $edgeTtl) . ', must-revalidate');
+            }
+            header('Accept-Ranges: bytes');
+            header('Content-Length: ' . $remaining);
+            if ($range !== null) {
+                http_response_code(206);
+                header('Content-Range: bytes ' . $range['start'] . '-' . $range['end'] . '/' . $size);
+            }
+            if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'HEAD') return;
+            if (fseek($file, $range['start'] ?? 0) !== 0) throw new RuntimeException('Unable to seek PDF.');
+            while ($remaining > 0 && !connection_aborted()) {
+                $chunk = fread($file, min(1048576, $remaining));
+                if ($chunk === false || $chunk === '') throw new RuntimeException('PDF read failed.');
+                echo $chunk;
+                $remaining -= strlen($chunk);
+            }
+        } finally { fclose($file); }
+        return;
     }
     $remaining = $range['length'] ?? $size;
     $position = ($range['start'] ?? 0) + 1;

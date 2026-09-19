@@ -190,7 +190,8 @@ $engagement_marker = applicationInboundMarker($engagement_id);
 $presentation_stmt = $conn->prepare(
     "SELECT p.id, p.speaker_id, p.topic_title, p.presentation_date, p.presentation_time, s.name AS speaker_name, p.duration_minutes,
             p.expected_attendance, p.actual_attendance,
-            EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND n.pdf IS NOT NULL) AS has_speaker_notes,
+            EXISTS (SELECT 1 FROM presentation_notes n WHERE n.presentation_id = p.id AND n.speaker_id = p.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_speaker_notes,
+            EXISTS (SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = p.id AND d.speaker_id = p.speaker_id AND d.storage_key IS NOT NULL) AS has_ppt_slidedeck,
             p.speaker_notes_qr_image IS NOT NULL AS has_speaker_notes_qr,
             p.speaker_website_qr_image IS NOT NULL AS has_speaker_website_qr,
             p.speaker_donation_qr_image IS NOT NULL AS has_speaker_donation_qr
@@ -478,6 +479,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     'failed' => 'Failed',
                     'partial' => 'Partially sent',
                     'pending' => 'Pending',
+                    'delivery_uncertain' => 'Delivery uncertain',
                 ];
                 ?>
                 <article class="engagement-email-history-item">
@@ -524,9 +526,14 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <a class="button-secondary presentation-combined-stats" href="short_links.php?presentation_id=<?php echo (int) $presentation['id']; ?>">Combined Presentation Statistics</a>
                 </div>
                 <div class="presentation-view-assets">
+                    <div class="presentation-file-actions">
                     <?php if (!empty($presentation['has_speaker_notes'])): ?>
                         <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes" target="_blank" rel="noopener">View PDF Speaker Notes</a>
                     <?php endif; ?>
+                    <?php if (!empty($presentation['has_ppt_slidedeck'])): ?>
+                        <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=slidedeck" target="_blank" rel="noopener">Download PPT Slidedeck</a>
+                    <?php endif; ?>
+                    </div>
                     <?php
                     $short_link_presentation_id = (int) $presentation['id'];
                     $short_link_show_pdf_action = false;

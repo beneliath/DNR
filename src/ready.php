@@ -58,6 +58,9 @@ try {
         $readiness_reason = 'migration_checksum_mismatch';
         throw new RuntimeException('Migration ledger contains files absent from the manifest.');
     }
+    $readiness_reason = 'file_storage_unavailable';
+    require_once __DIR__ . '/file_storage_maintenance_helpers.php';
+    requireHealthyPersistentStorage();
     echo json_encode([
         'status' => 'ready',
         'version' => APP_VERSION,

@@ -37,6 +37,11 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/email_delivery_claim_helpers.php
+        - src/legacy_powerpoint_helpers.php
+        - src/native_backup_stream_helpers.php
+        - src/file_storage_maintenance_helpers.php
+        - src/persistent_file_helpers.php
         - src/email_template_helpers.php
         - src/speaker_helpers.php
         - src/short_link_helpers.php

@@ -17,6 +17,7 @@
         "ext-mysqli": "*",
         "ext-openssl": "*",
         "ext-sodium": "*",
+        "ext-zip": "*",
         "endroid/qr-code": "^6.0",
         "giggsey/libphonenumber-for-php": "^9.0",
         "matomo/device-detector": "^6.5",

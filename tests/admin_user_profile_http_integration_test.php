@@ -9,6 +9,7 @@ if (getenv('DNR_INTEGRATION_TEST') !== '1' || getenv('DNR_INTEGRATION_TARGET') !
 
 $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 require_once $source . '/bootstrap.php';
+require_once $source . '/persistent_file_helpers.php';
 require_once __DIR__ . '/integration_auth_helpers.php';
 
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080', '/');
@@ -132,7 +133,7 @@ try {
             && $saved['email_verified_at'] === $before['email_verified_at']
             && $saved['profile_picture_mime'] === (function_exists('imagewebp') ? 'image/webp' : 'image/png')
             && strlen($saved['profile_picture_sha256']) === 32
-            && is_array(getimagesizefromstring($saved['profile_picture_thumbnail']))
+            && is_array(getimagesizefromstring(file_get_contents(persistentFilePath($saved['profile_picture_thumbnail_key']))))
             && (int) $saved['task_digest_enabled'] === 0 && $saved['task_digest_time'] === '16:45:00'
             && (int) $saved['task_digest_days'] === 21,
             'Admin saves normalize names/phone, store a real picture/thumbnail, and retain paused digest schedules and recovery email.');
@@ -142,13 +143,13 @@ try {
         expectAdminProfile((int) $audit['actor_user_id'] === $users['admin'] && (int) $audit['target_user_id'] === $target,
             'Audit records identify both the administrator and selected user.');
         $pictureResponse = $request('profile_picture.php?id=' . $target . '&size=full', null, $cookie);
-        expectAdminProfile($pictureResponse['status'] === 200 && $pictureResponse['body'] === $saved['profile_picture'],
+        expectAdminProfile($pictureResponse['status'] === 200 && $saved['profile_picture'] === null && $pictureResponse['body'] === file_get_contents(persistentFilePath($saved['profile_picture_key'])),
             'The administrator can view the selected user’s saved picture.');
 
         $schedule = $post + ['task_digest_enabled' => '1', 'task_digest_time' => '06:30', 'task_digest_days' => ['2', '8']];
         expectAdminProfile($request($path, $schedule, $cookie)['status'] === 302, 'Profile fields and digest schedule save together.');
         $scheduled = $fetch($target);
-        expectAdminProfile($scheduled['profile_picture'] === $saved['profile_picture']
+        expectAdminProfile($scheduled['profile_picture_key'] === $saved['profile_picture_key']
             && $scheduled['task_digest_time'] === '06:30:00' && (int) $scheduled['task_digest_days'] === 10,
             'Saving without an upload preserves the picture.');
         $replacement = imagecreatetruecolor(2, 2);
@@ -157,7 +158,7 @@ try {
             'Administrators can replace existing profile pictures.');
         $scheduled = $fetch($target);
         expectAdminProfile($scheduled['profile_picture_sha256'] !== $saved['profile_picture_sha256']
-            && getimagesizefromstring($scheduled['profile_picture_thumbnail'])[0] === 2,
+            && getimagesizefromstring(file_get_contents(persistentFilePath($scheduled['profile_picture_thumbnail_key'])))[0] === 2,
             'Replacement refreshes both the original picture and its thumbnail.');
         $duplicate = $request($path, array_replace($post, ['username' => $adminBefore['username'], 'remove_profile_picture' => '1']), $cookie);
         expectAdminProfile($duplicate['status'] === 200 && $fetch($target) === $scheduled,
@@ -165,7 +166,7 @@ try {
         expectAdminProfile($request($path, $post + ['remove_profile_picture' => '1'], $cookie)['status'] === 302,
             'Administrators can remove pictures.');
         $removed = $fetch($target);
-        foreach (['profile_picture', 'profile_picture_thumbnail', 'profile_picture_thumbnail_mime', 'profile_picture_mime', 'profile_picture_sha256'] as $column) {
+        foreach (['profile_picture_key', 'profile_picture_thumbnail_key', 'profile_picture', 'profile_picture_thumbnail', 'profile_picture_thumbnail_mime', 'profile_picture_mime', 'profile_picture_sha256'] as $column) {
             expectAdminProfile($removed[$column] === null, 'Picture removal clears ' . $column);
         }
 
