@@ -1,1 +1,1 @@
-.error.admin-elevation-notice{border:0!important;outline:2px solid var(--danger);outline-offset:3px}
+.admin-elevation-container{max-width:var(--app-content-max)}.admin-elevation-container>h1,.admin-elevation-container>.security-card,.admin-elevation-container>.admin-elevation-notice{max-width:calc(960px - 2 * var(--app-content-padding))}.error.admin-elevation-notice{border:0!important;outline:2px solid var(--danger);outline-offset:3px}

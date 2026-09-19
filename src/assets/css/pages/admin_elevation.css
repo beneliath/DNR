@@ -1,3 +1,13 @@
+.admin-elevation-container {
+    max-width: var(--app-content-max);
+}
+
+.admin-elevation-container > h1,
+.admin-elevation-container > .security-card,
+.admin-elevation-container > .admin-elevation-notice {
+    max-width: calc(960px - 2 * var(--app-content-padding));
+}
+
 /* Keep one outer frame instead of the alert border inside its focus outline. */
 .error.admin-elevation-notice {
     border: 0 !important;

@@ -41,7 +41,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 )); ?>
 <body>
 <?php include 'templates/header.php'; ?>
-<main class="container security-container">
+<main class="container security-container admin-elevation-container">
     <h1>Confirm Administrator Access</h1>
     <?php if ($error !== ''): ?><p class="error admin-elevation-notice"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <section class="security-card">
