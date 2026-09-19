@@ -66,8 +66,14 @@ try {
         $first !== null && $first['token_id'] === $previous_id,
         'the worker should discard a stale auth-version message and claim the oldest valid link.'
     );
+    try {
+        completeQueuedAccountEmail($conn, $previous_id, $user_id, 'recovery', str_repeat('0', 32));
+        throw new LogicException('A stale worker completed a current claim.');
+    } catch (RuntimeException $expected) {}
+    failQueuedAccountEmail($conn, $first['id'], $previous_id, new RuntimeException('stale worker'), true, str_repeat('0', 32));
+    expectEmailOutboxWorker($conn->execute_query('SELECT status FROM email_outbox WHERE id = ?', [$first['id']])->fetch_row()[0] === 'processing', 'Stale failures cannot overwrite a current claim.');
     $conn->begin_transaction();
-    completeQueuedAccountEmail($conn, $previous_id, $user_id, 'recovery');
+    completeQueuedAccountEmail($conn, $previous_id, $user_id, 'recovery', $first['claim_token']);
     $conn->commit();
 
     $after_first = $conn->query(
@@ -87,7 +93,7 @@ try {
         'the replacement should remain claimable after the earlier delivery completes.'
     );
     $conn->begin_transaction();
-    completeQueuedAccountEmail($conn, $replacement_id, $user_id, 'recovery');
+    completeQueuedAccountEmail($conn, $replacement_id, $user_id, 'recovery', $second['claim_token']);
     $conn->commit();
 
     $final_tokens = $conn->query(
@@ -123,6 +129,17 @@ try {
             : $row['status'] === 'processing' && $row['payload_ciphertext'] !== null,
             'final-attempt cleanup handles ' . $label . ' leases without disturbing an active or retryable delivery.');
     }
+    $uncertain = claimQueuedAccountEmail($conn);
+    expectEmailOutboxWorker($uncertain !== null, 'The pre-send expired lease can be reclaimed.');
+    startEmailDelivery($conn, 'email_outbox', $uncertain['id'], $uncertain['claim_token']);
+    failQueuedAccountEmail($conn, $uncertain['id'], $uncertain['token_id'], new SmtpUncertainDeliveryException('Relay closed after DATA'), false, $uncertain['claim_token']);
+    $row = $conn->execute_query('SELECT status, smtp_message_id FROM email_outbox WHERE id = ?', [$uncertain['id']])->fetch_assoc();
+    expectEmailOutboxWorker($row['status'] === 'delivery_uncertain' && $row['smtp_message_id'] === $uncertain['smtp_message_id'], 'Uncertain delivery is held with its provider reference.');
+    expectEmailOutboxWorker(claimQueuedAccountEmail($conn) === null, 'Uncertain delivery is never automatically retried.');
+    $conn->execute_query("UPDATE email_outbox SET status = 'processing', processing_started_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 1200 SECOND) WHERE id = ?", [$uncertain['id']]);
+    maintainQueuedAccountEmail($conn);
+    expectEmailOutboxWorker($conn->execute_query('SELECT status FROM email_outbox WHERE id = ?', [$uncertain['id']])->fetch_row()[0] === 'delivery_uncertain', 'A worker crash after sending began must also be held.');
+
 } finally {
     try {
         $conn->rollback();

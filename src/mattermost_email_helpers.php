@@ -164,20 +164,24 @@ function mattermostEmailMessagePayload(mysqli $conn, int $messageId): array
     $recipientCount = (int) $message['recipient_count'];
     $sentCount = (int) $message['sent_count'];
     $failedCount = (int) $message['failed_count'];
+    $uncertainCount = (int) ($message['uncertain_count'] ?? 0);
     return [
         'ok' => true,
-        'message' => $failedCount > 0
+        'message' => $uncertainCount > 0
+            ? 'Delivery could not be confirmed. Check the provider or recipient before resending from MOED.'
+            : ($failedCount > 0
             ? 'One or more email deliveries failed. Open the delivery record in MOED to review or retry them.'
             : ($sentCount === $recipientCount
                 ? 'Email delivered and added to the MOED Chron.'
-                : 'Email queued for delivery and added to the MOED Chron.'),
+                : 'Email queued for delivery and added to the MOED Chron.')),
         'message_id' => $messageId,
         'engagement_id' => (int) $message['engagement_id'],
         'status' => engagementEmailAggregateStatus($message),
         'recipient_count' => $recipientCount,
         'sent_count' => $sentCount,
         'failed_count' => $failedCount,
-        'pending_count' => max(0, $recipientCount - $sentCount - $failedCount),
+        'uncertain_count' => (int) ($message['uncertain_count'] ?? 0),
+        'pending_count' => max(0, $recipientCount - $sentCount - $failedCount - (int) ($message['uncertain_count'] ?? 0)),
         'deliveries' => $deliveries,
         'url' => mattermostPublicUrl('outbound_mail.php', ['id' => $messageId]),
     ];

@@ -64,6 +64,7 @@ RUN ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-create-admin \
     && ln -s /usr/local/bin/dnr-password-cli /usr/local/bin/dnr-set-password
 COPY --chmod=0644 scripts/migrate_passwords.php /opt/dnr/bin/migrate_passwords.php
 COPY --chmod=0644 scripts/check_worker_health.php /opt/dnr/bin/check_worker_health.php
+COPY --chmod=0644 scripts/maintain_file_storage.php /opt/dnr/bin/maintain_file_storage.php
 COPY --chmod=0644 scripts/check_schema.php /opt/dnr/bin/check_schema.php
 COPY --chmod=0644 scripts/check_config.php /opt/dnr/bin/check_config.php
 COPY --chmod=0644 scripts/process_geocode_queue.php /opt/dnr/bin/process_geocode_queue.php

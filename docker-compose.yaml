@@ -15,6 +15,8 @@ x-app-environment: &app-environment
   MYSQL_DATABASE: dnr
   MYSQL_USER: dnruser
   MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_app_password
+  DNR_STORAGE_MIN_FREE_BYTES: ${DNR_STORAGE_MIN_FREE_BYTES:-134217728}
+  DNR_REQUIRE_STORAGE_MONITOR: "1"
   DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
   DNR_BACKUP_SERVICE_URL: http://backup/export.php
   DNR_REQUIRE_DATABASE_ENCRYPTION: "1"
@@ -62,7 +64,6 @@ services:
     read_only: true
     tmpfs:
       - /tmp:rw,noexec,nosuid,size=1280m
-      - /var/lib/php/sessions:rw,noexec,nosuid,size=32m
       - /var/lock/apache2:rw,noexec,nosuid,size=1m
       - /var/run/apache2:rw,noexec,nosuid,size=1m
     cap_drop: [ALL]
@@ -71,6 +72,8 @@ services:
       - no-new-privileges:true
     labels: *watchtower-disabled-labels
     depends_on:
+      file-monitor:
+        condition: service_started
       file-migrator:
         condition: service_completed_successfully
     secrets:
@@ -79,6 +82,7 @@ services:
       - dnr_mysql_app_password
     environment: *app-environment
     volumes:
+      - app_sessions:/var/lib/php/sessions
       - uploaded_files:/var/lib/dnr/files
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
       - ./var/deployment:/run/dnr/deployment:ro
@@ -89,6 +93,71 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+
+  downloads:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    restart: unless-stopped
+    read_only: true
+    mem_limit: 2g
+    cpus: 1.0
+    pids_limit: 64
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+      - /var/lock/apache2:rw,noexec,nosuid,size=1m
+      - /var/run/apache2:rw,noexec,nosuid,size=1m
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, NET_BIND_SERVICE, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+    labels: *watchtower-disabled-labels
+    depends_on:
+      file-migrator:
+        condition: service_completed_successfully
+      file-monitor:
+        condition: service_started
+    environment: *app-environment
+    secrets: [dnr_mysql_app_password, dnr_2fa_encryption_key, dnr_inbound_routing_key]
+    volumes:
+      - uploaded_files:/var/lib/dnr/files:ro
+      - app_sessions:/var/lib/php/sessions
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+      - ./docker/apache-downloads.conf:/etc/apache2/sites-enabled/000-default.conf:ro
+      - ./docker/php-downloads.ini:/usr/local/etc/php/conf.d/zzz-dnr-downloads.ini:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_schema.php"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  file-monitor:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    restart: unless-stopped
+    read_only: true
+    user: www-data
+    mem_limit: 256m
+    cpus: 0.25
+    pids_limit: 16
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    labels: *watchtower-disabled-labels
+    entrypoint: ["sh", "-c", "while true; do php /opt/dnr/bin/maintain_file_storage.php; sleep 60; done"]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    depends_on:
+      file-migrator:
+        condition: service_completed_successfully
+    environment: *app-environment
+    secrets: [dnr_mysql_app_password, dnr_2fa_encryption_key, dnr_inbound_routing_key]
+    volumes:
+      - uploaded_files:/var/lib/dnr/files
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
+    healthcheck:
+      test: ["CMD", "php", "-r", "require '/var/www/html/file_storage_maintenance_helpers.php'; requireHealthyPersistentStorage();"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
 
   file-migrator:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
@@ -180,6 +249,8 @@ services:
     volumes:
       - ./var/deployment:/run/dnr/deployment:ro
     depends_on:
+      downloads:
+        condition: service_healthy
       web:
         condition: service_healthy
     networks:
@@ -385,6 +456,11 @@ services:
     networks: [backend]
 
 volumes:
+  app_sessions:
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=32m,uid=33,gid=33,mode=0700,noexec,nosuid"
   uploaded_files:
   db_data:
   db_keyring:

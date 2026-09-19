@@ -45,6 +45,7 @@ try {
         SUM(status = 'failed') AS failed_count,
         SUM(status IN ('pending', 'processing')) AS queued_count
         FROM inbound_email_messages");
+    $uncertainMail = $metric($conn, "SELECT COUNT(*) AS total FROM engagement_email_deliveries WHERE status = 'delivery_uncertain'");
     $mailboxes = inboundMailboxOperationalStates($conn);
     $quarantine = $metric($conn, 'SELECT COUNT(*) AS total FROM inbound_email_quarantine WHERE reviewed_at IS NULL');
     $backup = $metric($conn, "SELECT created_at AS last_backup_at, details AS last_backup_details
@@ -71,6 +72,7 @@ try {
         <div class="summary-card"><span><small>Geocoding retries</small><strong><?php echo (int) ($geocoding['retry'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Inbound mail review</small><strong><?php echo (int) ($inboundMail['review_count'] ?? 0); ?></strong></span></div>
         <div class="summary-card summary-danger"><span><small>Inbound mail failures</small><strong><?php echo (int) ($inboundMail['failed_count'] ?? 0); ?></strong></span></div>
+        <div class="summary-card summary-danger"><span><small>Uncertain correspondence deliveries</small><strong><?php echo (int) ($uncertainMail['total'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Failed authentication, 24h</small><strong><?php echo (int) ($authentication['failed_last_24_hours'] ?? 0); ?></strong></span></div>
         <div class="summary-card"><span><small>Applied migrations</small><strong><?php echo (int) ($migration['applied'] ?? 0); ?></strong></span></div>
     </div>

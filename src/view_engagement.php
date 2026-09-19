@@ -479,6 +479,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     'failed' => 'Failed',
                     'partial' => 'Partially sent',
                     'pending' => 'Pending',
+                    'delivery_uncertain' => 'Delivery uncertain',
                 ];
                 ?>
                 <article class="engagement-email-history-item">

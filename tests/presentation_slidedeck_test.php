@@ -38,11 +38,17 @@ try {
     try { presentationSlidedeckFromPath($path, 'deck.pptx', false); throw new RuntimeException('Empty XML parts accepted.'); }
     catch (InvalidArgumentException $expected) {}
     // A legacy OLE presentation is accepted separately from ZIP-based PPTX.
-    file_put_contents($path, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" . str_repeat("\0", 504)
-        . mb_convert_encoding('PowerPoint Document', 'UTF-16LE', 'UTF-8') . str_repeat("\0", 512));
+    copy(__DIR__ . '/fixtures/powerpoint/basic_test_ppt_file.ppt', $path);
     clearstatcache();
     $legacy = presentationSlidedeckFromPath($path, 'legacy.ppt', false);
     expectSlidedeck($legacy['mime_type'] === PRESENTATION_SLIDEDECK_MIMES['ppt'], 'Legacy PPT files retain their PowerPoint MIME type.');
+    $realPpt = file_get_contents(__DIR__ . '/fixtures/powerpoint/basic_test_ppt_file.ppt');
+    $badFat = $realPpt; $badFat = substr_replace($badFat, pack('V', 0x7FFFFFFF), 44, 4);
+    $badDirectory = substr_replace($realPpt, pack('V', 0x7FFFFFFF), 48, 4);
+    foreach (["\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" . mb_convert_encoding('PowerPoint Document', 'UTF-16LE', 'UTF-8'),
+        substr($realPpt, 0, -1), $badFat, $badDirectory] as $invalid) {
+        expectSlidedeck(!isValidLegacyPowerPoint($invalid), 'Forged, truncated and out-of-bounds compound files must fail.');
+    }
     file_put_contents($path, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1" . str_repeat("\0", 512));
     clearstatcache();
     try { presentationSlidedeckFromPath($path, 'spreadsheet.ppt', false); throw new RuntimeException('Non-PowerPoint OLE accepted.'); }

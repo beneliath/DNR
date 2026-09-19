@@ -1,4 +1,8 @@
 services:
+  downloads:
+    environment:
+      DNR_TRUSTED_PROXY_IPS: ${DNR_EDGE_TRAEFIK_IP:-172.29.255.2},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
+      DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_CLOUDFLARED_PROXY_IP:-172.18.0.254}
   web:
     environment:
       # The inner ingress adds its fixed backend address automatically. The

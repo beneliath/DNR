@@ -3,7 +3,7 @@
   "edition_date": "September 19, 2026",
   "pages": 141,
   "screenshots": 82,
-  "link_annotations": 1190,
+  "link_annotations": 1191,
   "destinations": {
     "contents": 2,
     "how-to-use": 3,
@@ -385,9 +385,10 @@
     "readme-section-56": 140,
     "readme-section-57": 141,
     "readme-section-58": 141,
+    "readme-section-59": 141,
     "__total__": 141
   },
-  "outline_entries": 298,
+  "outline_entries": 299,
   "edition_scope": "Local changes since the v2.1.17 S1 production deployment (cd2b64d)",
   "sources": [
     "src/presentation_slidedeck_helpers.php",
@@ -837,10 +838,10 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "2494bd880ecae9d31e5186dc81c88b50d33291f7d56cb92b8c5d4fe47ff00a7e",
-    "bytes": 103014,
+    "sha256": "de275b70c293197958a632b211cc86cf5b79a90da5a89f784453ac6d6c71f9eb",
+    "bytes": 103342,
     "start_page": 117,
-    "sections": 58,
+    "sections": 59,
     "attachment": "README.md"
   }
 }

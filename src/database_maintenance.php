@@ -9,6 +9,9 @@ requireAuditLogSchema($conn);
 header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
+require_once __DIR__ . '/file_storage_maintenance_helpers.php';
+$storage_capacity = persistentFileCapacity($conn);
+$storage_health = persistentStorageHealth();
 $maximum_backup_bytes = databaseBackupMaximumBytes();
 $actor_id = (int) $_SESSION['user_id'];
 $actor = fetchAuthenticationUserById($conn, $actor_id);
@@ -144,6 +147,17 @@ try {
 
     <div class="database-maintenance-grid">
         <section class="database-maintenance-card">
+            <h2>Uploaded File Storage</h2>
+            <p>Current files: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($storage_capacity['live_bytes'])); ?>.
+                Retained replacements: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($storage_capacity['total_bytes'] - $storage_capacity['live_bytes'])); ?>.
+                Total stored: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($storage_capacity['total_bytes'])); ?>
+                across <?php echo (int) $storage_capacity['total_count']; ?> registered files.</p>
+            <p class="maintenance-note">Backups include retained replacements. Operators can remove unused files after a minimum 30-day grace period using the storage maintenance tool, following a verified backup.</p>
+            <?php if (!empty($storage_health['errors']) || time() - (int) ($storage_health['checked_at'] ?? 0) > 180): ?>
+                <p class="database-warning">Storage integrity checks need attention. Ask your administrator to check the storage monitor before relying on a new backup.</p>
+            <?php else: ?>
+                <p class="maintenance-note">Storage checks are running. Free disk space: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel((int) ($storage_health['free_bytes'] ?? 0))); ?>.</p>
+            <?php endif; ?>
             <h2>Export Backup</h2>
             <p class="database-backup-history">Last backup created:<br>
                 <strong id="database-backup-last-created"><?php echo htmlspecialchars($last_backup_label, ENT_QUOTES, 'UTF-8'); ?></strong>

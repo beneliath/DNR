@@ -9,7 +9,7 @@ require_once $source . '/presentation_slidedeck_helpers.php';
 require_once $source . '/presentation_qr_pdf.php';
 require_once __DIR__ . '/presentation_slidedeck_fixture.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080','/');
-if (!in_array(parse_url($base,PHP_URL_HOST),['127.0.0.1','localhost'],true)) throw new RuntimeException('Loopback server required.');
+if (!in_array(parse_url($base,PHP_URL_HOST),['127.0.0.1','localhost','ingress'],true)) throw new RuntimeException('Loopback server required.');
 function expectLinkHttp(bool $ok,string $message):void { if(!$ok) throw new RuntimeException($message); }
 $request=static function(string $path,?array $post=null,string $cookie='',array $extra=[],bool $head=false)use($base):array{
  $c=curl_init($base.'/'.$path);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>15,CURLOPT_USERAGENT=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);

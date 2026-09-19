@@ -260,7 +260,8 @@ function runSmtpSessionScenario(string $scenario): ?array
                 ? '<!doctype html><html><body><p>Rich message body.</p></body></html>'
                 : null,
             visibleRecipients: $scenario === 'recipient-headers'
-                ? ['to' => ['primary@example.test'], 'cc' => ['copy@example.test']] : null
+                ? ['to' => ['primary@example.test'], 'cc' => ['copy@example.test']] : null,
+            messageId: '<stable-delivery-id@dnr.invalid>'
         );
         if (in_array($scenario, ['reuse', 'pre-data-reconnect'], true)) {
             deliverApplicationEmailWithSession(
@@ -318,6 +319,7 @@ expectSmtpSessionProtocol(
 
 $typed = runSmtpSessionScenario('recipient-headers');
 $typedData = $typed['message_data'] ?? '';
+expectSmtpSessionProtocol(str_contains($typedData, 'Message-ID: <stable-delivery-id@dnr.invalid>'), 'A stable Message-ID is retained in the wire message.');
 expectSmtpSessionProtocol($typed !== null && $typed['child_status'] === 0
     && $typed['client_error'] === null && $typed['messages'] === 1
     && str_contains($typedData, 'To: <primary@example.test>')
@@ -373,7 +375,7 @@ expectSmtpSessionProtocol(
     $postData !== null
         && $postData['child_status'] === 0
         && $postData['error'] === null
-        && $postData['client_error'] !== null
+        && $postData['client_type'] === SmtpUncertainDeliveryException::class
         && $postData['connections'] === 1
         && $postData['messages'] === 1
         && $postData['quits'] === 0,

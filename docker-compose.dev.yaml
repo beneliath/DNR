@@ -1,4 +1,15 @@
 services:
+  downloads:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./migrations:/opt/dnr/migrations:ro
+      - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
+    environment:
+      DNR_REQUIRE_HTTPS: "0"
+  file-monitor:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./scripts/maintain_file_storage.php:/opt/dnr/bin/maintain_file_storage.php:ro
   file-migrator:
     volumes:
       - ./src:/var/www/html:ro

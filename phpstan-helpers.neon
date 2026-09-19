@@ -1,6 +1,10 @@
 parameters:
     level: 5
     paths:
+        - src/email_delivery_claim_helpers.php
+        - src/legacy_powerpoint_helpers.php
+        - src/native_backup_stream_helpers.php
+        - src/file_storage_maintenance_helpers.php
         - src/persistent_file_helpers.php
         - src/persistent_file_backup_helpers.php
         - src/persistent_file_migration_helpers.php

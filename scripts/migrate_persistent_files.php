@@ -11,6 +11,7 @@ try {
     if (!is_writable(persistentFileRoot())) throw new RuntimeException('Persistent storage is not writable by the PHP user.');
     $locked = (int) $conn->query("SELECT GET_LOCK('dnr_persistent_file_migration', 60)")->fetch_row()[0] === 1;
     if (!$locked) throw new RuntimeException('Another file migration is running.');
+    lockPersistentFiles();
     $count = migratePersistentFiles($conn);
     fwrite(STDOUT, "Persistent storage migration completed: {$count} files converted.\n");
 } catch (Throwable $exception) {

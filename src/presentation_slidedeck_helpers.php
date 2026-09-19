@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/presentation_asset_helpers.php';
 require_once __DIR__ . '/persistent_file_helpers.php';
+require_once __DIR__ . '/legacy_powerpoint_helpers.php';
 
 const PRESENTATION_SLIDEDECK_MAX_BYTES = 100 * 1024 * 1024;
 const PRESENTATION_SLIDEDECK_MIMES = [
@@ -32,9 +33,7 @@ function presentationSlidedeckFromPath(string $path, string $originalName, bool 
     }
     $valid = false;
     if ($extension === 'ppt') {
-        // Legacy PowerPoint uses an OLE container with a named PowerPoint stream.
-        $valid = str_starts_with($contents, "\xD0\xCF\x11\xE0\xA1\xB1\x1A\xE1")
-            && str_contains($contents, mb_convert_encoding('PowerPoint Document', 'UTF-16LE', 'UTF-8'));
+        $valid = isValidLegacyPowerPoint($contents);
     } else {
         $zip = new ZipArchive();
         if ($zip->open($path, ZipArchive::RDONLY) === true) {

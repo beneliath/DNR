@@ -77,7 +77,7 @@ expectServiceDatabaseIsolation(
     'only the outbound-mail worker should receive the SMTP password secret.'
 );
 expectServiceDatabaseIsolation(
-    str_contains($grants, 'GRANT SELECT (token_id, status)')
+    str_contains($grants, 'GRANT SELECT (token_id, status, claim_token)')
         && str_contains($grants, 'task_digest_enabled')
         && str_contains($grants, '.follow_up_tasks')
         && !str_contains($grants, 'GRANT SELECT, INSERT, UPDATE, DELETE ON `${MYSQL_DATABASE}`.email_outbox TO'),

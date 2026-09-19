@@ -44,6 +44,7 @@ PPT Slidedeck, download the PowerPoint, copy any presentation QR link, recognize
 Due tomorrow labels, and understand that encrypted backups include uploaded files.
 The PDF adds illustrated procedures, stable-link and statistics behavior, upload
 limits, file-storage/recovery context, and the complete current README appendix.
+The hardening update explains storage capacity/health and the reviewed resend action for uncertain email delivery.
 Email logo contrast and administrator unlock alignment need no new user steps;
 the PDF edition notes identify these refinements.
 

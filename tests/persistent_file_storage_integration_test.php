@@ -114,6 +114,7 @@ try {
 } finally {
     putenv('DNR_FILE_STORAGE_PATH=' . $originalRoot);
     foreach (glob($newRoot . '/*') as $path) unlink($path);
+    @unlink($newRoot . '/.lifecycle.lock');
     rmdir($newRoot);
     foreach ([$backup, $encrypted, $decrypted] as $file) if ($file !== null) @unlink($file['path']);
     $reader->close();

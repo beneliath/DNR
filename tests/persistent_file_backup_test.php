@@ -78,6 +78,7 @@ try {
 } finally {
     unlink($archive);
     foreach (array_merge(glob($directory . '/*'), glob($directory . '/.restore-*')) as $path) @unlink($path);
+    @unlink($directory . '/.lifecycle.lock');
     rmdir($directory);
     putenv($previousRoot === false ? 'DNR_FILE_STORAGE_PATH' : 'DNR_FILE_STORAGE_PATH=' . $previousRoot);
 }

@@ -2,6 +2,19 @@
 
 declare(strict_types=1);
 
+/** Hold through the request/transaction so cleanup cannot race publishing or backup snapshots. */
+function lockPersistentFiles(): void
+{
+    static $locks = [];
+    $root = persistentFileRoot();
+    if (isset($locks[$root])) return;
+    $path = $root . '/.lifecycle.lock';
+    if (is_link($path)) throw new RuntimeException('Invalid file lifecycle lock.');
+    $handle = @fopen($path, is_file($path) ? 'rb' : 'x+b');
+    if ($handle === false || !flock($handle, LOCK_SH)) throw new RuntimeException('Persistent storage is busy or unavailable.');
+    $locks[$root] = $handle;
+}
+
 /** Uploads live outside the document root on a shared, persistent volume. */
 function persistentFileRoot(): string
 {
@@ -32,6 +45,7 @@ function persistentFilePath(string $key): string
 /** Publish complete immutable files atomically; never overwrite existing files. */
 function installPersistentFile(string $source, array $metadata): void
 {
+    lockPersistentFiles();
     $key = (string) $metadata['storage_key'];
     $checksum = (string) $metadata['checksum'];
     if (!hash_equals(persistentFileKey($checksum, $metadata['filename'], $metadata['content_type']), $key)
@@ -61,6 +75,7 @@ function installPersistentFile(string $source, array $metadata): void
 /** Write before the database pointer. A rolled-back transaction can leave only an unused file. */
 function storePersistentFile(mysqli $conn, string $data, string $filename, string $contentType): string
 {
+    lockPersistentFiles();
     $filename = substr(basename(str_replace('\\', '/', $filename)), 0, 255);
     if ($data === '' || $filename === '' || strlen($contentType) > 127) {
         throw new InvalidArgumentException('Invalid persistent file metadata.');
@@ -101,6 +116,7 @@ function persistentFileMetadata(mysqli $conn, string $key): array
 /** @return resource */
 function openPersistentFile(array $metadata, bool $verifyChecksum = false)
 {
+    lockPersistentFiles();
     $path = persistentFilePath((string) $metadata['storage_key']);
     $handle = @fopen($path, 'rb');
     if ($handle === false) throw new RuntimeException('A persistent file is missing.');

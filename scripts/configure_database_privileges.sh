@@ -132,7 +132,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.users TO '${MYSQL_
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.stored_files TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${MYSQL_USER}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
-GRANT SELECT (token_id, status) ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
+GRANT SELECT (token_id, status, claim_token) ON \`${MYSQL_DATABASE}\`.email_outbox TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.user_recovery_codes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.authentication_rate_limits TO '${MYSQL_USER}'@'%';
@@ -157,7 +157,7 @@ GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${
 GRANT SELECT (
     id, message_id, contact_id, recipient_name, recipient_email, recipient_type,
     recipient_roles_json, status, attempts, next_attempt_at,
-    processing_started_at, sent_at, last_error, created_at, updated_at
+    processing_started_at, sent_at, last_error, created_at, updated_at, claim_token, smtp_message_id
 ) ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_map_geocodes TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_map_geocode_queue TO '${MYSQL_USER}'@'%';

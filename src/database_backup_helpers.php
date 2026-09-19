@@ -582,6 +582,7 @@ function databaseBackupWriteRow($handle, string $table, array $row, array $colum
 }
 
 function createDatabaseBackup(mysqli $conn, $application_version, $maximum_bytes = null) {
+    lockPersistentFiles();
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
     $temporary_path = tempnam(sys_get_temp_dir(), 'dnr-backup-');
     if ($temporary_path === false) {
@@ -949,6 +950,7 @@ function restoreDatabaseBackup(
     $maximum_bytes = null
 ) {
     $maximum_bytes = $maximum_bytes ?: databaseBackupMaximumBytes();
+    lockPersistentFiles();
     // Validate the entire archive first, then install immutable files before
     // changing any database rows. Existing files are never removed or replaced;
     // a failed restore leaves the original database and its files usable.

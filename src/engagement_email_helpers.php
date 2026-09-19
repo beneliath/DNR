@@ -856,6 +856,7 @@ function queueEngagementEmail(
 function maintainQueuedEngagementEmail(mysqli $conn, int $leaseSeconds = 600): void
 {
     $leaseSeconds = max(60, min(3600, $leaseSeconds));
+    expireUncertainEmailDeliveries($conn, 'engagement_email_deliveries', $leaseSeconds);
     if ($conn->query(
         "UPDATE engagement_email_deliveries
          SET status = 'failed', processing_started_at = NULL,
@@ -880,7 +881,7 @@ function maintainQueuedEngagementEmail(mysqli $conn, int $leaseSeconds = 600): v
     }
 }
 
-/** @return array{id: int, message_id: int, payload_ciphertext: string, attempts: int}|null */
+/** @return array{claim_token: string, smtp_message_id: string, id: int, message_id: int, payload_ciphertext: string, attempts: int}|null */
 function claimQueuedEngagementEmail(
     mysqli $conn,
     int $leaseSeconds = 600,
@@ -930,8 +931,10 @@ function claimQueuedEngagementEmail(
             throw new RuntimeException('The engagement email could not be claimed.');
         }
         $claim->close();
+        $deliveryClaim = stampEmailDeliveryClaim($conn, 'engagement_email_deliveries', $deliveryId);
         $conn->commit();
         return [
+            ...$deliveryClaim,
             'id' => $deliveryId,
             'message_id' => (int) $row['message_id'],
             'payload_ciphertext' => (string) $row['payload_ciphertext'],
@@ -968,19 +971,19 @@ function engagementEmailNormalizeOptionalAddress(mixed $address): string
     return normalizeAccountEmail($address);
 }
 
-function completeQueuedEngagementEmail(mysqli $conn, int $deliveryId): void
+function completeQueuedEngagementEmail(mysqli $conn, int $deliveryId, ?string $claimToken = null): void
 {
     $stmt = $conn->prepare(
         "UPDATE engagement_email_deliveries
          SET status = 'sent', sent_at = UTC_TIMESTAMP(),
              processing_started_at = NULL, payload_ciphertext = NULL,
              last_error = NULL
-         WHERE id = ? AND status IN ('pending', 'processing', 'retry')"
+         WHERE id = ? AND claim_token <=> ? AND status IN ('pending', 'processing', 'retry')"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare engagement email completion.');
     }
-    $stmt->bind_param('i', $deliveryId);
+    $stmt->bind_param('is', $deliveryId, $claimToken);
     $stmt->execute();
     if ($stmt->affected_rows !== 1) {
         $stmt->close();
@@ -994,8 +997,13 @@ function failQueuedEngagementEmail(
     int $deliveryId,
     int $attempts,
     Throwable $exception,
-    bool $permanent = false
+    bool $permanent = false,
+    ?string $claimToken = null
 ): void {
+    if ($exception instanceof SmtpUncertainDeliveryException) {
+        markEmailDeliveryUncertain($conn, 'engagement_email_deliveries', $deliveryId, $claimToken);
+        return;
+    }
     $terminal = $permanent || $attempts >= 8;
     $status = $terminal ? 'failed' : 'retry';
     $delay = min(3600, 15 * (2 ** max(0, min(7, $attempts - 1))));
@@ -1003,17 +1011,17 @@ function failQueuedEngagementEmail(
     $error = mb_substr($error !== '' ? $error : 'Delivery failed.', 0, 255, 'UTF-8');
     $stmt = $conn->prepare(
         "UPDATE engagement_email_deliveries
-         SET status = ?, processing_started_at = NULL,
+         SET status = ?, processing_started_at = NULL, delivery_started_at = NULL,
              next_attempt_at = DATE_ADD(UTC_TIMESTAMP(), INTERVAL ? SECOND),
              payload_ciphertext = IF(? = 1, NULL, payload_ciphertext),
              last_error = ?
-         WHERE id = ? AND status IN ('pending', 'processing', 'retry')"
+         WHERE id = ? AND claim_token <=> ? AND status IN ('pending', 'processing', 'retry')"
     );
     if (!$stmt) {
         throw new RuntimeException('Unable to prepare engagement email failure handling.');
     }
     $terminalValue = $terminal ? 1 : 0;
-    $stmt->bind_param('siisi', $status, $delay, $terminalValue, $error, $deliveryId);
+    $stmt->bind_param('siisis', $status, $delay, $terminalValue, $error, $deliveryId, $claimToken);
     $stmt->execute();
     $stmt->close();
 }
@@ -1029,6 +1037,7 @@ function fetchEngagementEmailMessages(mysqli $conn, int $engagementId, int $limi
                 COUNT(delivery.id) AS recipient_count,
                 SUM(delivery.status = 'sent') AS sent_count,
                 SUM(delivery.status = 'failed') AS failed_count,
+                SUM(delivery.status = 'delivery_uncertain') AS uncertain_count,
                 SUM(delivery.status IN ('pending', 'processing', 'retry')) AS pending_count,
                 GROUP_CONCAT(
                     CONCAT(delivery.recipient_name, ' <', delivery.recipient_email, '>')
@@ -1057,6 +1066,7 @@ function fetchEngagementEmailMessages(mysqli $conn, int $engagementId, int $limi
 /** @param array<string, mixed> $message */
 function engagementEmailAggregateStatus(array $message): string
 {
+    if ((int) ($message['uncertain_count'] ?? 0) > 0) return 'delivery_uncertain';
     $total = (int) ($message['recipient_count'] ?? 0);
     $sent = (int) ($message['sent_count'] ?? 0);
     $failed = (int) ($message['failed_count'] ?? 0);
@@ -1099,7 +1109,7 @@ function fetchEngagementEmailMessage(mysqli $conn, int $messageId): ?array
     }
     $deliveries = $conn->prepare(
         'SELECT id, contact_id, recipient_name, recipient_email, recipient_type,
-                recipient_roles_json, status, attempts, sent_at, last_error,
+                recipient_roles_json, status, attempts, sent_at, last_error, smtp_message_id,
                 created_at, updated_at
          FROM engagement_email_deliveries
          WHERE message_id = ? ORDER BY id'
@@ -1116,6 +1126,8 @@ function fetchEngagementEmailMessage(mysqli $conn, int $messageId): ?array
         $message['deliveries'],
         static fn(array $delivery): bool => $delivery['status'] === 'sent'
     ));
+    $message['uncertain_count'] = count(array_filter($message['deliveries'],
+        static fn(array $delivery): bool => $delivery['status'] === 'delivery_uncertain'));
     $message['failed_count'] = count(array_filter(
         $message['deliveries'],
         static fn(array $delivery): bool => $delivery['status'] === 'failed'
@@ -1123,8 +1135,9 @@ function fetchEngagementEmailMessage(mysqli $conn, int $messageId): ?array
     return $message;
 }
 
-function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId): int
+function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId, bool $retryUncertain = false): int
 {
+    $retryStatus = $retryUncertain ? 'delivery_uncertain' : 'failed';
     $conn->begin_transaction();
     try {
         $message = fetchEngagementEmailMessage($conn, $messageId);
@@ -1151,9 +1164,9 @@ function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId): int
         $stmt = $conn->prepare(
             "UPDATE engagement_email_deliveries
              SET status = 'retry', attempts = 0, next_attempt_at = UTC_TIMESTAMP(),
-                 processing_started_at = NULL, sent_at = NULL, last_error = NULL,
+                 processing_started_at = NULL, delivery_started_at = NULL, claim_token = NULL, sent_at = NULL, last_error = NULL,
                  payload_ciphertext = ?
-             WHERE id = ? AND message_id = ? AND status = 'failed'"
+             WHERE id = ? AND message_id = ? AND status = '{$retryStatus}'"
         );
         if (!$stmt) {
             throw new RuntimeException('Unable to prepare the failed delivery retry.');
@@ -1163,7 +1176,7 @@ function retryFailedEngagementEmailDeliveries(mysqli $conn, int $messageId): int
         $stmt->bind_param('sii', $payload, $deliveryId, $messageId);
         $retried = 0;
         foreach ($message['deliveries'] as $delivery) {
-            if ($delivery['status'] !== 'failed') {
+            if ($delivery['status'] !== $retryStatus) {
                 continue;
             }
             $deliveryId = (int) $delivery['id'];

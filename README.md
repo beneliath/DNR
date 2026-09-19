@@ -1442,3 +1442,7 @@ screenshot boundaries, readable examples, and isolated lines before installing t
 ## License
 
 This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+
+## Storage and delivery hardening
+
+See [Storage and delivery operations](docs/storage-and-delivery-operations.md) for isolated integration tests, retained-file cleanup, storage integrity monitoring, encrypted native backups, production disk-encryption checks, the separate download pool, and handling uncertain email delivery.

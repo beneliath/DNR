@@ -246,6 +246,10 @@ jobs:
           python3 tests/http_connection_capacity_test.py
           sh tests/http_authenticated_test.sh
       - name: Run database integration suites
+        env:
+          DNR_TEST_APP_IMAGE: dnr-app:local
+          DNR_TEST_INGRESS_IMAGE: dnr-ingress:local
+          DNR_TEST_DATABASE_IMAGE: dnr-database:local
         run: sh scripts/run_integration_tests.sh disposable
       - name: Show service logs
         if: failure()
