@@ -1,5 +1,5 @@
 {
-  "version": "2.1.17",
+  "version": "2.2.1",
   "edition_date": "September 19, 2026",
   "pages": 141,
   "screenshots": 82,
@@ -389,7 +389,7 @@
     "__total__": 141
   },
   "outline_entries": 299,
-  "edition_scope": "Local changes since the v2.1.17 S1 production deployment (cd2b64d)",
+  "edition_scope": "Application release 2.2.1",
   "sources": [
     "src/presentation_slidedeck_helpers.php",
     "src/persistent_file_helpers.php",

@@ -1,0 +1,13 @@
+---
+description: Match a changed Comprehensive Guide PDF to the application version it documents before an s1 deployment
+alwaysApply: true
+---
+
+# Comprehensive Guide Version for s1 Deployments
+
+- Whenever an s1 deployment is requested, including minor, major, and super bump deployments, check whether the Comprehensive Guide PDF has changed for that deployment. Compare against the last successfully deployed s1 revision, including guide changes already merged into `main` and pending guide source changes that require a rebuild.
+- If the guide has changed, update its application-version reference to the version it applies to in that deployment. Finalize the release `VERSION` first, then rebuild and install `src/assets/docs/moed-comprehensive-user-manual.pdf` using [the manual build instructions](../../docs/user-manual/README.md). The builder reads the root `VERSION` file.
+- Verify the finished PDF's cover, scope/edition notes, appendix version reference, and metadata agree with that application version. Reconcile stale draft wording such as “local changes since” an earlier production release; historical references may remain when clearly labeled as historical.
+- Include the verified PDF and any updated guide sources/reports in the release commit before merge, final-main CI, and image publication. If the release version changes again, rebuild and verify the changed guide again before deployment.
+- An unchanged guide does not require a version-only refresh under this rule. Defining this rule does not itself request a deployment.
+- Follow the [release workflow](../../docs/release-workflow.md#comprehensive-guide-version-for-s1).
