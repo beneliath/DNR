@@ -442,6 +442,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
             $task_due_aria_label = match ($row_due_key) {
                 'overdue' => 'Overdue, due ' . $task['due_date'],
                 'today' => 'Due today, ' . $task['due_date'],
+                'upcoming' => $due_presentation['detail'] . ', due ' . $task['due_date'],
                 default => !empty($task['due_date'])
                     ? 'Due ' . $task['due_date']
                     : $due['label'],

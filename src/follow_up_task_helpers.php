@@ -991,7 +991,8 @@ function followUpTaskDueState($due_date, $today = null)
     if ($due_date === $today) {
         return ['key' => 'today', 'label' => 'Due today'];
     }
-    return ['key' => 'upcoming', 'label' => 'Due ' . $due_date];
+    $tomorrow = (new DateTimeImmutable($today, applicationTimezone()))->modify('+1 day')->format('Y-m-d');
+    return ['key' => 'upcoming', 'label' => $due_date === $tomorrow ? 'Due tomorrow' : 'Due ' . $due_date];
 }
 
 function followUpTaskDuePresentation($due_date, $status, $today = null, bool $archived = false)
@@ -1004,11 +1005,13 @@ function followUpTaskDuePresentation($due_date, $status, $today = null, bool $ar
     $business_day = new DateTimeImmutable($today, applicationTimezone());
     $days_overdue = $date < $business_day ? (int) $date->diff($business_day)->days : 0;
     $active = !$archived && in_array($status, followUpTaskActiveStatuses(), true);
-    $detail = !$active
-        ? ($archived ? 'Archived' : (followUpTaskStatuses()[$status] ?? ''))
-        : ($days_overdue > 0
-            ? $days_overdue . ' day' . ($days_overdue === 1 ? '' : 's') . ' overdue'
-            : ($due_date === $today ? 'Due today' : 'Upcoming'));
+    $detail = match (true) {
+        !$active => $archived ? 'Archived' : (followUpTaskStatuses()[$status] ?? ''),
+        $days_overdue > 0 => $days_overdue . ' day' . ($days_overdue === 1 ? '' : 's') . ' overdue',
+        $due_date === $today => 'Due today',
+        $date == $business_day->modify('+1 day') => 'Due tomorrow',
+        default => 'Upcoming',
+    };
     return [
         'date_label' => $date->format($date->format('Y') === $business_day->format('Y') ? 'M j' : 'M j, Y'),
         'detail' => $detail,

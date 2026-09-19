@@ -85,7 +85,7 @@ $digest = [
         'title' => 'Pack materials',
         'status' => 'open',
         'priority' => 'normal',
-        'due_date' => '2026-08-27',
+        'due_date' => '2026-08-24',
         'subject_type' => 'general',
     ]],
     'waiting' => [[
@@ -154,6 +154,7 @@ expectTaskNotificationHelper(
         && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (1)')
         && str_contains($message['body'], 'Waiting on: the event coordinator')
         && str_contains($message['body'], 'Call <the> host & confirm — Overdue · 2026-08-22')
+        && str_contains($message['body'], 'Pack materials — Due tomorrow')
         && str_contains($message['body'], 'Mail For Review: 2')
         && str_contains($message['body'], 'https://moed.example.test/tasks.php?view=my')
         && str_contains($message['body'], 'https://moed.example.test/dashboard.php')
@@ -177,6 +178,7 @@ expectTaskNotificationHelper(
         )
         && str_contains($message['html_body'], 'Upcoming Engagements')
         && str_contains($message['html_body'], 'My Work')
+        && str_contains($message['html_body'], 'Due tomorrow')
         && str_contains($message['html_body'], 'Needs Attention')
         && str_contains($message['html_body'], 'bgcolor="#ffe8ee"')
         && str_contains($message['html_body'], 'bgcolor="#d92d20"')
