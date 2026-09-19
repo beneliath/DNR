@@ -147,10 +147,10 @@ $message = dailyTaskDigestMessage([
 ], $digest, '2026-09-03');
 $productionLogoUrl = dailyTaskDigestHtmlEscape(applicationPublicUrl(
     applicationBrandEmailLogo(),
-    ['v' => applicationVersion()]
+    ['v' => applicationVersion(), 'rev' => 'transparent-1']
 ));
 $previewLogoUrl = dailyTaskDigestHtmlEscape(
-    '../src/' . applicationBrandEmailLogo() . '?v=' . rawurlencode(applicationVersion())
+    '../src/' . applicationBrandEmailLogo() . '?v=' . rawurlencode(applicationVersion()) . '&rev=transparent-1'
 );
 $previewHtml = str_replace(
     'src="' . $productionLogoUrl . '"',

@@ -508,6 +508,13 @@ removes the queued day from their schedule. Sent and terminal payloads are erase
 `php scripts/generate_daily_digest_preview.php` refreshes the deterministic sample at
 `docs/daily-digest-preview.html` through the production renderer.
 
+The email PNG uses a transparent background with a thin white outline around the artwork,
+so clients that force dark message backgrounds do not leave a white rectangle behind the logo.
+Its original colors and dimensions are preserved, and compositing it onto the white masthead
+reproduces the light-mode artwork exactly. Keep the outline when replacing this asset: the small
+dark lettering needs it for contrast. The email logo URL includes an artwork revision to refresh
+cached images independently of the application version.
+
 Administrators with fresh elevation can also manage any user’s digest enablement, delivery time,
 and delivery days from **Users → Edit User**.
 

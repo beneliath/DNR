@@ -84,7 +84,7 @@ return [
     "assets/css/style.min.css" => "93bbfe131f90",
     "assets/data/stats-world.json" => "62e8eb1b0219",
     "assets/dnr-logo-dark.svg" => "ccc37a706f9d",
-    "assets/dnr-logo-email.png" => "bb9f2e007cdf",
+    "assets/dnr-logo-email.png" => "36fd424721f2",
     "assets/dnr-logo.svg" => "4b43544ed2d5",
     "assets/docs/moed-comprehensive-user-manual.pdf" => "f300f4b4273b",
     "assets/favicon.svg" => "e48d793c4774",

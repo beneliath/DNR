@@ -346,7 +346,8 @@ function renderDailyTaskDigestHtml(
     $newEngagementUrl = dailyTaskDigestHtmlUrl('index.php');
     $mastheadLogoUrl = dailyTaskDigestHtmlEscape(applicationPublicUrl(
         applicationBrandEmailLogo(),
-        ['v' => applicationVersion()]
+        // Refresh cached opaque artwork even before the next application release.
+        ['v' => applicationVersion(), 'rev' => 'transparent-1']
     ));
 
     ob_start();
