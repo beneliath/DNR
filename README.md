@@ -418,15 +418,30 @@ These accept HTTP/HTTPS links up to 2,048 characters and appear on the speaker d
 Speaker photos can be uploaded, replaced, or removed with the same JPEG/PNG/WebP validation,
 5 MB limit, resized originals, and thumbnails as contact photos. The Speakers directory shares
 the Contacts theme, search/sort controls, view/edit icons, and upper/lower pagination rules.
-Speakers cannot be archived or deleted.
+Speakers cannot be archived. Administrators can delete unused speakers individually or in bulk after admin unlock; references from presentations, short links, notes, and slide decks prevent deletion.
 Presentation forms select a saved speaker from a dropdown. Edits to a speaker apply to all
 associated presentations, including their calendar entries and exports.
 
 The `20260907_add_speakers.sql` migration creates an initial speaker record and assigns **every existing presentation**,
 including archived records, to that speaker. It then replaces the old free-text speaker name
 with a required foreign key. Apply it through the normal backed-up migration workflow together
-with the application changes. The application database account receives SELECT, INSERT, and
-UPDATE rights for speakers only; the offline exact-restore account retains its recovery access.
+with the application changes. The application database account receives SELECT, INSERT, UPDATE, and DELETE rights for speakers. The `20260921_add_speaker_delete_audit.sql` migration audits speaker deletion; restrictive foreign keys preserve linked history. The offline exact-restore account retains its recovery access.
+
+### Individual and bulk deletion
+
+Administrators can keep using individual Delete actions, or select checkboxes on the
+Organizations, Contacts, Speakers, Engagements, Tasks, and Users lists and choose **Delete selected**.
+**Select all on this page** selects only the displayed items (up to 100); changing pages or filters
+starts a new selection. Only inactive or invited users other than yourself can be selected.
+The review page lists the selected records and related data that deletion removes. Selections
+survive admin unlock and expire after 30 minutes. User deletion additionally requires typing
+**DELETE USERS** for a batch or **DELETE USER** for an individual account.
+
+Every deletion rechecks administrator access and the existing five-minute unlock on the server.
+Deactivating or deleting a user keeps the original unlock deadline; it does not restart the timer
+or lock the administrator out early. Active accounts, your own account, and referenced speakers
+remain protected. Each selected record is processed independently, with deleted and failed counts
+reported on return to the original list and filters. Permanent deletion cannot be undone.
 
 ### Presentation QR codes
 

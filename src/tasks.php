@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/bulk_delete_helpers.php';
 $conn = applicationDatabaseConnection();
 include 'follow_up_task_helpers.php';
 include 'notification_helpers.php';
@@ -423,6 +424,7 @@ $active_task_statuses = followUpTaskActiveStatuses();
         </div>
     </div>
 
+    <?php renderBulkDeleteToolbar('task', $task_return_to); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $task_return_to, 'tasks', 'Work queue pages'); ?>
     <div class="data-table-scroll">
     <table class="task-table data-table">
@@ -456,12 +458,17 @@ $active_task_statuses = followUpTaskActiveStatuses();
             ?>
             <tr class="task-row task-row-<?php echo htmlspecialchars($row_due_key, ENT_QUOTES, 'UTF-8'); ?><?php echo $needs_overdue_attention ? ' task-row-needs-attention' : ''; ?>">
                 <td>
+                    <span class="bulk-delete-record">
+                    <?php renderBulkDeleteCheckbox((int) $task['id'], $task['title']); ?>
+                    <span>
                     <?php if (!empty($task['due_date'])): ?>
                         <time class="task-due-date" datetime="<?php echo htmlspecialchars($task['due_date'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="<?php echo htmlspecialchars($task_due_aria_label, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></time>
                     <?php else: ?>
                         <span class="task-due-date"><?php echo htmlspecialchars($due_presentation['date_label'], ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php endif; ?>
                     <?php if ($due_presentation['detail'] !== ''): ?><small class="task-due-detail"><?php echo htmlspecialchars($due_presentation['detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
+                    </span>
+                    </span>
                 </td>
                 <td>
                     <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>

@@ -156,6 +156,7 @@ $manual_access_summary = match ($manual_role) {
                         <span><i class="manual-action-icon action-delete" aria-hidden="true">×</i><strong>Delete</strong><small>Remove permanently</small></span>
                     </section>
                     <p class="manual-note"><strong>Archive first.</strong> Archiving is reversible and keeps history. Permanent deletion is limited to administrators, requires freshly confirmed administrator access, and cannot be undone.</p>
+                    <p>In a task's related-record search or the Inbox engagement search, <strong>Enter</strong> runs the search without saving the task or filing the message. Choose the intended result, then use the explicit Save action. Enter on a focused button activates that button.</p>
                 </section>
             </section>
 
@@ -357,7 +358,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                     </section>
                     <p>Select <strong>View QR Codes PDF</strong>, choose the codes to include, then select <strong>Prepare PDF</strong> to view, save, or print a single landscape sheet with those labeled codes, schedule, and venue. Use <strong>Select all</strong> to include every available code. Drag any code by its handle to reorder the list, whether checked or unchecked. Only checked codes appear in the PDF, in that order from left to right and then top to bottom. Keyboard users can focus a handle and press the Up or Down arrow key. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; file codes without an uploaded PDF or PowerPoint and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
-                    <p>Each saved presentation has a nearby <strong>Save Changes</strong> button. It saves the engagement form, including other changes on the page. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access.</p>
+                    <p>Each saved presentation has a nearby <strong>Save Changes</strong> button. It saves the engagement form, including other changes on the page. File replacement and removal remain pending until saved; the notice beside the PDF or PPT identifies the pending change. Choose replacement or removal, not both, then save and check the updated file details. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
@@ -487,7 +488,7 @@ $manual_access_summary = match ($manual_role) {
                         <li>For videos, social pages, or other resources, use <strong>Speakers → Edit Speaker → Custom Links</strong>. Give each link a clear name and full web address; select <strong>Add Custom Link</strong> for more, then <strong>Save speaker</strong>.</li>
                     </ul>
                     <p>Saving a new custom link adds a separate QR code to that speaker’s existing presentations, and future presentations receive their own codes. Renaming or removing a profile link keeps already-published links and their statistics intact. To change or disable a shared code, select <strong>Statistics</strong> beneath that code on its presentation.</p>
-                    <p>Speakers remain available permanently and cannot be archived or deleted. Keep their existing profiles current instead of creating duplicates.</p>
+                    <p>Speakers cannot be archived. Administrators can delete unused speakers individually or with the selection checkboxes. Speakers referenced by presentations, short links, notes, or slide decks remain protected.</p>
                 </section>
 
                 <article class="manual-callout manual-callout-neutral">
@@ -885,7 +886,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Unlock Sensitive Actions</h3>
                     <p>On Users, or when a sensitive action directs you to confirmation, enter your administrator password plus a fresh authenticator or recovery code. Select <strong>Unlock Sensitive Actions</strong> to return to the requested page. Locked user controls appear after confirmation succeeds.</p>
-                    <p>The <strong>Administrator actions unlocked</strong> banner shows the remaining time beside <strong>Automatically locks in</strong>. Unlock lasts five minutes in the current signed-in session; another administrator or browser session does not inherit it. Moving between pages preserves the original deadline. At expiry the banner disappears and the server requires a new unlock for sensitive actions. Some account lifecycle actions consume the unlock earlier.</p>
+                    <p>The <strong>Administrator actions unlocked</strong> banner shows the remaining time beside <strong>Automatically locks in</strong>. Unlock lasts five minutes in the current signed-in session; another administrator or browser session does not inherit it. Moving between pages preserves the original deadline. At expiry the banner disappears and the server requires a new unlock for sensitive actions. Deactivating or deleting users preserves this original deadline without restarting the countdown.</p>
                     <p>Select <strong>Admin Unlock</strong> under <strong>Administration</strong> to unlock before choosing a sensitive action and return to your current page. Select <strong>Lock Admin Actions</strong> in the center of the orange banner to end the unlock immediately while staying signed in. Protected delete and sensitive-action confirmations check your current session first. If it is locked, complete <strong>Confirm Administrator Access</strong>, then select the action again to review its confirmation.</p>
                 </section>
 
@@ -925,6 +926,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Edit a User’s Profile</h3>
+                    <p>User cards group editing and security actions separately from account access and deletion. Amber <strong>Deactivate</strong> suspends access; red <strong>Delete user</strong> permanently removes an inactive or invited account. Active accounts and your own account remain protected from deletion.</p>
                     <ol class="manual-steps manual-steps-compact">
                         <li><span>01</span><section><strong>Unlock and choose the account.</strong><p>Open Users, unlock sensitive actions, and select the account’s Edit control.</p></section></li>
                         <li><span>02</span><section><strong>Review identity and contact details.</strong><p>Edit the first name, last name, country-aware phone number, username, and role. Upload, replace, or remove the profile picture; JPEG, PNG, and WebP files up to 5 MB are supported.</p></section></li>
@@ -958,7 +960,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <article class="manual-callout manual-callout-warning">
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
-                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization preserves contacts who have another organization affiliation, and removes its remaining contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p></div>
+                    <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization preserves contacts who have another organization affiliation, and removes its remaining contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p><p>Administrators can use individual Delete actions or select multiple items on the Organizations, Contacts, Speakers, Engagements, Tasks, and Users lists. Select all applies only to the current page. Review the selected names and related data, complete admin unlock when needed, and confirm the “Are you sure?” dialog. For inactive or invited users, type DELETE USER for an individual account or DELETE USERS for a batch.</p></div>
                 </article>
             </section>
 

@@ -186,7 +186,7 @@ try {
         }
         $request('logout.php', ['csrf_token' => speakerHidden($directory['body'], 'csrf_token')]);
     }
-    // Speaker fixtures deliberately remain: the application cannot delete speakers.
+    // Speaker fixtures remain for compatibility with the subsequent directory suites.
     echo "Speaker HTTP integration tests passed.\n";
 } finally {
     foreach ($userIds as $userId) {

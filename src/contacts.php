@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/bulk_delete_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
 $conn = applicationDatabaseConnection();
@@ -340,6 +341,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
         <p class="result-context">Showing contacts matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
+    <?php renderBulkDeleteToolbar('contact', $list_current_url); ?>
     <?php renderPagination($total_contacts, $current_page, $page_size, $list_current_url, 'contacts', 'Contact pages'); ?>
     <div class="contact-table-wrapper">
         <table class="contact-table data-table">
@@ -362,6 +364,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                         <tr>
                             <td>
                                 <span class="contact-name-cell">
+                                    <?php renderBulkDeleteCheckbox((int) $contact['id'], $contact['contact_first_name'] . ' ' . $contact['contact_last_name']); ?>
                                     <?php if (!empty($contact['contact_photo_mime'])): ?>
                                         <img class="contact-list-avatar" src="<?php echo htmlspecialchars(
                                             'contact_photo.php?id=' . (int) $contact['id']

@@ -13,8 +13,7 @@ integration_test_files=$(
 )
 
 # The initial-import suite needs the freshly migrated, single-speaker directory.
-# Run it before HTTP suites create permanent speaker fixtures (the web account
-# intentionally has no permission to delete speakers).
+# Run it before HTTP suites create additional speaker fixtures.
 
 if [ -z "$integration_test_files" ]; then
     echo 'No integration test suites were found.' >&2
@@ -94,7 +93,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web php "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
+    if [ "$test_name" = 'bulk_delete_http_integration_test.php' ] \
+        || [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
         || [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
         || [ "$test_name" = 'email_templates_http_integration_test.php' ] \
         || [ "$test_name" = 'standard_task_generation_http_integration_test.php' ] \

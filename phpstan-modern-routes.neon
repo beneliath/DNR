@@ -6,6 +6,7 @@ parameters:
         - src/email_templates.php
         - src/edit_email_template.php
         - src/speaker_photo.php
+        - src/bulk_delete.php
         - src/speakers.php
         - src/edit_speaker.php
         - src/view_speaker.php
@@ -47,6 +48,7 @@ parameters:
         - src/short_link_helpers.php
         - src/engagement_view_helpers.php
         - src/inbound_queue_helpers.php
+        - src/bulk_delete_helpers.php
         - src/record_workspace_helpers.php
         - src/config.php
         - src/calendar_helpers.php

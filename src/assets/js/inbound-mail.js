@@ -72,7 +72,7 @@
         updateSelectionSummary();
     }
 
-    search.addEventListener('input', function () {
+    function searchEngagements(delay) {
         window.clearTimeout(timer);
         request?.abort();
         const query = search.value.trim();
@@ -110,6 +110,14 @@
                     select.removeAttribute('aria-busy');
                 }
             }
-        }, 250);
+        }, delay);
+    }
+    search.addEventListener('input', function () { searchEngagements(250); });
+    search.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        // Finding a destination must not file the message to the current routes.
+        event.preventDefault();
+        searchEngagements(0);
     });
+    search.disabled = false;
 })();

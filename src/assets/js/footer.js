@@ -259,7 +259,7 @@
         pendingSubmitter = event.submitter;
         requiredPhrase = deleting ? 'DELETE USER' : 'RESET 2FA';
         confirmationFieldName = deleting ? 'delete_confirmation' : 'reset_confirmation';
-        confirmationTitle.textContent = deleting ? 'Delete user permanently?' : 'Reset two-factor authentication?';
+        confirmationTitle.textContent = deleting ? 'Are you sure you want to delete this user?' : 'Reset two-factor authentication?';
         confirmationMessage.textContent = deleting
             ? 'This user and their retained account history will be permanently deleted. This cannot be undone.'
             : 'The user’s current authenticator and recovery codes will stop working.';

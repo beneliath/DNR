@@ -35,7 +35,7 @@ Genesis 49:9,10 ... Revelation 5:5
 </dialog>
 
 <dialog id="delete-confirmation" class="confirmation-dialog" aria-labelledby="delete-confirmation-title" aria-describedby="delete-confirmation-message">
-    <h2 id="delete-confirmation-title">Delete Permanently?</h2>
+    <h2 id="delete-confirmation-title">Are You Sure You Want to Delete?</h2>
     <p id="delete-confirmation-message">Are you sure you want to delete this item?</p>
     <p class="dialog-supporting-text">Archive it instead to keep the record available for later restoration.</p>
     <div class="confirmation-dialog-actions">

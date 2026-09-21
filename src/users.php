@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/bulk_delete_helpers.php';
 include 'profile_helpers.php';
 include 'two_factor_helpers.php';
 include 'user_lifecycle_helpers.php';
@@ -127,7 +128,7 @@ $task_digest_day_options = [
             <?php if ($admin_actions_unlocked): ?>
                 <p class="success">Unlocked with a fresh authentication factor. This elevation expires automatically.</p>
             <?php else: ?>
-                <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Locked controls remain hidden until elevation succeeds.</p>
+                <p>Confirm your password and a new authenticator or recovery code before inviting users, changing account access or roles, resetting authentication, or deleting a user. Editing and security controls remain hidden until elevation succeeds. Deletion buttons prompt for unlock when needed.</p>
                 <form method="post" action="users.php" class="security-form">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="elevate">
@@ -149,6 +150,7 @@ $task_digest_day_options = [
         </div>
     </div>
 
+    <?php renderBulkDeleteToolbar('user', paginationUrl('users.php', $current_page, $page_size)); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, 'users.php', 'users', 'User pages'); ?>
     <div class="users-list">
         <?php foreach ($users as $user) { ?>
@@ -174,6 +176,9 @@ $task_digest_day_options = [
             <div class="user-details">
                 <div class="user-main">
                     <div class="user-profile-summary">
+                        <?php if ($user['account_status'] !== 'active' && (int) $user['id'] !== $current_user_id): ?>
+                            <?php renderBulkDeleteCheckbox((int) $user['id'], $user['username']); ?>
+                        <?php endif; ?>
                         <img class="user-list-avatar" src="<?php echo htmlspecialchars(
                             $profile_thumbnail_url,
                             ENT_QUOTES,
@@ -201,56 +206,6 @@ $task_digest_day_options = [
                                 <span class="<?php echo $display_phone === '' ? 'is-empty' : ''; ?>">Phone: <?php echo $display_phone !== '' ? htmlspecialchars($display_phone, ENT_QUOTES, 'UTF-8') : 'Not provided'; ?></span>
                             </div>
                         </div>
-                    </div>
-                    <div class="user-actions">
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
-                            <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button">Reset Password</a>
-                        <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
-                            <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa">
-                                <?php echo csrfInput(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
-                                <input type="hidden" name="reset_confirmation" value="">
-                                <button type="submit" class="action-button reset-two-factor-button">Reset 2FA</button>
-                            </form>
-                        <?php endif; ?>
-                        <?php if ($admin_actions_unlocked): ?>
-                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit user" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
-                        <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && $user['account_status'] === 'invited'): ?>
-                            <form method="post" action="user_lifecycle.php" data-invitation-form>
-                                <?php echo csrfInput(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
-                                <input type="hidden" name="action" value="resend_invitation">
-                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend Invitation</button>
-                                <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
-                                    <span class="invitation-submit-spinner" aria-hidden="true"></span>
-                                    Emailing a new activation link&hellip;
-                                </span>
-                            </form>
-                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
-                            <form method="post" action="user_lifecycle.php">
-                                <?php echo csrfInput(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
-                                <input type="hidden" name="action" value="deactivate">
-                                <button type="submit" class="action-button delete-button" data-admin-unlock-required data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
-                            </form>
-                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'inactive'): ?>
-                            <form method="post" action="user_lifecycle.php">
-                                <?php echo csrfInput(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
-                                <input type="hidden" name="action" value="activate">
-                                <button type="submit" class="action-button reset-two-factor-button">Activate</button>
-                            </form>
-                        <?php endif; ?>
-                        <?php if ($admin_actions_unlocked && $user['account_status'] !== 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
-                            <form method="post" action="delete_user.php" data-sensitive-action="delete-user">
-                                <?php echo csrfInput(); ?>
-                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
-                                <input type="hidden" name="delete_confirmation" value="">
-                                <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete user" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
-                            </form>
-                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="user-digest-summary">
@@ -285,6 +240,63 @@ $task_digest_day_options = [
                         <?php echo $user['account_status'] === 'inactive' ? 'Deactivated' : 'Activated'; ?>: <?php $lifecycle_at = $user['account_status'] === 'inactive' ? $user['deactivated_at'] : $user['activated_at']; echo !empty($lifecycle_at) ? applicationTimestampLabel($lifecycle_at) : 'N/A'; ?>
                     </span>
                 </div>
+                <?php if ($admin_actions_unlocked || ($user['account_status'] !== 'active' && (int) $user['id'] !== $current_user_id)): ?>
+                <div class="user-actions" aria-label="Actions for <?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>">
+                    <div class="user-actions-primary">
+                        <?php if ($admin_actions_unlocked): ?>
+                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button">Edit user</a>
+                        <?php endif; ?>
+
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
+                            <a href="reset_user_password.php?id=<?php echo (int) $user['id']; ?>" class="action-button reset-password-button">Reset Password</a>
+                        <?php endif; ?>
+                        <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active' && !empty($user['two_factor_enabled'])): ?>
+                            <form method="post" action="reset_user_2fa.php" data-sensitive-action="reset-2fa">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="reset_confirmation" value="">
+                                <button type="submit" class="action-button reset-two-factor-button">Reset 2FA</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                    <div class="user-actions-lifecycle">
+                        <?php if ($admin_actions_unlocked && $user['account_status'] === 'invited'): ?>
+                            <form method="post" action="user_lifecycle.php" data-invitation-form>
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="resend_invitation">
+                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend Invitation</button>
+                                <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
+                                    <span class="invitation-submit-spinner" aria-hidden="true"></span>
+                                    Emailing a new activation link&hellip;
+                                </span>
+                            </form>
+                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                            <form method="post" action="user_lifecycle.php">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="deactivate">
+                                <button type="submit" class="action-button deactivate-button" data-admin-unlock-required data-confirm-title="Deactivate User?" data-confirm="Deactivate this account? Sessions and calendar links will be revoked, and tasks will be unassigned.">Deactivate</button>
+                            </form>
+                        <?php elseif ($admin_actions_unlocked && $user['account_status'] === 'inactive'): ?>
+                            <form method="post" action="user_lifecycle.php">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="action" value="activate">
+                                <button type="submit" class="action-button reset-two-factor-button">Activate</button>
+                            </form>
+                        <?php endif; ?>
+                        <?php if ($user['account_status'] !== 'active' && (int) $user['id'] !== (int) $_SESSION['user_id']): ?>
+                            <form method="post" action="delete_user.php" data-sensitive-action="delete-user">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
+                                <input type="hidden" name="delete_confirmation" value="">
+                                <button type="submit" class="action-button delete-button">Delete user</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
             </div>
         <?php } ?>
     </div>

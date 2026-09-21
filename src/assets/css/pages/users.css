@@ -275,3 +275,45 @@
                 grid-template-columns: minmax(0, 1fr);
             }
         }
+
+/* Keep identity, account details, and administrative actions in separate rows. */
+.users-list .user-main { width: 100%; }
+.users-list .user-actions {
+    width: 100%;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px !important;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+.user-actions-primary,
+.user-actions-lifecycle {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+.user-actions-lifecycle { margin-left: auto; justify-content: flex-end; }
+.users-list .user-actions .action-button {
+    min-height: 38px;
+    padding: 8px 12px;
+    font-size: .82rem;
+}
+@media (max-width: 520px) {
+    .users-list .user-actions { flex-direction: column; align-items: stretch; }
+    .user-actions-lifecycle { margin-left: 0; justify-content: flex-start; }
+    .user-actions-primary > *, .user-actions-lifecycle > * { flex: 1 1 auto; }
+    .user-actions form .action-button { width: 100%; }
+}
+
+html body .users-list .user-actions .deactivate-button {
+    color: var(--warning) !important;
+    background: var(--warning-subtle) !important;
+    border: 1px solid var(--warning) !important;
+}
+html body .users-list .user-actions .deactivate-button:hover,
+html body .users-list .user-actions .deactivate-button:focus-visible {
+    background: color-mix(in srgb, var(--warning) 18%, var(--warning-subtle)) !important;
+}

@@ -90,7 +90,7 @@
     let timer;
     let request;
     let requestNumber = 0;
-    search.addEventListener('input', function () {
+    function searchRecords(delay) {
         window.clearTimeout(timer);
         request?.abort();
         const currentRequest = ++requestNumber;
@@ -125,6 +125,14 @@
             } catch (error) {
                 if (currentRequest === requestNumber && error.name !== 'AbortError') feedback.textContent = 'Search is unavailable — your selection is unchanged';
             }
-        }, 250);
+        }, delay);
+    }
+    search.addEventListener('input', function () { searchRecords(250); });
+    search.addEventListener('keydown', function (event) {
+        if (event.key !== 'Enter' || event.isComposing) return;
+        // Searching for a replacement must not save the task with its old record.
+        event.preventDefault();
+        searchRecords(0);
     });
+    search.disabled = false;
 })();

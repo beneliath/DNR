@@ -35,27 +35,30 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 19, 2026 edition applies to application version **2.2.1**. Its
-cover, scope and edition notes, README appendix version reference, and PDF
-metadata identify that release.
+The September 21, 2026 edition applies to application version **2.2.3**, including
+its administrator deletion functionality. The cover, scope and
+edition notes, README appendix version reference, and PDF metadata use the
+current `VERSION` value.
 
-The sidebar guide keeps the user workflows high level: upload/replace/remove a
-PPT Slidedeck, download the PowerPoint, copy any presentation QR link, recognize
-Due tomorrow labels, and understand that encrypted backups include uploaded files.
-The PDF adds illustrated procedures, stable-link and statistics behavior, upload
-limits, file-storage/recovery context, and the complete current README appendix.
-The hardening update explains storage capacity/health and the reviewed resend action for uncertain email delivery.
-Email logo contrast and administrator unlock alignment need no new user steps;
-the PDF edition notes identify these refinements.
+The guide now covers individual and bulk deletion on Organizations, Contacts,
+Speakers, Engagements, Tasks, and Users; inactive/invited account deletion;
+protected records and partial results; page-only selection; and the preserved
+five-minute administrator unlock countdown. It explains the reorganized account
+controls, amber Deactivate versus red Delete user, and Enter-key behavior in
+searches and deletion confirmations. It also documents the pending PDF/PPT file
+notices introduced in 2.2.2 and the need to use Save Changes.
 
-Nine figures were refreshed or added through CUA in the isolated
-`dnr-manual-sept19` preview: manual, presentations, presentation-ppt-qr,
-qr-selection, presentation-form, presentation-files, tasks, backup, and elevation.
-Their `captured_at` fields record September 19. Avery Morgan and the connected
-Cedar Grove records are fictional. The PowerPoint is an illustrative fixture.
-Mail used a development log and Mattermost was unconfigured. No message,
-invitation, or backup export was submitted during capture. Earlier illustrations
-remain where their controls still apply. Decorative footer artwork is excluded.
+Eight figures were refreshed or added through CUA in the disposable September 21
+preview: contacts, speakers, users, bulk-speaker-review, delete-user,
+bulk-user-review, bulk-user-confirmation, and presentation-file-pending.
+The source images are original browser captures. Crop bounds select complete
+controls and exclude decorative footers. Alex Morgan, Casey Taylor, Jordan
+Parker, Avery Morgan, and the connected Cedar Grove records are fictional; the
+initial default speaker may also appear in the directory. Mail uses a local
+log and Mattermost is unconfigured. No records, accounts, or files were deleted,
+no record-edit forms were saved, and no email or invitations were sent during
+capture. Enter was verified to open the batch confirmation; Cancel kept both
+accounts. Earlier illustrations remain where their controls still apply.
 
 ## Rebuild from the checked-in screenshots
 
@@ -143,6 +146,6 @@ PDF edition, and adds calendar, recovery-email, map-pin, presentation, and form
 details. Reconcile these supplements with the
 live source when updating the manual. The CLI capture utility preserves
 supplementary CUA figures that are absent from its capture list; refresh those
-figures explicitly when their workflows change. The September 19 supplementary figures are presentation-files and presentation-ppt-qr; attach an illustrative .pptx to the first fictional presentation before capturing its QR selector. Set a fictional task due on the day after capture to illustrate Due tomorrow. The refreshed figures use the normal 1280 by 720 browser viewport, with crop bounds in source-image pixels. The Mattermost chapter describes the configured
+figures explicitly when their workflows change. Supplementary figures include presentation-files, presentation-ppt-qr, presentation-file-pending, and the September 21 deletion reviews; attach an illustrative .pptx to the first fictional presentation before capturing its QR selector. Set a fictional task due on the day after capture to illustrate Due tomorrow. The September 21 figures use a 1265 by 712 browser viewport, with crop bounds in source-image pixels. The Mattermost chapter describes the configured
 plugin from the application guide; the preview screenshot explicitly shows the
 unconfigured state rather than a simulated connected service.

@@ -452,12 +452,33 @@
     "steps": [
       "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
       "Each file may be up to 100 MB. Keep all uploads in one save under 120 MB total; use separate saves for larger combined uploads.",
-      "Use Replace PDF or Replace PPT to select an updated file. Review its name, then Save Changes. The existing QR link and statistics remain.",
-      "To stop sharing a file, select its Remove current checkbox and save. Uploading again restores the same QR link."
+      "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes beside the presentation or at the bottom. Either saves the entire engagement form.",
+      "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
     "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in.",
     "captured_at": "2026-09-19",
     "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-file-pending",
+    "title": "Save a pending presentation-file change",
+    "route": "edit_engagement.php",
+    "file": "screenshots/presentation-file-pending.png",
+    "captured_at": "2026-09-21",
+    "crop": [
+      343,
+      105,
+      826,
+      580
+    ],
+    "steps": [
+      "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
+      "Read the pending notice. Selecting a file or checking Remove does not apply the change immediately.",
+      "Select Save Changes beside the saved presentation or at the bottom of the page. Either button saves the whole engagement form.",
+      "After saving, verify the file details and sharing links. Leave without saving to keep the existing file."
+    ],
+    "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept."
   },
   {
     "chapter": 5,
@@ -698,24 +719,19 @@
     "title": "Browse contacts",
     "route": "contacts.php?q=Parker",
     "steps": [
-      "Search by person or organization.",
-      "Sort by last name or organization and adjust Records per page.",
-      "Open a contact to review their own history and all affiliations."
+      "Search by person or organization, sort the list, and adjust Records per page.",
+      "Open a contact to review history and affiliations; the row action icons remain available.",
+      "Administrators can select aligned checkboxes and choose Delete selected. Select all applies only to this page; Clear selection starts over.",
+      "Review the selected names and related data, unlock if required, then confirm the Are you sure? dialog."
     ],
     "file": "screenshots/contacts.png",
     "crop": [
-      0,
-      0,
-      1515,
-      782
+      292,
+      81,
+      928,
+      478
     ],
-    "copyright_line_box": [
-      44,
-      750,
-      654,
-      767
-    ],
-    "footer_removed": true
+    "captured_at": "2026-09-21"
   },
   {
     "chapter": 6,
@@ -763,23 +779,40 @@
     "route": "speakers.php?q=Alex",
     "steps": [
       "Search by name, email, or phone; use Name to reverse alphabetical order.",
-      "Open the speaker or choose New Speaker to create a profile.",
-      "Speaker profiles are permanent; update an existing profile instead of duplicating it."
+      "Open a profile, or use New Speaker to create one. Editors and administrators can maintain speaker details.",
+      "Administrators can use the individual Delete icon or select multiple speakers and choose Delete selected.",
+      "Referenced speakers are protected; only unused profiles can be permanently deleted."
     ],
     "file": "screenshots/speakers.png",
     "crop": [
-      0,
-      0,
-      1515,
-      702
+      292,
+      151,
+      928,
+      434
     ],
-    "copyright_line_box": [
-      44,
-      670,
-      654,
-      687
+    "captured_at": "2026-09-21"
+  },
+  {
+    "chapter": 6,
+    "id": "bulk-speaker-review",
+    "title": "Review a selection with protected records",
+    "route": "bulk_delete.php",
+    "crop": [
+      365,
+      105,
+      795,
+      516
     ],
-    "footer_removed": true
+    "steps": [
+      "Review every selected name and the permanent effects before continuing.",
+      "A Kept notice explains why a referenced speaker is protected. The Delete button counts only eligible records.",
+      "Complete Admin Unlock when requested, then confirm the Are you sure? dialog. Cancel abandons this review without deleting.",
+      "After deletion, read the deleted and failed counts. Some eligible records may succeed while protected or failed records remain."
+    ],
+    "note": "The fictional linked speaker is protected; no speaker was deleted during capture.",
+    "file": "screenshots/bulk-speaker-review.png",
+    "captured_at": "2026-09-21",
+    "framing": "Complete controls from an original CUA browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 6,
@@ -1206,20 +1239,84 @@
     "title": "Review users and access state",
     "route": "users.php",
     "steps": [
-      "Review role, activation, verified email, 2FA, and activity.",
-      "Filled Daily Digest day chips show scheduled days. Off or paused indicates that delivery is disabled or suspended.",
-      "Unlock administrator actions and select the pencil icon to review a user’s digest time, time zone, and days. Account holders can use My Profile."
+      "Review the identity, account state, 2FA, contact details, and Daily Digest days on each card.",
+      "Use the lower action bar: Edit user and security controls are grouped separately from account access and deletion.",
+      "Amber Deactivate suspends an active account; red Delete user permanently removes an inactive or invited account after confirmation.",
+      "Only eligible accounts have deletion checkboxes. Individual Delete user remains available alongside Delete selected."
     ],
     "file": "screenshots/users.png",
-    "captured_at": "2026-09-15",
+    "captured_at": "2026-09-21",
     "crop": [
-      285,
-      211,
-      939,
-      293
+      292,
+      280,
+      928,
+      387
     ],
     "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
-    "note": "Avery has weekday delivery; Casey has delivery turned off. These are fictional training accounts."
+    "note": "Fictional accounts illustrate active and inactive states. No account was deactivated or deleted during capture."
+  },
+  {
+    "chapter": 12,
+    "id": "delete-user",
+    "title": "Delete one inactive user",
+    "route": "users.php",
+    "crop": [
+      280,
+      115,
+      730,
+      500
+    ],
+    "steps": [
+      "Find the inactive or invited account and select its red Delete user button.",
+      "Unlock administrator actions if prompted. Check that you selected the intended account.",
+      "Type DELETE USER exactly and select Delete user, or press Enter in the phrase field. Cancel keeps the account."
+    ],
+    "note": "The confirmation is illustrated without submitting the deletion.",
+    "file": "screenshots/delete-user.png",
+    "captured_at": "2026-09-21",
+    "framing": "Complete controls from an original CUA browser screenshot; decorative footer excluded."
+  },
+  {
+    "chapter": 12,
+    "id": "bulk-user-review",
+    "title": "Review several inactive users before deletion",
+    "route": "bulk_delete.php",
+    "crop": [
+      365,
+      105,
+      795,
+      520
+    ],
+    "steps": [
+      "On Users, select eligible account checkboxes, or use Select all on this page, then Delete selected.",
+      "Review the account names. Active users and your own account are protected. The selection survives an unlock redirect and expires after 30 minutes.",
+      "Type DELETE USERS. Select Permanently delete or press Enter to open the final confirmation.",
+      "Cancel returns to the user list without deleting. Changing the list page or filters starts a new selection."
+    ],
+    "file": "screenshots/bulk-user-review.png",
+    "captured_at": "2026-09-21",
+    "framing": "Complete controls from an original CUA browser screenshot; decorative footer excluded."
+  },
+  {
+    "chapter": 12,
+    "id": "bulk-user-confirmation",
+    "title": "Confirm or cancel the batch",
+    "route": "bulk_delete.php",
+    "crop": [
+      350,
+      210,
+      570,
+      295
+    ],
+    "steps": [
+      "The Are you sure? dialog appears after the review, including when you use Enter in the confirmation field.",
+      "Select Delete permanently only when ready. Cancel closes the dialog without deleting accounts.",
+      "Read the result counts on the user list. Deletion checks administrator access and the original unlock deadline again."
+    ],
+    "note": "Enter was verified to open this dialog. The batch was canceled; no accounts were deleted.",
+    "file": "screenshots/bulk-user-confirmation.png",
+    "captured_at": "2026-09-21",
+    "framing": "Complete controls from an original CUA browser screenshot; decorative footer excluded."
   },
   {
     "chapter": 12,
@@ -1623,7 +1720,7 @@
     "route": "users.php",
     "steps": [
       "The orange banner shows Automatically locks in and the remaining minutes and seconds.",
-      "Navigation keeps the original five-minute deadline. Other sessions do not inherit the unlock.",
+      "Navigation, user deactivation, and individual or bulk user deletion keep the original five-minute deadline. Other sessions do not inherit the unlock.",
       "Select Lock Admin Actions as soon as sensitive work is finished. At expiry or explicit locking, protected actions require fresh confirmation."
     ],
     "elevated": true,

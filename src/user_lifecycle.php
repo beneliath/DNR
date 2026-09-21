@@ -52,8 +52,7 @@ try {
         : 'The account lifecycle change could not be completed.';
 }
 
-// A step-up authorization is deliberately one lifecycle action only. Target
-// sessions lose their own elevation through the auth_version change.
-unset($_SESSION['_admin_elevated_at']);
+// Keep the actor's original five-minute unlock deadline. Target sessions still
+// lose access through their auth_version change.
 header('Location: users.php');
 exit();

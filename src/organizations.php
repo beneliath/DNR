@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/bulk_delete_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/financial_report_helpers.php';
 $conn = applicationDatabaseConnection();
@@ -318,6 +319,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
         <p class="result-context">Showing organizations matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p>
     <?php endif; ?>
 
+    <?php renderBulkDeleteToolbar('organization', $list_current_url); ?>
     <?php renderPagination($pagination['total'], $current_page, $page_size, $list_current_url, 'organizations', 'Organization pages'); ?>
     <div class="data-table-scroll">
     <table class="organization-table data-table">
@@ -337,7 +339,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <?php endif; ?>
             <?php foreach ($organizations as $org): ?>
                 <tr>
-                    <td><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></td>
+                    <td><span class="bulk-delete-record"><?php renderBulkDeleteCheckbox((int) $org['id'], $org['organization_name']); ?><a class="record-link" href="view_organization.php?id=<?php echo (int) $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($org['organization_name']); ?></a></span></td>
                     <td>
                         <?php
                         $address_parts = [];
