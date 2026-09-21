@@ -26,10 +26,11 @@ $has_deck = $is_saved_presentation && !empty($presentation['has_' . $deck_key]);
                 <span><?php echo htmlspecialchars(number_format(((int) $presentation[$deck_key . '_size']) / 1048576, 1)); ?> MB</span>
             <?php endif; ?>
             <label class="presentation-asset-remove">
-                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1">
+                <input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1" aria-describedby="<?php echo $deck_input_id; ?>_save_notice">
                 Remove current PPT
             </label>
         </div>
+        <p id="<?php echo $deck_input_id; ?>_save_notice" class="presentation-file-save-notice" data-file-save-notice data-file-type="PPT" role="status" hidden></p>
     <?php endif; ?>
     <div class="presentation-pdf-picker-row">
     <label class="presentation-file-picker" for="<?php echo $deck_input_id; ?>">
@@ -40,6 +41,7 @@ $has_deck = $is_saved_presentation && !empty($presentation['has_' . $deck_key]);
            name="presentations[<?php echo $presentation_dom_id; ?>][<?php echo $deck_key; ?>]"
            id="<?php echo $deck_input_id; ?>"
            accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation"
+           <?php if ($has_deck): ?>aria-describedby="<?php echo $deck_input_id; ?>_save_notice"<?php endif; ?>
            data-presentation-file-name>
     <span class="presentation-selected-file" data-selected-file-name data-empty-file-label="<?php echo $has_deck ? 'No replacement selected' : 'No PowerPoint selected'; ?>"><?php echo $has_deck ? 'No replacement selected' : 'No PowerPoint selected'; ?></span>
     </div>
