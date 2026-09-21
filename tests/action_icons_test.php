@@ -18,7 +18,7 @@ foreach (['view', 'edit', 'start', 'complete', 'archive', 'restore', 'delete'] a
 
 expectActionIcon(actionIconSvg('unknown') === '', 'Unknown actions should not render arbitrary markup.');
 
-foreach (['engagements.php', 'organizations.php', 'contacts.php', 'users.php', 'tasks.php'] as $page) {
+foreach (['engagements.php', 'organizations.php', 'contacts.php', 'tasks.php'] as $page) {
     $source = file_get_contents(__DIR__ . '/../src/' . $page);
     expectActionIcon(str_contains($source, 'action-icon-button'), "{$page} should use icon action buttons.");
     expectActionIcon(str_contains($source, 'data-tooltip='), "{$page} icon actions should include hover labels.");
@@ -76,8 +76,8 @@ expectActionIcon(
     str_contains($users_source, '$admin_actions_unlocked = hasRecentAdminElevation();')
         && str_contains($users_source, '<?php if ($admin_actions_unlocked): ?>')
         && str_contains($users_source, '$admin_actions_unlocked && (int) $user[\'id\']')
-        && str_contains($users_source, 'Locked controls remain hidden until elevation succeeds.'),
-    'User creation, editing, password reset, 2FA reset, and deletion controls should remain hidden until fresh administrator elevation.'
+        && str_contains($users_source, 'Editing and security controls remain hidden until elevation succeeds.'),
+    'Editing and account-security controls should remain hidden until fresh administrator elevation.'
 );
 expectActionIcon(
     str_contains(

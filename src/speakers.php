@@ -1,11 +1,15 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/bulk_delete_helpers.php';
 require_once __DIR__ . '/speaker_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 $conn = applicationDatabaseConnection();
 startSecureSession();
 requireLogin();
 $can_manage_speakers = hasRole(['admin', 'editor']);
+$action_message = $_SESSION['speaker_action_message'] ?? '';
+$action_error = $_SESSION['speaker_action_error'] ?? '';
+unset($_SESSION['speaker_action_message'], $_SESSION['speaker_action_error']);
 generateCsrfToken();
 releaseApplicationSessionLock();
 $page_size = paginationPageSizePreference('speakers', $_GET['per_page'] ?? null, 20, [20, 50, 100]);
@@ -35,6 +39,8 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
         <div><h1>Speakers</h1><p class="page-intro">Find the speakers connected to your presentations.</p></div>
         <?php if ($can_manage_speakers): ?><a class="button-add" href="edit_speaker.php?return_to=<?php echo urlencode($list_current_url); ?>">+ New Speaker</a><?php endif; ?>
     </div>
+    <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <div class="list-controls">
         <form method="get" action="speakers.php" class="list-search-form" role="search">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
@@ -52,6 +58,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
         </div>
     </div>
     <?php if ($search !== ''): ?><p class="result-context">Showing speakers matching “<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>”.</p><?php endif; ?>
+    <?php renderBulkDeleteToolbar('speaker', $list_current_url); ?>
     <?php renderPagination($total_speakers, $current_page, $page_size, $list_current_url, 'speakers', 'Speaker pages'); ?>
     <div class="contact-table-wrapper">
         <table class="contact-table speaker-table data-table">
@@ -59,7 +66,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
             <tbody>
             <?php foreach ($speakers as $speaker): ?>
                 <tr>
-                    <td><span class="contact-name-cell">
+                    <td><span class="contact-name-cell"><?php renderBulkDeleteCheckbox((int) $speaker['id'], $speaker['name']); ?>
                         <?php if (!empty($speaker['photo_mime'])): ?><img class="contact-list-avatar" src="speaker_photo.php?id=<?php echo (int) $speaker['id']; ?>&amp;v=<?php echo (int) $speaker['version']; ?>" alt="" loading="lazy" width="40" height="40">
                         <?php else: ?><span class="contact-list-avatar" aria-hidden="true"><?php echo htmlspecialchars(speakerInitials($speaker), ENT_QUOTES, 'UTF-8'); ?></span><?php endif; ?>
                         <a class="record-link" href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>"><?php echo htmlspecialchars($speaker['name'], ENT_QUOTES, 'UTF-8'); ?></a>
@@ -69,6 +76,16 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
                     <td><div class="action-buttons">
                         <a href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View speaker" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                         <?php if ($can_manage_speakers): ?><a href="edit_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit speaker" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a><?php endif; ?>
+                        <?php if (canDeleteEntries($_SESSION['role'] ?? null)): ?>
+                            <form method="post" action="bulk_delete.php">
+                                <?php echo csrfInput(); ?>
+                                <input type="hidden" name="action" value="review">
+                                <input type="hidden" name="entity" value="speaker">
+                                <input type="hidden" name="selected_ids[]" value="<?php echo (int) $speaker['id']; ?>">
+                                <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
+                                <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete speaker" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                            </form>
+                        <?php endif; ?>
                     </div></td>
                 </tr>
             <?php endforeach; ?>

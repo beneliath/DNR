@@ -9,6 +9,7 @@ parameters:
         - src/persistent_file_backup_helpers.php
         - src/persistent_file_migration_helpers.php
         - src/inbound_queue_helpers.php
+        - src/bulk_delete_helpers.php
         - src/record_workspace_helpers.php
         - src/config.php
         - src/functions.php

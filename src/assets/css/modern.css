@@ -6477,3 +6477,34 @@ html body .presentation-generated-links button.presentation-copy-link {
 .presentation-copy-link svg {
   flex: none;
 }
+
+/* Page-scoped multi-selection, alongside the existing individual actions. */
+.bulk-delete-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0 12px;
+  padding: 14px 16px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.bulk-delete-select-all { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
+.bulk-delete-toolbar input[type="checkbox"], input.bulk-delete-checkbox {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  accent-color: var(--button-edit-color);
+  cursor: pointer;
+}
+.bulk-delete-record { display: flex; align-items: center; gap: 12px; }
+input.bulk-delete-checkbox { flex: 0 0 20px; margin: 0; }
+.contact-name-cell > .bulk-delete-checkbox { align-self: center; }
+.bulk-delete-help { flex-basis: 100%; margin: 0; font-size: .875rem; color: var(--text-muted); }
+.bulk-delete-review { max-width: 850px; }
+.bulk-delete-review-list { padding-left: 24px; max-height: 50vh; overflow: auto; }
+.bulk-delete-review-list li { padding: 8px 0; }
+.bulk-delete-review-list .error { margin: 4px 0; }
+.bulk-delete-review-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }

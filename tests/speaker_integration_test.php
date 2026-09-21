@@ -32,7 +32,7 @@ try {
     $speakerId = saveSpeaker($conn, ['name' => 'Guest <Speaker>', 'email' => 'guest@example.com', 'phone' => '+1 949 400 2892']);
     $speaker = fetchSpeaker($conn, $speakerId);
     expectSpeakerIntegration($speaker['version'] === 1 && isset(fetchSpeakerOptions($conn)[$speakerId]), 'New speakers are immediately selectable.');
-    speakerSqlMustFail($conn, 'DELETE FROM speakers WHERE id = ' . $speakerId, [1142]);
+
 
     $conn->query("INSERT INTO organizations (organization_name) VALUES ('Speaker integration')");
     $orgId = (int) $conn->insert_id;
@@ -65,7 +65,7 @@ try {
     $conn->query("UPDATE presentations SET is_archived = 1 WHERE id = $presentationId");
     $archived = fetchArchivedEngagementPresentations($conn, $eventId);
     expectSpeakerIntegration($archived[0]['speaker_name'] === 'Updated Speaker' && (int) $archived[0]['speaker_id'] === $speakerId, 'Archived presentations retain their speaker and reflect edits.');
-    speakerSqlMustFail($conn, 'DELETE FROM speakers WHERE id = ' . $speakerId, [1142]);
+    speakerSqlMustFail($conn, 'DELETE FROM speakers WHERE id = ' . $speakerId, [1451]);
     $audit = $conn->query("SELECT COUNT(*) AS total FROM security_audit_log WHERE entity_type = 'speakers' AND entity_id = $speakerId")->fetch_assoc();
     expectSpeakerIntegration((int) $audit['total'] === 2, 'Successful speaker creation and editing are audited.');
     echo "Speaker integration tests passed.\n";

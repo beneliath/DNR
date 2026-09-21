@@ -62,7 +62,7 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
     } else {
         button.attrs['data-confirm'] = '';
         button.dataset.confirm = 'Confirm this action?';
-        if (kind === 'protected-button') button.attrs['data-admin-unlock-required'] = '';
+        if (kind === 'protected-button' || kind === 'bulk') button.attrs['data-admin-unlock-required'] = '';
         if (kind === 'protected-form') form.attrs['data-admin-unlock-required'] = '';
     }
     const nav = node();
@@ -184,4 +184,22 @@ test('proactive Admin Unlock preserves the current page, query and tab', async (
     const f = fixture('ordinary');
     await f.nav.fire('click');
     assert.equal(new URL(f.nav.href).searchParams.get('return'), 'view_engagement.php?id=42&return_to=engagements.php%3Fpage%3D2#engagement-tasks');
+});
+
+
+test('bulk deletion shows the selected count in an explicit confirmation and cancel never submits', async () => {
+    const f = fixture('bulk', async () => ({ ok: true, json: async () => ({ unlocked: true, csrf_token: 'fresh-token' }) }));
+    f.button.dataset.confirmTitle = 'Are you sure?';
+    f.button.dataset.confirm = 'Permanently delete 3 selected items? This cannot be undone.';
+    await f.submit();
+    assert.equal(f.nodes['action-confirmation'].open, true);
+    assert.equal(f.nodes['action-confirmation-title'].textContent, 'Are you sure?');
+    assert.match(f.nodes['action-confirmation-message'].textContent, /3 selected items/);
+    assert.equal(f.submissions(), 0);
+    await f.nodes['cancel-action-confirmation'].fire('click');
+    assert.equal(f.submissions(), 0);
+    await f.submit();
+    await f.nodes['confirm-action'].fire('click');
+    await settle();
+    assert.equal(f.submissions(), 1);
 });

@@ -1,17 +1,17 @@
 {
-  "pages": 141,
-  "screenshots": 82,
-  "internal_links": 1191,
-  "bookmarks": 299,
+  "pages": 147,
+  "screenshots": 87,
+  "internal_links": 1245,
+  "bookmarks": 308,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
-    "sections": 59,
-    "text_fragments_verified": 1155,
-    "attachment_bytes": 103342,
+    "sections": 60,
+    "text_fragments_verified": 1166,
+    "attachment_bytes": 104790,
     "attachment_matches_current_source": true,
-    "sha256": "de275b70c293197958a632b211cc86cf5b79a90da5a89f784453ac6d6c71f9eb"
+    "sha256": "6ee74f91931d248c8c97f23c917e453de11ae3a7768ba04fa5e44aa50dfc0de5"
   },
   "format": {
     "reference_text": "two columns",
@@ -22,14 +22,14 @@
     "column_gutters": "clear",
     "full_width_reference_blocks": 7,
     "automatic_word_breaks": 0,
-    "sparse_reference_pages_checked": 56,
+    "sparse_reference_pages_checked": 57,
     "stray_continuation_pages": 0,
     "paragraph_widows_and_orphans": "disabled",
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.2.1",
-    "edition_date": "September 19, 2026",
+    "version": "2.2.3",
+    "edition_date": "September 21, 2026",
     "cover_and_metadata": "verified"
   }
 }

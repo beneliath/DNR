@@ -42,7 +42,8 @@ $task_subject_search_url = 'task_subject_search.php'
             <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
             <div class="task-selected-record" id="task-selected-record" hidden><div><small>Selected record</small><strong id="task-selected-record-label"></strong></div><button type="button" class="button-secondary" id="task-change-record">Change record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record">Clear relationship</button><?php endif; ?></div>
             <div id="task-record-search-panel"><label for="task-subject-search">Find a related record</label>
-            <input type="search" id="task-subject-search" aria-describedby="task-subject-status" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
+            <input type="search" id="task-subject-search" disabled aria-describedby="task-subject-status" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
+            <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
             <div id="task-subject-results" class="task-subject-results" aria-label="Matching records"></div></div>
             <select id="task-subject" name="subject" required>
                 <?php if ($task_require_engagement_subject): ?>

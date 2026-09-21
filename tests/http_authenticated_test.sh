@@ -6,8 +6,6 @@ fixture_suffix=${DNR_HTTP_FIXTURE_SUFFIX:-$(openssl rand -hex 6)}
 fixture_password='HttpTestPassword!123'
 login_recovery_code='ABCD-EFGH-JKLM'
 elevation_recovery_code='NPQR-STUV-WXYZ'
-deactivation_recovery_code='BCDF-GHJK-LMNP'
-deletion_recovery_code='QRST-VWXY-ZABC'
 temporary_directory=$(mktemp -d)
 fixtures_created=0
 
@@ -113,6 +111,24 @@ elevate_admin() {
         "$base_url/admin_elevation.php")
     expect_status "$status" '302' "$description"
     expect_location "$temporary_directory/admin-elevation.headers" 'users.php' "$description"
+}
+
+admin_unlock_deadline() {
+    curl -fsS -b "$admin_cookies" "$base_url/admin_unlock_status.php" | python3 -c '
+import json, sys
+status = json.load(sys.stdin)
+if status.get("unlocked") is not True or not isinstance(status.get("expires_at"), int):
+    raise SystemExit("HTTP authenticated test failed: administrator unlock ended early.")
+print(status["expires_at"])
+'
+}
+
+expect_original_admin_deadline() {
+    current_deadline=$(admin_unlock_deadline)
+    if [ "$current_deadline" != "$admin_unlock_expires_at" ]; then
+        echo 'HTTP authenticated test failed: account action changed the original administrator unlock deadline.' >&2
+        exit 1
+    fi
 }
 
 active_mail_transport=$(compose exec -T web php -r 'echo getenv("DNR_MAIL_TRANSPORT");' </dev/null)
@@ -547,6 +563,7 @@ expect_location "$temporary_directory/admin-audit-locked.headers" \
     'locked audit-log prune'
 
 elevate_admin "$elevation_recovery_code" 'administrator elevation for active-account deletion check'
+admin_unlock_expires_at=$(admin_unlock_deadline)
 
 # A confirmed no-op prune exercises the execution-only routine without
 # deleting fixture data or consuming the administrator elevation.
@@ -601,7 +618,8 @@ expect_status "$status" '302' 'active-account deletion rejection'
 expect_location "$temporary_directory/admin-delete.headers" 'users.php' 'active-account deletion rejection'
 test "$(fixture user-exists "$fixture_suffix" target)" = '1'
 
-elevate_admin "$deactivation_recovery_code" 'administrator elevation for account deactivation'
+# Rejected deletion and subsequent lifecycle actions share the original unlock.
+expect_original_admin_deadline
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-deactivation.html" "$base_url/users.php"
 admin_csrf=$(csrf_from "$temporary_directory/admin-users-deactivation.html")
 status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-deactivation.headers" \
@@ -614,7 +632,7 @@ expect_status "$status" '302' 'administrator user deactivation'
 expect_location "$temporary_directory/admin-deactivation.headers" 'users.php' 'administrator user deactivation'
 test "$(fixture user-status "$fixture_suffix" target)" = 'inactive'
 
-elevate_admin "$deletion_recovery_code" 'administrator elevation for inactive-account deletion'
+expect_original_admin_deadline
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-users-delete.html" "$base_url/users.php"
 admin_csrf=$(csrf_from "$temporary_directory/admin-users-delete.html")
 status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-delete.headers" \
@@ -626,5 +644,6 @@ status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-delete.head
 expect_status "$status" '302' 'inactive administrator user deletion'
 expect_location "$temporary_directory/admin-delete.headers" 'users.php' 'inactive administrator user deletion'
 test "$(fixture user-exists "$fixture_suffix" target)" = '0'
+expect_original_admin_deadline
 
 echo 'Authenticated HTTP behavior tests passed.'

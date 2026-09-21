@@ -38,6 +38,5 @@ try {
     $_SESSION['_user_lifecycle_error'] = 'The account could not be deleted.';
 }
 
-unset($_SESSION['_admin_elevated_at']);
 header('Location: users.php');
 exit();

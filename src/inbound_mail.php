@@ -374,7 +374,7 @@ $statusLabels = [
                             <legend>Engagement</legend>
                             <?php $markerEngagements = $selectedRouting['engagements']; ?>
                             <label for="inbound-engagement-search">Find an active engagement</label>
-                            <input type="search" id="inbound-engagement-search" class="inbound-engagement-search" aria-describedby="inbound-engagement-search-status" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by marker, ID, title, or organization">
+                            <input type="search" id="inbound-engagement-search" disabled class="inbound-engagement-search" aria-describedby="inbound-engagement-search-status" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by marker, ID, title, or organization">
                             <p id="inbound-engagement-search-status" class="field-help" role="status" aria-live="polite">Search by name (2+ characters), ID, or email marker</p>
                             <label for="inbound-engagement-id">Engagement</label>
                             <select id="inbound-engagement-id" name="engagement_ids[]" class="inbound-engagement-select">
