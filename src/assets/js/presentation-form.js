@@ -296,15 +296,49 @@
         });
         entry.querySelectorAll("[data-qr-uploader]").forEach(wireQrUploader);
         entry.querySelectorAll("[data-presentation-file-name]").forEach(function (input) {
-            input.addEventListener("change", function () {
+            var card = input.closest(".presentation-notes-card");
+            var remove = card && card.querySelector(".presentation-asset-remove input");
+            var notice = card && card.querySelector("[data-file-save-notice]");
+            function updateFileSelection() {
+                var hasReplacement = Boolean(input.files && input.files[0]);
+                var hasRemoval = Boolean(remove && remove.checked);
                 var display = input.parentElement.querySelector("[data-selected-file-name]");
                 if (display) {
-                    display.textContent = input.files && input.files[0]
+                    display.textContent = hasReplacement
                         ? input.files[0].name
                         : (display.dataset.emptyFileLabel || "No PDF selected");
                 }
+                if (notice) {
+                    var fileType = notice.dataset.fileType;
+                    notice.hidden = !hasReplacement && !hasRemoval;
+                    if (hasReplacement && hasRemoval) {
+                        notice.textContent = "Choose either replacement or removal for this " + fileType
+                            + ", then select Save Changes.";
+                    } else if (hasRemoval) {
+                        notice.textContent = "Removal pending. Select Save Changes to remove the current " + fileType + ".";
+                    } else if (hasReplacement) {
+                        notice.textContent = "Replacement pending. Select Save Changes to replace the current " + fileType + ".";
+                    } else {
+                        notice.textContent = "";
+                    }
+                }
                 updateConfirmedAvailability();
+            }
+            input.addEventListener("change", function () {
+                if (input.files && input.files[0] && remove) {
+                    remove.checked = false;
+                }
+                updateFileSelection();
             });
+            if (remove) {
+                remove.addEventListener("change", function () {
+                    if (remove.checked) {
+                        input.value = "";
+                    }
+                    updateFileSelection();
+                });
+            }
+            updateFileSelection();
         });
     }
 

@@ -3665,6 +3665,31 @@ textarea::placeholder {
   margin-top: 6px;
 }
 
+.presentation-file-save-notice {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 4px solid var(--warning);
+  border-radius: var(--radius-sm);
+  background: var(--warning-subtle);
+  color: var(--warning);
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.presentation-file-save-notice[hidden] {
+  display: none;
+}
+
+.presentation-notes-card:has(.presentation-file-save-notice:not([hidden])) {
+  border-color: var(--warning);
+}
+
+.presentation-entry:has(.presentation-file-save-notice:not([hidden])) .presentation-pane-save-button {
+  outline: 2px solid var(--warning);
+  outline-offset: 3px;
+}
+
 .presentation-pdf-link,
 .presentation-view-pdf {
   font-weight: 700;
