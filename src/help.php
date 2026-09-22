@@ -34,10 +34,10 @@ $manual_access_summary = match ($manual_role) {
 <body class="user-manual-page">
 <?php include 'templates/header.php'; ?>
 <main class="container manual-container">
-    <section class="manual-hero" aria-labelledby="manual-title">
+    <section class="manual-hero" id="manual-top" tabindex="-1" aria-labelledby="manual-title">
         <span class="manual-eyebrow"><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> Reference Guide</span>
         <section class="manual-hero-copy">
-            <h1 id="manual-title">User Manual</h1>
+            <h1 id="manual-title" tabindex="-1">User Manual</h1>
             <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
             <a class="manual-inline-link" href="<?php echo htmlspecialchars(assetUrl('assets/docs/moed-comprehensive-user-manual.pdf'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
         </section>
@@ -54,6 +54,11 @@ $manual_access_summary = match ($manual_role) {
                 <button type="button" data-manual-clear hidden>Clear</button>
             </section>
             <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 13 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
+            <section class="manual-search-results" data-manual-results hidden aria-labelledby="manual-results-title">
+                <h2 id="manual-results-title">Matching Topics</h2>
+                <p>Select a topic to jump to the highlighted text, or press <kbd>Enter</kbd> to open the first match.</p>
+                <ol data-manual-result-list></ol>
+            </section>
         </form>
         <nav class="manual-quick-links" aria-label="Popular help topics">
             <a href="#booking-pipeline"><span>01</span><strong>Qualify an Inquiry</strong><small>Stages, next actions, booking</small></a>
@@ -130,6 +135,12 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
+                    <h3>Find a Topic in This Manual</h3>
+                    <p>Use <strong>Search the manual</strong> at the top of this page, or press <kbd>/</kbd> to move to it. Results list specific topics with a short excerpt. Select a result, or press <kbd>Enter</kbd> for the first match, to jump to the highlighted text. Matching troubleshooting entries open automatically. Use <strong>Clear</strong>, or press <kbd>Esc</kbd> in the search field, to restore the full manual.</p>
+                    <p>The fixed bar at the bottom of the window has <strong>Top</strong> and <strong>Bottom</strong> links to jump to either end of the page. In the Comprehensive User Guide PDF, use your reader’s Find command, bookmarks, and the guide’s page navigation.</p>
+                </section>
+
+                <section class="manual-subsection">
                     <h3>Browse Longer Lists</h3>
                     <p>Use <strong>Records per page</strong>, where available, to choose 20, 50, or 100 records. Each list remembers your preferred size in this browser. Use the page numbers, <strong>Previous</strong>, or <strong>Next</strong> to move through results. Search and sorting apply to the full result list, so you do not need to search each page separately.</p>
                 </section>
@@ -137,6 +148,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Read Lists and Tables</h3>
                     <p>Table headings stay together where space permits, while long owner names can wrap within their column. On narrow screens, scroll wide tables horizontally or use the page’s card layout to read the full record.</p>
+                    <p>When a row or card has a linked record name, you can select the surrounding row or card to open that record. Checkboxes, action buttons, and other links still perform their own actions. Keyboard users can tab to the record link and press <kbd>Enter</kbd>.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -219,6 +231,7 @@ $manual_access_summary = match ($manual_role) {
                         <span class="manual-kicker">Scan</span>
                         <h3>Daily Summary</h3>
                         <p>The compact top cards distinguish all active work from your own active and overdue work. The Dashboard loads its workload and readiness summaries efficiently as records grow. Shared counts link to the booking pipeline, financial closeouts, and—when available to your role—inbound mail awaiting review.</p>
+                        <p>Purple marks <strong>Mail For Review</strong> and the mail-review alert. The <strong>Financial Closeouts</strong> panel uses gold to distinguish unfinished financial reports.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Act</span>
@@ -311,6 +324,7 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>05</span><section><strong>Capture logistics.</strong><p>Record book-table and brochure permissions, travel coverage, planned compensation, travel/lodging estimates, lodging type, and the physical event location.</p></section></li>
                         <li><span>06</span><section><strong>Set planning states and ownership.</strong><p>Choose lifecycle and confirmation, then select the Caller when that person should own the initial standard checklist. If no Caller is selected, the checklist belongs to the user creating the engagement. Add an initial Chron entry when there is context worth preserving.</p></section></li>
                     </ol>
+                    <p>On <strong>Edit Engagement</strong>, <strong>Save Changes</strong> and <strong>Cancel</strong> stay visible in the bar at the bottom of the window as you scroll. Save Changes saves the entire engagement form, including presentation details and pending file changes.</p>
                     <?php if ($manual_can_manage): ?><p class="manual-open-area"><a href="index.php">Create a New Engagement <span aria-hidden="true">→</span></a></p><?php endif; ?>
                 </section>
 
@@ -358,7 +372,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                     </section>
                     <p>Select <strong>View QR Codes PDF</strong>, choose the codes to include, then select <strong>Prepare PDF</strong> to view, save, or print a single landscape sheet with those labeled codes, schedule, and venue. Use <strong>Select all</strong> to include every available code. Drag any code by its handle to reorder the list, whether checked or unchecked. Only checked codes appear in the PDF, in that order from left to right and then top to bottom. Keyboard users can focus a handle and press the Up or Down arrow key. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; file codes without an uploaded PDF or PowerPoint and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
-                    <p>Each saved presentation has a nearby <strong>Save Changes</strong> button. It saves the engagement form, including other changes on the page. File replacement and removal remain pending until saved; the notice beside the PDF or PPT identifies the pending change. Choose replacement or removal, not both, then save and check the updated file details. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access.</p>
+                    <p>Use <strong>Edit Presentations</strong> on the event’s Presentations tab to open the presentation section of Edit Engagement. File replacement and removal remain pending until you select <strong>Save Changes</strong> in the persistent bottom bar; the notice beside the PDF or PPT identifies the pending change. Choose replacement or removal, not both, then save and check the updated file details. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access; their <strong>Reset Presentation Statistics</strong> action appears with the saved presentation’s management controls.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
@@ -493,7 +507,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <article class="manual-callout manual-callout-neutral">
                     <span class="manual-callout-icon" aria-hidden="true">i</span>
-                    <div class="manual-callout-body"><h3>Organization Archive Rule</h3><p>An organization cannot be archived while it still has active contacts or engagements. Archive those child records first, or move them to another active organization. Restoring a contact or engagement also requires its organization to be active.</p></div>
+                    <div class="manual-callout-body"><h3>Organization Archive Rule</h3><p>An organization cannot be archived while it still has active contacts, engagements, or inquiries. Archive those child records first, or move them to another active organization. Restoring a contact or engagement also requires its organization to be active.</p></div>
                 </article>
 
                 <section class="manual-link-row">
@@ -964,7 +978,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist standard recurring unnecessary customize future events financial closeout restore filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download save pending logout session invalid token error help FAQ">
                 <header class="manual-chapter-heading">
                     <span>Chapter 13</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -986,7 +1000,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>An Organization Will Not Archive</span><i aria-hidden="true">+</i></summary>
-                        <p>Archive or move every active contact and engagement belonging to it first. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> prevents archiving the parent while active child records would become stranded.</p>
+                        <p>Archive or move every active contact, engagement, and inquiry belonging to it first. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> prevents archiving the parent while active child records would become stranded.</p>
                     </details>
                     <details>
                         <summary><span>Search Did Not Find an Engagement</span><i aria-hidden="true">+</i></summary>
@@ -1021,6 +1035,14 @@ $manual_access_summary = match ($manual_role) {
                         <p>Confirm the displayed month and selector. <strong>Events</strong> does not include tasks, <strong>My Tasks</strong> includes only work assigned to you, and task views include only active tasks with due dates. Use <strong>Everything</strong> when you want events and all due-dated work together.</p>
                     </details>
                     <details>
+                        <summary><span>Every New Event Includes Tasks We Do Not Need</span><i aria-hidden="true">+</i></summary>
+                        <p><strong>Standard Event Tasks</strong> are a customizable starting checklist. Editors and administrators can go to <strong>Work Queue → Standard Event Tasks</strong> to adjust it to the team’s workflow.</p>
+                        <p><strong>Edit</strong> a standard task to change its title, notes, priority, display order, or due-date rule. Due dates can be relative to the event’s start or end; for example, select Event start and enter a Day offset of <strong>-7</strong> for seven days before the start. Use <strong>+ New Standard Task</strong> to add a recurring checklist item.</p>
+                        <p>In the <strong>Active</strong> list, use a standard task’s <strong>Archive</strong> action when it should no longer be created automatically for new events. Use <strong>Restore</strong> in the <strong>Archived</strong> tab to include it in future events again. This is the shared checklist: changes apply to everyone creating events, so agree on the team’s recurring needs before changing it.</p>
+                        <p>If a task is unnecessary for just one event, archive that event’s copy in <strong>Follow-Up Work</strong> or the <strong>Work Queue</strong>. Archiving an individual event task does not disable its standard template. Likewise, archiving a standard task does not remove copies already created on existing events; archive those copies individually when appropriate.</p>
+                        <p>The exception is the required built-in <strong>financial closeout reminder</strong>, due one week after the event ends. It cannot be edited, archived, or deleted.</p>
+                    </details>
+                    <details>
                         <summary><span>Changing the Caller Did Not Move Existing Tasks</span><i aria-hidden="true">+</i></summary>
                         <p>The Caller is used only to choose the owner of the initial standard checklist when the engagement is created. Later Caller changes do not alter existing task ownership. If responsibility changes, reassign those tasks in the Work Queue.</p>
                     </details>
@@ -1029,16 +1051,9 @@ $manual_access_summary = match ($manual_role) {
                         <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. To share a web address instead of an image, use the <strong>Copy link</strong> icon beneath the code’s image. If copying is blocked, allow clipboard access for this site and retry. Save the presentation first if its QR codes are not yet available.</p>
                     </details>
                     <details>
-                        <summary><span>The Speaker Notes QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
-                        <p>Open the engagement for editing, check the speaker selected for that presentation, and choose a Speaker Notes PDF. Save the engagement before looking for the code. A code is not shown when there is no saved PDF for that speaker. If an upload is too large, reduce the PDF to 100 MB or less; when adding several files, keep the combined upload under 120 MB.</p>
-                    </details>
-                    <details>
-                        <summary><span>The PPT Slidedeck QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
-                        <p>Check the presentation’s selected speaker, choose a .ppt or .pptx file, and save. The code appears after the upload succeeds. Each file may be up to 100 MB; keep all files in one save under 120 MB total. Removing the file hides the code until a replacement is saved.</p>
-                    </details>
-                    <details>
-                        <summary><span>The PowerPoint File Downloads Instead of Opening</span><i aria-hidden="true">+</i></summary>
-                        <p><strong>Download PPT Slidedeck</strong> saves the original PowerPoint file. Open it from your browser’s Downloads using PowerPoint or a compatible presentation app. The shared QR link downloads the same file.</p>
+                        <summary><span>A Presentation File or Its QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
+                        <p>Open <strong>Edit Presentations</strong> on the event’s Presentations tab and check the selected speaker. Choose a PDF for Speaker Notes or a .ppt or .pptx file for PPT Slidedeck. Each file may be up to 100 MB; keep all files in one save under 120 MB total.</p>
+                        <p>Choosing a file or selecting Remove only prepares a change. Select <strong>Save Changes</strong> in the persistent bottom bar, then check the saved filename and upload details. The corresponding QR code appears after the file is saved successfully. Removing the file hides its code until a replacement is saved.</p>
                     </details>
                     <details>
                         <summary><span>A Save Reports an Expired Request</span><i aria-hidden="true">+</i></summary>
@@ -1060,7 +1075,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-empty" data-manual-empty hidden>
                 <span aria-hidden="true">⌕</span>
-                <h2>No Matching Chapter</h2>
+                <h2>No Matching Topic</h2>
                 <p>Try a broader term such as “task,” “email,” “security,” or “archive.”</p>
                 <button type="button" class="button-secondary" data-manual-empty-clear>Show the Full Manual</button>
             </section>
@@ -1068,5 +1083,11 @@ $manual_access_summary = match ($manual_role) {
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>
+<p class="manual-end" id="manual-end" tabindex="-1">End of User Manual</p>
+<nav class="manual-page-nav" aria-label="Manual page navigation">
+    <span>User Manual</span>
+    <a href="#manual-top"><span aria-hidden="true">↑</span> Top</a>
+    <a href="#manual-end"><span aria-hidden="true">↓</span> Bottom</a>
+</nav>
 </body>
 </html>

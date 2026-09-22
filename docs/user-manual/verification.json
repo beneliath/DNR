@@ -1,7 +1,7 @@
 {
   "pages": 147,
   "screenshots": 87,
-  "internal_links": 1245,
+  "internal_links": 1248,
   "bookmarks": 308,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
@@ -28,8 +28,8 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.2.3",
-    "edition_date": "September 21, 2026",
+    "version": "2.2.7",
+    "edition_date": "September 22, 2026",
     "cover_and_metadata": "verified"
   }
 }
