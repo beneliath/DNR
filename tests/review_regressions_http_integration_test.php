@@ -95,7 +95,7 @@ try {
         expectReviewRegression(str_contains($response['body'], 'id="stage-new">New</h2><strong>250</strong>')
             && str_contains($response['body'], 'id="stage-proposal_sent">Proposal Sent</h2><strong>251</strong>'),
             'Stage totals include all filtered records on every page');
-        preg_match_all('/<h3><a href="view_inquiry.php\?id=(\d+)"/', $response['body'], $matches);
+        preg_match_all('/<h3><a\b[^>]*\bhref="view_inquiry\.php\?id=(\d+)"/', $response['body'], $matches);
         expectReviewRegression(count($matches[1]) === ($page === 6 ? 1 : 100), 'Every board page has its expected records');
         array_push($seen, ...$matches[1]);
     }
