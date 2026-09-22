@@ -3096,6 +3096,32 @@ html body .follow-up-task-form .task-subject-result:is(:hover, :focus-visible) {
   text-decoration: none;
 }
 
+/* Extend the primary native link across its row/card. Keep secondary controls
+   above the link so checkboxes, menus, and record actions remain independent. */
+:where(.data-table tbody tr, .dashboard-record-list > li, .dashboard-attention-list > li, .context-task-card, .inquiry-card):has(a.record-link[href]) {
+  position: relative;
+  isolation: isolate;
+}
+
+:where(.data-table tbody tr, .dashboard-record-list > li, .dashboard-attention-list > li, .context-task-card, .inquiry-card) a.record-link[href]::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  cursor: pointer;
+}
+
+:where(.data-table tbody tr, .dashboard-record-list > li, .dashboard-attention-list > li, .context-task-card, .inquiry-card):has(a.record-link[href]) :is(a:not(.record-link), button, input, select, textarea, label, summary, [role="button"], [contenteditable="true"]) {
+  position: relative;
+  z-index: 2;
+}
+
+:where(.data-table tbody tr, .dashboard-record-list > li, .dashboard-attention-list > li, .context-task-card, .inquiry-card) a.record-link[href]:focus-visible::after {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: inherit;
+}
+
 .engagement-dates {
   font-size: var(--table-numeric-font-size);
   white-space: nowrap;

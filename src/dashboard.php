@@ -271,7 +271,7 @@ $task_status_labels = followUpTaskStatuses();
                 <ul class="dashboard-attention-list">
                     <?php foreach ($readiness_items as $engagement): ?>
                         <li>
-                            <a href="<?php echo $can_manage ? 'edit_engagement.php' : 'view_engagement.php'; ?>?id=<?php echo (int) $engagement['id']; ?>"><?php echo htmlspecialchars(dashboardEngagementLabel($engagement), ENT_QUOTES, 'UTF-8'); ?></a>
+                            <a class="record-link" href="<?php echo $can_manage ? 'edit_engagement.php' : 'view_engagement.php'; ?>?id=<?php echo (int) $engagement['id']; ?>"><?php echo htmlspecialchars(dashboardEngagementLabel($engagement), ENT_QUOTES, 'UTF-8'); ?></a>
                             <div class="dashboard-issue-tags">
                                 <?php foreach ($engagement['readiness_issues'] as $issue): ?><span><?php echo htmlspecialchars((string) $issue, ENT_QUOTES, 'UTF-8'); ?></span><?php endforeach; ?>
                             </div>
@@ -295,7 +295,7 @@ $task_status_labels = followUpTaskStatuses();
                     <?php foreach ($financial_closeouts as $engagement): ?>
                         <li>
                             <div>
-                                <a href="<?php echo $can_manage ? 'close_engagement.php' : 'view_engagement.php'; ?>?id=<?php echo (int) $engagement['id']; ?>"><?php echo htmlspecialchars(dashboardEngagementLabel($engagement), ENT_QUOTES, 'UTF-8'); ?></a>
+                                <a class="record-link" href="<?php echo $can_manage ? 'close_engagement.php' : 'view_engagement.php'; ?>?id=<?php echo (int) $engagement['id']; ?>"><?php echo htmlspecialchars(dashboardEngagementLabel($engagement), ENT_QUOTES, 'UTF-8'); ?></a>
                                 <span><?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?> · ended <?php echo htmlspecialchars(dashboardDateRangeLabel($engagement['event_end_date'] ?: $engagement['event_start_date'], null), ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
                             <strong><?php echo (int) $engagement['days_overdue']; ?> day<?php echo (int) $engagement['days_overdue'] === 1 ? '' : 's'; ?></strong>
