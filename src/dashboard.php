@@ -158,7 +158,7 @@ $task_status_labels = followUpTaskStatuses();
             </div>
         <?php endif; ?>
         <?php if ($can_manage): ?>
-            <a class="summary-card dashboard-summary-card<?php echo $inbound_review_count > 0 ? ' summary-review' : ''; ?>" href="inbound_mail.php?status=review">
+            <a class="summary-card dashboard-summary-card dashboard-summary-mail" href="inbound_mail.php?status=review">
                 <span class="summary-icon" aria-hidden="true">@</span>
                 <span><small>Mail For Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
             </a>
