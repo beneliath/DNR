@@ -35,30 +35,47 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 21, 2026 edition applies to application version **2.2.3**, including
-its administrator deletion functionality. The cover, scope and
-edition notes, README appendix version reference, and PDF metadata use the
-current `VERSION` value.
+The September 22, 2026 edition applies to application version **2.2.7**. The
+cover, scope and edition notes, README appendix version reference, and PDF
+metadata use the current `VERSION` value.
 
-The guide now covers individual and bulk deletion on Organizations, Contacts,
-Speakers, Engagements, Tasks, and Users; inactive/invited account deletion;
-protected records and partial results; page-only selection; and the preserved
-five-minute administrator unlock countdown. It explains the reorganized account
-controls, amber Deactivate versus red Delete user, and Enter-key behavior in
-searches and deletion confirmations. It also documents the pending PDF/PPT file
-notices introduced in 2.2.2 and the need to use Save Changes.
+This refresh documents persistent Save Changes/Cancel controls on Edit
+Engagement, the relocated presentation statistics reset action, the Edit
+Presentations button, gold financial closeouts and purple mail indicators, and
+clickable record rows/cards. It replaces the obsolete instructions for saving
+beside an individual presentation. The troubleshooting chapter explains how to
+customize the shared Standard Event Tasks checklist, including the distinction
+between a definition and an existing event copy and the required closeout task.
 
-Eight figures were refreshed or added through CUA in the disposable September 21
-preview: contacts, speakers, users, bulk-speaker-review, delete-user,
-bulk-user-review, bulk-user-confirmation, and presentation-file-pending.
-The source images are original browser captures. Crop bounds select complete
-controls and exclude decorative footers. Alex Morgan, Casey Taylor, Jordan
-Parker, Avery Morgan, and the connected Cedar Grove records are fictional; the
-initial default speaker may also appear in the directory. Mail uses a local
-log and Mattermost is unconfigured. No records, accounts, or files were deleted,
-no record-edit forms were saved, and no email or invitations were sent during
-capture. Enter was verified to open the batch confirmation; Cancel kept both
-accounts. Earlier illustrations remain where their controls still apply.
+The two missing-file QR questions are consolidated into one presentation-file
+entry with the current save workflow. The PowerPoint download question is
+removed because that expected behavior is already explained in the presentation
+chapter. The organization archive rule now includes active inquiries. The other
+troubleshooting entries still describe current constraints or recovery steps.
+The 2.2.3 deletion, account-control, and administrator-unlock guidance is retained.
+The online manual now lists specific search results, highlights matching text,
+opens relevant troubleshooting entries, and provides fixed Top/Bottom links.
+The guide explains these controls and retains PDF-specific navigation guidance.
+
+Ten figures were refreshed through CUA in the disposable September 22 preview:
+manual, dashboard, dark, engagement-form, presentations, presentation-form,
+presentation-files, presentation-file-pending, standard-tasks, and manual-search.
+The manual-search figure now shows a specific topic result with highlighted words. The
+manual figures are original 1265 by 712 browser captures; the other refreshed
+images are original 1351 by 1309 browser captures. Crop bounds frame the relevant
+controls; the engagement editing viewport also shows the persistent bottom bar
+as the form continues beneath it. Decorative footers are excluded, preserving
+the profile controls in the full-shell dark view. The unchanged mobile navigation
+and other figures were retained after reviewing the changes since 2.2.3.
+
+Alex Morgan, Jordan Parker, Avery Morgan, and the connected Cedar Grove records
+are fictional. The September 22 Compose project has its own database, keyring,
+and uploaded-file volumes, and binds only to loopback port 18132. Mail uses a
+local log and Mattermost is unconfigured. CLI fixtures set up sample data and a
+test PowerPoint. No record-edit forms were saved, no records or uploaded files
+were deleted, and no email or invitations were sent during browser capture.
+The pending-removal checkbox was cleared without saving. Temporary containers,
+volumes, and preview credentials were removed after verification.
 
 ## Rebuild from the checked-in screenshots
 

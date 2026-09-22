@@ -6,12 +6,12 @@
     "route": "help.php",
     "steps": [
       "Open User Manual near the bottom of the scrollable sidebar. Its 13 chapters match this PDF.",
-      "The logo stays at the top and your profile/sign-out block stays at the bottom; scroll only the menu between them.",
-      "Use the chapter rail, topic cards, or / to search. Use your PDF reader’s Find command for this guide."
+      "Use the chapter rail and topic cards to browse, or press / to focus Search the manual.",
+      "The fixed bottom bar keeps Top and Bottom available while you read. They jump to either end of the page."
     ],
     "shell": true,
     "file": "screenshots/manual.png",
-    "captured_at": "2026-09-19",
+    "captured_at": "2026-09-22",
     "crop": [
       0,
       0,
@@ -32,14 +32,32 @@
     "action": "dark",
     "shell": true,
     "file": "screenshots/dark.png",
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-22",
     "crop": [
       0,
       0,
-      1250,
-      840
+      1351,
+      1309
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
+    "omitted_regions": [
+      {
+        "box": [
+          258,
+          1268,
+          1077,
+          41
+        ],
+        "fill": "#11141b"
+      }
+    ],
+    "copyright_line_box": [
+      297,
+      1238,
+      476,
+      1255
+    ],
+    "footer_removed": true
   },
   {
     "chapter": 1,
@@ -95,20 +113,20 @@
     "title": "Start the day on the Dashboard",
     "route": "dashboard.php",
     "steps": [
-      "Scan the summary cards for your workload, the booking pipeline, and items needing review.",
+      "Scan the summary cards for work, booking inquiries, financial closeouts, and the purple Mail For Review indicator.",
       "Work through My Work and promptly follow up on overdue items, then review upcoming engagements and incomplete details.",
-      "Open the linked record to make the change, then return to the Dashboard."
+      "Review Needs Attention: the mail-review alert is purple and Financial Closeouts is gold. Select a record row or card to open it; separate controls keep their own actions."
     ],
     "file": "screenshots/dashboard.png",
     "crop": [
-      270,
-      0,
-      980,
-      835
+      290,
+      24,
+      1014,
+      1080
     ],
-    "captured_at": "2026-09-14",
+    "captured_at": "2026-09-22",
     "note": "Fictional task dates illustrate prompt follow-up: the oldest overdue example is five days late.",
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
   },
   {
     "chapter": 4,
@@ -322,16 +340,19 @@
     "steps": [
       "Choose an active organization and enter the event title and description.",
       "Set valid start and end dates. Choose Other and describe the type when presets do not fit.",
-      "Assign a Caller for the initial checklist; later Caller changes do not transfer existing tasks."
+      "Assign a Caller for the initial checklist; later Caller changes do not transfer existing tasks.",
+      "Save Changes and Cancel remain visible in the bottom bar while you scroll. Save Changes saves the entire form, including presentation edits and pending file changes."
     ],
     "file": "screenshots/engagement-form.png",
     "crop": [
-      0,
-      0,
-      1515,
-      838
+      280,
+      22,
+      1048,
+      1287
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
+    "captured_at": "2026-09-22",
+    "note": "The fixed bottom bar stays available as the longer form continues below the viewport."
   },
   {
     "chapter": 5,
@@ -353,7 +374,7 @@
     "title": "Presentation details and audience resources",
     "route": "view_engagement.php?id=1",
     "steps": [
-      "Open Presentations and review the speaker, title, schedule, duration, and attendance.",
+      "Open Presentations and review the speaker, title, schedule, duration, and attendance. Use Edit Presentations to open the editing section.",
       "Select View PDF Speaker Notes to open the notes, or Download PPT Slidedeck to save the PowerPoint for a compatible presentation app.",
       "Select Copy link beneath a QR image to share its web address. Select the image to copy the QR graphic, or PNG/SVG to save it.",
       "Combined Presentation Statistics covers all codes; Statistics beneath a code opens its own activity."
@@ -362,14 +383,14 @@
     "focus": "#engagement-workspace",
     "file": "screenshots/presentations.png",
     "crop": [
-      317,
-      12,
-      548,
-      642
+      313,
+      518,
+      611,
+      632
     ],
     "note": "The first row of resource codes is shown. Scroll down to find the file and custom-resource codes.",
-    "captured_at": "2026-09-19",
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+    "captured_at": "2026-09-22",
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
   },
   {
     "chapter": 5,
@@ -424,18 +445,18 @@
       "Choose a saved speaker and enter the topic, date, time, duration, and expected attendance.",
       "Record actual attendance after the event. Zero is valid when nobody attended.",
       "Continue to Presentation Files & QR Codes below these fields to add PDF notes and a PowerPoint file.",
-      "Save Changes saves the whole engagement form, including other edits on the page."
+      "Use Save Changes in the persistent bottom bar to save the whole engagement form, including other edits on the page."
     ],
     "focus": ".presentation-entry",
     "file": "screenshots/presentation-form.png",
     "crop": [
       322,
-      110,
-      864,
-      361
+      0,
+      946,
+      506
     ],
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded.",
-    "captured_at": "2026-09-19"
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
+    "captured_at": "2026-09-22"
   },
   {
     "chapter": 5,
@@ -444,41 +465,42 @@
     "route": "edit_engagement.php?id=1",
     "file": "screenshots/presentation-files.png",
     "crop": [
-      343,
-      55,
-      824,
-      611
+      340,
+      518,
+      915,
+      600
     ],
     "steps": [
       "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
       "Each file may be up to 100 MB. Keep all uploads in one save under 120 MB total; use separate saves for larger combined uploads.",
-      "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes beside the presentation or at the bottom. Either saves the entire engagement form.",
+      "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
     "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in.",
-    "captured_at": "2026-09-19",
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+    "captured_at": "2026-09-22",
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
   },
   {
     "chapter": 5,
     "id": "presentation-file-pending",
     "title": "Save a pending presentation-file change",
-    "route": "edit_engagement.php",
+    "route": "edit_engagement.php?id=1",
     "file": "screenshots/presentation-file-pending.png",
-    "captured_at": "2026-09-21",
+    "captured_at": "2026-09-22",
     "crop": [
-      343,
-      105,
-      826,
-      580
+      340,
+      354,
+      915,
+      650
     ],
     "steps": [
       "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
       "Read the pending notice. Selecting a file or checking Remove does not apply the change immediately.",
-      "Select Save Changes beside the saved presentation or at the bottom of the page. Either button saves the whole engagement form.",
+      "Select Save Changes in the persistent bar at the bottom of the window. It saves the whole engagement form, including pending file changes.",
       "After saving, verify the file details and sharing links. Leave without saving to keep the existing file."
     ],
-    "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept."
+    "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept.",
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
   },
   {
     "chapter": 5,
@@ -914,19 +936,20 @@
     "title": "Manage reusable event checklists",
     "route": "standard_tasks.php",
     "steps": [
-      "Open Standard Event Tasks from the Work Queue.",
-      "Create or edit the content, priority, display order, and offset from event start or end.",
-      "Changes affect generation; existing task content is independently editable.",
-      "The required financial reminder is fixed at one week after event end."
+      "Editors and administrators open Work Queue → Standard Event Tasks to maintain the shared starting checklist.",
+      "Edit a definition’s content, priority, display order, or due-date rule. Use + New Standard Task for another recurring item.",
+      "Archive a definition in Active to stop automatic creation for future events. Restore it from Archived to include it again. These changes apply to everyone creating events.",
+      "Existing event copies remain separate: archive an unnecessary copy in Follow-Up Work or the Work Queue. The required financial closeout reminder stays fixed at one week after event end."
     ],
     "file": "screenshots/standard-tasks.png",
     "crop": [
-      0,
-      0,
-      1515,
-      1165
+      290,
+      30,
+      1014,
+      1073
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
+    "captured_at": "2026-09-22"
   },
   {
     "chapter": 7,
@@ -1438,22 +1461,23 @@
   {
     "chapter": 13,
     "id": "manual-search",
-    "title": "Find help quickly",
+    "title": "Find a specific manual topic",
     "route": "help.php",
     "steps": [
-      "Search the online manual for a term such as financial closeout.",
-      "Use Clear to return to all chapters.",
-      "In this PDF use the contents, bookmarks, related-topic links, topic finder, or your reader's text search."
+      "Enter a phrase in Search the manual. Results show specific topic titles, their chapter, and an excerpt with matching words highlighted.",
+      "Select a result, or press Enter for the first match. The page jumps to that topic and opens matching troubleshooting entries.",
+      "Use Clear or press Esc in the search field to restore the full manual. Use your PDF reader’s Find command to search this guide."
     ],
-    "action": "search",
+    "shell": false,
     "file": "screenshots/manual-search.png",
+    "captured_at": "2026-09-22",
     "crop": [
-      0,
-      0,
-      1515,
-      1000
+      330,
+      36,
+      850,
+      395
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Complete search field and matching topic result from the original browser screenshot."
   },
   {
     "chapter": 5,
