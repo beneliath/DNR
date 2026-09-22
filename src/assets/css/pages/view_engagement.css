@@ -558,6 +558,20 @@
     text-decoration: underline;
 }
 
+html body .engagement-card-heading .edit-presentations-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+/* Keep the shared secondary-button hover and keyboard-focus treatment. */
+html body .edit-presentations-button:not(:hover):not(:focus-visible) {
+    border-color: var(--action-edit) !important;
+    background: var(--action-edit-bg) !important;
+    color: var(--action-edit) !important;
+}
+
 .engagement-section-count {
     display: inline-grid;
     min-width: 24px;

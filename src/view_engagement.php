@@ -497,7 +497,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div class="engagement-tab-panel" id="engagement-tasks" role="tabpanel" aria-labelledby="engagement-tasks-tab" tabindex="0"><?php echo $engagement_task_html; ?></div>
     <section class="engagement-card engagement-tab-panel" id="engagement-presentations" role="tabpanel" aria-labelledby="engagement-presentations-tab" tabindex="0">
         <div class="engagement-card-heading"><h2>Presentations <span class="engagement-section-count"><?php echo count($presentations); ?></span></h2>
-            <?php if ($can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url . '#engagement-presentations']), ENT_QUOTES, 'UTF-8'); ?>#presentations-container">Edit Presentations</a><?php endif; ?>
+            <?php if ($can_manage_engagement): ?><a class="button-secondary edit-presentations-button" href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url . '#engagement-presentations']), ENT_QUOTES, 'UTF-8'); ?>#presentations-container">Edit Presentations</a><?php endif; ?>
         </div>
         <div class="detail-value">
             <?php foreach ($presentations as $presentation): ?>

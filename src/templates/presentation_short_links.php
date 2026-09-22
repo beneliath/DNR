@@ -60,7 +60,7 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
         <?php endforeach; ?>
     </div>
     <p>Each code is unique to this presentation. Select Combined Presentation Statistics for activity across all its codes, or Statistics on a code to review its visits and manage its destination. Speaker Notes and PPT Slidedeck codes are added after their files are uploaded. Use Copy link to copy the URL encoded in a QR code.</p>
-    <?php if (hasRole(['admin'])): ?>
+    <?php if (($short_link_show_reset_action ?? true) && hasRole(['admin'])): ?>
         <p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>">Reset Presentation Statistics</a></p>
     <?php endif; ?>
 </div>
