@@ -101,19 +101,20 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                             <?php include __DIR__ . '/presentation_pdf_upload.php'; ?>
                             <?php include __DIR__ . '/presentation_slidedeck_upload.php'; ?>
                             <?php if ($is_saved_presentation): ?>
-                                <?php $short_link_presentation_id = (int) $presentation['id']; include __DIR__ . '/presentation_short_links.php'; ?>
+                                <?php
+                                $short_link_presentation_id = (int) $presentation['id'];
+                                $short_link_show_reset_action = false;
+                                include __DIR__ . '/presentation_short_links.php';
+                                unset($short_link_show_reset_action);
+                                ?>
                             <?php else: ?>
                                 <p>Save the presentation to download its unique QR codes.</p>
                             <?php endif; ?>
                         </div>
                         <?php if ($is_saved_presentation): ?>
                             <div class="remove-btn-container presentation-management-actions">
-                                <?php if (!empty($engagement_id)): ?>
-                                    <button type="submit"
-                                            name="save_engagement"
-                                            value="1"
-                                            class="save-button presentation-pane-save-button"
-                                            form="engagement-edit-form">Save Changes</button>
+                                <?php if (hasRole(['admin'])): ?>
+                                    <a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $presentation['id']; ?>">Reset Presentation Statistics</a>
                                 <?php endif; ?>
                                 <?php if (canArchiveEntries($user_role ?? '')): ?>
                                     <button type="submit" form="archive-presentation-<?php echo (int) $presentation['id']; ?>" class="archive-button">Archive</button>

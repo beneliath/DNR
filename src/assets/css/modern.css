@@ -3685,9 +3685,8 @@ textarea::placeholder {
   border-color: var(--warning);
 }
 
-.presentation-entry:has(.presentation-file-save-notice:not([hidden])) .presentation-pane-save-button {
-  outline: 2px solid var(--warning);
-  outline-offset: 3px;
+.edit-engagement-page:has(.presentation-file-save-notice:not([hidden])) .engagement-page-actions .save-button {
+  outline-color: var(--warning);
 }
 
 .presentation-pdf-link,
@@ -3895,8 +3894,9 @@ html body button.presentation-qr-preview:focus-visible {
   gap: 12px;
 }
 
-.presentation-pane-save-button {
+.presentation-management-actions .presentation-stats-reset {
   margin-right: auto;
+  text-decoration: none;
 }
 
 .currency-input input[type="number"] {

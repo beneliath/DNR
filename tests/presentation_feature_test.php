@@ -274,10 +274,12 @@ expectPresentationFeature(
     'saved presentation archive and delete buttons should have visible separation.'
 );
 expectPresentationFeature(
-    str_contains($presentation_template, 'class="save-button presentation-pane-save-button"')
-        && str_contains($presentation_template, 'form="engagement-edit-form">Save Changes</button>')
-        && preg_match('/\.presentation-pane-save-button\s*\{[^}]*margin-right:\s*auto;/s', $modern_styles) === 1,
-    'saved presentation panes should provide a lower-left Save Changes button for the engagement edit form.'
+    !str_contains($presentation_template, 'name="save_engagement"')
+        && str_contains($presentation_template, '$short_link_show_reset_action = false;')
+        && str_contains($presentation_template, 'class="button-secondary presentation-stats-reset"')
+        && str_contains($edit_engagement_source, 'form="engagement-edit-form">Save Changes</button>')
+        && preg_match('/\.presentation-management-actions \.presentation-stats-reset\s*\{[^}]*margin-right:\s*auto;/s', $modern_styles) === 1,
+    'saved presentation panes should place statistics reset on the left and use the persistent engagement save action.'
 );
 expectPresentationFeature(
     str_contains($presentation_template, "' has-saved-presentations'")

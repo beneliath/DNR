@@ -3,6 +3,74 @@
         max-width: var(--app-content-max);
         padding-inline: var(--app-content-padding);
     }
+
+/* Match every pane title to the Event Contacts heading. */
+.edit-engagement-page .form-section h2 {
+    font-size: 1.55rem;
+}
+
+/* Leave room for the fixed actions, including devices with a home indicator. */
+body.edit-engagement-body {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+html:has(.edit-engagement-body) {
+    scroll-padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+}
+
+.edit-engagement-page .engagement-page-actions {
+    position: fixed;
+    z-index: 84;
+    inset: auto 0 0 var(--sidebar-width);
+    margin: 0;
+    padding: 0 0 env(safe-area-inset-bottom, 0px);
+    border: 0;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: 0 -2px 12px rgba(16, 24, 40, 0.08);
+}
+
+.engagement-edit-actions-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    width: min(100%, var(--app-content-max));
+    min-height: 5rem;
+    margin-inline: auto;
+    padding: 14px var(--app-content-padding);
+}
+
+.engagement-edit-actions-inner .cancel-button {
+    margin-left: 0;
+}
+
+.edit-engagement-page .engagement-page-actions .save-button {
+    --primary-hover: var(--success);
+    outline: 4px double var(--primary);
+    outline-offset: 3px;
+}
+
+.edit-engagement-page .engagement-page-actions .save-button:is(:hover, :focus-visible) {
+    outline-color: var(--success);
+}
+
+@media (max-width: 860px) {
+    .edit-engagement-page .engagement-page-actions {
+        left: 0;
+    }
+}
+
+@media print {
+    body.edit-engagement-body {
+        padding-bottom: 0;
+    }
+
+    .edit-engagement-page .engagement-page-actions {
+        display: none;
+    }
+}
+
     .edit-engagement-heading h1 {
         font-size: clamp(1.8rem, 3vw, 2.3rem);
     }

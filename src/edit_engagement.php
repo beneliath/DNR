@@ -1077,8 +1077,10 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
     </section>
 
     <div class="engagement-page-actions" aria-label="Engagement form actions">
-        <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-        <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>
+        <div class="engagement-edit-actions-inner">
+            <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
+            <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>
+        </div>
     </div>
 </div>
 
