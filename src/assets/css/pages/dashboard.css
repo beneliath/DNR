@@ -1,5 +1,7 @@
 .dashboard-page {
     --dashboard-task-hover-bg: #ffd3a6;
+    --dashboard-mail-color: #6941c6;
+    --dashboard-mail-bg: #ede9fe;
     display: flex;
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);
@@ -10,6 +12,8 @@
 
 html.dark-mode .dashboard-page {
     --dashboard-task-hover-bg: #713b10;
+    --dashboard-mail-color: #bdb4fe;
+    --dashboard-mail-bg: #463b78;
 }
 
 .dashboard-heading {
@@ -113,6 +117,11 @@ html.dark-mode .dashboard-page {
     color: var(--danger);
 }
 
+.dashboard-summary-mail .summary-icon {
+    background: var(--dashboard-mail-bg);
+    color: var(--dashboard-mail-color);
+}
+
 .dashboard-inquiry-grid {
     display: grid;
     grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -188,6 +197,11 @@ html.dark-mode .dashboard-page {
     border-radius: var(--radius-md);
     background: var(--surface) !important;
     box-shadow: var(--shadow-sm);
+}
+
+.dashboard-panel#financial-closeouts {
+    border-color: color-mix(in srgb, var(--warning) 45%, var(--border));
+    background: var(--warning-subtle) !important;
 }
 
 .dashboard-panel-heading {
@@ -466,10 +480,10 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     display: inline-flex;
     align-items: center;
     padding: 8px 11px;
-    border: 1px solid color-mix(in srgb, var(--warning) 45%, var(--border));
+    border: 1px solid color-mix(in srgb, var(--dashboard-mail-color) 45%, var(--border));
     border-radius: 999px;
-    background: var(--warning-subtle);
-    color: var(--warning);
+    background: var(--dashboard-mail-bg);
+    color: var(--dashboard-mail-color);
     font-size: .72rem;
     font-weight: 700;
     text-decoration: none;
@@ -477,7 +491,8 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 
 .dashboard-mail-alert:hover,
 .dashboard-mail-alert:focus-visible {
-    border-color: var(--warning);
+    border-color: var(--dashboard-mail-color);
+    color: var(--dashboard-mail-color);
 }
 
 .dashboard-attention-list > li {
