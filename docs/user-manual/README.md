@@ -35,11 +35,34 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 22, 2026 edition applies to application version **2.2.7**. The
+The September 22, 2026 edition applies to application version **2.3.0**. The
 cover, scope and edition notes, README appendix version reference, and PDF
 metadata use the current `VERSION` value.
 
-This refresh documents persistent Save Changes/Cancel controls on Edit
+The latest refresh adds ten shared online/PDF topics for ai coach: conversational
+questions, keyboard shortcuts, eight interactive walkthroughs, navigation while an
+answer is being prepared, stopping or resetting the conversation, answer ratings,
+missing-control reports, administrator request review, verified improvement cases,
+request-log clearing, and troubleshooting. The new procedures name controls from
+the current application source; no new ai coach screenshots were fabricated.
+The alphabetical topic finder and PDF bookmarks include the new topics. Feature
+availability is explicitly conditional on ai coach being enabled in the installation.
+
+The administrator guidance distinguishes a user's rating, an administrator's
+assessment, an approved reusable guidance case, and a development review. Feedback
+does not directly train the model or publish changes. Approved cases need
+revalidation after guidance changes. The documentation describes the queue without
+implying that a local development automation is installed on every MOED deployment.
+
+Presentation instructions now begin at the event's Presentations tab and Edit
+Presentations. PowerPoint .ppt/.pptx files allow 500 MB per file; PDF notes remain
+100 MB and each save must stay below 600 MB total. Existing screenshot crops retain
+the unchanged file controls and exclude the obsolete size-limit line. The event
+creation procedure starts at Engagements, then + New Engagement, with organization
+selection inside that form. Account Security also names the current Change Password
+panel and its confirmation fields.
+
+The earlier refresh documents persistent Save Changes/Cancel controls on Edit
 Engagement, the relocated presentation statistics reset action, the Edit
 Presentations button, gold financial closeouts and purple mail indicators, and
 clickable record rows/cards. It replaces the obsolete instructions for saving

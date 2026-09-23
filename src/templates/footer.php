@@ -105,6 +105,7 @@ Genesis 49:9,10 ... Revelation 5:5
 
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>
+<?php if (function_exists('aiCoachEnabled') && aiCoachEnabled() && !empty($_SESSION['user_id'])) include __DIR__ . '/ai_coach.php'; ?>
 <?php if (!empty($_SESSION['user_id'])): ?>
 <span hidden data-network-performance data-endpoint="network_performance.php" data-csrf-token="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>"></span>
 <?php renderScript('assets/js/network-performance.min.js'); ?>

@@ -400,7 +400,7 @@
             '<div class="presentation-assets">',
             '  <div class="presentation-assets-heading">',
             '    <h3>Presentation Files &amp; QR Codes</h3>',
-            '    <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may also be up to 100 MB. Keep each save under 120 MB total. QR codes are generated when you save.</p>',
+            '    <p>PDF Speaker Notes may be up to 100 MB. PPT Slidedeck (.ppt or .pptx) may be up to 500 MB. Keep each save under 600 MB total. QR codes are generated when you save.</p>',
             '  </div>',
             pdfUploadMarkup(id),
             slidedeckUploadMarkup(id),

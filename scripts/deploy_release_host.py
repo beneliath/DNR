@@ -20,6 +20,19 @@ def run(args, **kwargs):
     return subprocess.check_output(args, text=True, **kwargs).strip()
 
 
+def verify_app_replicas(service, output, expected_image_id, inspect):
+    # The provenance wrapper writes a human-readable banner before Compose output.
+    identifiers = [line for line in output.splitlines() if re.fullmatch('[0-9a-f]{12,64}', line)]
+    if not identifiers:
+        raise ValueError(service + ' has no running containers')
+    for identifier in identifiers:
+        state = inspect(identifier)
+        if state['Image'] != expected_image_id:
+            raise ValueError(service + ' is running a different image')
+        if state['State'].get('Health', {}).get('Status') != 'healthy':
+            raise ValueError(service + ' failed its health/progress check')
+
+
 def main():
     project, expected, manifest_path, backup_password_file, public_url, notice_id = sys.argv[1:7]
     speaker_seed_sha256 = sys.argv[7] if len(sys.argv) > 7 else ''
@@ -68,7 +81,7 @@ def main():
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
         def application_writers():
             configured = set(compose('config', '--services').splitlines())
-            return [name for name in ('web', 'backup', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache')
+            return [name for name in ('web', 'backup', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache', 'ai-coach-worker')
                     if name in configured]
         def container(service):
             return compose('ps', '-aq', service).splitlines()[-1]
@@ -165,11 +178,11 @@ def main():
             save('starting')
             compose('up', '-d', '--no-build', '--wait', '--wait-timeout', '180')
             for service in application_writers():
-                state = inspect(container(service))
-                if state['Image'] != inspect(images['app'])['Id']:
-                    raise ValueError(service + ' is running a different image')
-                if state['State'].get('Health', {}).get('Status') != 'healthy':
-                    raise ValueError(service + ' failed its health/progress check')
+                verify_app_replicas(service, compose('ps', '-aq', service), inspect(images['app'])['Id'], inspect)
+            if 'ai-coach-tunnel' in compose('config', '--services').splitlines():
+                tunnel = inspect(container('ai-coach-tunnel'))
+                if tunnel['Image'] != inspect(images['app'])['Id'] or tunnel['State'].get('Health', {}).get('Status') != 'healthy':
+                    raise ValueError('ai coach tunnel failed its image/connectivity check')
             version = run(['docker', 'exec', container('web'), 'cat', '/opt/dnr/VERSION'])
             if version != release['version']:
                 raise ValueError('Running application version differs from the release')

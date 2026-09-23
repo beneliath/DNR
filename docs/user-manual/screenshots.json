@@ -466,19 +466,19 @@
     "file": "screenshots/presentation-files.png",
     "crop": [
       340,
-      518,
+      607,
       915,
-      600
+      511
     ],
     "steps": [
       "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
-      "Each file may be up to 100 MB. Keep all uploads in one save under 120 MB total; use separate saves for larger combined uploads.",
+      "PDF files may be up to 100 MB and PowerPoint files up to 500 MB. Keep all uploads in one save under 600 MB total; use separate saves for larger combined uploads.",
       "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
     "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in.",
     "captured_at": "2026-09-22",
-    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
+    "framing": "Original browser capture framed around the PDF and PowerPoint controls. Current upload limits are stated in the numbered instructions below."
   },
   {
     "chapter": 5,
@@ -489,9 +489,9 @@
     "captured_at": "2026-09-22",
     "crop": [
       340,
-      354,
+      442,
       915,
-      650
+      562
     ],
     "steps": [
       "Use Replace PDF or Replace PPT for a new file, or check Remove current PDF/PPT to remove the current one. Choose only one action for each file.",
@@ -500,7 +500,7 @@
       "After saving, verify the file details and sharing links. Leave without saving to keep the existing file."
     ],
     "note": "Removal pending is illustrated with fictional speaker notes. The form was not saved and the file was kept.",
-    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
+    "framing": "Original browser capture framed around the pending change and file controls; current upload limits are documented in the preceding walkthrough."
   },
   {
     "chapter": 5,

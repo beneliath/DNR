@@ -1,0 +1,1019 @@
+{
+  "schema_version": 1,
+  "verified_against": "MOED 2.2.7 source and Comprehensive Manual, 2026-09-22",
+  "procedures": [
+    {
+      "id": "edit-event-dates",
+      "patterns": [
+        "\\b(event|engagement|conference)\\b",
+        "\\b(date|dates|day|days|reschedule|extend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b",
+        "\\b(change|edit|add|extend|reschedule|move|update)\\b"
+      ],
+      "topic": "manual-topic-engagements-create-or-edit-an-engagement",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Engagements, open the existing event, and select Edit Engagement.",
+        "Change Start and End in the engagement form. Keep each presentation within the event date range.",
+        "Select Save Changes in the bottom bar, then check the save confirmation."
+      ],
+      "on_pages": {
+        "edit_engagement.php": "You are already in Edit Engagement. Change Start and End in the event fields."
+      },
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+      },
+      "subjects": [
+        "event",
+        "engagement",
+        "conference",
+        "retreat"
+      ],
+      "forms": [
+        "event-dates"
+      ],
+      "walkthrough": {
+        "label": "change event dates",
+        "request": "How do I change the dates of an existing event?",
+        "rules": [
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "formErrors": true
+            },
+            "step": "event-dates-errors"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "startFilled": false
+            },
+            "step": "event-dates-start-required"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "endFilled": false
+            },
+            "step": "event-dates-end-required"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "dateOrderInvalid": true
+            },
+            "step": "event-dates-order"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "detailsReviewed": false
+            },
+            "step": "event-dates-review"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {},
+            "step": "event-dates-save"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {
+              "datesSubmitted": true
+            },
+            "step": "event-dates-check"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {},
+            "step": "event-dates-open"
+          },
+          {
+            "pages": [
+              "engagements.php"
+            ],
+            "conditions": {},
+            "step": "event-dates-record"
+          }
+        ],
+        "default_step": "event-dates-start",
+        "steps": {
+          "event-dates-start": {
+            "message": "Open Engagements and choose the existing event whose dates need changing.",
+            "href": "engagements.php",
+            "label": "open engagements"
+          },
+          "event-dates-record": {
+            "message": "Open the intended event from Engagements; do not create another event to change the dates."
+          },
+          "event-dates-open": {
+            "message": "Select Edit Engagement to open this event’s form.",
+            "target": "edit-event",
+            "label": "show edit engagement"
+          },
+          "event-dates-review": {
+            "message": "Update Start and End in the event form. Keep End on or after Start, and keep every presentation within that range. Review those dates, then select i have reviewed the details.",
+            "target": "event-start-date",
+            "label": "show start",
+            "acknowledge": true
+          },
+          "event-dates-order": {
+            "message": "End is earlier than Start. Correct the date range before saving.",
+            "target": "event-end-date",
+            "label": "show end"
+          },
+          "event-dates-save": {
+            "message": "Select Save Changes in the persistent bottom bar, then check the saved event dates and confirmation.",
+            "target": "save-engagement",
+            "label": "show save changes"
+          },
+          "event-dates-errors": {
+            "message": "Read the validation message and correct the date or presentation fields before saving again.",
+            "target": "form-errors",
+            "label": "show validation message"
+          },
+          "event-dates-check": {
+            "message": "Check the event’s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
+          },
+          "event-dates-start-required": {
+            "message": "Start is required. Choose the event’s start date before reviewing the form.",
+            "target": "event-start-date",
+            "label": "show start"
+          },
+          "event-dates-end-required": {
+            "message": "End is required. Choose the event’s end date before reviewing the form.",
+            "target": "event-end-date",
+            "label": "show end"
+          }
+        }
+      },
+      "required_on_page": {
+        "edit_engagement.php": [
+          "event-start-date",
+          "event-end-date",
+          "save-engagement"
+        ],
+        "view_engagement.php": [
+          "edit-event"
+        ]
+      }
+    },
+    {
+      "id": "assign-task",
+      "patterns": [
+        "\\b(assign|reassign|owner)\\b",
+        "\\b(task|follow up|work)\\b"
+      ],
+      "topic": "manual-topic-work-queue-edit-a-task",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Work Queue and find the existing task. Select its Edit task control.",
+        "In Assigned to, choose the intended user. Review the task and select Save changes.",
+        "Check the saved owner in Work Queue. The green check-mark completes a task; it does not assign it."
+      ],
+      "on_pages": {
+        "edit_task.php": "You are already in Edit Task. Find Assigned to in the form."
+      },
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
+        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
+        "templates/follow_up_task_form.php": "eb959bdd0939a924542ee05f270b9bfaa6b788f59e230173a9aa9480f639eb56"
+      },
+      "subjects": [
+        "task",
+        "follow up",
+        "reminder",
+        "work"
+      ],
+      "forms": [
+        "task"
+      ],
+      "walkthrough": {
+        "label": "assign a task",
+        "request": "How do I assign a task?",
+        "rules": [
+          {
+            "pages": [
+              "edit_task.php"
+            ],
+            "conditions": {
+              "formErrors": true
+            },
+            "step": "task-assign-errors"
+          },
+          {
+            "pages": [
+              "edit_task.php"
+            ],
+            "conditions": {
+              "detailsReviewed": false
+            },
+            "step": "task-assign-owner"
+          },
+          {
+            "pages": [
+              "edit_task.php"
+            ],
+            "conditions": {},
+            "step": "task-assign-save"
+          },
+          {
+            "pages": [
+              "tasks.php",
+              "view_engagement.php",
+              "view_organization.php",
+              "view_contact.php",
+              "view_inquiry.php"
+            ],
+            "conditions": {
+              "taskSubmitted": true
+            },
+            "step": "task-assign-check"
+          },
+          {
+            "pages": [
+              "tasks.php"
+            ],
+            "conditions": {},
+            "step": "task-assign-record"
+          }
+        ],
+        "default_step": "task-assign-start",
+        "steps": {
+          "task-assign-start": {
+            "message": "Open My Work and find the existing task. Use its Edit task action to change the owner. The green check-mark completes work; it does not assign it.",
+            "href": "tasks.php",
+            "label": "open my work"
+          },
+          "task-assign-record": {
+            "message": "Find the intended task and select Edit task. Do not use the green completion check-mark to assign it."
+          },
+          "task-assign-owner": {
+            "message": "In Assigned to, choose the intended user, or Unassigned if nobody should own it. Review your selection, then select i have reviewed the details here.",
+            "target": "task-assignee",
+            "label": "show assigned to",
+            "acknowledge": true
+          },
+          "task-assign-save": {
+            "message": "Review the task and select Save changes. Check the saved owner afterward; selecting a user alone has not saved the change.",
+            "target": "save-task",
+            "label": "show save changes"
+          },
+          "task-assign-errors": {
+            "message": "Read the validation message before saving again.",
+            "target": "form-errors",
+            "label": "show validation message"
+          },
+          "task-assign-check": {
+            "message": "Check the application confirmation and the task’s owner. A page change alone does not prove the reassignment succeeded."
+          }
+        }
+      },
+      "required_on_page": {
+        "edit_task.php": [
+          "task-assignee",
+          "save-task"
+        ]
+      }
+    },
+    {
+      "id": "create-task",
+      "patterns": [
+        "\\b(?:add|create|start)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}(?:follow up\\s+)?task\\b|^(?:a )?new task$"
+      ],
+      "topic": "manual-topic-work-queue-create-a-useful-task",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "For an event task, open the event, select Tasks, then Add Task. For general work, open Work Queue and use + New Task.",
+        "Enter Title and Notes; verify Related record, Assigned to, Due date, Priority, and Status.",
+        "Select Add task and check that the task appears for the intended record."
+      ],
+      "on_pages": {
+        "add_task.php": "You are already in the task form. Start with Title and verify Related record."
+      },
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
+        "templates/follow_up_task_form.php": "eb959bdd0939a924542ee05f270b9bfaa6b788f59e230173a9aa9480f639eb56"
+      },
+      "subjects": [
+        "task",
+        "follow up",
+        "reminder",
+        "to do"
+      ],
+      "forms": [
+        "task",
+        "task-entry"
+      ],
+      "walkthrough": {
+        "label": "add a task",
+        "request": "How do I add a task?",
+        "rules": [
+          {
+            "pages": [
+              "add_task.php"
+            ],
+            "conditions": {
+              "formErrors": true
+            },
+            "step": "task-create-errors"
+          },
+          {
+            "pages": [
+              "add_task.php"
+            ],
+            "conditions": {
+              "taskTitleFilled": false
+            },
+            "step": "task-create-title"
+          },
+          {
+            "pages": [
+              "add_task.php"
+            ],
+            "conditions": {
+              "detailsReviewed": false
+            },
+            "step": "task-create-review"
+          },
+          {
+            "pages": [
+              "add_task.php"
+            ],
+            "conditions": {},
+            "step": "task-create-save"
+          },
+          {
+            "pages": [
+              "tasks.php",
+              "view_engagement.php",
+              "view_organization.php",
+              "view_contact.php",
+              "view_inquiry.php"
+            ],
+            "conditions": {
+              "taskSubmitted": true
+            },
+            "step": "task-create-check"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {
+              "tasksVisible": true
+            },
+            "step": "task-create-event-add"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {},
+            "step": "task-create-event"
+          },
+          {
+            "pages": [
+              "tasks.php"
+            ],
+            "conditions": {},
+            "step": "task-create-list"
+          }
+        ],
+        "default_step": "task-create-start",
+        "steps": {
+          "task-create-start": {
+            "message": "Open My Work (Work Queue) and select + New Task. To attach work to an event, open that event and use its Tasks tab.",
+            "href": "tasks.php",
+            "label": "open my work"
+          },
+          "task-create-list": {
+            "message": "Select + New Task to open the task form. You choose whether this is general work or belongs to a record.",
+            "target": "new-task",
+            "label": "show new task"
+          },
+          "task-create-event": {
+            "message": "Select the Tasks tab first. Add Task is inside that panel.",
+            "target": "tasks-tab",
+            "label": "show tasks"
+          },
+          "task-create-title": {
+            "message": "Enter Title to describe the task. Notes can hold the details; the coach does not read either field.",
+            "target": "task-title",
+            "label": "show title"
+          },
+          "task-create-review": {
+            "message": "Review Related record. To change it, use Change record, type at least three characters in Find a related record, then select the matching result. Review Assigned to, Due date, Priority, Status, and Notes. Select i have reviewed the details when ready.",
+            "target": "task-related",
+            "label": "show related record",
+            "acknowledge": true
+          },
+          "task-create-save": {
+            "message": "Select Add task when ready. Check the application confirmation and that the new task belongs to the intended record. The coach has not saved it.",
+            "target": "save-task",
+            "label": "show add task"
+          },
+          "task-create-errors": {
+            "message": "Read the validation message and correct the form before trying Add task again.",
+            "target": "form-errors",
+            "label": "show validation message"
+          },
+          "task-create-check": {
+            "message": "Check the application confirmation and find the new task on the intended record or in My Work. Navigation alone does not confirm it was saved."
+          },
+          "task-create-event-add": {
+            "message": "Select Add Task inside Tasks. The event is carried into the task form as its Related record.",
+            "target": "event-add-task",
+            "label": "show add task"
+          }
+        }
+      },
+      "required_on_page": {
+        "add_task.php": [
+          "task-title",
+          "save-task"
+        ],
+        "view_engagement.php": [
+          "tasks-tab"
+        ]
+      },
+      "required_when": [
+        {
+          "page": "view_engagement.php",
+          "active_tab": "tasks",
+          "controls": [
+            "event-add-task"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "complete-task",
+      "patterns": [
+        "\\b(?:complete|finish)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}(?:follow up\\s+)?task\\b|\\bmark\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}task (?:as )?(?:complete|done)\\b"
+      ],
+      "topic": "manual-topic-work-queue-confirm-task-completion",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Find the task in Work Queue or the related record’s task list.",
+        "Select its green check-mark. MOED opens Complete Task?",
+        "Review the confirmation, then select Complete Task if the work is done. Cancel leaves it unchanged."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+      },
+      "subjects": [
+        "task"
+      ],
+      "forms": [
+        "task"
+      ]
+    },
+    {
+      "id": "archive-task",
+      "patterns": [
+        "\\b(?:archive)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}task\\b"
+      ],
+      "topic": "manual-topic-work-queue-fast-actions-and-record-level-work",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Find the task in Work Queue or the related record’s task list.",
+        "Select the Archive task box icon. Archiving retains its status and details while removing it from active work and reminders.",
+        "Check Archived in Work Queue to find it afterward. Required financial-closeout tasks cannot be archived to bypass closeout."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+      },
+      "subjects": [
+        "task"
+      ],
+      "forms": [
+        "task"
+      ]
+    },
+    {
+      "id": "restore-task",
+      "patterns": [
+        "\\b(?:restore|unarchive)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}task\\b"
+      ],
+      "topic": "manual-topic-work-queue-restore-a-task-with-its-original-status",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Work Queue and select Archived, or use View Archived Tasks on the related record.",
+        "Find the task and select Restore task. Its original status, owner, due date, and details are retained.",
+        "If its parent event or inquiry is archived, restore that parent first. A restored Completed task remains Completed."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+      },
+      "subjects": [
+        "task"
+      ],
+      "forms": [
+        "task"
+      ]
+    },
+    {
+      "id": "calendar-subscription",
+      "patterns": [
+        "\\b(calendar|iphone|phone|outlook)\\b",
+        "\\b(subscribe|subscription|feed|apple|outlook|google|own calendar|my calendar|private link)\\b"
+      ],
+      "topic": "manual-topic-map-calendar-private-calendar",
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "steps": [
+        "Open Calendar and find Create Subscription. Enter Device or Service and choose the content to include.",
+        "Select Create Private Link. The Save This New Link section appears after creation.",
+        "Copy its one-time private URL into your calendar app as a subscribed calendar. Keep it private; it grants access to the selected content."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "view_calendar.php": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+      },
+      "subjects": [
+        "calendar",
+        "iphone",
+        "outlook",
+        "subscription"
+      ],
+      "forms": [
+        "calendar"
+      ],
+      "walkthrough": {
+        "label": "subscribe to your calendar",
+        "request": "How do I subscribe to MOED in my own calendar?",
+        "rules": [
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {
+              "calendarLinkVisible": true
+            },
+            "step": "calendar-copy-link"
+          },
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {
+              "formErrors": true
+            },
+            "step": "calendar-errors"
+          },
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {
+              "calendarDeviceFilled": false
+            },
+            "step": "calendar-name"
+          },
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {
+              "detailsReviewed": false
+            },
+            "step": "calendar-content"
+          },
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {
+              "calendarContentSelected": false
+            },
+            "step": "calendar-content"
+          },
+          {
+            "pages": [
+              "view_calendar.php"
+            ],
+            "conditions": {},
+            "step": "calendar-create-link"
+          }
+        ],
+        "default_step": "calendar-start",
+        "steps": {
+          "calendar-start": {
+            "message": "Open Calendar and find Create Subscription. This creates a personal private link for your calendar application.",
+            "href": "view_calendar.php",
+            "label": "open calendar"
+          },
+          "calendar-name": {
+            "message": "Under Create Subscription, enter Device or Service, such as Personal phone.",
+            "target": "calendar-device",
+            "label": "show device or service"
+          },
+          "calendar-content": {
+            "message": "Choose one or more content options under Include in This Subscription. Review what you want to share with your calendar app, then select i have reviewed the details.",
+            "target": "calendar-content",
+            "label": "show content options",
+            "acknowledge": true
+          },
+          "calendar-create-link": {
+            "message": "Select Create Private Link when ready. Save This New Link appears only after creation. The coach will not create the link for you.",
+            "target": "calendar-create",
+            "label": "show create private link"
+          },
+          "calendar-copy-link": {
+            "message": "Save This New Link is available. Use Copy calendar URL, then add it as a subscribed calendar in your calendar app. Keep the URL private and do not paste it into the coach.",
+            "target": "calendar-copy",
+            "label": "show copy calendar url"
+          },
+          "calendar-errors": {
+            "message": "Read the validation message and check the device label and content selection.",
+            "target": "form-errors",
+            "label": "show validation message"
+          }
+        }
+      }
+    },
+    {
+      "id": "convert-inquiry",
+      "patterns": [
+        "\\bconvert\\b",
+        "\\binquiry\\b"
+      ],
+      "topic": "manual-topic-booking-pipeline-convert-a-qualified-inquiry",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Booking Pipeline and the active inquiry. An organization, title, and preferred dates are needed before conversion.",
+        "Select Convert to Engagement. Review the proposed event, conflicts, tasks to carry forward, and any unresolved next action.",
+        "Acknowledge applicable warnings and confirm only after reviewing the conversion. The original inquiry stays linked and becomes read-only."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "view_inquiry.php": "c205b4fb6a52b2ab37b7d5bebd7a9c4cc3eed4a584ca289650181c69ff6bcffe",
+        "convert_inquiry.php": "0e4e6a8902e13458e3164b97400dd5e2c815b85ae543421a5d97fcb08e6a2be7"
+      },
+      "subjects": [
+        "inquiry"
+      ],
+      "forms": []
+    },
+    {
+      "id": "restore-organization",
+      "patterns": [
+        "\\b(?:restore|unarchive)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}organization\\b"
+      ],
+      "topic": "manual-topic-organizations-contacts-organization-archive-rule",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Organizations and select Archived.",
+        "Find the record and select Restore organization.",
+        "Check that the record has returned to the current view."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "organizations.php": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42"
+      },
+      "subjects": [
+        "organization"
+      ],
+      "forms": []
+    },
+    {
+      "id": "restore-contact",
+      "patterns": [
+        "\\b(?:restore|unarchive)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}contact\\b"
+      ],
+      "topic": "manual-topic-organizations-contacts-organization-archive-rule",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Contacts and select Archived.",
+        "Its organization must be active; restore that organization first if necessary.",
+        "Find the record and select Restore contact.",
+        "Check that the record has returned to the current view."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "contacts.php": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c"
+      },
+      "subjects": [
+        "contact"
+      ],
+      "forms": []
+    },
+    {
+      "id": "restore-event",
+      "patterns": [
+        "\\b(?:restore|unarchive)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}(?:event|engagement)\\b"
+      ],
+      "topic": "manual-topic-engagements-archive-and-delete-carefully",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Engagements and select Archived.",
+        "Its organization must be active; restore that organization first if necessary.",
+        "Find the record and select Restore event.",
+        "Check that the record has returned to the current view."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "engagements.php": "d7de049c05130e8ce4c507a979ce7f8685dfabaa74cdebfb493d1a7e957800c4"
+      },
+      "subjects": [
+        "event",
+        "engagement"
+      ],
+      "forms": []
+    },
+    {
+      "id": "remove-ppt",
+      "patterns": [
+        "\\b(remove|delete)\\b",
+        "\\b(powerpoint|ppt|pptx|slidedeck|slide deck)\\b"
+      ],
+      "topic": "manual-topic-engagements-ppt-slidedeck",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the event, select the Presentations tab, then Edit Presentations.",
+        "Find the intended presentation and select Remove current PPT. Do not also select a replacement file.",
+        "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
+      ],
+      "on_pages": {
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
+      },
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "templates/presentation_form.php": "6cd88d6085d6a0c06d02c0b340868e5d949bce1291d2dd4dbbab3106813fead8",
+        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+      },
+      "subjects": [
+        "powerpoint",
+        "ppt",
+        "slidedeck"
+      ],
+      "forms": [
+        "presentations"
+      ]
+    },
+    {
+      "id": "remove-pdf",
+      "patterns": [
+        "\\b(remove|delete)\\b",
+        "\\b(speaker notes|notes pdf|pdf speaker notes)\\b"
+      ],
+      "topic": "manual-topic-engagements-pdf-speaker-notes",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the event, select the Presentations tab, then Edit Presentations.",
+        "Find the intended presentation and select Remove current PDF. Do not also select a replacement file.",
+        "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
+      ],
+      "on_pages": {
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
+      },
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "templates/presentation_form.php": "6cd88d6085d6a0c06d02c0b340868e5d949bce1291d2dd4dbbab3106813fead8",
+        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+      },
+      "subjects": [
+        "speaker notes",
+        "pdf"
+      ],
+      "forms": [
+        "presentations"
+      ]
+    },
+    {
+      "id": "create-organization",
+      "patterns": [
+        "\\b(?:add|create)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}organization\\b|^(?:a )?new organization$"
+      ],
+      "topic": "manual-topic-organizations-contacts-organization-identity-and-addresses",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Organizations and select + New Organization.",
+        "Complete the organization’s required details, then review its addresses and contact information.",
+        "Select Create organization and check the save confirmation. Creating the organization does not create an event."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "organizations.php": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42",
+        "add_organization.php": "5488088062e722778127dd1c96aae4514de090431ea23c0e186ebefe1c2232fd"
+      },
+      "subjects": [
+        "organization"
+      ],
+      "forms": []
+    },
+    {
+      "id": "create-contact",
+      "patterns": [
+        "\\b(?:add|create)\\s+(?:(?:a|an|the|this|that|my|our|existing|new|another|completed|archived)\\s+){0,3}contact\\b|^(?:a )?new contact$"
+      ],
+      "topic": "manual-topic-organizations-contacts-maintain-affiliations-and-a-photo",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Contacts and select + New Contact.",
+        "Complete the person’s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
+        "Select Create contact, then check the save confirmation."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "contacts.php": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c",
+        "add_contact.php": "df413ca7891652fac4058d9bbaf4bbf342d1b3b893cd8a7bd3607f094760cf31"
+      },
+      "subjects": [
+        "contact"
+      ],
+      "forms": []
+    },
+    {
+      "id": "event-chron-entry",
+      "patterns": [
+        "\\b(add|create|write|record)\\b",
+        "\\bchron\\b",
+        "\\b(event|engagement)\\b"
+      ],
+      "topic": "manual-topic-chron-mail-chron-and-email",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the event and select Add Chron Log Entry.",
+        "Enter the note in the Chron form. Record the decision, conversation outcome, or useful context.",
+        "Select Save Chron Log Entry and check that it appears in the event’s Activity."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c"
+      },
+      "subjects": [
+        "event",
+        "engagement"
+      ],
+      "forms": []
+    },
+    {
+      "id": "change-own-password",
+      "patterns": [
+        "\\b(change|update)\\s+(?:my |own |the )?password\\b"
+      ],
+      "topic": "manual-topic-profile-security-password-rules",
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "steps": [
+        "Open Account Security in the sidebar. Find Change Password.",
+        "Enter Current Password, New Password, and Confirm New Password. Use 12 or more characters, no more than 72 UTF-8 bytes. Do not put passwords in the coach.",
+        "Select Change Password. Check the confirmation; other sessions will be signed out. If MOED requests recent two-factor verification, sign in again first."
+      ],
+      "source_files": {
+        "two_factor_settings.php": "65d3ad78a0d4eb88ad2d4f663bec6b56de4567ad9be6a5d5bb4f28a8cee4ba4c",
+        "templates/header.php": "30f2b9123ba6daa2d442e83afe796765091da2456f8a8ac18eab8827d4c35a39"
+      },
+      "subjects": [
+        "password"
+      ],
+      "forms": []
+    },
+    {
+      "id": "link-task",
+      "patterns": [
+        "\\b(link|connect|associate|attach)\\b.*\\b(task|follow up)\\b|\\b(task|follow up)\\b.*\\b(link|connect|associate)\\b"
+      ],
+      "topic": "manual-topic-work-queue-edit-a-task",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the existing task with Edit task. You are changing its Related record, not creating another task.",
+        "In Related record, select Change record if a record is already selected. Type at least three characters into Find a related record and choose the intended matching record. Searching alone does not select it.",
+        "Select Save changes and check the saved relationship."
+      ],
+      "on_pages": {
+        "edit_task.php": "You are already in Edit Task. Find Related record."
+      },
+      "source_files": {
+        "templates/follow_up_task_form.php": "eb959bdd0939a924542ee05f270b9bfaa6b788f59e230173a9aa9480f639eb56",
+        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85"
+      },
+      "subjects": [
+        "task",
+        "follow up"
+      ],
+      "forms": [
+        "task"
+      ],
+      "required_on_page": {
+        "edit_task.php": [
+          "task-related",
+          "save-task"
+        ]
+      }
+    },
+    {
+      "id": "edit-task-notes",
+      "patterns": [
+        "\\b(add|write|edit|change|update)\\b.*\\b(notes?|description)\\b.*\\btask\\b|\\btask\\b.*\\b(notes?|description)\\b"
+      ],
+      "topic": "manual-topic-work-queue-edit-a-task",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the existing task with Edit task.",
+        "Enter or revise Notes in that task form. These are text notes; they are separate from presentation speaker-notes PDFs.",
+        "Select Save changes and check the task."
+      ],
+      "on_pages": {
+        "edit_task.php": "You are already in Edit Task. Find Notes."
+      },
+      "source_files": {
+        "templates/follow_up_task_form.php": "eb959bdd0939a924542ee05f270b9bfaa6b788f59e230173a9aa9480f639eb56",
+        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85"
+      },
+      "subjects": [
+        "task",
+        "follow up"
+      ],
+      "forms": [
+        "task"
+      ],
+      "required_on_page": {
+        "edit_task.php": [
+          "task-notes",
+          "save-task"
+        ]
+      }
+    }
+  ]
+}

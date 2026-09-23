@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.moed.ollama</string>
+    <key>UserName</key><string>_moedollama</string>
+    <key>GroupName</key><string>_moedollama</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/caffeinate</string>
+        <string>-i</string>
+        <string>/Library/Application Support/MOED/OllamaRuntime/0.33.0/ollama</string>
+        <string>serve</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Library/Application Support/MOED/Ollama</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>HOME</key><string>/Library/Application Support/MOED/Ollama</string>
+        <key>PATH</key><string>/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>OLLAMA_HOST</key><string>127.0.0.1:11437</string>
+        <key>OLLAMA_MODELS</key><string>/Library/Application Support/MOED/Ollama/models</string>
+        <key>OLLAMA_NO_CLOUD</key><string>1</string>
+        <key>OLLAMA_NUM_PARALLEL</key><string>2</string>
+        <key>OLLAMA_MAX_LOADED_MODELS</key><string>1</string>
+        <key>OLLAMA_MAX_QUEUE</key><string>8</string>
+        <key>OLLAMA_CONTEXT_LENGTH</key><string>8192</string>
+        <key>OLLAMA_KEEP_ALIVE</key><string>5m</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>ThrottleInterval</key><integer>10</integer>
+    <key>Umask</key><integer>23</integer>
+    <key>StandardOutPath</key><string>/Library/Application Support/MOED/Ollama/logs/service.log</string>
+    <key>StandardErrorPath</key><string>/Library/Application Support/MOED/Ollama/logs/service.log</string>
+</dict>
+</plist>

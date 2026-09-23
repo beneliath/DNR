@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/text_rendering_helpers.php';
+require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/app/Service/ArchiveService.php';
 require_once __DIR__ . '/app/Http/ClientAddress.php';
 
@@ -64,6 +65,10 @@ function renderPageHead($title, array $options = []) {
     }
     $styles = $options['styles'] ?? ['assets/css/style.min.css', 'assets/css/modern.min.css'];
     $scripts = $options['scripts'] ?? [];
+    if (aiCoachEnabled() && !empty($_SESSION['user_id'])) {
+        $styles[] = 'assets/css/pages/ai-coach.min.css';
+        $scripts[] = 'assets/js/ai-coach.min.js';
+    }
     echo '<head>' . PHP_EOL;
     echo '    <meta charset="UTF-8">' . PHP_EOL;
     echo '    <meta name="viewport" content="width=device-width, initial-scale=1">' . PHP_EOL;
@@ -1069,6 +1074,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
     $administrator_pages = [
         'admin_elevation.php',
         'audit_log.php',
+        'ai_coach_requests.php',
         'database_maintenance.php',
         'edit_user.php',
         'network_diagnostics.php',

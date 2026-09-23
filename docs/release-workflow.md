@@ -118,6 +118,14 @@ It pauses web, geocoder and both mail writers, then:
 
 Reserve disk space for compressed SQL and uploaded files, their encrypted and verification copies, and the disposable database volume. Database-native backup capacity is independent of the browser's 512 MiB export limit. A failed backup blocks the upgrade; a failed migration or readiness check leaves an explicit recovery record and pauses writers. Migration ledger states `applying`/`failed` require operator review and are never silently replayed.
 
+When the ai coach SSH key and pinned host-key file are provisioned, the Compose wrapper
+enables the coach overlay and its two workers. The tunnel uses the same qualified
+application image, with no separate host-side build or published model port. Coach
+workers are paused with the other writers before backup/migration, and every replica
+is checked afterward. Tunnel health must reach the native Ollama version endpoint
+before the deployment is considered ready. See [ai coach integration](ai-coach-integration.md)
+for the restricted SSH identity and FileVault restart requirements.
+
 The Compose wrapper still supports explicit development/source builds. Manual database upgrades must follow the same backup directive; a bare Compose command is not a replacement for the guarded deployment procedure.
 
 ### Initial speaker profile transfer

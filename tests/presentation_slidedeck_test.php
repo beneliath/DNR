@@ -27,7 +27,7 @@ try {
     }
     $file = fopen($path, 'wb'); ftruncate($file, PRESENTATION_SLIDEDECK_MAX_BYTES + 1); fclose($file); clearstatcache();
     try { presentationSlidedeckFromPath($path, 'deck.pptx', false); throw new RuntimeException('Oversized file accepted.'); }
-    catch (InvalidArgumentException $expected) { expectSlidedeck(str_contains($expected->getMessage(), '100 MB'), 'Size limit has useful feedback.'); }
+    catch (InvalidArgumentException $expected) { expectSlidedeck(str_contains($expected->getMessage(), '500 MB'), 'Size limit has useful feedback.'); }
     unlink($path);
     $zip = new ZipArchive(); $zip->open($path, ZipArchive::CREATE);
     $zip->addFromString('word/document.xml', '<document/>'); $zip->close(); clearstatcache();

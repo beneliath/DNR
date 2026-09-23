@@ -50,6 +50,37 @@ x-watchtower-disabled-labels: &watchtower-disabled-labels
   com.centurylinklabs.watchtower.enable: "false"
 
 services:
+  ai-coach-worker:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    profiles: [coach]
+    command: ["php", "/var/www/html/ai_coach_worker.php"]
+    user: www-data
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 192m
+    cpus: 0.5
+    pids_limit: 16
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    environment:
+      <<: *app-environment
+      DNR_AI_COACH_ENABLED: "1"
+      DNR_AI_COACH_URL: ""
+    secrets: [dnr_mysql_app_password, dnr_2fa_encryption_key, dnr_inbound_routing_key]
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
+    labels: *watchtower-disabled-labels
+    deploy:
+      replicas: 2
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(is_file('/tmp/coach-worker-heartbeat') && time()-(int)file_get_contents('/tmp/coach-worker-heartbeat')<30 ? 0 : 1);"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 20s
+
   web:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
     mem_limit: 14g

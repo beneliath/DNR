@@ -84,3 +84,7 @@
 20260919_add_presentation_slidedecks.sql
 20260919_harden_email_delivery_claims.sql
 20260921_add_speaker_delete_audit.sql
+20260922_add_ai_coach_requests.sql
+20260922_add_ai_coach_request_tracking.sql
+20260922_add_ai_coach_improvement_loop.sql
+20260922_add_ai_coach_feedback_review.sql

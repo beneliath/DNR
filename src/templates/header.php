@@ -29,6 +29,7 @@ $nav_groups = [
     'admin_unlock' => ['admin_elevation.php'],
     'database' => ['database_maintenance.php'],
     'network' => ['network_diagnostics.php'],
+    'ai_coach' => ['ai_coach_requests.php'],
     'profile' => ['profile.php'],
     'mattermost' => ['mattermost.php'],
     'help' => ['help.php'],
@@ -231,6 +232,11 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="database_maintenance.php" class="nav-link admin-nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
                         </a></li>
+                        <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled()): ?>
+                        <li><a href="ai_coach_requests.php" class="nav-link admin-nav-link<?php echo $active_nav === 'ai_coach' ? ' active' : ''; ?>"<?php echo $active_nav === 'ai_coach' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>ai coach Requests</span>
+                        </a></li>
+                        <?php endif; ?>
                         <li><a href="network_diagnostics.php" class="nav-link admin-nav-link<?php echo $active_nav === 'network' ? ' active' : ''; ?>"<?php echo $active_nav === 'network' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Network</span>
                         </a></li>

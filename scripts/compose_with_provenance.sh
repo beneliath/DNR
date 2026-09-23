@@ -125,6 +125,20 @@ if [ -s "$cloudflare_token_file" ]; then
     export DNR_CLOUDFLARE_ZONE_ID_FILE=$cloudflare_zone_file
     set -- -f docker-compose.cloudflare.yaml "$@"
 fi
+# A provisioned tunnel identity opts this host into ai coach on every release.
+# The key is never mounted into web or database workers.
+coach_compose_environment=$(docker compose -f docker-compose.yaml config --environment)
+coach_key_file=$(printf '%s\n' "$coach_compose_environment" | sed -n 's/^DNR_AI_COACH_SSH_KEY_FILE=//p')
+coach_hosts_file=$(printf '%s\n' "$coach_compose_environment" | sed -n 's/^DNR_AI_COACH_KNOWN_HOSTS_FILE=//p')
+unset coach_compose_environment
+coach_key_file=${DNR_AI_COACH_SSH_KEY_FILE:-${coach_key_file:-$project_directory/secrets/ai_coach_ssh_key}}
+coach_hosts_file=${DNR_AI_COACH_KNOWN_HOSTS_FILE:-${coach_hosts_file:-$project_directory/secrets/ai_coach_known_hosts}}
+if [ -s "$coach_key_file" ]; then
+    [ -s "$coach_hosts_file" ] || { echo 'ai coach requires pinned SSH known hosts.' >&2; exit 1; }
+    export DNR_AI_COACH_SSH_KEY_FILE=$coach_key_file
+    export DNR_AI_COACH_KNOWN_HOSTS_FILE=$coach_hosts_file
+    set -- --profile coach -f docker-compose.ai-coach.yaml "$@"
+fi
 case "$mode" in
     development|dev)
         exec docker compose \

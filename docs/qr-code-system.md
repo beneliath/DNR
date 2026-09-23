@@ -1,13 +1,13 @@
 # Presentation QR Codes
 
 **PPT Slidedeck:** Each presentation can also have one PowerPoint `.ppt` or `.pptx`
-file (100 MB maximum). Choose/replace/remove it on the presentation form and save.
+file (500 MB maximum). Choose/replace/remove it on the presentation form and save.
 **Download PPT Slidedeck** appears beside **View PDF Speaker Notes** and downloads the
 original PowerPoint file; browsers generally open it using an installed application.
 The public QR link requires no login and redirects to `/surls/{code}/ppt-slidedeck`.
 Replacement and re-upload retain the code, images, and visit history. Removal hides
 the card and makes the download unavailable. Speaker changes retain old resources
-under the original speaker, matching notes. The 120 MB total per-save limit includes
+under the original speaker, matching notes. The 600 MB total per-save limit includes
 both notes and PowerPoint uploads.
 
 Every presentation QR card has a **Copy link** icon that copies its saved encoded
@@ -34,7 +34,7 @@ presentation links are backfilled by the forward migration. Legacy notes links
 without PDFs remain hidden and acquire images only when notes are uploaded.
 
 Upload **PDF Speaker Notes** on the presentation form. Notes are the presentation’s single PDF resource, publicly viewable by anyone holding the notes URL. Each
-file may be up to 100 MB; the existing 120 MB combined request limit applies.
+file may be up to 100 MB; the existing 600 MB combined request limit applies.
 Replacing notes preserves the QR code. Removing notes makes the PDF
 unavailable and hides its QR card until another PDF is uploaded. Re-uploading
 reuses the original code and its statistics. Scanning the notes QR redirects

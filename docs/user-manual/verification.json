@@ -1,8 +1,8 @@
 {
-  "pages": 147,
+  "pages": 149,
   "screenshots": 87,
-  "internal_links": 1248,
-  "bookmarks": 308,
+  "internal_links": 1274,
+  "bookmarks": 318,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
@@ -22,13 +22,13 @@
     "column_gutters": "clear",
     "full_width_reference_blocks": 7,
     "automatic_word_breaks": 0,
-    "sparse_reference_pages_checked": 57,
+    "sparse_reference_pages_checked": 59,
     "stray_continuation_pages": 0,
     "paragraph_widows_and_orphans": "disabled",
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.2.7",
+    "version": "2.3.0",
     "edition_date": "September 22, 2026",
     "cover_and_metadata": "verified"
   }

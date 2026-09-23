@@ -1,0 +1,1169 @@
+{
+  "schema_version": 1,
+  "description": "Developer-authored regression cases, including role and context variants. Not an untouched held-out accuracy benchmark.",
+  "cases": [
+    {
+      "id": "case-001",
+      "question": "How do I add a new event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-002",
+      "question": "How do I add a new event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-003",
+      "question": "How do I add a new event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-004",
+      "question": "Create an engagement",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-005",
+      "question": "Create an engagement",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-006",
+      "question": "Create an engagement",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-007",
+      "question": "Show me how to schedule an event",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-008",
+      "question": "Show me how to schedule an event",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-009",
+      "question": "Show me how to schedule an event",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-010",
+      "question": "We agreed to host a conference. Where do I start?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-011",
+      "question": "We agreed to host a conference. Where do I start?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-012",
+      "question": "We agreed to host a conference. Where do I start?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-013",
+      "question": "Can you walk me through creating an event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-014",
+      "question": "Can you walk me through creating an event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-015",
+      "question": "Can you walk me through creating an event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-016",
+      "question": "How do I set up an engagement?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-017",
+      "question": "How do I set up an engagement?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "engagement"
+      }
+    },
+    {
+      "id": "case-018",
+      "question": "How do I set up an engagement?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-019",
+      "question": "How do I add speaker notes?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-020",
+      "question": "How do I add speaker notes?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-021",
+      "question": "How do I add speaker notes?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-022",
+      "question": "How do I upload a speaker notes PDF?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-023",
+      "question": "How do I upload a speaker notes PDF?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-024",
+      "question": "How do I upload a speaker notes PDF?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-025",
+      "question": "Show me how to attach speaker notes",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-026",
+      "question": "Show me how to attach speaker notes",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-027",
+      "question": "Show me how to attach speaker notes",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-028",
+      "question": "Can I replace the notes PDF?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-029",
+      "question": "Can I replace the notes PDF?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-030",
+      "question": "Can I replace the notes PDF?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-031",
+      "question": "Where can I upload PDF speaker notes?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-032",
+      "question": "Where can I upload PDF speaker notes?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-033",
+      "question": "Where can I upload PDF speaker notes?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-034",
+      "question": "Help me add notes PDF to this presentation",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-035",
+      "question": "Help me add notes PDF to this presentation",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-036",
+      "question": "Help me add notes PDF to this presentation",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-037",
+      "question": "How do I attach a PowerPoint?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-038",
+      "question": "How do I attach a PowerPoint?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-039",
+      "question": "How do I attach a PowerPoint?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-040",
+      "question": "How do I upload a PPTX?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-041",
+      "question": "How do I upload a PPTX?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-042",
+      "question": "How do I upload a PPTX?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-043",
+      "question": "Show me how to add a PPT",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-044",
+      "question": "Show me how to add a PPT",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-045",
+      "question": "Show me how to add a PPT",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-046",
+      "question": "Can I replace the PowerPoint?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-047",
+      "question": "Can I replace the PowerPoint?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-048",
+      "question": "Can I replace the PowerPoint?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-049",
+      "question": "Where do I upload a slidedeck?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-050",
+      "question": "Where do I upload a slidedeck?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-051",
+      "question": "Where do I upload a slidedeck?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-052",
+      "question": "Walk me through adding a PowerPoint",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-053",
+      "question": "Walk me through adding a PowerPoint",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-054",
+      "question": "Walk me through adding a PowerPoint",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-055",
+      "question": "How do I add a second day to an existing event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-056",
+      "question": "How do I add a second day to an existing event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-057",
+      "question": "How do I add a second day to an existing event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-058",
+      "question": "I do not want to create a new event. How do I edit the existing event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-059",
+      "question": "I do not want to create a new event. How do I edit the existing event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-060",
+      "question": "I do not want to create a new event. How do I edit the existing event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-061",
+      "question": "How do I change the dates of this event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-062",
+      "question": "How do I change the dates of this event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-063",
+      "question": "How do I change the dates of this event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-064",
+      "question": "How do I add a task to an event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "create-task"
+      }
+    },
+    {
+      "id": "case-065",
+      "question": "How do I add a task to an event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "create-task"
+      }
+    },
+    {
+      "id": "case-066",
+      "question": "How do I add a task to an event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-067",
+      "question": "How do I add a presentation to an event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-068",
+      "question": "How do I add a presentation to an event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-069",
+      "question": "How do I add a presentation to an event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-070",
+      "question": "How do I add a contact to an event?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-071",
+      "question": "How do I add a contact to an event?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-072",
+      "question": "How do I add a contact to an event?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-073",
+      "question": "How do I change the organization for an existing engagement?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-074",
+      "question": "How do I change the organization for an existing engagement?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-075",
+      "question": "How do I change the organization for an existing engagement?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-076",
+      "question": "How do I reschedule this conference?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-077",
+      "question": "How do I reschedule this conference?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "edit-event-dates"
+      }
+    },
+    {
+      "id": "case-078",
+      "question": "How do I reschedule this conference?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-079",
+      "question": "How do I convert an inquiry into an engagement?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-080",
+      "question": "How do I convert an inquiry into an engagement?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-081",
+      "question": "How do I convert an inquiry into an engagement?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-082",
+      "question": "How do I assign a task to someone else?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": "assign-task"
+      }
+    },
+    {
+      "id": "case-083",
+      "question": "How do I assign a task to someone else?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": "assign-task"
+      }
+    },
+    {
+      "id": "case-084",
+      "question": "How do I assign a task to someone else?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-085",
+      "question": "How do I archive an engagement?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-086",
+      "question": "How do I archive an engagement?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-087",
+      "question": "How do I archive an engagement?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-088",
+      "question": "How do I restore a contact?",
+      "role": "editor",
+      "page": "view_organization.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-089",
+      "question": "How do I restore a contact?",
+      "role": "admin",
+      "page": "dashboard.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-090",
+      "question": "How do I restore a contact?",
+      "role": "reviewer",
+      "page": "view_engagement.php",
+      "expected": {
+        "workflow": ""
+      }
+    },
+    {
+      "id": "case-091",
+      "question": "Thanks",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-092",
+      "question": "Thanks",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-093",
+      "question": "Thank you",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-094",
+      "question": "Thank you",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-095",
+      "question": "Thanks, that helped",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-096",
+      "question": "Thanks, that helped",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-097",
+      "question": "Hello",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-098",
+      "question": "Hello",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-099",
+      "question": "Hi",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-100",
+      "question": "Hi",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-101",
+      "question": "Got it",
+      "role": "editor",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-102",
+      "question": "Got it",
+      "role": "reviewer",
+      "expected": {
+        "workflow": "",
+        "engine": "conversation"
+      }
+    },
+    {
+      "id": "case-103",
+      "question": "Can you walk me through adding one?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add speaker notes PDF?"
+        }
+      ],
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-104",
+      "question": "Can you walk me through adding one?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add a PowerPoint?"
+        }
+      ],
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-105",
+      "question": "How do I replace it?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add speaker notes PDF?"
+        }
+      ],
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-106",
+      "question": "How do I replace it?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add a PowerPoint?"
+        }
+      ],
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "case-107",
+      "question": "Where can I upload that?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add speaker notes PDF?"
+        }
+      ],
+      "expected": {
+        "workflow": "notes"
+      }
+    },
+    {
+      "id": "case-108",
+      "question": "Where can I upload that?",
+      "role": "editor",
+      "history": [
+        {
+          "role": "user",
+          "content": "How do I add a PowerPoint?"
+        }
+      ],
+      "expected": {
+        "workflow": "presentation"
+      }
+    },
+    {
+      "id": "feedback-regression-1",
+      "question": "How do I add a note to a task?",
+      "page": "edit_task.php",
+      "role": "editor",
+      "expected": {
+        "engine": "verified-procedure",
+        "workflow": "",
+        "procedure": "edit-task-notes"
+      }
+    },
+    {
+      "id": "feedback-regression-2",
+      "question": "How do I change the due date of an event task?",
+      "page": "edit_task.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "feedback-regression-3",
+      "question": "How do I add a new affiliation to a contact?",
+      "page": "view_contact.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "feedback-regression-4",
+      "question": "How do I add a new address to an organization?",
+      "page": "view_organization.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "feedback-regression-5",
+      "question": "How do I delete a task after it is completed?",
+      "page": "tasks.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "feedback-regression-6",
+      "question": "How do I stop waiting for someone and finish this task?",
+      "page": "edit_task.php",
+      "role": "editor",
+      "expected": {
+        "procedure": "complete-task",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "feedback-regression-7",
+      "question": "I cannot finish this task until the venue replies. What should I do?",
+      "page": "edit_task.php",
+      "role": "editor",
+      "expected": {
+        "workflow": "waiting"
+      }
+    },
+    {
+      "id": "feedback-regression-8",
+      "question": "The event already exists and I need to move it to next Friday. Where do I go?",
+      "page": "view_engagement.php",
+      "role": "editor",
+      "expected": {
+        "procedure": "edit-event-dates"
+      }
+    },
+    {
+      "id": "feedback-regression-9",
+      "question": "Actually, how do I change my password?",
+      "page": "profile.php",
+      "role": "editor",
+      "expected": {
+        "procedure": "change-own-password",
+        "required_terms": [
+          "Account Security",
+          "Change Password"
+        ],
+        "forbidden_terms": [
+          "Change Recovery Email"
+        ]
+      }
+    },
+    {
+      "id": "feedback-regression-10",
+      "question": "Which things can you walk me through?",
+      "page": "help.php",
+      "role": "editor",
+      "expected": {
+        "engine": "verified-capabilities"
+      }
+    },
+    {
+      "id": "feedback-regression-11",
+      "question": "Can I upload a 480 MB PowerPoint to this presentation?",
+      "page": "edit_engagement.php",
+      "role": "editor",
+      "expected": {
+        "engine": "verified-file-limits",
+        "required_terms": [
+          "500 MB",
+          "480 MB",
+          "within"
+        ]
+      }
+    },
+    {
+      "id": "feedback-regression-12",
+      "question": "Can I upload a 600 MB PowerPoint?",
+      "page": "edit_engagement.php",
+      "role": "editor",
+      "expected": {
+        "engine": "verified-file-limits",
+        "required_terms": [
+          "600 MB",
+          "exceeds"
+        ]
+      }
+    },
+    {
+      "id": "edit-new-contact",
+      "question": "How do I edit my new contact?",
+      "page": "view_contact.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "edit-new-organization",
+      "question": "How do I edit my new organization?",
+      "page": "view_organization.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    },
+    {
+      "id": "edit-new-task",
+      "question": "How do I edit my new task?",
+      "page": "edit_task.php",
+      "role": "editor",
+      "expected": {
+        "engine": "",
+        "workflow": ""
+      }
+    }
+  ]
+}

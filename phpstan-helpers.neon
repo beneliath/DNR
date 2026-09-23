@@ -1,6 +1,13 @@
 parameters:
     level: 5
     paths:
+        - src/ai_coach_helpers.php
+        - src/ai_coach_history_helpers.php
+        - src/ai_coach_guidance_helpers.php
+        - src/ai_coach_intent_helpers.php
+        - src/ai_coach_job_helpers.php
+        - src/ai_coach_improvement_helpers.php
+        - src/ai_coach_feedback_helpers.php
         - src/email_delivery_claim_helpers.php
         - src/legacy_powerpoint_helpers.php
         - src/native_backup_stream_helpers.php

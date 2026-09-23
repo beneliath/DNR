@@ -95,7 +95,7 @@ try {
     }
     expectPersistentStorage($conn->execute_query('SELECT organization_name FROM organizations WHERE id = ?', [$organization])->fetch_row()[0] === 'Storage ' . $suffix, 'Database and files must restore together.');
     expectPersistentStorage($conn->execute_query('SELECT storage_key FROM presentation_slidedecks WHERE presentation_id = ?', [$presentation])->fetch_row()[0] === $deckKey
-        && file_get_contents(persistentFilePath($deckKey)) === $deckAsset['data'], 'PowerPoint file and presentation association restore together onto an empty volume.');
+        && hash_file('sha256', persistentFilePath($deckKey), true) === $deckAsset['sha256'], 'PowerPoint file and presentation association restore together onto an empty volume.');
     // A missing file must make export fail; never offer an incomplete archive.
     $filePath = persistentFilePath($notes['storage_key']);
     rename($filePath, $filePath . '.saved');
