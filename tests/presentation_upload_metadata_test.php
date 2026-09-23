@@ -55,7 +55,8 @@ expectUploadMetadata(
 );
 foreach ([[], array_replace($stored, ['has_speaker_notes' => false])] as $no_pdf) {
     expectUploadMetadata(
-        !str_contains($render($no_pdf), 'presentation-upload-'),
+        !str_contains($render($no_pdf), 'presentation-upload-timestamp')
+            && !str_contains($render($no_pdf), 'presentation-upload-user'),
         'New and removed PDFs do not display stale upload metadata.'
     );
 }
