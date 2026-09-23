@@ -18,6 +18,7 @@ function aiCoachGuidanceRevision(): string
 /** Resolve a short follow-up without carrying unrelated previous questions into search. */
 function aiCoachContextQuestion(array $request): string
 {
+    if (aiCoachPageExplanation($request)) return aiCoachPages()[$request['page']] ?? '';
     $question = $request['question'];
     $q = aiCoachNormalize($question);
     if (!preg_match('/\b(it|one|that|this|them|those|next)\b/', $q)
@@ -35,6 +36,23 @@ function aiCoachContextQuestion(array $request): string
         }
     }
     return $question;
+}
+
+/** Generic references to the current interface describe the page, not a prior task. */
+function aiCoachPageExplanation(array $request): bool
+{
+    $q = aiCoachNormalize($request['question'] ?? '');
+    if (!preg_match('/\b(this|current)\b/', $q) || !preg_match('/\b(interface|page|screen|section|view)\b/', $q)
+        || aiCoachIntentMode($request) !== 'explain') return false;
+    $generic = explode(' ', 'function functionality part interface page screen section view purpose explain describe work used here current area');
+    return array_diff(aiCoachSearchTerms($q), $generic) === [];
+}
+
+function aiCoachHasApplicationEvidence(array $request): bool
+{
+    if ($request === []) return false;
+    return aiCoachApplicationContext($request['page'])['static_controls_not_live_visibility'] !== []
+        || isset(aiCoachSteps()[$request['step']]) || aiCoachTaskEvidence($request) !== [];
 }
 
 function aiCoachMutationIntent(string $question): bool

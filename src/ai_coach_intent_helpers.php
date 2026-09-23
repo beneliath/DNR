@@ -144,6 +144,15 @@ function aiCoachTaskEvidence(array $request): array
 /** Pick PDF passages for the actual candidate task, without discarding the lexical baseline. */
 function aiCoachRelevantTopics(array $request, array $ranked): array
 {
+    if (aiCoachPageExplanation($request)) {
+        // Require the current page's subject in the title; generic words such as
+        // "part" in unrelated prose and a previously selected topic are not evidence.
+        $terms = array_diff(aiCoachSearchTerms(aiCoachContextQuestion($request)), ['new', 'edit', 'detail']);
+        $ranked = array_filter($ranked, static fn($match): bool => $terms !== []
+            && $match['topic']['chapter'] !== 'operator-appendix'
+            && array_diff($terms, aiCoachSearchTerms($match['topic']['title'])) === []);
+        return array_column(array_slice($ranked, 0, 4), 'topic');
+    }
     $topics = aiCoachOverviewTopics($request['question']);
     if ($topics !== []) return $topics;
     $byId=[];

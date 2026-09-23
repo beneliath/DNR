@@ -421,6 +421,12 @@
 
     openers.forEach(function (button) { button.addEventListener('click', function () { setOpen(true, true); updateStep(); }); });
     find('close').addEventListener('click', function () { setOpen(false, true); });
+    document.querySelectorAll('#app-sidebar a[href="help.php"]').forEach(function (link) {
+        link.addEventListener('click', function (event) {
+            if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+            setOpen(false, false);
+        });
+    });
     narrow.addEventListener('change', function () { updateModal(); if (!panel.hidden && narrow.matches) question.focus(); });
     panel.addEventListener('keydown', function (event) {
         if (event.key === 'Escape') { event.preventDefault(); setOpen(false, true); }
@@ -641,7 +647,7 @@
         if (pending) { controller = new AbortController(); pollPending(controller, requestNumber); }
     });
     renderMessages();
-    setOpen(saved.open === true && !narrow.matches, false);
+    setOpen(page !== 'help.php' && saved.open === true && !narrow.matches, false);
     if (pending) {
         controller = new AbortController();
         const number = ++requestNumber;

@@ -58,6 +58,12 @@ This is retrieval plus application workflow logic, not automatic training or a
 claim of expert accuracy across every task. Maintainers should develop coverage
 from the manual, source, and tests; users do not need to maintain grounding.
 
+PDF citations are included only when the excerpt directly supports the answer.
+Answers grounded in verified application controls, form evidence, or the current
+guided step may omit PDF citations. Generic questions about the current interface
+retrieve topics for that page rather than carrying over a previous task or matching
+incidental words in unrelated manual passages.
+
 Rebuild the indexes when their sources change (the PDF script requires pypdf):
 
 ```sh
@@ -100,6 +106,10 @@ The reviewed system-service configuration uses two parallel request slots, one
 loaded model, and a maximum native queue of eight. Additional demand can still
 hit capacity/time limits. The coach browser accepts one pending question per
 conversation; separate users/tabs can submit concurrently.
+
+Opening the User Manual from the sidebar closes the coach panel. The manual also
+starts with the panel closed when opened in a new tab; users can reopen it there.
+Closing the panel preserves the conversation and pending-answer recovery.
 
 The `ai_coach_requests` table records accepted questions (including starter-button
 requests), bounded conversation context, original answer, outcome, duration,
