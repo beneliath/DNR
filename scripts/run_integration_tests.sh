@@ -62,6 +62,12 @@ cleanup_isolated_backup() {
 printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'ai_coach_worker_integration_test.php' ]; then
+        compose up -d --no-build --no-deps ai-coach-worker </dev/null
+        compose exec -T -u www-data -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/${test_file}" </dev/null
+        compose stop ai-coach-worker </dev/null
+        continue
+    fi
     if [ "$test_name" = 'inbound_mailbox_sync_integration_test.php' ]; then
         # Maintenance creates/cleans fixtures; synchronization uses a separate
         # connection with the exact restricted mail-worker grants.
@@ -93,7 +99,8 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             web php "/opt/dnr/${test_file}" </dev/null
         continue
     fi
-    if [ "$test_name" = 'bulk_delete_http_integration_test.php' ] \
+    if [ "$test_name" = 'ai_coach_http_integration_test.php' ] \
+        || [ "$test_name" = 'bulk_delete_http_integration_test.php' ] \
         || [ "$test_name" = 'admin_user_profile_http_integration_test.php' ] \
         || [ "$test_name" = 'mandatory_two_factor_http_integration_test.php' ] \
         || [ "$test_name" = 'email_templates_http_integration_test.php' ] \

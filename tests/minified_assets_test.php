@@ -29,6 +29,9 @@ $asset_pairs = [
     'assets/js/engagement-lifecycle.js' => 'assets/js/engagement-lifecycle.min.js',
     'assets/js/inbound-mail.js' => 'assets/js/inbound-mail.min.js',
     'assets/js/user-manual.js' => 'assets/js/user-manual.min.js',
+    'assets/js/ai-coach.js' => 'assets/js/ai-coach.min.js',
+    'assets/css/pages/ai_coach_requests.css' => 'assets/css/pages/ai_coach_requests.min.css',
+    'assets/css/pages/ai-coach.css' => 'assets/css/pages/ai-coach.min.css',
 ];
 $bundled_assets = [
     'assets/css/map.min.css',

@@ -38,6 +38,9 @@ $manual_access_summary = match ($manual_role) {
         <span class="manual-eyebrow"><?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> Reference Guide</span>
         <section class="manual-hero-copy">
             <h1 id="manual-title" tabindex="-1">User Manual</h1>
+            <?php if (aiCoachEnabled()): ?>
+                <button type="button" class="manual-coach-entry button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">Learn with ai coach</button>
+            <?php endif; ?>
             <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
             <a class="manual-inline-link" href="<?php echo htmlspecialchars(assetUrl('assets/docs/moed-comprehensive-user-manual.pdf'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
         </section>
@@ -89,7 +92,7 @@ $manual_access_summary = match ($manual_role) {
         </aside>
 
         <section class="manual-content" data-manual-content>
-            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar fixed logo profile scroll mobile theme light dark action icons archive delete keyboard getting around pagination records per page list size remember search sort footer version">
+            <section class="manual-chapter" id="orientation" data-manual-section data-keywords="start navigation sidebar fixed logo profile scroll mobile theme light dark action icons archive delete keyboard getting around pagination records per page list size remember search sort footer version ai coach chatbot conversation walkthrough helpful feedback needs work enter stop answer comprehensive manual">
                 <header class="manual-chapter-heading">
                     <span>Chapter 01</span>
                     <h2>Getting Oriented</h2>
@@ -132,6 +135,41 @@ $manual_access_summary = match ($manual_role) {
                         <li><span>04</span><section><strong>Find the relationship.</strong><p>Open the organization and relevant contacts before an event to review relationship details, financial history, Chron, and open work.</p></section></li>
                         <li><span>05</span><section><strong>Leave a clear next action.</strong><p>When a conversation creates a commitment, record the communication in Chron and create an owned, dated task.</p></section></li>
                     </ol>
+                </section>
+
+                <section class="manual-subsection" id="using-ai-coach">
+                    <h3>Learn with ai coach</h3>
+                    <p>When enabled for your installation, <strong>ai coach</strong> helps you understand MOED and learn how to use its controls. Select the <strong>ai coach</strong> button on a signed-in application page, or <strong>Learn with ai coach</strong> at the top of this manual. On a wide screen the panel sits beside the page in the right margin; on a narrower screen it opens over the page. Use the minus button to minimize it and the ai coach button to reopen it.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Ask about your goal.</strong><p>Type in <strong>How do I…?</strong>, then press <kbd>Enter</kbd> or select <strong>Ask</strong>. For example, ask “What does MOED do?” or “How do I add speaker notes to this presentation?” Use <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line.</p></section></li>
+                        <li><span>02</span><section><strong>Follow the explanation or guided step.</strong><p>The coach uses your current page, role, and basic interface state to guide you. It can explain a feature conversationally, give numbered instructions, or offer a supported interactive walkthrough. A follow-up question can refer to the preceding conversation.</p></section></li>
+                        <li><span>03</span><section><strong>Check the source and make the change yourself.</strong><p>Manual source buttons open the relevant page of the Comprehensive User Guide PDF. The coach draws on this guide and verified application procedures. It does not enter field values, upload a file, save a form, send a message, or grant additional permissions.</p></section></li>
+                    </ol>
+                    <p>The conversation and walkthrough cards appear in chronological order. Sending a question brings the latest question and answer into view. You can navigate to another MOED page in the same browser tab while an answer is being prepared; the panel resumes the conversation there.</p>
+                </section>
+
+                <section class="manual-subsection" id="coach-walkthroughs">
+                    <h3>Follow an Interactive Walkthrough</h3>
+                    <p>The opening panel offers eight walkthroughs: <strong>add a new event</strong>, <strong>add speaker notes pdf</strong>, <strong>add a powerpoint</strong>, <strong>understand waiting tasks</strong>, <strong>add a task</strong>, <strong>assign a task</strong>, <strong>change event dates</strong>, and <strong>subscribe to your calendar</strong>. Ask in your own words or select an option. Questions about why a feature works receive explanations; an unclear task may need one clarifying question before steps are offered.</p>
+                    <p>For event tasks, select the event’s <strong>Tasks</strong> tab before <strong>Add Task</strong>. In a task form, use <strong>Change record</strong> and <strong>Find a related record</strong> to choose a different linked record. Assignment uses <strong>Assigned to</strong>; the check-mark completes a task. Calendar subscriptions are personal and available to reviewers too. The copy step appears only after the private link has been created; keep that link out of coach questions.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Choose the task.</strong><p>The card starts from your current page. If the task needs another page, use its navigation link. For a new event, go to <strong>Engagements</strong>, select <strong>+ New Engagement</strong>, and choose the organization inside the form.</p></section></li>
+                        <li><span>02</span><section><strong>Locate the next control.</strong><p>Select the card’s <strong>show</strong> button to highlight the named control. You still select it yourself. For presentation files, first select the event’s <strong>Presentations</strong> tab, then <strong>Edit Presentations</strong>; the editing button is not visible on the Activity tab.</p></section></li>
+                        <li><span>03</span><section><strong>Complete the step on the page.</strong><p>The coach follows supported page and form changes and updates its next instruction. If the card asks you to review details, check them before selecting <strong>i have reviewed the details</strong>. Choose and save files using the application controls, then check its success message.</p></section></li>
+                        <li><span>04</span><section><strong>Ask for help or change direction.</strong><p>Select <strong>i can’t see that control</strong> if the suggested control is missing. Select <strong>read in comprehensive manual</strong> for the full procedure. <strong>end walkthrough</strong> stops the active guide. Asking another question also ends it and answers your new question.</p></section></li>
+                    </ol>
+                </section>
+
+                <section class="manual-subsection" id="coach-conversation-controls">
+                    <h3>Manage the Coach Conversation</h3>
+                    <p><strong>Stop answer</strong> cancels an answer that is still being prepared. <strong>New conversation</strong> starts a fresh conversation and ends the active walkthrough. Minimizing the panel only hides it; it does not cancel the answer. Conversation continuity is for the current signed-in browser tab, not a shared chat history across devices.</p>
+                    <p>New conversation does not delete the administrator’s request log. Questions, responses, the requesting user, and basic page context are recorded for review. The coach does not collect the contents of page fields; information you type into the question is included. Do not put passwords or other secrets in a question.</p>
+                </section>
+
+                <section class="manual-subsection" id="coach-user-feedback">
+                    <h3>Rate an Answer and Report a Missing Control</h3>
+                    <p>Use <strong>helpful</strong> when an answer helps you complete or understand the task, or <strong>needs work</strong> when it is incorrect, confusing, or irrelevant. You can change your rating; the latest selection is saved. During a walkthrough, <strong>i can’t see that control</strong> records the missing-control problem with the current page and guided step.</p>
+                    <p>Feedback enters an administrator review queue together with failed or slow answers. It helps identify missing manual instructions, incorrect workflow steps, and service problems. A rating does not immediately rewrite the manual or train the model. Improvements are checked against the application and tested before reuse; you do not need to write a replacement answer yourself.</p>
                 </section>
 
                 <section class="manual-subsection">
@@ -317,7 +355,7 @@ $manual_access_summary = match ($manual_role) {
                 <section class="manual-subsection">
                     <h3>Create or Edit an Engagement</h3>
                     <ol class="manual-steps">
-                        <li><span>01</span><section><strong>Choose the organization.</strong><p>The event must belong to one active organization. If it is new, create the organization first.</p></section></li>
+                        <li><span>01</span><section><strong>Open the form, then choose Organization.</strong><p>Editors and administrators: open Engagements and select + New Engagement. Choose the active Organization inside the New Engagement form; Organization Details does not provide a new-event action. If needed, create the organization first, then return to this form. To change an existing event, open its details and select Edit Engagement instead.</p></section></li>
                         <li><span>02</span><section><strong>Name and schedule the event.</strong><p>Enter a required event title, an optional description, a valid start and end date, and an event type. Use Other when the preset types do not fit.</p></section></li>
                         <li><span>03</span><section><strong>Assign event contacts.</strong><p>Select multiple existing contacts and give each any applicable event roles: Primary host, On-site contact, Billing, Travel, or Materials. Search the directory to add another person, or use Add new contact repeatedly. New contacts and organization affiliations are saved with the event.</p></section></li>
                         <li><span>04</span><section><strong>Add presentations.</strong><p>Choose a saved speaker from the dropdown; add missing speakers in <a href="speakers.php">Relationships → Speakers</a>. Presentation details can be filled in later. Dates must fall within the event range, and duration is entered in minutes. Record actual attendance afterward, including zero when applicable. At least one complete presentation is required before the engagement can be Confirmed.</p></section></li>
@@ -354,6 +392,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Presentation Files, QR Codes, and History</h3>
+                    <p>Files belong to an individual presentation. From an event’s detail page, select the <strong>Presentations</strong> tab, then <strong>Edit Presentations</strong>. Find the intended presentation and its speaker before choosing a file. A PowerPoint is not attached directly to an organization or to the engagement as a whole.</p>
                     <section class="manual-card-grid manual-card-grid-two">
                         <article class="manual-card">
                             <h4>PDF Speaker Notes</h4>
@@ -362,7 +401,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                         <article class="manual-card">
                             <h4>PPT Slidedeck</h4>
-                            <p>Attach one PowerPoint .ppt or .pptx file up to 100 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 120 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
+                            <p>Attach one PowerPoint .ppt or .pptx file up to 500 MB with <strong>Choose PPT</strong>, then save. Keep all files in a single save under 600 MB total. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
                             <p>Anyone with the PPT Slidedeck QR link can download the file without signing in. Replacing it keeps the same QR code and statistics. Removing it hides the code and stops downloads; uploading again restores the same link.</p>
                         </article>
                         <article class="manual-card">
@@ -732,7 +771,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                     <article class="manual-card">
                         <h3>Password Rules</h3>
-                        <p>Passwords must contain at least 12 characters and no more than 72 UTF-8 bytes. Changing your password signs out every other session. If an administrator gives you a temporary password, you must replace it before using other areas.</p>
+                        <p>To change your own password, open <strong>Account Security</strong> in the sidebar, then find <strong>Change Password</strong>. Enter <strong>Current Password</strong>, <strong>New Password</strong>, and <strong>Confirm New Password</strong>, then select <strong>Change Password</strong>. Use at least 12 characters and no more than 72 UTF-8 bytes. Other sessions are signed out. If prompted, sign in with two-factor authentication again. The <strong>Change Recovery Email</strong> form on My Profile changes the recovery address, not your password. A temporary password must be replaced before using other areas.</p>
                         <a href="two_factor_settings.php" class="manual-inline-link">Open Account Security</a>
                     </article>
                 </section>
@@ -883,7 +922,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile">
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile ai coach requests improvements feedback review helpful needs work clear log verified guidance approve revalidation">
                 <header class="manual-chapter-heading">
                     <span>Chapter 12</span>
                     <h2>Administration</h2>
@@ -896,6 +935,34 @@ $manual_access_summary = match ($manual_role) {
                         <div class="manual-callout-body"><h3>Administrator Access Required</h3><p>This chapter explains how <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> is governed, but its linked controls appear only to administrators.</p></div>
                     </article>
                 <?php endif; ?>
+
+                <section class="manual-subsection" id="coach-request-review">
+                    <h3>Review ai coach Requests</h3>
+                    <p>Administrators can open <strong>ai coach Requests</strong> under Administration in the sidebar when the coach is enabled. The log shows each question and originating page, the requesting user and role, the date and time, the result and response duration, and the administrator’s assessment. <strong>Completed</strong> describes processing, not a guarantee that the answer was correct.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Find a request.</strong><p>Use <strong>Search questions or corrections</strong> and the <strong>Assessment</strong> filter, then select <strong>Filter</strong>. Open the linked question to inspect its original answer, manual sources, user feedback, and page or walkthrough context.</p></section></li>
+                        <li><span>02</span><section><strong>Record the assessment.</strong><p>Under <strong>Review and correction</strong>, choose an Assessment, describe what worked or needs improvement, and add <strong>Correct step-by-step guidance</strong> if you have verified it. Start from the user’s page, name the next visible control, and explain how to confirm success. Select <strong>Save review</strong>.</p></section></li>
+                        <li><span>03</span><section><strong>Choose the follow-up.</strong><p>The original response is preserved. The administrator assessment is separate from the user’s helpful or needs work rating. Saving review notes alone does not replace future answers. Use <strong>Create improvement case</strong> for guidance that should be checked and reused, or <strong>Guidance improvements</strong> to inspect the wider review queue.</p></section></li>
+                    </ol>
+                </section>
+
+                <section class="manual-subsection" id="coach-improvement-cycle">
+                    <h3>Turn Coach Feedback into Verified Improvements</h3>
+                    <p>On <strong>ai coach Improvements</strong>, the <strong>Feedback review queue</strong> collects ratings, missing-control reports, failed answers, and responses taking more than 15 seconds. Related requests are grouped for investigation; a group does not imply that every question needs the same answer. <strong>Recent development reviews</strong> records completed investigations as Fixed, Verified, or Deferred with a summary and date.</p>
+                    <ol class="manual-steps">
+                        <li><span>01</span><section><strong>Create a case from evidence.</strong><p>Open a request and select <strong>Create improvement case</strong>, or select <strong>New improvement</strong> on the improvements page. Remove names and private record details from the Question. Select the category, user role, page, guided step, and expected workflow that apply.</p></section></li>
+                        <li><span>02</span><section><strong>Verify the correct guidance.</strong><p>Follow the real application controls and check the Comprehensive Manual. Enter <strong>Verified expected guidance</strong>. Use <strong>Find current Comprehensive Manual topic IDs</strong> to locate source topics. Add required or forbidden words or phrases where they will help detect a recurring error.</p></section></li>
+                        <li><span>03</span><section><strong>Save a draft or approve.</strong><p>Keep the Status as Draft while investigating. To approve, choose Approved and confirm both that you checked the current application and manual and that the case contains no private information. Select <strong>Save improvement</strong>. Approved guidance can be reused for a matching question in the same role, page, and guided-step context.</p></section></li>
+                        <li><span>04</span><section><strong>Recheck after changes.</strong><p>When the application guidance changes, an approved case can show <strong>Needs revalidation</strong>. Recheck and approve it before its answer can be reused. <strong>Export approved test cases</strong> downloads reviewed cases for development regression checks; redact private details before approval and export.</p></section></li>
+                    </ol>
+                    <p>The improvement process is to investigate a real request, verify the intended workflow, correct the manual or application guidance, and test the result. Development reviews are performed by the maintainer or a separately configured review automation. The queue itself does not run a development agent, publish changes, or retrain the language model.</p>
+                </section>
+
+                <section class="manual-subsection" id="coach-clear-log">
+                    <h3>Clear the ai coach Request Log</h3>
+                    <p>On the request list, select <strong>Clear request log</strong> and review the number of entries in the confirmation. The final <strong>Delete entries</strong> button includes that count; select it to confirm or <strong>Cancel</strong> to keep the log.</p>
+                    <p>This permanently removes the requests included in the confirmation and their answers, review notes, and corrections for <strong>all users</strong>, regardless of the current search or assessment filter. Requests still being answered and newly submitted requests are kept. Improvement cases and development-review records are preserved. Clearing the log does not clear anyone’s open conversation or change the model; new requests continue to be recorded.</p>
+                </section>
 
                 <section class="manual-subsection">
                     <h3>Unlock Sensitive Actions</h3>
@@ -978,7 +1045,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist standard recurring unnecessary customize future events financial closeout restore filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download save pending logout session invalid token error help FAQ">
+            <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist standard recurring unnecessary customize future events financial closeout restore filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download save pending logout session invalid token error help FAQ ai coach missing control wrong answer slow unavailable walkthrough feedback">
                 <header class="manual-chapter-heading">
                     <span>Chapter 13</span>
                     <h2>Troubleshooting and Good Practice</h2>
@@ -986,6 +1053,21 @@ $manual_access_summary = match ($manual_role) {
                 </header>
 
                 <section class="manual-faq">
+                    <details id="coach-unavailable">
+                        <summary><span>ai coach Is Slow or Cannot Answer</span><i aria-hidden="true">+</i></summary>
+                        <p>Keep the panel open or move to another MOED page in the same browser tab while the answer is being prepared. Use <strong>Stop answer</strong> if you want to cancel it. If it reports that it cannot answer, try the question again after the service recovers. The User Manual and supported guided walkthroughs remain available even when conversational answers are unavailable.</p>
+                        <p>A failed answer does not mean your event or file was not saved; check the application’s own save confirmation. Administrators can open the request to inspect its result, duration, and failure details. If the ai coach button is absent throughout the application, ask an administrator whether the feature is enabled.</p>
+                    </details>
+                    <details id="coach-missing-control">
+                        <summary><span>The Coach Names a Control I Cannot See</span><i aria-hidden="true">+</i></summary>
+                        <p>Check the page and selected tab. For example, <strong>Edit Presentations</strong> appears under the event’s <strong>Presentations</strong> tab. Creating an event starts at <strong>Engagements → + New Engagement</strong>, not Organization Details. Editing also requires an editor or administrator role.</p>
+                        <p>Use <strong>i can’t see that control</strong> on the walkthrough card to report the mismatch, or rate the answer <strong>needs work</strong>. Open its Comprehensive Manual source for the complete procedure. The coach cannot make a hidden or unauthorized control available.</p>
+                    </details>
+                    <details id="coach-wrong-answer">
+                        <summary><span>The Coach Answer Is Wrong or Does Not Fit My Question</span><i aria-hidden="true">+</i></summary>
+                        <p>Select <strong>needs work</strong> on the answer. You can ask a follow-up describing the task you are trying to complete; a new question ends any current walkthrough. Use <strong>New conversation</strong> if the earlier discussion is no longer relevant.</p>
+                        <p>Feedback is recorded for investigation; it does not correct the model immediately. Follow the actual application controls and check the linked manual before making a change. You do not need to supply training material or write the corrected procedure to report a problem.</p>
+                    </details>
                     <details>
                         <summary><span>Network Shows Only IPv4 or Only IPv6</span><i aria-hidden="true">+</i></summary>
                         <p>The dashboard needs signed-in public traffic from both address families. Local or private-address browsing does not add samples. Wait for public page loads, then select Refresh; a missing family alone is not evidence of a network failure. After Reset Statistics, previous samples have been cleared and new traffic must arrive.</p>
@@ -1052,7 +1134,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A Presentation File or Its QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
-                        <p>Open <strong>Edit Presentations</strong> on the event’s Presentations tab and check the selected speaker. Choose a PDF for Speaker Notes or a .ppt or .pptx file for PPT Slidedeck. Each file may be up to 100 MB; keep all files in one save under 120 MB total.</p>
+                        <p>Open <strong>Edit Presentations</strong> on the event’s Presentations tab and check the selected speaker. Choose a PDF for Speaker Notes or a .ppt or .pptx file for PPT Slidedeck. PDF files may be up to 100 MB and PowerPoint files up to 500 MB; keep all files in one save under 600 MB total.</p>
                         <p>Choosing a file or selecting Remove only prepares a change. Select <strong>Save Changes</strong> in the persistent bottom bar, then check the saved filename and upload details. The corresponding QR code appears after the file is saved successfully. Removing the file hides its code until a replacement is saved.</p>
                     </details>
                     <details>

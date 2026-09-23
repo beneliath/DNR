@@ -1,0 +1,523 @@
+{
+  "date": "2026-09-22",
+  "environment": "localhost preview via SSH tunnel to native Ollama on shunbun; two native request slots",
+  "selected_model": "qwen3:8b",
+  "method": "Sequential calls to aiCoachGenerate using public synthetic questions, with no application records. Includes cold model loading where applicable. Questions were reused while developing routing; this is a regression sample, not an independent accuracy benchmark.",
+  "criteria": "passed checks workflow choice and expected citation/topic family only. Final text was also inspected; these flags do not prove factual accuracy or a response-time guarantee.",
+  "limitations": [
+    "Small sample; not a comprehensive application evaluation or a multi-user latency bound.",
+    "Both models can still oversimplify booking/Confirmed status; general prose remains probabilistic.",
+    "The 8B calendar answer needed a navigation-rule correction to distinguish creating a link from the subsequent Save This New Link section.",
+    "An earlier SSH disconnect invalidated one 14B run; that run is excluded. The sidecar now checks connection health more frequently."
+  ],
+  "runs": {
+    "qwen3:8b": [
+      {
+        "model": "qwen3:8b",
+        "question": "What are some of the functions of the moed app?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "MOED helps with event planning, communication, and task management. It connects people, events, and next actions in one place. The app lets you create and manage Engagements, track Inquiries, and handle Tasks. It also supports financial closeouts and messaging. The Dashboard provides an overview of your work and upcoming engagements.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-orientation-getting-oriented",
+              "title": "Getting Oriented",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-the-record-model-at-a-glance",
+              "title": "The Record Model at a Glance",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-use-the-sidebar",
+              "title": "Use the Sidebar",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-a-practical-first-session",
+              "title": "A Practical First Session",
+              "page": 4
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-orientation-getting-oriented",
+          "manual-topic-orientation-the-record-model-at-a-glance",
+          "manual-topic-orientation-use-the-sidebar",
+          "manual-topic-orientation-a-practical-first-session"
+        ],
+        "passed": true,
+        "seconds": 7.7,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "What is the purpose of this application?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "The purpose of this application is to connect event planning, people, communication history, and next actions in one place, avoiding scattered systems. It helps manage inquiries, engagements, tasks, and communications efficiently.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-orientation-getting-oriented",
+              "title": "Getting Oriented",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-the-record-model-at-a-glance",
+              "title": "The Record Model at a Glance",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-use-the-sidebar",
+              "title": "Use the Sidebar",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-a-practical-first-session",
+              "title": "A Practical First Session",
+              "page": 4
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-orientation-getting-oriented",
+          "manual-topic-orientation-the-record-model-at-a-glance",
+          "manual-topic-orientation-use-the-sidebar",
+          "manual-topic-orientation-a-practical-first-session"
+        ],
+        "passed": true,
+        "seconds": 2.42,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "We have agreed to host a conference. How do I put it in the system?",
+        "page": "view_organization.php",
+        "expected_workflow": "engagement",
+        "answer": {
+          "message": "In MOED, an event is called an engagement. Start with New Engagement, then choose its Organization within that form. I’ll guide you one step at a time from your current page.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-engagements-create-or-edit-an-engagement",
+              "title": "Create or Edit an Engagement",
+              "page": 23
+            }
+          ],
+          "mode": "guide",
+          "workflow": "engagement",
+          "start_workflow": true,
+          "engine": "verified-workflow"
+        },
+        "route": "engagement",
+        "topics": [
+          "manual-topic-engagements-create-or-edit-an-engagement"
+        ],
+        "passed": true,
+        "seconds": 3.91,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "The speaker sent me his notes as a PDF. Can you show me where it goes?",
+        "page": "view_engagement.php",
+        "expected_workflow": "notes",
+        "answer": {
+          "message": "Speaker-notes PDFs belong to individual presentations. Let’s find the presentation, choose its PDF, and save it. I’ll guide you from this page.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-engagements-pdf-speaker-notes",
+              "title": "PDF Speaker Notes",
+              "page": 24
+            }
+          ],
+          "mode": "guide",
+          "workflow": "notes",
+          "start_workflow": true,
+          "engine": "verified-workflow"
+        },
+        "route": "notes",
+        "topics": [
+          "manual-topic-engagements-pdf-speaker-notes"
+        ],
+        "passed": true,
+        "seconds": 3.48,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "How is an inquiry different from an engagement?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "An Inquiry is a potential event that hasn't been booked yet, used for early communication and follow-up. An Engagement is a confirmed event with an organization, title, and date range. Converting an Inquiry creates an Engagement, making the Inquiry read-only and linked for reference. Engagements can have tasks, presentations, and are managed separately from Inquiries.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-booking-pipeline-inquiry-first-engagement-after-booking",
+              "title": "Inquiry First, Engagement After Booking",
+              "page": 13
+            },
+            {
+              "id": "manual-topic-booking-pipeline-inquiry-and-booking-pipeline",
+              "title": "Inquiry and Booking Pipeline",
+              "page": 13
+            },
+            {
+              "id": "manual-topic-booking-pipeline-archive-a-finished-inquiry",
+              "title": "Archive a finished inquiry",
+              "page": 13
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-booking-pipeline-inquiry-first-engagement-after-booking",
+          "manual-topic-booking-pipeline-inquiry-and-booking-pipeline",
+          "manual-topic-booking-pipeline-archive-a-finished-inquiry"
+        ],
+        "passed": true,
+        "seconds": 6.82,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "How do I add a task to an event?",
+        "page": "view_engagement.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "To add a task to an event:\n1. Go to the Engagement Details page.\n2. Click the Tasks tab.\n3. Select Add Task.\n4. Fill in the task details: title, notes, owner, due date, and priority.\n5. Click Add task to save.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-work-queue-create-a-useful-task",
+              "title": "Create a Useful Task",
+              "page": 64
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-work-queue-create-a-useful-task"
+        ],
+        "passed": true,
+        "seconds": 9.5,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:8b",
+        "question": "How do I see these dates in my own calendar?",
+        "page": "view_calendar.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "To see dates in your own calendar, create a private subscription link. Open the 'Save This New Link' section, copy the private URL, and add it to your calendar app. Choose content like Events or My Active Work. Revoke the link if needed, and purge revoked records separately. Treat the URL as a credential for the selected content.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-map-calendar-private-calendar-subscriptions",
+              "title": "Private calendar subscriptions",
+              "page": 85
+            },
+            {
+              "id": "manual-topic-map-calendar-private-calendar",
+              "title": "Private Calendar",
+              "page": 80
+            },
+            {
+              "id": "manual-topic-map-calendar-choose-the-content-of-each-private-feed",
+              "title": "Choose the content of each private feed",
+              "page": 81
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-map-calendar-private-calendar-subscriptions",
+          "manual-topic-map-calendar-private-calendar",
+          "manual-topic-map-calendar-choose-the-content-of-each-private-feed"
+        ],
+        "passed": true,
+        "seconds": 8.6,
+        "within_20_seconds": true
+      }
+    ],
+    "qwen3:14b": [
+      {
+        "model": "qwen3:14b",
+        "question": "What are some of the functions of the moed app?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "The MOED app helps manage event planning, communication, and next actions in one place. It allows users to create and manage Engagements, track Inquiries, and handle Tasks. It also keeps records of communication history and Follow-Up Work. The app provides a Dashboard for an overview of upcoming engagements, assigned work, and missing details. It also allows users to review relationship details, financial history, and open work related to an organization and its contacts.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-orientation-getting-oriented",
+              "title": "Getting Oriented",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-the-record-model-at-a-glance",
+              "title": "The Record Model at a Glance",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-a-practical-first-session",
+              "title": "A Practical First Session",
+              "page": 4
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-orientation-getting-oriented",
+          "manual-topic-orientation-the-record-model-at-a-glance",
+          "manual-topic-orientation-a-practical-first-session"
+        ],
+        "passed": true,
+        "seconds": 6.46,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "What is the purpose of this application?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "This application helps you manage event planning, communication, and next actions in one place. It connects event details, people, and tasks so you can stay organized and focused on your work.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-orientation-getting-oriented",
+              "title": "Getting Oriented",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-the-record-model-at-a-glance",
+              "title": "The Record Model at a Glance",
+              "page": 4
+            },
+            {
+              "id": "manual-topic-orientation-a-practical-first-session",
+              "title": "A Practical First Session",
+              "page": 4
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-orientation-getting-oriented",
+          "manual-topic-orientation-the-record-model-at-a-glance",
+          "manual-topic-orientation-a-practical-first-session"
+        ],
+        "passed": true,
+        "seconds": 4.06,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "We have agreed to host a conference. How do I put it in the system?",
+        "page": "view_organization.php",
+        "expected_workflow": "engagement",
+        "answer": {
+          "message": "In MOED, an event is called an engagement. Start with New Engagement, then choose its Organization within that form. I’ll guide you one step at a time from your current page.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-engagements-create-or-edit-an-engagement",
+              "title": "Create or Edit an Engagement",
+              "page": 23
+            }
+          ],
+          "mode": "guide",
+          "workflow": "engagement",
+          "start_workflow": true,
+          "engine": "verified-workflow"
+        },
+        "route": "engagement",
+        "topics": [
+          "manual-topic-engagements-create-or-edit-an-engagement"
+        ],
+        "passed": true,
+        "seconds": 7.26,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "The speaker sent me his notes as a PDF. Can you show me where it goes?",
+        "page": "view_engagement.php",
+        "expected_workflow": "notes",
+        "answer": {
+          "message": "Speaker-notes PDFs belong to individual presentations. Let’s find the presentation, choose its PDF, and save it. I’ll guide you from this page.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-engagements-pdf-speaker-notes",
+              "title": "PDF Speaker Notes",
+              "page": 24
+            }
+          ],
+          "mode": "guide",
+          "workflow": "notes",
+          "start_workflow": true,
+          "engine": "verified-workflow"
+        },
+        "route": "notes",
+        "topics": [
+          "manual-topic-engagements-pdf-speaker-notes"
+        ],
+        "passed": true,
+        "seconds": 6.7,
+        "within_20_seconds": true
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "How is an inquiry different from an engagement?",
+        "page": "dashboard.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "An inquiry is used for a possible event that is not yet booked. It keeps early communication and follow-up visible without creating a partly known engagement. Once an inquiry is converted into an engagement, it becomes read-only and remains linked for reference. An engagement is created once an organization, title, and preferred date range are known. It represents a confirmed event and includes details like presentations, tasks, and planning status.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-booking-pipeline-inquiry-first-engagement-after-booking",
+              "title": "Inquiry First, Engagement After Booking",
+              "page": 13
+            },
+            {
+              "id": "manual-topic-booking-pipeline-inquiry-and-booking-pipeline",
+              "title": "Inquiry and Booking Pipeline",
+              "page": 13
+            },
+            {
+              "id": "manual-topic-booking-pipeline-archive-a-finished-inquiry",
+              "title": "Archive a finished inquiry",
+              "page": 13
+            },
+            {
+              "id": "manual-topic-booking-pipeline-review-an-inquiry",
+              "title": "Review an inquiry",
+              "page": 16
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-booking-pipeline-inquiry-first-engagement-after-booking",
+          "manual-topic-booking-pipeline-inquiry-and-booking-pipeline",
+          "manual-topic-booking-pipeline-archive-a-finished-inquiry",
+          "manual-topic-booking-pipeline-review-an-inquiry"
+        ],
+        "passed": true,
+        "seconds": 21.8,
+        "within_20_seconds": false
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "How do I add a task to an event?",
+        "page": "view_engagement.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "To add a task to an event, go to the Tasks tab on Engagement Details. Click Add Task. Enter the task title, assign an owner, set a due date, and choose priority and status. Then click Save. This creates a new task linked to the event.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-work-queue-create-a-useful-task",
+              "title": "Create a Useful Task",
+              "page": 64
+            },
+            {
+              "id": "manual-topic-work-queue-schedule-a-standard-task-for-existing-engagements",
+              "title": "Schedule a standard task for existing engagements",
+              "page": 70
+            },
+            {
+              "id": "manual-topic-work-queue-standard-event-tasks",
+              "title": "Standard Event Tasks",
+              "page": 65
+            },
+            {
+              "id": "manual-topic-work-queue-duplicate-a-task-to-another-event",
+              "title": "Duplicate a Task to Another Event",
+              "page": 65
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-work-queue-create-a-useful-task",
+          "manual-topic-work-queue-schedule-a-standard-task-for-existing-engagements",
+          "manual-topic-work-queue-standard-event-tasks",
+          "manual-topic-work-queue-duplicate-a-task-to-another-event"
+        ],
+        "passed": true,
+        "seconds": 20.94,
+        "within_20_seconds": false
+      },
+      {
+        "model": "qwen3:14b",
+        "question": "How do I see these dates in my own calendar?",
+        "page": "view_calendar.php",
+        "expected_workflow": "none",
+        "answer": {
+          "message": "To add these dates to your own calendar, you need to create a private calendar subscription. First, choose the content you want to include, such as Events, Presentations, or Birthdays. Then, create the subscription and copy the private URL. Finally, add this URL to your calendar application as a subscribed calendar.",
+          "question": "",
+          "sources": [
+            {
+              "id": "manual-topic-map-calendar-private-calendar-subscriptions",
+              "title": "Private calendar subscriptions",
+              "page": 85
+            },
+            {
+              "id": "manual-topic-map-calendar-private-calendar",
+              "title": "Private Calendar",
+              "page": 80
+            },
+            {
+              "id": "manual-topic-map-calendar-choose-the-content-of-each-private-feed",
+              "title": "Choose the content of each private feed",
+              "page": 81
+            }
+          ],
+          "mode": "manual",
+          "engine": "reasoning-and-manual"
+        },
+        "route": "none",
+        "topics": [
+          "manual-topic-map-calendar-private-calendar-subscriptions",
+          "manual-topic-map-calendar-private-calendar",
+          "manual-topic-map-calendar-choose-the-content-of-each-private-feed"
+        ],
+        "passed": true,
+        "seconds": 23.35,
+        "within_20_seconds": false
+      }
+    ]
+  }
+}

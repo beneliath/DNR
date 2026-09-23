@@ -12,7 +12,7 @@ $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1:8080','/');
 if (!in_array(parse_url($base,PHP_URL_HOST),['127.0.0.1','localhost','ingress'],true)) throw new RuntimeException('Loopback server required.');
 function expectLinkHttp(bool $ok,string $message):void { if(!$ok) throw new RuntimeException($message); }
 $request=static function(string $path,?array $post=null,string $cookie='',array $extra=[],bool $head=false)use($base):array{
- $c=curl_init($base.'/'.$path);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>15,CURLOPT_USERAGENT=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);
+ $c=curl_init($base.'/'.$path);curl_setopt_array($c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_HEADER=>true,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>90,CURLOPT_USERAGENT=>'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36']);
  if($cookie!=='')curl_setopt($c,CURLOPT_COOKIE,$cookie);if($post!==null)curl_setopt($c,CURLOPT_POSTFIELDS,count(array_filter($post,fn($v)=>$v instanceof CURLFile)) ? $post : http_build_query($post));if($extra)curl_setopt($c,CURLOPT_HTTPHEADER,$extra);if($head)curl_setopt($c,CURLOPT_NOBODY,true);
  $r=curl_exec($c);expectLinkHttp(is_string($r),'HTTP request failed: '.curl_error($c));$size=(int)curl_getinfo($c,CURLINFO_HEADER_SIZE);
  return ['status'=>(int)curl_getinfo($c,CURLINFO_RESPONSE_CODE),'headers'=>substr($r,0,$size),'body'=>substr($r,$size)];
@@ -124,6 +124,27 @@ try {
     $before = $request($download)['body'];
     $conn->begin_transaction(); applyPresentationAssetChanges($conn, $event, $pid, ['ppt_slidedeck'=>['action'=>'remove']]); $conn->rollback();
     expectLinkHttp($request($download)['body'] === $before, 'Rolled-back saves preserve the published file.');
+    foreach (['pptx' => 'writeSizedTestSlidedeck', 'ppt' => 'writeSizedLegacySlidedeck'] as $extension => $writer) {
+        $writer($path, 500 * 1024 * 1024);
+        [$form, $field] = $editForm();
+        $form[$field] = new CURLFile($path, 'application/octet-stream', 'large.' . $extension);
+        $saved = $request('edit_engagement.php?id='.$event, $form, $cookie);
+        if ($saved['status'] !== 302) {
+            $doc = new DOMDocument(); @$doc->loadHTML($saved['body']); $xpath = new DOMXPath($doc); $errors = [];
+            foreach ($xpath->query('//*[@role="alert"]') as $alert) $errors[] = trim($alert->textContent);
+            throw new RuntimeException('500 MB '.$extension.' save returned HTTP '.$saved['status'].': '.implode(' ', $errors));
+        }
+        $large = $conn->execute_query('SELECT storage_key, size FROM presentation_slidedecks WHERE presentation_id=?', [$pid])->fetch_assoc();
+        expectLinkHttp((int) $large['size'] === 500 * 1024 * 1024
+            && hash_equals(hash_file('sha256', $path), hash_file('sha256', persistentFilePath($large['storage_key']))), 'Large upload preserves the exact bytes.');
+        $head = $request($download, null, '', [], true);
+        expectLinkHttp($head['status'] === 200 && str_contains($head['headers'], 'Content-Length: 524288000'), 'Large download reports its full size without buffering it.');
+        expectLinkHttp(strlen($request($download, null, '', ['Range: bytes=0-31'])['body']) === 32, 'Large downloads retain byte-range support.');
+        $file = fopen($path, 'ab'); fwrite($file, "\0"); fclose($file); clearstatcache(true, $path);
+        [$form, $field] = $editForm(); $form[$field] = new CURLFile($path, 'application/octet-stream', 'oversized.' . $extension);
+        expectLinkHttp($request('edit_engagement.php?id='.$event, $form, $cookie)['status'] === 200
+            && $conn->execute_query('SELECT storage_key FROM presentation_slidedecks WHERE presentation_id=?', [$pid])->fetch_row()[0] === $large['storage_key'], 'One byte over 500 MB is rejected without replacing the saved file.');
+    }
 } finally {
     @unlink($path);
     $conn->query("DELETE FROM engagements WHERE id=$event"); $conn->query("DELETE FROM organizations WHERE id=$org");

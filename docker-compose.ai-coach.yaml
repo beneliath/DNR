@@ -1,0 +1,62 @@
+# Optional native-Ollama connection. No browser-facing or LAN-published model port.
+services:
+  web:
+    environment:
+      DNR_AI_COACH_ENABLED: "1"
+      DNR_AI_COACH_ASYNC: "1"
+      DNR_AI_COACH_URL: http://ai-coach-tunnel:11437
+      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3:8b}
+      DNR_AI_COACH_REASONING: ${DNR_AI_COACH_REASONING:-0}
+    networks:
+      backend:
+      coach_client:
+
+  ai-coach-worker:
+    environment:
+      DNR_AI_COACH_URL: http://ai-coach-tunnel:11437
+      DNR_AI_COACH_MODEL: ${DNR_AI_COACH_MODEL:-qwen3:8b}
+      DNR_AI_COACH_REASONING: ${DNR_AI_COACH_REASONING:-0}
+    networks: [backend, coach_client]
+
+  ai-coach-tunnel:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    entrypoint: ["/usr/local/bin/ai-coach-tunnel"]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, SETUID, SETGID]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    cpus: 0.25
+    pids_limit: 16
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=1m,mode=1777"]
+    environment:
+      DNR_AI_COACH_SSH_HOST: ${DNR_AI_COACH_SSH_HOST:-192.168.1.31}
+      DNR_AI_COACH_SSH_USER: ${DNR_AI_COACH_SSH_USER:-dgilmore}
+    secrets: [ai_coach_ssh_key, ai_coach_known_hosts]
+    networks: [coach_client, coach_transport]
+    healthcheck:
+      test: ["CMD", "php", "-r", "$$c=curl_init('http://127.0.0.1:11437/api/version'); curl_setopt_array($$c,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>3]); $$r=json_decode((string)curl_exec($$c),true); exit(is_array($$r)&&isset($$r['version'])?0:1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    labels:
+      com.centurylinklabs.watchtower.enable: "false"
+
+networks:
+  coach_client:
+    internal: true
+    ipam:
+      config:
+        - subnet: ${DNR_AI_COACH_CLIENT_SUBNET:-10.253.30.0/28}
+  coach_transport:
+    ipam:
+      config:
+        - subnet: ${DNR_AI_COACH_TRANSPORT_SUBNET:-10.253.31.0/28}
+
+secrets:
+  ai_coach_ssh_key:
+    file: ${DNR_AI_COACH_SSH_KEY_FILE:-./secrets/ai_coach_ssh_key}
+  ai_coach_known_hosts:
+    file: ${DNR_AI_COACH_KNOWN_HOSTS_FILE:-./secrets/ai_coach_known_hosts}

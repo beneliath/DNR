@@ -216,6 +216,16 @@
         if (shouldFocus) input.focus();
     }
 
+    // The coach passes a validated manual ID, never a model-generated selector.
+    document.addEventListener('moed:manual-topic', function (event) {
+        const topic = topics.find(function (item) { return item.heading.id === event.detail; });
+        if (!topic) return;
+        clearSearch(false);
+        document.querySelectorAll('.coach-topic-highlight').forEach(function (node) { node.classList.remove('coach-topic-highlight'); });
+        topic.heading.classList.add('coach-topic-highlight');
+        jumpToTopic(topic);
+    });
+
     form.addEventListener('submit', function (event) {
         event.preventDefault();
         if (matches.length) jumpToTopic(matches[0]);

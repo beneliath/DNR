@@ -105,6 +105,39 @@ function storePersistentFile(mysqli $conn, string $data, string $filename, strin
     return $key;
 }
 
+/** Stage large uploads in bounded chunks, preserving the validated bytes and atomic publication. */
+function storePersistentFileFromPath(mysqli $conn, string $source, string $filename, string $contentType, int $size, string $checksum): string
+{
+    lockPersistentFiles();
+    $filename = substr(basename(str_replace('\\', '/', $filename)), 0, 255);
+    if ($size < 1 || $filename === '' || strlen($contentType) > 127 || !preg_match('/\A[0-9a-f]{64}\z/D', $checksum)) {
+        throw new InvalidArgumentException('Invalid persistent file metadata.');
+    }
+    $key = persistentFileKey($checksum, $filename, $contentType);
+    $metadata = ['storage_key' => $key, 'filename' => $filename, 'content_type' => $contentType, 'size' => $size, 'checksum' => $checksum];
+    $temporary = tempnam(persistentFileRoot(), '.upload-');
+    if ($temporary === false) throw new RuntimeException('Unable to stage the persistent file.');
+    $input = null; $output = null;
+    try {
+        $input = fopen($source, 'rb'); $output = fopen($temporary, 'wb');
+        if ($input === false || $output === false) throw new RuntimeException('Unable to read or write the persistent file.');
+        $copied = stream_copy_to_stream($input, $output, $size + 1);
+        if ($copied === false || $copied < $size) throw new RuntimeException('Unable to copy the uploaded file. Check available persistent storage.');
+        if ($copied !== $size) throw new RuntimeException('The uploaded file size changed.');
+        if (!fflush($output) || !fsync($output)) throw new RuntimeException('Unable to flush the persistent file.');
+        // installPersistentFile checks the complete checksum before publishing.
+        installPersistentFile($temporary, $metadata);
+    } finally {
+        if (is_resource($input)) fclose($input);
+        if (is_resource($output)) fclose($output);
+        @unlink($temporary);
+    }
+    $conn->execute_query('INSERT INTO stored_files (storage_key, filename, content_type, size, checksum)
+        VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE storage_key = VALUES(storage_key)',
+        [$key, $filename, $contentType, $size, $checksum]);
+    return $key;
+}
+
 function persistentFileMetadata(mysqli $conn, string $key): array
 {
     $metadata = $conn->execute_query('SELECT storage_key, filename, content_type, size, checksum

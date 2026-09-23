@@ -22,7 +22,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
-        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev zlib1g-dev \
+        libcurl4-openssl-dev libfreetype6-dev libjpeg62-turbo-dev libonig-dev libpng-dev libwebp-dev libzip-dev zlib1g-dev openssh-client util-linux \
     && docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
     && docker-php-ext-install -j"$(nproc)" curl gd mbstring mysqli zip \
     && a2enmod headers proxy proxy_http deflate expires rewrite \
@@ -30,6 +30,7 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
     && sed -ri '/^[[:space:]]*CustomLog[[:space:]]/s/^/# /' /etc/apache2/sites-available/*.conf \
     && apt-mark auto '.*' >/dev/null \
     && apt-mark manual $dnr_saved_apt_mark \
+    && apt-mark manual openssh-client util-linux \
     && apt-mark auto $PHPIZE_DEPS \
     && find /usr/local/lib/php/extensions -type f -name '*.so' -exec ldd '{}' ';' \
         | awk '/=>/ { library = $(NF - 1); if (index(library, "/usr/local/") == 1) next; sub("^/(usr/)?", "", library); print library }' \
@@ -40,6 +41,10 @@ RUN dnr_saved_apt_mark="$(apt-mark showmanual)" \
         | xargs -r apt-mark manual \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false \
     && rm -rf /var/lib/apt/lists/*
+
+# The optional coach tunnel uses this same qualified release image.
+RUN groupadd --gid 10001 coach && useradd --uid 10001 --gid coach --no-create-home coach
+COPY --chmod=0755 docker/ai-coach-tunnel.sh /usr/local/bin/ai-coach-tunnel
 
 COPY docker/apache-security.conf /etc/apache2/conf-available/zz-dnr-security.conf
 COPY docker/apache-php-capacity.conf /etc/apache2/conf-available/zz-dnr-capacity.conf

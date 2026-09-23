@@ -50,6 +50,17 @@ all_text='\n'.join(texts)
 assert 'Archiving an engagement or inquiry also hides its tasks' in ' '.join(all_text.split())
 for expected in ['Select records for permanent deletion', 'Delete inactive users individually or in a group', 'Use Enter without losing your place', 'DELETE USERS', 'DELETE USER', 'Select all on this page', 'Amber Deactivate', 'original five-minute deadline', 'Removal pending', 'PPT Slidedeck', 'Download PPT Slidedeck', 'Copy link', 'Due tomorrow', 'Backups include uploaded files', 'Archive a finished inquiry','Restore Inquiry','Archive tasks without changing their status','Restore task','Lock Admin Actions','Mail Ingestion','Historical mailbox review','Daily Digest delivery days','Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
     assert expected in ' '.join(all_text.split()),('Missing required topic',expected)
+for expected in [
+    'Learn with ai coach', 'Follow an Interactive Walkthrough',
+    'Manage the Coach Conversation', 'Rate an Answer and Report a Missing Control',
+    'Review ai coach Requests', 'Turn Coach Feedback into Verified Improvements',
+    'Clear the ai coach Request Log', 'ai coach Is Slow or Cannot Answer',
+    'The Coach Names a Control I Cannot See',
+    'The Coach Answer Is Wrong or Does Not Fit My Question',
+    'New conversation', 'Stop answer', 'Feedback review queue',
+    'Needs revalidation', '500 MB', '600 MB total',
+]:
+    assert expected in ' '.join(all_text.split()), ('Missing new feature guidance', expected)
 for forbidden in ['Genesis 49:9,10','Revelation 5:5','Do you see Him?','ASCII art cat','Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable', 'Speakers remain available permanently and cannot be archived or deleted.', 'Speaker profiles are permanent; update an existing profile', 'Some account lifecycle actions consume the unlock earlier.']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)
 # Double braces are now intentional, documented template fields. Reject unknown tokens.

@@ -1,0 +1,3910 @@
+{
+  "index_version": 1,
+  "pages": {
+    "accept_invitation.php": {
+      "sha256": "2c02c79aceebe043fa22577917dad13f0ae7f89090f7f614592eecf677739ef0",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Accept Invitation"
+        },
+        {
+          "kind": "label",
+          "label": "Password",
+          "for": "password"
+        },
+        {
+          "kind": "label",
+          "label": "Confirm Password",
+          "for": "password_confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Activate account"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Login",
+          "href": "login.php"
+        }
+      ]
+    },
+    "add_contact.php": {
+      "sha256": "df413ca7891652fac4058d9bbaf4bbf342d1b3b893cd8a7bd3607f094760cf31",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Contacts",
+          "href": "contacts.php"
+        },
+        {
+          "kind": "h1",
+          "label": "New Contact"
+        },
+        {
+          "kind": "label",
+          "label": "Primary organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "label",
+          "label": "Organization name",
+          "for": "inline-organization-name"
+        },
+        {
+          "kind": "button",
+          "label": "Create and select"
+        },
+        {
+          "kind": "label",
+          "label": "First Name",
+          "for": "contact_first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last Name",
+          "for": "contact_last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Primary role",
+          "for": "contact_role"
+        },
+        {
+          "kind": "label",
+          "label": "Other Role Description",
+          "for": "contact_role_other"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "for": "contact_email"
+        },
+        {
+          "kind": "label",
+          "label": "Phone Number",
+          "for": "contact_phone"
+        },
+        {
+          "kind": "label",
+          "label": "Birthday",
+          "for": "contact_birthday"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "contact_notes"
+        },
+        {
+          "kind": "label",
+          "label": "Contact Photo",
+          "for": "contact_photo"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "submit",
+          "label": "Create contact",
+          "name": "save_contact"
+        }
+      ]
+    },
+    "add_inquiry.php": {
+      "sha256": "bd3e48d3ad69163996064e449e8ee8e94db07133c6944244b9ddde9ae59e601b",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Booking Pipeline",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "h1",
+          "label": "New Inquiry"
+        }
+      ]
+    },
+    "add_organization.php": {
+      "sha256": "5488088062e722778127dd1c96aae4514de090431ea23c0e186ebefe1c2232fd",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Organizations",
+          "href": "organizations.php"
+        },
+        {
+          "kind": "h1",
+          "label": "New Organization"
+        },
+        {
+          "kind": "label",
+          "label": "Organization Name",
+          "for": "organization_name"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "notes"
+        },
+        {
+          "kind": "label",
+          "label": "Affiliation",
+          "for": "affiliation"
+        },
+        {
+          "kind": "label",
+          "label": "Distinctives",
+          "for": "distinctives"
+        },
+        {
+          "kind": "label",
+          "label": "Website URL",
+          "for": "website_url"
+        },
+        {
+          "kind": "label",
+          "label": "Phone",
+          "for": "phone"
+        },
+        {
+          "kind": "label",
+          "label": "Fax",
+          "for": "fax"
+        },
+        {
+          "kind": "legend",
+          "label": "Mailing and Physical Address the Same"
+        },
+        {
+          "kind": "label",
+          "label": "Yes"
+        },
+        {
+          "kind": "label",
+          "label": "No"
+        },
+        {
+          "kind": "h3",
+          "label": "Physical Address"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 1",
+          "for": "physical_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 2",
+          "for": "physical_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "physical_city"
+        },
+        {
+          "kind": "label",
+          "label": "State / province",
+          "for": "physical_state"
+        },
+        {
+          "kind": "label",
+          "label": "Postal code",
+          "for": "physical_zipcode"
+        },
+        {
+          "kind": "h3",
+          "label": "Mailing Address"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 1",
+          "for": "mailing_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 2",
+          "for": "mailing_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "mailing_city"
+        },
+        {
+          "kind": "label",
+          "label": "State / province",
+          "for": "mailing_state"
+        },
+        {
+          "kind": "label",
+          "label": "Postal code",
+          "for": "mailing_zipcode"
+        },
+        {
+          "kind": "h3",
+          "label": "Add Existing Contacts"
+        },
+        {
+          "kind": "label",
+          "label": "Existing Contact",
+          "for": "existing-contact-"
+        },
+        {
+          "kind": "label",
+          "label": "Role With This Organization",
+          "for": "existing-contact-role-"
+        },
+        {
+          "kind": "button",
+          "label": "Remove"
+        },
+        {
+          "kind": "button",
+          "label": "Add Another Existing Contact"
+        },
+        {
+          "kind": "h3",
+          "label": "Create New Contacts"
+        },
+        {
+          "kind": "label",
+          "label": "First Name",
+          "id": "first_name_label",
+          "for": "contact_first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last Name",
+          "id": "last_name_label",
+          "for": "contact_last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Phone",
+          "for": "contact_phone"
+        },
+        {
+          "kind": "label",
+          "label": "Birthday",
+          "for": "contact_birthday"
+        },
+        {
+          "kind": "label",
+          "label": "Role",
+          "id": "role_label",
+          "for": "contact_role"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Role",
+          "for": "contact_role_other"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "id": "email_label",
+          "for": "contact_email"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "contact_notes"
+        },
+        {
+          "kind": "label",
+          "label": "First Name",
+          "for": "additional-__CONTACT_INDEX__-first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last Name",
+          "for": "additional-__CONTACT_INDEX__-last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Phone",
+          "for": "additional-__CONTACT_INDEX__-phone"
+        },
+        {
+          "kind": "label",
+          "label": "Birthday",
+          "for": "additional-__CONTACT_INDEX__-birthday"
+        },
+        {
+          "kind": "label",
+          "label": "Role",
+          "for": "additional-__CONTACT_INDEX__-role"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Role",
+          "for": "additional-__CONTACT_INDEX__-role_other"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "for": "additional-__CONTACT_INDEX__-email"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "additional-__CONTACT_INDEX__-notes"
+        },
+        {
+          "kind": "button",
+          "label": "Remove"
+        },
+        {
+          "kind": "button",
+          "label": "Add Another Contact"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "submit",
+          "label": "Create organization",
+          "name": "save_org"
+        }
+      ]
+    },
+    "add_standard_task.php": {
+      "sha256": "80e6be982512ac84457ac6f576ef45387e5121428e372f0418eb501c6da74ca0",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "Standard Event Tasks",
+          "href": "standard_tasks.php"
+        },
+        {
+          "kind": "h1",
+          "label": "New Standard Event Task"
+        }
+      ]
+    },
+    "add_task.php": {
+      "sha256": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        }
+      ]
+    },
+    "admin_elevation.php": {
+      "sha256": "bbb21c1a15dd5d29504fa5af39ca099c7074daedad4efa59922c37a70d0f2cb0",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Confirm Administrator Access"
+        },
+        {
+          "kind": "label",
+          "label": "Administrator password",
+          "for": "admin_password"
+        },
+        {
+          "kind": "label",
+          "label": "Fresh authenticator code or recovery code",
+          "for": "admin_code"
+        },
+        {
+          "kind": "button",
+          "label": "Unlock Sensitive Actions"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        }
+      ]
+    },
+    "ai_coach_improvements.php": {
+      "sha256": "4c8b412f3242bd0579c27532928f9f2f8add00ecd234e06dbc73d1d247a124d0",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "ai coach Improvements"
+        },
+        {
+          "kind": "a",
+          "label": "Request log",
+          "href": "ai_coach_requests.php"
+        },
+        {
+          "kind": "label",
+          "label": "Question (remove names and private record details)",
+          "for": "question"
+        },
+        {
+          "kind": "label",
+          "label": "Verified expected guidance",
+          "for": "expected_guidance"
+        },
+        {
+          "kind": "label",
+          "label": "I checked this guidance against the current application and manual"
+        },
+        {
+          "kind": "label",
+          "label": "This case contains no private names, record details, credentials, or personal data"
+        },
+        {
+          "kind": "button",
+          "label": "Save improvement"
+        },
+        {
+          "kind": "a",
+          "label": "All improvements",
+          "href": "ai_coach_improvements.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Feedback Review Queue",
+          "id": "feedback-queue-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Recent Development Reviews"
+        },
+        {
+          "kind": "a",
+          "label": "Original request"
+        },
+        {
+          "kind": "h2",
+          "label": "Verified Guidance Cases"
+        },
+        {
+          "kind": "a",
+          "label": "New improvement"
+        },
+        {
+          "kind": "a",
+          "label": "Export approved test cases"
+        }
+      ]
+    },
+    "audit_log.php": {
+      "sha256": "0398ca23bfee5f14a990b9bc098ea6b0fe2dc048d29a304f6c945cce03d17e70",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Audit Log"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Users",
+          "href": "users.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Prune Old Entries",
+          "id": "audit-retention-title"
+        },
+        {
+          "kind": "label",
+          "label": "Days to keep",
+          "for": "retention-days"
+        },
+        {
+          "kind": "button",
+          "label": "Preview Pruning"
+        },
+        {
+          "kind": "a",
+          "label": "Unlock Pruning",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "Type PRUNE to confirm permanent deletion",
+          "for": "prune-confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Prune Entries"
+        },
+        {
+          "kind": "label",
+          "label": "Search audit log",
+          "for": "audit-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "From date",
+          "for": "audit-from"
+        },
+        {
+          "kind": "label",
+          "label": "To date",
+          "for": "audit-to"
+        },
+        {
+          "kind": "label",
+          "label": "Exact IP address",
+          "for": "audit-ip"
+        },
+        {
+          "kind": "button",
+          "label": "Apply"
+        },
+        {
+          "kind": "a",
+          "label": "All",
+          "href": ""
+        }
+      ]
+    },
+    "bulk_delete.php": {
+      "sha256": "7d1c631adc2521d54db98ff9299733ac2b924e0edeb2c6bf864e242aee514fe1",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Are You Sure You Want to Delete These Items?"
+        },
+        {
+          "kind": "label",
+          "label": "Type DELETE USERS to confirm",
+          "for": "bulk-delete-confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel"
+        },
+        {
+          "kind": "button",
+          "label": "Permanently delete item"
+        }
+      ]
+    },
+    "close_engagement.php": {
+      "sha256": "b02bee2ac00d42f73778682fbb111513b2ec1fae5bc06983d6e16dceb381fa1d",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Engagement Details"
+        },
+        {
+          "kind": "h2",
+          "label": "Finalization Prerequisites",
+          "id": "closeout-task-hold-title"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Event Tasks"
+        },
+        {
+          "kind": "legend",
+          "label": "Actual receipts"
+        },
+        {
+          "kind": "label",
+          "label": "*",
+          "for": ""
+        },
+        {
+          "kind": "label",
+          "label": "Closeout notes",
+          "for": "notes"
+        },
+        {
+          "kind": "label",
+          "label": "I confirm these are the final received amounts and this event is ready to be financially closed"
+        },
+        {
+          "kind": "button",
+          "label": "Save draft",
+          "name": "action"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        }
+      ]
+    },
+    "compose_engagement_email.php": {
+      "sha256": "6d8f90b15b1d3130cd577a917119acdf8698fb4a53971c45251cbb7ab07f586f",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Engagement Details"
+        },
+        {
+          "kind": "h1",
+          "label": "Send an Engagement Email"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
+          "kind": "h2",
+          "label": "Choose a Template"
+        },
+        {
+          "kind": "label",
+          "label": "Message template",
+          "for": "template_key"
+        },
+        {
+          "kind": "a",
+          "label": "Manage Email Templates"
+        },
+        {
+          "kind": "h2",
+          "label": "Select Recipients"
+        },
+        {
+          "kind": "button",
+          "label": "Speaker"
+        },
+        {
+          "kind": "button",
+          "label": "All"
+        },
+        {
+          "kind": "button",
+          "label": "Clear"
+        },
+        {
+          "kind": "legend",
+          "label": "Event contacts and speakers"
+        },
+        {
+          "kind": "label",
+          "label": "Send as:"
+        },
+        {
+          "kind": "label",
+          "label": "Speaker"
+        },
+        {
+          "kind": "label",
+          "label": "Send as:"
+        },
+        {
+          "kind": "label",
+          "label": "Your copy:",
+          "for": "sender-copy"
+        },
+        {
+          "kind": "h2",
+          "label": "Write the Message"
+        },
+        {
+          "kind": "label",
+          "label": "Subject *",
+          "for": "subject"
+        },
+        {
+          "kind": "label",
+          "label": "Plain-text message *",
+          "for": "body"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
+          "kind": "button",
+          "label": "Queue Email"
+        }
+      ]
+    },
+    "compose_inquiry_email.php": {
+      "sha256": "f2da019f48d829ecd0fb2d5aeb0fe465264dbbd782fdbe43ce20f9fd4f742442",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Booking Pipeline",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "a",
+          "label": "Inquiry"
+        },
+        {
+          "kind": "h1",
+          "label": "Send an Inquiry Email"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
+          "kind": "h2",
+          "label": "Choose a Template"
+        },
+        {
+          "kind": "label",
+          "label": "Message Template",
+          "for": "template_key"
+        },
+        {
+          "kind": "h2",
+          "label": "Recipient"
+        },
+        {
+          "kind": "h2",
+          "label": "Write the Message"
+        },
+        {
+          "kind": "label",
+          "label": "Subject *",
+          "for": "subject"
+        },
+        {
+          "kind": "label",
+          "label": "Plain-text message *",
+          "for": "body"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
+          "kind": "button",
+          "label": "Queue Email"
+        }
+      ]
+    },
+    "contacts.php": {
+      "sha256": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "+ New Contact",
+          "href": "add_contact.php"
+        },
+        {
+          "kind": "label",
+          "label": "Search contacts",
+          "for": "contact-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Active",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Archived",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Last Name",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Primary organization",
+          "href": ""
+        }
+      ]
+    },
+    "convert_inquiry.php": {
+      "sha256": "0e4e6a8902e13458e3164b97400dd5e2c815b85ae543421a5d97fcb08e6a2be7",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Booking Pipeline",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Convert Inquiry to Engagement"
+        },
+        {
+          "kind": "h2",
+          "label": "Engagement Details"
+        },
+        {
+          "kind": "legend",
+          "label": "Reconcile the inquiry next action"
+        },
+        {
+          "kind": "label",
+          "label": "Carry forward as an engagement task"
+        },
+        {
+          "kind": "label",
+          "label": "Resolve at booking"
+        },
+        {
+          "kind": "label",
+          "label": "Resolution reason if resolving",
+          "for": "next-action-reason"
+        },
+        {
+          "kind": "h2",
+          "label": "Availability Check"
+        },
+        {
+          "kind": "h3",
+          "label": "Required Details Are Missing"
+        },
+        {
+          "kind": "a",
+          "label": "Resolve Details"
+        },
+        {
+          "kind": "h3",
+          "label": "Schedule Conflict Warning"
+        },
+        {
+          "kind": "label",
+          "label": "I reviewed these schedule warningsBooking will proceed with the dates shown"
+        },
+        {
+          "kind": "a",
+          "label": "\u2039 Back to Inquiry"
+        },
+        {
+          "kind": "button",
+          "label": "Book engagement \u00b7 move tasks",
+          "name": "convert_inquiry"
+        }
+      ]
+    },
+    "dashboard.php": {
+      "sha256": "ab20262b004ddc482ffc2d10e29f8cc41cede93cb863134f29d6673f452f5c29",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Good day,"
+        },
+        {
+          "kind": "a",
+          "label": "Open My Work"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Inquiry",
+          "href": "add_inquiry.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Task"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Engagement",
+          "href": "index.php"
+        },
+        {
+          "kind": "a",
+          "label": "\u2261 All Active Work"
+        },
+        {
+          "kind": "a",
+          "label": "\u2713 My Active Work"
+        },
+        {
+          "kind": "a",
+          "label": "! My Overdue Work"
+        },
+        {
+          "kind": "a",
+          "label": "\u2197 Booking Inquiries"
+        },
+        {
+          "kind": "a",
+          "label": "$ Financial Closeouts"
+        },
+        {
+          "kind": "a",
+          "label": "@ Mail For Review"
+        },
+        {
+          "kind": "h2",
+          "label": "My Work",
+          "id": "my-work-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Open Queue"
+        },
+        {
+          "kind": "h2",
+          "label": "Upcoming Engagements",
+          "id": "upcoming-engagements-heading"
+        },
+        {
+          "kind": "a",
+          "label": "View All"
+        },
+        {
+          "kind": "h2",
+          "label": "Needs Attention"
+        },
+        {
+          "kind": "a",
+          "label": "inbound message awaiting routing review"
+        },
+        {
+          "kind": "h3",
+          "label": "Event Readiness",
+          "id": "event-readiness-heading"
+        },
+        {
+          "kind": "h3",
+          "label": "Financial Closeouts",
+          "id": "financial-closeouts-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Inquiry Next Actions",
+          "id": "booking-inquiries-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Open My Booking Pipeline"
+        },
+        {
+          "kind": "h2",
+          "label": "Pipeline Health",
+          "id": "pipeline-health-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Review All"
+        },
+        {
+          "kind": "a",
+          "label": "Unassigned Inquiries"
+        },
+        {
+          "kind": "a",
+          "label": "Overdue Next Actions"
+        },
+        {
+          "kind": "a",
+          "label": "Due in 7 Days"
+        },
+        {
+          "kind": "a",
+          "label": "Missing Next Action"
+        }
+      ]
+    },
+    "database_maintenance.php": {
+      "sha256": "90a35588801fcf0a2650bef54e6f9c826b278af661242f3eeb7befd27fcd3d67",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Database Backup"
+        },
+        {
+          "kind": "h2",
+          "label": "Uploaded File Storage"
+        },
+        {
+          "kind": "h2",
+          "label": "Export Backup"
+        },
+        {
+          "kind": "label",
+          "label": "Your Administrator Password",
+          "for": "backup_admin_password"
+        },
+        {
+          "kind": "label",
+          "label": "Fresh Authenticator Code or Recovery Code",
+          "for": "backup_admin_code"
+        },
+        {
+          "kind": "label",
+          "label": "New Backup Encryption Password",
+          "for": "backup_password"
+        },
+        {
+          "kind": "label",
+          "label": "Confirm Backup Encryption Password",
+          "for": "backup_password_confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Encrypt and Download Backup"
+        },
+        {
+          "kind": "h2",
+          "label": "Restore Procedure"
+        }
+      ]
+    },
+    "edit_contact.php": {
+      "sha256": "61c423df0397817c18661c9ac8888b61649d341683e0c5574941dbcd0a00e4a4",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Contacts",
+          "href": "contacts.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Contact"
+        },
+        {
+          "kind": "label",
+          "label": "Primary organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "label",
+          "label": "First Name",
+          "for": "contact_first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last Name",
+          "for": "contact_last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Primary role",
+          "for": "contact_role"
+        },
+        {
+          "kind": "label",
+          "label": "Other Role Description",
+          "for": "contact_role_other"
+        },
+        {
+          "kind": "label",
+          "label": "Email",
+          "for": "contact_email"
+        },
+        {
+          "kind": "label",
+          "label": "Phone Number",
+          "for": "contact_phone"
+        },
+        {
+          "kind": "label",
+          "label": "Birthday",
+          "for": "contact_birthday"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "contact_notes"
+        },
+        {
+          "kind": "label",
+          "label": "Contact Photo",
+          "for": "contact_photo"
+        },
+        {
+          "kind": "label",
+          "label": "Remove current photo"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes",
+          "name": "save_contact"
+        }
+      ]
+    },
+    "edit_email_template.php": {
+      "sha256": "8f3e4d5f511f01717339e9f17b2cb30f46c96e52f5ecf25850534d0c5adc80b0",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Email Templates",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "Template Details"
+        },
+        {
+          "kind": "label",
+          "label": "Template name",
+          "for": "template-name"
+        },
+        {
+          "kind": "label",
+          "label": "Subject",
+          "for": "template-subject"
+        },
+        {
+          "kind": "label",
+          "label": "Plain-text message",
+          "for": "template-body"
+        },
+        {
+          "kind": "button",
+          "label": "{{}}"
+        },
+        {
+          "kind": "h2",
+          "label": "Recipient Suggestions"
+        },
+        {
+          "kind": "legend",
+          "label": "Suggested event contacts"
+        },
+        {
+          "kind": "label",
+          "label": "Display order",
+          "for": "template-order"
+        }
+      ]
+    },
+    "edit_engagement.php": {
+      "sha256": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Engagement"
+        },
+        {
+          "kind": "h2",
+          "label": "Event Details & Schedule"
+        },
+        {
+          "kind": "label",
+          "label": "Organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "label",
+          "label": "Start*",
+          "for": "event_start_date"
+        },
+        {
+          "kind": "label",
+          "label": "End*",
+          "for": "event_end_date"
+        },
+        {
+          "kind": "label",
+          "label": "Event Title",
+          "for": "event_title"
+        },
+        {
+          "kind": "label",
+          "label": "Event Type",
+          "for": "event_type"
+        },
+        {
+          "kind": "label",
+          "label": "Other Event Type*",
+          "for": "event_type_other"
+        },
+        {
+          "kind": "label",
+          "label": "Event Description",
+          "for": "event_description"
+        },
+        {
+          "kind": "h2",
+          "label": "Logistics & Compensation"
+        },
+        {
+          "kind": "label",
+          "label": "book table provided"
+        },
+        {
+          "kind": "label",
+          "label": "brochures permitted"
+        },
+        {
+          "kind": "legend",
+          "label": "All travel covered"
+        },
+        {
+          "kind": "label",
+          "label": "Type of Compensation",
+          "for": "compensation_type"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Compensation*",
+          "for": "other_compensation"
+        },
+        {
+          "kind": "label",
+          "label": "Travel (Not in Compensation)",
+          "for": "travel_amount"
+        },
+        {
+          "kind": "label",
+          "label": "Lodging (Not in Travel)",
+          "for": "housing_amount"
+        },
+        {
+          "kind": "label",
+          "label": "Lodging Type",
+          "for": "housing_type"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Lodging*",
+          "for": "other_housing"
+        },
+        {
+          "kind": "h3",
+          "label": "Event Location"
+        },
+        {
+          "kind": "label",
+          "label": "Address Line 1",
+          "for": "event_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address Line 2",
+          "for": "event_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "event_city"
+        },
+        {
+          "kind": "label",
+          "label": "State",
+          "for": "event_state"
+        },
+        {
+          "kind": "label",
+          "label": "Zipcode",
+          "for": "event_zipcode"
+        },
+        {
+          "kind": "label",
+          "label": "Caller",
+          "for": "caller_user_id"
+        },
+        {
+          "kind": "h2",
+          "label": "Chron Log"
+        },
+        {
+          "kind": "a",
+          "label": "Restore Archived Entries ()"
+        },
+        {
+          "kind": "label",
+          "label": "New Chron Log Entry",
+          "for": "new-chron-entry"
+        },
+        {
+          "kind": "button",
+          "label": "Add Chron Log Entry",
+          "name": "save_and_add_chron"
+        },
+        {
+          "kind": "label",
+          "label": "Edit Chron Log Entry from",
+          "for": "chron-entry-"
+        },
+        {
+          "kind": "button",
+          "label": "Archive",
+          "name": "chron_action"
+        },
+        {
+          "kind": "button",
+          "label": "Delete",
+          "name": "chron_action"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes",
+          "name": "save_engagement"
+        }
+      ]
+    },
+    "edit_inquiry.php": {
+      "sha256": "62f28346ee5e632cb5c37c35f1e5aaac39774230af52f1bfefdef9d257b9181d",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Booking Pipeline",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "a",
+          "label": "Inquiry"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Inquiry"
+        }
+      ]
+    },
+    "edit_organization.php": {
+      "sha256": "7ac0589341105ccac82d7ef50481fea28f377f86820f422d54ca91f0b322ef3c",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Organizations",
+          "href": "organizations.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Organization"
+        },
+        {
+          "kind": "label",
+          "label": "Organization Name",
+          "for": "organization_name"
+        },
+        {
+          "kind": "label",
+          "label": "Notes",
+          "for": "notes"
+        },
+        {
+          "kind": "label",
+          "label": "Affiliation",
+          "for": "affiliation"
+        },
+        {
+          "kind": "label",
+          "label": "Distinctives",
+          "for": "distinctives"
+        },
+        {
+          "kind": "label",
+          "label": "Website URL",
+          "for": "website_url"
+        },
+        {
+          "kind": "label",
+          "label": "Phone",
+          "for": "phone"
+        },
+        {
+          "kind": "label",
+          "label": "Fax",
+          "for": "fax"
+        },
+        {
+          "kind": "legend",
+          "label": "Mailing and Physical Address the Same"
+        },
+        {
+          "kind": "label",
+          "label": "Yes"
+        },
+        {
+          "kind": "label",
+          "label": "No"
+        },
+        {
+          "kind": "h3",
+          "label": "Physical Address"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 1",
+          "for": "physical_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 2",
+          "for": "physical_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "physical_city"
+        },
+        {
+          "kind": "label",
+          "label": "State / province",
+          "for": "physical_state"
+        },
+        {
+          "kind": "label",
+          "label": "Postal code",
+          "for": "physical_zipcode"
+        },
+        {
+          "kind": "h3",
+          "label": "Mailing Address"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 1",
+          "for": "mailing_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address line 2",
+          "for": "mailing_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "mailing_city"
+        },
+        {
+          "kind": "label",
+          "label": "State / province",
+          "for": "mailing_state"
+        },
+        {
+          "kind": "label",
+          "label": "Postal code",
+          "for": "mailing_zipcode"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes",
+          "name": "save_organization"
+        }
+      ]
+    },
+    "edit_speaker.php": {
+      "sha256": "c394a2b0df9fc87121e3a8309c683818d1e131400916a45680d3b0ed08e20d27",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Speakers",
+          "href": "speakers.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Speaker Details"
+        },
+        {
+          "kind": "label",
+          "label": "Name",
+          "for": "speaker_name"
+        },
+        {
+          "kind": "label",
+          "label": "Email Address",
+          "for": "speaker_email"
+        },
+        {
+          "kind": "label",
+          "label": "Phone Number",
+          "for": "speaker_phone"
+        },
+        {
+          "kind": "label",
+          "label": "Bio",
+          "for": "speaker_bio"
+        },
+        {
+          "kind": "h2",
+          "label": "Links",
+          "id": "speaker-links-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Custom Links",
+          "id": "speaker-custom-links-heading"
+        },
+        {
+          "kind": "button",
+          "label": "Add Custom Link"
+        },
+        {
+          "kind": "label",
+          "label": "Speaker Photo",
+          "for": "speaker_photo"
+        },
+        {
+          "kind": "label",
+          "label": "Remove current photo"
+        },
+        {
+          "kind": "button",
+          "label": "Save speaker"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        }
+      ]
+    },
+    "edit_standard_task.php": {
+      "sha256": "d18c169499b11963a4fe62f4f291388a0bc2999b104245d8c87c2bd8cb1661ee",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "Standard Event Tasks",
+          "href": "standard_tasks.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Standard Event Task"
+        }
+      ]
+    },
+    "edit_task.php": {
+      "sha256": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit Task"
+        }
+      ]
+    },
+    "edit_user.php": {
+      "sha256": "66654c738bb54d1997d9cb06ef1fd949b7a7ed5f4ed8e5a1302b3550d1477f83",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Users",
+          "href": "users.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Edit User"
+        },
+        {
+          "kind": "h2",
+          "label": "Personal Details",
+          "id": "personal-details-heading"
+        },
+        {
+          "kind": "label",
+          "label": "First name",
+          "for": "first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last name",
+          "for": "last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Email address",
+          "for": "email"
+        },
+        {
+          "kind": "label",
+          "label": "Phone number",
+          "for": "phone"
+        },
+        {
+          "kind": "h2",
+          "label": "Profile Picture",
+          "id": "profile-picture-heading"
+        },
+        {
+          "kind": "label",
+          "label": "Choose a new picture",
+          "for": "profile_picture"
+        },
+        {
+          "kind": "label",
+          "label": "Remove current picture"
+        },
+        {
+          "kind": "label",
+          "label": "Username",
+          "for": "username"
+        },
+        {
+          "kind": "label",
+          "label": "Role",
+          "for": "role"
+        },
+        {
+          "kind": "h2",
+          "label": "Daily Work Digest",
+          "id": "digest-settings-heading"
+        },
+        {
+          "kind": "label",
+          "label": "Enable daily work digest Delivery requires an active account with a verified email address"
+        },
+        {
+          "kind": "label",
+          "label": "Delivery time",
+          "for": "task_digest_time"
+        },
+        {
+          "kind": "legend",
+          "label": "Delivery days"
+        },
+        {
+          "kind": "button",
+          "label": "Weekdays"
+        },
+        {
+          "kind": "button",
+          "label": "Weekends"
+        },
+        {
+          "kind": "button",
+          "label": "Every day"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": "users.php"
+        },
+        {
+          "kind": "submit",
+          "label": "Save changes",
+          "name": ""
+        }
+      ]
+    },
+    "email_templates.php": {
+      "sha256": "9cbb57ddb486a2389ce9ba49862e3e92a8fd4b2ea9b23c1b218abb98535b20db",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Return to Email"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Email Template",
+          "href": "edit_email_template.php"
+        },
+        {
+          "kind": "label",
+          "label": "Search email templates",
+          "for": "template-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Active ()"
+        },
+        {
+          "kind": "a",
+          "label": "Archived ()"
+        }
+      ]
+    },
+    "engagements.php": {
+      "sha256": "d7de049c05130e8ce4c507a979ce7f8685dfabaa74cdebfb493d1a7e957800c4",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "+ New Engagement",
+          "href": "index.php"
+        },
+        {
+          "kind": "a",
+          "label": "\u25c6Active",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "\u2161Postponed",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "\u00d7Canceled",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "\u2713Completed",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "title, organization, contact, chron log text, \"and\"/or user",
+          "for": "engagement-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Current",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Archived ()",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Organization",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Date",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Confirmation",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Lifecycle",
+          "href": ""
+        }
+      ]
+    },
+    "inbound_mail.php": {
+      "sha256": "dbe984c0cbefb3b356828fa8f7a3010c8b75f399edb017b18f2d96ed35e27a97",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Inbound Mail"
+        },
+        {
+          "kind": "a",
+          "label": "Refresh inbox",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "Search messages",
+          "for": "inbox-search"
+        },
+        {
+          "kind": "label",
+          "label": "Order",
+          "for": "inbox-sort"
+        },
+        {
+          "kind": "button",
+          "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear search",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Back to messages",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "\u2190 Back to messages",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Purge Mail Entry"
+        },
+        {
+          "kind": "h3",
+          "label": "Choose Chron Logs"
+        },
+        {
+          "kind": "button",
+          "label": "Save to Chron logs",
+          "name": "action"
+        },
+        {
+          "kind": "legend",
+          "label": "Contacts"
+        },
+        {
+          "kind": "legend",
+          "label": "Organizations"
+        },
+        {
+          "kind": "legend",
+          "label": "Inquiries"
+        },
+        {
+          "kind": "legend",
+          "label": "Engagement"
+        },
+        {
+          "kind": "label",
+          "label": "Find an active engagement",
+          "for": "inbound-engagement-search"
+        },
+        {
+          "kind": "label",
+          "label": "Engagement",
+          "for": "inbound-engagement-id"
+        },
+        {
+          "kind": "button",
+          "label": "Find matches again",
+          "name": "action"
+        },
+        {
+          "kind": "button",
+          "label": "Reject message",
+          "name": "action"
+        },
+        {
+          "kind": "h3",
+          "label": "Saved to Chron"
+        },
+        {
+          "kind": "h3",
+          "label": "Message Rejected"
+        },
+        {
+          "kind": "h3",
+          "label": "Filing in Progress"
+        },
+        {
+          "kind": "h3",
+          "label": "Destinations Unavailable"
+        }
+      ]
+    },
+    "index.php": {
+      "sha256": "34520054971459c4e2b51ea79e7b3e3ddf390e8dde4bd0d35ff2f2df34295d0a",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "h1",
+          "label": "New Engagement"
+        },
+        {
+          "kind": "h2",
+          "label": "Event Details"
+        },
+        {
+          "kind": "label",
+          "label": "Organization",
+          "for": "organization_id"
+        },
+        {
+          "kind": "a",
+          "label": "Add New Organization",
+          "href": "add_organization.php"
+        },
+        {
+          "kind": "label",
+          "label": "Event Title",
+          "for": "event_title"
+        },
+        {
+          "kind": "label",
+          "label": "Event Description",
+          "for": "event_description"
+        },
+        {
+          "kind": "h2",
+          "label": "Schedule"
+        },
+        {
+          "kind": "label",
+          "label": "Start*",
+          "for": "event_start_date"
+        },
+        {
+          "kind": "label",
+          "label": "End*",
+          "for": "event_end_date"
+        },
+        {
+          "kind": "label",
+          "label": "Event Type",
+          "for": "event_type"
+        },
+        {
+          "kind": "label",
+          "label": "Other Event Type*",
+          "for": "event_type_other"
+        },
+        {
+          "kind": "h2",
+          "label": "Logistics & Compensation"
+        },
+        {
+          "kind": "label",
+          "label": "book table provided"
+        },
+        {
+          "kind": "label",
+          "label": "brochures permitted"
+        },
+        {
+          "kind": "legend",
+          "label": "All travel covered"
+        },
+        {
+          "kind": "label",
+          "label": "Type of Compensation",
+          "for": "compensation_type"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Compensation*",
+          "for": "other_compensation"
+        },
+        {
+          "kind": "label",
+          "label": "Travel (Not in Compensation)",
+          "for": "travel_amount"
+        },
+        {
+          "kind": "label",
+          "label": "Lodging (Not in Travel)",
+          "for": "housing_amount"
+        },
+        {
+          "kind": "label",
+          "label": "Lodging Type",
+          "for": "housing_type"
+        },
+        {
+          "kind": "label",
+          "label": "Describe Other Lodging*",
+          "for": "other_housing"
+        },
+        {
+          "kind": "h3",
+          "label": "Event Location"
+        },
+        {
+          "kind": "label",
+          "label": "Address Line 1",
+          "for": "event_address_line_1"
+        },
+        {
+          "kind": "label",
+          "label": "Address Line 2",
+          "for": "event_address_line_2"
+        },
+        {
+          "kind": "label",
+          "label": "City",
+          "for": "event_city"
+        },
+        {
+          "kind": "label",
+          "label": "State",
+          "for": "event_state"
+        },
+        {
+          "kind": "label",
+          "label": "Zipcode",
+          "for": "event_zipcode"
+        },
+        {
+          "kind": "h2",
+          "label": "Chron Log"
+        },
+        {
+          "kind": "label",
+          "label": "Initial Chron entry",
+          "for": "chron_entry"
+        },
+        {
+          "kind": "label",
+          "label": "Caller",
+          "for": "caller_user_id"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "submit",
+          "label": "Create engagement",
+          "name": "save_engagement"
+        }
+      ]
+    },
+    "inquiries.php": {
+      "sha256": "9721e1fd946ddff73b36454752b794f775b25565d8b63739bb1467a7c2fbc0fb",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Export"
+        },
+        {
+          "kind": "a",
+          "label": "+New Inquiry",
+          "href": "add_inquiry.php"
+        },
+        {
+          "kind": "label",
+          "label": "Search inquiries"
+        },
+        {
+          "kind": "label",
+          "label": "OwnerAllMine & UnassignedMy InquiriesUnassigned"
+        },
+        {
+          "kind": "label",
+          "label": "Next action dueNext action dueOverdueDue TodayNext 7 DaysNo action due dateMissing Next Action"
+        },
+        {
+          "kind": "label",
+          "label": "StageStageBookedDeclinedAll StagesArchived"
+        },
+        {
+          "kind": "button",
+          "label": "Apply Filters"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "a",
+          "label": "+",
+          "href": "add_inquiry.php"
+        },
+        {
+          "kind": "a",
+          "label": "open task"
+        },
+        {
+          "kind": "label",
+          "label": "Stage Select Stage"
+        },
+        {
+          "kind": "label",
+          "label": "Reason Required When Declining"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel"
+        },
+        {
+          "kind": "button",
+          "label": "Update Stage"
+        }
+      ]
+    },
+    "login.php": {
+      "sha256": "75fa21787fdd184890fdd451c21abcbfb989b62cda5aa609e7e1f63729fa615e",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Welcome Back"
+        },
+        {
+          "kind": "label",
+          "label": "Username",
+          "for": "username"
+        },
+        {
+          "kind": "label",
+          "label": "Password",
+          "for": "password"
+        },
+        {
+          "kind": "button",
+          "label": "Sign in"
+        },
+        {
+          "kind": "a",
+          "label": "Forgot your password?",
+          "href": "recover_password.php"
+        }
+      ]
+    },
+    "map.php": {
+      "sha256": "1a143da2291fe577b705245cea69937c31e25b2e6929f847df3b3ad81849d050",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Map"
+        },
+        {
+          "kind": "label",
+          "label": "Lifecycle",
+          "for": "map-lifecycle"
+        },
+        {
+          "kind": "label",
+          "label": "Confirmation",
+          "for": "map-status"
+        },
+        {
+          "kind": "legend",
+          "label": "Date window"
+        },
+        {
+          "kind": "label",
+          "label": "From",
+          "for": "map-date-from"
+        },
+        {
+          "kind": "label",
+          "label": "Through",
+          "for": "map-date-to"
+        },
+        {
+          "kind": "label",
+          "label": "Location",
+          "for": "map-location"
+        },
+        {
+          "kind": "button",
+          "label": "Apply Filters"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": "map.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Engagement Locations",
+          "id": "map-region-title"
+        },
+        {
+          "kind": "button",
+          "label": "Fit visible pins",
+          "id": "fit-map-pins"
+        },
+        {
+          "kind": "a",
+          "label": "Show all locations",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Reset filters",
+          "href": "map.php"
+        },
+        {
+          "kind": "a",
+          "label": "Geoapify"
+        },
+        {
+          "kind": "h2",
+          "label": "Locations to Review",
+          "id": "location-list-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Show all locations"
+        },
+        {
+          "kind": "a",
+          "label": "Show missing addresses"
+        },
+        {
+          "kind": "button",
+          "label": "All on this page"
+        },
+        {
+          "kind": "button",
+          "label": "Retry lookup"
+        },
+        {
+          "kind": "a",
+          "label": "Edit location",
+          "href": ""
+        }
+      ]
+    },
+    "map_pin.php": {
+      "sha256": "5c450605a445329f6ca505f88ccbe20de53a8886e156da7755d4d14751bd374f",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Set Map Pin"
+        },
+        {
+          "kind": "a",
+          "label": "Edit engagement"
+        },
+        {
+          "kind": "a",
+          "label": "Geoapify"
+        },
+        {
+          "kind": "label",
+          "label": "Latitude",
+          "for": "pin-latitude"
+        },
+        {
+          "kind": "label",
+          "label": "Longitude",
+          "for": "pin-longitude"
+        },
+        {
+          "kind": "label",
+          "label": "I have checked that this pin marks the correct venue"
+        },
+        {
+          "kind": "button",
+          "label": "Save confirmed pin"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Use automatic lookup",
+          "name": "action"
+        }
+      ]
+    },
+    "mattermost.php": {
+      "sha256": "fd5dfc217f4e66cca209ce171c8866c564a9ecb7237a13fcf5fc1f4443282b53",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Mattermost"
+        },
+        {
+          "kind": "h2",
+          "label": "Integration Not Configured"
+        },
+        {
+          "kind": "h2",
+          "label": "Use This Code Now",
+          "id": "mattermost-new-code-title"
+        },
+        {
+          "kind": "h2",
+          "label": "Link an Account",
+          "id": "mattermost-link-title"
+        },
+        {
+          "kind": "button",
+          "label": "Generate One-Time Code"
+        },
+        {
+          "kind": "h2",
+          "label": "Linked Mattermost Accounts",
+          "id": "mattermost-links-title"
+        },
+        {
+          "kind": "button",
+          "label": "Unlink"
+        },
+        {
+          "kind": "h2",
+          "label": "Available Commands",
+          "id": "mattermost-commands-title"
+        },
+        {
+          "kind": "a",
+          "label": "Read the Mattermost User Guide",
+          "href": "help.php#mattermost"
+        }
+      ]
+    },
+    "network_diagnostics.php": {
+      "sha256": "7fefc4e141981ad2c45bdf48331c562cbd79b252c20631157f8daf7298e23f8d",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Remote Network Performance"
+        },
+        {
+          "kind": "button",
+          "label": "Refresh"
+        },
+        {
+          "kind": "button",
+          "label": "Reset Statistics"
+        },
+        {
+          "kind": "a",
+          "label": "Reset Statistics"
+        },
+        {
+          "kind": "h2",
+          "label": "Loading Remote Measurements\u2026",
+          "id": "network-result-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Slowest Contact Image Per Page Load",
+          "id": "contact-image-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Slowest Observed Pages",
+          "id": "slow-page-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "What This Measures",
+          "id": "network-details-heading"
+        }
+      ]
+    },
+    "operations.php": {
+      "sha256": "801cb92530d33fdec6c19845b047d590d1cc25255f3bb7fb2f95a3da436e5f8d",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Operations"
+        },
+        {
+          "kind": "h2",
+          "label": "Mail Ingestion"
+        },
+        {
+          "kind": "a",
+          "label": "View Inbound Mail"
+        },
+        {
+          "kind": "h2",
+          "label": "Deployment State"
+        },
+        {
+          "kind": "a",
+          "label": "View Readiness Response",
+          "href": "ready.php"
+        }
+      ]
+    },
+    "organizations.php": {
+      "sha256": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "+ New Organization",
+          "href": "add_organization.php"
+        },
+        {
+          "kind": "label",
+          "label": "Search organizations",
+          "for": "organization-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Active",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Archived",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Organization",
+          "href": ""
+        }
+      ]
+    },
+    "outbound_mail.php": {
+      "sha256": "b69ce4e6fbdabddb87202adfc4c0ab395b3c43491222fccebd5b1b0e3d92f1ca",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Details",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "Deliveries"
+        },
+        {
+          "kind": "label",
+          "label": "I checked these uncertain deliveries and want to resend them"
+        },
+        {
+          "kind": "button",
+          "label": "Retry Reviewed Deliveries"
+        },
+        {
+          "kind": "button",
+          "label": "Retry Failed Deliveries"
+        },
+        {
+          "kind": "h2",
+          "label": "Plain-Text Content"
+        },
+        {
+          "kind": "a",
+          "label": "Back to",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "New Message"
+        }
+      ]
+    },
+    "profile.php": {
+      "sha256": "82500320b65d13a2e53f9d8845c171f717ef7ce113a72ada3c0f39f848b9c389",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "My Profile"
+        },
+        {
+          "kind": "h2",
+          "label": "Profile Picture",
+          "id": "profile-picture-heading"
+        },
+        {
+          "kind": "label",
+          "label": "Choose a new picture",
+          "for": "profile_picture"
+        },
+        {
+          "kind": "label",
+          "label": "Remove current picture"
+        },
+        {
+          "kind": "h2",
+          "label": "Personal Details",
+          "id": "personal-details-heading"
+        },
+        {
+          "kind": "label",
+          "label": "First name",
+          "for": "first_name"
+        },
+        {
+          "kind": "label",
+          "label": "Last name",
+          "for": "last_name"
+        },
+        {
+          "kind": "label",
+          "label": "Email address",
+          "for": "email"
+        },
+        {
+          "kind": "label",
+          "label": "Phone number",
+          "for": "phone"
+        },
+        {
+          "kind": "h2",
+          "label": "Notifications",
+          "id": "notification-preferences-heading"
+        },
+        {
+          "kind": "label",
+          "label": "Delivery time",
+          "for": "task_digest_time"
+        },
+        {
+          "kind": "legend",
+          "label": "Delivery days"
+        },
+        {
+          "kind": "button",
+          "label": "Weekdays"
+        },
+        {
+          "kind": "button",
+          "label": "Weekends"
+        },
+        {
+          "kind": "button",
+          "label": "Every day"
+        },
+        {
+          "kind": "button",
+          "label": "Resend email verification"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes"
+        },
+        {
+          "kind": "h2",
+          "label": "Change Recovery Email",
+          "id": "recovery-email-heading"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel Pending Email Change"
+        },
+        {
+          "kind": "label",
+          "label": "New email address",
+          "for": "new-email"
+        },
+        {
+          "kind": "label",
+          "label": "Current password",
+          "for": "email-password"
+        },
+        {
+          "kind": "label",
+          "label": "Fresh authenticator code",
+          "for": "email-authentication-code"
+        },
+        {
+          "kind": "button",
+          "label": "Verify New Email Address"
+        }
+      ]
+    },
+    "recover_password.php": {
+      "sha256": "73dad34cac9b76b7c81d173d6c379992f87fd869c6d4f603b5f7fc22284171b8",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Recover Password"
+        },
+        {
+          "kind": "label",
+          "label": "New Password",
+          "for": "new_password"
+        },
+        {
+          "kind": "label",
+          "label": "Confirm New Password",
+          "for": "new_password_confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Reset Password"
+        },
+        {
+          "kind": "label",
+          "label": "Email Address",
+          "for": "email"
+        },
+        {
+          "kind": "button",
+          "label": "Send Recovery Link"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Login",
+          "href": "login.php"
+        }
+      ]
+    },
+    "register.php": {
+      "sha256": "e911491e274b6c67469373069d80802beb02f98911719ae1db24103f5669cf83",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Users",
+          "href": "users.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Invite User"
+        },
+        {
+          "kind": "a",
+          "label": "Unlock Invitations"
+        },
+        {
+          "kind": "h2",
+          "label": "Account Details"
+        },
+        {
+          "kind": "label",
+          "label": "Username",
+          "for": "username"
+        },
+        {
+          "kind": "label",
+          "label": "Email Address",
+          "for": "email"
+        },
+        {
+          "kind": "label",
+          "label": "Role",
+          "for": "role"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": "users.php"
+        },
+        {
+          "kind": "button",
+          "label": "Send Invitation"
+        },
+        {
+          "kind": "h2",
+          "label": "Invitation Flow",
+          "id": "invite-user-guidance-title"
+        },
+        {
+          "kind": "h3",
+          "label": "Role Access"
+        }
+      ]
+    },
+    "reset_presentation_stats.php": {
+      "sha256": "25fb017d18d8a5f820cc686daee3dbb031c8b90599639fc8995bc4b4d70cf4bb",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Reset Presentation Statistics"
+        },
+        {
+          "kind": "button",
+          "label": "Reset Statistics to Zero"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        }
+      ]
+    },
+    "reset_user_password.php": {
+      "sha256": "7a254143592990409db085001f1d47c2727288d3c30e55b95be2eac7654ac0e3",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Reset User Password"
+        },
+        {
+          "kind": "label",
+          "label": "Temporary password",
+          "for": "new_password"
+        },
+        {
+          "kind": "label",
+          "label": "Confirm temporary password",
+          "for": "new_password_confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Set temporary password"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": "users.php"
+        }
+      ]
+    },
+    "restore_chron_entries.php": {
+      "sha256": "9cf29562c499d94f45fd22dafb2ff97647b7346f708eca7abc5ea9b7e3814e44",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Engagement"
+        },
+        {
+          "kind": "h1",
+          "label": "Restore Archived Chron Entries"
+        },
+        {
+          "kind": "label",
+          "label": "Select all archived entries"
+        },
+        {
+          "kind": "button",
+          "label": "Restore Selected",
+          "name": "restore_selected"
+        },
+        {
+          "kind": "label",
+          "label": "Select this entry"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Engagement"
+        },
+        {
+          "kind": "a",
+          "label": "View Engagement"
+        }
+      ]
+    },
+    "restore_entity_chron_entries.php": {
+      "sha256": "aa192592ab3f965552f15fc1418f80beaff3ac79de35a6b74325fa13586f222a",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Edit",
+          "href": ""
+        },
+        {
+          "kind": "h1",
+          "label": "Restore Archived Chron Entries"
+        },
+        {
+          "kind": "label",
+          "label": "Select all archived entries"
+        },
+        {
+          "kind": "button",
+          "label": "Restore Selected",
+          "name": "restore_selected"
+        },
+        {
+          "kind": "label",
+          "label": "Select this entry"
+        },
+        {
+          "kind": "a",
+          "label": "Edit",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "View",
+          "href": ""
+        }
+      ]
+    },
+    "restore_presentations.php": {
+      "sha256": "ac5a508f7c7266870c349c21ce5977880b3b70fa086594305d44fe909586adb4",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Engagement"
+        },
+        {
+          "kind": "h1",
+          "label": "Restore Archived Presentations"
+        },
+        {
+          "kind": "label",
+          "label": "Select All Archived Presentations"
+        },
+        {
+          "kind": "button",
+          "label": "Restore Selected",
+          "name": "restore_selected"
+        },
+        {
+          "kind": "label",
+          "label": "Select This Presentation"
+        },
+        {
+          "kind": "label",
+          "label": "Presentation date",
+          "for": "restore-presentation-date-"
+        },
+        {
+          "kind": "label",
+          "label": "Presentation time",
+          "for": "restore-presentation-time-"
+        },
+        {
+          "kind": "button",
+          "label": "Delete"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Engagement"
+        },
+        {
+          "kind": "a",
+          "label": "View Engagement"
+        }
+      ]
+    },
+    "setup_2fa.php": {
+      "sha256": "d5dc911d82de4d66f2544803ee040545ad388ded0f1d4a1eb2bf937ea5155e03",
+      "controls": [
+        {
+          "kind": "label",
+          "label": "Current password",
+          "for": "password"
+        },
+        {
+          "kind": "label",
+          "label": "Current authenticator code",
+          "for": "current_code"
+        },
+        {
+          "kind": "button",
+          "label": "Continue"
+        },
+        {
+          "kind": "label",
+          "label": "Six-digit authentication code",
+          "for": "authentication_code"
+        },
+        {
+          "kind": "button",
+          "label": "Enable 2FA"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel"
+        }
+      ]
+    },
+    "short_links.php": {
+      "sha256": "f13d27a97105fa22d1dba0cbf400ca58d5d27e76aab0e20479940c1a7ae74358",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Speakers",
+          "href": "speakers.php"
+        },
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Engagements",
+          "href": "engagements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Presentation"
+        },
+        {
+          "kind": "a",
+          "label": "Combined Presentation Statistics"
+        },
+        {
+          "kind": "label",
+          "label": "Speaker",
+          "for": "speaker_filter"
+        },
+        {
+          "kind": "label",
+          "label": "Link Type",
+          "for": "type_filter"
+        },
+        {
+          "kind": "label",
+          "label": "From (UTC)",
+          "for": "from_filter"
+        },
+        {
+          "kind": "label",
+          "label": "Through (UTC)",
+          "for": "to_filter"
+        },
+        {
+          "kind": "button",
+          "label": "Apply Filters"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "tracked visits in the selected period"
+        },
+        {
+          "kind": "h2",
+          "label": "Referrers",
+          "id": "stats-referrers-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Browsers",
+          "id": "stats-browsers-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Countries",
+          "id": "stats-countries-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Operating Systems",
+          "id": "stats-os-heading"
+        },
+        {
+          "kind": "button",
+          "label": "Generate Missing Links",
+          "name": "generate"
+        },
+        {
+          "kind": "label",
+          "label": "Short URL",
+          "for": "short_url_"
+        },
+        {
+          "kind": "a",
+          "label": "Download PNG"
+        },
+        {
+          "kind": "a",
+          "label": "Download SVG"
+        },
+        {
+          "kind": "a",
+          "label": "Link Statistics"
+        },
+        {
+          "kind": "a",
+          "label": "Presentation Statistics"
+        },
+        {
+          "kind": "a",
+          "label": "Event Statistics"
+        },
+        {
+          "kind": "label",
+          "label": "Destination",
+          "for": "target_"
+        },
+        {
+          "kind": "label",
+          "label": "Link enabled"
+        },
+        {
+          "kind": "button",
+          "label": "Save Link"
+        },
+        {
+          "kind": "a",
+          "label": "Previous"
+        },
+        {
+          "kind": "a",
+          "label": "Next"
+        }
+      ]
+    },
+    "speakers.php": {
+      "sha256": "f442b946d974447a28215edc08cba01ff1fb465e33deb1e3c5adeaca22d8e31d",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Speakers"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Speaker"
+        },
+        {
+          "kind": "label",
+          "label": "Search speakers",
+          "for": "speaker-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Name",
+          "href": ""
+        }
+      ]
+    },
+    "standard_tasks.php": {
+      "sha256": "77cade789aec9df3cb086db181c2b3ffd17d58c452c10c4ad6ceb0d6ea61be82",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Standard Task",
+          "href": "add_standard_task.php"
+        },
+        {
+          "kind": "a",
+          "label": "Active ()"
+        },
+        {
+          "kind": "a",
+          "label": "Archived ()"
+        }
+      ]
+    },
+    "tasks.php": {
+      "sha256": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Work Queue"
+        },
+        {
+          "kind": "a",
+          "label": "Standard Event Tasks",
+          "href": "standard_tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Task",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "Search tasks",
+          "for": "task-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Clear record filter",
+          "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Assign to Me"
+        }
+      ]
+    },
+    "two_factor_recovery_codes.php": {
+      "sha256": "288ced4d8f840283ff080673d6a05efcc96eafdf3876d5b970c20c0d12381287",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Save Your Recovery Codes"
+        },
+        {
+          "kind": "a",
+          "label": "I saved these codes",
+          "href": ""
+        }
+      ]
+    },
+    "two_factor_settings.php": {
+      "sha256": "65d3ad78a0d4eb88ad2d4f663bec6b56de4567ad9be6a5d5bb4f28a8cee4ba4c",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Account Security"
+        },
+        {
+          "kind": "h2",
+          "label": "Two-Factor Authentication"
+        },
+        {
+          "kind": "a",
+          "label": "Set Up 2FA"
+        },
+        {
+          "kind": "a",
+          "label": "Replace Authenticator"
+        },
+        {
+          "kind": "h2",
+          "label": "Change Password"
+        },
+        {
+          "kind": "label",
+          "label": "Current Password",
+          "for": "password_change_current"
+        },
+        {
+          "kind": "label",
+          "label": "New Password",
+          "for": "password_change_new"
+        },
+        {
+          "kind": "label",
+          "label": "Confirm New Password",
+          "for": "password_change_confirmation"
+        },
+        {
+          "kind": "button",
+          "label": "Change Password"
+        },
+        {
+          "kind": "h2",
+          "label": "Generate New Recovery Codes"
+        },
+        {
+          "kind": "label",
+          "label": "Current password",
+          "for": "recovery_password"
+        },
+        {
+          "kind": "label",
+          "label": "Current authenticator code",
+          "for": "recovery_current_code"
+        },
+        {
+          "kind": "button",
+          "label": "Generate new codes"
+        }
+      ]
+    },
+    "users.php": {
+      "sha256": "e0a510f622f57a585a041f842d06c673b560489016cb6f7fe81e5248c3c2deb9",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Users"
+        },
+        {
+          "kind": "h2",
+          "label": "Sensitive Administrator Actions",
+          "id": "admin-elevation-title"
+        },
+        {
+          "kind": "label",
+          "label": "Administrator Password",
+          "for": "admin_password"
+        },
+        {
+          "kind": "label",
+          "label": "Fresh Authentication Code",
+          "for": "admin_code"
+        },
+        {
+          "kind": "button",
+          "label": "Unlock for Five Minutes"
+        },
+        {
+          "kind": "a",
+          "label": "Audit Log",
+          "href": "audit_log.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ Invite User",
+          "href": "register.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit user"
+        },
+        {
+          "kind": "a",
+          "label": "Reset Password"
+        },
+        {
+          "kind": "button",
+          "label": "Reset 2FA"
+        },
+        {
+          "kind": "button",
+          "label": "Resend Invitation"
+        },
+        {
+          "kind": "button",
+          "label": "Deactivate"
+        },
+        {
+          "kind": "button",
+          "label": "Activate"
+        },
+        {
+          "kind": "button",
+          "label": "Delete user"
+        }
+      ]
+    },
+    "verify_2fa.php": {
+      "sha256": "4dd56690ac5c06fe1172525b08bb6fecc07570df861b8bd1ae2c3e9d5802ff78",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Verification"
+        },
+        {
+          "kind": "label",
+          "label": "Authentication code",
+          "for": "authentication_code"
+        },
+        {
+          "kind": "button",
+          "label": "Verify"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel Login"
+        }
+      ]
+    },
+    "verify_email.php": {
+      "sha256": "529a955b243781ce7233d5a143aee44b1199aa95f3bf0599ecf76043ccb5bc70",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Verify Email"
+        },
+        {
+          "kind": "button",
+          "label": "Verify Email Address"
+        },
+        {
+          "kind": "a",
+          "label": "Continue",
+          "href": ""
+        }
+      ]
+    },
+    "view_calendar.php": {
+      "sha256": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Calendar"
+        },
+        {
+          "kind": "h2",
+          "label": "Calendar Subscriptions",
+          "id": "calendar-subscriptions-title"
+        },
+        {
+          "kind": "h3",
+          "label": "Save This New Link",
+          "id": "new-calendar-title"
+        },
+        {
+          "kind": "label",
+          "label": "Private calendar subscription URL",
+          "for": "calendar-url"
+        },
+        {
+          "kind": "a",
+          "label": "Open in Calendar App",
+          "id": "open-calendar-app",
+          "href": ""
+        },
+        {
+          "kind": "h3",
+          "label": "Create Subscription",
+          "id": "create-calendar-title"
+        },
+        {
+          "kind": "label",
+          "label": "Device or Service",
+          "for": "subscription-label"
+        },
+        {
+          "kind": "legend",
+          "label": "Include in This Subscription"
+        },
+        {
+          "kind": "button",
+          "label": "Create Private Link"
+        },
+        {
+          "kind": "h3",
+          "label": "Existing Subscriptions",
+          "id": "existing-calendar-title"
+        },
+        {
+          "kind": "button",
+          "label": "Purge Revoked Token"
+        },
+        {
+          "kind": "button",
+          "label": "Revoke"
+        }
+      ]
+    },
+    "view_contact.php": {
+      "sha256": "8fba686c3c9b173887e2f5315a7caeb883041cb2bb3929397e86aa634c1a2cd2",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Archived"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Contact",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Add Chron Log Entry"
+        },
+        {
+          "kind": "h2",
+          "label": "Notes",
+          "id": "contact-notes-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Back to",
+          "href": ""
+        }
+      ]
+    },
+    "view_engagement.php": {
+      "sha256": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Add Chron Log Entry"
+        },
+        {
+          "kind": "a",
+          "label": "Send Email"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Engagement",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Open Source Inquiry"
+        },
+        {
+          "kind": "a",
+          "label": "assigned"
+        },
+        {
+          "kind": "a",
+          "label": "added"
+        },
+        {
+          "kind": "button",
+          "label": "Activity",
+          "id": "engagement-activity-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Correspondence",
+          "id": "engagement-correspondence-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Tasks",
+          "id": "engagement-tasks-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Presentations",
+          "id": "engagement-presentations-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Contacts",
+          "id": "engagement-contacts-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Logistics",
+          "id": "engagement-logistics-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Financials",
+          "id": "engagement-financials-tab"
+        },
+        {
+          "kind": "h2",
+          "label": "Activity"
+        },
+        {
+          "kind": "a",
+          "label": "Restore Archived Entries ()"
+        },
+        {
+          "kind": "label",
+          "label": "Your unsaved Chron edit",
+          "for": "engagement-unsaved-chron"
+        },
+        {
+          "kind": "a",
+          "label": "View Outbound Message"
+        },
+        {
+          "kind": "label",
+          "label": "Edit Chron Log Entry",
+          "for": "chron-entry-edit-"
+        },
+        {
+          "kind": "button",
+          "label": "Save Chron Log Entry"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "Correspondence"
+        },
+        {
+          "kind": "a",
+          "label": "Send Message"
+        },
+        {
+          "kind": "h2",
+          "label": "Presentations"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Presentations"
+        },
+        {
+          "kind": "a",
+          "label": "Combined Presentation Statistics"
+        },
+        {
+          "kind": "a",
+          "label": "View PDF Speaker Notes"
+        },
+        {
+          "kind": "a",
+          "label": "Download PPT Slidedeck"
+        },
+        {
+          "kind": "a",
+          "label": "Restore Archived Presentations ()"
+        },
+        {
+          "kind": "h2",
+          "label": "Event Contacts"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Contacts"
+        },
+        {
+          "kind": "h2",
+          "label": "Event Logistics"
+        },
+        {
+          "kind": "h3",
+          "label": "Compensation & Lodging"
+        },
+        {
+          "kind": "h2",
+          "label": "Financial Closeout"
+        },
+        {
+          "kind": "a",
+          "label": "Correct final report"
+        },
+        {
+          "kind": "h3",
+          "label": "Draft Received Amounts"
+        },
+        {
+          "kind": "h2",
+          "label": "Email Routing Marker",
+          "id": "engagement-routing-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Next Action"
+        },
+        {
+          "kind": "a",
+          "label": "Update Next Action",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Add Task",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "View Tasks"
+        },
+        {
+          "kind": "h2",
+          "label": "Readiness"
+        },
+        {
+          "kind": "a",
+          "label": "Add Task",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "Workflow"
+        },
+        {
+          "kind": "a",
+          "label": "Update Status"
+        },
+        {
+          "kind": "a",
+          "label": "View Financial Closeout"
+        },
+        {
+          "kind": "a",
+          "label": "Back to",
+          "href": ""
+        }
+      ]
+    },
+    "view_inquiry.php": {
+      "sha256": "c205b4fb6a52b2ab37b7d5bebd7a9c4cc3eed4a584ca289650181c69ff6bcffe",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Booking Pipeline",
+          "href": "inquiries.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Inquiry"
+        },
+        {
+          "kind": "a",
+          "label": "Mark Declined"
+        },
+        {
+          "kind": "a",
+          "label": "+Convert to Engagement"
+        },
+        {
+          "kind": "a",
+          "label": "Open Engagement"
+        },
+        {
+          "kind": "a",
+          "label": "View Archived Inquiries"
+        },
+        {
+          "kind": "h2",
+          "label": "Inquiry Overview"
+        },
+        {
+          "kind": "a",
+          "label": "Open Source Email"
+        },
+        {
+          "kind": "button",
+          "label": "Activity",
+          "id": "inquiry-activity-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Correspondence",
+          "id": "inquiry-correspondence-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Tasks",
+          "id": "inquiry-tasks-tab"
+        },
+        {
+          "kind": "label",
+          "label": "Chron Log Entry",
+          "for": "inquiry-chron-entry"
+        },
+        {
+          "kind": "button",
+          "label": "Save Chron Log Entry"
+        },
+        {
+          "kind": "label",
+          "label": "Your unsaved Chron edit",
+          "for": "inquiry-unsaved-chron"
+        },
+        {
+          "kind": "label",
+          "label": "Edit Chron Log Entry",
+          "for": "chron-entry-"
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
+          "kind": "a",
+          "label": "Restore Archived Chron Log Entries ()"
+        },
+        {
+          "kind": "button",
+          "label": "Add Chron Log Entry"
+        },
+        {
+          "kind": "a",
+          "label": "Send Email"
+        },
+        {
+          "kind": "h2",
+          "label": "Next Action"
+        },
+        {
+          "kind": "a",
+          "label": "Update Next Action"
+        },
+        {
+          "kind": "h2",
+          "label": "Readiness"
+        },
+        {
+          "kind": "a",
+          "label": "Add Task"
+        },
+        {
+          "kind": "h2",
+          "label": "Workflow Controls"
+        },
+        {
+          "kind": "label",
+          "label": "Move to Stage",
+          "for": "inquiry-stage"
+        },
+        {
+          "kind": "label",
+          "label": "Reason / Note",
+          "for": "inquiry-stage-reason"
+        },
+        {
+          "kind": "button",
+          "label": "Update Stage"
+        },
+        {
+          "kind": "h2",
+          "label": "Email Routing Marker"
+        }
+      ]
+    },
+    "view_organization.php": {
+      "sha256": "b30dd8369d028e1c05fe7d492c2028e72f46a7b2587e8bbe905aec25e8d9335b",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Archived"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Organization",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Add Chron Log Entry"
+        },
+        {
+          "kind": "a",
+          "label": "people"
+        },
+        {
+          "kind": "a",
+          "label": "Open tasks"
+        },
+        {
+          "kind": "a",
+          "label": "Record a conversation"
+        },
+        {
+          "kind": "a",
+          "label": "Read activity"
+        },
+        {
+          "kind": "h2",
+          "label": "Notes",
+          "id": "organization-notes-heading"
+        },
+        {
+          "kind": "button",
+          "label": "Activity",
+          "id": "organization-activity-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Contacts",
+          "id": "organization-contacts-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Engagements",
+          "id": "organization-events-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Tasks",
+          "id": "organization-tasks-tab"
+        },
+        {
+          "kind": "button",
+          "label": "Financials",
+          "id": "organization-financials-tab"
+        },
+        {
+          "kind": "h3",
+          "label": "Contacts"
+        },
+        {
+          "kind": "a",
+          "label": "+ New Contact"
+        },
+        {
+          "kind": "h2",
+          "label": "Engagements"
+        },
+        {
+          "kind": "h2",
+          "label": "Financial History",
+          "id": "organization-financial-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Back to",
+          "href": ""
+        }
+      ]
+    },
+    "view_speaker.php": {
+      "sha256": "ce90766c9b04f0c3b46ffe11ecfc9274ecf1a947ab4f3cee92e718a2ed79f60c",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Edit Speaker",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Statistics"
+        },
+        {
+          "kind": "h2",
+          "label": "Bio",
+          "id": "speaker-bio-heading"
+        },
+        {
+          "kind": "h2",
+          "label": "Links",
+          "id": "speaker-links-heading"
+        },
+        {
+          "kind": "a",
+          "label": "Back to",
+          "href": ""
+        }
+      ]
+    },
+    "view_standard_task.php": {
+      "sha256": "8fa3dd254d75c325f065c819cc29733d5fbeff04a470fe2bcd9e8d4d7dc7ac01",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Work Queue",
+          "href": "tasks.php"
+        },
+        {
+          "kind": "a",
+          "label": "Standard Event Tasks"
+        },
+        {
+          "kind": "h1",
+          "label": "Archived"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Standard Task"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Standard Tasks"
+        },
+        {
+          "kind": "button",
+          "label": "Add to Active, Open Engagements"
+        },
+        {
+          "kind": "button",
+          "label": "Permanently delete"
+        }
+      ]
+    }
+  }
+}

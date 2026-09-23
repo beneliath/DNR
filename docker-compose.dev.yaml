@@ -1,4 +1,9 @@
 services:
+  ai-coach-worker:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./tests:/opt/dnr/tests:ro
+
   downloads:
     volumes:
       - ./src:/var/www/html:ro
@@ -18,6 +23,11 @@ services:
     volumes:
       - ./src:/var/www/html:ro
       - ./tests:/opt/dnr/tests:ro
+      # Read-only, narrowly scoped evidence for the local feedback-review CLI.
+      - ./src:/opt/dnr/coach-review-src/src:ro
+      - ./docs:/opt/dnr/coach-review-src/docs:ro
+      - ./tests:/opt/dnr/coach-review-src/tests:ro
+      - ./scripts/ai_help:/opt/dnr/coach-review-src/scripts/ai_help:ro
       - ./migrations:/opt/dnr/migrations:ro
       - ./docker/php-development.ini:/usr/local/etc/php/conf.d/zz-dnr-development.ini:ro
     environment:

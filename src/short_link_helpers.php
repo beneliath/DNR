@@ -222,7 +222,9 @@ function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $en
         $stmt->bind_param('ii', $presentationId, $speakerId);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
-        $key = storePersistentFile($conn, $asset['data'], $asset['filename'], 'application/pdf');
+        $key = isset($asset['path'])
+            ? storePersistentFileFromPath($conn, $asset['path'], $asset['filename'], 'application/pdf', $asset['size'], bin2hex($asset['sha256']))
+            : storePersistentFile($conn, $asset['data'], $asset['filename'], 'application/pdf');
         $stmt = $conn->prepare('INSERT INTO presentation_notes
             (presentation_id, speaker_id, storage_key, filename, size, sha256, updated_at, uploaded_by, uploaded_by_username_snapshot)
             VALUES (?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(6), ?, (SELECT username FROM users WHERE id = ?))

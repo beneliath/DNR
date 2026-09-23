@@ -250,10 +250,14 @@ function presentationSpeakerNotesFromUpload(array $upload): array
         'PDF Speaker Notes',
         PRESENTATION_SPEAKER_NOTES_MAX_BYTES
     );
-    return presentationSpeakerNotesFromPath(
+    $asset = presentationSpeakerNotesFromPath(
         (string) $upload['tmp_name'],
         (string) $upload['name']
     );
+    // Retain only the verified path while other files in a larger request are checked.
+    unset($asset['data']);
+    $asset['path'] = (string) $upload['tmp_name'];
+    return $asset;
 }
 
 function presentationQrImageFromUpload(array $upload, string $label): array

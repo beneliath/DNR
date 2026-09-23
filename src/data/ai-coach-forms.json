@@ -1,0 +1,313 @@
+{
+  "schema_version": 1,
+  "forms": {
+    "new-event": {
+      "pages": [
+        "index.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Engagements → + New Engagement",
+      "condition": "Choose Organization inside this form, not on Organization Details.",
+      "source_files": {
+        "index.php": "34520054971459c4e2b51ea79e7b3e3ddf390e8dde4bd0d35ff2f2df34295d0a"
+      },
+      "controls": {
+        "new-organization": {
+          "label": "Organization",
+          "selector": "#new-engagement-form #organization_id"
+        },
+        "new-title": {
+          "label": "Event Title",
+          "selector": "#new-engagement-form #event_title"
+        },
+        "new-start-date": {
+          "label": "Start",
+          "selector": "#new-engagement-form #event_start_date"
+        },
+        "new-end-date": {
+          "label": "End",
+          "selector": "#new-engagement-form #event_end_date"
+        },
+        "new-event-type": {
+          "label": "Event Type",
+          "selector": "#new-engagement-form #event_type"
+        },
+        "new-other-type": {
+          "label": "Other Event Type",
+          "selector": "#new-engagement-form #event_type_other"
+        },
+        "create-engagement": {
+          "label": "Create engagement",
+          "selector": "#new-engagement-form input[type=submit][name=save_engagement]"
+        }
+      }
+    },
+    "presentations": {
+      "pages": [
+        "view_engagement.php",
+        "edit_engagement.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Engagements → event → Presentations tab → Edit Presentations",
+      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event.",
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "templates/presentation_form.php": "6cd88d6085d6a0c06d02c0b340868e5d949bce1291d2dd4dbbab3106813fead8",
+        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+      },
+      "controls": {
+        "presentations-tab": {
+          "label": "Presentations",
+          "selector": "#engagement-presentations-tab"
+        },
+        "edit-presentations": {
+          "label": "Edit Presentations",
+          "selector": ".edit-presentations-button"
+        },
+        "ppt-picker": {
+          "label": "Choose PPT / Replace PPT",
+          "selector": "label.presentation-file-picker[for^=\"ppt_slidedeck_\"]"
+        },
+        "pdf-picker": {
+          "label": "Choose PDF / Replace PDF",
+          "selector": "label.presentation-file-picker[for^=\"speaker_notes_\"]"
+        },
+        "save-engagement": {
+          "label": "Save Changes",
+          "selector": "button[name=\"save_engagement\"][form=\"engagement-edit-form\"]"
+        }
+      }
+    },
+    "task": {
+      "pages": [
+        "add_task.php",
+        "edit_task.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "My Work → + New Task, or event → Tasks → Add Task. For an existing task use Edit task.",
+      "condition": "Related record is a search: type at least three characters in Find a related record, then choose a result. Searching alone does not select it. Change record reveals search for an existing selection. Waiting on appears when Status is Waiting. Assigned to changes ownership; the check-mark completes work.",
+      "source_files": {
+        "templates/follow_up_task_form.php": "eb959bdd0939a924542ee05f270b9bfaa6b788f59e230173a9aa9480f639eb56",
+        "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
+        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
+        "assets/js/task-form.js": "3dabef0425fb8d34cbe539c1aa6e64641a798e5546a5dacb9c56d395497e88de",
+        "follow_up_task_helpers.php": "6baa51735745a7ceec2e7a9db46b7dcd0be25ab09243962a21582d61cca928ea"
+      },
+      "controls": {
+        "task-title": {
+          "label": "Title",
+          "selector": "#task-title"
+        },
+        "task-notes": {
+          "label": "Notes",
+          "selector": "#task-details"
+        },
+        "task-related": {
+          "label": "Related record",
+          "selector": "#task-selected-record, #task-record-search-panel"
+        },
+        "task-change-record": {
+          "label": "Change record",
+          "selector": "#task-change-record"
+        },
+        "task-search": {
+          "label": "Find a related record",
+          "selector": "#task-subject-search"
+        },
+        "task-results": {
+          "label": "Matching records",
+          "selector": "#task-subject-results button"
+        },
+        "task-assignee": {
+          "label": "Assigned to",
+          "selector": "#task-assignee"
+        },
+        "task-due": {
+          "label": "Due date",
+          "selector": "#task-due-date"
+        },
+        "task-priority": {
+          "label": "Priority",
+          "selector": "#task-priority"
+        },
+        "task-status": {
+          "label": "Status",
+          "selector": "#task-status"
+        },
+        "task-waiting-on": {
+          "label": "Waiting on",
+          "selector": "#task-waiting-on"
+        },
+        "save-task": {
+          "label": "Add task on New Task; Save changes on Edit Task",
+          "selector": ".follow-up-task-form button[name=\"save_task\"]"
+        }
+      },
+      "facts": [
+        "Waiting does not lock a task's status. Waiting on is required when saving a task whose new Status is Waiting. It is not required merely because the task used to be Waiting; changing to another status clears that description.",
+        "The coach does not receive field contents or validation-message text. It cannot know which field caused a failure from the page name or a generic error flag; ask for the displayed error when diagnosing."
+      ],
+      "guidance_rules": [
+        {
+          "id": "waiting-status-diagnosis",
+          "modes": [
+            "troubleshoot"
+          ],
+          "patterns": [
+            "\\b(task|follow up)\\b",
+            "\\bwaiting\\b",
+            "\\bstatus\\b",
+            "\\b(change|changing|save|saving)\\b",
+            "\\b(cannot|can t|unable|not|error|failed)\\b"
+          ],
+          "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
+          "message": "Waiting does not lock the task’s status. Waiting on is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
+          "question": "What message does MOED show when you try to save?"
+        },
+        {
+          "id": "leave-waiting",
+          "modes": [
+            "perform"
+          ],
+          "patterns": [
+            "\\b(task|follow up)\\b",
+            "\\bstatus\\b",
+            "\\b(change|move|set|switch)\\b",
+            "\\b(from waiting|to completed|to complete|to open|to in progress|to canceled)\\b"
+          ],
+          "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
+          "message": "1. Open the intended task using Edit task.\n2. In Status, select the intended status. Waiting on is required only if the new status is Waiting; you do not need to fill it before switching to another status.\n3. Select Save changes and check the saved status. Completing a task does not archive it.",
+          "on_pages": {
+            "edit_task.php": "1. You are already in Edit Task. In Status, choose the status you want to save.\n2. Waiting on is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Select Save changes and check the saved status. Completing a task does not archive it.",
+            "add_task.php": "1. You are in the New Task form. In Status, choose the status you want to save.\n2. Waiting on is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Finish the required task details, then select Add task and check the created task. This draft does not have an Edit task action yet."
+          },
+          "question": ""
+        }
+      ]
+    },
+    "event-dates": {
+      "pages": [
+        "view_engagement.php",
+        "edit_engagement.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Engagements → existing event → Edit Engagement",
+      "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
+      "source_files": {
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
+        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+      },
+      "controls": {
+        "edit-event": {
+          "label": "Edit Engagement",
+          "selector": "a[href^=\"edit_engagement.php?id=\"]:not(.edit-presentations-button)"
+        },
+        "event-start-date": {
+          "label": "Start",
+          "selector": "#engagement-edit-form #event_start_date"
+        },
+        "event-end-date": {
+          "label": "End",
+          "selector": "#engagement-edit-form #event_end_date"
+        }
+      }
+    },
+    "calendar": {
+      "pages": [
+        "view_calendar.php"
+      ],
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "entry": "Calendar → Create Subscription",
+      "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
+      "source_files": {
+        "view_calendar.php": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+      },
+      "controls": {
+        "calendar-device": {
+          "label": "Device or Service",
+          "selector": "#subscription-label"
+        },
+        "calendar-content": {
+          "label": "Include in This Subscription",
+          "selector": ".calendar-content-options"
+        },
+        "calendar-create": {
+          "label": "Create Private Link",
+          "selector": "[aria-labelledby=\"create-calendar-title\"] button[type=submit]"
+        },
+        "calendar-copy": {
+          "label": "Copy calendar URL",
+          "selector": "#copy-calendar-url"
+        }
+      }
+    },
+    "validation": {
+      "pages": [],
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "entry": "Current form",
+      "condition": "Read the visible error before trying again. Values and error text are never sent to the model.",
+      "source_files": {},
+      "controls": {
+        "form-errors": {
+          "label": "Validation message",
+          "selector": ".form-error-summary, .container > .error, .edit-engagement-page .error"
+        }
+      }
+    },
+    "task-entry": {
+      "pages": [
+        "tasks.php",
+        "view_engagement.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "My Work → + New Task, or event → Tasks → Add Task.",
+      "condition": "Select Tasks before using the Add Task link inside its panel.",
+      "source_files": {
+        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
+        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c"
+      },
+      "controls": {
+        "tasks-tab": {
+          "label": "Tasks",
+          "selector": "#engagement-tasks-tab"
+        },
+        "event-add-task": {
+          "label": "Add Task",
+          "selector": "#engagement-tasks a[href^=\"add_task.php\"]"
+        },
+        "new-task": {
+          "label": "+ New Task",
+          "selector": ".tasks-page a.button-add[href^=\"add_task.php\"], .page-heading a.button-add[href^=\"add_task.php\"]"
+        }
+      },
+      "facts": [
+        "Completed is a task status; Archived is a separate flag. Completing a task does not automatically archive or delete it.",
+        "Completed or canceled shows finished tasks that have not been archived. Archived is a separate view. A completed task can stay visible for reference.",
+        "The green check-mark opens Complete Task?; it is not an assignment control. Assigned to is in Edit Task."
+      ]
+    }
+  }
+}

@@ -19,6 +19,26 @@ prepare = importlib.util.module_from_spec(spec)
 loader.exec_module(prepare)
 
 class ReleaseWorkflow(unittest.TestCase):
+    def test_replica_verification_ignores_provenance_banner_and_checks_every_worker(self):
+        output = 'DNR build provenance: aaaaaaa at 2026-09-22T00:00:00Z\n' + 'a'*64 + '\n' + 'b'*64 + '\n'
+        checked = []
+        def inspect(identifier):
+            checked.append(identifier)
+            return {'Image': 'release-image', 'State': {'Health': {'Status': 'healthy'}}}
+        deploy_release_host.verify_app_replicas('ai-coach-worker', output, 'release-image', inspect)
+        self.assertEqual(checked, ['a'*64, 'b'*64])
+        def unhealthy_second(identifier):
+            state = inspect(identifier)
+            if identifier == 'b'*64:
+                state['State']['Health']['Status'] = 'unhealthy'
+            return state
+        with self.assertRaisesRegex(ValueError, 'health'):
+            deploy_release_host.verify_app_replicas('ai-coach-worker', output, 'release-image', unhealthy_second)
+        with self.assertRaisesRegex(ValueError, 'different image'):
+            deploy_release_host.verify_app_replicas('ai-coach-worker', output, 'wrong-image', inspect)
+        with self.assertRaisesRegex(ValueError, 'no running containers'):
+            deploy_release_host.verify_app_replicas('ai-coach-worker', 'DNR build provenance: test', 'release-image', inspect)
+
     def test_commit_timezones_produce_identical_utc_provenance(self):
         import os, subprocess
         expected = '2026-09-05T13:51:40Z'

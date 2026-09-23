@@ -1,13 +1,32 @@
 import json
+import ipaddress
 from pathlib import Path
 import sys
 import unittest
 from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scripts'))
-from integration_environment import verify, LABEL
+from integration_environment import verify, allocate_test_networks, LABEL
 from storage_encryption_preflight import contains_encryption, require_encrypted_upload_storage
 
 class IsolationTests(unittest.TestCase):
+    def test_all_bridges_avoid_lan_and_existing_larger_subnets(self):
+        existing = [{'IPAM': {'Config': [{'Subnet': '10.252.0.0/23'},
+                                         {'Subnet': '10.252.2.128/25'},
+                                         {'Subnet': '192.168.0.0/20'},
+                                         {'Subnet': 'fd00::/64'}]}}, {'IPAM': {'Config': None}}]
+        with patch('integration_environment.secrets.randbelow', return_value=0):
+            networks = allocate_test_networks(existing)
+        self.assertEqual(set(networks), {'backend', 'ingress', 'egress', 'default'})
+        self.assertEqual(str(networks['backend']), '10.252.3.0/24')
+        for name, network in networks.items():
+            self.assertTrue(network.subnet_of(ipaddress.ip_network('10.252.0.0/16')))
+            self.assertFalse(network.overlaps(ipaddress.ip_network('192.168.1.0/24')))
+            self.assertTrue(all(not network.overlaps(other) for key, other in networks.items() if key != name))
+
+    def test_exhausted_test_pool_fails_without_automatic_docker_fallback(self):
+        with self.assertRaisesRegex(ValueError, 'four non-overlapping'):
+            allocate_test_networks([{'IPAM': {'Config': [{'Subnet': '10.252.0.0/16'}]}}])
+
     def test_normal_project_is_refused_before_docker_access(self):
         with patch('subprocess.check_output') as command:
             with self.assertRaises(ValueError): verify('dnr', 'a' * 32)

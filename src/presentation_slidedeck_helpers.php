@@ -6,7 +6,7 @@ require_once __DIR__ . '/presentation_asset_helpers.php';
 require_once __DIR__ . '/persistent_file_helpers.php';
 require_once __DIR__ . '/legacy_powerpoint_helpers.php';
 
-const PRESENTATION_SLIDEDECK_MAX_BYTES = 100 * 1024 * 1024;
+const PRESENTATION_SLIDEDECK_MAX_BYTES = 500 * 1024 * 1024;
 const PRESENTATION_SLIDEDECK_MIMES = [
     'ppt' => 'application/vnd.ms-powerpoint',
     'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -20,20 +20,16 @@ function presentationSlidedeckFromPath(string $path, string $originalName, bool 
     $size = filesize($path);
     if (!$size) throw new InvalidArgumentException('The selected PPT Slidedeck is empty.');
     if ($size > PRESENTATION_SLIDEDECK_MAX_BYTES) {
-        throw new InvalidArgumentException('PPT Slidedeck must be 100 MB or smaller.');
+        throw new InvalidArgumentException('PPT Slidedeck must be 500 MB or smaller.');
     }
     $filename = basename(str_replace('\\', '/', trim($originalName)));
     $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
     if (!isset(PRESENTATION_SLIDEDECK_MIMES[$extension])) {
         throw new InvalidArgumentException('Upload a PowerPoint .ppt or .pptx file.');
     }
-    $contents = file_get_contents($path);
-    if ($contents === false || strlen($contents) !== $size) {
-        throw new RuntimeException('The PPT Slidedeck could not be read.');
-    }
     $valid = false;
     if ($extension === 'ppt') {
-        $valid = isValidLegacyPowerPoint($contents);
+        $valid = isValidLegacyPowerPointPath($path);
     } else {
         $zip = new ZipArchive();
         if ($zip->open($path, ZipArchive::RDONLY) === true) {
@@ -66,8 +62,10 @@ function presentationSlidedeckFromPath(string $path, string $originalName, bool 
     if (!$valid) throw new InvalidArgumentException('Upload a valid PowerPoint .ppt or .pptx file.');
     $filename = preg_replace('/[^A-Za-z0-9._ -]+/', '_', pathinfo($filename, PATHINFO_FILENAME)) ?: 'slidedeck';
     $filename = substr($filename, 0, 254 - strlen($extension)) . '.' . $extension;
-    return ['data' => $contents, 'filename' => $filename, 'size' => $size,
-        'sha256' => hash('sha256', $contents, true), 'mime_type' => PRESENTATION_SLIDEDECK_MIMES[$extension]];
+    $checksum = hash_file('sha256', $path, true);
+    if ($checksum === false) throw new RuntimeException('The PPT Slidedeck could not be read.');
+    return ['path' => $path, 'filename' => $filename, 'size' => $size,
+        'sha256' => $checksum, 'mime_type' => PRESENTATION_SLIDEDECK_MIMES[$extension]];
 }
 
 function presentationSlidedeckFromUpload(array $upload): array
@@ -89,7 +87,7 @@ function applyPresentationSlidedeckChange(mysqli $conn, int $presentationId, int
             WHERE presentation_id = ? AND speaker_id = ?', [$presentationId, $speakerId]);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
-        $key = storePersistentFile($conn, $asset['data'], $asset['filename'], $asset['mime_type']);
+        $key = storePersistentFileFromPath($conn, $asset['path'], $asset['filename'], $asset['mime_type'], $asset['size'], bin2hex($asset['sha256']));
         $conn->execute_query('INSERT INTO presentation_slidedecks
             (presentation_id, speaker_id, storage_key, filename, mime_type, size, sha256, uploaded_by, uploaded_by_username_snapshot)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT username FROM users WHERE id = ?))
