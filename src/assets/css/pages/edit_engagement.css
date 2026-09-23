@@ -315,3 +315,25 @@ html:has(.edit-engagement-body) {
         padding: 8px;
         width: 100%;
     }
+
+.presentation-upload-progress {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10000;
+    width: min(36rem, calc(100% - 2rem));
+    box-sizing: border-box;
+    padding: 1rem 1.25rem;
+    border: 2px solid #4676b8;
+    border-radius: 0.75rem;
+    background: var(--surface, #fff);
+    color: var(--text, #172535);
+    box-shadow: 0 4px 24px #0003;
+}
+.presentation-upload-progress[hidden] { display: none; }
+.presentation-upload-progress p { margin: 0 0 0.75rem; overflow-wrap: anywhere; }
+.presentation-upload-progress progress { display: block; width: 100%; height: 1rem; }
+
+.presentation-upload-progress button { margin-top: 0.75rem; }
+.presentation-upload-progress button[hidden] { display: none; }

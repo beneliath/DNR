@@ -472,7 +472,7 @@
     ],
     "steps": [
       "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
-      "PDF files may be up to 100 MB and PowerPoint files up to 500 MB. Keep all uploads in one save under 600 MB total; use separate saves for larger combined uploads.",
+      "PDF files may be up to 100 MB and PowerPoint files up to 500 MB. Save Changes uploads files in small chunks. Watch the progress indicator, keep the page open, and wait for saving to finish. Interrupted chunks retry automatically.",
       "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],

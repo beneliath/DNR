@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
+require_once __DIR__ . '/presentation_chunk_helpers.php';
 include 'chron_log_helpers.php';
 include 'presentation_helpers.php';
 include 'map_helpers.php';
@@ -333,18 +334,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             ? $_FILES['presentations']
             : [];
         $presentation_asset_uploads = presentationAssetUploadMap($presentation_files);
+        $staged_assets = stagedPresentationAssets(is_array($_POST['presentations'] ?? null) ? $_POST['presentations'] : [], $engagement_id);
         $presentations = normalizeEngagementPresentations(
             $_POST['presentations'] ?? null,
             $event_start_date,
             $event_end_date,
             $default_speaker_id,
             true,
-            array_fill_keys(array_keys($presentation_asset_uploads), true)
+            array_fill_keys(array_merge(array_keys($presentation_asset_uploads), array_keys($staged_assets)), true)
         );
         $presentations = attachPresentationAssetChanges(
             $presentations,
             $_POST['presentations'] ?? null,
-            $presentation_files
+            $presentation_files,
+            $staged_assets
         );
         requirePresentationForConfirmedEngagement(
             $confirmation_status,
@@ -558,6 +561,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
 
         // Commit the engagement and its background lookup request atomically.
         $conn->commit();
+        foreach ($staged_assets as $row => $assets) {
+            foreach (array_keys($assets) as $asset_key) {
+                $token_field = $asset_key === 'ppt_slidedeck' ? 'ppt_upload_token' : 'pdf_upload_token';
+                discardPresentationChunk($_POST['presentations'][$row][$token_field]);
+            }
+        }
         $success_message = 'Engagement updated successfully.';
         if ($canceled_task_count > 0) {
             $success_message .= ' ' . $canceled_task_count . ' open task'
@@ -745,7 +754,7 @@ try {
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" enctype="multipart/form-data">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -1091,6 +1100,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
 <?php include 'templates/footer.php'; ?>
 
 <?php renderScript('assets/js/presentation-form.min.js', false); ?>
+<?php renderScript('assets/js/presentation-upload.min.js', false); ?>
 <?php renderScript('assets/js/engagement-contacts.min.js', false); ?>
 <?php renderScript('assets/js/engagement-lifecycle.min.js', false); ?>
 
