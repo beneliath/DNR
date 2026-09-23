@@ -18,7 +18,11 @@ function aiCoachGuidanceRevision(): string
 /** Resolve a short follow-up without carrying unrelated previous questions into search. */
 function aiCoachContextQuestion(array $request): string
 {
-    if (aiCoachPageExplanation($request)) return aiCoachPages()[$request['page']] ?? '';
+    if (aiCoachPageExplanation($request)) {
+        $pageName = aiCoachPages()[$request['page']] ?? '';
+        $tab = $request['ui']['active_tab'] ?? '';
+        return $pageName . ($tab !== '' && preg_match('/\btab\b/', aiCoachNormalize($request['question'])) ? ' ' . $tab : '');
+    }
     $question = $request['question'];
     $q = aiCoachNormalize($question);
     if (!preg_match('/\b(it|one|that|this|them|those|next)\b/', $q)
@@ -42,10 +46,32 @@ function aiCoachContextQuestion(array $request): string
 function aiCoachPageExplanation(array $request): bool
 {
     $q = aiCoachNormalize($request['question'] ?? '');
-    if (!preg_match('/\b(this|current)\b/', $q) || !preg_match('/\b(interface|page|screen|section|view)\b/', $q)
-        || aiCoachIntentMode($request) !== 'explain') return false;
-    $generic = explode(' ', 'function functionality part interface page screen section view purpose explain describe work used here current area');
+    if (preg_match('/^(where (am i|are we)( now)?|what (page|screen|tab) (am i|are we) (on|looking at)( now)?)$/', $q)) return true;
+    if (!(preg_match('/\b(this|current)\b/', $q) && preg_match('/\b(interface|page|screen|section|view|tab)\b/', $q))
+        && !preg_match('/\bhere\b/', $q)) return false;
+    if (aiCoachIntentMode($request) !== 'explain' && !preg_match('/^what (can|could) (i|we) do\b/', $q)) return false;
+    $generic = explode(' ', 'function functionality part interface page screen section view tab purpose explain describe work used here current area now');
     return array_diff(aiCoachSearchTerms($q), $generic) === [];
+}
+
+/** Preserve the transcript, but a self-contained location question needs no old page description. */
+function aiCoachAnswerHistory(array $request): array
+{
+    return aiCoachPageExplanation($request) ? [] : array_slice($request['history'], -4);
+}
+
+function aiCoachLocationContext(array $request): array
+{
+    $previous = null;
+    foreach (array_reverse($request['history']) as $message) {
+        if (!isset($message['page'])) continue;
+        $previous = ['page' => $message['page'], 'page_name' => aiCoachPages()[$message['page']], 'active_tab' => $message['active_tab'] ?? ''];
+        break;
+    }
+    return ['page' => $request['page'], 'page_name' => aiCoachPages()[$request['page']], 'active_tab' => $request['ui']['active_tab'] ?? '',
+        'previous_exchange_location' => $previous,
+        'changed_since_previous_exchange' => $previous === null ? null
+            : ($previous['page'] !== $request['page'] || $previous['active_tab'] !== ($request['ui']['active_tab'] ?? ''))];
 }
 
 function aiCoachHasApplicationEvidence(array $request): bool

@@ -85,6 +85,8 @@
             return { id: typeof message.id === 'string' && /^[0-9a-f-]{36}$/.test(message.id) ? message.id : '',
                 loggedRequest: message.loggedRequest === true,
                 guideStep: typeof message.guideStep === 'string' && /^[a-z-]+$/.test(message.guideStep) ? message.guideStep : '',
+                page: typeof message.page === 'string' && /^(?:[a-z_]{1,80}\.php|other)$/.test(message.page) ? message.page : '',
+                activeTab: ['activity', 'correspondence', 'tasks', 'presentations', 'contacts', 'logistics', 'financials'].includes(message.activeTab) ? message.activeTab : '',
                 role: message.role, content: message.role === 'assistant' ? restoredReplyText(message.content) : message.content,
                 sources: (Array.isArray(message.sources) ? message.sources : []).slice(0, 4).filter(function (source) {
                     return source && typeof source.id === 'string' && /^manual-topic-[a-z0-9#-]+$/.test(source.id)
@@ -530,7 +532,9 @@
     function receiveReply(data, number) {
         if (number !== requestNumber || !pending) return;
         if (data.error) throw new Error(data.error);
-        const reply = safeMessages([{ role: 'assistant', content: replyText(data), sources: data.sources, mode: data.mode, workflow: data.workflow, workflowOptions: data.workflow_options }])[0];
+        const reply = safeMessages([{ role: 'assistant', content: replyText(data), sources: data.sources, mode: data.mode,
+            page: pending.request.page, activeTab: pending.request.ui?.active_tab,
+            workflow: data.workflow, workflowOptions: data.workflow_options }])[0];
         if (!reply) throw new Error('The coach could not prepare a complete answer.');
         reply.id = pending.id; reply.loggedRequest = data.history_saved !== false;
         if (data.start_workflow === true && reply.workflow) {
@@ -619,11 +623,13 @@
         const previousStep = currentStep;
         const ui = uiContext();
         endWorkflow();
-        const history = messages.slice(-6).map(function (message) { return { role: message.role, content: message.content.slice(0, 1600) }; });
+        const history = messages.slice(-6).map(function (message) {
+            return { role: message.role, content: message.content.slice(0, 1600), page: message.page || '', active_tab: message.activeTab || '' };
+        });
         const id = window.crypto.randomUUID();
         pending = { id: id, startedAt: Date.now(), request: questionRequest(id, text, history, page, previousStep, ui,
             page === 'help.php' ? decodeURIComponent(window.location.hash.slice(1)) : '') };
-        addMessage({ id: window.crypto.randomUUID(), role: 'user', content: text, sources: [], mode: 'guide' });
+        addMessage({ id: window.crypto.randomUUID(), role: 'user', content: text, sources: [], mode: 'guide', page: page, activeTab: ui.active_tab });
         question.value = '';
         controller = new AbortController();
         const number = ++requestNumber;

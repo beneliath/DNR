@@ -37,7 +37,7 @@ foreach (['What does the financial closeout section on this page do?', 'What is 
 
 foreach ([[$question, 'dashboard.php'], ['What does Open My Work do?', 'dashboard.php'], ['What does Assigned To do?', 'edit_task.php']] as [$text, $page]) {
     $request = aiCoachValidateRequest(['question' => $text, 'page' => $page], 'editor');
-    $answer = ['message' => 'This control opens your work queue.', 'question' => '', 'sources' => [], 'kind' => 'application'];
+    $answer = ['message' => 'This control opens your work queue.', 'question' => '', 'sources' => [], 'kind' => 'information'];
     $reply = aiCoachDecodeReply(coachSourceResponse($answer), [], $request);
     expectCoachSource($reply['message'] === $answer['message'] && $reply['sources'] === [] && $reply['mode'] === 'conversation', 'Verified application explanations retain their text without a forced PDF reference');
     $payload = aiCoachPayload($request, []);
@@ -50,10 +50,11 @@ $manual = aiCoachRetrieve('financial closeout payments expenses', '', 'admin');
 $reply = aiCoachDecodeReply(coachSourceResponse(['message' => 'Financial closeout records actual receipts.', 'question' => '',
     'sources' => [0], 'kind' => 'information']), $manual);
 expectCoachSource($reply['sources'][0]['id'] === $manual[0]['id'], 'Directly relevant manual citations remain available');
-foreach (['information', 'application'] as $kind) {
+$unknownPage = aiCoachValidateRequest(['question' => $question, 'page' => 'other'], 'editor');
+foreach ([[], $unknownPage] as $request) {
     $rejected = false;
     try {
-        aiCoachDecodeReply(coachSourceResponse(['message' => 'Unsupported information.', 'question' => '', 'sources' => [], 'kind' => $kind]), []);
+        aiCoachDecodeReply(coachSourceResponse(['message' => 'Unsupported information.', 'question' => '', 'sources' => [], 'kind' => 'information']), [], $request);
     } catch (RuntimeException $exception) { $rejected = true; }
     expectCoachSource($rejected, 'An uncited factual answer still requires verified grounding');
 }

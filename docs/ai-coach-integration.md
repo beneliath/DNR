@@ -64,6 +64,15 @@ guided step may omit PDF citations. Generic questions about the current interfac
 retrieve topics for that page rather than carrying over a previous task or matching
 incidental words in unrelated manual passages.
 
+Each new question includes the current page and selected record tab. Conversation
+messages retain their original page/tab, including answers recovered after
+navigation, so earlier exchanges do not describe the user's current location.
+Task follow-ups retain the conversation and use the destination page as their
+starting point. Self-contained questions about the current interface omit older
+page descriptions and walkthrough context from inference while preserving the
+visible conversation. Existing conversations without location metadata remain
+usable; a new conversation is not required after navigation.
+
 Rebuild the indexes when their sources change (the PDF script requires pypdf):
 
 ```sh
@@ -74,6 +83,12 @@ python3 scripts/ai_help/index_application.py
 The server rejects a PDF index whose hash differs from the installed PDF. It
 omits static page labels when their source hash is stale. Helper tests verify
 PDF freshness, numbered workflow text, citations, and important page controls.
+
+In local development, restart both `ai-coach-worker` containers after changing
+coach PHP code or its knowledge indexes. The workers load helpers once and keep
+them in memory; source bind mounts alone do not refresh a running worker. Wait
+for pending answers to finish before restarting, then verify a fresh question
+through the local app. Previously saved conversation answers are not regenerated.
 
 ## Request lifetime and review history
 

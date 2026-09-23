@@ -76,6 +76,7 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true, pageName
     const body = new Element('body');
     const opener = new Element('opener');
     const manualLink = new Element('manual-link');
+    const selectedTab = new Element('selected-tab');
     panel.hidden = true;
     panel.dataset = { page: pageName, role: 'editor', storageKey: 'test-key', endpoint: 'ai_coach.php', csrfToken: 'test-csrf' };
     panel.querySelector = selector => selector === 'textarea' ? question : selector === '.coach-scroll' ? scroll
@@ -109,7 +110,8 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true, pageName
     };
     const document = {
         body, activeElement: null,
-        querySelector: selector => selector === '[data-coach]' ? panel : null,
+        querySelector: selector => selector === '[data-coach]' ? panel
+            : selector === '[role="tab"][aria-selected="true"]' && selectedTab.id ? selectedTab : null,
         querySelectorAll: selector => selector === '[data-coach-open]' ? [opener]
             : selector === '#app-sidebar a[href="help.php"]' ? [manualLink] : [],
         getElementById: () => null, addEventListener() {}, createElement: name => new Element(name)
@@ -129,6 +131,7 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true, pageName
     return {
         fields, question, panel, opener, manualLink, timers, requests, transportTimeouts,
         stored: () => JSON.parse(stored),
+        selectTab: name => { selectedTab.id = 'engagement-' + name + '-tab'; },
         dispatch: (name, event) => (listeners.get(name) || []).forEach(listener => listener(event)),
         assistantMessages: () => fields.messages.children.filter(node => node.className === 'coach-message coach-message-assistant')
     };
@@ -136,6 +139,55 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true, pageName
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const complete = { state: 'complete', response: { message: 'MOED helps coordinate engagements and follow-up work.', question: '', sources: [], mode: 'conversation', history_saved: true } };
+
+test('one conversation carries prior exchange locations while each new question uses the destination page', async () => {
+    let savedState;
+    const visited = [];
+    for (const pageName of ['dashboard.php', 'engagements.php', 'contacts.php']) {
+        const page = createPage({ pageName, pendingRequest: false, savedState, responses: [complete.response] });
+        page.question.value = 'What can I do here?';
+        page.fields.form.handlers.get('submit')[0]({ preventDefault() {} });
+        await settle();
+        const request = JSON.parse(page.requests[0].options.body);
+        assert.equal(request.page, pageName);
+        assert.deepEqual(request.history.map(message => message.page), visited.flatMap(name => [name, name]));
+        visited.push(pageName);
+        savedState = page.stored();
+        assert.deepEqual(savedState.messages.map(message => message.page), visited.flatMap(name => [name, name]));
+        assert.equal(savedState.messages.length, visited.length * 2, 'Navigation does not reset the conversation');
+        page.dispatch('pagehide', { persisted: false });
+    }
+});
+
+test('an answer arriving after navigation retains the question origin, then the next request uses the new page', async () => {
+    const original = createPage({ responses: [{state:'pending'}] });
+    await settle();
+    original.dispatch('pagehide', { persisted:true });
+    const destination = createPage({ pageName:'contacts.php', savedState:original.stored(), responses:[complete, complete.response] });
+    await settle();
+    assert.equal(destination.stored().messages.at(-1).page, 'dashboard.php');
+    destination.question.value = 'What can I do here?';
+    destination.fields.form.handlers.get('submit')[0]({preventDefault() {}});
+    await settle();
+    const request = JSON.parse(destination.requests[1].options.body);
+    assert.equal(request.page, 'contacts.php');
+    assert.equal(request.history.at(-1).page, 'dashboard.php');
+    assert.equal(destination.stored().messages.at(-1).page, 'contacts.php');
+});
+
+test('each question captures the selected record tab while retaining the prior tab in history', async () => {
+    const page = createPage({ pageName:'view_engagement.php', pendingRequest:false, responses:[complete.response, complete.response] });
+    for (const name of ['tasks', 'presentations']) {
+        page.selectTab(name);
+        page.question.value = 'What does this tab do?';
+        page.fields.form.handlers.get('submit')[0]({preventDefault() {}});
+        await settle();
+        const request = JSON.parse(page.requests.at(-1).options.body);
+        assert.equal(request.ui.active_tab, name);
+        assert.equal(page.stored().messages.at(-1).activeTab, name);
+        if (name === 'presentations') assert.ok(request.history.every(message => message.active_tab === 'tasks'));
+    }
+});
 
 test('sidebar User Manual navigation closes the coach on every visit and preserves the conversation', async () => {
     let page = createPage({ responses: [complete] });
