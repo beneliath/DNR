@@ -1,6 +1,6 @@
 {
-  "version": "2.3.0",
-  "edition_date": "September 22, 2026",
+  "version": "2.3.3",
+  "edition_date": "September 23, 2026",
   "pages": 149,
   "screenshots": 87,
   "link_annotations": 1274,
@@ -78,7 +78,7 @@
     "topic-5-pdf-speaker-notes": 25,
     "topic-5-ppt-slidedeck": 25,
     "topic-5-speaker-qr-codes": 25,
-    "topic-5-manage-email-templates": 25,
+    "topic-5-manage-email-templates": 26,
     "topic-5-archive-and-restore": 26,
     "topic-5-delete-and-access": 26,
     "topic-5-review-qr-code-activity": 26,
@@ -91,7 +91,7 @@
     "topic-5-view-pdf": 27,
     "topic-5-view-qr-codes-pdf": 27,
     "topic-5-archive-and-delete-carefully": 27,
-    "topic-5-presentation-reference-and-file-history": 27,
+    "topic-5-presentation-reference-and-file-history": 28,
     "topic-5-readiness-closeout-and-lifecycle-effects": 28,
     "topic-5-reset-presentation-statistics": 28,
     "topic-5-restore-archived-presentations": 28,
@@ -410,10 +410,11 @@
     "readme-section-58": 149,
     "readme-section-59": 149,
     "readme-section-60": 149,
+    "readme-section-61": 149,
     "__total__": 149
   },
-  "outline_entries": 318,
-  "edition_scope": "Application release 2.3.0",
+  "outline_entries": 319,
+  "edition_scope": "Application release 2.3.3",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",
@@ -894,10 +895,10 @@
   },
   "readme_appendix": {
     "source": "README.md",
-    "sha256": "6ee74f91931d248c8c97f23c917e453de11ae3a7768ba04fa5e44aa50dfc0de5",
-    "bytes": 104790,
+    "sha256": "2befbb5660d405351c4ec471e5f66f8a6a4574f1266c8cf6cb82ab5a52e1d7f3",
+    "bytes": 106152,
     "start_page": 125,
-    "sections": 60,
+    "sections": 61,
     "attachment": "README.md"
   }
 }

@@ -30,6 +30,19 @@ Follow the detailed workflow below, preserving its protected merge checks, succe
 
 The persistent [minor bump deployment rule](../.cursor/rules/minor-bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
 
+### Standing destination authorization
+
+On September 23, 2026, the user explicitly reaffirmed that each minor, major, or
+super bump deployment directive includes authorization to send the pending project
+source and release artifacts to GitHub `beneliath/DNR` and GitLab
+`https://gitlab.beneliath.com/SiMM/dnr.git`, publish the required release branch,
+main, and version tag, and deploy the qualified release to s1 (`192.168.1.150`).
+This authorization is implicit in future invocations; do not request redundant
+confirmation. Protected merge/CI checks, verified backups, and readiness checks
+remain mandatory. If an external approval system rejects an action, respect that
+block and identify it accurately rather than suggesting the user's directive was
+incomplete.
+
 ## Major bump deployment shorthand
 
 Going forward, the instruction **"do a major bump deployment"** means:

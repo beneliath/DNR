@@ -60,6 +60,76 @@ try {
         $form[$field] = new CURLFile($path, 'application/octet-stream', 'audience.pptx');
         return $request('edit_engagement.php?id='.$event, $form, $cookie);
     };
+    // Exercise a real 331 MB upload through ingress, with no request larger than 10 MB plus framing.
+    [$chunkForm, $chunkField] = $editForm();
+    preg_match('/presentations\[(\d+)\]/', $chunkField, $chunkRow);
+    $chunkBase = ['engagement_id' => $event, 'row' => $chunkRow[1], 'csrf_token' => $chunkForm['csrf_token']];
+    $startPost = $chunkBase + ['action' => 'start', 'name' => 'large.pptx', 'size' => 331 * 1024 * 1024];
+    expectLinkHttp($request('presentation_chunk.php', $startPost)['status'] === 302, 'Chunk endpoint requires authentication.');
+    expectLinkHttp($request('presentation_chunk.php', array_replace($startPost, ['csrf_token' => 'bad']), $cookie)['status'] === 400, 'Chunk endpoint requires CSRF.');
+    $started = $request('presentation_chunk.php', $startPost, $cookie);
+    expectLinkHttp($started['status'] === 200, 'Chunk upload starts.');
+    $chunkToken = json_decode($started['body'], true, 512, JSON_THROW_ON_ERROR)['token'];
+    $largePath = tempnam(sys_get_temp_dir(), 'chunk-http-large-');
+    $chunkPath = tempnam(sys_get_temp_dir(), 'chunk-http-piece-');
+    try {
+        writeSizedTestSlidedeck($largePath, 331 * 1024 * 1024);
+        $largeInput = fopen($largePath, 'rb');
+        try {
+            for ($offset = 0; $offset < 331 * 1024 * 1024; $offset += 10 * 1024 * 1024) {
+                $piece = fopen($chunkPath, 'wb');
+                $length = stream_copy_to_stream($largeInput, $piece, 10 * 1024 * 1024);
+                fclose($piece);
+                $chunkPost = $chunkBase + ['action' => 'chunk', 'token' => $chunkToken, 'offset' => $offset,
+                    'chunk' => new CURLFile($chunkPath, 'application/octet-stream', 'chunk')];
+                $sent = $request('presentation_chunk.php', $chunkPost, $cookie);
+                expectLinkHttp($sent['status'] === 200, 'Chunk accepted: ' . $sent['body']);
+                expectLinkHttp(json_decode($sent['body'], true)['offset'] === $offset + $length, 'Chunk acknowledged.');
+                if ($offset === 0) {
+                    expectLinkHttp($request('presentation_chunk.php', $chunkPost, $cookie)['status'] === 200, 'Lost-response retry is idempotent.');
+                    expectLinkHttp($request('presentation_chunk.php', array_replace($chunkPost, ['row' => '99999']), $cookie)['status'] === 400, 'Token cannot be moved to another presentation.');
+                }
+            }
+        } finally { fclose($largeInput); }
+        $pdfPath = tempnam(sys_get_temp_dir(), 'chunk-http-pdf-');
+        try {
+            $pdfHandle = fopen($pdfPath, 'wb');
+            fwrite($pdfHandle, "%PDF-1.4\n"); ftruncate($pdfHandle, 25 * 1024 * 1024);
+            $pdfTail = "\nstartxref\n0\n%%EOF\n";
+            fseek($pdfHandle, 25 * 1024 * 1024 - strlen($pdfTail)); fwrite($pdfHandle, $pdfTail); fclose($pdfHandle);
+            $pdfStart = $request('presentation_chunk.php', $chunkBase + ['action' => 'start', 'asset_key' => 'speaker_notes', 'name' => 'notes.pdf', 'size' => 25 * 1024 * 1024], $cookie);
+            expectLinkHttp($pdfStart['status'] === 200, 'PDF upload starts.');
+            $pdfToken = json_decode($pdfStart['body'], true)['token'];
+            $pdfInput = fopen($pdfPath, 'rb');
+            try {
+                for ($offset = 0; $offset < 25 * 1024 * 1024; $offset += 10 * 1024 * 1024) {
+                    $piece = fopen($chunkPath, 'wb'); stream_copy_to_stream($pdfInput, $piece, 10 * 1024 * 1024); fclose($piece);
+                    $pdfSent = $request('presentation_chunk.php', $chunkBase + ['action' => 'chunk', 'token' => $pdfToken, 'offset' => $offset,
+                        'chunk' => new CURLFile($chunkPath, 'application/octet-stream', 'chunk')], $cookie);
+                    expectLinkHttp($pdfSent['status'] === 200, 'PDF chunk accepted.');
+                }
+            } finally { fclose($pdfInput); }
+            $pdfChecksum = hash_file('sha256', $pdfPath);
+        } finally { @unlink($pdfPath); }
+        $chunkForm['presentations[' . $chunkRow[1] . '][pdf_upload_token]'] = $pdfToken;
+        $chunkForm['presentations[' . $chunkRow[1] . '][ppt_upload_token]'] = $chunkToken;
+        $chunkSaved = $request('edit_engagement.php?id=' . $event, $chunkForm, $cookie);
+        expectLinkHttp($chunkSaved['status'] === 302, '331 MB staged upload saves through the engagement form.');
+        $largeStored = $conn->execute_query('SELECT * FROM presentation_slidedecks WHERE presentation_id = ?', [$pid])->fetch_assoc();
+        expectLinkHttp((int) $largeStored['size'] === 331 * 1024 * 1024, 'Large deck size persisted.');
+        expectLinkHttp(hash_file('sha256', persistentFilePath($largeStored['storage_key'])) === hash_file('sha256', $largePath), 'HTTP chunk upload preserves every byte.');
+        expectLinkHttp((int) $largeStored['uploaded_by'] === $uid, 'Chunked upload records the authenticated uploader.');
+        $notesStored = $conn->execute_query('SELECT storage_key FROM presentation_notes WHERE presentation_id = ?', [$pid])->fetch_assoc();
+        expectLinkHttp(hash_file('sha256', persistentFilePath($notesStored['storage_key'])) === $pdfChecksum, 'PDF and PowerPoint save together with their original checksums.');
+
+        $rangeResponse = $request('presentation_asset.php?id=' . $pid . '&type=slidedeck', null, $cookie, ['Range: bytes=-1024']);
+        expectLinkHttp($rangeResponse['status'] === 206 && strlen($rangeResponse['body']) === 1024, 'Large deck supports ranged downloads.');
+        expectLinkHttp($request('presentation_chunk.php', $chunkBase + ['action' => 'cancel', 'token' => $chunkToken], $cookie)['status'] === 400, 'Saved staging token has been consumed.');
+    } finally { @unlink($largePath); @unlink($chunkPath); }
+    if (getenv('DNR_CHUNK_UPLOAD_ONLY') === '1') {
+        echo "Chunked PowerPoint/PDF HTTP integration passed.\n";
+        return;
+    }
     $saved = $upload();
     expectLinkHttp($saved['status'] === 302, 'Valid PPTX uploads through the real form.');
     $links = fetchPresentationShortLinks($conn, $pid);

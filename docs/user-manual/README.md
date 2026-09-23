@@ -35,7 +35,7 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 22, 2026 edition applies to application version **2.3.0**. The
+The September 23, 2026 edition applies to application version **2.3.3**. The
 cover, scope and edition notes, README appendix version reference, and PDF
 metadata use the current `VERSION` value.
 
@@ -56,7 +56,7 @@ implying that a local development automation is installed on every MOED deployme
 
 Presentation instructions now begin at the event's Presentations tab and Edit
 Presentations. PowerPoint .ppt/.pptx files allow 500 MB per file; PDF notes remain
-100 MB and each save must stay below 600 MB total. Existing screenshot crops retain
+100 MB. The engagement editor uploads both formats in small chunks with visible progress and retries, followed by a saving stage. Existing screenshot crops retain
 the unchanged file controls and exclude the obsolete size-limit line. The event
 creation procedure starts at Engagements, then + New Engagement, with organization
 selection inside that form. Account Security also names the current Change Password

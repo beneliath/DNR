@@ -1461,3 +1461,24 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 ## Storage and delivery hardening
 
 See [Storage and delivery operations](docs/storage-and-delivery-operations.md) for isolated integration tests, retained-file cleanup, storage integrity monitoring, encrypted native backups, production disk-encryption checks, the separate download pool, and handling uncertain email delivery.
+
+### Large presentation uploads
+
+The engagement editor uploads PPT/PPTX and PDF files in 10 MiB requests before saving the
+form, supporting PowerPoint files up to 500 MiB and PDFs up to 100 MiB without sending the whole file through
+Cloudflare in one request. The progress panel shows transfer percentage and then
+“Saving changes”. Transient chunk failures retry twice; selecting Save Changes
+again on the same page reuses acknowledged chunks. Keep the page open until the
+save completes. JavaScript is required for chunked uploads.
+
+Staging files live outside the document root on the existing uploaded-files volume.
+Upload references are scoped to the authenticated session, user, engagement, and
+presentation form row. The final save validates the assembled file and records
+it through the normal storage and audit flow. Successful saves delete staging files;
+the file-monitor worker removes abandoned uploads after 24 hours. Each session may
+reserve at most 1 GiB across ten pending files. Deploy the updated web assets and
+file-monitor worker together; no database migration or Cloudflare plan change is needed.
+
+Run the isolated HTTP upload/save and ranged-download regression with
+`python3 scripts/integration_environment.py uploads`. It creates and removes its own
+labelled Docker project and verifies a 331 MiB upload without using a live database.

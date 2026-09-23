@@ -2,16 +2,16 @@
   "pages": 149,
   "screenshots": 87,
   "internal_links": 1274,
-  "bookmarks": 318,
+  "bookmarks": 319,
   "chapter_targets": "13/13 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
-    "sections": 60,
-    "text_fragments_verified": 1166,
-    "attachment_bytes": 104790,
+    "sections": 61,
+    "text_fragments_verified": 1171,
+    "attachment_bytes": 106152,
     "attachment_matches_current_source": true,
-    "sha256": "6ee74f91931d248c8c97f23c917e453de11ae3a7768ba04fa5e44aa50dfc0de5"
+    "sha256": "2befbb5660d405351c4ec471e5f66f8a6a4574f1266c8cf6cb82ab5a52e1d7f3"
   },
   "format": {
     "reference_text": "two columns",
@@ -28,8 +28,8 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.3.0",
-    "edition_date": "September 22, 2026",
+    "version": "2.3.3",
+    "edition_date": "September 23, 2026",
     "cover_and_metadata": "verified"
   }
 }
