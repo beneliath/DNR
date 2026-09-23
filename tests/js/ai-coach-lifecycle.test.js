@@ -64,7 +64,7 @@ class Element {
     }
 }
 
-function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
+function createPage({ ageMs = 0, responses = [], pendingRequest = true, pageName = 'dashboard.php', savedState } = {}) {
     const fields = Object.fromEntries([
         'steps', 'context', 'step', 'workflow-title', 'step-message', 'show', 'go', 'source', 'step-note',
         'acknowledge', 'end', 'missing', 'welcome', 'messages', 'send', 'stop', 'status', 'close', 'reset', 'form'
@@ -75,8 +75,10 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
     const scroll = new Element('scroll');
     const body = new Element('body');
     const opener = new Element('opener');
+    const manualLink = new Element('manual-link');
+    const selectedTab = new Element('selected-tab');
     panel.hidden = true;
-    panel.dataset = { page: 'dashboard.php', role: 'editor', storageKey: 'test-key', endpoint: 'ai_coach.php', csrfToken: 'test-csrf' };
+    panel.dataset = { page: pageName, role: 'editor', storageKey: 'test-key', endpoint: 'ai_coach.php', csrfToken: 'test-csrf' };
     panel.querySelector = selector => selector === 'textarea' ? question : selector === '.coach-scroll' ? scroll
         : fields[selector.match(/\[data-coach-(.*?)\]/)?.[1]];
     fields.step.querySelector = panel.querySelector;
@@ -86,7 +88,7 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
         pending: { id: requestId, startedAt: Date.now() - ageMs, request: { request_id: requestId, question: 'What does MOED do?', page: 'dashboard.php' } }
     };
     if (!pendingRequest) { initial.pending = null; initial.messages = []; }
-    let stored = JSON.stringify(initial);
+    let stored = JSON.stringify(savedState || initial);
     let timerId = 0;
     const timers = new Map();
     const listeners = new Map();
@@ -96,7 +98,7 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
         crypto: webcrypto,
         sessionStorage: { getItem: () => stored, setItem: (_, value) => { stored = value; }, removeItem: () => { stored = null; } },
         matchMedia: () => ({ matches: false, addEventListener() {} }),
-        location: { href: 'http://localhost/dashboard.php', hash: '', reload() { throw new Error('Unexpected reload'); } },
+        location: { href: 'http://localhost/' + pageName, hash: '', reload() { throw new Error('Unexpected reload'); } },
         requestAnimationFrame: callback => callback(),
         setTimeout: callback => { timers.set(++timerId, callback); return timerId; },
         clearTimeout: id => timers.delete(id),
@@ -108,8 +110,10 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
     };
     const document = {
         body, activeElement: null,
-        querySelector: selector => selector === '[data-coach]' ? panel : null,
-        querySelectorAll: selector => selector === '[data-coach-open]' ? [opener] : [],
+        querySelector: selector => selector === '[data-coach]' ? panel
+            : selector === '[role="tab"][aria-selected="true"]' && selectedTab.id ? selectedTab : null,
+        querySelectorAll: selector => selector === '[data-coach-open]' ? [opener]
+            : selector === '#app-sidebar a[href="help.php"]' ? [manualLink] : [],
         getElementById: () => null, addEventListener() {}, createElement: name => new Element(name)
     };
     const context = {
@@ -125,8 +129,9 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
     };
     vm.runInNewContext(script, context);
     return {
-        fields, question, timers, requests, transportTimeouts,
+        fields, question, panel, opener, manualLink, timers, requests, transportTimeouts,
         stored: () => JSON.parse(stored),
+        selectTab: name => { selectedTab.id = 'engagement-' + name + '-tab'; },
         dispatch: (name, event) => (listeners.get(name) || []).forEach(listener => listener(event)),
         assistantMessages: () => fields.messages.children.filter(node => node.className === 'coach-message coach-message-assistant')
     };
@@ -134,6 +139,100 @@ function createPage({ ageMs = 0, responses = [], pendingRequest = true } = {}) {
 
 const settle = () => new Promise(resolve => setImmediate(resolve));
 const complete = { state: 'complete', response: { message: 'MOED helps coordinate engagements and follow-up work.', question: '', sources: [], mode: 'conversation', history_saved: true } };
+
+test('one conversation carries prior exchange locations while each new question uses the destination page', async () => {
+    let savedState;
+    const visited = [];
+    for (const pageName of ['dashboard.php', 'engagements.php', 'contacts.php']) {
+        const page = createPage({ pageName, pendingRequest: false, savedState, responses: [complete.response] });
+        page.question.value = 'What can I do here?';
+        page.fields.form.handlers.get('submit')[0]({ preventDefault() {} });
+        await settle();
+        const request = JSON.parse(page.requests[0].options.body);
+        assert.equal(request.page, pageName);
+        assert.deepEqual(request.history.map(message => message.page), visited.flatMap(name => [name, name]));
+        visited.push(pageName);
+        savedState = page.stored();
+        assert.deepEqual(savedState.messages.map(message => message.page), visited.flatMap(name => [name, name]));
+        assert.equal(savedState.messages.length, visited.length * 2, 'Navigation does not reset the conversation');
+        page.dispatch('pagehide', { persisted: false });
+    }
+});
+
+test('an answer arriving after navigation retains the question origin, then the next request uses the new page', async () => {
+    const original = createPage({ responses: [{state:'pending'}] });
+    await settle();
+    original.dispatch('pagehide', { persisted:true });
+    const destination = createPage({ pageName:'contacts.php', savedState:original.stored(), responses:[complete, complete.response] });
+    await settle();
+    assert.equal(destination.stored().messages.at(-1).page, 'dashboard.php');
+    destination.question.value = 'What can I do here?';
+    destination.fields.form.handlers.get('submit')[0]({preventDefault() {}});
+    await settle();
+    const request = JSON.parse(destination.requests[1].options.body);
+    assert.equal(request.page, 'contacts.php');
+    assert.equal(request.history.at(-1).page, 'dashboard.php');
+    assert.equal(destination.stored().messages.at(-1).page, 'contacts.php');
+});
+
+test('each question captures the selected record tab while retaining the prior tab in history', async () => {
+    const page = createPage({ pageName:'view_engagement.php', pendingRequest:false, responses:[complete.response, complete.response] });
+    for (const name of ['tasks', 'presentations']) {
+        page.selectTab(name);
+        page.question.value = 'What does this tab do?';
+        page.fields.form.handlers.get('submit')[0]({preventDefault() {}});
+        await settle();
+        const request = JSON.parse(page.requests.at(-1).options.body);
+        assert.equal(request.ui.active_tab, name);
+        assert.equal(page.stored().messages.at(-1).activeTab, name);
+        if (name === 'presentations') assert.ok(request.history.every(message => message.active_tab === 'tasks'));
+    }
+});
+
+test('sidebar User Manual navigation closes the coach on every visit and preserves the conversation', async () => {
+    let page = createPage({ responses: [complete] });
+    await settle();
+    const messages = page.stored().messages;
+    for (let visit = 0; visit < 2; visit++) {
+        page.opener.handlers.get('click')[0]();
+        assert.equal(page.panel.hidden, false);
+        page.manualLink.handlers.get('click')[0]({ button: 0 });
+        assert.equal(page.panel.hidden, true);
+        assert.equal(page.opener.getAttribute('aria-expanded'), 'false');
+        assert.equal(page.stored().open, false);
+        assert.deepEqual(page.stored().messages, messages);
+        page.dispatch('pagehide', { persisted: false });
+        page = createPage({ pageName: 'help.php', savedState: page.stored() });
+        assert.equal(page.panel.hidden, true, 'The manual must not restore the open panel');
+    }
+    page.opener.handlers.get('click')[0]();
+    assert.equal(page.panel.hidden, false, 'The coach can still be opened while reading the manual');
+});
+
+test('closing for User Manual navigation preserves a pending answer without reopening the panel', async () => {
+    const page = createPage({ responses: [{ state: 'pending' }, complete] });
+    await settle();
+    page.opener.handlers.get('click')[0]();
+    page.manualLink.handlers.get('click')[0]({ button: 0 });
+    assert.equal(page.stored().pending.id, requestId);
+    [...page.timers.values()][0]();
+    await settle();
+    assert.equal(page.assistantMessages().length, 1);
+    assert.equal(page.stored().pending, null);
+    assert.equal(page.panel.hidden, true);
+});
+
+test('modified or cancelled sidebar clicks do not close the coach in the current tab', () => {
+    const page = createPage({ pendingRequest: false });
+    page.opener.handlers.get('click')[0]();
+    for (const event of [{ button: 0, ctrlKey: true }, { button: 0, metaKey: true }, { button: 0, shiftKey: true },
+        { button: 0, altKey: true }, { button: 1 }, { button: 0, defaultPrevented: true }]) {
+        page.manualLink.handlers.get('click')[0](event);
+        assert.equal(page.panel.hidden, false);
+    }
+    const manual = createPage({ pageName: 'help.php', savedState: page.stored() });
+    assert.equal(manual.panel.hidden, true, 'A new manual tab must not inherit the open coach');
+});
 
 test('a stalled submission times out and recovers the same durable request without cancelling it', async () => {
     const page = createPage({ pendingRequest: false, responses: [
