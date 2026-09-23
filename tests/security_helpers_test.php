@@ -112,6 +112,11 @@ foreach (glob(__DIR__ . '/../src/*.php') ?: [] as $page_path) {
 }
 expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'editor') === 'map_pin.php?id=4', 'Editors can return to the pin editor after role preview.');
 expectTrue(safeRolePreviewReturnUrl('map_pin.php?id=4', 'reviewer') === 'dashboard.php', 'Reviewers must not be returned to the pin editor.');
+foreach (['ai_coach_requests.php', 'ai_coach_improvements.php'] as $page) {
+    foreach (['editor', 'reviewer'] as $role) {
+        expectTrue(safeRolePreviewReturnUrl($page, $role) === 'dashboard.php', 'Coach administration is not a role-preview destination for ' . $role);
+    }
+}
 foreach ($role_preview_ui_pages as $page) {
     expectTrue(
         safeRolePreviewReturnUrl($page, 'admin') === $page,

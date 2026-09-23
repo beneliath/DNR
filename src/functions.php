@@ -1075,6 +1075,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'admin_elevation.php',
         'audit_log.php',
         'ai_coach_requests.php',
+        'ai_coach_improvements.php',
         'database_maintenance.php',
         'edit_user.php',
         'network_diagnostics.php',
