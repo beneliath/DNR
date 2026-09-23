@@ -11,6 +11,15 @@
         return parseInt(entry.id.replace("presentation-", ""), 10);
     }
 
+    function updatePresentationHeadings() {
+        presentationEntries().forEach(function (entry, index) {
+            var heading = entry.querySelector(".presentation-entry-heading");
+            if (heading) {
+                heading.textContent = "Presentation " + (index + 1);
+            }
+        });
+    }
+
     function presentationContainer() {
         return document.querySelector(".presentations-inner-container");
     }
@@ -55,6 +64,49 @@
         };
     }
 
+    function presentationDropError(files, isPdf) {
+        if (!files || files.length !== 1) return "Drop one file at a time.";
+        var file = files[0];
+        if (!(isPdf ? /\.pdf$/i : /\.pptx?$/i).test(file.name)) {
+            return isPdf ? "Choose a PDF file (.pdf)." : "Choose a PowerPoint file (.ppt or .pptx).";
+        }
+        var limit = isPdf ? 100 : 500;
+        if (file.size > limit * 1048576) return "Choose a file no larger than " + limit + " MB.";
+        if (file.size === 0) return "Choose a file that is not empty.";
+        return "";
+    }
+
+    function wirePresentationFileDrop(input, card) {
+        var zone = card && card.querySelector("[data-file-drop]");
+        if (!zone) return;
+        var status = zone.querySelector("[data-file-drop-status]");
+        zone.querySelector("[data-file-drop-button]").addEventListener("click", function () {
+            input.click();
+        });
+        zone.addEventListener("dragover", function (event) {
+            event.preventDefault();
+            zone.classList.add("is-dragging");
+            if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+        });
+        zone.addEventListener("dragleave", function (event) {
+            if (!zone.contains(event.relatedTarget)) zone.classList.remove("is-dragging");
+        });
+        zone.addEventListener("drop", function (event) {
+            event.preventDefault();
+            zone.classList.remove("is-dragging");
+            var files = event.dataTransfer && event.dataTransfer.files;
+            var error = presentationDropError(files, /\[speaker_notes\]$/.test(input.name));
+            status.textContent = error;
+            if (error) return;
+            input.files = files;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+        });
+        input.addEventListener("change", function () {
+            status.textContent = input.files && input.files[0]
+                ? input.files[0].name + " selected. Select Save Changes to upload or replace." : "";
+        });
+    }
+
     function shouldReleaseQrPreviews(event) {
         return !event || event.persisted !== true;
     }
@@ -63,6 +115,8 @@
         module.exports = {
             compact24HourTime: compact24HourTime,
             shouldReleaseQrPreviews: shouldReleaseQrPreviews,
+            presentationDropError: presentationDropError,
+            wirePresentationFileDrop: wirePresentationFileDrop,
             validTime: validTime,
             validWholeNumber: validWholeNumber
         };
@@ -297,6 +351,7 @@
         entry.querySelectorAll("[data-qr-uploader]").forEach(wireQrUploader);
         entry.querySelectorAll("[data-presentation-file-name]").forEach(function (input) {
             var card = input.closest(".presentation-notes-card");
+            wirePresentationFileDrop(input, card);
             var remove = card && card.querySelector(".presentation-asset-remove input");
             var notice = card && card.querySelector("[data-file-save-notice]");
             function updateFileSelection() {
@@ -368,12 +423,23 @@
         var inputId = key + "_" + id;
         return [
             '  <div class="presentation-notes-card">',
+            '    <div class="presentation-upload-details">',
             '    <div class="presentation-asset-label">PDF Speaker Notes</div>',
             '    <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>',
             '    <div class="presentation-pdf-picker-row">',
             '    <label class="presentation-file-picker" for="' + inputId + '">Choose PDF</label>',
             '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept="application/pdf,.pdf" data-presentation-file-name>',
             '    <span class="presentation-selected-file" data-selected-file-name>No PDF selected</span>',
+            '    </div>',
+            '    </div>',
+            '    <div class="presentation-file-drop" data-file-drop>',
+            '      <button type="button" class="presentation-file-drop-button" data-file-drop-button>',
+            '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+            '        <strong>Drop PDF here</strong>',
+            '        <span>or click to choose · .pdf · up to 100 MB</span>',
+            '        <span>Select Save Changes to upload or replace.</span>',
+            '      </button>',
+            '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
             '    </div>',
             '  </div>'
         ].join("");
@@ -384,12 +450,23 @@
         var inputId = key + "_" + id;
         return [
             '  <div class="presentation-notes-card">',
+            '    <div class="presentation-upload-details">',
             '    <div class="presentation-asset-label">PPT Slidedeck</div>',
             '    <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>',
             '    <div class="presentation-pdf-picker-row">',
             '    <label class="presentation-file-picker" for="' + inputId + '">Choose PPT</label>',
             '    <input type="file" class="presentation-native-file" name="presentations[' + id + '][' + key + ']" id="' + inputId + '" accept=".ppt,.pptx,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation" data-presentation-file-name>',
             '    <span class="presentation-selected-file" data-selected-file-name>No PowerPoint selected</span>',
+            '    </div>',
+            '    </div>',
+            '    <div class="presentation-file-drop" data-file-drop>',
+            '      <button type="button" class="presentation-file-drop-button" data-file-drop-button>',
+            '        <svg class="presentation-drop-icon" viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+            '        <strong>Drop PowerPoint here</strong>',
+            '        <span>or click to choose · .ppt or .pptx · up to 500 MB</span>',
+            '        <span>Select Save Changes to upload or replace.</span>',
+            '      </button>',
+            '      <span class="presentation-drop-status" data-file-drop-status role="status" aria-live="polite"></span>',
             '    </div>',
             '  </div>'
         ].join("");
@@ -546,6 +623,7 @@
 
     function presentationMarkup(id) {
         return [
+            '<h3 class="presentation-entry-heading">Presentation</h3>',
             '<div class="presentation-fields">',
             '  <div class="form-field topic">',
             '    <label for="presentation_topic_' + id + '">Topic/Title</label>',
@@ -613,6 +691,7 @@
         entry.id = "presentation-" + id;
         entry.innerHTML = presentationMarkup(id);
         presentationContainer().appendChild(entry);
+        updatePresentationHeadings();
         var speakerSelect = document.getElementById("speaker_id_" + id);
         var sourceSelect = document.getElementById("presentations-container").querySelector('select[name$="[speaker_id]"]');
         Array.from(sourceSelect.options).forEach(function (option) {
@@ -631,6 +710,7 @@
             entry.querySelectorAll("[data-qr-uploader]").forEach(releaseQrPreview);
             entry.remove();
         }
+        updatePresentationHeadings();
         updateConfirmedAvailability();
     };
 

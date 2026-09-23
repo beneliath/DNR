@@ -500,8 +500,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <?php if ($can_manage_engagement): ?><a class="button-secondary edit-presentations-button" href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url . '#engagement-presentations']), ENT_QUOTES, 'UTF-8'); ?>#presentations-container">Edit Presentations</a><?php endif; ?>
         </div>
         <div class="detail-value">
-            <?php foreach ($presentations as $presentation): ?>
+            <?php foreach ($presentations as $presentation_index => $presentation): ?>
             <div class="presentation-item" id="presentation-<?php echo (int) $presentation['id']; ?>">
+                <h3 class="presentation-entry-heading">Presentation <?php echo $presentation_index + 1; ?></h3>
                 <div class="presentation-item-heading">
                 <div>
                 <strong><?php echo htmlspecialchars(trim((string) $presentation['topic_title']) ?: 'Presentation'); ?></strong>

@@ -227,3 +227,50 @@ test("invalid supplied values block both saving and adding presentations", funct
         assert.equal(fixture.entries.length, 1);
     }
 });
+
+test("file drops validate type, count, and per-format size limits", () => {
+    const { presentationDropError } = require('../../src/assets/js/presentation-form.js');
+    assert.equal(presentationDropError([{name: 'notes.PDF', size: 100 * 1048576}], true), '');
+    assert.equal(presentationDropError([{name: 'slides.pptx', size: 500 * 1048576}], false), '');
+    assert.equal(presentationDropError([{name: 'slides.ppt', size: 100}], false), '');
+    assert.match(presentationDropError([], true), /one file/);
+    assert.match(presentationDropError([{}, {}], true), /one file/);
+    assert.match(presentationDropError([{name: 'notes.txt', size: 100}], true), /PDF/);
+    assert.match(presentationDropError([{name: 'notes.pdf', size: 100}], false), /PowerPoint/);
+    assert.match(presentationDropError([{name: 'notes.pdf', size: 100 * 1048576 + 1}], true), /100 MB/);
+    assert.match(presentationDropError([{name: 'slides.pptx', size: 500 * 1048576 + 1}], false), /500 MB/);
+    assert.match(presentationDropError([{name: 'notes.pdf', size: 0}], true), /empty/);
+});
+
+test("file drop preserves selection on invalid input and triggers change for a valid replacement", () => {
+    const { wirePresentationFileDrop } = require('../../src/assets/js/presentation-form.js');
+    const events = {};
+    const status = {};
+    const button = {addEventListener(name, callback) { this[name] = callback; }};
+    const zone = {
+        querySelector: selector => selector === '[data-file-drop-status]' ? status : button,
+        addEventListener(name, callback) { events[name] = callback; },
+        classList: { add() {}, remove() {} }, contains: () => false
+    };
+    const original = [{name: 'original.pdf', size: 100}];
+    const input = {
+        name: 'presentations[1][speaker_notes]', files: original,
+        addEventListener(name, callback) { this[name] = callback; },
+        dispatchEvent(event) { this.dispatched = event; this.change(); },
+        click() { this.clicked = true; }
+    };
+    wirePresentationFileDrop(input, { querySelector: () => zone });
+    const drop = files => events.drop({preventDefault() {}, dataTransfer: {files}});
+    drop([{name: 'wrong.pptx', size: 100}]);
+    assert.equal(input.files, original);
+    assert.equal(input.dispatched, undefined);
+    assert.match(status.textContent, /PDF/);
+    const replacement = [{name: 'replacement.pdf', size: 200}];
+    drop(replacement);
+    assert.equal(input.files, replacement);
+    assert.equal(input.dispatched.type, 'change');
+    assert.equal(input.dispatched.bubbles, true);
+    assert.match(status.textContent, /replacement.pdf selected/);
+    button.click();
+    assert.equal(input.clicked, true);
+});
