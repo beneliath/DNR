@@ -9,6 +9,41 @@ be available for a scheduled review to execute.
 
 ## Intake and evidence
 
+### Scheduled production intake
+
+The daily 7:15 a.m. America/Chicago task reads **s1 production** feedback, not
+localhost:8080. From `/Users/dgilmore/DNR`, run:
+
+```sh
+python3 scripts/ai_help/read_production_feedback.py
+# Connectivity/source check without private feedback text:
+python3 scripts/ai_help/read_production_feedback.py --summary
+```
+
+The reader connects as `dgilmore@192.168.1.150` to `moed-web-1`, uses the deployed
+application's packet helpers inside a read-only database transaction, and returns
+production version/guidance metadata and recent receipts. It does not install
+files, run inference, or complete production reviews. SSH failure, missing schema,
+or unavailable helpers are blockers; never substitute local feedback silently.
+
+Keep production packet text only in private, untracked temporary storage. Compare
+each signal's production identity, request ID, feedback version, review version,
+and outcome with local redacted production receipts. Include production guidance
+revision and local tested source hashes separately. Local request IDs are a
+different namespace. Skip unchanged reviewed versions unless guidance changes or
+new evidence make a deferred issue actionable. The reader returns at most 100
+pending signals: if a full batch contains only locally reviewed versions, report
+the need for paginated intake rather than claiming the production queue is empty.
+
+Reproduce production signals locally with disposable fixtures and local model
+calls. Keep versioned, redacted receipts in this repository, labeled with their
+production origin. Do **not** run `--complete` against production or use production
+IDs to complete local database reviews. Local corrections and worker restarts
+affect only the development preview; production behavior changes require a
+separately authorized deployment. All other investigation and verification steps
+below still apply. The container commands below describe local-only review/testing,
+not the scheduled task's production intake.
+
 `helpful`, `needs_work`, missing-control reports, failed answers, answers over
 15 seconds, and detected echoed questions are eligible automatically. Successful
 unrated answers are not sampled yet. The oldest 100 pending signals form a batch;

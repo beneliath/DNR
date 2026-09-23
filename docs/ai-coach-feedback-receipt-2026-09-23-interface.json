@@ -1,0 +1,92 @@
+{
+  "guidance_revision": "fe6cfe15d4f214a840ba7f3f5bd480d204a7d259184b80eedcb3ae6a91facbf6",
+  "redacted": true,
+  "sources": [
+    {
+      "path": "src/ai_coach_guidance_helpers.php",
+      "sha256": "e427fd23d6376603ba2043d4ac97ca49ace36017e6a070adbf207a901b9e65da"
+    },
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "6898838abe73a229b08d489329f96460bc28379b03d6ed0cd33bf8b4159eb4d2"
+    },
+    {
+      "path": "src/ai_coach_intent_helpers.php",
+      "sha256": "e7db3264689caaf666e4154ca4795a069ca53eaeb72c313be50b169c0546c23e"
+    },
+    {
+      "path": "src/assets/js/ai-coach.js",
+      "sha256": "0d3984b0e1f08fc4a8d9e7f8f27f0382cff36918ec0bab1a717844b236e31225"
+    },
+    {
+      "path": "src/application_runtime.php",
+      "sha256": "0ed53c64eea0913dc1e70711f54c1e0eceb437d1c340c025ff55ae2051bf6478"
+    },
+    {
+      "path": "src/tasks.php",
+      "sha256": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "d0c88b225a46d0aadc83b370b6685f388cae25042681a429c193706baaee06a3"
+    },
+    {
+      "path": "tests/ai_coach_interface_reference_test.php",
+      "sha256": "7486fb52cfe4dcc1f91ff69f74228f3c00f06003969cb2000813cbfbf5101c78"
+    },
+    {
+      "path": "docs/ai-coach-feedback-review-results-2026-09-23.md",
+      "sha256": "24a90923b002e716fe2e4e04596e7eb86ab281274da953be1a68b66c6072ec00"
+    }
+  ],
+  "tests": [
+    {
+      "command": "php tests/ai_coach_interface_reference_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_helpers_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_regression_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_database_retry_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/minified_assets_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/js/ai-coach.test.js tests/js/ai-coach-lifecycle.test.js",
+      "exit_code": 0
+    },
+    {
+      "command": "DNR_TEST_APP_IMAGE=dnr-review-hardening:test DNR_TEST_INGRESS_IMAGE=dnr-ingress:review-hardening DNR_TEST_DATABASE_IMAGE=dnr-database:local python3 scripts/integration_environment.py coach",
+      "exit_code": 0
+    },
+    {
+      "command": "docker exec dnr-web-1 php /opt/dnr/coach-review-src/scripts/ai_help/review_feedback.php --replay --limit=3",
+      "exit_code": 0
+    }
+  ],
+  "disposition": "fixed",
+  "summary": "Fixed unsupported guessing for unnamed interface elements by asking for the label. Historical decode failures did not recur; their original cause remains unproven. Synthetic role/page/history regressions and disposable integration passed. Replays now clarify without model inference. Broader reviewer explanation accuracy and prior off-topic conversation remain deferred; see the redacted source report.",
+  "requests": [
+    {
+      "id": 67,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "error"
+    },
+    {
+      "id": 69,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "error"
+    }
+  ]
+}
