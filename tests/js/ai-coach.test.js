@@ -166,6 +166,20 @@ test('navigation restores a pending request with the same id and original page c
     assert.equal(safePending({...pending, startedAt:'yesterday'}), null);
 });
 
+test('restored messages retain structural locations without URLs or record data', () => {
+    const messages = safeMessages([
+        {role:'user', content:'What does this tab do?', page:'view_engagement.php', activeTab:'presentations', recordId:123},
+        {role:'assistant', content:'An older answer without location metadata.'},
+        {role:'user', content:'Another question', page:'view_engagement.php?id=123', activeTab:'PRIVATE VALUE'}
+    ]);
+    assert.equal(messages[0].page, 'view_engagement.php');
+    assert.equal(messages[0].activeTab, 'presentations');
+    assert.equal(messages[0].recordId, undefined);
+    assert.equal(messages[1].page, '');
+    assert.equal(messages[2].page, '');
+    assert.equal(messages[2].activeTab, '');
+});
+
 test('restored guide menus retain only known workflows in their conversation position', () => {
     const messages = safeMessages([{role:'assistant',content:'Choose a walkthrough',workflowOptions:['notes','notes','javascript:bad','__proto__',{},'engagement']}]);
     assert.deepEqual(messages[0].workflowOptions, ['notes','engagement']);

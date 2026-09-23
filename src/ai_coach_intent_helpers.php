@@ -123,7 +123,7 @@ function aiCoachProcedureCandidates(array $request): array
 function aiCoachTaskEvidence(array $request): array
 {
     $forms = [];
-    foreach (aiCoachProcedureCandidates($request) as $procedure) {
+    foreach (aiCoachPageExplanation($request) ? [] : aiCoachProcedureCandidates($request) as $procedure) {
         foreach ($procedure['forms'] ?? [] as $id) if (isset(aiCoachForms()[$id])) $forms[$id]=aiCoachForms()[$id];
     }
     foreach (aiCoachForms() as $id => $form) {
@@ -144,6 +144,22 @@ function aiCoachTaskEvidence(array $request): array
 /** Pick PDF passages for the actual candidate task, without discarding the lexical baseline. */
 function aiCoachRelevantTopics(array $request, array $ranked): array
 {
+    if (aiCoachPageExplanation($request)) {
+        // A page overview should prefer its introduction over a keyword-heavy workflow.
+        $pageTitle = aiCoachNormalize(aiCoachContextQuestion($request));
+        foreach ([$pageTitle, 'browse ' . $pageTitle, 'daily ' . $pageTitle, 'monthly ' . $pageTitle] as $title) {
+            $overview = array_filter(aiCoachManualTopics(), static fn($topic): bool => $topic['chapter'] !== 'operator-appendix'
+                && aiCoachNormalize($topic['title']) === $title);
+            if ($overview !== []) return array_values($overview);
+        }
+        // Require the current page's subject in the title; generic words such as
+        // "part" in unrelated prose and a previously selected topic are not evidence.
+        $terms = array_diff(aiCoachSearchTerms(aiCoachContextQuestion($request)), ['new', 'edit', 'detail']);
+        $ranked = array_filter($ranked, static fn($match): bool => $terms !== []
+            && $match['topic']['chapter'] !== 'operator-appendix'
+            && array_diff($terms, aiCoachSearchTerms($match['topic']['title'])) === []);
+        return array_column(array_slice($ranked, 0, 4), 'topic');
+    }
     $topics = aiCoachOverviewTopics($request['question']);
     if ($topics !== []) return $topics;
     $byId=[];
