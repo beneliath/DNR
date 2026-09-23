@@ -175,6 +175,14 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     $support = aiCoachSupportReply($request);
     if ($support !== null) return $support;
     $q = aiCoachNormalize($request['question']);
+    // Preserve grounded current-page explanations. Structural metadata alone
+    // does not identify an unnamed button or field the user is pointing at.
+    $element = '(?:this|that) (?:button|field|control|section|part(?: of (?:the |this )?(?:interface|screen|page))?)';
+    if ((!aiCoachPageExplanation($request) || $request['page'] === 'other')
+        && preg_match('/^(?:what does '.$element.' do|what is '.$element.'(?: for)?|what is the (?:purpose|function) of '.$element.'|explain '.$element.')(?: please)?$/', $q)) {
+        return ['message'=>'Please tell me the button, field, or section label you mean. I receive page information, but I cannot see where you are pointing.',
+            'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'engine'=>'interface-clarification'];
+    }
     if (preg_match('/^(thanks|thank you|thank you very much|thanks that helped|great thanks|got it|ok|okay|hello|hi|hey)$/', $q)) {
         return ['message' => preg_match('/^(hello|hi|hey)$/', $q) ? 'Hello! What would you like to learn about MOED?' : 'You’re welcome. I’m here when you need help with the next step.',
             'question' => '', 'sources' => [], 'mode' => 'conversation', 'engine' => 'conversation'];

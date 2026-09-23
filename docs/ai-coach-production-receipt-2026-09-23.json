@@ -1,0 +1,225 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-09-23",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.3.1"
+  },
+  "production_guidance_revision": "4f6bfb94359aaae3f177842a6c7ace669963689b1485f857ff96d6cd569ddbd8",
+  "local_guidance_revision": "fe6cfe15d4f214a840ba7f3f5bd480d204a7d259184b80eedcb3ae6a91facbf6",
+  "requests": [
+    {
+      "id": 1,
+      "feedback_version": 1,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "deferred",
+      "summary": "Authenticated local calendar UI unavailable; source and packet visibility disagree with the report, so no cause is established."
+    },
+    {
+      "id": 7,
+      "feedback_version": 2,
+      "review_version": 1,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "fixed_locally",
+      "summary": "Existing local clarification prevents guessing and unsupported citations; not deployed."
+    },
+    {
+      "id": 8,
+      "feedback_version": 0,
+      "review_version": 0,
+      "outcome": "unavailable",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "deferred",
+      "summary": "Historical model-host DNS failure; current DNS resolves but production inference reliability is unverified."
+    },
+    {
+      "id": 9,
+      "feedback_version": 1,
+      "review_version": 1,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "fixed_locally",
+      "summary": "Existing local clarification prevents guessing and unsupported citations; not deployed."
+    },
+    {
+      "id": 15,
+      "feedback_version": 2,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "deferred",
+      "summary": "Authenticated local engagement UI unavailable; source presence is not proof of visual visibility."
+    },
+    {
+      "id": 18,
+      "feedback_version": 1,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "deferred",
+      "summary": "Authenticated local task UI unavailable; source presence is not proof of visual visibility."
+    },
+    {
+      "id": 14,
+      "feedback_version": 1,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "dd17028524a20e219f44392eec2f07b73fa74c9fbc889615a2a65101c8900b30",
+      "disposition": "verified",
+      "summary": "Configured application date/time response verified by source and local replay."
+    }
+  ],
+  "production_sources": [
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "c99c74d1a1ca873c81afd5ac6f9ea670560e0d7c995392381b7167e1bba24c5c"
+    },
+    {
+      "path": "src/ai_coach_guidance_helpers.php",
+      "sha256": "a696d9a6f2c38943ec291bab9d59532aa5dbb07872d2d2ed9d5372b88d161550"
+    },
+    {
+      "path": "src/ai_coach_intent_helpers.php",
+      "sha256": "8e519975fc47471374a01e6f544bbb747fa91eaf5fa86a34e9729c72dc463adc"
+    },
+    {
+      "path": "src/assets/js/ai-coach.js",
+      "sha256": "9e2a28794ad011ed1116772f26cb70ddefd495302ea0eeddb86af4d2c960c40d"
+    },
+    {
+      "path": "src/data/ai-coach-forms.json",
+      "sha256": "6a043aee91dc8cb21a5130bd1b85a4e1104688bc632884e41d5a300ae7de80aa"
+    },
+    {
+      "path": "src/data/ai-coach-procedures.json",
+      "sha256": "657ba65abfb0bcfe0a9e993d7783b28b32d5051d9b144fae79a1395a1a081594"
+    },
+    {
+      "path": "src/view_calendar.php",
+      "sha256": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+    },
+    {
+      "path": "src/view_engagement.php",
+      "sha256": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c"
+    },
+    {
+      "path": "src/tasks.php",
+      "sha256": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "d0c88b225a46d0aadc83b370b6685f388cae25042681a429c193706baaee06a3"
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "6898838abe73a229b08d489329f96460bc28379b03d6ed0cd33bf8b4159eb4d2"
+    },
+    {
+      "path": "src/ai_coach_guidance_helpers.php",
+      "sha256": "e427fd23d6376603ba2043d4ac97ca49ace36017e6a070adbf207a901b9e65da"
+    },
+    {
+      "path": "src/ai_coach_intent_helpers.php",
+      "sha256": "e7db3264689caaf666e4154ca4795a069ca53eaeb72c313be50b169c0546c23e"
+    },
+    {
+      "path": "src/application_runtime.php",
+      "sha256": "0ed53c64eea0913dc1e70711f54c1e0eceb437d1c340c025ff55ae2051bf6478"
+    },
+    {
+      "path": "src/assets/js/ai-coach.js",
+      "sha256": "0d3984b0e1f08fc4a8d9e7f8f27f0382cff36918ec0bab1a717844b236e31225"
+    },
+    {
+      "path": "src/data/ai-coach-forms.json",
+      "sha256": "6a043aee91dc8cb21a5130bd1b85a4e1104688bc632884e41d5a300ae7de80aa"
+    },
+    {
+      "path": "src/data/ai-coach-procedures.json",
+      "sha256": "657ba65abfb0bcfe0a9e993d7783b28b32d5051d9b144fae79a1395a1a081594"
+    },
+    {
+      "path": "src/view_calendar.php",
+      "sha256": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+    },
+    {
+      "path": "src/view_engagement.php",
+      "sha256": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c"
+    },
+    {
+      "path": "src/tasks.php",
+      "sha256": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "d0c88b225a46d0aadc83b370b6685f388cae25042681a429c193706baaee06a3"
+    },
+    {
+      "path": "tests/ai_coach_interface_reference_test.php",
+      "sha256": "98d52ee962b021a149804443958400064e52f16225164c211bcf8d263f0cc7ad"
+    },
+    {
+      "path": "scripts/ai_help/read_production_feedback.py",
+      "sha256": "f7ee7bc39ae2e01b3f4e927cf8d87734bd16383490a6ac30db703dccfa6aea5a"
+    },
+    {
+      "path": "docs/ai-coach-production-review-2026-09-23.md",
+      "sha256": "d9153756a5cfb4767f9f657c74ce299c0448122e00b2c1a28bc60d7389e59be5"
+    }
+  ],
+  "tests": [
+    {
+      "command": "php tests/ai_coach_interface_reference_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_helpers_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_regression_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_database_retry_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/minified_assets_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/js/ai-coach.test.js tests/js/ai-coach-lifecycle.test.js",
+      "exit_code": 0
+    }
+  ],
+  "prior_integration_evidence": "docs/ai-coach-feedback-receipt-2026-09-23-interface.json",
+  "integration_note": "Runtime source hashes unchanged from earlier passing disposable integration; not rerun for test-only expansion.",
+  "replay_summary": {
+    "original_contexts": 7,
+    "reported_contexts": 3,
+    "local_only": true,
+    "business_records_imported": false
+  },
+  "fresh_local_model_probe": {
+    "intent": "private calendar content explanation",
+    "role": "admin",
+    "seconds": 6.646,
+    "model_calls": 1,
+    "semantic_assessment": "Matched source-verified categories, URL confidentiality and exclusions."
+  },
+  "production_writes": false,
+  "next_actions": [
+    "Authenticate an existing local preview session to reproduce the three visibility reports without creating an account.",
+    "Investigate production DNS/inference health separately before claiming the historical availability failure resolved.",
+    "Keep fixed_locally findings pending deployment; do not deploy as part of this automation."
+  ]
+}
