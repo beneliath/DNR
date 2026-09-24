@@ -40,6 +40,10 @@ html body.profile-page .profile-container > .profile-form {
     grid-column: 1 / -1;
 }
 
+.profile-page :is(.profile-recovery-email-field, .profile-recovery-password-field) {
+    grid-column: 1;
+}
+
 .profile-page .app-footer {
     width: min(100%, var(--app-content-max));
     max-width: var(--app-content-max);

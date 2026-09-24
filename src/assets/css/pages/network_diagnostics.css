@@ -336,6 +336,7 @@
     border-bottom: 0;
 }
 
+.network-page-breakdown thead tr + tr th,
 .network-page-breakdown th:not(:first-child),
 .network-page-breakdown td:not(:first-child) {
     text-align: right;
@@ -343,6 +344,20 @@
 
 .network-page-breakdown td:first-child {
     font-weight: 700;
+}
+
+.network-page-breakdown thead tr + tr th.network-family-divider,
+.network-page-breakdown tbody td:nth-child(4) {
+    text-align: left;
+}
+
+@media (min-width: 761px) {
+    .network-page-breakdown .network-ipv6-percentile {
+        display: inline-block;
+        width: 8rem;
+        max-width: 100%;
+        text-align: right;
+    }
 }
 
 @media (max-width: 760px) {

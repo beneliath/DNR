@@ -35,11 +35,27 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 23, 2026 edition applies to application version **2.3.3**. The
+The September 24, 2026 edition applies to application version **2.3.5**. The
 cover, scope and edition notes, README appendix version reference, and PDF
 metadata use the current `VERSION` value.
 
-The latest refresh adds ten shared online/PDF topics for ai coach: conversational
+The September 24 refresh covers changes since the last PDF commit (`e7fd36ab`):
+continuous desktop calendar scrolling with complete-month Previous/Next navigation
+and Today reset; individual administrator deletion of ai coach requests; numbered
+presentation sections and PDF/PowerPoint drop areas; and the recovery-email field
+sequence. The sidebar manual keeps these instructions concise. Invitation and
+administrator-unlock button spacing and network-column alignment do not change
+those workflows, so their existing instructions are retained.
+
+The calendar and presentation-file walkthroughs explain the new controls. Existing
+illustrations remain reference views; captions identify the older one-month/file
+layout where relevant. No real localhost records or sample-calendar fixtures were
+included in the guide. The PDF retrieval index and static application-control map
+are regenerated; the unchanged calendar-subscription procedure/form source hashes
+are reverified. This is retrieval maintenance, not model training. Existing approved
+coach cases require their normal revalidation when the guidance revision changes.
+
+The preceding refresh added ten shared online/PDF topics for ai coach: conversational
 questions, keyboard shortcuts, eight interactive walkthroughs, navigation while an
 answer is being prepared, stopping or resetting the conversation, answer ratings,
 missing-control reports, administrator request review, verified improvement cases,

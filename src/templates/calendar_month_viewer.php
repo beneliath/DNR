@@ -79,7 +79,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
     ),
 };
 ?>
-<section class="security-card calendar-card calendar-viewer" id="event-calendar" aria-label="Schedule calendar">
+<section class="security-card calendar-card calendar-viewer" id="event-calendar" aria-label="Schedule calendar" data-month="<?php echo $calendar_month['month']; ?>" data-mode="<?php echo $calendar_view_mode; ?>" data-today="<?php echo $calendar_month['today']; ?>">
     <div class="calendar-viewer-heading">
         <div class="calendar-month-heading-copy">
             <p class="calendar-viewer-kicker">Schedule Calendar</p>
@@ -211,7 +211,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
                 </thead>
                 <tbody>
                 <?php foreach (array_chunk($calendar_month['days'], 7) as $week): ?>
-                    <tr>
+                    <tr data-week="<?php echo $week[0]; ?>">
                     <?php foreach ($week as $date): ?>
                         <?php
                         $day = new DateTimeImmutable($date);

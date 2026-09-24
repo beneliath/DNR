@@ -10,6 +10,7 @@ header('Cache-Control: no-store, max-age=0');
 header('Pragma: no-cache');
 
 $user_id = (int) $_SESSION['user_id'];
+$calendar_fragment = ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET' && ($_GET['fragment'] ?? '') === 'calendar';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
     $action = is_string($_POST['action'] ?? null) ? $_POST['action'] : '';
@@ -100,7 +101,7 @@ $error = $_SESSION['_calendar_subscription_error'] ?? '';
 $subscription_form = $_SESSION['_calendar_subscription_form'] ?? [
     'label' => '', 'content' => calendarSubscriptionDefaultContent(),
 ];
-unset(
+if (!$calendar_fragment) unset(
     $_SESSION['_new_calendar_subscription'],
     $_SESSION['_calendar_subscription_message'],
     $_SESSION['_calendar_subscription_error'],
@@ -201,6 +202,12 @@ $calendar_month_task_count = count(array_filter(
 $calendar_task_status_labels = followUpTaskStatuses();
 $calendar_task_priority_labels = followUpTaskPriorities();
 $can_manage_calendar_tasks = canManageFollowUpTasks($_SESSION['role'] ?? '');
+if ($calendar_fragment) {
+    if ($calendar_viewer_error !== '') http_response_code(503);
+    header('Content-Type: text/html; charset=UTF-8');
+    include 'templates/calendar_month_viewer.php';
+    exit;
+}
 $subscriptions = calendarSubscriptionsForUser($conn, $user_id);
 $revoked_subscription_count = count(array_filter(
     $subscriptions,
@@ -228,6 +235,7 @@ $webcal_url = $calendar_url === null
     array (
       'path' => 'assets/js/calendar-subscription.min.js',
     ),
+    array ('path' => 'assets/js/calendar-scroll.min.js'),
   ),
 )); ?>
 <body class="calendar-subscription-body">

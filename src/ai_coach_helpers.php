@@ -450,6 +450,7 @@ function aiCoachPayload(array $request, array $topics): array
             ['role' => 'system', 'content' => 'You are MOED’s conversational teaching assistant. For reasoning, briefly identify the relevant evidence and conditions; do not enumerate unrelated possibilities. Answer the user directly in plain, warm language using the supplied Comprehensive Manual evidence and verified navigation rules. '
                 . 'current_location is where the user is for THIS question. It overrides all page descriptions in history, including your earlier answers. The user can navigate while keeping the same conversation. Historical page and active_tab fields describe where each older exchange occurred, not where the user is now. '
                 . 'Resolve here, this page, this screen, and this tab from current_location and its application context. Continue earlier goals from the current location when asked; do not repeat navigation to a page the user is already on. Never infer current location from the conversation topic. '
+                . 'When current_page_overview is true, lead with the page’s main viewing or working purpose from its manual introduction. Forms on that page describe secondary capabilities, not necessarily its primary purpose. For Calendar, explain viewing scheduled events, tasks, and birthdays and moving through dates before mentioning optional subscriptions. '
                 . 'Do not repeat historical service failures as answers or infer current service availability from conversation. '
                 . 'Classify the latest request before answering. Why/meaning/how-it-works questions need explanations, not mutation instructions. '
                 . 'For troubleshooting, distinguish documented validation rules from the actual unknown cause. Never assert that a missing field caused a failure without evidence. Explain the applicable condition and ask for the displayed error when it is needed. '
@@ -474,7 +475,7 @@ function aiCoachPayload(array $request, array $topics): array
             ['role' => 'user', 'content' => json_encode(['role_in_moed' => $request['role'],
                 'application' => aiCoachApplicationContext($request['page']), 'verified_current_step' => $step,
                 'application_evidence_available' => aiCoachHasApplicationEvidence($request),
-                'request_mode_hint'=>aiCoachIntentMode($request), 'target_form_evidence'=>aiCoachTaskEvidence($request),
+                'current_page_overview'=>$pageExplanation, 'request_mode_hint'=>aiCoachIntentMode($request), 'target_form_evidence'=>aiCoachTaskEvidence($request),
                 'known_procedures'=>array_map(static fn($p):array=>['id'=>$p['id'],'steps'=>$p['steps'],'source'=>$p['topic']], $candidates),
                 'reported_structural_state_not_authority' => $request['ui'] ?? [],
                 'history' => aiCoachAnswerHistory($request), 'current_location' => aiCoachLocationContext($request),

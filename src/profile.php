@@ -481,8 +481,8 @@ $task_digest_day_options = [
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="change_email">
             <div class="profile-field-grid">
-                <div class="form-group"><label for="new-email">New email address</label><input type="email" id="new-email" name="email" maxlength="254" autocomplete="email" required></div>
-                <div class="form-group"><label for="email-password">Current password</label><input type="password" id="email-password" name="password" autocomplete="current-password" maxlength="72" required></div>
+                <div class="form-group profile-recovery-email-field"><label for="new-email">New email address</label><input type="email" id="new-email" name="email" maxlength="254" autocomplete="email" required></div>
+                <div class="form-group profile-recovery-password-field"><label for="email-password">Current password</label><input type="password" id="email-password" name="password" autocomplete="current-password" maxlength="72" required></div>
                 <?php if (!empty($user['two_factor_enabled'])): ?>
                     <div class="form-group"><label for="email-authentication-code">Fresh authenticator code</label><input type="text" id="email-authentication-code" name="authentication_code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" required></div>
                 <?php endif; ?>

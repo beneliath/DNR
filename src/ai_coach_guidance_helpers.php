@@ -47,10 +47,12 @@ function aiCoachPageExplanation(array $request): bool
 {
     $q = aiCoachNormalize($request['question'] ?? '');
     if (preg_match('/^(where (am i|are we)( now)?|what (page|screen|tab) (am i|are we) (on|looking at)( now)?)$/', $q)) return true;
-    if (!(preg_match('/\b(this|current)\b/', $q) && preg_match('/\b(interface|page|screen|section|view|tab)\b/', $q))
+    $appPart = preg_match('/\b(?:this|current) (?:part|section|area|view) of (?:the |this )?(?:app|application)\b/', $q);
+    if (!$appPart && !(preg_match('/\b(this|current)\b/', $q) && preg_match('/\b(interface|page|screen|section|view|tab)\b/', $q))
         && !preg_match('/\bhere\b/', $q)) return false;
     if (aiCoachIntentMode($request) !== 'explain' && !preg_match('/^what (can|could) (i|we) do\b/', $q)) return false;
     $generic = explode(' ', 'function functionality part interface page screen section view tab purpose explain describe work used here current area now');
+    if ($appPart) $generic = array_merge($generic, ['app', 'application']);
     return array_diff(aiCoachSearchTerms($q), $generic) === [];
 }
 

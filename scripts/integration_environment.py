@@ -55,8 +55,9 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|verify]')
+    calendar_only = sys.argv[1:] == ['calendar']
     downloads_only = sys.argv[1:] == ['downloads']
     coach_only = sys.argv[1:] == ['coach']
     uploads_only = sys.argv[1:] == ['uploads']
@@ -110,6 +111,12 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if calendar_only:
+                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+                    'web', 'php', '/opt/dnr/tests/calendar_subscription_content_http_integration_test.php'], cwd=ROOT, env=env, check=True)
+                return
             if uploads_only:
                 subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
