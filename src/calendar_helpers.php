@@ -62,7 +62,7 @@ function calendarMonthContext($requested_month = null, $today_date = null) {
 
     $month_end = $month_start->modify('last day of this month');
     $grid_start = $month_start->modify('-' . $month_start->format('w') . ' days');
-    $grid_end = $month_end->modify('+' . (6 - (int) $month_end->format('w')) . ' days');
+    $grid_end = $grid_start->modify('+41 days');
     $days = [];
     for ($day = $grid_start; $day <= $grid_end; $day = $day->modify('+1 day')) {
         $days[] = $day->format('Y-m-d');

@@ -440,3 +440,14 @@ expectCalendar(
 );
 
 echo "Calendar helper tests passed.\n";
+
+// Four-, five-, and six-week months all supply a full six-week viewing window.
+foreach (['2026-02', '2026-09', '2026-08', '2028-02', '2026-12'] as $month) {
+    $window = calendarMonthContext($month, '2026-09-24');
+    if (count($window['days']) !== 42
+        || (new DateTimeImmutable($window['grid_start']))->format('w') !== '0'
+        || (new DateTimeImmutable($window['grid_end']))->format('w') !== '6'
+        || $window['grid_end'] !== (new DateTimeImmutable($window['grid_start']))->modify('+41 days')->format('Y-m-d')) {
+        throw new RuntimeException('Calendar must always supply six complete weeks: ' . $month);
+    }
+}

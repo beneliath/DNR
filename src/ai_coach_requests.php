@@ -3,6 +3,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/ai_coach_history_helpers.php';
+require_once __DIR__ . '/two_factor_helpers.php';
 require_once __DIR__ . '/ai_coach_helpers.php';
 require_once __DIR__ . '/ai_coach_improvement_helpers.php';
 startSecureSession();
@@ -24,6 +25,9 @@ if ($method === 'POST') {
     requireValidCsrfToken();
     try {
         $action = \Dnr\Http\RequestInput::string($_POST, 'action', 'review');
+        if (in_array($action, ['prepare_clear', 'clear_requests'], true)) {
+            requireRecentAdminElevation('ai_coach_requests.php');
+        }
         if ($action === 'prepare_delete') {
             $id = \Dnr\Http\RequestInput::positiveInt($_POST, 'id');
             if ($id === null) throw new InvalidArgumentException('Choose a request to delete.');
@@ -78,6 +82,7 @@ if ($method === 'POST') {
 }
 $review = \Dnr\Http\RequestInput::enum($_GET, 'review', ['all', 'unreviewed', 'useful', 'needs_work'], 'all');
 $query = \Dnr\Http\RequestInput::string($_GET, 'q', '', 200);
+$pageSize = paginationPageSizePreference('ai_coach_requests', $_GET['per_page'] ?? null);
 $statusLabels = ['unreviewed' => 'Unreviewed', 'useful' => 'Useful', 'needs_work' => 'Needs work'];
 $outcomeLabels = ['pending' => 'In progress', 'complete' => 'Completed', 'unavailable' => 'Unavailable', 'busy' => 'Busy', 'throttled' => 'Rate limited', 'error' => 'Error'];
 $failureLabels = ['connection' => 'Connection issue', 'timeout' => 'Timed out', 'service_error' => 'Service error', 'invalid_response' => 'Invalid answer'];
@@ -97,12 +102,12 @@ try {
         $from = "FROM ai_coach_requests r LEFT JOIN users u ON u.id=r.user_id
             WHERE (?='all' OR r.review_status=?) AND (LOCATE(?, r.question)>0 OR LOCATE(?, COALESCE(r.corrected_guidance, ''))>0)";
         $values = [$review, $review, $query, $query];
-        $pagination = queryPagination($conn, $from, 'ssss', $values, 20, $_GET['page'] ?? null);
+        $pagination = queryPagination($conn, $from, 'ssss', $values, $pageSize, $_GET['page'] ?? null);
         $rows = $conn->execute_query("SELECT r.id, r.created_at, r.page_path, r.question, r.outcome, r.review_status, r.duration_ms, r.user_role, r.user_feedback, u.username,
             JSON_UNQUOTE(JSON_EXTRACT(r.response_json, '$.failure.code')) AS failure_code,
             JSON_UNQUOTE(JSON_EXTRACT(r.response_json, '$.message')) AS response_message
-            {$from} ORDER BY r.id DESC LIMIT 20 OFFSET ?",
-            [...$values, $pagination['offset']])->fetch_all(MYSQLI_ASSOC);
+            {$from} ORDER BY r.id DESC LIMIT ? OFFSET ?",
+            [...$values, $pageSize, $pagination['offset']])->fetch_all(MYSQLI_ASSOC);
     }
 } catch (Throwable $exception) {
     http_response_code(503);
@@ -113,7 +118,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle('ai coach Requests'), ['styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css', 'assets/css/pages/ai_coach_requests.min.css']]); ?>
+<?php renderPageHead(applicationPageTitle('ai coach Requests'), ['styles' => ['assets/css/style.min.css', 'assets/css/modern.min.css', 'assets/css/pages/ai_coach_requests.min.css'], 'scripts' => [['path' => 'assets/js/ai-coach-requests.min.js']]]); ?>
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container coach-review-page">
@@ -194,11 +199,12 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
         </section>
     <?php elseif ($id === null && $pagination): ?>
         <form method="get" action="ai_coach_requests.php" class="coach-review-filters" role="search">
+            <input type="hidden" name="per_page" value="<?php echo $pageSize; ?>">
             <div><label for="coach-request-search">Search questions or corrections</label><input id="coach-request-search" type="search" name="q" value="<?php echo $escape($query); ?>" maxlength="200"></div>
             <div><label for="coach-review-filter">Assessment</label><select id="coach-review-filter" name="review"><option value="all">All requests</option><?php foreach ($statusLabels as $key => $label): ?><option value="<?php echo $key; ?>"<?php echo $review === $key ? ' selected' : ''; ?>><?php echo $label; ?></option><?php endforeach; ?></select></div>
             <button type="submit" class="button-secondary">Filter</button>
         </form>
-        <?php renderPagination($pagination['total'], $pagination['page'], 20, 'ai_coach_requests.php?' . http_build_query(['q' => $query, 'review' => $review]), 'requests', 'ai coach request pages', 'page', 'per_page', [20]); ?>
+        <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, 'ai_coach_requests.php?' . http_build_query(['q' => $query, 'review' => $review]), 'requests', 'ai coach request pages'); ?>
         <div class="data-table-scroll coach-request-table-wrapper" role="region" aria-label="ai coach request history" tabindex="0"><table class="data-table coach-request-table">
             <colgroup><col class="coach-request-question-col"><col class="coach-request-user-col"><col class="coach-request-result-col"><col class="coach-request-assessment-col"><col class="coach-request-actions-col"></colgroup>
             <thead><tr><th scope="col">Question</th><th scope="col">User</th><th scope="col">Result</th><th scope="col">Assessment</th><th scope="col">Actions</th></tr></thead><tbody>
@@ -215,6 +221,7 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             </tr><?php endforeach; ?>
             <?php if ($rows === []): ?><tr><td colspan="5" class="coach-request-empty">No requests recorded for this filter. New questions appear here after they are submitted to ai coach.</td></tr><?php endif; ?>
         </tbody></table></div>
+        <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, 'ai_coach_requests.php?' . http_build_query(['q' => $query, 'review' => $review]), 'requests', 'ai coach request pages'); ?>
     <?php endif; ?>
 </main>
 <?php include 'templates/footer.php'; ?>

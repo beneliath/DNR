@@ -149,6 +149,9 @@ try {
     $export=$http('ai_coach_improvements.php?export=1');
     coachHttpExpect($export['status']===200 && !str_contains($export['body'],$user['username']) && !str_contains($export['body'],'source_request_id'),'Export excludes operational identities and request links');
     coachHttpExpect($http('ai_coach_requests.php', ['action' => 'prepare_clear'])['status'] === 400, 'Log clear requires CSRF');
+    coachHttpExpect($http('ai_coach_requests.php', ['action' => 'prepare_clear'], $csrf)['status'] === 302, 'Preparing log clear requires Admin Unlock');
+    coachHttpExpect($http('ai_coach_requests.php', ['action' => 'clear_requests'], $csrf)['status'] === 302, 'Direct log clear requires Admin Unlock');
+    session_id($session); session_start(); $_SESSION['_admin_elevated_at'] = time(); session_write_close();
     coachHttpExpect($http('ai_coach_requests.php', ['action' => 'clear_requests'], $csrf)['status'] === 400, 'Direct deletion requires a server-side confirmation');
     // One active request must survive, even when it completes while an admin confirms.
     $conn->execute_query('UPDATE ai_coach_requests SET outcome=\'pending\', completed_at=NULL, created_at=UTC_TIMESTAMP(6) WHERE id=?', [$record['id']]);
@@ -167,6 +170,11 @@ try {
     $conn->execute_query('INSERT INTO ai_coach_requests(user_id, user_role, page_path, question, conversation_json, model_name, application_version, guidance_revision, outcome, completed_at) VALUES (?,\'admin\',\'help.php\',\'New question after confirmation\',\'[]\',\'test\',\'test\',\'test\',\'complete\',UTC_TIMESTAMP(6))', [$uid]);
     $newRequestId = (int) $conn->insert_id;
     $clear = ['action' => 'clear_requests', 'clear_token' => $clearToken[1]];
+    session_id($session); session_start(); $_SESSION['_admin_elevated_at'] = time() - 300; session_write_close();
+    coachHttpExpect($http('ai_coach_requests.php', $clear, $csrf)['status'] === 302, 'Unlock expiring while confirmation is open blocks deletion');
+    coachHttpExpect((int) $conn->query('SELECT COUNT(*) FROM ai_coach_requests')->fetch_row()[0] === $beforeCount + 1, 'Expired unlock preserves all requests');
+    session_id($session); session_start(); $_SESSION['_admin_elevated_at'] = time(); session_write_close();
+
     coachHttpExpect($http('ai_coach_requests.php', $clear, $csrf)['status'] === 303, 'Confirmed clear succeeds');
     $remaining = array_column($conn->query('SELECT id FROM ai_coach_requests ORDER BY id')->fetch_all(MYSQLI_ASSOC), 'id');
     coachHttpExpect(array_map('intval', $remaining) === [(int) $record['id'], $newRequestId], 'Clear preserves active and newly arriving requests');

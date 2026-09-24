@@ -36,7 +36,6 @@
         months.set(source.dataset.month, {
             title: source.querySelector('#calendar-month-title').textContent,
             summary: source.querySelector('.calendar-month-heading-copy .calendar-month-summary').textContent,
-            lastWeek: source.querySelector('.calendar-month-table tbody tr:last-child').dataset.week,
         });
     }
     remember(viewer);
@@ -135,6 +134,13 @@
             }
         }
     }
+    function sizeWindow() {
+        if (!desktop.matches || !body.rows.length) return;
+        const headerHeight = viewport.querySelector('thead').getBoundingClientRect().height;
+        const weekHeight = body.rows[0].getBoundingClientRect().height;
+        const frameHeight = headerHeight + 6 * weekHeight + viewport.offsetHeight - viewport.clientHeight;
+        viewport.style.setProperty('--calendar-window-height', `${Math.ceil(frameHeight)}px`);
+    }
     function goToMonth(month) {
         if (loading) { pendingJump = month; return; }
         failed = false;
@@ -147,12 +153,8 @@
             return;
         }
         const row = day.closest('tr');
-        const info = months.get(month);
-        const lastRow = body.querySelector(`tr[data-week="${info.lastWeek}"]`);
         const headerHeight = viewport.querySelector('thead').getBoundingClientRect().height;
-        const frameHeight = lastRow.getBoundingClientRect().bottom - row.getBoundingClientRect().top
-            + headerHeight + viewport.offsetHeight - viewport.clientHeight;
-        viewport.style.setProperty('--calendar-window-height', `${Math.ceil(frameHeight)}px`);
+        sizeWindow();
         viewport.scrollTop += row.getBoundingClientRect().top - viewport.getBoundingClientRect().top
             - headerHeight + 1;
         updateHeading();
@@ -190,8 +192,9 @@
             started = true;
             viewport.scrollTop = 0;
             goToMonth(viewer.dataset.month);
-        } else checkEdges();
+        } else { sizeWindow(); checkEdges(); }
     }
+    window.addEventListener('resize', sizeWindow);
     desktop.addEventListener('change', start);
     start();
 })();
