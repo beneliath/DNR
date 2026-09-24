@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "redacted": true,
+  "reviewed_date": "2026-09-24",
+  "investigation_environment": "local",
+  "source": {
+    "host": "192.168.1.150",
+    "container": "moed-web-1",
+    "environment": "production",
+    "application_version": "2.3.4"
+  },
+  "production_guidance_revision": "02cc6c54c5f63097e2941c66f0a5440413b843c1a157764fcddd3a551e9f0445",
+  "local_guidance_revision": "0982d52356e6b3a09eb0140a347c6a882fe7687cd6cf24b370b3b331ef2918fe",
+  "local_base_commit": "069f27a",
+  "pending_in_batch": 8,
+  "unchanged_previously_reviewed_signals": 7,
+  "prior_receipt": "docs/ai-coach-production-receipt-2026-09-23.json",
+  "requests": [
+    {
+      "id": 23,
+      "feedback_version": 1,
+      "review_version": 0,
+      "outcome": "complete",
+      "original_guidance_revision": "02cc6c54c5f63097e2941c66f0a5440413b843c1a157764fcddd3a551e9f0445",
+      "disposition": "fixed_locally",
+      "summary": "Explicit live-record access boundary prevents unsupported count guidance; no deployment."
+    }
+  ],
+  "sources": [
+    {
+      "path": "src/ai_coach_helpers.php",
+      "sha256": "38f313814aa721b655c698dc9327d4fca32c5673b03cb719eb487cc2cb918247"
+    },
+    {
+      "path": "src/ai_coach_guidance_helpers.php",
+      "sha256": "2857de6e986dc78ad09658ddf74917083c8f075ded39efd99073dfd4fe137677"
+    },
+    {
+      "path": "src/assets/js/ai-coach.js",
+      "sha256": "9e2a28794ad011ed1116772f26cb70ddefd495302ea0eeddb86af4d2c960c40d"
+    },
+    {
+      "path": "src/view_calendar.php",
+      "sha256": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+    },
+    {
+      "path": "src/data/ai-coach-comprehensive-manual.json",
+      "sha256": "f699729576c32c627af3c32bfe9663dc1abf33a09fb8f2601c78a582ed5ceb2b"
+    },
+    {
+      "path": "src/assets/docs/moed-comprehensive-user-manual.pdf",
+      "sha256": "e4b7539bad151e944d1ab25a95cc39367030afd695b18971a75f6ffd0f204dda"
+    },
+    {
+      "path": "tests/ai_coach_live_counts_test.php",
+      "sha256": "1c2b4c33afcb86a3a7e146a24ccad919472f6cd4620a06806cb69ecbe516d29c"
+    },
+    {
+      "path": "docs/ai-coach-production-review-2026-09-24.md",
+      "sha256": "e852821a097a33d5b92447a0fc52bbc9f51ebd924696e503535b60dbea979647"
+    }
+  ],
+  "tests": [
+    {
+      "command": "php tests/ai_coach_live_counts_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_helpers_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_location_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_sources_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_interface_reference_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_regression_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/ai_coach_database_retry_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "php tests/minified_assets_test.php",
+      "exit_code": 0
+    },
+    {
+      "command": "node --test tests/js/ai-coach.test.js tests/js/ai-coach-lifecycle.test.js",
+      "exit_code": 0
+    },
+    {
+      "command": "DNR_TEST_APP_IMAGE=dnr-review-hardening:test DNR_TEST_INGRESS_IMAGE=dnr-ingress:review-hardening DNR_TEST_DATABASE_IMAGE=dnr-database:local python3 scripts/integration_environment.py coach",
+      "exit_code": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    }
+  ],
+  "regression_failed_before_fix": true,
+  "replay_summary": {
+    "local_only": true,
+    "before_seconds": 8.594,
+    "after_seconds": 0,
+    "after_model_calls": 0
+  },
+  "fresh_local_model_probes": [
+    {
+      "intent": "monthly summary explanation",
+      "seconds": 6.686,
+      "model_calls": 1
+    },
+    {
+      "intent": "paraphrased live count",
+      "seconds": 5.243,
+      "model_calls": 1
+    }
+  ],
+  "limitations": [
+    "Broader live-count phrasing declined to calculate but asked an unnecessary date-range follow-up.",
+    "Earlier visual reports remain deferred pending authenticated local reproduction.",
+    "Historical production inference availability remains unverified.",
+    "Disposable worker test cleanup emitted existing session warnings after assertions passed."
+  ],
+  "production_versions_rechecked": true,
+  "local_workers_restarted": true,
+  "production_writes": false
+}
