@@ -2371,7 +2371,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "bf4c9107e6e1da0ed8547d7898d6321bcc269457f6bc30ab9638b169ca926dcc",
+      "sha256": "7fefc4e141981ad2c45bdf48331c562cbd79b252c20631157f8daf7298e23f8d",
       "controls": [
         {
           "kind": "h1",

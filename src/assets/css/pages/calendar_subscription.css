@@ -232,6 +232,26 @@ html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
         overscroll-behavior-y: contain;
     }
 
+    /* A busy day scrolls internally instead of stretching its week. */
+    .calendar-month-scroll.is-continuous td {
+        box-sizing: border-box;
+        height: 160px;
+    }
+
+    .calendar-month-scroll.is-continuous .calendar-day-heading {
+        height: 26px;
+    }
+
+    .calendar-month-scroll.is-continuous .calendar-day-items {
+        height: 111px;
+        overflow-y: auto;
+        align-content: start;
+    }
+
+    .calendar-month-scroll.is-continuous tbody tr:last-child td {
+        border-bottom: 1px solid var(--border);
+    }
+
     .calendar-month-scroll.is-continuous th {
         position: sticky;
         top: 0;
