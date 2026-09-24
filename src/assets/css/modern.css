@@ -3555,7 +3555,7 @@ textarea::placeholder {
 
 .presentations-inner-container {
   display: grid;
-  gap: 15px;
+  gap: 28px;
   margin-bottom: 15px;
 }
 
@@ -3579,6 +3579,19 @@ textarea::placeholder {
 
 .engagement-form .presentation-entry {
   background: var(--surface) !important;
+  border-color: var(--border-strong) !important;
+  margin-bottom: 0;
+  min-width: 0;
+}
+
+.presentation-entry-heading {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: var(--primary-subtle);
+  font-size: 1.15rem;
+  overflow-wrap: anywhere;
 }
 
 .engagement-form .address-section {
@@ -3659,10 +3672,77 @@ textarea::placeholder {
 }
 
 .presentation-notes-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 24px;
+  align-items: center;
+}
+
+.presentation-upload-details {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 10px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.presentation-file-drop {
+  min-width: 0;
+  width: 200px;
+  max-width: 100%;
+  justify-self: end;
+}
+
+html body button.presentation-file-drop-button {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 14px;
+  border: 1px dashed color-mix(in srgb, var(--primary) 50%, var(--border)) !important;
+  border-radius: var(--radius-sm);
+  /* Override the legacy neutral button colors in both themes. */
+  background: var(--primary-subtle) !important;
+  color: var(--text) !important;
+  white-space: normal;
+  text-align: center;
+}
+
+.presentation-drop-icon {
+  flex-shrink: 0;
+  color: var(--primary);
+}
+
+.presentation-file-drop-button span {
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+html body .presentation-file-drop.is-dragging button,
+html body button.presentation-file-drop-button:is(:hover, :focus-visible) {
+  border-color: var(--primary) !important;
+  background: var(--control-hover-bg) !important;
+}
+
+html body button.presentation-file-drop-button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+
+.presentation-drop-status {
+  display: block;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 760px) {
+  .presentation-notes-card {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .presentation-asset-label {

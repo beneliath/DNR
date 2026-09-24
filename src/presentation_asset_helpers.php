@@ -290,7 +290,8 @@ function presentationAssetRemovalRequested(array $submitted_row, string $asset_k
 function attachPresentationAssetChanges(
     array $presentations,
     $submitted_presentations,
-    array $files
+    array $files,
+    array $staged_assets = []
 ): array {
     $submitted_presentations = is_array($submitted_presentations) ? $submitted_presentations : [];
     $upload_map = presentationAssetUploadMap($files);
@@ -310,6 +311,10 @@ function attachPresentationAssetChanges(
             if ($definition['kind'] === 'image' && ($upload !== null || $remove)) {
                 throw new InvalidArgumentException('QR codes are now generated automatically. Reload the presentation form.');
             }
+            $staged = $staged_assets[$form_key][$asset_key] ?? null;
+            if ($staged !== null && ($upload !== null || $remove)) {
+                throw new InvalidArgumentException('Choose one file replacement or removal.');
+            }
             if ($upload !== null && $remove) {
                 throw new InvalidArgumentException(
                     'Choose either a replacement or removal for the ' . $definition['label'] . ', not both.'
@@ -323,6 +328,8 @@ function attachPresentationAssetChanges(
                     $asset = presentationSpeakerNotesFromUpload($upload);
                 }
                 $changes[$asset_key] = ['action' => 'replace', 'asset' => $asset];
+            } elseif ($staged !== null) {
+                $changes[$asset_key] = ['action' => 'replace', 'asset' => $staged];
             } elseif ($remove) {
                 $changes[$asset_key] = ['action' => 'remove'];
             }

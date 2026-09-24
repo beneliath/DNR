@@ -44,6 +44,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                     && (count($presentation_form_rows) > 1 || $presentation_topic !== '');
                 ?>
                 <div class="presentation-entry<?php echo $is_saved_presentation ? ' is-saved-presentation' : ''; ?>" id="presentation-<?php echo $presentation_dom_id; ?>">
+                    <h3 class="presentation-entry-heading">Presentation <?php echo $presentation_dom_id; ?></h3>
                     <?php if (!empty($presentation['id'])): ?>
                         <input type="hidden" name="presentations[<?php echo $presentation_dom_id; ?>][id]" value="<?php echo (int) $presentation['id']; ?>">
                     <?php endif; ?>

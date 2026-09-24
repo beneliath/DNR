@@ -12,6 +12,14 @@ const PRESENTATION_SLIDEDECK_MIMES = [
     'pptx' => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ];
 
+function requirePresentationSlidedeckRuntime(string $filename): void
+{
+    if (strtolower(pathinfo($filename, PATHINFO_EXTENSION)) === 'pptx'
+        && (!class_exists(ZipArchive::class) || !class_exists(DOMDocument::class))) {
+        throw new InvalidArgumentException('PowerPoint uploads are unavailable on this server. Ask an administrator to update the application container, then try again.');
+    }
+}
+
 function presentationSlidedeckFromPath(string $path, string $originalName, bool $requireUploadedFile = true): array
 {
     if (!is_file($path) || ($requireUploadedFile && !is_uploaded_file($path))) {
@@ -27,6 +35,7 @@ function presentationSlidedeckFromPath(string $path, string $originalName, bool 
     if (!isset(PRESENTATION_SLIDEDECK_MIMES[$extension])) {
         throw new InvalidArgumentException('Upload a PowerPoint .ppt or .pptx file.');
     }
+    requirePresentationSlidedeckRuntime($filename);
     $valid = false;
     if ($extension === 'ppt') {
         $valid = isValidLegacyPowerPointPath($path);

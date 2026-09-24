@@ -57,9 +57,9 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event.",
       "source_files": {
-        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
-        "templates/presentation_form.php": "6cd88d6085d6a0c06d02c0b340868e5d949bce1291d2dd4dbbab3106813fead8",
-        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+        "view_engagement.php": "9b851ea760e1fe3c5cb9fa44a72675b3fca38aed35af09bf0599a81aef2aedd9",
+        "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
+        "edit_engagement.php": "88ed99362525044d912e1c91ba2de46559e33b5b42ff380f6ed2592f4081988a"
       },
       "controls": {
         "presentations-tab": {
@@ -206,8 +206,8 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c",
-        "edit_engagement.php": "d3cab6234d2522c928cd5f726bc7f91cccd9f88ce29604d7796cc7e31912ccb0"
+        "view_engagement.php": "9b851ea760e1fe3c5cb9fa44a72675b3fca38aed35af09bf0599a81aef2aedd9",
+        "edit_engagement.php": "88ed99362525044d912e1c91ba2de46559e33b5b42ff380f6ed2592f4081988a"
       },
       "controls": {
         "edit-event": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
-        "view_engagement.php": "b0f1d7e4d6b65a282d41834a0433a58c404957751ad0e4dcb3ca53913038fc9c"
+        "view_engagement.php": "9b851ea760e1fe3c5cb9fa44a72675b3fca38aed35af09bf0599a81aef2aedd9"
       },
       "controls": {
         "tasks-tab": {
