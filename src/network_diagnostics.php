@@ -138,7 +138,7 @@ unset($_SESSION['_network_statistics_reset']);
                     <tr>
                         <th scope="col">75th percentile</th>
                         <th scope="col">Samples</th>
-                        <th scope="col" class="network-family-divider">75th percentile</th>
+                        <th scope="col" class="network-family-divider"><span class="network-ipv6-percentile">75th percentile</span></th>
                         <th scope="col">Samples</th>
                     </tr>
                 </thead>

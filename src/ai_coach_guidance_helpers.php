@@ -47,10 +47,12 @@ function aiCoachPageExplanation(array $request): bool
 {
     $q = aiCoachNormalize($request['question'] ?? '');
     if (preg_match('/^(where (am i|are we)( now)?|what (page|screen|tab) (am i|are we) (on|looking at)( now)?)$/', $q)) return true;
-    if (!(preg_match('/\b(this|current)\b/', $q) && preg_match('/\b(interface|page|screen|section|view|tab)\b/', $q))
+    $appPart = preg_match('/\b(?:this|current) (?:part|section|area|view) of (?:the |this )?(?:app|application)\b/', $q);
+    if (!$appPart && !(preg_match('/\b(this|current)\b/', $q) && preg_match('/\b(interface|page|screen|section|view|tab)\b/', $q))
         && !preg_match('/\bhere\b/', $q)) return false;
     if (aiCoachIntentMode($request) !== 'explain' && !preg_match('/^what (can|could) (i|we) do\b/', $q)) return false;
     $generic = explode(' ', 'function functionality part interface page screen section view tab purpose explain describe work used here current area now');
+    if ($appPart) $generic = array_merge($generic, ['app', 'application']);
     return array_diff(aiCoachSearchTerms($q), $generic) === [];
 }
 
@@ -175,6 +177,14 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     $support = aiCoachSupportReply($request);
     if ($support !== null) return $support;
     $q = aiCoachNormalize($request['question']);
+    // The request contains structural UI state, never a live record dataset.
+    // Count requests cannot be answered from a manual's example or monthly summary.
+    if (preg_match('/^(?:how many\b|(?:what is|what s) (?:the )?(?:total(?: number)?|number|count) of\b|(?:please )?(?:count|total)\b)/', $q)
+        && preg_match('/\b(engagements?|events?|tasks?|contacts?|organizations?|inquiries|presentations?)\b/', $q)
+        && !preg_match('/\b(can|could|may|should|allowed|maximum|minimum|limit|per|need|require|required)\b/', $q)) {
+        return ['message'=>'I can explain MOED’s controls, but I cannot read or count your live records. I cannot determine that total from the page or conversation. A manual description of a summary is not your actual record count.',
+            'question'=>'', 'sources'=>[], 'mode'=>'conversation', 'engine'=>'live-data-boundary'];
+    }
     // Preserve grounded current-page explanations. Structural metadata alone
     // does not identify an unnamed button or field the user is pointing at.
     $element = '(?:this|that) (?:button|field|control|section|part(?: of (?:the |this )?(?:interface|screen|page))?)';

@@ -396,12 +396,12 @@ $manual_access_summary = match ($manual_role) {
                     <section class="manual-card-grid manual-card-grid-two">
                         <article class="manual-card">
                             <h4>PDF Speaker Notes</h4>
-                            <p>Attach one PDF up to 100 MB to each presentation with <strong>Choose PDF</strong>, then save. Select <strong>View PDF Speaker Notes</strong> on the event detail page to open it in a new tab. Use <strong>Replace PDF</strong> or <strong>Remove current PDF</strong> on the edit page and save to update it.</p>
+                            <p>Attach one PDF up to 100 MB to each presentation with <strong>Choose PDF</strong>, or drag one file onto <strong>Drop PDF here</strong>. Select <strong>Save Changes</strong> to upload it. Select <strong>View PDF Speaker Notes</strong> on the event detail page to open it in a new tab. Use <strong>Replace PDF</strong> or <strong>Remove current PDF</strong> on the edit page and save to update it.</p>
                             <p>Use this file for notes you intend to share: anyone with its QR code can open the PDF without signing in.</p>
                         </article>
                         <article class="manual-card">
                             <h4>PPT Slidedeck</h4>
-                            <p>Attach one PowerPoint .ppt or .pptx file up to 500 MB with <strong>Choose PPT</strong>, then save. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
+                            <p>Attach one PowerPoint .ppt or .pptx file up to 500 MB with <strong>Choose PPT</strong>, or drag one file onto <strong>Drop PowerPoint here</strong>. Select <strong>Save Changes</strong> to upload it. Use <strong>Replace PPT</strong> or <strong>Remove current PPT</strong> and save to update it. <strong>Download PPT Slidedeck</strong>, next to the notes button, downloads the file to open in PowerPoint.</p>
                             <p>When editing an engagement, Save Changes uploads PowerPoint and PDF files in small pieces, with a progress indicator. Keep the page open until saving finishes. Interrupted transfers retry automatically; if an error remains, select Save Changes to retry. PowerPoint files may be up to 500 MB; PDFs may be up to 100 MB.</p>
                             <p>Anyone with the PPT Slidedeck QR link can download the file without signing in. Replacing it keeps the same QR code and statistics. Removing it hides the code and stops downloads; uploading again restores the same link.</p>
                         </article>
@@ -412,7 +412,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                     </section>
                     <p>Select <strong>View QR Codes PDF</strong>, choose the codes to include, then select <strong>Prepare PDF</strong> to view, save, or print a single landscape sheet with those labeled codes, schedule, and venue. Use <strong>Select all</strong> to include every available code. Drag any code by its handle to reorder the list, whether checked or unchecked. Only checked codes appear in the PDF, in that order from left to right and then top to bottom. Keyboard users can focus a handle and press the Up or Down arrow key. Missing schedule details show <strong>To be confirmed</strong>. Disabled codes are labeled; file codes without an uploaded PDF or PowerPoint and previous speakers’ codes are left out. Viewing the sheet does not add visits.</p>
-                    <p>Use <strong>Edit Presentations</strong> on the event’s Presentations tab to open the presentation section of Edit Engagement. File replacement and removal remain pending until you select <strong>Save Changes</strong> in the persistent bottom bar; the notice beside the PDF or PPT identifies the pending change. Choose replacement or removal, not both, then save and check the updated file details. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access; their <strong>Reset Presentation Statistics</strong> action appears with the saved presentation’s management controls.</p>
+                    <p>Use <strong>Edit Presentations</strong> on the event’s Presentations tab to open the presentation section of Edit Engagement. Numbered headings such as <strong>Presentation 1</strong> and <strong>Presentation 2</strong> separate the entries; check the topic and speaker before changing a file. File replacement and removal remain pending until you select <strong>Save Changes</strong> in the persistent bottom bar; the notice beside the PDF or PPT identifies the pending change. Choose replacement or removal, not both, then save and check the updated file details. Presentations can be archived and restored separately from the event. When restoring, update any date that falls outside the event’s current date range. Administrators can permanently delete presentations after confirming their access; their <strong>Reset Presentation Statistics</strong> action appears with the saved presentation’s management controls.</p>
                     <p>When postponing or canceling an event, link it to a replacement from the same organization. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> displays both “rescheduled as” and “rescheduled from” references and prevents circular links.</p>
                 </section>
 
@@ -705,7 +705,7 @@ $manual_access_summary = match ($manual_role) {
                 </article>
             </section>
 
-            <section class="manual-chapter" id="map-calendar" data-manual-section data-keywords="map location geocode pins lifecycle confirmation filters dates fit visible OpenStreetMap calendar month previous next today selector Events My Tasks All Tasks Everything color due date subscription private link webcal device revoke purge presentations one hour schedule privacy">
+            <section class="manual-chapter" id="map-calendar" data-manual-section data-keywords="map location geocode pins lifecycle confirmation filters dates fit visible OpenStreetMap calendar scroll weeks adjacent months retry previous next today selector Events My Tasks All Tasks Everything color due date subscription private link webcal device revoke purge presentations one hour schedule privacy">
                 <header class="manual-chapter-heading">
                     <span>Chapter 09</span>
                     <h2>Map and Calendar</h2>
@@ -723,8 +723,8 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">View</span>
                         <h3>Monthly Calendar</h3>
-                        <p>The Calendar page opens to the current month. Use <strong>Previous</strong> and <strong>Next</strong> to move one month at a time, or <strong>Today</strong> to return to the current month.</p>
-                        <p>The current day has its own rose-colored cell and <strong>Today</strong> badge, distinct from every event and task color.</p>
+                        <p>The Calendar page opens to the current month. On a desktop, scroll up or down inside the calendar to see consecutive weeks across month boundaries, such as late October beside early November. More weeks and their items load as you scroll; weekday headings stay visible. Use <strong>Previous</strong> or <strong>Next</strong> to show the complete month before or after the month named in the heading. <strong>Today</strong> returns to the current month from its first week.</p>
+                        <p>The current day has its own rose-colored cell and <strong>Today</strong> badge, distinct from every event and task color. Your content filter stays selected while you browse. If more weeks cannot load, use <strong>Retry loading weeks</strong> or try the month controls again.</p>
                         <p>Select an event to open its details. Tasks with due dates link to task work; editors and administrators return to the same calendar view after editing.</p>
                         <a href="view_calendar.php#event-calendar" class="manual-inline-link">Open the month view</a>
                     </article>
@@ -923,7 +923,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
             </section>
 
-            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile ai coach requests improvements feedback review helpful needs work clear log verified guidance approve revalidation">
+            <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile ai coach requests improvements feedback review helpful needs work delete individual coach request clear log verified guidance approve revalidation">
                 <header class="manual-chapter-heading">
                     <span>Chapter 12</span>
                     <h2>Administration</h2>
@@ -959,9 +959,15 @@ $manual_access_summary = match ($manual_role) {
                     <p>The improvement process is to investigate a real request, verify the intended workflow, correct the manual or application guidance, and test the result. Development reviews are performed by the maintainer or a separately configured review automation. The queue itself does not run a development agent, publish changes, or retrain the language model.</p>
                 </section>
 
+                <section class="manual-subsection" id="coach-delete-request">
+                    <h3>Delete an ai coach Request</h3>
+                    <p>Administrators can select <strong>Delete</strong> beside an entry in ai coach Requests, or <strong>Delete request</strong> on its detail page. Review the identified request, then select <strong>Delete request</strong> to confirm or <strong>Cancel</strong> to keep it.</p>
+                    <p>Deletion permanently removes that question, its answer, feedback, review notes, and corrections. Linked improvement cases are kept. If the request is still being answered or has changed since confirmation, reload it before trying again. Deleting an entry does not clear the whole log, end an open conversation, or train the model.</p>
+                </section>
+
                 <section class="manual-subsection" id="coach-clear-log">
                     <h3>Clear the ai coach Request Log</h3>
-                    <p>On the request list, select <strong>Clear request log</strong> and review the number of entries in the confirmation. The final <strong>Delete entries</strong> button includes that count; select it to confirm or <strong>Cancel</strong> to keep the log.</p>
+                    <p>On the request list, select the red <strong>Clear request log</strong> button and review the number of entries in the confirmation. The final <strong>Delete entries</strong> button includes that count; select it to confirm or <strong>Cancel</strong> to keep the log.</p>
                     <p>This permanently removes the requests included in the confirmation and their answers, review notes, and corrections for <strong>all users</strong>, regardless of the current search or assessment filter. Requests still being answered and newly submitted requests are kept. Improvement cases and development-review records are preserved. Clearing the log does not clear anyone’s open conversation or change the model; new requests continue to be recorded.</p>
                 </section>
 

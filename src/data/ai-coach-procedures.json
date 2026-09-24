@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "MOED 2.3.3 source and Comprehensive Manual, 2026-09-23",
+  "verified_against": "MOED 2.3.5 source and Comprehensive Manual, 2026-09-24",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -571,7 +571,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_calendar.php": "4130b065d75c73345a8eb7a12a800126b10b86cd340e241dd462da51af6745f2"
+        "view_calendar.php": "fdf7fc27b21a7982c6f48149484f14059b51762119684d53672a16b8eaed50fc"
       },
       "subjects": [
         "calendar",

@@ -114,6 +114,23 @@ try {
         completeIntegrationTestMfaSession();
     $cookie = session_name() . '=' . $sessionId;
     session_write_close();
+    expectCalendarContent($request('view_calendar.php?fragment=calendar')['status'] === 302, 'Scrolling fragments require login');
+    foreach ([-1, 0, 1] as $offset) {
+        $visibleDate = (new DateTimeImmutable(substr($date, 0, 7) . '-15'))->modify(sprintf('%+d month', $offset))->format('Y-m-d');
+        $conn->execute_query('UPDATE engagements SET event_start_date=?, event_end_date=? WHERE id=?', [$visibleDate, $visibleDate, $engagementId]);
+        $conn->execute_query('UPDATE follow_up_tasks SET due_date=? WHERE id=?', [$visibleDate, $taskIds[0]]);
+        $fragmentPath = 'view_calendar.php?fragment=calendar&month=' . substr($visibleDate, 0, 7);
+        $fragment = $request($fragmentPath . '&show=everything', null, $cookie);
+        expectCalendarContent($fragment['status'] === 200, 'Adjacent month fragment must load successfully');
+        expectCalendarContent(str_contains($fragment['body'], 'Calendar event fixture')
+            && str_contains($fragment['body'], 'Calendar work fixture')
+            && str_contains($fragment['body'], 'datetime="' . $visibleDate . '"'), 'Scrolling must return populated event and task cells for each requested month');
+        $eventsOnly = $request($fragmentPath . '&show=events', null, $cookie);
+        expectCalendarContent(str_contains($eventsOnly['body'], 'Calendar event fixture')
+            && !str_contains($eventsOnly['body'], 'Calendar work fixture'), 'Scrolling preserves the selected content filter');
+    }
+    $conn->execute_query('UPDATE engagements SET event_start_date=?, event_end_date=? WHERE id=?', [$date, $date, $engagementId]);
+    $conn->execute_query('UPDATE follow_up_tasks SET due_date=? WHERE id=?', [$date, $taskIds[0]]);
     expectCalendarContent($request('view_calendar.php')['status'] === 302, 'Subscription management requires login');
     expectCalendarContent($request('view_calendar.php', ['action' => 'create', 'label' => 'No CSRF', 'content' => ['events']], $cookie)['status'] === 400, 'Creation requires CSRF');
     foreach ([[], ['unknown'], [['events']]] as $invalid) {

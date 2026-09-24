@@ -19,14 +19,17 @@
 .coach-review-filters label { display: block; margin-bottom: 6px; }
 .coach-review-filters input, .coach-review-filters select { margin-bottom: 0; }
 .coach-request-table-wrapper { border: 1px solid var(--border); border-radius: var(--radius-md, 12px); background: var(--surface); }
-.coach-request-table { width: 100%; min-width: 720px; table-layout: fixed; border-collapse: collapse; margin: 0; }
+.coach-request-table { width: 100%; min-width: 900px; table-layout: fixed; border-collapse: collapse; margin: 0; }
 .coach-request-table th, .coach-request-table td { padding: 20px; text-align: left; vertical-align: top; line-height: 1.5; overflow-wrap: anywhere; }
 .coach-request-table th { background: var(--surface-subtle); color: var(--text-muted); font-weight: 650; }
 .coach-request-table td { border-top: 1px solid var(--border); }
 .coach-request-table tbody tr:hover { background: var(--surface-hover); }
-.coach-request-question-col { width: 42%; }
-.coach-request-user-col { width: 24%; }
-.coach-request-result-col, .coach-request-assessment-col { width: 17%; }
+.coach-request-question-col { width: 36%; }
+.coach-request-user-col { width: 22%; }
+.coach-request-result-col, .coach-request-assessment-col { width: 15%; }
+.coach-request-actions-col { width: 12%; }
+.coach-request-delete-form { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.coach-request-delete-form button { margin: 0; }
 .coach-request-user { font-weight: 600; }
 .coach-request-secondary.coach-request-timestamp { display: grid; gap: 2px; margin-top: 10px; }
 .coach-request-timestamp span { white-space: nowrap; }

@@ -32,16 +32,27 @@ The persistent [minor bump deployment rule](../.cursor/rules/minor-bump-deployme
 
 ### Standing destination authorization
 
-On September 23, 2026, the user explicitly reaffirmed that each minor, major, or
-super bump deployment directive includes authorization to send the pending project
-source and release artifacts to GitHub `beneliath/DNR` and GitLab
-`https://gitlab.beneliath.com/SiMM/dnr.git`, publish the required release branch,
-main, and version tag, and deploy the qualified release to s1 (`192.168.1.150`).
-This authorization is implicit in future invocations; do not request redundant
-confirmation. Protected merge/CI checks, verified backups, and readiness checks
-remain mandatory. If an external approval system rejects an action, respect that
-block and identify it accurately rather than suggesting the user's directive was
-incomplete.
+The user reaffirmed on September 24, 2026 that **"do a minor bump deployment"**,
+**"do a major bump deployment"**, and **"do a super bump deployment"** each include
+the following destination-specific authorization, as do requests to continue those
+deployments:
+
+> I authorize publishing all pending project source and release artifacts, including
+> the release branch, main, and version tag, to GitHub `beneliath/DNR`
+> (`git@github.com:beneliath/DNR.git`) and GitLab `SiMM/dnr`
+> (`https://gitlab.beneliath.com/SiMM/dnr.git`), and deploying that qualified release
+> to s1 at `192.168.1.150`.
+
+Infer this authorization as part of the command's meaning without requiring the
+user to repeat the payload or destinations. Verify the configured remote URLs
+against these destinations before publishing. The shorthand does not imply
+permission for unrelated data or a different destination.
+
+When requesting tool approval, state the expanded authorization, release payload,
+and verified destinations. Protected merge/CI checks, verified backups, and
+readiness checks remain mandatory. Project rules cannot override external approval
+decisions. If an external approval system rejects an action, respect the block and
+identify it accurately rather than suggesting the user's directive was incomplete.
 
 ## Major bump deployment shorthand
 

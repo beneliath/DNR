@@ -58,4 +58,29 @@ foreach ([[], $unknownPage] as $request) {
     } catch (RuntimeException $exception) { $rejected = true; }
     expectCoachSource($rejected, 'An uncited factual answer still requires verified grounding');
 }
+// The exact reported wording must select the calendar introduction, even with stale context.
+foreach (['admin', 'editor', 'reviewer'] as $role) {
+    foreach (['what is the purpose of this part of the app?', 'Explain this section of the application'] as $text) {
+        $request = aiCoachValidateRequest(['question'=>$text, 'page'=>'view_calendar.php',
+            'topic'=>'manual-topic-orientation-use-the-sidebar', 'step'=>'presentation-save',
+            'history'=>[['role'=>'assistant', 'content'=>'Create a private calendar subscription link.']]], $role);
+        expectCoachSource(aiCoachPageExplanation($request), 'App-part wording describes the current page');
+        $topics = aiCoachRelevantTopics($request, aiCoachRankEvidence(aiCoachContextQuestion($request), '', $role));
+        expectCoachSource(array_column($topics, 'id') === ['manual-topic-map-calendar-monthly-calendar'],
+            'Calendar overview excludes sidebar and subscription-only citations');
+        $context = json_decode(aiCoachPayload($request, $topics)['messages'][1]['content'], true);
+        expectCoachSource($context['current_page_overview'] && $context['history'] === []
+            && $context['known_procedures'] === [] && $context['verified_current_step'] === null,
+            'Calendar purpose cannot inherit an old subscription workflow');
+        $reply = aiCoachGenerate($request);
+        expectCoachSource(array_column($reply['sources'], 'id') === ['manual-topic-map-calendar-monthly-calendar'],
+            'Fallback also links directly to the calendar introduction');
+    }
+}
+foreach (['What is the purpose of this app?', 'What is the purpose of this application?',
+    'What is the purpose of the subscription section of this app?'] as $text) {
+    expectCoachSource(!aiCoachPageExplanation(aiCoachValidateRequest(['question'=>$text, 'page'=>'view_calendar.php'], 'admin')),
+        'Whole-application and named-section questions retain their own scope');
+}
+
 echo "Coach citation relevance and application grounding tests passed.\n";

@@ -14,14 +14,32 @@ if (!in_array($method, ['GET', 'POST'], true)) { header('Allow: GET, POST'); htt
 $id = \Dnr\Http\RequestInput::positiveInt($_GET, 'id');
 $error = '';
 $clearConfirmation = null;
+$deleteConfirmation = null;
+$deletedId = $_SESSION['ai_coach_deleted_id'] ?? null;
+unset($_SESSION['ai_coach_deleted_id']);
 $clearedCount = $_SESSION['ai_coach_cleared_count'] ?? null;
 unset($_SESSION['ai_coach_cleared_count']);
-if ($method === 'GET') unset($_SESSION['ai_coach_clear_confirmation']);
+if ($method === 'GET') unset($_SESSION['ai_coach_clear_confirmation'], $_SESSION['ai_coach_delete_confirmation']);
 if ($method === 'POST') {
     requireValidCsrfToken();
     try {
         $action = \Dnr\Http\RequestInput::string($_POST, 'action', 'review');
-        if ($action === 'prepare_clear') {
+        if ($action === 'prepare_delete') {
+            $id = \Dnr\Http\RequestInput::positiveInt($_POST, 'id');
+            if ($id === null) throw new InvalidArgumentException('Choose a request to delete.');
+        } elseif ($action === 'delete_request') {
+            $snapshot = $_SESSION['ai_coach_delete_confirmation'] ?? null;
+            if (!is_array($snapshot) || ($snapshot['expires'] ?? 0) < time()
+                || !hash_equals($snapshot['token'], \Dnr\Http\RequestInput::string($_POST, 'delete_token'))) {
+                throw new InvalidArgumentException('The delete confirmation expired. Choose Delete again.');
+            }
+            aiCoachDeleteRequest($conn, $snapshot);
+            unset($_SESSION['ai_coach_delete_confirmation']);
+            $_SESSION['ai_coach_deleted_id'] = (int) $snapshot['id'];
+            applicationLog('info', 'ai coach request deleted', ['user_id' => (int) $_SESSION['user_id'], 'request_id' => (int) $snapshot['id']]);
+            header('Location: ai_coach_requests.php', true, 303);
+            exit;
+        } elseif ($action === 'prepare_clear') {
             $id = null;
             $clearConfirmation = aiCoachClearSnapshot($conn) + ['token' => bin2hex(random_bytes(32)), 'expires' => time() + 600];
             $_SESSION['ai_coach_clear_confirmation'] = $clearConfirmation;
@@ -70,6 +88,11 @@ try {
         $detail = $conn->execute_query('SELECT r.*, u.username, reviewer.username AS reviewer_name FROM ai_coach_requests r
             LEFT JOIN users u ON u.id=r.user_id LEFT JOIN users reviewer ON reviewer.id=r.reviewed_by WHERE r.id=?', [$id])->fetch_assoc();
         if (!$detail) { http_response_code(404); $error = 'Request not found.'; }
+        elseif ($method === 'POST' && ($action ?? '') === 'prepare_delete' && $error === '') {
+            $deleteConfirmation = array_intersect_key($detail, array_flip(['id', 'review_version', 'feedback_version']))
+                + ['token' => bin2hex(random_bytes(32)), 'expires' => time() + 600];
+            $_SESSION['ai_coach_delete_confirmation'] = $deleteConfirmation;
+        }
     } else {
         $from = "FROM ai_coach_requests r LEFT JOIN users u ON u.id=r.user_id
             WHERE (?='all' OR r.review_status=?) AND (LOCATE(?, r.question)>0 OR LOCATE(?, COALESCE(r.corrected_guidance, ''))>0)";
@@ -97,12 +120,24 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
     <div class="page-heading"><div><h1>ai coach Requests</h1><p class="page-intro">Review real questions and improve step-by-step guidance.</p></div>
         <?php if ($id !== null): ?><a class="button-secondary" href="ai_coach_requests.php">All requests</a>
         <?php elseif ($clearConfirmation === null && $pagination): ?>
-            <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><button type="submit" name="action" value="prepare_clear" class="button-secondary">Clear request log</button></form>
+            <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><button type="submit" name="action" value="prepare_clear" class="button-delete">Clear request log</button></form>
         <?php endif; ?>
     </div>
     <p><a class="button-secondary" href="ai_coach_improvements.php">Guidance improvements</a></p>
     <p>Administrator access only. Ratings, failed answers, and slow responses enter the feedback review queue. Verified improvements are tested before reuse; ratings do not directly train the model.</p>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo $escape($error); ?></p><?php endif; ?>
+    <?php if (is_int($deletedId)): ?><p class="success" role="status">Request #<?php echo $deletedId; ?> deleted.</p><?php endif; ?>
+    <?php if ($deleteConfirmation !== null): ?>
+        <section class="coach-review-card" aria-labelledby="delete-request-heading">
+            <h2 id="delete-request-heading">Delete Request #<?php echo (int) $detail['id']; ?>?</h2>
+            <p>This permanently deletes this question, its answer, feedback, review notes, and corrections. This cannot be undone. Linked improvement cases are kept.</p>
+            <form method="post" action="ai_coach_requests.php">
+                <?php echo csrfInput(); ?><input type="hidden" name="delete_token" value="<?php echo $escape($deleteConfirmation['token']); ?>">
+                <button type="submit" name="action" value="delete_request" class="button-delete">Delete request</button>
+                <a class="button-secondary" href="ai_coach_requests.php?id=<?php echo (int) $detail['id']; ?>">Cancel</a>
+            </form>
+        </section>
+    <?php endif; ?>
     <?php if (is_int($clearedCount)): ?><p class="success" role="status">Request log cleared. <?php echo $clearedCount; ?> entries deleted. New questions will continue to be recorded.</p><?php endif; ?>
     <?php if ($clearConfirmation !== null): ?>
         <section class="coach-review-card" aria-labelledby="clear-log-heading">
@@ -120,6 +155,9 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
         <?php if (isset($_GET['saved']) && $error === ''): ?><p class="success" role="status">Review saved. The original response is preserved.</p><?php endif; ?>
         <section class="coach-review-card" aria-labelledby="request-heading">
             <h2 id="request-heading">Request #<?php echo (int) $detail['id']; ?></h2>
+            <?php if ($deleteConfirmation === null): ?>
+                <form method="post" action="ai_coach_requests.php"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo (int) $detail['id']; ?>"><button type="submit" name="action" value="prepare_delete" class="button-delete">Delete request</button></form>
+            <?php endif; ?>
             <p><?php echo $escape(applicationTimestampLabel($detail['created_at'], 'M j, Y g:i:s A')); ?> · <?php echo $escape($detail['username'] ?: 'Deleted user'); ?> · <?php echo $escape($detail['user_role']); ?></p>
             <dl class="coach-review-metadata">
                 <div><dt>Page</dt><dd><?php echo $escape($detail['page_path']); ?></dd></div>
@@ -162,8 +200,8 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
         </form>
         <?php renderPagination($pagination['total'], $pagination['page'], 20, 'ai_coach_requests.php?' . http_build_query(['q' => $query, 'review' => $review]), 'requests', 'ai coach request pages', 'page', 'per_page', [20]); ?>
         <div class="data-table-scroll coach-request-table-wrapper" role="region" aria-label="ai coach request history" tabindex="0"><table class="data-table coach-request-table">
-            <colgroup><col class="coach-request-question-col"><col class="coach-request-user-col"><col class="coach-request-result-col"><col class="coach-request-assessment-col"></colgroup>
-            <thead><tr><th scope="col">Question</th><th scope="col">User</th><th scope="col">Result</th><th scope="col">Assessment</th></tr></thead><tbody>
+            <colgroup><col class="coach-request-question-col"><col class="coach-request-user-col"><col class="coach-request-result-col"><col class="coach-request-assessment-col"><col class="coach-request-actions-col"></colgroup>
+            <thead><tr><th scope="col">Question</th><th scope="col">User</th><th scope="col">Result</th><th scope="col">Assessment</th><th scope="col">Actions</th></tr></thead><tbody>
             <?php foreach ($rows as $row):
                 $failureEcho = $row['outcome'] === 'complete' && aiCoachIsFailureText((string) $row['response_message']);
                 $failureCode = $failureEcho ? 'invalid_response' : ($row['failure_code'] ?? '');
@@ -173,8 +211,9 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
                 <td><span class="coach-request-user"><?php echo $escape($row['username'] ?: 'Deleted user'); ?></span><small class="coach-request-secondary"><?php echo $escape(ucfirst($row['user_role'])); ?></small><small class="coach-request-secondary coach-request-timestamp"><span><?php echo $escape(applicationTimestampLabel($row['created_at'], 'M j, Y')); ?></span><span><?php echo $escape(applicationTimestampLabel($row['created_at'], 'g:i A T')); ?></span></small></td>
                 <td><span class="coach-request-badge coach-result-<?php echo $escape($displayOutcome); ?>"><?php echo $escape($failureLabels[$failureCode] ?? $outcomeLabels[$displayOutcome] ?? ucfirst($displayOutcome)); ?></span><?php if ($row['duration_ms'] !== null): ?><small class="coach-request-secondary"><?php echo number_format((int) $row['duration_ms'] / 1000, 1); ?> s</small><?php endif; ?></td>
                 <td><span class="coach-request-badge coach-assessment-<?php echo $escape($row['review_status']); ?>"><?php echo $escape($statusLabels[$row['review_status']] ?? $row['review_status']); ?></span><?php if ($row['user_feedback']): ?><small class="coach-request-secondary">User: <?php echo $escape(str_replace('_',' ',$row['user_feedback'])); ?></small><?php endif; ?></td>
+                <td><form method="post" action="ai_coach_requests.php" class="coach-request-delete-form"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo (int) $row['id']; ?>"><button type="submit" name="action" value="prepare_delete" class="button-delete" aria-label="Delete request #<?php echo (int) $row['id']; ?>">Delete</button></form></td>
             </tr><?php endforeach; ?>
-            <?php if ($rows === []): ?><tr><td colspan="4" class="coach-request-empty">No requests recorded for this filter. New questions appear here after they are submitted to ai coach.</td></tr><?php endif; ?>
+            <?php if ($rows === []): ?><tr><td colspan="5" class="coach-request-empty">No requests recorded for this filter. New questions appear here after they are submitted to ai coach.</td></tr><?php endif; ?>
         </tbody></table></div>
     <?php endif; ?>
 </main>

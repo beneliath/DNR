@@ -223,3 +223,31 @@ html body .calendar-subscription #copy-calendar-url:not(.is-copied) {
     .calendar-subscription-table td:nth-child(4)::before { content: "Status"; }
     .calendar-subscription-table td:nth-child(5)::before { content: "Action"; }
 }
+
+@media (min-width: 861px) {
+    .calendar-month-scroll.is-continuous {
+        height: var(--calendar-window-height, auto);
+        overflow-y: auto;
+        overflow-anchor: none;
+        overscroll-behavior-y: contain;
+    }
+
+    .calendar-month-scroll.is-continuous th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+}
+
+.calendar-scroll-status {
+    margin: 10px 0 0;
+    color: var(--text-muted);
+    font-size: var(--font-size-small);
+}
+
+@media (max-width: 860px) {
+    .calendar-scroll-status,
+    .calendar-scroll-status + button {
+        display: none;
+    }
+}

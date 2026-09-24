@@ -72,8 +72,16 @@
         pages.forEach(function (page) {
             const row = body.insertRow();
             [page.page_path, formatMilliseconds(page.ipv4_p75_ms), page.ipv4_samples,
-                formatMilliseconds(page.ipv6_p75_ms), page.ipv6_samples].forEach(function (value) {
-                row.insertCell().textContent = String(value);
+                formatMilliseconds(page.ipv6_p75_ms), page.ipv6_samples].forEach(function (value, index) {
+                const cell = row.insertCell();
+                if (index === 3) {
+                    const percentile = document.createElement('span');
+                    percentile.className = 'network-ipv6-percentile';
+                    percentile.textContent = String(value);
+                    cell.appendChild(percentile);
+                } else {
+                    cell.textContent = String(value);
+                }
             });
         });
     }

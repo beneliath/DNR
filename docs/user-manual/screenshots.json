@@ -442,7 +442,7 @@
     "title": "Edit presentation details",
     "route": "edit_engagement.php?id=1",
     "steps": [
-      "Choose a saved speaker and enter the topic, date, time, duration, and expected attendance.",
+      "Find the intended numbered presentation, check its topic and speaker, and enter the date, time, duration, and expected attendance.",
       "Record actual attendance after the event. Zero is valid when nobody attended.",
       "Continue to Presentation Files & QR Codes below these fields to add PDF notes and a PowerPoint file.",
       "Use Save Changes in the persistent bottom bar to save the whole engagement form, including other edits on the page."
@@ -456,7 +456,8 @@
       506
     ],
     "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
-    "captured_at": "2026-09-22"
+    "captured_at": "2026-09-22",
+    "note": "The retained illustration shows the same presentation fields; the current view and editor also number each presentation section."
   },
   {
     "chapter": 5,
@@ -471,12 +472,12 @@
       511
     ],
     "steps": [
-      "In Presentation Files & QR Codes, use Choose PDF or Choose PPT to add a file. PPT Slidedeck accepts .ppt and .pptx.",
+      "In the intended numbered presentation, choose a file or drop one onto Drop PDF here or Drop PowerPoint here. PPT Slidedeck accepts .ppt and .pptx. Choosing or dropping a file does not save it.",
       "PDF files may be up to 100 MB and PowerPoint files up to 500 MB. Save Changes uploads files in small chunks. Watch the progress indicator, keep the page open, and wait for saving to finish. Interrupted chunks retry automatically.",
       "Use Replace PDF or Replace PPT to select an updated file. The pending notice remains until you select Save Changes in the persistent bottom bar, which saves the entire engagement form.",
       "To stop sharing a file, select its Remove current checkbox, review Removal pending, then Save Changes. Choose replacement or removal, not both. The existing QR link and statistics are retained."
     ],
-    "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in.",
+    "note": "Only upload files intended for the audience: anyone with the relevant QR link can open the notes or download the PowerPoint without signing in. The retained illustration shows the file controls; the current editor also provides separate PDF and PowerPoint drop areas.",
     "captured_at": "2026-09-22",
     "framing": "Original browser capture framed around the PDF and PowerPoint controls. Current upload limits are stated in the numbered instructions below."
   },
@@ -1126,7 +1127,7 @@
     "title": "Browse the month calendar",
     "route": "view_calendar.php",
     "steps": [
-      "Use Previous, Next, or Today to navigate months.",
+      "Scroll inside the desktop calendar to browse consecutive weeks across months. Previous and Next show the complete adjacent month named relative to the heading; Today restores the current month from its first week.",
       "Choose Events, My Tasks, All Tasks, Birthdays, or Everything.",
       "Tasks need an active status and a due date to appear.",
       "Click an event, task, or birthday to open its record. The rose Today cell is separate from event/task colors."
@@ -1138,7 +1139,8 @@
       1515,
       1188
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Complete rows or form sections; adjacent partial content excluded.",
+    "note": "The retained illustration shows one month. The current desktop calendar also scrolls continuously, loading adjacent weeks and their items; the phone view remains a daily agenda."
   },
   {
     "chapter": 9,
@@ -1628,7 +1630,7 @@
     "title": "Verify a new recovery email",
     "route": "profile.php",
     "steps": [
-      "Open Change Recovery Email and enter the new email, current password, and a fresh authenticator code when required.",
+      "In Change Recovery Email, enter the new address, then the current password and a fresh authenticator code when required.",
       "Select Verify New Email Address, then follow the verification message at the new address.",
       "Your old address stays active until verification. The change signs out all sessions and pauses the digest.",
       "Cancel a pending change or resend verification from My Profile if needed."
@@ -1642,7 +1644,8 @@
       400
     ],
     "framing": "Complete rows or form sections; adjacent partial content excluded.",
-    "captured_at": "2026-09-14"
+    "captured_at": "2026-09-14",
+    "note": "The retained illustration shows the earlier field arrangement. The current form places the new address on its own row, with the password and authenticator code below it."
   },
   {
     "chapter": 10,

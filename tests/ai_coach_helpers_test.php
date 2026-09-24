@@ -59,7 +59,12 @@ expectCoach(aiCoachDecodeRoute($calendarRoute, $catalog, $eventRequest)['workflo
 expectCoach(aiCoachWorkflowCandidates('How do I add a task to an event?') === [], 'Task creation has no matching interactive walkthrough');
 $routeResponse['message']['content'] = json_encode(['workflow' => 'delete-all', 'chapters' => ['engagements']]);
 rejectsCoach(fn() => aiCoachDecodeRoute($routeResponse, $catalog));
-expectCoach(aiCoachKnowledge()['document']['pages'] === 149, 'Uses the complete PDF');
+$manualBuild = json_decode(file_get_contents(__DIR__ . '/../docs/user-manual/build-report.json'), true, 512, JSON_THROW_ON_ERROR);
+expectCoach(aiCoachKnowledge()['document']['pages'] === $manualBuild['pages']
+    && aiCoachKnowledge()['document']['sha256'] === hash_file('sha256', __DIR__ . '/../src/assets/docs/moed-comprehensive-user-manual.pdf'), 'Uses the complete current PDF');
+expectCoach(str_contains($topics['manual-topic-map-calendar-monthly-calendar']['text'], 'first week')
+    && str_contains($topics['manual-topic-map-calendar-monthly-calendar']['text'], 'month boundaries'), 'Calendar retrieval includes continuous scrolling and Today behavior');
+expectCoach(str_contains($topics['manual-topic-administration-delete-an-ai-coach-request']['text'], 'Linked improvement cases are kept'), 'Individual deletion guidance preserves improvement cases');
 expectCoach($topics['manual-topic-engagements-create-or-edit-an-engagement']['page'] === 24, 'PDF page citation retained');
 expectCoach(str_contains($topics['manual-topic-engagements-create-or-edit-an-engagement']['text'], '06 Set planning states'), 'Complete numbered creation workflow retained');
 expectCoach(count(aiCoachApplicationContext('index.php')['static_controls_not_live_visibility']) > 10, 'Application source index supplies actual form labels');

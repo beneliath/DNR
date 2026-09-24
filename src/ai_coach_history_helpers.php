@@ -90,3 +90,13 @@ function aiCoachClearRequests(mysqli $conn, array $snapshot): int
         [$snapshot['max_id'], $snapshot['cutoff'], $snapshot['cutoff']]);
     return $conn->affected_rows;
 }
+
+function aiCoachDeleteRequest(mysqli $conn, array $snapshot): void
+{
+    $conn->execute_query('DELETE FROM ai_coach_requests WHERE id=? AND review_version=? AND feedback_version=?
+        AND (outcome<>\'pending\' OR created_at<DATE_SUB(UTC_TIMESTAMP(6), INTERVAL 25 SECOND))',
+        [$snapshot['id'], $snapshot['review_version'], $snapshot['feedback_version']]);
+    if ($conn->affected_rows !== 1) {
+        throw new RuntimeException('This request is still being answered, has changed, or was already deleted. Reload before deleting.');
+    }
+}
