@@ -138,8 +138,8 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             <p>This permanently deletes this question, its answer, feedback, review notes, and corrections. This cannot be undone. Linked improvement cases are kept.</p>
             <form method="post" action="ai_coach_requests.php">
                 <?php echo csrfInput(); ?><input type="hidden" name="delete_token" value="<?php echo $escape($deleteConfirmation['token']); ?>">
-                <button type="submit" name="action" value="delete_request" class="button-delete">Delete request</button>
                 <a class="button-secondary" href="ai_coach_requests.php?id=<?php echo (int) $detail['id']; ?>">Cancel</a>
+                <button type="submit" name="action" value="delete_request" class="button-delete">Delete request</button>
             </form>
         </section>
     <?php endif; ?>
@@ -151,8 +151,8 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
             <p>Requests still being answered and new requests are kept. Reviewed improvement cases are kept. This does not clear anyone’s open conversation or change the model.</p>
             <form method="post" action="ai_coach_requests.php">
                 <?php echo csrfInput(); ?><input type="hidden" name="clear_token" value="<?php echo $escape($clearConfirmation['token']); ?>">
-                <button type="submit" name="action" value="clear_requests" class="button-delete"<?php echo $clearConfirmation['count'] === 0 ? ' disabled' : ''; ?>>Delete <?php echo (int) $clearConfirmation['count']; ?> entries</button>
                 <a class="button-secondary" href="ai_coach_requests.php">Cancel</a>
+                <button type="submit" name="action" value="clear_requests" class="button-delete"<?php echo $clearConfirmation['count'] === 0 ? ' disabled' : ''; ?>>Delete <?php echo (int) $clearConfirmation['count']; ?> entries</button>
             </form>
         </section>
     <?php elseif ($detail): ?>

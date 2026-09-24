@@ -450,13 +450,13 @@ $task_digest_day_options = [
         </section>
 
         <div class="action-buttons profile-actions">
-            <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
-                <button type="submit" form="profile-resend-verification-form" class="button-secondary profile-verification-button" data-resend-verification>Resend email verification</button>
-            <?php endif; ?>
             <div class="profile-save-actions">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <button type="submit" class="save-button">Save Changes</button>
             </div>
+            <?php if (!empty($user['pending_email']) || (!empty($user['email']) && empty($user['email_verified_at']))): ?>
+                <button type="submit" form="profile-resend-verification-form" class="button-secondary profile-verification-button" data-resend-verification>Resend email verification</button>
+            <?php endif; ?>
         </div>
         <p class="profile-verification-status" data-verification-status role="status" aria-live="polite" hidden></p>
     </form>

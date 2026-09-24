@@ -130,7 +130,7 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
                 <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove current photo</label><?php endif; ?>
             </div>
         </div>
-        <div class="form-actions speaker-form-actions"><button type="submit" class="save-button">Save speaker</button><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a></div>
+        <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button">Save speaker</button></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

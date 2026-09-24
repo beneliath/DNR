@@ -403,7 +403,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "921bfb20b9401be0081443442e5f369da1605300d410f64af4ea0a2db781e811",
+      "sha256": "159d05ecc5198990a3cf4f6fa89a2cd1f68e385ea80348e888b38bdc3c21fe79",
       "controls": [
         {
           "kind": "h1",
@@ -420,13 +420,13 @@
           "for": "admin_code"
         },
         {
-          "kind": "button",
-          "label": "Unlock Sensitive Actions"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Unlock Sensitive Actions"
         }
       ]
     },
@@ -595,7 +595,7 @@
       ]
     },
     "close_engagement.php": {
-      "sha256": "b02bee2ac00d42f73778682fbb111513b2ec1fae5bc06983d6e16dceb381fa1d",
+      "sha256": "e34d473d790b10e3f2664e40a09e12cabd74d391ef71fa6e496cb9ce99607feb",
       "controls": [
         {
           "kind": "a",
@@ -634,13 +634,13 @@
           "label": "I confirm these are the final received amounts and this event is ready to be financially closed"
         },
         {
+          "kind": "a",
+          "label": "Cancel"
+        },
+        {
           "kind": "button",
           "label": "Save draft",
           "name": "action"
-        },
-        {
-          "kind": "a",
-          "label": "Cancel"
         }
       ]
     },
@@ -1513,7 +1513,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "c394a2b0df9fc87121e3a8309c683818d1e131400916a45680d3b0ed08e20d27",
+      "sha256": "76e52b8d47bc29182a4878a1236e6d7a4fa6f41bb801ef5d576901b3e382a77a",
       "controls": [
         {
           "kind": "a",
@@ -1568,13 +1568,13 @@
           "label": "Remove current photo"
         },
         {
-          "kind": "button",
-          "label": "Save speaker"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save speaker"
         }
       ]
     },
@@ -2280,7 +2280,7 @@
       ]
     },
     "map_pin.php": {
-      "sha256": "5c450605a445329f6ca505f88ccbe20de53a8886e156da7755d4d14751bd374f",
+      "sha256": "096e75a0597354b53700d21762c3e635dc5d9fc45dcdd975268e72c194ff9dee",
       "controls": [
         {
           "kind": "h1",
@@ -2309,13 +2309,13 @@
           "label": "I have checked that this pin marks the correct venue"
         },
         {
-          "kind": "button",
-          "label": "Save confirmed pin"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save confirmed pin"
         },
         {
           "kind": "button",
@@ -2325,7 +2325,7 @@
       ]
     },
     "mattermost.php": {
-      "sha256": "fd5dfc217f4e66cca209ce171c8866c564a9ecb7237a13fcf5fc1f4443282b53",
+      "sha256": "9ecbfd23184cfbe66b1d07d3baf9cdcc74d53834f934ac6c1cbfd06296c6c2b5",
       "controls": [
         {
           "kind": "h1",
@@ -2512,7 +2512,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "d7354cd92b14d85746da2bc910c6b19f09ebaaaf897387fc796ca0adf1707440",
+      "sha256": "42c8bb16ac8e7496ce480da04f655da0593d1484bc37e7022e4218310240e8d8",
       "controls": [
         {
           "kind": "h1",
@@ -2584,10 +2584,6 @@
           "label": "Every day"
         },
         {
-          "kind": "button",
-          "label": "Resend email verification"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": "engagements.php"
@@ -2595,6 +2591,10 @@
         {
           "kind": "button",
           "label": "Save Changes"
+        },
+        {
+          "kind": "button",
+          "label": "Resend email verification"
         },
         {
           "kind": "h2",
@@ -2719,25 +2719,25 @@
       ]
     },
     "reset_presentation_stats.php": {
-      "sha256": "25fb017d18d8a5f820cc686daee3dbb031c8b90599639fc8995bc4b4d70cf4bb",
+      "sha256": "3ef58c9653cde9131cf34b6d1a112a6885a9cb66b1429e5b4ee6a6d881872981",
       "controls": [
         {
           "kind": "h1",
           "label": "Reset Presentation Statistics"
         },
         {
-          "kind": "button",
-          "label": "Reset Statistics to Zero"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Reset Statistics to Zero"
         }
       ]
     },
     "reset_user_password.php": {
-      "sha256": "7a254143592990409db085001f1d47c2727288d3c30e55b95be2eac7654ac0e3",
+      "sha256": "cc08da09c0fa83b01f5bca690fc7b0a3392a25719d7fa843fad6e804b919fef2",
       "controls": [
         {
           "kind": "h1",
@@ -2754,13 +2754,13 @@
           "for": "new_password_confirmation"
         },
         {
-          "kind": "button",
-          "label": "Set temporary password"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": "users.php"
+        },
+        {
+          "kind": "button",
+          "label": "Set temporary password"
         }
       ]
     },
@@ -2894,7 +2894,7 @@
       ]
     },
     "setup_2fa.php": {
-      "sha256": "d5dc911d82de4d66f2544803ee040545ad388ded0f1d4a1eb2bf937ea5155e03",
+      "sha256": "3347a22166d75dae6395fbee4f632b2503386b6f195989fddcb57ce0e57acf44",
       "controls": [
         {
           "kind": "label",
@@ -2908,12 +2908,20 @@
         },
         {
           "kind": "button",
+          "label": "Cancel"
+        },
+        {
+          "kind": "button",
           "label": "Continue"
         },
         {
           "kind": "label",
           "label": "Six-digit authentication code",
           "for": "authentication_code"
+        },
+        {
+          "kind": "button",
+          "label": "Cancel"
         },
         {
           "kind": "button",
@@ -3166,7 +3174,7 @@
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "65d3ad78a0d4eb88ad2d4f663bec6b56de4567ad9be6a5d5bb4f28a8cee4ba4c",
+      "sha256": "e44176a6cd21485a7b039e39714d0b325929ad9164700b79773d6e8012e97ec1",
       "controls": [
         {
           "kind": "h1",
@@ -3423,7 +3431,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "9b851ea760e1fe3c5cb9fa44a72675b3fca38aed35af09bf0599a81aef2aedd9",
+      "sha256": "a43db87a1438c53ed594bf97240d27f5dc6218bbfaefd98d7a5bfc2fc2fa6de1",
       "controls": [
         {
           "kind": "a",
@@ -3508,13 +3516,13 @@
           "for": "chron-entry-edit-"
         },
         {
-          "kind": "button",
-          "label": "Save Chron Log Entry"
-        },
-        {
           "kind": "a",
           "label": "Cancel",
           "href": ""
+        },
+        {
+          "kind": "button",
+          "label": "Save Chron Log Entry"
         },
         {
           "kind": "h2",
@@ -3632,7 +3640,7 @@
       ]
     },
     "view_inquiry.php": {
-      "sha256": "c205b4fb6a52b2ab37b7d5bebd7a9c4cc3eed4a584ca289650181c69ff6bcffe",
+      "sha256": "04fe8c3584605d3c3d92c9cfd99d43e0aa9a64f41e799396c9034f35880a84d7",
       "controls": [
         {
           "kind": "a",
@@ -3702,12 +3710,12 @@
           "for": "chron-entry-"
         },
         {
-          "kind": "button",
-          "label": "Save Changes"
-        },
-        {
           "kind": "a",
           "label": "Cancel"
+        },
+        {
+          "kind": "button",
+          "label": "Save Changes"
         },
         {
           "kind": "a",

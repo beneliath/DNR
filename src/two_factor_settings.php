@@ -143,7 +143,7 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <p><strong>Status:</strong> Enabled</p>
             <p><strong>Enrolled:</strong> <?php echo htmlspecialchars($user['totp_confirmed_at'] ?? 'Unknown'); ?></p>
             <p><strong>Unused recovery codes:</strong> <?php echo $remaining_codes; ?></p>
-            <p><a href="setup_2fa.php" class="security-button">Replace Authenticator</a></p>
+            <p><a href="setup_2fa.php" class="security-button button-primary">Replace Authenticator</a></p>
         <?php endif; ?>
     </section>
     <?php endif; ?>

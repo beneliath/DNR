@@ -109,8 +109,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <label for="new_password_confirmation">Confirm temporary password</label>
             <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
 
-            <button type="submit" class="security-button">Set temporary password</button>
             <a href="users.php" class="danger-button cancel-button">Cancel</a>
+            <button type="submit" class="security-button">Set temporary password</button>
         </form>
     </section>
 </main>

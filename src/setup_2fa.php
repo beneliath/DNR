@@ -227,7 +227,7 @@ if ($enrollment) {
 )); ?>
 <body>
 <?php if (!$is_pending_login) include 'templates/header.php'; ?>
-<main class="container security-container">
+<main class="container security-container setup-2fa-container">
     <h1><?php echo !empty($user['two_factor_enabled']) ? 'Replace Authenticator' : 'Set Up Two-Factor Authentication'; ?></h1>
     <?php if ($is_pending_login): ?>
         <p>Two-factor authentication is required for every account. Set up your authenticator and confirm a code to finish signing in. You will then receive recovery codes to keep somewhere safe.</p>
@@ -253,7 +253,10 @@ if ($enrollment) {
                     <label for="current_code">Current authenticator code</label>
                     <input type="text" name="current_code" id="current_code" autocomplete="one-time-code" inputmode="numeric" required>
                 <?php endif; ?>
-                <button type="submit" class="security-button">Continue</button>
+                <div class="security-form-actions">
+                    <button type="submit" form="cancel-setup-form" class="button-secondary">Cancel</button>
+                    <button type="submit" class="security-button">Continue</button>
+                </div>
             </form>
         <?php endif; ?>
     <?php else: ?>
@@ -277,14 +280,17 @@ if ($enrollment) {
             <input type="hidden" name="action" value="confirm">
             <label for="authentication_code">Six-digit authentication code</label>
             <input type="text" name="authentication_code" id="authentication_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
-            <button type="submit" class="security-button setup-2fa-enable-button">Enable 2FA</button>
+            <div class="security-form-actions">
+                <button type="submit" form="cancel-setup-form" class="button-secondary">Cancel</button>
+                <button type="submit" class="security-button setup-2fa-enable-button">Enable 2FA</button>
+            </div>
         </form>
     <?php endif; ?>
 
-    <form method="post" action="setup_2fa.php" class="security-cancel-form">
+    <form id="cancel-setup-form" method="post" action="setup_2fa.php" class="security-cancel-form"<?php if ($enrollment || !$is_pending_login): ?> hidden<?php endif; ?>>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="action" value="cancel">
-        <button type="submit" class="danger-button setup-2fa-cancel-button cancel-button">Cancel</button>
+        <button type="submit" class="button-secondary">Cancel</button>
     </form>
 </main>
 <?php if (!$is_pending_login) include 'templates/footer.php'; ?>

@@ -103,8 +103,8 @@ expectUserProfile(
         && str_contains($profile_page, 'verification_queued=1')
         && str_contains($profile_page, 'verification_test_only=1')
         && str_contains($profile_page, 'No external email was sent because the development test transport is active.')
-        && strpos($profile_page, 'profile-verification-button') < strpos($profile_page, 'profile-save-actions'),
-    'the resend-verification action should load its audit dependency and distinguish queued SMTP mail from test-only acceptance.'
+        && strpos($profile_page, 'profile-save-actions') < strpos($profile_page, 'profile-verification-button'),
+    'the resend-verification action should follow the Cancel/Save group, load its audit dependency, and distinguish queued SMTP mail from test-only acceptance.'
 );
 
 $profile_script = $read('src/assets/js/profile.js');
