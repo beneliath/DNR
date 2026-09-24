@@ -75,8 +75,8 @@ $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES |
         <form method="post" action="<?php echo $h($resetUrl); ?>" class="security-form">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="reset_statistics">
-            <button type="submit" class="danger-button presentation-stats-reset">Reset Statistics to Zero</button>
             <a href="<?php echo $h($backUrl); ?>" class="button-secondary">Cancel</a>
+            <button type="submit" class="danger-button presentation-stats-reset">Reset Statistics to Zero</button>
         </form>
     </section>
 </main>

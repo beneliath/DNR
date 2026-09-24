@@ -152,7 +152,7 @@ try {
         <h2 id="mattermost-commands-title">Available Commands</h2>
         <p><code>/moed today</code> shows your daily summary; <code>/moed tasks</code> shows assigned work; and <code>/moed event search TEXT</code> or <code>/moed event show ID</code> finds safe engagement details.</p>
         <p>Editors and administrators can bind a channel with <code>/moed link-event ID</code>, remove that binding with <code>/moed unlink-event</code>, and use task action buttons. Reviewers keep read-only access.</p>
-        <p><a href="help.php#mattermost" class="security-button">Read the Mattermost User Guide</a></p>
+        <p><a href="help.php#mattermost" class="security-button button-primary">Read the Mattermost User Guide</a></p>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

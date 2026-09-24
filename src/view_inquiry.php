@@ -301,8 +301,8 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                                             <label for="chron-entry-<?php echo $entryId; ?>">Edit Chron Log Entry</label>
                                             <textarea id="chron-entry-<?php echo $entryId; ?>" name="chron_entry" rows="6" maxlength="100000" required><?php echo htmlspecialchars($chronDraft ?? (string) $entry['entry_text'], ENT_QUOTES, 'UTF-8'); ?></textarea>
                                             <div class="chron-view-editor-actions">
-                                                <button type="submit" class="save-button">Save Changes</button>
                                                 <a href="view_inquiry.php?id=<?php echo $inquiryId; ?>#chron-log-entry-<?php echo $entryId; ?>" class="button-secondary">Cancel</a>
+                                                <button type="submit" class="save-button">Save Changes</button>
                                             </div>
                                         </form>
                                     <?php else: ?>

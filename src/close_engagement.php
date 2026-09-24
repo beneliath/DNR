@@ -415,9 +415,9 @@ $closed_timestamp = $is_correction
         <?php endif; ?>
 
         <div class="form-actions">
+            <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#financial-closeout" class="action-button back-button">Cancel</a>
             <?php if (!$is_correction): ?><button type="submit" name="action" value="save_draft" formnovalidate class="button-secondary">Save draft</button><?php endif; ?>
             <button type="submit" name="action" value="finalize" class="action-button save-button"<?php echo $closeout_is_held ? ' disabled' : ''; ?>><?php echo $is_correction ? 'Save correction' : 'Finalize and close event'; ?></button>
-            <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#financial-closeout" class="action-button back-button">Cancel</a>
         </div>
     </form>
 </div>

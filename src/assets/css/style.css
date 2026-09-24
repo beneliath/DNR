@@ -717,6 +717,12 @@ label[for="caller_name"],
   max-width: 520px;
 }
 
+.security-form-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .security-button,
 .danger-button {
   display: inline-flex;

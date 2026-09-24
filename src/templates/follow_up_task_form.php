@@ -100,8 +100,8 @@ $task_subject_search_url = 'task_subject_search.php'
     </section>
 
     <div class="engagement-page-actions">
-        <?php if ($task_duplicate_url !== ''): ?><a href="<?php echo htmlspecialchars($task_duplicate_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary task-duplicate-button">Duplicate to Another Event</a><?php endif; ?>
         <a href="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
+        <?php if ($task_duplicate_url !== ''): ?><a href="<?php echo htmlspecialchars($task_duplicate_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary task-duplicate-button">Duplicate to Another Event</a><?php endif; ?>
         <button type="submit" name="save_task" value="1" class="save-button"><?php echo htmlspecialchars($task_form_submit_label, ENT_QUOTES, 'UTF-8'); ?></button>
     </div>
 </form>

@@ -112,7 +112,7 @@ $escape = static fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'U
         </div>
         <label class="map-pin-confirm"><input id="confirm-pin" type="checkbox" name="confirm_pin" value="yes" required> I have checked that this pin marks the correct venue</label>
         <p class="map-list-help">Changing the event address will require a new pin confirmation. Automatic lookups cannot move a confirmed pin.</p>
-        <div class="map-pin-actions"><button type="submit" class="button-add">Save confirmed pin</button><a class="button-secondary" href="<?php echo $escape($return_to); ?>">Cancel</a>
+        <div class="map-pin-actions"><a class="button-secondary" href="<?php echo $escape($return_to); ?>">Cancel</a><button type="submit" class="button-add">Save confirmed pin</button>
         <?php if (($location['provider'] ?? '') === 'manual'): ?><button class="button-secondary" type="submit" name="action" value="clear" formnovalidate>Use automatic lookup</button><?php endif; ?></div>
     </form>
 </main>

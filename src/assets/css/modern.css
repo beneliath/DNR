@@ -1075,7 +1075,7 @@ html body .container > .profile-form {
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 640px) {
@@ -1152,6 +1152,10 @@ html body .container > .profile-form {
 
 .security-container {
   max-width: 960px;
+}
+
+.setup-2fa-container {
+  max-width: var(--app-content-max);
 }
 
 .app-footer {
