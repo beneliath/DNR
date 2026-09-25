@@ -1,0 +1,16 @@
+---
+description: Run authorized version-bump deployments through the bounded release runner
+alwaysApply: true
+---
+
+# Version-bump deployments
+
+- “Do a minor bump deployment” means `x.y.z` → `x.y.(z+1)`; “major” means `x.(y+1).0`; “super” means `(x+1).0.0`.
+- Each command authorizes committing all pending project changes, publishing the release branch, merged `main`, and version tag to configured GitHub `beneliath/DNR` and GitLab `SiMM/dnr`, and deploying the qualified release to s1 at `192.168.1.150`. A continuation renews the same authorization.
+- Review the pending diff once, run its focused checks once, and verify whether a changed Comprehensive Guide needs rebuilding. Then invoke `python3 scripts/release_s1.py BUMP --summary "CONCISE BEHAVIOR"` as the single release command. Add `--plugin-bump BUMP` only when the plugin changed.
+- The runner owns the preparation notice, version update, commit, both branch pushes, PR, protected checks, squash merge, both main pushes, final-main CI, release artifact/tag publication, verified backup, s1 deployment, readiness check, cleanup, and receipt.
+- Keep each release within a 1% weekly-usage target: use the configured Sol/Medium/Standard defaults and do not upgrade the model or speed. Let the runner wait internally. If the shell call yields a session, poll that same session no more than once every five minutes with at most 1,200 output tokens.
+- Do not separately poll GitHub, reread the runbook, open a browser, start helper agents, or repeat checks while the runner is active.
+- On success, report only the receipt’s version, commit, PR, remote synchronization, and deployment result. On failure, inspect the named failed stage and relevant bounded output; retry the same release state rather than allocating a new version.
+- Preserve branch protection, final-main image qualification, the deployment notice/save window, verified backup, and readiness gates. An external approval rejection remains authoritative.
+- Quoting or discussing a shorthand does not invoke it. Local development deployments remain outside this rule.

@@ -2,6 +2,7 @@ import importlib.machinery
 import importlib.util
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -11,12 +12,37 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 import release_manifest
 import deploy_release_host
+import release_s1
 from deployment_notice import DeploymentNotice
 from release_timestamp import timestamp_utc
 loader = importlib.machinery.SourceFileLoader('prepare', str(ROOT / 'scripts/prepare_release'))
 spec = importlib.util.spec_from_loader(loader.name, loader)
 prepare = importlib.util.module_from_spec(spec)
 loader.exec_module(prepare)
+
+
+class BoundedReleaseRunner(unittest.TestCase):
+    def test_failed_protected_check_blocks_merge(self):
+        checks = json.dumps([{
+            'name': 'integration', 'state': 'FAILURE', 'bucket': 'fail',
+            'link': 'https://example.test/check',
+        }])
+        result = subprocess.CompletedProcess([], 1, stdout=checks, stderr='')
+        with patch.object(release_s1.subprocess, 'run', return_value=result), \
+                self.assertRaisesRegex(ValueError, 'integration'):
+            release_s1.wait_for_pr(7, 'a' * 40, 10)
+
+    def test_changed_pr_head_blocks_merge_after_checks(self):
+        checks = json.dumps([{
+            'name': 'integration', 'state': 'SUCCESS', 'bucket': 'pass',
+            'link': 'https://example.test/check',
+        }])
+        result = subprocess.CompletedProcess([], 0, stdout=checks, stderr='')
+        with patch.object(release_s1.subprocess, 'run', return_value=result), \
+                patch.object(release_s1, 'run', return_value='b' * 40), \
+                self.assertRaisesRegex(ValueError, 'head changed'):
+            release_s1.wait_for_pr(7, 'a' * 40, 10)
+
 
 class ReleaseWorkflow(unittest.TestCase):
     def test_replica_verification_ignores_provenance_banner_and_checks_every_worker(self):
