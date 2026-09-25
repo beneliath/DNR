@@ -28,7 +28,7 @@ Invoking this shorthand authorizes the complete sequence, including the merge, a
 
 Follow the detailed workflow below, preserving its protected merge checks, successful final-main CI, release-tag publication, remote verification, and verified backup before upgrade. Commit the pending work and version bump on the working branch before merging. Deploy only the exact final merged `main` SHA after all required pushes and checks succeed. If a required stage fails, report it and resolve it before deployment. Monitor through completion and report the release version, deployed SHA, remote synchronization, and deployment/readiness result.
 
-The persistent [minor bump deployment rule](../.cursor/rules/minor-bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
+The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
 
 ### Standing destination authorization
 
@@ -64,7 +64,7 @@ The numeric transition is authoritative: the project's `major` bump increments `
 
 Invoking this shorthand authorizes the complete sequence without separate confirmation for each step. The scope of pending changes and configured remotes, protected merge checks, successful final-main CI, release-tag publication, remote verification, verified backup before upgrade, failure handling, and monitoring/reporting requirements are the same as for the minor bump deployment above. Deploy the exact final merged `main` SHA to s1 at `192.168.1.150` only after all required pushes and checks succeed.
 
-The persistent [major bump deployment rule](../.cursor/rules/major-bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
+The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
 
 ## Super bump deployment shorthand
 
@@ -76,7 +76,7 @@ The numeric transition is authoritative: the project's `super` bump increments `
 
 Invoking this shorthand authorizes the complete sequence without separate confirmation for each step. The scope of pending changes and configured remotes, protected merge checks, successful final-main CI, release-tag publication, remote verification, verified backup before upgrade, failure handling, and monitoring/reporting requirements are the same as for the minor bump deployment above. Deploy the exact final merged `main` SHA to s1 at `192.168.1.150` only after all required pushes and checks succeed.
 
-The persistent [super bump deployment rule](../.cursor/rules/super-bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
+The persistent [version-bump deployment rule](../.cursor/rules/bump-deployment.mdc) applies this definition to future action requests. Quoting, discussing, or defining the shorthand does not itself invoke deployment.
 
 ## Deployment notice and save window
 
@@ -107,6 +107,28 @@ An abandoned preparation notice expires after six hours. Starting the countdown 
 The first rollout of the two-stage behavior requires the new status endpoint and page script to show the preparation message. Older notice clients can still show the subsequent countdown. The initial rollout of the notice feature cannot warn browsers without any notice code. The new images and notice mounts must be deployed, and users must load a page containing the banner code, before subsequent deployments can display it. Sleeping or offline browsers see current status when they reconnect; the server always enforces the shared deadline.
 
 ## Prepare and merge
+
+### Bounded end-to-end runner
+
+For an authorized minor, major, or super bump deployment, use the release runner
+instead of manually polling each protected check and deployment phase:
+
+```sh
+python3 scripts/release_s1.py minor --summary "concise release behavior"
+```
+
+Use `major` or `super` for those project bump conventions and add
+`--plugin-bump minor|major|super` only when the Mattermost plugin changed. The
+summary becomes the commit and PR title. `--plan` validates the local branch and
+remote configuration without changing files, publishing, or contacting s1.
+
+The runner performs the existing workflow in order and waits internally. It emits
+only milestone output every five minutes while CI is running, then writes a compact
+receipt to `.git/dnr-deploy/last-release-run.json`. It does not weaken or skip the
+protected PR checks, final-main CI and image qualification, release mirror checks,
+five-minute save window, restore-verified backup, migrations, or public readiness
+verification described below. If a stage fails, it cancels only a preparation or
+pending notice; active/failed maintenance remains subject to recovery resolution.
 
 1. Start the deployment notice above, then fetch current `origin/main` and work on a feature/release branch. Near release preparation, run `scripts/prepare_release minor --base-ref origin/main` for a minor bump deployment, `scripts/prepare_release major --base-ref origin/main` for a major bump deployment, or `scripts/prepare_release super --base-ref origin/main` for a super bump deployment. The project vocabulary is `minor` = x.y.(z+1), `major` = x.(y+1).0, `super` = (x+1).0.0. Repeating the same preparation does not allocate another version. `scripts/prepare_release check` is read-only.
 2. If the plugin changes, add `--plugin-bump minor` (or the intended project bump). `mattermost-plugin/plugin.json` is authoritative; the Makefile and compiled client User-Agent derive their version from it.
