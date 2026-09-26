@@ -17,6 +17,7 @@ try {
     $pid = (int) $presentations[0]['id']; $pid2 = (int) $presentations[1]['id'];
     $links = fetchPresentationShortLinks($conn,$pid); $second = fetchPresentationShortLinks($conn,$pid2);
     expectLinks(count($links) === 1 && $links[0]['code'] !== $second[0]['code'], 'Each presentation has a separate website link and no notes placeholder');
+    expectLinks((int) $links[0]['tracked_visits'] === 0, 'Unused presentation QR codes show zero tracked visits');
     $storedImages = $conn->query("SELECT q.* FROM short_link_qr_images q JOIN short_links l ON l.id=q.link_id WHERE l.engagement_id=$event ORDER BY q.link_id")->fetch_all(MYSQLI_ASSOC);
     expectLinks(count($storedImages) === 2, 'Both QR formats are stored for every link before presentation save commits');
     foreach ($storedImages as $images) {
@@ -58,6 +59,8 @@ try {
     recordShortLinkVisit($conn,$linkId,array_replace($server,['REQUEST_METHOD'=>'HEAD']));
     expectLinks((int)$conn->query("SELECT SUM(visits) AS n FROM short_link_stats WHERE link_id=$linkId")->fetch_assoc()['n'] === 2,'Atomic counters and HEAD filtering');
     recordShortLinkVisit($conn, (int) $second[0]['id'], $server);
+    expectLinks((int) fetchPresentationShortLinks($conn, $pid)[0]['tracked_visits'] === 2, 'QR card counts include tracked visits only for their own link');
+    expectLinks((int) fetchPresentationShortLinks($conn, $pid2)[0]['tracked_visits'] === 1, 'Other presentations retain independent QR card counts');
     $stats = shortLinkStats($conn,'l.presentation_id = '.$pid,gmdate('Y-m-d').' 00:00:00',gmdate('Y-m-d',strtotime('+1 day')).' 00:00:00');
     expectLinks($stats['total'] === 2 && $stats['browser'][0]['label'] === 'Chrome','Presentation analytics aggregate correctly');
     $countryInsert = $conn->prepare("INSERT INTO short_link_stats (link_id,visit_hour,browser,os,country,referrer,visits) VALUES (?,UTC_DATE(),'Chrome','Windows',?,'',1)");

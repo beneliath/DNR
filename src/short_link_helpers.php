@@ -135,6 +135,7 @@ function ensurePresentationShortLinks(mysqli $conn, int $presentationId, bool $c
 function fetchPresentationShortLinks(mysqli $conn, int $presentationId): array
 {
     $stmt = $conn->prepare('SELECT l.*, q.encoded_url AS qr_url, q.png AS qr_png,
+        (SELECT COALESCE(SUM(v.visits), 0) FROM short_link_stats v WHERE v.link_id = l.id) AS tracked_visits,
         s.name AS speaker_name, p.speaker_id AS current_speaker_id,
         EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id
             AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,

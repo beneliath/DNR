@@ -55,6 +55,7 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
                 <?php endif; ?>
                 <div><a href="<?php echo $qr_url; ?>&amp;format=png&amp;download=1">PNG</a> · <a href="<?php echo $qr_url; ?>&amp;format=svg&amp;download=1">SVG</a></div>
                 <?php else: ?><p>QR images awaiting setup</p><?php endif; ?>
+                <div class="presentation-qr-visits" title="All-time tracked visits">Tracked visits: <strong><?php echo number_format((int) $short_link['tracked_visits']); ?></strong></div>
                 <a class="button-secondary" href="short_links.php?id=<?php echo (int) $short_link['id']; ?>" aria-label="<?php echo htmlspecialchars($label); ?> QR Code Statistics">Statistics</a>
             </div>
         <?php endforeach; ?>
