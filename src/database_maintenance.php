@@ -167,7 +167,9 @@ try {
                     Estimated backup size: <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($estimated_backup_bytes)); ?>
                     of <?php echo htmlspecialchars(databaseBackupMaximumSizeLabel($maximum_backup_bytes)); ?>.
                     This estimate includes uploaded files and database statistics; the actual export may be larger.
-                    <?php if ($estimated_backup_bytes >= $maximum_backup_bytes * 0.8): ?>
+                    <?php if ($estimated_backup_bytes >= $maximum_backup_bytes): ?>
+                        The estimated backup exceeds the browser export limit. Ask your administrator to back up the database and uploaded files together on the server.
+                    <?php elseif ($estimated_backup_bytes >= $maximum_backup_bytes * 0.8): ?>
                         Capacity is approaching the export limit. Arrange a coordinated database and file-storage backup before adding more attachments.
                     <?php endif; ?>
                 </p>
