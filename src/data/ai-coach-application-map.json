@@ -497,7 +497,7 @@
       ]
     },
     "audit_log.php": {
-      "sha256": "0398ca23bfee5f14a990b9bc098ea6b0fe2dc048d29a304f6c945cce03d17e70",
+      "sha256": "a12b7a2605b398e9910e6f5a59e9db277b2219cae1ed6d93f9bb8017124ec179",
       "controls": [
         {
           "kind": "h1",
@@ -2091,7 +2091,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "9721e1fd946ddff73b36454752b794f775b25565d8b63739bb1467a7c2fbc0fb",
+      "sha256": "cbaebb51063b52a400afc554907613e13bb401d10e6e3ecdafcb99b326e16312",
       "controls": [
         {
           "kind": "a",
@@ -2371,7 +2371,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "7fefc4e141981ad2c45bdf48331c562cbd79b252c20631157f8daf7298e23f8d",
+      "sha256": "b1e98ec06cfd780032272bf08920e5a33bc657f27fb1151ac7a127e9607e2372",
       "controls": [
         {
           "kind": "h1",
@@ -2401,6 +2401,11 @@
         },
         {
           "kind": "h2",
+          "label": "Remote Document Responses",
+          "id": "document-download-heading"
+        },
+        {
+          "kind": "h2",
           "label": "Slowest Observed Pages",
           "id": "slow-page-heading"
         },
@@ -2412,7 +2417,7 @@
       ]
     },
     "operations.php": {
-      "sha256": "801cb92530d33fdec6c19845b047d590d1cc25255f3bb7fb2f95a3da436e5f8d",
+      "sha256": "cf9981b1002a5ebe2b709b345b095cfd077878f637f64d44fc007ce231595654",
       "controls": [
         {
           "kind": "h1",
@@ -2934,7 +2939,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "f13d27a97105fa22d1dba0cbf400ca58d5d27e76aab0e20479940c1a7ae74358",
+      "sha256": "729908c1f97cf963281d3cecf835e09e44dac949f06e51c75ed97928dbcbbc89",
       "controls": [
         {
           "kind": "a",
@@ -2971,12 +2976,12 @@
         },
         {
           "kind": "label",
-          "label": "From (UTC)",
+          "label": "From ()",
           "for": "from_filter"
         },
         {
           "kind": "label",
-          "label": "Through (UTC)",
+          "label": "Through ()",
           "for": "to_filter"
         },
         {
@@ -3174,7 +3179,7 @@
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "e44176a6cd21485a7b039e39714d0b325929ad9164700b79773d6e8012e97ec1",
+      "sha256": "712a0d508b314cbf8badc88f0092afb8d8532266db88bcbf9c555b775c5b5e2d",
       "controls": [
         {
           "kind": "h1",
@@ -3342,7 +3347,7 @@
       ]
     },
     "view_calendar.php": {
-      "sha256": "fdf7fc27b21a7982c6f48149484f14059b51762119684d53672a16b8eaed50fc",
+      "sha256": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df",
       "controls": [
         {
           "kind": "h1",
@@ -3885,7 +3890,7 @@
       ]
     },
     "view_standard_task.php": {
-      "sha256": "8fa3dd254d75c325f065c819cc29733d5fbeff04a470fe2bcd9e8d4d7dc7ac01",
+      "sha256": "f6832472585c29ce0b4347118656669c499f9523cfcd0fd1a4a7d9afaa19e5c0",
       "controls": [
         {
           "kind": "a",
