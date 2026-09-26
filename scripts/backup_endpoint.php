@@ -23,14 +23,16 @@ try {
     header('Content-Length: ' . $backup['size']);
     readfile($backup['path']);
 } catch (Throwable $exception) {
-    $status = in_array($exception->getCode(), [403, 409], true) ? $exception->getCode() : 503;
+    $status = $exception instanceof DatabaseBackupCapacityException ? 413
+        : (in_array($exception->getCode(), [403, 409], true) ? $exception->getCode() : 503);
     if ($exception instanceof InvalidArgumentException || $exception instanceof JsonException) $status = 400;
     http_response_code($status);
     header('Content-Type: application/json');
     // Never return database errors, credentials, or internal paths to callers.
-    echo json_encode(['error' => $status === 403 ? 'Your administrator password or authentication code was not accepted.'
+    echo json_encode(['error' => $exception instanceof DatabaseBackupCapacityException ? $exception->getMessage()
+        : ($status === 403 ? 'Your administrator password or authentication code was not accepted.'
         : ($status === 409 ? 'Another database backup is already in progress. Try again after it finishes.'
-        : 'The database backup could not be created. Check the exporter configuration and try again.')]);
+        : 'The database backup could not be created. Check the exporter configuration and try again.'))]);
     applicationLog('error', 'Isolated database export failed', ['status' => $status]);
 } finally {
     if ($backup) @unlink($backup['path']);

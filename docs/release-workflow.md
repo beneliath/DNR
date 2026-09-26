@@ -200,8 +200,8 @@ Native database archives use the `.sql.gz.dnrenc` suffix. They are encrypted SQL
 
 ## Capacity and storage
 
-The web image permits 20 PHP workers at 512 MiB each, a 1.25 GiB backup/upload tmpfs, and a 14 GiB / 2 CPU / 128 PID container envelope. Maintenance uses 2 GiB; workers use 768 MiB / 1 CPU / 128 PIDs. These bounds leave room for the shared runtime and encryption workspace; tune them only with measured workload and host capacity.
+The web image permits 20 PHP workers at 512 MiB each, a 1.25 GiB backup/upload tmpfs, and a 14 GiB / 2 CPU / 128 PID container envelope. The backup exporter uses a 2.5 GiB temporary filesystem and a 3 GiB memory limit so the plaintext and encrypted 1 GiB archives can coexist. Maintenance uses 2 GiB; workers use 768 MiB / 1 CPU / 128 PIDs. These bounds leave room for the shared runtime and encryption workspace; tune them only with measured workload and host capacity.
 
-Browser backups default to 512 MiB of serialized database and file data and expose an approximate size warning. Version 3 adds bounded file chunks and per-file checksum verification to the encrypted archive; restore installs the immutable files before replacing database rows. PDF downloads stream from persistent storage in 1 MiB chunks. PDF uploads remain bounded at 100 MiB and still validate in memory.
+Browser backups default to 1 GiB of serialized database and file data and expose an approximate size warning. Version 3 adds bounded file chunks and per-file checksum verification to the encrypted archive; restore installs the immutable files before replacing database rows. PDF downloads stream from persistent storage in 1 MiB chunks. PDF uploads remain bounded at 100 MiB and still validate in memory.
 
 Uploaded PDFs and portraits now use a private persistent volume with database metadata and storage keys. Database-only backups are insufficient for these files. Use the coordinated encrypted deployment backup beyond the browser export budget; retain both archives named in its receipt. Old immutable files are retained to protect concurrent snapshots and rollback. The limits do not imply unlimited attachment capacity.

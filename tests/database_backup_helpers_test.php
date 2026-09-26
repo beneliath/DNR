@@ -306,5 +306,20 @@ $written = 0; $hash = hash_init('sha256');
 try {
     databaseBackupWriteRow($handle,'fixture',$row,$columns,$written,strlen($expected)-1,$hash);
     throw new LogicException('Backup size boundary was ignored');
-} catch (RuntimeException $exception) {}
+} catch (DatabaseBackupCapacityException $exception) {
+    expectDatabaseBackup($exception->getCode() === 413
+        && str_contains($exception->getMessage(), 'uploaded-file backup on the server'),
+        'oversized streamed rows must report the browser capacity limit and server backup alternative.');
+}
 fclose($handle);
+
+$handle = fopen('php://temp', 'w+');
+$written = 0;
+try {
+    databaseBackupWriteLine($handle, ['type' => 'file_chunk', 'data' => str_repeat('x', 100)], $written, 50);
+    throw new LogicException('Backup line size boundary was ignored');
+} catch (DatabaseBackupCapacityException $exception) {
+    expectDatabaseBackup($exception->getCode() === 413, 'file records must report the same capacity error as database rows.');
+} finally {
+    fclose($handle);
+}

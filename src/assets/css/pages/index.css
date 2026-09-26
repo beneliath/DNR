@@ -1,3 +1,9 @@
+/* Match nested section titles to the other new engagement headings. */
+#new-engagement-form .engagement-contacts-heading h2,
+#new-engagement-form .engagement-lifecycle-heading h2 {
+    font-size: 1.14rem;
+}
+
 /* Keep the organization row centered; apply field spacing to the whole row. */
     .organization-container {
         margin-bottom: 18px;

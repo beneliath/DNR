@@ -10,8 +10,16 @@ const DNR_DATABASE_BACKUP_VERSION = 3;
 const DNR_DATABASE_BACKUP_ENCRYPTED_LEGACY_MAGIC = "DNRBACKUP-ENC-1\n";
 const DNR_DATABASE_BACKUP_ENCRYPTED_MAGIC = "DNRBACKUP-ENC-2\n";
 const DNR_DATABASE_BACKUP_ENCRYPTION_CHUNK_BYTES = 65536;
-const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 512 * 1024 * 1024;
+const DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES = 1024 * 1024 * 1024;
 const DNR_DATABASE_BACKUP_MINIMUM_PASSWORD_BYTES = 16;
+
+final class DatabaseBackupCapacityException extends RuntimeException {
+    public function __construct(int $maximum_bytes) {
+        parent::__construct('The database and uploaded files exceed the browser backup limit of '
+            . databaseBackupMaximumSizeLabel($maximum_bytes)
+            . '. Ask your administrator to create a coordinated database and uploaded-file backup on the server.', 413);
+    }
+}
 
 function databaseBackupConnection() {
     $host = (string) (getenv('DB_HOST') ?: 'db');
@@ -39,11 +47,11 @@ function databaseBackupMaximumBytes() {
     $configured = filter_var(
         getenv('DNR_DATABASE_BACKUP_MAX_BYTES') ?: null,
         FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1048576, 'max_range' => 536870912]]
+        ['options' => ['min_range' => 1048576, 'max_range' => DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES]]
     );
 
     if (getenv('DNR_DATABASE_BACKUP_MAX_BYTES') && $configured === false) {
-        throw new RuntimeException('Backup limit must be between 1 and 512 MiB; use a coordinated database and file-storage backup beyond this capacity.');
+        throw new RuntimeException('Backup limit must be between 1 and 1024 MiB; use a coordinated database and file-storage backup beyond this capacity.');
     }
     return $configured ?: DNR_DATABASE_BACKUP_DEFAULT_MAX_BYTES;
 }
@@ -537,10 +545,7 @@ function databaseBackupWriteLine($handle, array $record, &$bytes_written, $maxim
     $json = databaseBackupJson($record);
     $next_size = (int) $bytes_written + strlen($json) + 1;
     if ($next_size > (int) $maximum_bytes) {
-        throw new RuntimeException(
-            'The database backup exceeds the configured maximum size of '
-            . databaseBackupMaximumSizeLabel($maximum_bytes) . '.'
-        );
+        throw new DatabaseBackupCapacityException((int) $maximum_bytes);
     }
     // Avoid duplicating a potentially large base64 row merely to append LF.
     databaseBackupWriteBytes($handle, $json);
@@ -557,7 +562,7 @@ function databaseBackupWriteRow($handle, string $table, array $row, array $colum
     $write = static function (string $bytes) use ($handle, &$bytesWritten, $maximumBytes, $hash): void {
         $bytesWritten += strlen($bytes);
         if ($bytesWritten > $maximumBytes) {
-            throw new RuntimeException('The database backup exceeds the configured size limit.');
+            throw new DatabaseBackupCapacityException($maximumBytes);
         }
         databaseBackupWriteBytes($handle, $bytes);
         hash_update($hash, $bytes);
