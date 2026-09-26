@@ -116,7 +116,7 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
             }] },
             options: { ...baseOptions(), interaction: { mode: 'index', intersect: false }, scales: axes(false),
                 plugins: { ...baseOptions().plugins, tooltip: { ...baseOptions().plugins.tooltip, callbacks: {
-                    title: contexts => data.timeline[contexts[0].dataIndex].label + ' (UTC)',
+                    title: contexts => data.timeline[contexts[0].dataIndex].label + ` (${data.timezone})`,
                     label: context => `Visits: ${format.format(context.raw)}`,
                 } } },
             },

@@ -571,7 +571,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_calendar.php": "fdf7fc27b21a7982c6f48149484f14059b51762119684d53672a16b8eaed50fc"
+        "view_calendar.php": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df"
       },
       "subjects": [
         "calendar",
@@ -935,7 +935,7 @@
         "Select Change Password. Check the confirmation; other sessions will be signed out. If MOED requests recent two-factor verification, sign in again first."
       ],
       "source_files": {
-        "two_factor_settings.php": "e44176a6cd21485a7b039e39714d0b325929ad9164700b79773d6e8012e97ec1",
+        "two_factor_settings.php": "712a0d508b314cbf8badc88f0092afb8d8532266db88bcbf9c555b775c5b5e2d",
         "templates/header.php": "30f2b9123ba6daa2d442e83afe796765091da2456f8a8ac18eab8827d4c35a39"
       },
       "subjects": [

@@ -236,7 +236,7 @@
       "entry": "Calendar → Create Subscription",
       "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
-        "view_calendar.php": "fdf7fc27b21a7982c6f48149484f14059b51762119684d53672a16b8eaed50fc"
+        "view_calendar.php": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df"
       },
       "controls": {
         "calendar-device": {

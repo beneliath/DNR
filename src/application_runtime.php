@@ -194,8 +194,20 @@ function applicationBusinessDateOffset(
     return $business_date->modify(sprintf('%+d days', $days))->format('Y-m-d');
 }
 
+/** Convert a local calendar date boundary to the UTC value used by database queries. */
+function applicationDateBoundaryUtc(string $date, bool $followingDay = false): string
+{
+    $local = DateTimeImmutable::createFromFormat('!Y-m-d', $date, applicationTimezone());
+    if (!$local || $local->format('Y-m-d') !== $date) {
+        throw new InvalidArgumentException('Choose a valid calendar date.');
+    }
+    if ($followingDay) $local = $local->modify('+1 day');
+    return $local->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+}
+
 function applicationTimestampLabel(mixed $timestamp, string $format = 'Y-m-d H:i'): string
 {
+    if ($timestamp === null || trim((string) $timestamp) === '') return '';
     try {
         return (new DateTimeImmutable((string) $timestamp, new DateTimeZone('UTC')))
             ->setTimezone(applicationTimezone())

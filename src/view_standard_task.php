@@ -71,7 +71,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
         <div class="standard-task-detail standard-task-detail-wide"><strong>Notes</strong><span><?php echo !empty($standard_task['details']) ? renderTextWithLinks($standard_task['details']) : 'No notes'; ?></span></div>
         <div class="standard-task-detail standard-task-detail-wide"><strong>Internal key</strong><code><?php echo htmlspecialchars($standard_task['template_key'], ENT_QUOTES, 'UTF-8'); ?></code></div>
         <?php if ($is_archived): ?>
-            <div class="standard-task-detail standard-task-detail-wide"><strong>Archived</strong><span><?php echo htmlspecialchars($standard_task['archived_at'], ENT_QUOTES, 'UTF-8'); ?> UTC<?php if (!empty($standard_task['archiver_username'])): ?> by <?php echo htmlspecialchars($standard_task['archiver_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span></div>
+            <div class="standard-task-detail standard-task-detail-wide"><strong>Archived</strong><span><?php echo htmlspecialchars(applicationTimestampLabel($standard_task['archived_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($standard_task['archiver_username'])): ?> by <?php echo htmlspecialchars($standard_task['archiver_username'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></span></div>
         <?php endif; ?>
     </div>
 

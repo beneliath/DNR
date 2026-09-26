@@ -103,10 +103,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['_audit_log_prune_message'] = 'No audit entries were old enough to prune.';
             } else {
                 $_SESSION['_audit_log_prune_message'] = sprintf(
-                    'Permanently pruned %d audit %s older than %s UTC.%s',
+                    'Permanently pruned %d audit %s older than %s.%s',
                     $deleted_count,
                     $deleted_count === 1 ? 'entry' : 'entries',
-                    $outcome['cutoff_utc'],
+                    applicationTimestampLabel($outcome['cutoff_utc'], 'Y-m-d H:i:s T'),
                     $outcome['more_entries']
                         ? ' More expired entries remain; run the reviewed prune again.'
                         : ''
@@ -182,12 +182,12 @@ if ($fulltext_query !== '') {
 if ($from_date !== '') {
     $where_parts[] = 'created_at >= ?';
     $filter_types .= 's';
-    $filter_values[] = $from_date . ' 00:00:00';
+    $filter_values[] = applicationDateBoundaryUtc($from_date);
 }
 if ($to_date !== '') {
-    $where_parts[] = 'created_at < DATE_ADD(?, INTERVAL 1 DAY)';
+    $where_parts[] = 'created_at < ?';
     $filter_types .= 's';
-    $filter_values[] = $to_date . ' 00:00:00';
+    $filter_values[] = applicationDateBoundaryUtc($to_date, true);
 }
 if ($ip_filter !== '') {
     $where_parts[] = 'ip_address = ?';
@@ -441,7 +441,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <p>
                     Entries before
                     <time datetime="<?php echo htmlspecialchars($retention_preview['cutoff_utc'], ENT_QUOTES, 'UTF-8'); ?>Z">
-                        <?php echo htmlspecialchars($retention_preview['cutoff_utc'], ENT_QUOTES, 'UTF-8'); ?> UTC
+                        <?php echo htmlspecialchars(applicationTimestampLabel($retention_preview['cutoff_utc'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?>
                     </time>
                     will be deleted. The most recent <?php echo (int) $retention_days; ?> days will remain.
                 </p>
@@ -560,9 +560,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                         <tr>
                             <td class="audit-timestamp">
                                 <?php echo htmlspecialchars($timestamps['display'], ENT_QUOTES, 'UTF-8'); ?>
-                                <?php if ($timestamps['utc'] !== ''): ?>
-                                    <span class="audit-detail"><?php echo htmlspecialchars($timestamps['utc'], ENT_QUOTES, 'UTF-8'); ?></span>
-                                <?php endif; ?>
+
                             </td>
                             <td>
                                 <span class="audit-badge audit-badge-<?php echo htmlspecialchars($entry_category, ENT_QUOTES, 'UTF-8'); ?>">
