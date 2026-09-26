@@ -330,8 +330,8 @@ $webcal_url = $calendar_url === null
                     <?php foreach ($subscriptions as $subscription): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($subscription['label'], ENT_QUOTES, 'UTF-8'); ?><span class="calendar-subscription-content-summary"><?php echo htmlspecialchars(calendarSubscriptionContentSummary($subscription), ENT_QUOTES, 'UTF-8'); ?></span></td>
-                            <td><?php echo htmlspecialchars($subscription['created_at'], ENT_QUOTES, 'UTF-8'); ?></td>
-                            <td><?php echo htmlspecialchars($subscription['last_used_at'] ?: 'Never', ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars(applicationTimestampLabel($subscription['created_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?></td>
+                            <td><?php echo htmlspecialchars($subscription['last_used_at'] ? applicationTimestampLabel($subscription['last_used_at'], 'Y-m-d H:i:s T') : 'Never', ENT_QUOTES, 'UTF-8'); ?></td>
                             <td><?php echo $subscription['revoked_at'] === null ? 'Active' : 'Revoked'; ?></td>
                             <td>
                                 <?php if ($subscription['revoked_at'] === null): ?>

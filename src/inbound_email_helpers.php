@@ -1205,9 +1205,9 @@ function formatInboundEmailChronEntry(array $message): string
     }
     $lines[] = 'Subject: ' . ((string) ($message['subject'] ?? '') ?: '(no subject)');
     if (!empty($message['sent_at'])) {
-        $lines[] = 'Sent: ' . (string) $message['sent_at'] . ' UTC';
+        $lines[] = 'Sent: ' . applicationTimestampLabel($message['sent_at'], 'Y-m-d H:i:s T');
     }
-    $lines[] = 'Received by ' . $brandName . ': ' . (string) ($message['received_at'] ?? '') . ' UTC';
+    $lines[] = 'Received by ' . $brandName . ': ' . applicationTimestampLabel($message['received_at'] ?? '', 'Y-m-d H:i:s T');
     if ($attachments) {
         $lines[] = 'Attachments: ' . implode(', ', $attachments);
     }

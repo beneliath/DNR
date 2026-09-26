@@ -453,20 +453,20 @@ function deliverPresentationNotes(mysqli $conn, int $presentationId, int $speake
 /** @return array{0: string, 1: string} */
 function shortLinkStatsDates(string $from, string $to): array
 {
-    $start = DateTimeImmutable::createFromFormat('!Y-m-d', $from, new DateTimeZone('UTC'));
-    $end = DateTimeImmutable::createFromFormat('!Y-m-d', $to, new DateTimeZone('UTC'));
+    $start = DateTimeImmutable::createFromFormat('!Y-m-d', $from, applicationTimezone());
+    $end = DateTimeImmutable::createFromFormat('!Y-m-d', $to, applicationTimezone());
     if (!$start || !$end || $start->format('Y-m-d') !== $from || $end->format('Y-m-d') !== $to
         || $start > $end || (int) $start->diff($end)->days > 365) {
         throw new InvalidArgumentException('Choose a valid date range of up to 366 days.');
     }
-    return [$from . ' 00:00:00', $end->modify('+1 day')->format('Y-m-d 00:00:00')];
+    return [applicationDateBoundaryUtc($from), applicationDateBoundaryUtc($to, true)];
 }
 
 function shortLinkStats(mysqli $conn, string $where, string $start, string $end): array
 {
     $stats = [];
     // $where is assembled only from fixed columns and validated integer IDs below.
-    foreach (['day' => 'DATE(v.visit_hour)', 'browser' => 'v.browser', 'os' => 'v.os',
+    foreach (['browser' => 'v.browser', 'os' => 'v.os',
         'country' => 'v.country', 'referrer' => 'v.referrer'] as $dimension => $column) {
         $order = $dimension === 'day' ? 'label' : 'total DESC, label';
         // Include every country so the map does not drop visits outside the top 20.
@@ -478,8 +478,7 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
         $stmt->execute();
         $stats[$dimension] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
-    $period = (int) (new DateTimeImmutable($start))->diff(new DateTimeImmutable($end))->days > 90
-        ? "DATE_FORMAT(v.visit_hour, '%Y-%m')" : 'DATE(v.visit_hour)';
+    $period = 'v.visit_hour';
     $stmt = $conn->prepare("SELECT $period AS label, l.id AS link_id, l.link_type, l.custom_label,
         e.event_title, p.topic_title, l.engagement_id, l.presentation_id, SUM(v.visits) AS total
         FROM short_link_stats v JOIN short_links l ON l.id = v.link_id
@@ -490,17 +489,38 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
         HAVING SUM(v.visits) > 0 ORDER BY label, e.event_title, p.topic_title, l.id");
     $stmt->bind_param('ss', $start, $end);
     $stmt->execute();
-    $stats['resources'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    $stats += shortLinkLocalVisitBuckets($stmt->get_result()->fetch_all(MYSQLI_ASSOC), $start, $end);
     $stats['total'] = array_sum(array_column($stats['day'], 'total'));
     return $stats;
+}
+
+/** Aggregate stored UTC hours into local days and resources without MySQL timezone tables. */
+function shortLinkLocalVisitBuckets(array $hours, string $start, string $end): array
+{
+    $first = (new DateTimeImmutable($start, new DateTimeZone('UTC')))->setTimezone(applicationTimezone());
+    $until = (new DateTimeImmutable($end, new DateTimeZone('UTC')))->setTimezone(applicationTimezone());
+    $monthly = (int) $first->diff($until)->days > 90;
+    $days = []; $resources = [];
+    foreach ($hours as $row) {
+        $day = applicationTimestampLabel($row['label'], 'Y-m-d');
+        $days[$day] = ($days[$day] ?? 0) + (int) $row['total'];
+        $label = $monthly ? substr($day, 0, 7) : $day;
+        $key = $label . ':' . $row['link_id'];
+        if (!isset($resources[$key])) $resources[$key] = array_replace($row, ['label' => $label, 'total' => 0]);
+        $resources[$key]['total'] += (int) $row['total'];
+    }
+    ksort($days);
+    $daily = [];
+    foreach ($days as $label => $total) $daily[] = ['label' => $label, 'total' => $total];
+    return ['day' => $daily, 'resources' => array_values($resources)];
 }
 
 /** Build chart buckets without losing quiet dates or traffic outside the leading categories. */
 function shortLinkReportData(array $stats, string $start, string $end): array
 {
-    $zone = new DateTimeZone('UTC');
-    $first = new DateTimeImmutable($start, $zone);
-    $until = new DateTimeImmutable($end, $zone);
+    $zone = applicationTimezone();
+    $first = (new DateTimeImmutable($start, new DateTimeZone('UTC')))->setTimezone($zone);
+    $until = (new DateTimeImmutable($end, new DateTimeZone('UTC')))->setTimezone($zone);
     $monthly = (int) $first->diff($until)->days > 90;
     $days = array_column($stats['day'], 'total', 'label');
     $buckets = [];
@@ -508,7 +528,7 @@ function shortLinkReportData(array $stats, string $start, string $end): array
         $key = $date->format($monthly ? 'Y-m' : 'Y-m-d');
         $buckets[$key] = ($buckets[$key] ?? 0) + (int) ($days[$date->format('Y-m-d')] ?? 0);
     }
-    $report = ['total' => (int) $stats['total'], 'period' => $monthly ? 'month' : 'day', 'timeline' => []];
+    $report = ['total' => (int) $stats['total'], 'period' => $monthly ? 'month' : 'day', 'timezone' => applicationTimezoneName(), 'timeline' => []];
     foreach ($buckets as $label => $total) $report['timeline'][] = ['label' => $label, 'total' => $total];
     $resources = [];
     foreach ($stats['resources'] ?? [] as $row) $resources[$row['label']][] = $row;

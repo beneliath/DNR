@@ -240,7 +240,7 @@ if ($exportCsv) {
     if ($output === false) {
         abortApplication(503, 'The pipeline export could not be created.');
     }
-    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks', 'Archived at (UTC)'], ',', '"', '');
+    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks', 'Archived at (' . applicationTimezoneName() . ')'], ',', '"', '');
     foreach (\Dnr\Infrastructure\StatementRows::stream($stmt) as $inquiry) {
         $safe = static function (mixed $value): string {
             $text = trim((string) $value);
@@ -258,7 +258,7 @@ if ($exportCsv) {
             $safe($inquiry['next_action_due_date']),
             $safe($inquiry['owner_username'] ?: 'Unassigned'),
             (int) $inquiry['open_task_count'],
-            $safe($inquiry['archived_at']),
+            $safe(applicationTimestampLabel($inquiry['archived_at'], 'Y-m-d H:i:s T')),
         ], ',', '"', '');
     }
     $stmt->close();

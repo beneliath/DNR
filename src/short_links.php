@@ -23,8 +23,8 @@ if ($type !== '') {
     $where[] = "l.link_type = '" . $type . "'";
     $filters['type'] = $type;
 }
-$from = \Dnr\Http\RequestInput::string($_GET, 'from', gmdate('Y-m-d', strtotime('-29 days')));
-$to = \Dnr\Http\RequestInput::string($_GET, 'to', gmdate('Y-m-d'));
+$from = \Dnr\Http\RequestInput::string($_GET, 'from', applicationBusinessDateOffset(-29));
+$to = \Dnr\Http\RequestInput::string($_GET, 'to', applicationBusinessDate());
 try { [$start, $end] = shortLinkStatsDates($from, $to); }
 catch (InvalidArgumentException $exception) { http_response_code(400); exit(htmlspecialchars($exception->getMessage())); }
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -162,8 +162,8 @@ if ($activeLink !== null) {
         </select></div>
         <div><label for="type_filter">Link Type</label><select name="type" id="type_filter"><option value="">All types</option><?php foreach (SHORT_LINK_TYPES as $key => $label): ?><option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>><?php echo $h($label); ?></option><?php endforeach; ?></select></div>
         <?php endif; ?>
-        <div><label for="from_filter">From (UTC)</label><input type="date" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
-        <div><label for="to_filter">Through (UTC)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
+        <div><label for="from_filter">From (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
+        <div><label for="to_filter">Through (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
         <div class="short-link-filter-actions"><button type="submit" class="button-primary">Apply Filters</button><a class="button-secondary" href="<?php echo $h($clearFiltersUrl); ?>">Clear Filters</a></div>
     </form>
     <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>
@@ -176,12 +176,12 @@ if ($activeLink !== null) {
                 <?php endif; ?>
                 <div class="stats-summary-copy">
                     <h2 class="stats-headline"><strong><?php echo number_format($stats['total']); ?></strong> tracked visits in the selected period</h2>
-                    <p class="stats-meta"><?php echo $h($from); ?> – <?php echo $h($to); ?> · <?php echo number_format($linkCount); ?> <?php echo $linkCount === 1 ? 'link' : 'links'; ?> · Updated at <?php echo gmdate('H:i'); ?> UTC</p>
+                    <p class="stats-meta"><?php echo $h($from); ?> – <?php echo $h($to); ?> · <?php echo number_format($linkCount); ?> <?php echo $linkCount === 1 ? 'link' : 'links'; ?> · Updated at <?php echo $h(applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'H:i T')); ?></p>
                 </div>
             </div>
             <nav class="stats-periods" aria-label="Statistics date range">
                 <?php foreach ([7 => '7 days', 30 => '30 days', 90 => '90 days', 365 => '1 year'] as $days => $label): ?>
-                    <?php $rangeFrom = gmdate('Y-m-d', strtotime('-' . ($days - 1) . ' days')); $rangeTo = gmdate('Y-m-d'); ?>
+                    <?php $rangeFrom = applicationBusinessDateOffset(-($days - 1)); $rangeTo = applicationBusinessDate(); ?>
                     <a href="short_links.php?<?php echo $h(http_build_query($filters + ['from' => $rangeFrom, 'to' => $rangeTo])); ?>" <?php echo $from === $rangeFrom && $to === $rangeTo ? 'aria-current="true"' : ''; ?>><?php echo $label; ?></a>
                 <?php endforeach; ?>
             </nav>
@@ -190,7 +190,7 @@ if ($activeLink !== null) {
         <p id="stats-chart-error" class="field-help" hidden>Charts could not load. Visit counts are available in the data tables below.</p>
         <noscript><p class="field-help">Enable JavaScript for interactive charts, or open the data tables below.</p></noscript>
         <section class="stats-timeline" aria-label="Visits over time">
-            <p class="stats-chart-caption"><?php echo $report['period'] === 'month' ? 'Monthly' : 'Daily'; ?> visits · UTC<?php echo $report['period'] === 'month' ? ' · First and last months include only the selected dates' : ''; ?></p>
+            <p class="stats-chart-caption"><?php echo $report['period'] === 'month' ? 'Monthly' : 'Daily'; ?> visits · <?php echo $h(applicationTimezoneName()); ?><?php echo $report['period'] === 'month' ? ' · First and last months include only the selected dates' : ''; ?></p>
             <div class="stats-canvas stats-canvas-timeline" id="stats-timeline-wrap" hidden><canvas id="stats-timeline" role="img" tabindex="0" aria-label="Tracked visits over time" aria-describedby="stats-chart-help"></canvas></div>
             <?php if (!$stats['total']): ?><p class="stats-empty">No tracked visits in this period</p><?php endif; ?>
             <?php $dimension = 'timeline'; $dimensionTitle = $report['period'] === 'month' ? 'Monthly visits' : 'Daily visits'; include 'templates/short_link_stats_table.php'; ?>

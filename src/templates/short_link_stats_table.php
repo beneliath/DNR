@@ -9,7 +9,7 @@ $tableRows = $isTimeline ? $report['timeline_resources'] : $report[$dimension];
     <div class="stats-table-scroll" role="region" aria-label="<?php echo $h($dimensionTitle); ?> data table" tabindex="0">
         <table class="data-table">
             <caption class="stats-screen-reader"><?php echo $h($dimensionTitle); ?> in the selected period</caption>
-            <thead><tr><th scope="col"><?php echo $dimension === 'timeline' ? 'Period (UTC)' : $h($dimensionTitle); ?></th><?php if ($isTimeline): ?><th scope="col">Event Name</th><th scope="col">Event Presentation</th><th scope="col">Event Resource</th><?php endif; ?><th scope="col" class="stats-number">Visits</th><th scope="col" class="stats-number">Share</th></tr></thead>
+            <thead><tr><th scope="col"><?php echo $dimension === 'timeline' ? 'Period (' . $h(applicationTimezoneName()) . ')' : $h($dimensionTitle); ?></th><?php if ($isTimeline): ?><th scope="col">Event Name</th><th scope="col">Event Presentation</th><th scope="col">Event Resource</th><?php endif; ?><th scope="col" class="stats-number">Visits</th><th scope="col" class="stats-number">Share</th></tr></thead>
             <tbody>
             <?php foreach ($tableRows as $row):
                 if ($isTimeline && $row['label'] !== $previousPeriod) {

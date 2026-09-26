@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+putenv('DNR_TIMEZONE=UTC');
 require_once __DIR__ . '/../src/short_link_helpers.php';
 function expectShortLink(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); }
 putenv('DNR_PUBLIC_BASE_URL=https://moed.example.com');
