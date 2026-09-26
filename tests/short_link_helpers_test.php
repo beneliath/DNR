@@ -38,4 +38,23 @@ $report = shortLinkReportData(array_replace($emptyStats, ['referrer'=>$rows,'bro
 foreach (['referrer','browser','os','country'] as $dimension) expectShortLink(array_sum(array_column($report[$dimension], 'total')) === 205, 'Category buckets preserve all traffic, including rows beyond the SQL limit');
 expectShortLink(end($report['referrer']) === ['label'=>'Other referrers','total'=>145], 'Donut remainder includes every omitted source');
 expectShortLink($report['country'][0] === ['label'=>'ZZ','total'=>13], 'Unknown locations stay separate from mapped countries');
+$resourceRows = [
+    ['label'=>'2026-09-07', 'link_id'=>1, 'link_type'=>'notes', 'custom_label'=>null, 'event_title'=>'Event <One>', 'topic_title'=>'Talk & Q&A', 'engagement_id'=>3, 'presentation_id'=>4, 'total'=>2],
+    ['label'=>'2026-09-07', 'link_id'=>2, 'link_type'=>'custom', 'custom_label'=>'Reading list', 'event_title'=>'Event <One>', 'topic_title'=>'Talk & Q&A', 'engagement_id'=>3, 'presentation_id'=>4, 'total'=>3],
+];
+$report = shortLinkReportData(array_replace($emptyStats, ['day'=>[['label'=>'2026-09-07', 'total'=>5]], 'resources'=>$resourceRows, 'total'=>5]), '2026-09-07 00:00:00', '2026-09-09 00:00:00');
+expectShortLink(array_column($report['timeline_resources'], 'total') === [2, 3, 0], 'Resource breakdown preserves totals and quiet dates');
+$dimension = 'timeline'; $dimensionTitle = 'Daily visits'; $from = '2026-09-07'; $to = '2026-09-08';
+$h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+ob_start(); include __DIR__ . '/../src/templates/short_link_stats_table.php'; $html = ob_get_clean();
+expectShortLink(str_contains($html, 'Event Name') && str_contains($html, 'Event Presentation') && str_contains($html, 'Event Resource'), 'Timeline exposes event and resource columns');
+expectShortLink(str_contains($html, 'Event &lt;One&gt;') && str_contains($html, 'Talk &amp; Q&amp;A'), 'Event and presentation titles are escaped');
+expectShortLink(str_contains($html, 'Speaker Notes link') && str_contains($html, 'Reading list link'), 'Built-in and custom resources retain their labels');
+expectShortLink(substr_count($html, 'data-period-band="0"') === 2 && substr_count($html, 'data-period-band="1"') === 1, 'Rows from the same date share a band and the next date alternates');
+expectShortLink(substr_count($html, 'data-stats-period="2026-09-07"') === 2, 'Every resource row identifies its chart period');
+expectShortLink(str_contains($html, '40.0%') && str_contains($html, '60.0%'), 'Resource shares use the selected period total');
+expectShortLink(substr_count($html, 'class="stats-number"') === 2, 'Numeric headings have matching alignment classes');
+$resourceRows[0]['label'] = '2026-01'; $resourceRows[1]['label'] = '2026-01';
+$report = shortLinkReportData(array_replace($emptyStats, ['day'=>[['label'=>'2026-01-20', 'total'=>5]], 'resources'=>$resourceRows, 'total'=>5]), '2026-01-15 00:00:00', '2026-05-02 00:00:00');
+expectShortLink(array_column($report['timeline_resources'], 'total') === [2, 3, 0, 0, 0, 0], 'Monthly resources preserve partial-month chart totals and quiet months');
 echo "Short-link helper tests passed.\n";

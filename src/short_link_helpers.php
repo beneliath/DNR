@@ -478,6 +478,19 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
         $stmt->execute();
         $stats[$dimension] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     }
+    $period = (int) (new DateTimeImmutable($start))->diff(new DateTimeImmutable($end))->days > 90
+        ? "DATE_FORMAT(v.visit_hour, '%Y-%m')" : 'DATE(v.visit_hour)';
+    $stmt = $conn->prepare("SELECT $period AS label, l.id AS link_id, l.link_type, l.custom_label,
+        e.event_title, p.topic_title, l.engagement_id, l.presentation_id, SUM(v.visits) AS total
+        FROM short_link_stats v JOIN short_links l ON l.id = v.link_id
+        JOIN engagements e ON e.id = l.engagement_id JOIN presentations p ON p.id = l.presentation_id
+        WHERE $where AND v.visit_hour >= ? AND v.visit_hour < ?
+        GROUP BY $period, l.id, l.link_type, l.custom_label, e.event_title, p.topic_title,
+            l.engagement_id, l.presentation_id
+        HAVING SUM(v.visits) > 0 ORDER BY label, e.event_title, p.topic_title, l.id");
+    $stmt->bind_param('ss', $start, $end);
+    $stmt->execute();
+    $stats['resources'] = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stats['total'] = array_sum(array_column($stats['day'], 'total'));
     return $stats;
 }
@@ -497,6 +510,14 @@ function shortLinkReportData(array $stats, string $start, string $end): array
     }
     $report = ['total' => (int) $stats['total'], 'period' => $monthly ? 'month' : 'day', 'timeline' => []];
     foreach ($buckets as $label => $total) $report['timeline'][] = ['label' => $label, 'total' => $total];
+    $resources = [];
+    foreach ($stats['resources'] ?? [] as $row) $resources[$row['label']][] = $row;
+    $report['timeline_resources'] = [];
+    foreach ($report['timeline'] as $bucket) {
+        foreach ($resources[$bucket['label']] ?? [$bucket] as $row) {
+            $report['timeline_resources'][] = $row;
+        }
+    }
     foreach (['referrer' => 6, 'browser' => 7, 'os' => 7, 'country' => 676] as $key => $limit) {
         $report[$key] = [];
         foreach (array_slice($stats[$key], 0, $limit) as $row) {
