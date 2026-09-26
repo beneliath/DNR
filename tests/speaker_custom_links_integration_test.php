@@ -63,6 +63,8 @@ try {
     $start = gmdate('Y-m-d') . ' 00:00:00'; $end = gmdate('Y-m-d', strtotime('+1 day')) . ' 00:00:00';
     expectCustomLinksIntegration(shortLinkStats($conn, 'l.id=' . $first[1]['id'], $start, $end)['total'] === 2, 'Custom link visits are counted independently.');
     expectCustomLinksIntegration(shortLinkStats($conn, 'l.presentation_id=' . $pids[1], $start, $end)['total'] === 1, 'Visits remain scoped to the presentation.');
+    $first = fetchPresentationShortLinks($conn, $pids[0]);
+    expectCustomLinksIntegration((int) $first[1]['tracked_visits'] === 2, 'Custom QR cards include their recorded visits.');
     $input['custom_links'] = [];
     saveSpeaker($conn, $input, $speaker, 4);
     ensureSpeakerCustomShortLinks($conn, $speaker);
