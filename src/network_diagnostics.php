@@ -55,12 +55,12 @@ unset($_SESSION['_network_statistics_reset']);
     <div class="page-heading network-diagnostics-heading">
         <div>
             <h1>Remote Network Performance</h1>
-            <p class="page-intro">Compare actual MOED page loads from public IPv4 and IPv6 clients during the last 24 hours.</p>
+            <p class="page-intro">Compare actual MOED page loads and document responses from public IPv4 and IPv6 clients during the last 24 hours.</p>
         </div>
         <div class="network-diagnostics-actions">
             <button type="button" class="button-add" data-network-refresh>Refresh</button>
             <?php if (hasRecentAdminElevation()): ?>
-                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-admin-unlock-required data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page and image timings? This cannot be undone. New traffic will start counting from zero.">
+                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-admin-unlock-required data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page, image, and document timings? This cannot be undone. New traffic will start counting from zero.">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="reset_statistics">
                     <button type="submit" class="button-secondary statistics-reset-button">Reset Statistics</button>
@@ -117,6 +117,28 @@ unset($_SESSION['_network_statistics_reset']);
         </dl>
     </section>
 
+    <section class="network-page-breakdown network-document-breakdown" aria-labelledby="document-download-heading">
+        <div class="network-section-heading">
+            <div><p class="network-eyebrow">PDF and PowerPoint downloads</p><h2 id="document-download-heading">Remote Document Responses</h2></div>
+        </div>
+        <p>Server timings for PDF, PPT, and PPTX responses, including inline views and byte-range requests. Duration ends when PHP finishes handling the response; it does not measure when the browser finishes downloading. Response size is the advertised size, including partial responses.</p>
+        <div class="responsive-table">
+            <table class="data-table">
+                <thead><tr>
+                    <th scope="col">Format / route</th>
+                    <th scope="col">Median duration</th>
+                    <th scope="col">75th percentile</th>
+                    <th scope="col">Median time to headers</th>
+                    <th scope="col">Median response size</th>
+                    <th scope="col">Samples (partial)</th>
+                    <th scope="col">Most-seen edge</th>
+                </tr></thead>
+                <tbody data-network-downloads><tr><td colspan="7">Loading document measurements…</td></tr></tbody>
+            </table>
+        </div>
+        <p>Cached browser or edge responses that do not reach PHP are excluded. Time to headers includes server work and output buffering, without client network latency. Header timings are unavailable when output stays buffered until shutdown.</p>
+    </section>
+
     <section class="network-page-breakdown" aria-labelledby="slow-page-heading">
         <div class="network-section-heading">
             <div><p class="network-eyebrow">Page detail</p><h2 id="slow-page-heading">Slowest Observed Pages</h2></div>
@@ -152,7 +174,7 @@ unset($_SESSION['_network_statistics_reset']);
         <ul>
             <li>Each authenticated remote browser reports its completed MOED navigation and same-origin image timings.</li>
             <li>The server determines IPv4 or IPv6 from the trusted client connection; browsers do not self-report their address.</li>
-            <li>Measurements contain page names and timings only. Client IP addresses and user identities are not stored.</li>
+            <li>Measurements contain endpoint names, document formats, response sizes, and timings only. Client IP addresses and user identities are not stored.</li>
             <li>Results appear after the updated application receives public traffic; an empty IPv6 card means no IPv6 sample has arrived yet.</li>
         </ul>
         <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard compares the most recent 24 hours.</p>
