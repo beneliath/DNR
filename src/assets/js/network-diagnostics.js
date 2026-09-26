@@ -79,10 +79,30 @@
         });
     }
 
+    function renderDownloads(downloads) {
+        const body = root.querySelector('[data-network-downloads]');
+        if (!body) return;
+        body.replaceChildren();
+        ['pdf', 'ppt', 'pptx'].forEach(function (type) {
+            ['IPv4', 'IPv6'].forEach(function (family) {
+                const sample = downloads[type]?.[family] || {};
+                const row = body.insertRow();
+                [`${type.toUpperCase()} / ${family}`, formatMilliseconds(sample.median_duration_ms),
+                    formatMilliseconds(sample.p75_duration_ms), formatMilliseconds(sample.median_preparation_ms),
+                    Number.isFinite(sample.median_response_bytes) ? `${(sample.median_response_bytes / 1024).toFixed(1)} KiB` : '—',
+                    `${sample.sample_count || 0} (${sample.partial_sample_count || 0})`, sample.top_colo || '—'
+                ].forEach(function (value) {
+                    row.insertCell().textContent = String(value);
+                });
+            });
+        });
+    }
+
     function render(payload) {
         renderFamily('ipv4', payload.families.IPv4 || {});
         renderFamily('ipv6', payload.families.IPv6 || {});
         renderPages(payload.pages || []);
+        renderDownloads(payload.downloads || {});
         const assessment = networkAssessment(payload.families || {});
         const summary = root.querySelector('[data-network-summary]');
         if (summary) summary.dataset.state = assessment.state;

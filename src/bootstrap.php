@@ -12,3 +12,6 @@ require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/functions.php';
 require_once __DIR__ . '/pagination_helpers.php';
+
+require_once __DIR__ . '/network_diagnostics_helpers.php';
+registerNetworkDocumentPerformance($conn);

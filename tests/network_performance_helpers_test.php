@@ -79,4 +79,37 @@ expectNetworkPerformance(
     'Cloudflare edge codes should be accepted only from valid ray suffixes.'
 );
 
+expectNetworkPerformance(
+    networkDocumentType('Application/PDF; charset=binary') === 'pdf'
+        && networkDocumentType('application/vnd.ms-powerpoint') === 'ppt'
+        && networkDocumentType('application/vnd.openxmlformats-officedocument.presentationml.presentation') === 'pptx'
+        && networkDocumentType('image/png') === null,
+    'document classification must support all three formats and ignore other responses.'
+);
+$documents = summarizeNetworkPerformanceRows([
+    ['sample_type' => 'page', 'address_family' => 'IPv4', 'page_path' => 'contacts.php', 'load_ms' => 100, 'ttfb_ms' => 20],
+    ['sample_type' => 'pdf', 'address_family' => 'IPv4', 'page_path' => 'presentation_asset.php',
+        'load_ms' => 1000, 'server_headers_ms' => 40, 'response_bytes' => 2048, 'response_status' => 200, 'cloudflare_colo' => 'DFW'],
+    ['sample_type' => 'pdf', 'address_family' => 'IPv4', 'page_path' => 'presentation_asset.php',
+        'load_ms' => 2000, 'server_headers_ms' => null, 'response_bytes' => null, 'response_status' => 206],
+    ['sample_type' => 'ppt', 'address_family' => 'IPv6', 'page_path' => 'presentation_asset.php',
+        'load_ms' => 500, 'server_headers_ms' => 50, 'response_bytes' => 4096],
+    ['sample_type' => 'pptx', 'address_family' => 'IPv6', 'page_path' => 'presentation_asset.php',
+        'load_ms' => 800, 'server_headers_ms' => 80, 'response_bytes' => 8192],
+]);
+$pdf = $documents['downloads']['pdf']['IPv4'];
+expectNetworkPerformance(
+    $documents['sample_count'] === 1 && count($documents['pages']) === 1
+        && $documents['families']['IPv4']['median_load_ms'] === 100.0
+        && $documents['families']['IPv6']['sample_count'] === 0
+        && $pdf['sample_count'] === 2 && $pdf['partial_sample_count'] === 1
+        && $pdf['median_duration_ms'] === 1500.0 && $pdf['p75_duration_ms'] === 1750.0
+        && $pdf['median_preparation_ms'] === 40.0 && $pdf['median_response_bytes'] === 2048.0
+        && $pdf['top_colo'] === 'DFW'
+        && $documents['downloads']['pdf']['IPv6']['median_duration_ms'] === null
+        && $documents['downloads']['ppt']['IPv6']['sample_count'] === 1
+        && $documents['downloads']['pptx']['IPv6']['sample_count'] === 1,
+    'document metrics must separate formats and routes, ignore unavailable values, and leave page statistics unchanged.'
+);
+
 echo "Network performance helper tests passed.\n";

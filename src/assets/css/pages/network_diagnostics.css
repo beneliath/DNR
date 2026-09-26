@@ -446,3 +446,13 @@
         text-align: left;
     }
 }
+
+@media (max-width: 760px) {
+    .network-document-breakdown tbody td:nth-child(1):not([colspan])::before { content: "Format / route"; }
+    .network-document-breakdown tbody td:nth-child(2):not([colspan])::before { content: "Median duration"; }
+    .network-document-breakdown tbody td:nth-child(3):not([colspan])::before { content: "75th percentile"; }
+    .network-document-breakdown tbody td:nth-child(4):not([colspan])::before { content: "Time to headers"; }
+    .network-document-breakdown tbody td:nth-child(5):not([colspan])::before { content: "Response size"; }
+    .network-document-breakdown tbody td:nth-child(6):not([colspan])::before { content: "Samples (partial)"; }
+    .network-document-breakdown tbody td:nth-child(7):not([colspan])::before { content: "Most-seen edge"; }
+}

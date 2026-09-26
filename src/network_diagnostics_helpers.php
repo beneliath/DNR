@@ -134,6 +134,63 @@ function resetNetworkPerformanceStatistics(mysqli $conn, int $actorId): void
     }
 }
 
+/** Observe native document responses without fetching the document a second time. */
+function registerNetworkDocumentPerformance(mysqli $conn): void
+{
+    if (PHP_SAPI === 'cli' || ($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'GET') {
+        return;
+    }
+    $readyAt = null;
+    header_register_callback(static function () use (&$readyAt): void {
+        $readyAt = microtime(true);
+    });
+    register_shutdown_function(static function () use ($conn, &$readyAt): void {
+        $finishedAt = microtime(true);
+        $error = error_get_last();
+        if (connection_aborted() || !in_array(http_response_code(), [200, 206], true)
+            || ($error !== null && in_array($error['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true))) return;
+        $headers = [];
+        foreach (headers_list() as $header) {
+            $parts = explode(':', $header, 2);
+            if (count($parts) === 2) $headers[strtolower($parts[0])] = trim($parts[1]);
+        }
+        $type = networkDocumentType($headers['content-type'] ?? '');
+        if ($type === null) return;
+        $family = networkPerformanceAddressFamily(requestIpAddress());
+        if ($family === null) return;
+        $startedAt = (float) ($_SERVER['REQUEST_TIME_FLOAT'] ?? $finishedAt);
+        $bytes = isset($headers['content-length']) ? max(0, (int) $headers['content-length']) : null;
+        $status = http_response_code();
+        $page = basename((string) ($_SERVER['SCRIPT_NAME'] ?? 'download.php'));
+        $colo = networkPerformanceCloudflareColo($_SERVER);
+        // Buffered responses may not send headers until after shutdown callbacks.
+        // In that case, report no header timing rather than estimating client TTFB.
+        $preparation = $readyAt === null ? null : round(max(0, $readyAt - $startedAt) * 1000, 1);
+        $duration = round(max(0, $finishedAt - $startedAt) * 1000, 1);
+        try {
+            $statement = $conn->prepare('INSERT INTO network_performance_samples '
+                . '(address_family, page_path, cloudflare_colo, sample_type, response_bytes, response_status, server_headers_ms, ttfb_ms, '
+                . 'dom_content_loaded_ms, load_ms) VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, ?)');
+            $statement->bind_param('ssssiidd', $family, $page, $colo, $type, $bytes, $status, $preparation, $duration);
+            $statement->execute();
+            $statement->close();
+            $conn->query('DELETE FROM network_performance_samples WHERE recorded_at < UTC_TIMESTAMP(6) - INTERVAL 30 DAY');
+        } catch (Throwable $exception) {
+            applicationLog('error', 'Document network measurement failed', ['error' => $exception->getMessage()]);
+        }
+    });
+}
+
+function networkDocumentType(string $contentType): ?string
+{
+    return match (strtolower(trim(explode(';', $contentType, 2)[0]))) {
+        'application/pdf' => 'pdf',
+        'application/vnd.ms-powerpoint' => 'ppt',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+        default => null,
+    };
+}
+
 /** @param list<float|int|string> $values */
 function networkPerformancePercentile(array $values, float $percentile): ?float
 {
@@ -152,6 +209,25 @@ function networkPerformancePercentile(array $values, float $percentile): ?float
 /** @param list<array<string, mixed>> $rows @return array<string, mixed> */
 function summarizeNetworkPerformanceRows(array $rows): array
 {
+    $downloads = [];
+    foreach (['pdf', 'ppt', 'pptx'] as $type) {
+        foreach (['IPv4', 'IPv6'] as $family) {
+            $documentRows = array_values(array_filter($rows, static fn(array $row): bool =>
+                ($row['sample_type'] ?? 'page') === $type && ($row['address_family'] ?? '') === $family));
+            $colos = array_count_values(array_filter(array_column($documentRows, 'cloudflare_colo')));
+            arsort($colos);
+            $downloads[$type][$family] = [
+                'sample_count' => count($documentRows),
+                'partial_sample_count' => count(array_filter($documentRows, static fn(array $row): bool => (int) ($row['response_status'] ?? 200) === 206)),
+                'median_duration_ms' => networkPerformancePercentile(array_column($documentRows, 'load_ms'), 0.5),
+                'p75_duration_ms' => networkPerformancePercentile(array_column($documentRows, 'load_ms'), 0.75),
+                'median_preparation_ms' => networkPerformancePercentile(array_values(array_filter(array_column($documentRows, 'server_headers_ms'), static fn($value): bool => $value !== null)), 0.5),
+                'median_response_bytes' => networkPerformancePercentile(array_values(array_filter(array_column($documentRows, 'response_bytes'), static fn($value): bool => $value !== null)), 0.5),
+                'top_colo' => $colos === [] ? null : array_key_first($colos),
+            ];
+        }
+    }
+    $rows = array_values(array_filter($rows, static fn(array $row): bool => ($row['sample_type'] ?? 'page') === 'page'));
     $families = [];
     foreach (['IPv4', 'IPv6'] as $family) {
         $familyRows = array_values(array_filter(
@@ -214,6 +290,7 @@ function summarizeNetworkPerformanceRows(array $rows): array
         'sample_count' => count($rows),
         'generated_at' => gmdate(DATE_ATOM),
         'families' => $families,
+        'downloads' => $downloads,
         'pages' => array_slice($pages, 0, 8),
     ];
 }
@@ -222,7 +299,7 @@ function summarizeNetworkPerformanceRows(array $rows): array
 function fetchNetworkPerformanceSummary(mysqli $conn): array
 {
     $result = $conn->query(
-        'SELECT address_family, page_path, cloudflare_colo, ttfb_ms, load_ms, image_count, image_max_ms, '
+        'SELECT address_family, page_path, cloudflare_colo, sample_type, response_bytes, response_status, server_headers_ms, ttfb_ms, load_ms, image_count, image_max_ms, '
         . 'contact_image_count, contact_image_max_ms '
         . 'FROM network_performance_samples '
         . 'WHERE recorded_at >= UTC_TIMESTAMP(6) - INTERVAL 24 HOUR '
