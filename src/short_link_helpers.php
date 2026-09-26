@@ -468,9 +468,9 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
     // $where is assembled only from fixed columns and validated integer IDs below.
     foreach (['browser' => 'v.browser', 'os' => 'v.os',
         'country' => 'v.country', 'referrer' => 'v.referrer'] as $dimension => $column) {
-        $order = $dimension === 'day' ? 'label' : 'total DESC, label';
+        $order = 'total DESC, label';
         // Include every country so the map does not drop visits outside the top 20.
-        $limit = $dimension === 'country' ? 676 : ($dimension === 'day' ? 366 : 20);
+        $limit = $dimension === 'country' ? 676 : 20;
         $stmt = $conn->prepare("SELECT $column AS label, SUM(v.visits) AS total FROM short_link_stats v
             JOIN short_links l ON l.id = v.link_id WHERE $where AND v.visit_hour >= ? AND v.visit_hour < ?
             GROUP BY $column ORDER BY $order LIMIT $limit");
