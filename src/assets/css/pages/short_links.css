@@ -17,6 +17,8 @@
 .short-link-pagination { display: flex; align-items: center; justify-content: center; gap: 1.5rem; margin-block: 2rem; }
 
 .short-link-report {
+  --stats-row-hover: #ffd3a6;
+  --stats-marker: #c55c0c;
   --stats-blue: #78aee4;
   --stats-rgb: 102, 169, 232;
   --stats-heading: #35566a;
@@ -31,6 +33,8 @@
   min-width: 0;
 }
 .dark-mode .short-link-report {
+  --stats-row-hover: #713b10;
+  --stats-marker: #fb923c;
   --stats-blue: #8bc0f3;
   --stats-rgb: 114, 178, 241;
   --stats-heading: #d1e6f7;
@@ -99,6 +103,8 @@ html body .short-link-report .stats-legend button:hover, html body .short-link-r
 .stats-table-scroll th { text-align: left; overflow-wrap: anywhere; }
 .stats-table-scroll tbody th { font-weight: 400; }
 .stats-table-scroll td { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.stats-table-scroll .stats-number { text-align: right; white-space: nowrap; }
+.stats-table-scroll .stats-context { text-align: left; white-space: normal; overflow-wrap: anywhere; min-width: 9rem; }
 .stats-table-scroll thead { position: sticky; top: 0; background: var(--surface-subtle); }
 .stats-empty { text-align: center; padding: 1rem; color: var(--text-muted); }
 .stats-footnote { padding-top: 1rem; border-top: 1px solid var(--border); color: var(--text-muted); font-size: .8rem; line-height: 1.6; margin-bottom: 0; }
@@ -121,3 +127,10 @@ html body .short-link-report .stats-legend button:hover, html body .short-link-r
   .stats-periods { width: 100%; justify-content: space-between; }
   .stats-periods a { padding: .45rem .6rem; }
 }
+
+/* Keep each period together visually, even when it contains several resources. */
+.stats-table-scroll tr[data-period-band="0"] > :is(th, td) { background: var(--surface); }
+.stats-table-scroll tr[data-period-band="1"] > :is(th, td) { background: color-mix(in srgb, var(--stats-blue) 8%, var(--surface)); }
+.stats-table-scroll tr[data-stats-period]:is(:hover, :focus, :focus-within) > :is(th, td) { background: var(--stats-row-hover); }
+.stats-table-scroll tr[data-stats-period]:focus-visible { outline: 2px solid var(--stats-marker); outline-offset: -2px; }
+html:not(.dark-mode) .stats-table-scroll tr[data-stats-period]:is(:hover, :focus, :focus-within) { color: var(--task-highlight-row-muted); }

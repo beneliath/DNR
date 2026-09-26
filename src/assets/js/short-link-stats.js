@@ -85,7 +85,28 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
             const date = new Date(`${row.label}${data.period === 'month' ? '-01' : ''}T00:00:00Z`);
             return date.toLocaleDateString('en', { timeZone: 'UTC', month: 'short', ...(data.period === 'month' ? { year: 'numeric' } : { day: 'numeric' }) });
         };
-        createChart('stats-timeline', {
+        let hoveredRow = null;
+        let focusedRow = null;
+        const periodIndexes = new Map(data.timeline.map((row, index) => [row.label, index]));
+        const chart = createChart('stats-timeline', {
+            plugins: [{
+                id: 'timelineRowMarker',
+                afterDatasetsDraw(chart) {
+                    const row = hoveredRow || focusedRow;
+                    const index = row ? periodIndexes.get(row.dataset.statsPeriod) : undefined;
+                    if (index === undefined) return;
+                    const x = chart.scales.x.getPixelForValue(index);
+                    const { ctx, chartArea } = chart;
+                    ctx.save();
+                    ctx.strokeStyle = getComputedStyle(report).getPropertyValue('--stats-marker').trim();
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.moveTo(x, chartArea.top);
+                    ctx.lineTo(x, chartArea.bottom);
+                    ctx.stroke();
+                    ctx.restore();
+                },
+            }],
             type: 'line', data: { labels: data.timeline.map(label), datasets: [{
                 data: data.timeline.map(row => row.total), label: 'Visits', fill: true,
                 backgroundColor: context => gradient(context), borderColor: theme().blue,
@@ -99,6 +120,14 @@ Chart.register(LineController, LineElement, PointElement, CategoryScale, LinearS
                     label: context => `Visits: ${format.format(context.raw)}`,
                 } } },
             },
+        });
+        report.querySelectorAll('[data-stats-period]').forEach(row => {
+            row.addEventListener('pointerenter', () => { hoveredRow = row; chart.draw(); });
+            row.addEventListener('pointerleave', () => { hoveredRow = null; chart.draw(); });
+            row.addEventListener('focusin', () => { focusedRow = row; chart.draw(); });
+            row.addEventListener('focusout', event => {
+                if (!row.contains(event.relatedTarget)) { focusedRow = null; chart.draw(); }
+            });
         });
     }
     function renderReferrers() {
