@@ -5,6 +5,20 @@ declare(strict_types=1);
 require_once __DIR__ . '/application_runtime.php';
 require_once __DIR__ . '/github_version_helpers.php';
 
+function engagementMapStyleUrl(): string
+{
+    $config = deploymentConfig();
+    if ($config->string('map.provider') !== 'amazon') {
+        return '';
+    }
+    $key = configurationSecret('DNR_MAP_AMAZON_API_KEY');
+    if (!str_starts_with($key, 'v1.public.') || preg_match('/\s/', $key) === 1) {
+        throw new RuntimeException('Amazon maps requires a valid Amazon Location API key.');
+    }
+    return $config->tileCspSource() . '/v2/styles/' . $config->string('map.amazon_style')
+        . '/descriptor?key=' . rawurlencode($key);
+}
+
 function engagementMapStatuses()
 {
     return [

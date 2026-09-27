@@ -35,6 +35,9 @@ final class DeploymentConfig
             'accepted_marker_prefixes' => ['DNR'],
         ],
         'map' => [
+            'provider' => 'openstreetmap',
+            'amazon_region' => 'us-east-2',
+            'amazon_style' => 'Standard',
             'tile_url' => 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
             'attribution_text' => 'OpenStreetMap contributors',
             'attribution_url' => 'https://www.openstreetmap.org/copyright',
@@ -66,6 +69,9 @@ final class DeploymentConfig
         'defaults.timezone' => ['names' => ['DNR_TIMEZONE'], 'type' => 'string'],
         'inbound_email.emitted_marker_prefix' => ['names' => ['DNR_INBOUND_MARKER_PREFIX'], 'type' => 'string'],
         'inbound_email.accepted_marker_prefixes' => ['names' => ['DNR_INBOUND_ACCEPTED_MARKER_PREFIXES'], 'type' => 'csv'],
+        'map.provider' => ['names' => ['DNR_MAP_PROVIDER'], 'type' => 'string'],
+        'map.amazon_region' => ['names' => ['DNR_MAP_AMAZON_REGION'], 'type' => 'string'],
+        'map.amazon_style' => ['names' => ['DNR_MAP_AMAZON_STYLE'], 'type' => 'string'],
         'map.tile_url' => ['names' => ['DNR_MAP_TILE_URL'], 'type' => 'string'],
         'map.attribution_text' => ['names' => ['DNR_MAP_ATTRIBUTION_TEXT'], 'type' => 'string'],
         'map.attribution_url' => ['names' => ['DNR_MAP_ATTRIBUTION_URL'], 'type' => 'string'],
@@ -159,6 +165,9 @@ final class DeploymentConfig
 
     public function tileCspSource(): string
     {
+        if ($this->string('map.provider') === 'amazon') {
+            return 'https://maps.geo.' . $this->string('map.amazon_region') . '.amazonaws.com';
+        }
         $parts = parse_url($this->string('map.tile_url'));
         if (!is_array($parts) || !isset($parts['scheme'], $parts['host'])) {
             throw new InvalidArgumentException('map.tile_url must be an absolute HTTPS URL.');
@@ -250,6 +259,17 @@ final class DeploymentConfig
         }
         self::validateUrl((string) self::pathValue($data, 'map.tile_url'), 'map.tile_url', true);
         self::validateUrl((string) self::pathValue($data, 'map.attribution_url'), 'map.attribution_url', false);
+
+        if (!in_array(self::pathValue($data, 'map.provider'), ['openstreetmap', 'amazon'], true)) {
+            throw new InvalidArgumentException('map.provider must be openstreetmap or amazon.');
+        }
+        $amazonRegion = self::pathValue($data, 'map.amazon_region');
+        if (!is_string($amazonRegion) || preg_match('/\A[a-z]{2}-[a-z]+-[0-9]\z/D', $amazonRegion) !== 1) {
+            throw new InvalidArgumentException('map.amazon_region must be a standard AWS region name.');
+        }
+        if (!in_array(self::pathValue($data, 'map.amazon_style'), ['Standard', 'Monochrome', 'Hybrid', 'Satellite'], true)) {
+            throw new InvalidArgumentException('map.amazon_style must be Standard, Monochrome, Hybrid, or Satellite.');
+        }
 
         $prefixes = self::pathValue($data, 'inbound_email.accepted_marker_prefixes');
         if (!is_array($prefixes) || !array_is_list($prefixes) || $prefixes === []) {

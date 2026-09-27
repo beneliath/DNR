@@ -187,9 +187,9 @@ expectMapFeature(
     str_contains($security_headers, 'deploymentConfig()->tileCspSource()')
         && str_contains($security_headers, "worker-src 'self' blob:")
         && str_contains($map_page, "'mapProvider' => [")
-        && str_contains($map_script, 'const style = {')
+        && str_contains($map_script, 'const style = mapProvider.styleUrl || {')
         && str_contains($apache, 'Referrer-Policy "strict-origin-when-cross-origin"'),
-    'the security policy should allow the configured OpenStreetMap tile host, MapLibre worker, and origin-only Referer.'
+    'the security policy should allow the configured map provider, MapLibre worker, and origin-only Referer.'
 );
 expectMapFeature(
     str_contains($map_page, "'locationLookup' => [")

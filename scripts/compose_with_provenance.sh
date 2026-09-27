@@ -115,6 +115,20 @@ if [ "$geocoder_provider" = geoapify ]; then
     [ -s "$geoapify_key_file" ] || { echo 'A nonempty Geoapify key file is required.' >&2; exit 1; }
     set -- -f docker-compose.geoapify.yaml "$@"
 fi
+# A browser-restricted Amazon Location key opts this host into Amazon maps.
+map_provider=${DNR_MAP_PROVIDER:-auto}
+amazon_map_key_file=${DNR_MAP_AMAZON_API_KEY_FILE:-$project_directory/secrets/amazon_location_api_key}
+case "$map_provider" in
+    auto)
+        if [ -s "$amazon_map_key_file" ]; then map_provider=amazon; fi
+        ;;
+    amazon|openstreetmap) ;;
+    *) echo 'DNR_MAP_PROVIDER must be amazon, openstreetmap, or auto.' >&2; exit 1 ;;
+esac
+if [ "$map_provider" = amazon ]; then
+    [ -s "$amazon_map_key_file" ] || { echo 'A nonempty Amazon Location map key file is required.' >&2; exit 1; }
+    set -- -f docker-compose.amazon-maps.yaml "$@"
+fi
 # A provisioned purge token opts the host into managed speaker-note caching.
 # Never enable edge caching without the worker's zone ID and durable retries.
 cloudflare_token_file=${DNR_CLOUDFLARE_PURGE_TOKEN_FILE:-$project_directory/secrets/cloudflare_purge_token}

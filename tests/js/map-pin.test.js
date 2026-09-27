@@ -6,12 +6,13 @@ const fs = require('node:fs');
 
 function harness(coordinates = {latitude: null, longitude: null}) {
     const elements = Object.fromEntries(['pin-editor-data', 'pin-editor-map', 'pin-latitude', 'pin-longitude', 'confirm-pin', 'pin-editor-feedback']
-        .map(id => [id, {value: '', checked: false, listeners: {}, addEventListener(type, fn) { this.listeners[type] = fn; }}]));
+        .map(id => [id, {value: '', checked: false, listeners: {}, querySelector() { return null; }, addEventListener(type, fn) { this.listeners[type] = fn; }}]));
     elements['pin-editor-data'].textContent = JSON.stringify(coordinates);
     const maps = [], markers = [];
     class FakeMap {
         constructor(options) { this.options = options; this.listeners = {}; maps.push(this); }
         addControl() {}
+        once(type, fn) { this.listeners[type] = fn; }
         on(type, fn) { this.listeners[type] = fn; }
         getZoom() { return this.options.zoom; }
         easeTo(options) { this.lastMove = options; }
@@ -38,6 +39,16 @@ test('unknown or invalid coordinates never create an accidental zero-location pi
         assert.equal(h.longitude.value, '');
         assert.equal(h.confirmation.checked, false);
     }
+});
+
+test('Amazon style preserves pin editing while raster remains the default', () => {
+    const styleUrl = 'https://maps.geo.us-east-2.amazonaws.com/v2/styles/Standard/descriptor?key=test';
+    const h = harness({latitude: 28.8, longitude: -82.3, styleUrl});
+    assert.equal(h.map.options.style, styleUrl);
+    h.map.listeners.click({lngLat: {lat: 48.86, lng: 2.3}});
+    assert.equal(h.latitude.value, '48.8600000');
+    assert.equal(h.longitude.value, '2.3000000');
+    assert.equal(harness().map.options.style.sources.base.type, 'raster');
 });
 
 test('map clicks and marker drags require a fresh location confirmation', () => {
@@ -80,4 +91,15 @@ test('tile errors leave coordinate entry available with an explanation', () => {
     h.longitude.value = '-82.315708';
     h.longitude.listeners.change();
     assert.equal(h.markers.length, 1);
+});
+
+test('pin editor collapses credits after asynchronous source loading', () => {
+    const h = harness();
+    const classes = new Set(['maplibregl-compact-show']);
+    const attribution = {open: true, classList: {remove: name => classes.delete(name)}, removeAttribute(name) { if (name === 'open') this.open = false; }};
+    h.elements['pin-editor-map'].querySelector = () => attribution;
+    assert.equal(attribution.open, true);
+    h.map.listeners.load();
+    assert.equal(attribution.open, false);
+    assert.equal(classes.has('maplibregl-compact-show'), false);
 });

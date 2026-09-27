@@ -47,7 +47,7 @@ import {
     const rasterAttribution = attributionUrl
         ? '&copy; <a href="' + attributionUrl + '">' + attributionText + '</a>'
         : attributionText;
-    const style = {
+    const style = mapProvider.styleUrl || {
         version: 8,
         sources: {
             base: {
@@ -67,8 +67,15 @@ import {
         zoom: 2,
         minZoom: 2,
         maxZoom: maximumZoom,
-        attributionControl: true,
+        attributionControl: {compact: true},
         validateStyle: false
+    });
+    // Source attribution arrives asynchronously and opens MapLibre's compact control.
+    // Close it once after the initial style and sources load; later clicks stay usable.
+    map.once('load', () => {
+        const attribution = mapElement.querySelector('.maplibregl-ctrl-attrib');
+        attribution?.classList.remove('maplibregl-compact-show');
+        attribution?.removeAttribute('open');
     });
     map.addControl(new NavigationControl({showCompass: false}), 'top-left');
 

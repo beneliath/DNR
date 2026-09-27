@@ -79,6 +79,7 @@ $preserve_submission = $is_post && http_response_code() !== 409;
 $latitude_value = $preserve_submission && is_scalar($_POST['latitude'] ?? null) ? (string) $_POST['latitude'] : (string) ($location['latitude'] ?? '');
 $longitude_value = $preserve_submission && is_scalar($_POST['longitude'] ?? null) ? (string) $_POST['longitude'] : (string) ($location['longitude'] ?? '');
 $pin_payload = ['latitude' => is_numeric($latitude_value) ? (float) $latitude_value : null,
+    'styleUrl' => engagementMapStyleUrl(),
     'longitude' => is_numeric($longitude_value) ? (float) $longitude_value : null,
     'tileUrl' => deploymentConfig()->string('map.tile_url'), 'maximumZoom' => deploymentConfig()->integer('map.maximum_zoom'),
     'attributionText' => deploymentConfig()->string('map.attribution_text'), 'attributionUrl' => deploymentConfig()->string('map.attribution_url')];

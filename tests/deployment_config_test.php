@@ -71,6 +71,26 @@ expectDeploymentConfig(
 );
 
 $legacy = DeploymentConfig::load($examplePath, ['DEFAULT_SPEAKER' => 'Legacy Speaker']);
+$amazon = DeploymentConfig::load($examplePath, [
+    'DNR_MAP_PROVIDER' => 'amazon',
+    'DNR_MAP_AMAZON_REGION' => 'us-east-2',
+    'DNR_MAP_AMAZON_STYLE' => 'Standard',
+]);
+expectDeploymentConfig($amazon->tileCspSource() === 'https://maps.geo.us-east-2.amazonaws.com',
+    'Amazon map requests should be limited to the configured regional endpoint.');
+foreach ([
+    ['DNR_MAP_PROVIDER' => 'unknown'],
+    ['DNR_MAP_AMAZON_REGION' => 'us-east-2.amazonaws.com.evil.example'],
+    ['DNR_MAP_AMAZON_STYLE' => '../Standard'],
+] as $invalidMapEnvironment) {
+    $rejected = false;
+    try {
+        DeploymentConfig::load($examplePath, $invalidMapEnvironment);
+    } catch (InvalidArgumentException $exception) {
+        $rejected = true;
+    }
+    expectDeploymentConfig($rejected, 'invalid map providers, regions and styles must fail validation.');
+}
 expectDeploymentConfig(
     $legacy->string('defaults.speaker') === 'Legacy Speaker',
     'the old DEFAULT_SPEAKER name should remain a temporary compatibility override.'
