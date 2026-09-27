@@ -900,7 +900,7 @@
       ]
     },
     "dashboard.php": {
-      "sha256": "ab20262b004ddc482ffc2d10e29f8cc41cede93cb863134f29d6673f452f5c29",
+      "sha256": "02e5dad19d01321e5862fc6104a20cf190e0f4b7c99cb15a1766d02b4fb9f984",
       "controls": [
         {
           "kind": "h1",
@@ -964,7 +964,8 @@
         },
         {
           "kind": "a",
-          "label": "View All"
+          "label": "View List",
+          "href": ""
         },
         {
           "kind": "h2",
@@ -991,7 +992,7 @@
         },
         {
           "kind": "a",
-          "label": "Open My Booking Pipeline"
+          "label": "Open My Inquiries"
         },
         {
           "kind": "h2",
@@ -1021,7 +1022,7 @@
       ]
     },
     "database_maintenance.php": {
-      "sha256": "90a35588801fcf0a2650bef54e6f9c826b278af661242f3eeb7befd27fcd3d67",
+      "sha256": "28ec7dad047ca3010df4c05f8e70c4a50e0b3f00bfb0be6e14831f49b8eae53e",
       "controls": [
         {
           "kind": "h1",
@@ -1752,7 +1753,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "d7de049c05130e8ce4c507a979ce7f8685dfabaa74cdebfb493d1a7e957800c4",
+      "sha256": "19cfedad7376dd6ab150de946db3f61f15c9da3913a16e6f0d5302e05fab453d",
       "controls": [
         {
           "kind": "a",
@@ -1787,6 +1788,25 @@
         {
           "kind": "a",
           "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "From",
+          "for": "engagement-date-from"
+        },
+        {
+          "kind": "label",
+          "label": "Through",
+          "for": "engagement-date-to"
+        },
+        {
+          "kind": "button",
+          "label": "Apply"
+        },
+        {
+          "kind": "a",
+          "label": "Reset Dates",
           "href": ""
         },
         {
@@ -2183,7 +2203,7 @@
       ]
     },
     "map.php": {
-      "sha256": "1a143da2291fe577b705245cea69937c31e25b2e6929f847df3b3ad81849d050",
+      "sha256": "3fbf4b6e13f7ae54685760c254d2fcaf469ede3770f71bb81b1bb20ae0b45621",
       "controls": [
         {
           "kind": "h1",
@@ -2280,7 +2300,7 @@
       ]
     },
     "map_pin.php": {
-      "sha256": "096e75a0597354b53700d21762c3e635dc5d9fc45dcdd975268e72c194ff9dee",
+      "sha256": "8071a6003daa140b4e5c72eb1b79401064801ebc3aeeae1af668de2622fd1b65",
       "controls": [
         {
           "kind": "h1",

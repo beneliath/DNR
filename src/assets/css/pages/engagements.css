@@ -106,10 +106,83 @@
             gap: 15px;
             margin: 15px 0 20px;
         }
+        .engagement-controls .list-search-form {
+            flex-wrap: wrap;
+        }
+        .engagement-date-window {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            flex-basis: 100%;
+            margin: 0;
+            padding: 8px 0;
+            border: 0;
+        }
+        .engagement-search-field {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .engagement-date-window label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0;
+            font-family: inherit;
+            font-size: 0.84rem;
+            font-weight: 620;
+            color: var(--text-muted) !important;
+        }
+        .engagement-date-window input[type="date"] {
+            width: auto;
+            min-width: 0;
+            margin: 0;
+            font-family: inherit;
+            font-size: 0.95rem;
+            font-weight: 400;
+            color: var(--text) !important;
+        }
+        .engagement-date-window .button-secondary {
+            margin: 0;
+            white-space: nowrap;
+            font-family: inherit;
+            font-size: 0.84rem;
+            font-weight: 620;
+            color: var(--text) !important;
+        }
         @media (min-width: 1001px) {
             .engagement-controls .list-search-form {
                 min-width: min(100%, 38rem);
                 flex-basis: 38rem;
+            }
+        }
+        @media (min-width: 1201px) {
+            .engagement-controls {
+                display: grid !important;
+                grid-template-columns: minmax(12rem, 1fr) auto auto;
+            }
+            .engagement-controls .list-search-form {
+                display: contents;
+            }
+            .engagement-search-field {
+                grid-column: 1;
+                grid-row: 1;
+                min-width: 0;
+            }
+            .engagement-controls [aria-label="Engagement archive status"] {
+                grid-column: 2;
+                grid-row: 1;
+            }
+            .engagement-controls [aria-label="Engagement lifecycle filter"] {
+                grid-column: 3;
+                grid-row: 1;
+            }
+            .engagement-date-window,
+            .engagement-controls [aria-label="Engagement sort order"],
+            .engagement-controls .error {
+                grid-column: 1 / -1;
             }
         }
         .control-group {

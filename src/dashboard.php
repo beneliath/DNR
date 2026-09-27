@@ -19,6 +19,14 @@ $can_manage = in_array($user_role, ['admin', 'editor'], true);
 $business_date = applicationBusinessDate();
 $dashboard_upcoming_days = applicationWorkflowSetting('dashboard_upcoming_days');
 $upcoming_window_end = applicationBusinessDateOffset($dashboard_upcoming_days);
+$upcoming_engagements_url = 'engagements.php?' . http_build_query([
+    'status' => 'active',
+    'lifecycle' => 'active',
+    'sort_by' => 'date',
+    'date_sort' => 'asc',
+    'date_from' => $business_date,
+    'date_to' => $upcoming_window_end,
+]);
 $business_timezone = new DateTimeZone(applicationTimezoneName());
 $inquiry_attention_cutoff = applicationBusinessDateOffset(-3, new DateTimeImmutable($business_date, $business_timezone));
 $booking_month_start = new DateTimeImmutable(
@@ -222,7 +230,7 @@ $task_status_labels = followUpTaskStatuses();
                     <h2 id="upcoming-engagements-heading">Upcoming Engagements</h2>
                     <p>Active events beginning or continuing during the next <?php echo $dashboard_upcoming_days; ?> days.</p>
                 </div>
-                <a href="engagements.php?sort_by=date&amp;date_sort=asc" class="button-secondary dashboard-panel-button">View All</a>
+                <a href="<?php echo htmlspecialchars($upcoming_engagements_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary dashboard-panel-button">View List</a>
             </div>
             <?php if ($displayed_upcoming_engagements === []): ?>
                 <div class="dashboard-empty-state"><strong>No upcoming engagements</strong><span>The next <?php echo $dashboard_upcoming_days; ?> days are clear.</span></div>
@@ -311,7 +319,7 @@ $task_status_labels = followUpTaskStatuses();
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">
             <div><h2 id="booking-inquiries-heading">Inquiry Next Actions</h2><p>Active opportunities owned by you or waiting for an owner.</p></div>
-            <a href="inquiries.php?view=active&amp;owner=mine_or_unassigned" class="button-secondary dashboard-panel-button">Open My Booking Pipeline</a>
+            <a href="inquiries.php?view=active&amp;owner=me" class="button-secondary dashboard-panel-button">Open My Inquiries</a>
         </div>
         <?php if ($booking_inquiries === []): ?>
             <div class="dashboard-empty-state"><strong>No inquiry actions waiting</strong><span>The active pipeline is clear for you.</span></div>
