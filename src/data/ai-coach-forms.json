@@ -72,11 +72,11 @@
         },
         "ppt-picker": {
           "label": "Choose PPT / Replace PPT",
-          "selector": "label.presentation-file-picker[for^=\"ppt_slidedeck_\"]"
+          "selector": "[data-ppt-slidedeck-pane]"
         },
         "pdf-picker": {
           "label": "Choose PDF / Replace PDF",
-          "selector": "label.presentation-file-picker[for^=\"speaker_notes_\"]"
+          "selector": "[data-pdf-speaker-notes-pane]"
         },
         "save-engagement": {
           "label": "Save Changes",

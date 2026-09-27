@@ -47,7 +47,7 @@ body.role-preview-active .coach-panel { top: calc(68px + var(--deployment-banner
 /* Use the shared primary/secondary colors, typography, focus and hover rules. */
 .coach-panel :is(button, a) { white-space: normal; max-width: 100%; }
 .coach-starters { display: grid; gap: 9px; margin-top: 18px; }
-.coach-step { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px; margin-bottom: 20px; background: var(--accent-subtle) !important; }
+.coach-step { border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 8px; padding: 14px; margin: 12px 0 20px; background: var(--accent-subtle) !important; }
 .coach-step-heading { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; justify-content: space-between; font-size: .82rem; }
 .coach-step p { font-size: .9rem; margin: 10px 0; }
 .coach-step-actions { display: flex; gap: 7px; flex-wrap: wrap; }
@@ -66,7 +66,18 @@ body.role-preview-active .coach-panel { top: calc(68px + var(--deployment-banner
 .coach-request-status:empty { display: none; }
 .coach-privacy { margin: 10px 0 0; font-size: .72rem; color: var(--text-muted); }
 .manual-coach-entry { margin: 4px 0 12px; }
-.coach-control-highlight, .coach-topic-highlight { outline: 3px solid var(--accent) !important; outline-offset: 5px; scroll-margin-block: 100px; }
+.coach-control-highlight, .coach-topic-highlight { outline: 3px solid var(--accent); outline-offset: 5px; scroll-margin-block: 100px; }
+/* Form focus rules must not suppress the animated outline. Keep color animatable. */
+html body .coach-control-highlight { outline-width: 3px !important; outline-style: solid !important; outline-color: var(--accent); box-shadow: none !important; }
+.coach-topic-highlight { outline: 3px solid var(--accent) !important; }
+.coach-control-highlight { animation: coach-control-blink 900ms ease-in-out 3; }
+@keyframes coach-control-blink {
+  0%, 100% { outline-offset: 5px; }
+  50% { outline-offset: 10px; outline-color: transparent; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .coach-control-highlight { animation: none; }
+}
 body.has-coach .manual-page-nav { right: calc(var(--coach-width) + 18px); }
 body.has-coach .engagement-page-actions { right: var(--coach-width); }
 body.coach-open.user-manual-page .manual-shell { grid-template-columns: minmax(0, 1fr); }
