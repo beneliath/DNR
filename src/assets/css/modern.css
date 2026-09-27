@@ -3443,7 +3443,7 @@ html body .action-icon-button.delete-button:focus-visible {
   transform: translate(-50%, 0);
 }
 
-html body :is(button, input, select, textarea, a):focus-visible {
+html body :is(button, input, select, textarea, a):focus-visible:not(.coach-control-highlight) {
   outline: 2px solid var(--primary) !important;
   outline-offset: 2px !important;
   box-shadow: var(--focus-ring) !important;

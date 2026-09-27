@@ -4,7 +4,7 @@ $deck_label = 'PPT Slidedeck';
 $deck_input_id = $deck_key . '_' . $presentation_dom_id;
 $has_deck = $is_saved_presentation && !empty($presentation['has_' . $deck_key]);
 ?>
-<div class="presentation-notes-card">
+<div class="presentation-notes-card" data-ppt-slidedeck-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $deck_label; ?></div>
     <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>

@@ -422,7 +422,7 @@
         var key = "speaker_notes";
         var inputId = key + "_" + id;
         return [
-            '  <div class="presentation-notes-card">',
+            '  <div class="presentation-notes-card" data-pdf-speaker-notes-pane>',
             '    <div class="presentation-upload-details">',
             '    <div class="presentation-asset-label">PDF Speaker Notes</div>',
             '    <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>',
@@ -449,7 +449,7 @@
         var key = "ppt_slidedeck";
         var inputId = key + "_" + id;
         return [
-            '  <div class="presentation-notes-card">',
+            '  <div class="presentation-notes-card" data-ppt-slidedeck-pane>',
             '    <div class="presentation-upload-details">',
             '    <div class="presentation-asset-label">PPT Slidedeck</div>',
             '    <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>',

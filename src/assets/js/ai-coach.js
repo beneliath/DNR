@@ -234,9 +234,7 @@
         // Deliberately fixed selectors. No selector, URL, or script comes from the model.
         const selectors = Object.fromEntries(Object.entries(controls).map(([id, control]) => [id, control.selector]));
         const matches = selectors[name] ? Array.from(document.querySelectorAll(selectors[name])).filter(function (node) { return !node.closest('[hidden]') && node.getClientRects().length > 0; }) : [];
-        // With several presentations, highlight the section so the user chooses the right one.
-        const element = (name === 'ppt-picker' || name === 'pdf-picker') && matches.length > 1
-            ? document.getElementById('presentations-container') : matches[0];
+        const element = matches[0];
         return element && !element.disabled && !element.closest('[hidden]') && element.getClientRects().length > 0 ? element : null;
     }
 
@@ -463,6 +461,8 @@
         conversationScroll = previousScroll;
         if (narrow.matches) setOpen(false, false);
         clearHighlight();
+        // Flush the removed class so repeated clicks restart the attention animation.
+        target.getBoundingClientRect();
         target.classList.add('coach-control-highlight');
         target.scrollIntoView({ block: 'center', behavior: 'auto' });
         // Focus and highlight only. Never click, submit, or fill a control.

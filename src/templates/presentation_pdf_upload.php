@@ -4,7 +4,7 @@ $pdf_label = 'PDF Speaker Notes';
 $pdf_input_id = $pdf_key . '_' . $presentation_dom_id;
 $has_pdf = $is_saved_presentation && !empty($presentation['has_' . $pdf_key]);
 ?>
-<div class="presentation-notes-card">
+<div class="presentation-notes-card" data-pdf-speaker-notes-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $pdf_label; ?></div>
     <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>
