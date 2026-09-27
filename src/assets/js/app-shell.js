@@ -6,6 +6,21 @@
 
     function initialize() {
         const sidebar = document.getElementById('app-sidebar');
+        if (sidebar) {
+            const preferenceUser = sidebar.getAttribute('data-nav-preference-user');
+            sidebar.querySelectorAll('[data-nav-group]').forEach(function (section) {
+                const storageKey = 'dnr.sidebar.' + encodeURIComponent(preferenceUser) + '.' + section.getAttribute('data-nav-group');
+                try {
+                    const saved = localStorage.getItem(storageKey);
+                    if (saved === 'open' || saved === 'closed') section.open = saved === 'open';
+                } catch (_) { /* Keep the defaults when browser storage is unavailable. */ }
+                section.addEventListener('toggle', function () {
+                    try {
+                        localStorage.setItem(storageKey, section.open ? 'open' : 'closed');
+                    } catch (_) { /* The section still works without browser storage. */ }
+                });
+            });
+        }
         const toggle = document.querySelector('[data-nav-toggle]');
         const closeButton = document.querySelector('[data-nav-close]');
         const backdrop = document.querySelector('[data-nav-backdrop]');

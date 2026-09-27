@@ -160,7 +160,7 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <div class="app-sidebar" id="app-sidebar" aria-label="Application navigation">
+    <div class="app-sidebar" id="app-sidebar" aria-label="Application navigation" data-nav-preference-user="<?php echo htmlspecialchars((string) ($_SESSION['user_id'] ?? $username), ENT_QUOTES, 'UTF-8'); ?>">
         <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close navigation</button>
         <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
@@ -168,8 +168,8 @@ if (!empty($_SESSION['user_id'])) {
 
         <div class="sidebar-scroll-area">
             <nav class="site-navigation" aria-label="Primary">
-                <section class="nav-group" aria-labelledby="nav-work">
-                    <h2 class="nav-group-heading" id="nav-work">Work</h2>
+                <details class="nav-group nav-group-disclosure" data-nav-group="work" open>
+                    <summary><h2 class="nav-group-heading" id="nav-work">Work</h2></summary>
                     <ul>
                         <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
@@ -190,9 +190,9 @@ if (!empty($_SESSION['user_id'])) {
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 16h4"/></svg><span>Email Templates</span>
                         </a></li>
                     </ul>
-                </section>
-                <section class="nav-group" aria-labelledby="nav-schedule">
-                    <h2 class="nav-group-heading" id="nav-schedule">Schedule</h2>
+                </details>
+                <details class="nav-group nav-group-disclosure" data-nav-group="schedule" open>
+                    <summary><h2 class="nav-group-heading" id="nav-schedule">Schedule</h2></summary>
                     <ul>
                         <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg><span>Engagements</span>
@@ -204,9 +204,9 @@ if (!empty($_SESSION['user_id'])) {
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3V6Z"/><path d="M9 3v15M15 6v15"/><circle cx="15" cy="11" r="2"/></svg><span>Map</span>
                     </a></li>
                     </ul>
-                </section>
-                <section class="nav-group" aria-labelledby="nav-relationships">
-                    <h2 class="nav-group-heading" id="nav-relationships">Relationships</h2>
+                </details>
+                <details class="nav-group nav-group-disclosure" data-nav-group="relationships" open>
+                    <summary><h2 class="nav-group-heading" id="nav-relationships">Relationships</h2></summary>
                     <ul>
                         <li><a href="organizations.php" class="nav-link<?php echo $active_nav === 'organizations' ? ' active' : ''; ?>"<?php echo $active_nav === 'organizations' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 21V6l8-3v18M12 9h8v12M8 8v.01M8 12v.01M8 16v.01M16 13v.01M16 17v.01M2 21h20"/></svg><span>Organizations</span>
@@ -218,10 +218,10 @@ if (!empty($_SESSION['user_id'])) {
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></svg><span>Speakers</span>
                     </a></li>
                     </ul>
-                </section>
+                </details>
                 <?php if ($user_role === 'admin'): ?>
-                <section class="nav-group" aria-labelledby="nav-administration">
-                    <h2 class="nav-group-heading" id="nav-administration">Administration</h2>
+                <details class="nav-group nav-group-disclosure" data-nav-group="administration">
+                    <summary><h2 class="nav-group-heading" id="nav-administration">Administration</h2></summary>
                     <ul>
                         <li><a href="<?php echo htmlspecialchars($admin_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="nav-link admin-nav-link<?php echo $active_nav === 'admin_unlock' ? ' active' : ''; ?>" data-admin-unlock-link<?php echo $active_nav === 'admin_unlock' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2M12 15v2"/></svg><span>Admin Unlock</span>
@@ -241,7 +241,7 @@ if (!empty($_SESSION['user_id'])) {
                             <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg><span>Network</span>
                         </a></li>
                     </ul>
-                </section>
+                </details>
                 <?php endif; ?>
             </nav>
 
