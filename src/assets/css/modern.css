@@ -6272,7 +6272,7 @@ html.dark-mode { --primary-button-fg: #101828; }
 }
 .skip-link:focus { transform: translateY(0); }
 html body .app-sidebar .nav-group { margin: 0 0 20px; padding: 0; border: 0; background: transparent; }
-html body .app-sidebar .nav-group:last-child { margin-bottom: 4px; }
+html body .app-sidebar .nav-group:last-child { margin-bottom: 20px; }
 html body .app-sidebar .nav-group-heading {
   text-align: left !important;
   margin: 0 0 7px;
@@ -6285,10 +6285,27 @@ html body .app-sidebar .nav-group-heading {
   text-transform: uppercase;
 }
 .app-sidebar .app-brand { margin-bottom: 24px; }
+html body .app-sidebar .nav-group-disclosure > summary {
+  display: list-item;
+  text-align: left !important;
+  min-height: 44px;
+  padding: 12px;
+  border-radius: 10px;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+  list-style-position: inside;
+}
+html body .app-sidebar .nav-group-disclosure > summary .nav-group-heading { display: inline; margin: 0; padding: 0; }
+.nav-group-disclosure > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .app-sidebar .utility-navigation { margin-top: auto; }
 .role-preview-disclosure { margin: 0 0 6px; color: var(--text-muted); font-size: 0.8rem; }
-.role-preview-disclosure > summary { padding: 8px 12px; cursor: pointer; text-align: left !important; }
-html body .app-sidebar .role-preview-disclosure > summary { color: var(--accent) !important; }
+.role-preview-disclosure > summary { min-height: 44px; padding: 12px; cursor: pointer; text-align: left !important; }
+html body .app-sidebar .nav-group-disclosure[data-nav-group="administration"] > summary,
+html body .app-sidebar .nav-group-disclosure[data-nav-group="administration"] .nav-group-heading,
+html body .app-sidebar .role-preview-disclosure > summary { color: var(--admin-nav) !important; }
+html body .app-sidebar .nav-group-disclosure[data-nav-group="administration"] > summary:focus-visible,
+html body .app-sidebar .role-preview-disclosure > summary:focus-visible { outline-color: var(--admin-nav-focus); }
 .role-preview-disclosure .role-preview-control { margin: 0; }
 html body .sidebar-close-button { display: none !important; }
 .form-error-summary {

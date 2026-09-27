@@ -936,7 +936,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "712a0d508b314cbf8badc88f0092afb8d8532266db88bcbf9c555b775c5b5e2d",
-        "templates/header.php": "30f2b9123ba6daa2d442e83afe796765091da2456f8a8ac18eab8827d4c35a39"
+        "templates/header.php": "456af949f75d4ccae13ccf09c75921834fbe89069a5e44eab31fa70dc26ed261"
       },
       "subjects": [
         "password"
