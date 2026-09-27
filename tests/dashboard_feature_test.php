@@ -60,7 +60,7 @@ expectDashboardFeature(
         && $booking_panel_position > $my_work_panel_start
         && $my_work_panel_start < strpos($dashboard, 'id="upcoming-engagements"')
         && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure" open>')
-        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open My Booking Pipeline</a>')
+        && str_contains($dashboard, 'href="inquiries.php?view=active&amp;owner=me" class="button-secondary dashboard-panel-button">Open My Inquiries</a>')
         && str_contains($dashboard, '<small>Booking Inquiries</small>')
         && str_contains($dashboard, '<small>All Active Work</small>')
         && str_contains($dashboard, '<small>Mail For Review</small>')
@@ -189,7 +189,7 @@ expectDashboardFeature(
         && preg_match('/\.dashboard-page a,[^{]*\{[^}]*text-decoration:\s*none;/s', $styles) === 1
         && preg_match('/\.dashboard-panel-heading > a:hover,[^{]*\{[^}]*background:\s*var\(--primary-subtle\);[^}]*transform:\s*translateY\(-1px\);/s', $styles) === 1
         && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Review All</a>')
-        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">View All</a>')
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">View List</a>')
         && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Queue</a>')
         && preg_match('/\.dashboard-panel-heading > a\.dashboard-panel-button:hover,[^{]*\{[^}]*transform:\s*none;/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 760px)')

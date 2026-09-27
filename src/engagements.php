@@ -128,6 +128,15 @@ if (!$has_search_terms) {
     $search = '';
 }
 $page_size = paginationPageSizePreference('engagements', $_GET['per_page'] ?? null, 20, $allowed_page_sizes);
+$date_from = \Dnr\Http\RequestInput::string($_GET, 'date_from');
+$date_to = \Dnr\Http\RequestInput::string($_GET, 'date_to');
+$date_error = '';
+if (($date_from !== '' && !validIsoDate($date_from))
+    || ($date_to !== '' && !validIsoDate($date_to))) {
+    $date_error = 'Enter valid From and Through dates.';
+} elseif ($date_from !== '' && $date_to !== '' && $date_to < $date_from) {
+    $date_error = 'The Through date cannot precede the From date.';
+}
 $cursor = decodePaginationCursor(
     \Dnr\Http\RequestInput::string($_GET, 'cursor'),
     ['value', 'id']
@@ -141,7 +150,9 @@ $list_url = static function (array $overrides = []) use (
     $org_sort,
     $lifecycle_filter,
     $search,
-    $page_size
+    $page_size,
+    $date_from,
+    $date_to
 ) {
     return '?' . http_build_query(array_merge([
         'status' => $list_status,
@@ -153,6 +164,8 @@ $list_url = static function (array $overrides = []) use (
         'lifecycle' => $lifecycle_filter,
         'q' => $search,
         'per_page' => $page_size,
+        'date_from' => $date_from,
+        'date_to' => $date_to,
     ], $overrides));
 };
 
@@ -197,6 +210,20 @@ if ($has_search_terms) {
     $where .= ' AND (' . $search_plan['sql'] . ')';
     $query_values = array_merge($query_values, $search_plan['patterns']);
     $bind_types .= str_repeat('s', count($search_plan['patterns']));
+}
+if ($date_error !== '') {
+    $where .= ' AND 1 = 0';
+} else {
+    if ($date_from !== '') {
+        $where .= ' AND e.event_end_date >= ?';
+        $query_values[] = $date_from;
+        $bind_types .= 's';
+    }
+    if ($date_to !== '') {
+        $where .= ' AND e.event_start_date <= ?';
+        $query_values[] = $date_to;
+        $bind_types .= 's';
+    }
 }
 $pagination_where = $where;
 $pagination_types = $bind_types;
@@ -313,10 +340,23 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="hidden" name="org_sort" value="<?php echo htmlspecialchars($org_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="lifecycle" value="<?php echo htmlspecialchars($lifecycle_filter, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
+            <div class="engagement-search-field">
             <label class="visually-hidden" for="engagement-search">title, organization, contact, chron log text, "and"/or user</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
+            </div>
+            <fieldset class="engagement-date-window" aria-label="Engagement dates">
+                <label for="engagement-date-from">From
+                    <input type="date" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
+                </label>
+                <label for="engagement-date-to">Through
+                    <input type="date" name="date_to" id="engagement-date-to" value="<?php echo htmlspecialchars($date_to, ENT_QUOTES, 'UTF-8'); ?>">
+                </label>
+                <button type="submit" class="button-secondary">Apply</button>
+                <a href="<?php echo htmlspecialchars($list_url(['date_from' => '', 'date_to' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Reset Dates</a>
+            </fieldset>
+            <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>
         <div class="control-group" aria-label="Engagement archive status">
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>"

@@ -964,7 +964,7 @@
         },
         {
           "kind": "a",
-          "label": "View All"
+          "label": "View List"
         },
         {
           "kind": "h2",
@@ -991,7 +991,7 @@
         },
         {
           "kind": "a",
-          "label": "Open My Booking Pipeline"
+          "label": "Open My Inquiries"
         },
         {
           "kind": "h2",
