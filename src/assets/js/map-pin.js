@@ -12,11 +12,18 @@ import {Map as MapLibreMap, Marker, NavigationControl, setWorkerUrl} from 'mapli
     const valid = (lat, lon) => Number.isFinite(lat) && lat >= -90 && lat <= 90 && Number.isFinite(lon) && lon >= -180 && lon <= 180;
     const hasCoordinates = valid(payload.latitude, payload.longitude);
     const map = new MapLibreMap({container: mapElement,
-        style: {version: 8, sources: {base: {type: 'raster', tiles: [payload.tileUrl], tileSize: 256,
+        style: payload.styleUrl || {version: 8, sources: {base: {type: 'raster', tiles: [payload.tileUrl], tileSize: 256,
             attribution: '&copy; <a href="' + payload.attributionUrl + '">' + payload.attributionText + '</a>'}},
         layers: [{id: 'base-map', type: 'raster', source: 'base'}]},
         center: hasCoordinates ? [payload.longitude, payload.latitude] : [0, 20], zoom: hasCoordinates ? 16 : 2,
-        maxZoom: payload.maximumZoom || 19});
+        maxZoom: payload.maximumZoom || 19, attributionControl: {compact: true}});
+    // Source attribution arrives asynchronously and opens MapLibre's compact control.
+    // Close it once after the initial style and sources load; later clicks stay usable.
+    map.once('load', () => {
+        const attribution = mapElement.querySelector('.maplibregl-ctrl-attrib');
+        attribution?.classList.remove('maplibregl-compact-show');
+        attribution?.removeAttribute('open');
+    });
     map.addControl(new NavigationControl({showCompass: false}));
     let marker;
     function select(lat, lon, recenter = false) {

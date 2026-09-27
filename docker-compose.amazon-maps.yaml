@@ -1,0 +1,14 @@
+# Browser map rendering only; address lookup remains independently configured.
+services:
+  web:
+    environment:
+      DNR_MAP_PROVIDER: amazon
+      DNR_MAP_AMAZON_REGION: ${DNR_MAP_AMAZON_REGION:-us-east-2}
+      DNR_MAP_AMAZON_STYLE: ${DNR_MAP_AMAZON_STYLE:-Standard}
+      DNR_MAP_AMAZON_API_KEY_FILE: /run/secrets/dnr_map_amazon_api_key
+    secrets:
+      - dnr_map_amazon_api_key
+
+secrets:
+  dnr_map_amazon_api_key:
+    file: ${DNR_MAP_AMAZON_API_KEY_FILE:-./secrets/amazon_location_api_key}

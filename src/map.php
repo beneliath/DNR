@@ -187,7 +187,8 @@ $map_payload = [
     'withoutAddressCount' => $page_without_addresses,
     'resultsTruncated' => $map_results_truncated,
     'mapProvider' => [
-        'type' => 'openstreetmap',
+        'type' => deploymentConfig()->string('map.provider'),
+        'styleUrl' => engagementMapStyleUrl(),
         'rasterTileUrl' => deploymentConfig()->string('map.tile_url'),
         'attributionText' => deploymentConfig()->string('map.attribution_text'),
         'attributionUrl' => deploymentConfig()->string('map.attribution_url'),
@@ -290,7 +291,6 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map"<?php echo $cached_pin_count === 0 ? ' hidden' : ''; ?> aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <p class="map-attribution-note">Map and location data © <a href="<?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_url'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars(deploymentConfig()->string('map.attribution_text'), ENT_QUOTES, 'UTF-8'); ?></a>. New addresses are resolved by a background worker, cached, and added to the open map automatically.</p>
         <?php if (engagementMapGeocoderProvider() === 'geoapify' || in_array('geoapify', array_column($map_events, 'provider'), true)): ?><p class="map-attribution-note">Address lookup powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a></p><?php endif; ?>
     </section>
 

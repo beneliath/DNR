@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
 
-function harness(initialEvents) {
+function harness(initialEvents, mapProvider = {}) {
     class Element {
         constructor() { this.listeners = {}; this.dataset = {}; this.hidden = false; this.textContent = ''; this.disabled = false; this.children = []; }
         addEventListener(type, listener) { this.listeners[type] = listener; }
@@ -38,11 +38,11 @@ function harness(initialEvents) {
     const requests = [], timers = new Map(), documentListeners = {};
     let timerId = 0, responder = async () => ({status: 200, locations: []});
     const mapCalls = {created: 0, resized: 0, pins: 0};
-    const markers = [], popups = [];
+    const markers = [], popups = [], loadCallbacks = [];
     class FakeMap {
-        constructor() { mapCalls.created++; }
+        constructor(options) { mapCalls.created++; mapCalls.options = options; }
         addControl() {}
-        once(type, fn) { fn(); }
+        once(type, fn) { if (type === 'load') loadCallbacks.push(fn); else fn(); }
         on() {}
         resize() { mapCalls.resized++; }
         easeTo() {}
@@ -62,7 +62,7 @@ function harness(initialEvents) {
     }
     class Bounds { extend() {} getCenter() { return [0, 0]; } }
     elements['engagement-map-data'].textContent = JSON.stringify({
-        events: initialEvents, emptyTitle: 'No missing addresses', emptyDescription: 'No addresses need to be entered.',
+        events: initialEvents, mapProvider, emptyTitle: 'No missing addresses', emptyDescription: 'No addresses need to be entered.',
         locationLookup: {enqueueUrl: 'map_geocode.php', statusUrl: 'map_geocode_status.php', csrfToken: 'test-token', maximumPolls: 3}
     });
     const context = {
@@ -87,10 +87,20 @@ function harness(initialEvents) {
     vm.createContext(context);
     vm.runInContext(fs.readFileSync('src/assets/js/map-list.js', 'utf8'), context);
     vm.runInContext(fs.readFileSync('src/assets/js/map.js', 'utf8').replace(/^import[\s\S]*?from 'maplibre-gl';/, ''), context);
-    return {elements, rows, filters, requests, mapCalls, markers, popups, responder: fn => { responder = fn; },
+    return {elements, rows, filters, requests, mapCalls, markers, popups, load: () => loadCallbacks.splice(0).forEach(fn => fn()), responder: fn => { responder = fn; },
         poll: async () => { const first = timers.entries().next().value; assert.ok(first, 'A poll should be scheduled'); timers.delete(first[0]); await first[1](); }};
 }
 const unresolved = {id: 4, title: 'Conference', address: '960 S. US Highway 41', locationState: 'not_found', latitude: null, longitude: null};
+
+test('Amazon style replaces the raster source without changing engagement coordinates', () => {
+    const styleUrl = 'https://maps.geo.us-east-2.amazonaws.com/v2/styles/Standard/descriptor?key=test';
+    const h = harness([{...unresolved, locationState: 'found', latitude: 28.8, longitude: -82.3}],
+        {type: 'amazon', styleUrl});
+    assert.equal(h.mapCalls.options.style, styleUrl);
+    assert.equal(h.markers.length, 1);
+    assert.deepEqual(Array.from(h.markers[0].point), [-82.3, 28.8]);
+    assert.equal(h.elements['engagement-map'].dataset.mapProvider, 'amazon');
+});
 
 test('pointer-opened popups leave the action unfocused while keyboard-opened popups focus it', () => {
     const h = harness([{...unresolved, locationState: 'found', latitude: 32.9, longitude: -96.4, viewUrl: 'view_engagement.php?id=4'}]);
@@ -163,4 +173,18 @@ test('a completed miss remains one unresolved location and can be retried again'
     assert.equal(h.rows[0].retry.hidden, false);
     assert.equal(h.mapCalls.pins, 0);
     assert.match(h.elements['map-retry-feedback'].textContent, /No matching location/);
+});
+
+test('credits collapse after asynchronous map load, not before source attribution arrives', () => {
+    const h = harness([{...unresolved, locationState: 'found', latitude: 28.8, longitude: -82.3}]);
+    const classes = new Set(['maplibregl-compact-show']);
+    const attribution = {open: true, classList: {remove: name => classes.delete(name)}, removeAttribute(name) { if (name === 'open') this.open = false; }};
+    h.elements['engagement-map'].querySelector = () => attribution;
+    assert.equal(attribution.open, true);
+    h.load();
+    assert.equal(attribution.open, false);
+    assert.equal(classes.has('maplibregl-compact-show'), false);
+    attribution.open = true;
+    h.load();
+    assert.equal(attribution.open, true, 'subsequent user expansion must be preserved');
 });
