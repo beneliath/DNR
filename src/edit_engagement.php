@@ -726,6 +726,8 @@ try {
     http_response_code(503);
     exit('The engagement details are temporarily unavailable while ' . applicationBrandName() . ' is being upgraded.');
 }
+require_once __DIR__ . '/document_scanning_helpers.php';
+$document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
 ?>
 <!DOCTYPE html>
 <html lang="en">

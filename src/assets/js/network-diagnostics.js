@@ -5,7 +5,10 @@
         return Number.isFinite(value) ? `${value < 10 ? value.toFixed(1) : Math.round(value)} ms` : '—';
     }
 
-    function networkAssessment(families) {
+    function networkAssessment(families, coverage = {}) {
+        if (coverage.truncated) {
+            return { state: 'warning', status: 'Partial window', title: 'Recent Traffic Sample Only', detail: 'More than 5,000 measurements arrived in 24 hours. These results cover only the newest samples; a missing address family may have earlier traffic.' };
+        }
         const ipv4 = families.IPv4 || {};
         const ipv6 = families.IPv6 || {};
         if (!ipv4.sample_count && !ipv6.sample_count) {
@@ -103,12 +106,16 @@
         renderFamily('ipv6', payload.families.IPv6 || {});
         renderPages(payload.pages || []);
         renderDownloads(payload.downloads || {});
-        const assessment = networkAssessment(payload.families || {});
+        const assessment = networkAssessment(payload.families || {}, payload.coverage || {});
         const summary = root.querySelector('[data-network-summary]');
         if (summary) summary.dataset.state = assessment.state;
         setText('[data-network-summary-title]', assessment.title);
         setText('[data-network-summary-detail]', assessment.detail);
         setText('[data-network-status]', assessment.status);
+        const coverage = payload.coverage || {};
+        setText('[data-network-coverage]', coverage.from && coverage.through
+            ? `${coverage.count} measurements from ${new Date(coverage.from).toLocaleString()} through ${new Date(coverage.through).toLocaleString()}${coverage.truncated ? ' (newest 5,000 only)' : ''}.`
+            : 'No measurements in the selected window.');
         const generated = new Date(payload.generated_at);
         setText('[data-network-updated]', Number.isNaN(generated.valueOf())
             ? 'Updated just now'

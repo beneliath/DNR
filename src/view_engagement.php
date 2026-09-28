@@ -138,6 +138,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') !== 'add_n
         }
     }
 }
+$financial_report_message = (string) ($_SESSION['financial_report_message'] ?? '');
+$engagement_action_message = (string) ($_SESSION['engagement_action_message'] ?? '');
+unset($_SESSION['financial_report_message'], $_SESSION['engagement_action_message']);
+generateCsrfToken();
+releaseApplicationSessionLock();
+
 $source_inquiry_stmt = $conn->prepare(
     'SELECT id, title FROM booking_inquiries WHERE converted_engagement_id = ? LIMIT 1'
 );
@@ -155,9 +161,6 @@ try {
         'error' => $exception->getMessage(),
     ]);
 }
-$financial_report_message = (string) ($_SESSION['financial_report_message'] ?? '');
-$engagement_action_message = (string) ($_SESSION['engagement_action_message'] ?? '');
-unset($_SESSION['financial_report_message'], $_SESSION['engagement_action_message']);
 
 try {
     $contacts = fetchEngagementContacts($conn, $engagement_id);

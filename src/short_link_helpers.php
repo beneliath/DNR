@@ -190,6 +190,8 @@ function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int 
             JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?');
         $delete->bind_param('i', $presentationId);
         $delete->execute();
+        $conn->execute_query('DELETE v FROM short_link_stats_archive v
+            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?', [$presentationId]);
         if (!recordAuditEvent($conn, [
             'event_category' => 'database_change',
             'event_type' => 'presentation_statistics_reset',
@@ -211,18 +213,22 @@ function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int 
 
 function applyPresentationNotesChange(mysqli $conn, int $presentationId, int $engagementId, array $change, ?int $uploadedBy = null): void
 {
+    require_once __DIR__ . '/document_scanning_helpers.php';
     $stmt = $conn->prepare('SELECT speaker_id FROM presentations WHERE id = ? AND engagement_id = ? FOR UPDATE');
     $stmt->bind_param('ii', $presentationId, $engagementId);
     $stmt->execute();
     $speakerId = $stmt->get_result()->fetch_assoc()['speaker_id'] ?? null;
     if ($speakerId === null) throw new InvalidArgumentException('Presentation not found.');
     if (($change['action'] ?? '') === 'remove') {
+        cancelDocumentScan($conn,$presentationId,(int)$speakerId,'notes');
         $stmt = $conn->prepare('UPDATE presentation_notes SET pdf = NULL, storage_key = NULL, filename = NULL, size = NULL,
             sha256 = NULL, updated_at = UTC_TIMESTAMP(6), uploaded_by = NULL, uploaded_by_username_snapshot = NULL
             WHERE presentation_id = ? AND speaker_id = ?');
         $stmt->bind_param('ii', $presentationId, $speakerId);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
+        if (documentScanningEnabled()) { queueDocumentScan($conn,$presentationId,(int)$speakerId,'notes',$asset,$uploadedBy); return; }
+        cancelDocumentScan($conn,$presentationId,(int)$speakerId,'notes');
         $key = isset($asset['path'])
             ? storePersistentFileFromPath($conn, $asset['path'], $asset['filename'], 'application/pdf', $asset['size'], bin2hex($asset['sha256']))
             : storePersistentFile($conn, $asset['data'], $asset['filename'], 'application/pdf');
@@ -471,7 +477,7 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
         $order = 'total DESC, label';
         // Include every country so the map does not drop visits outside the top 20.
         $limit = $dimension === 'country' ? 676 : 20;
-        $stmt = $conn->prepare("SELECT $column AS label, SUM(v.visits) AS total FROM short_link_stats v
+        $stmt = $conn->prepare("SELECT $column AS label, SUM(v.visits) AS total FROM short_link_report_stats v
             JOIN short_links l ON l.id = v.link_id WHERE $where AND v.visit_hour >= ? AND v.visit_hour < ?
             GROUP BY $column ORDER BY $order LIMIT $limit");
         $stmt->bind_param('ss', $start, $end);
@@ -481,7 +487,7 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
     $period = 'v.visit_hour';
     $stmt = $conn->prepare("SELECT $period AS label, l.id AS link_id, l.link_type, l.custom_label,
         e.event_title, p.topic_title, l.engagement_id, l.presentation_id, SUM(v.visits) AS total
-        FROM short_link_stats v JOIN short_links l ON l.id = v.link_id
+        FROM short_link_report_stats v JOIN short_links l ON l.id = v.link_id
         JOIN engagements e ON e.id = l.engagement_id JOIN presentations p ON p.id = l.presentation_id
         WHERE $where AND v.visit_hour >= ? AND v.visit_hour < ?
         GROUP BY $period, l.id, l.link_type, l.custom_label, e.event_title, p.topic_title,
@@ -489,30 +495,39 @@ function shortLinkStats(mysqli $conn, string $where, string $start, string $end)
         HAVING SUM(v.visits) > 0 ORDER BY label, e.event_title, p.topic_title, l.id");
     $stmt->bind_param('ss', $start, $end);
     $stmt->execute();
-    $stats += shortLinkLocalVisitBuckets($stmt->get_result()->fetch_all(MYSQLI_ASSOC), $start, $end);
+    $stats += shortLinkLocalVisitBuckets(\Dnr\Infrastructure\StatementRows::stream($stmt), $start, $end);
+    $stmt->close();
     $stats['total'] = array_sum(array_column($stats['day'], 'total'));
     return $stats;
 }
 
 /** Aggregate stored UTC hours into local days and resources without MySQL timezone tables. */
-function shortLinkLocalVisitBuckets(array $hours, string $start, string $end): array
+function shortLinkLocalVisitBuckets(iterable $hours, string $start, string $end, int $detailLimit = 2000): array
 {
     $first = (new DateTimeImmutable($start, new DateTimeZone('UTC')))->setTimezone(applicationTimezone());
     $until = (new DateTimeImmutable($end, new DateTimeZone('UTC')))->setTimezone(applicationTimezone());
     $monthly = (int) $first->diff($until)->days > 90;
-    $days = []; $resources = [];
+    $days = []; $resources = []; $other = [];
+    $detailLimit = max(1, min(2000, $detailLimit));
     foreach ($hours as $row) {
         $day = applicationTimestampLabel($row['label'], 'Y-m-d');
         $days[$day] = ($days[$day] ?? 0) + (int) $row['total'];
         $label = $monthly ? substr($day, 0, 7) : $day;
         $key = $label . ':' . $row['link_id'];
+        if (!isset($resources[$key]) && count($resources) >= $detailLimit) {
+            $other[$label] = ($other[$label] ?? 0) + (int) $row['total'];
+            continue;
+        }
         if (!isset($resources[$key])) $resources[$key] = array_replace($row, ['label' => $label, 'total' => 0]);
         $resources[$key]['total'] += (int) $row['total'];
     }
     ksort($days);
     $daily = [];
     foreach ($days as $label => $total) $daily[] = ['label' => $label, 'total' => $total];
-    return ['day' => $daily, 'resources' => array_values($resources)];
+    foreach ($other as $label => $total) {
+        $resources['other:' . $label] = ['label' => $label, 'total' => $total, 'summary_label' => 'Other resources'];
+    }
+    return ['day' => $daily, 'resources' => array_values($resources), 'resources_truncated' => $other !== []];
 }
 
 /** Build chart buckets without losing quiet dates or traffic outside the leading categories. */

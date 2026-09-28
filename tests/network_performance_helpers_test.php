@@ -113,3 +113,21 @@ expectNetworkPerformance(
 );
 
 echo "Network performance helper tests passed.\n";
+
+$windowRows = array_fill(0, 5001, [
+    'recorded_at' => '2026-09-27 12:00:00', 'address_family' => 'IPv4',
+    'page_path' => 'contacts.php', 'cloudflare_colo' => 'DFW', 'load_ms' => 100,
+    'image_count' => 0, 'contact_image_count' => 0,
+]);
+$windowRows[0]['recorded_at'] = '2026-09-27 13:00:00';
+$windowRows[5000]['recorded_at'] = '2026-09-27 11:00:00';
+$window = summarizeNetworkPerformanceWindow($windowRows);
+expectNetworkPerformance($window['coverage']['truncated'] && $window['sample_count'] === 5000,
+    'the lookahead row must indicate truncation without entering the summary');
+expectNetworkPerformance($window['coverage']['from'] === '2026-09-27T12:00:00+00:00'
+    && $window['coverage']['through'] === '2026-09-27T13:00:00+00:00',
+    'coverage must describe the included rows with an explicit UTC offset');
+expectNetworkPerformance(!summarizeNetworkPerformanceWindow(array_slice($windowRows, 0, 5000))['coverage']['truncated'],
+    'an exactly full window must not claim that data was omitted');
+expectNetworkPerformance(summarizeNetworkPerformanceWindow([])['coverage']['from'] === null,
+    'empty windows must not invent timestamps');

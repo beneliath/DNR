@@ -58,6 +58,10 @@ if (isset($filters['presentation_id']) && ($_SESSION['_presentation_stats_reset'
     $message = 'Presentation statistics reset to zero. New visits will be counted from now on.';
     unset($_SESSION['_presentation_stats_reset']);
 }
+// Persist flash changes and CSRF before slow reads release this user's session.
+generateCsrfToken();
+releaseApplicationSessionLock();
+
 $whereSql = implode(' AND ', $where);
 $stats = shortLinkStats($conn, $whereSql, $start, $end);
 $report = shortLinkReportData($stats, $start, $end);
@@ -71,7 +75,7 @@ $links = [];
 if ($showPresentationLinks) {
     $stmt = $conn->prepare("SELECT l.*, q.encoded_url AS qr_url, q.png AS qr_png,
     s.name AS speaker_name, p.topic_title, p.speaker_id AS current_speaker_id,
-    e.event_title, (SELECT COALESCE(SUM(v.visits), 0) FROM short_link_stats v
+    e.event_title, (SELECT COALESCE(SUM(v.visits), 0) FROM short_link_report_stats v
         WHERE v.link_id = l.id AND v.visit_hour >= ? AND v.visit_hour < ?) AS visits,
     EXISTS(SELECT 1 FROM presentation_notes n WHERE n.presentation_id = l.presentation_id AND n.speaker_id = l.speaker_id AND (n.storage_key IS NOT NULL OR n.pdf IS NOT NULL)) AS has_notes,
     EXISTS(SELECT 1 FROM presentation_slidedecks d WHERE d.presentation_id = l.presentation_id AND d.speaker_id = l.speaker_id AND d.storage_key IS NOT NULL) AS has_slidedeck
@@ -168,6 +172,8 @@ if ($activeLink !== null) {
     </form>
     <p class="field-help">Speaker Notes counts link visits before the PDF opens, including cached delivery. Direct PDF links do not add visits. Earlier totals retain their original counting method.</p>
     <?php if ($presentationContext !== null): ?><p class="field-help">Totals combine visits to all matching QR codes for this presentation, including disabled codes and codes for previous speakers. A person opening multiple codes contributes multiple visits.</p><?php endif; ?>
+    <?php if (!empty($stats['resources_truncated'])): ?><p class="field-help">Detailed rows are limited to 2,000 resource-period groups. Other resources are combined; all visits remain in the totals. Select a speaker, event, or individual link to see more detail.</p><?php endif; ?>
+    <p class="field-help">Historical visits older than the configured detail-retention period retain their times and link totals; browser, device, country, and referrer details may be summarized.</p>
     <section class="short-link-report" aria-label="Traffic statistics">
         <div class="stats-overview">
             <div class="stats-summary">

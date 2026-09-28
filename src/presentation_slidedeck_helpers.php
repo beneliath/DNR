@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/presentation_asset_helpers.php';
 require_once __DIR__ . '/persistent_file_helpers.php';
+require_once __DIR__ . '/document_scanning_helpers.php';
 require_once __DIR__ . '/legacy_powerpoint_helpers.php';
 
 const PRESENTATION_SLIDEDECK_MAX_BYTES = 500 * 1024 * 1024;
@@ -91,11 +92,14 @@ function applyPresentationSlidedeckChange(mysqli $conn, int $presentationId, int
     if (!$presentation) throw new InvalidArgumentException('Presentation not found.');
     $speakerId = (int) $presentation['speaker_id'];
     if (($change['action'] ?? '') === 'remove') {
+        cancelDocumentScan($conn,$presentationId,$speakerId,'slidedeck');
         $conn->execute_query('UPDATE presentation_slidedecks SET storage_key = NULL, filename = NULL, mime_type = NULL,
             size = NULL, sha256 = NULL, uploaded_by = NULL, uploaded_by_username_snapshot = NULL, updated_at = UTC_TIMESTAMP(6)
             WHERE presentation_id = ? AND speaker_id = ?', [$presentationId, $speakerId]);
     } elseif (($change['action'] ?? '') === 'replace' && is_array($change['asset'] ?? null)) {
         $asset = $change['asset'];
+        if (documentScanningEnabled()) { queueDocumentScan($conn,$presentationId,$speakerId,'slidedeck',$asset,$uploadedBy); return; }
+        cancelDocumentScan($conn,$presentationId,$speakerId,'slidedeck');
         $key = storePersistentFileFromPath($conn, $asset['path'], $asset['filename'], $asset['mime_type'], $asset['size'], bin2hex($asset['sha256']));
         $conn->execute_query('INSERT INTO presentation_slidedecks
             (presentation_id, speaker_id, storage_key, filename, mime_type, size, sha256, uploaded_by, uploaded_by_username_snapshot)

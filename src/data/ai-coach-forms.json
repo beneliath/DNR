@@ -55,11 +55,11 @@
         "editor"
       ],
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
-      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event.",
+      "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "a43db87a1438c53ed594bf97240d27f5dc6218bbfaefd98d7a5bfc2fc2fa6de1",
+        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
         "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "88ed99362525044d912e1c91ba2de46559e33b5b42ff380f6ed2592f4081988a"
+        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
       },
       "controls": {
         "presentations-tab": {
@@ -206,8 +206,8 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "a43db87a1438c53ed594bf97240d27f5dc6218bbfaefd98d7a5bfc2fc2fa6de1",
-        "edit_engagement.php": "88ed99362525044d912e1c91ba2de46559e33b5b42ff380f6ed2592f4081988a"
+        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
+        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
       },
       "controls": {
         "edit-event": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
-        "view_engagement.php": "a43db87a1438c53ed594bf97240d27f5dc6218bbfaefd98d7a5bfc2fc2fa6de1"
+        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d"
       },
       "controls": {
         "tasks-tab": {

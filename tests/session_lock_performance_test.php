@@ -35,6 +35,7 @@ session_destroy();
 $root = dirname(__DIR__);
 $read = static fn(string $path): string => (string) file_get_contents($root . '/' . $path);
 $read_only_routes = [
+    'src/short_links.php', 'src/view_engagement.php', 'src/view_organization.php', 'src/view_contact.php',
     'src/dashboard.php', 'src/organizations.php', 'src/engagements.php', 'src/tasks.php',
     'src/map.php',
     'src/map_geocode.php',

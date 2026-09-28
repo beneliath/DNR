@@ -1,4 +1,11 @@
 services:
+  document-scans:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./tests:/opt/dnr/tests:ro
+  data-maintenance:
+    volumes:
+      - ./src:/var/www/html:ro
   ai-coach-worker:
     volumes:
       - ./src:/var/www/html:ro
@@ -34,6 +41,10 @@ services:
       DNR_REQUIRE_HTTPS: "0"
       DNR_MAIL_TRANSPORT: log
   geocoder:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./tests:/opt/dnr/tests:ro
+  key-rotation:
     volumes:
       - ./src:/var/www/html:ro
       - ./tests:/opt/dnr/tests:ro

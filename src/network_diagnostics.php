@@ -177,7 +177,8 @@ unset($_SESSION['_network_statistics_reset']);
             <li>Measurements contain endpoint names, document formats, response sizes, and timings only. Client IP addresses and user identities are not stored.</li>
             <li>Results appear after the updated application receives public traffic; an empty IPv6 card means no IPv6 sample has arrived yet.</li>
         </ul>
-        <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard compares the most recent 24 hours.</p>
+        <p data-network-coverage aria-live="polite"></p>
+        <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard shows up to 5,000 of the newest measurements from the last 24 hours and reports their actual coverage.</p>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

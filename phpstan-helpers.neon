@@ -1,6 +1,11 @@
 parameters:
     level: 5
     paths:
+        - src/data_maintenance_helpers.php
+        - src/document_scanning_helpers.php
+        - src/key_rotation_helpers.php
+        - src/organization_options_helpers.php
+        - src/record_merge_helpers.php
         - src/ai_coach_helpers.php
         - src/ai_coach_history_helpers.php
         - src/ai_coach_guidance_helpers.php
