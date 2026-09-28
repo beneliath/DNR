@@ -291,7 +291,6 @@ $map_payload = [
         </div>
         <div id="engagement-map" class="engagement-map"<?php echo $cached_pin_count === 0 ? ' hidden' : ''; ?> aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
-        <?php if (engagementMapGeocoderProvider() === 'geoapify' || in_array('geoapify', array_column($map_events, 'provider'), true)): ?><p class="map-attribution-note">Address lookup powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a></p><?php endif; ?>
     </section>
 
     <section class="map-location-list" aria-labelledby="location-list-heading">
