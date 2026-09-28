@@ -47,6 +47,10 @@ unset($_SESSION['record_note_message']);
 $success_message = $_SESSION['success_message'] ?? '';
 unset($_SESSION['success_message']);
 
+// Persist flash changes and CSRF before slow reads release this user's session.
+generateCsrfToken();
+releaseApplicationSessionLock();
+
 try {
     $financial_summary = fetchOrganizationFinancialSummary($conn, $org_id);
     $financial_history = fetchOrganizationFinancialHistory($conn, $org_id);
@@ -147,6 +151,7 @@ $contact_stmt->close();
         <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
     <?php if ($record_note_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($record_note_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
+    <?php if ($user_role === 'admin'): ?><p><a class="button-secondary" href="record_merge.php?kind=organization&amp;source=<?php echo (int) $org_id; ?>">Review Possible Duplicates</a></p><?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
     <div class="page-heading record-page-heading view-organization-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Relationships, activity, and upcoming engagements.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_organization.php?id=' . $org_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Edit Organization</a><a href="#add-note" class="button-add">Add Chron Log Entry</a><?php endif; ?></div>
 

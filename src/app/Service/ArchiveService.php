@@ -148,6 +148,15 @@ final class ArchiveService
                 return false;
             }
 
+            if (!$isArchived && in_array($entity, ['contact', 'organization'], true)) {
+                $merge = $connection->execute_query("SELECT merged_into_id FROM {$table} WHERE id=? FOR UPDATE", [$id])->fetch_assoc();
+                if ($merge && $merge['merged_into_id'] !== null) {
+                    $connection->rollback();
+                    $transactionStarted = false;
+                    return false;
+                }
+            }
+
             if ($entity === 'organization' && $isArchived) {
                 $dependencies = self::organizationActiveDependencyCounts($connection, $id);
                 if ($dependencies === null

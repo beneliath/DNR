@@ -3,11 +3,16 @@ $pdf_key = 'speaker_notes';
 $pdf_label = 'PDF Speaker Notes';
 $pdf_input_id = $pdf_key . '_' . $presentation_dom_id;
 $has_pdf = $is_saved_presentation && !empty($presentation['has_' . $pdf_key]);
+$scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':notes'] ?? '';
 ?>
 <div class="presentation-notes-card" data-pdf-speaker-notes-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $pdf_label; ?></div>
     <p>Anyone with the Speaker Notes QR code can open this PDF without signing in.</p>
+    <?php if ($scan_message !== ''): ?>
+        <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php if (!$has_pdf): ?><label><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $pdf_key; ?>]" value="1"> Cancel pending upload</label><?php endif; ?>
+    <?php endif; ?>
     <?php if ($has_pdf): ?>
         <?php
         $pdf_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=notes';

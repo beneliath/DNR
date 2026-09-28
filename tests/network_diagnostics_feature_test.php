@@ -62,7 +62,7 @@ expectNetworkDiagnostics(
     str_contains($migration, 'CREATE TABLE network_performance_samples')
         && !str_contains($migration, 'ip_address')
         && !str_contains($migration, 'user_id')
-        && str_contains($helpers, 'INTERVAL 30 DAY')
+        && str_contains((string) file_get_contents($root . '/src/data_maintenance_helpers.php'), 'INTERVAL 30 DAY')
         && str_contains($grants, '.network_performance_samples')
         && str_contains($grants, 'SELECT, INSERT, DELETE'),
     'telemetry storage must omit client identity, expire old samples, and use the restricted application grant.'

@@ -166,13 +166,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     }
 }
 
-$organization_options_result = $conn->query(
-    'SELECT id, organization_name, is_deleted FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
-);
-if (!$organization_options_result) {
-    abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
+require_once __DIR__ . '/organization_options_helpers.php';
+$selected_options = [$_POST['organization_id'] ?? $_GET['organization_id'] ?? null];
+foreach (array_slice(is_array($_POST['additional_organizations'] ?? null) ? $_POST['additional_organizations'] : [], 0, 100) as $row) {
+    if (is_array($row)) $selected_options[] = $row['organization_id'] ?? null;
 }
-$contact_organization_options = $organization_options_result->fetch_all(MYSQLI_ASSOC);
+$organization_search = \Dnr\Http\RequestInput::string($_GET, 'organization_search');
+$contact_organization_options = boundedOrganizationOptions($conn, $selected_options, $organization_search);
 $additional_organization_rows = $_POST['additional_organizations'] ?? [];
 
 $contact_phone_country_code_value = trim($_POST['contact_phone_country_code'] ?? applicationDefaultPhoneCountryCode());
@@ -212,6 +212,9 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
     array (
       'path' => 'assets/js/contact-photo.min.js',
     ),
+    array (
+      'path' => 'assets/js/relationship-search.min.js',
+    ),
   ),
 )); ?>
 <body class="add-contact-body">
@@ -228,6 +231,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
     <div class="page-heading form-page-heading add-contact-heading"><div><h1>New Contact</h1><p class="page-intro"><?php echo $context_organization !== null
         ? 'Add a contact for ' . htmlspecialchars((string) $context_organization['organization_name'], ENT_QUOTES, 'UTF-8') . '.'
         : 'Connect a person with their organizations and roles.'; ?></p></div></div>
+    <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
         <?php echo csrfInput(); ?>
@@ -235,7 +239,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
         <div class="organization-container">
             <div class="form-group form-flex-one">
                 <label for="organization_id">Primary organization</label>
-                <select name="organization_id" id="organization_id">
+                <select name="organization_id" id="organization_id" data-organization-search>
                     <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No organization</option>
                     <?php foreach ($contact_organization_options as $row): ?>
                         <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>

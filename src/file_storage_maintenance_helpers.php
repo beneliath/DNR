@@ -11,7 +11,8 @@ function persistentFileReferenceSql(): string
         UNION SELECT photo_key FROM speakers WHERE photo_key IS NOT NULL
         UNION SELECT photo_thumbnail_key FROM speakers WHERE photo_thumbnail_key IS NOT NULL
         UNION SELECT storage_key FROM presentation_notes WHERE storage_key IS NOT NULL
-        UNION SELECT storage_key FROM presentation_slidedecks WHERE storage_key IS NOT NULL';
+        UNION SELECT storage_key FROM presentation_slidedecks WHERE storage_key IS NOT NULL
+        UNION SELECT storage_key FROM document_scan_jobs';
 }
 
 function persistentFileCapacity(mysqli $conn): array

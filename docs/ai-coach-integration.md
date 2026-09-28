@@ -149,7 +149,14 @@ Administrators can read and annotate history at `ai_coach_requests.php`, mark
 answers Useful or Needs work, and record corrected guidance. CSRF and optimistic
 version checks protect review writes. Corrections never alter the original answer
 and are not automatically used as training data or runtime instructions. History
-is retained until an administrator uses **Clear request log**. This action first
+has a 90-day default retention for ordinary completed conversations. The
+`data-maintenance` service expires old unreviewed requests in bounded batches,
+including their completed job payloads. Reviewed or previously reviewed requests,
+requests with feedback, and pending requests or active jobs are protected.
+Separately retained improvement examples remain available. Configure
+`DNR_AI_HISTORY_RETENTION_DAYS` (30–36500 days, or 0 to disable), then recreate
+`data-maintenance` to apply a changed policy. Existing backups follow their own
+retention policy. Administrators can also use **Clear request log**. This action first
 shows a confirmation with the count and scope, then permanently removes those
 requests, answers, and reviews across all users and filters. CSRF and an expiring,
 single-use, session-bound confirmation protect deletion. A timestamp/ID boundary
@@ -158,7 +165,7 @@ requests remain available for navigation recovery; abandoned pending entries old
 than 25 seconds can be cleared. IDs are never reset, so late workers cannot update
 a newly created row. Cancel invalidates confirmation. Open browser conversations
 and the model are unchanged. Reviewed improvement cases are retained separately; there
-is no automatic operational-log export or deletion schedule. Apply all three 20260922
+is no automatic operational-log export. Apply all three 20260922
 coach migrations through the normal migration runner. Its grants include job CRUD
 and SELECT/INSERT/UPDATE on the retained improvement table.
 

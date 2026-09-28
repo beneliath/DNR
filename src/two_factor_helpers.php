@@ -53,27 +53,11 @@ function twoFactorEncryptionKey() {
 }
 
 function encryptTwoFactorSecret($secret) {
-    $nonce = random_bytes(SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-    $ciphertext = sodium_crypto_secretbox($secret, $nonce, twoFactorEncryptionKey());
-    return base64_encode($nonce . $ciphertext);
+    return \Dnr\Security\ApplicationKey::seal((string) $secret);
 }
 
 function decryptTwoFactorSecret($encrypted) {
-    $payload = base64_decode((string) $encrypted, true);
-
-    if (!is_string($payload) || strlen($payload) <= SODIUM_CRYPTO_SECRETBOX_NONCEBYTES) {
-        throw new RuntimeException('The stored two-factor secret is invalid.');
-    }
-
-    $nonce = substr($payload, 0, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-    $ciphertext = substr($payload, SODIUM_CRYPTO_SECRETBOX_NONCEBYTES);
-    $secret = sodium_crypto_secretbox_open($ciphertext, $nonce, twoFactorEncryptionKey());
-
-    if (!is_string($secret)) {
-        throw new RuntimeException('The stored two-factor secret could not be decrypted.');
-    }
-
-    return $secret;
+    return \Dnr\Security\ApplicationKey::open((string) $encrypted);
 }
 
 function createTotp($secret, $username) {
@@ -281,12 +265,13 @@ function replaceRecoveryCodes(mysqli $conn, $user_id, array $codes) {
     $delete->execute();
 
     $insert = $conn->prepare(
-        'INSERT INTO user_recovery_codes (user_id, code_lookup_hash) VALUES (?, ?)'
+        'INSERT INTO user_recovery_codes (user_id, code_lookup_hash, key_id) VALUES (?, ?, ?)'
     );
 
     foreach ($codes as $code) {
         $hash = recoveryCodeLookupHash($code);
-        $insert->bind_param('is', $user_id, $hash);
+        $key_id = \Dnr\Security\ApplicationKey::activeId();
+        $insert->bind_param('iss', $user_id, $hash, $key_id);
         $insert->execute();
     }
 }
@@ -353,20 +338,18 @@ function disableTwoFactorForUser(mysqli $conn, $user_id) {
 }
 
 function consumeRecoveryCode(mysqli $conn, $user_id, $code) {
-    $lookup_hash = recoveryCodeLookupHash($code);
-    if ($lookup_hash === null) {
-        return false;
+    $normalized = normalizeRecoveryCode($code);
+    if (strlen($normalized) !== 12) return false;
+    $hashes = \Dnr\Security\ApplicationKey::lookupHashes("dnr-recovery-code-v1\0" . $normalized);
+    $row = null;
+    foreach ($hashes as $key_id => $lookup_hash) {
+        $legacy_id = \Dnr\Security\ApplicationKey::legacyId();
+        $row = $conn->execute_query('SELECT id FROM user_recovery_codes
+            WHERE user_id = ? AND code_lookup_hash = ? AND used_at IS NULL
+              AND (key_id = ? OR (key_id IS NULL AND ? = ?)) LIMIT 1',
+            [$user_id, $lookup_hash, $key_id, $key_id, $legacy_id])->fetch_assoc();
+        if ($row) break;
     }
-
-    $stmt = $conn->prepare(
-        'SELECT id FROM user_recovery_codes
-         WHERE user_id = ? AND code_lookup_hash = ? AND used_at IS NULL
-         LIMIT 1'
-    );
-    $stmt->bind_param('is', $user_id, $lookup_hash);
-    $stmt->execute();
-    $row = $stmt->get_result()->fetch_assoc();
-    $stmt->close();
     if (!$row) {
         return false;
     }
