@@ -5301,6 +5301,10 @@ html.dark-mode .login-secondary-link a {
     flex: 1 1 auto;
   }
 
+  .control-group > .control-label {
+    flex-basis: 100%;
+  }
+
   .pagination-with-size {
     grid-template-columns: 1fr;
   }
@@ -6040,6 +6044,8 @@ html body .phone-country-option[aria-selected="true"] {
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
+    /* Keep editable text legible and avoid iOS zooming the page on focus. */
+    font-size: max(16px, 1rem) !important;
   }
 
   /* iOS native date/time chrome can add padding outside a 100% field width

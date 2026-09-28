@@ -152,6 +152,21 @@
             font-weight: 620;
             color: var(--text) !important;
         }
+        @media (max-width: 760px) {
+            .engagement-date-window {
+                width: 100%;
+                min-width: 0;
+            }
+            .engagement-date-window label {
+                flex: 1 1 100%;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 6px;
+            }
+            .engagement-date-window .button-secondary {
+                flex: 1 1 auto;
+            }
+        }
         @media (min-width: 1001px) {
             .engagement-controls .list-search-form {
                 min-width: min(100%, 38rem);
