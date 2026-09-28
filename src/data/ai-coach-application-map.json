@@ -30,7 +30,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "df413ca7891652fac4058d9bbaf4bbf342d1b3b893cd8a7bd3607f094760cf31",
+      "sha256": "629c4393ba783b55aa65048b06d727551322292af7ed0de0a9fbca8502c845b9",
       "controls": [
         {
           "kind": "a",
@@ -1067,7 +1067,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "61c423df0397817c18661c9ac8888b61649d341683e0c5574941dbcd0a00e4a4",
+      "sha256": "74e3c7ad7e1459ea24190fd68e3f65b9fa01cb8ed2382d833b0a51e50980b652",
       "controls": [
         {
           "kind": "a",
@@ -1191,7 +1191,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "88ed99362525044d912e1c91ba2de46559e33b5b42ff380f6ed2592f4081988a",
+      "sha256": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c",
       "controls": [
         {
           "kind": "a",
@@ -2391,7 +2391,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "b1e98ec06cfd780032272bf08920e5a33bc657f27fb1151ac7a127e9607e2372",
+      "sha256": "a055f96a42aa5de057ec588543fe181a15b98d85496d992d94c0958c3cc55397",
       "controls": [
         {
           "kind": "h1",
@@ -2648,6 +2648,57 @@
         {
           "kind": "button",
           "label": "Verify New Email Address"
+        }
+      ]
+    },
+    "record_merge.php": {
+      "sha256": "4f34a5f0a656902c6a899fe2bb30fca3d906b4a84b724786067d460dc0864f89",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Review a Possible Duplicate"
+        },
+        {
+          "kind": "a",
+          "label": "the surviving record"
+        },
+        {
+          "kind": "label",
+          "label": "Find the record to keep",
+          "for": "merge-search"
+        },
+        {
+          "kind": "button",
+          "label": "Search"
+        },
+        {
+          "kind": "label",
+          "label": "Surviving record",
+          "for": "merge-target"
+        },
+        {
+          "kind": "button",
+          "label": "Preview Merge"
+        },
+        {
+          "kind": "h2",
+          "label": "Keep"
+        },
+        {
+          "kind": "label",
+          "label": "Keep:"
+        },
+        {
+          "kind": "label",
+          "label": "Use source:"
+        },
+        {
+          "kind": "label",
+          "label": "I reviewed these records and confirm they represent the same"
+        },
+        {
+          "kind": "button",
+          "label": "Merge into Surviving Record"
         }
       ]
     },
@@ -2959,7 +3010,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "729908c1f97cf963281d3cecf835e09e44dac949f06e51c75ed97928dbcbbc89",
+      "sha256": "9baece4ac4c87824ba793092fd317fffa37bb3e46e7ff2a413729d98bde0a2fa",
       "controls": [
         {
           "kind": "a",
@@ -3428,8 +3479,12 @@
       ]
     },
     "view_contact.php": {
-      "sha256": "8fba686c3c9b173887e2f5315a7caeb883041cb2bb3929397e86aa634c1a2cd2",
+      "sha256": "1010a845b5ad47a36662a09fc44cd34403f8e68be32c9c96b9040026592994a3",
       "controls": [
+        {
+          "kind": "a",
+          "label": "Review Possible Duplicates"
+        },
         {
           "kind": "h1",
           "label": "Archived"
@@ -3456,7 +3511,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "a43db87a1438c53ed594bf97240d27f5dc6218bbfaefd98d7a5bfc2fc2fa6de1",
+      "sha256": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
       "controls": [
         {
           "kind": "a",
@@ -3795,8 +3850,12 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "b30dd8369d028e1c05fe7d492c2028e72f46a7b2587e8bbe905aec25e8d9335b",
+      "sha256": "ecd8f5e206b06d48aaa00b356f782c0eb20560d0b5457fbac35dfcc62573937b",
       "controls": [
+        {
+          "kind": "a",
+          "label": "Review Possible Duplicates"
+        },
         {
           "kind": "h1",
           "label": "Archived"

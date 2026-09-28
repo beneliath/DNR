@@ -3,11 +3,16 @@ $deck_key = 'ppt_slidedeck';
 $deck_label = 'PPT Slidedeck';
 $deck_input_id = $deck_key . '_' . $presentation_dom_id;
 $has_deck = $is_saved_presentation && !empty($presentation['has_' . $deck_key]);
+$scan_message = $document_scan_messages[((int) ($presentation['id'] ?? 0)) . ':' . ((int) ($presentation['speaker_id'] ?? 0)) . ':slidedeck'] ?? '';
 ?>
 <div class="presentation-notes-card" data-ppt-slidedeck-pane>
     <div class="presentation-upload-details">
     <div class="presentation-asset-label"><?php echo $deck_label; ?></div>
     <p>Anyone with the PPT Slidedeck QR code can download this PowerPoint file without signing in.</p>
+    <?php if ($scan_message !== ''): ?>
+        <p role="status"><?php echo htmlspecialchars($scan_message, ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php if (!$has_deck): ?><label><input type="checkbox" name="presentations[<?php echo $presentation_dom_id; ?>][remove_<?php echo $deck_key; ?>]" value="1"> Cancel pending upload</label><?php endif; ?>
+    <?php endif; ?>
     <?php if ($has_deck): ?>
         <?php
         $deck_url = 'presentation_asset.php?id=' . (int) $presentation['id'] . '&type=slidedeck';

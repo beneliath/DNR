@@ -102,10 +102,6 @@ function storeNetworkPerformanceSample(
     $statement->execute();
     $statement->close();
 
-    $conn->query(
-        'DELETE FROM network_performance_samples '
-        . 'WHERE recorded_at < UTC_TIMESTAMP(6) - INTERVAL 30 DAY'
-    );
 }
 
 /** Clear recorded traffic measurements and audit the reset in one transaction. */
@@ -174,7 +170,6 @@ function registerNetworkDocumentPerformance(mysqli $conn): void
             $statement->bind_param('ssssiidd', $family, $page, $colo, $type, $bytes, $status, $preparation, $duration);
             $statement->execute();
             $statement->close();
-            $conn->query('DELETE FROM network_performance_samples WHERE recorded_at < UTC_TIMESTAMP(6) - INTERVAL 30 DAY');
         } catch (Throwable $exception) {
             applicationLog('error', 'Document network measurement failed', ['error' => $exception->getMessage()]);
         }
@@ -299,11 +294,26 @@ function summarizeNetworkPerformanceRows(array $rows): array
 function fetchNetworkPerformanceSummary(mysqli $conn): array
 {
     $result = $conn->query(
-        'SELECT address_family, page_path, cloudflare_colo, sample_type, response_bytes, response_status, server_headers_ms, ttfb_ms, load_ms, image_count, image_max_ms, '
+        'SELECT recorded_at, address_family, page_path, cloudflare_colo, sample_type, response_bytes, response_status, server_headers_ms, ttfb_ms, load_ms, image_count, image_max_ms, '
         . 'contact_image_count, contact_image_max_ms '
         . 'FROM network_performance_samples '
         . 'WHERE recorded_at >= UTC_TIMESTAMP(6) - INTERVAL 24 HOUR '
-        . 'ORDER BY recorded_at DESC LIMIT 5000'
+        . 'ORDER BY recorded_at DESC, id DESC LIMIT 5001'
     );
-    return summarizeNetworkPerformanceRows($result->fetch_all(MYSQLI_ASSOC));
+    return summarizeNetworkPerformanceWindow($result->fetch_all(MYSQLI_ASSOC));
+}
+
+/** Fetch one extra row to detect truncation without counting the whole history. */
+function summarizeNetworkPerformanceWindow(array $rows): array
+{
+    $truncated = count($rows) > 5000;
+    $rows = array_slice($rows, 0, 5000);
+    $first = $rows === [] ? null : $rows[count($rows) - 1]['recorded_at'];
+    $last = $rows[0]['recorded_at'] ?? null;
+    $utc = static fn(?string $value): ?string => $value === null ? null
+        : (new DateTimeImmutable($value, new DateTimeZone('UTC')))->format(DATE_ATOM);
+    return summarizeNetworkPerformanceRows($rows) + ['coverage' => [
+        'truncated' => $truncated, 'limit' => 5000, 'count' => count($rows),
+        'from' => $utc($first), 'through' => $utc($last), 'window_hours' => 24,
+    ]];
 }

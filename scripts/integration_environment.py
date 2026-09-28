@@ -24,11 +24,11 @@ def allocate_test_networks(existing):
         candidate = ipaddress.ip_network(f'10.252.{(start + offset) % 256}.0/24')
         if any(candidate.overlaps(network) for network in used):
             continue
-        selected[('backend', 'ingress', 'egress', 'default')[len(selected)]] = candidate
+        selected[('backend', 'ingress', 'egress', 'default', 'scanning')[len(selected)]] = candidate
         used.append(candidate)
-        if len(selected) == 4:
+        if len(selected) == 5:
             return selected
-    raise ValueError('Unable to allocate four non-overlapping test networks in 10.252.0.0/16')
+    raise ValueError('Unable to allocate five non-overlapping test networks in 10.252.0.0/16')
 
 
 def verify(project, token):
@@ -55,8 +55,11 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|verify]')
+    scanning_only = sys.argv[1:] == ['scanning']
+    recovery_only = sys.argv[1:] == ['recovery']
+    maintenance_only = sys.argv[1:] == ['maintenance']
     calendar_only = sys.argv[1:] == ['calendar']
     downloads_only = sys.argv[1:] == ['downloads']
     coach_only = sys.argv[1:] == ['coach']
@@ -84,13 +87,17 @@ def main():
                       DNR_INGRESS_PROXY_IP=str(test_networks['backend'].network_address + 254))
         for kind in ('APP', 'INGRESS', 'DATABASE'):
             values['DNR_' + kind + '_IMAGE'] = os.environ.get('DNR_TEST_' + kind + '_IMAGE', project + '-' + kind.lower())
+        if scanning_only:
+            values['DNR_DOCUMENT_SCANNING'] = '1'
         envfile = folder / 'test.env'
         envfile.write_text(''.join(k + '=' + v + '\n' for k, v in values.items()))
-        services = ('web', 'downloads', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
+        services = ('web', 'downloads', 'document-scans', 'document-scanner', 'data-maintenance', 'file-monitor', 'file-migrator', 'backup', 'ingress', 'geocoder', 'maintenance', 'key-rotation', 'db', 'migrator', 'mail-ingest', 'ai-coach-worker')
         override = {'services': {s: {'labels': {LABEL: token}} for s in services},
-                    'volumes': {v: {'labels': {LABEL: token}} for v in ('app_sessions', 'uploaded_files', 'db_data', 'db_keyring', 'db_socket')},
+                    'volumes': {v: {'labels': {LABEL: token}} for v in ('app_sessions', 'uploaded_files', 'db_data', 'db_keyring', 'db_socket', 'scanner_signatures')},
                     'networks': {name: {'labels': {LABEL: token}, 'ipam': {'config': [{'subnet': str(subnet)}]}}
                                  for name, subnet in test_networks.items()}}
+        if scanning_only:
+            override['services']['document-scans']['volumes'] = [{'type': 'volume', 'source': 'uploaded_files', 'target': '/var/lib/dnr/files', 'read_only': False}]
         # MySQL images declare volumes even when used only as a migration CLI.
         override['services']['migrator']['tmpfs'] = ['/var/lib/mysql', '/var/lib/mysql-keyring']
         override['services']['web']['environment'] = {'DNR_AI_COACH_ENABLED': '1', 'DNR_AI_COACH_URL': 'http://127.0.0.1:9', 'DNR_AI_COACH_ASYNC': '1'}
@@ -111,6 +118,34 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if scanning_only:
+                subprocess.run(compose + ['up', '-d', '--no-build', '--wait', '--wait-timeout', '600', 'document-scanner'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    'document-scans', '/opt/dnr/tests/document_scan_integration_test.php'], cwd=ROOT, env=env, check=True)
+                return
+            if recovery_only:
+                db = subprocess.check_output(compose + ['ps', '-q', 'db'], cwd=ROOT, env=env, text=True).strip()
+                web = subprocess.check_output(compose + ['ps', '-q', 'web'], cwd=ROOT, env=env, text=True).strip()
+                env.update(DNR_INTEGRATION_TARGET='disposable', DNR_RECOVERY_TEST_DB=db,
+                           DNR_RECOVERY_TEST_WEB=web, DNR_RECOVERY_TEST_PASSWORD=values['DNR_BACKUP_PASSWORD_FILE'])
+                subprocess.run([sys.executable, 'tests/online_recovery_integration_test.py'], cwd=ROOT, env=env, check=True)
+                return
+            if maintenance_only:
+                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
+                    'web', 'php', '/opt/dnr/tests/data_maintenance_integration_test.php'], cwd=ROOT, env=env, check=True)
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
+                    '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-v', str(ROOT / 'src') + ':/var/www/html:ro',
+                    'key-rotation', '/opt/dnr/tests/review_improvements_integration_test.php'], cwd=ROOT, env=env, check=True)
+                benchmark = subprocess.check_output(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                    '-e', 'DNR_INTEGRATION_TARGET=disposable', '-v', str(ROOT / 'scripts/benchmark_application_queries.php') + ':/opt/dnr/benchmark.php:ro',
+                    'key-rotation', '/opt/dnr/benchmark.php', '--seed-synthetic'], cwd=ROOT, env=env, text=True)
+                print('Synthetic query benchmark: ' + benchmark, flush=True)
+                subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'data-maintenance'], cwd=ROOT, env=env, check=True)
+                return
             if calendar_only:
                 subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
@@ -141,7 +176,7 @@ def main():
             subprocess.run([sys.executable, 'tests/download_pool_capacity_test.py', 'http://' + address, fixture['path']], cwd=ROOT, env=env, check=True)
         except subprocess.CalledProcessError:
             # Preserve startup/test diagnostics before removing the disposable project.
-            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'migrator', 'file-migrator', 'web', 'ai-coach-worker'], cwd=ROOT, env=env, check=False)
+            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'migrator', 'file-migrator', 'web', 'ai-coach-worker', 'document-scanner'], cwd=ROOT, env=env, check=False)
             raise
         finally:
             # Project name is generated here, never supplied by a caller.

@@ -16,7 +16,7 @@ class IsolationTests(unittest.TestCase):
                                          {'Subnet': 'fd00::/64'}]}}, {'IPAM': {'Config': None}}]
         with patch('integration_environment.secrets.randbelow', return_value=0):
             networks = allocate_test_networks(existing)
-        self.assertEqual(set(networks), {'backend', 'ingress', 'egress', 'default'})
+        self.assertEqual(set(networks), {'backend', 'ingress', 'egress', 'default', 'scanning'})
         self.assertEqual(str(networks['backend']), '10.252.3.0/24')
         for name, network in networks.items():
             self.assertTrue(network.subnet_of(ipaddress.ip_network('10.252.0.0/16')))
@@ -24,7 +24,7 @@ class IsolationTests(unittest.TestCase):
             self.assertTrue(all(not network.overlaps(other) for key, other in networks.items() if key != name))
 
     def test_exhausted_test_pool_fails_without_automatic_docker_fallback(self):
-        with self.assertRaisesRegex(ValueError, 'four non-overlapping'):
+        with self.assertRaisesRegex(ValueError, 'five non-overlapping'):
             allocate_test_networks([{'IPAM': {'Config': [{'Subnet': '10.252.0.0/16'}]}}])
 
     def test_normal_project_is_refused_before_docker_access(self):

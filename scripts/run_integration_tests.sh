@@ -62,6 +62,13 @@ cleanup_isolated_backup() {
 printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'review_improvements_integration_test.php' ]; then
+        compose run --rm --no-deps --entrypoint php \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html -v "${PWD}/src:/var/www/html:ro" \
+            key-rotation "/opt/dnr/${test_file}" </dev/null
+        continue
+    fi
     if [ "$test_name" = 'ai_coach_worker_integration_test.php' ]; then
         compose up -d --no-build --no-deps ai-coach-worker </dev/null
         compose exec -T -u www-data -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/${test_file}" </dev/null

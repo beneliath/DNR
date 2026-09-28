@@ -1083,6 +1083,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'register.php',
         'reset_presentation_stats.php',
         'reset_user_password.php',
+        'record_merge.php',
         'users.php',
     ];
 

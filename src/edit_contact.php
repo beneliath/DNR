@@ -385,14 +385,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['contact_birthday'
     $contact_birthday_input = (string) $contact['contact_birthday'];
 }
 
-$organizations_result = $conn->query(
-    'SELECT id, organization_name, is_deleted FROM organizations WHERE is_deleted = 0 ORDER BY organization_name'
-);
-if (!$organizations_result) {
-    abortApplication(503, 'Organizations are temporarily unavailable.', ['error' => $conn->error]);
+require_once __DIR__ . '/organization_options_helpers.php';
+$selected_options = [$contact['organization_id']];
+foreach ($contact_organizations as $affiliation) $selected_options[] = $affiliation['organization_id'];
+foreach (array_slice(is_array($_POST['additional_organizations'] ?? null) ? $_POST['additional_organizations'] : [], 0, 100) as $row) {
+    if (is_array($row)) $selected_options[] = $row['organization_id'] ?? null;
 }
-
-$contact_organization_options = $organizations_result->fetch_all(MYSQLI_ASSOC);
+$organization_search = \Dnr\Http\RequestInput::string($_GET, 'organization_search');
+$contact_organization_options = boundedOrganizationOptions($conn, $selected_options, $organization_search);
 $known_organization_ids = array_column($contact_organization_options, 'id');
 foreach ($contact_organizations as $affiliation) {
     if (!in_array($affiliation['organization_id'], $known_organization_ids, false)) {
@@ -450,6 +450,9 @@ try {
     array (
       'path' => 'assets/js/contact-photo.min.js',
     ),
+    array (
+      'path' => 'assets/js/relationship-search.min.js',
+    ),
   ),
 )); ?>
 <body class="edit-contact-body">
@@ -468,6 +471,7 @@ try {
         <p class="error"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
+    <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form id="contact-edit-form" method="post" enctype="multipart/form-data" action="edit_contact.php?id=<?php echo $contact_id; ?><?php echo ($_GET['from'] ?? '') === 'view' ? '&amp;from=view' : ''; ?>" data-chron-form>
         <?php echo csrfInput(); ?>
@@ -476,7 +480,7 @@ try {
 
         <div class="form-group">
             <label for="organization_id">Primary organization</label>
-            <select name="organization_id" id="organization_id">
+            <select name="organization_id" id="organization_id" data-organization-search>
                 <option value="" <?php echo $contact['organization_id'] === null ? 'selected' : ''; ?>>No organization</option>
                 <?php foreach ($contact_organization_options as $organization): ?>
                     <?php if (!empty($organization['is_deleted'])) continue; ?>

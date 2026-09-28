@@ -18,6 +18,7 @@ x-app-environment: &app-environment
   DNR_STORAGE_MIN_FREE_BYTES: ${DNR_STORAGE_MIN_FREE_BYTES:-134217728}
   DNR_REQUIRE_STORAGE_MONITOR: "1"
   DNR_FILE_STORAGE_PATH: /var/lib/dnr/files
+  DNR_DOCUMENT_SCANNING: ${DNR_DOCUMENT_SCANNING:-0}
   DNR_BACKUP_SERVICE_URL: http://backup/export.php
   DNR_REQUIRE_DATABASE_ENCRYPTION: "1"
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
@@ -50,6 +51,97 @@ x-watchtower-disabled-labels: &watchtower-disabled-labels
   com.centurylinklabs.watchtower.enable: "false"
 
 services:
+  document-scanner:
+    image: clamav/clamav:stable_base@sha256:7769870154c74ce31b0047dd8771e81f7c4269278bc005782e9e419e4922c73d
+    platform: linux/amd64
+    profiles: [scanning]
+    restart: unless-stopped
+    mem_limit: 4g
+    cpus: 1.0
+    pids_limit: 128
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID, DAC_OVERRIDE, FOWNER]
+    security_opt: [no-new-privileges:true]
+    environment:
+      TZ: UTC
+    volumes:
+      - scanner_signatures:/var/lib/clamav
+      - ./docker/clamd.conf:/etc/clamav/clamd.conf:ro
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=1200m,mode=1777", "/run:rw,noexec,nosuid,size=16m"]
+    networks: [scanning, egress]
+    healthcheck:
+      test: ["CMD", "clamdscan", "--config-file=/etc/clamav/clamd.conf", "--ping=1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 180s
+    labels: *watchtower-disabled-labels
+
+  document-scans:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    profiles: [scanning]
+    entrypoint: ["php", "/opt/dnr/bin/process_document_scans.php", "--loop"]
+    user: www-data
+    restart: unless-stopped
+    read_only: true
+    mem_limit: 128m
+    cpus: 0.5
+    pids_limit: 16
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    environment:
+      <<: *app-environment
+      DNR_CLAMD_HOST: document-scanner
+    secrets: [dnr_mysql_app_password]
+    volumes:
+      - uploaded_files:/var/lib/dnr/files:ro
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend, scanning]
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+      document-scanner:
+        condition: service_started
+    labels: *watchtower-disabled-labels
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "document-scans"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 180s
+
+  data-maintenance:
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    entrypoint: ["php", "/opt/dnr/bin/process_data_maintenance.php", "--loop"]
+    user: www-data
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 128m
+    cpus: 0.25
+    pids_limit: 16
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=8m,mode=1777"]
+    environment:
+      <<: *app-environment
+      DNR_AI_HISTORY_RETENTION_DAYS: ${DNR_AI_HISTORY_RETENTION_DAYS:-90}
+      DNR_STATISTICS_DETAIL_DAYS: ${DNR_STATISTICS_DETAIL_DAYS:-400}
+    secrets: [dnr_mysql_app_password]
+    volumes:
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
+    labels: *watchtower-disabled-labels
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "data-maintenance"]
+      interval: 60s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+
   ai-coach-worker:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
     profiles: [coach]
@@ -344,6 +436,15 @@ services:
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend, egress]
 
+  key-rotation:
+    extends:
+      service: maintenance
+    entrypoint: ["php", "/opt/dnr/bin/rotate_application_key.php"]
+    secrets:
+      - dnr_2fa_encryption_key
+    environment:
+      DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
+
   maintenance:
     image: ${DNR_APP_IMAGE:-dnr-app:local}
     mem_limit: 2g
@@ -487,6 +588,7 @@ services:
     networks: [backend]
 
 volumes:
+  scanner_signatures:
   app_sessions:
     driver_opts:
       type: tmpfs
@@ -498,6 +600,8 @@ volumes:
   db_socket:
 
 networks:
+  scanning:
+    internal: true
   # Docker Engine does not activate published ports for containers connected
   # only to an internal network. A fixed reverse proxy accepts localhost
   # traffic here while the application remains isolated on the backend.

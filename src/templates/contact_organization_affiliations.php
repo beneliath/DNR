@@ -14,7 +14,7 @@ $render_affiliation_row = static function (array $row, string $index) use ($cont
     <div class="contact-affiliation-row" data-contact-affiliation-row>
         <div class="form-group">
             <label for="additional-organization-<?php echo $index; ?>">Additional organization</label>
-            <select id="additional-organization-<?php echo $index; ?>" name="additional_organizations[<?php echo $index; ?>][organization_id]" data-affiliation-organization>
+            <select data-organization-search id="additional-organization-<?php echo $index; ?>" name="additional_organizations[<?php echo $index; ?>][organization_id]" data-affiliation-organization>
                 <option value="">Select an organization</option>
                 <?php foreach ($contact_organization_options as $option): ?>
                     <option value="<?php echo (int) $option['id']; ?>" <?php echo $organization_value === (string) $option['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($option['organization_name'], ENT_QUOTES, 'UTF-8'); ?><?php echo !empty($option['is_deleted']) ? ' (Archived)' : ''; ?></option>
