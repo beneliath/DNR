@@ -24,7 +24,7 @@
       },
       "source_files": {
         "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
+        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
       },
       "subjects": [
         "event",
@@ -126,7 +126,7 @@
             "message": "Open the intended event from Engagements; do not create another event to change the dates."
           },
           "event-dates-open": {
-            "message": "Select Edit Engagement to open this event’s form.",
+            "message": "Select Edit Engagement to open this event\u2019s form.",
             "target": "edit-event",
             "label": "show edit engagement"
           },
@@ -152,15 +152,15 @@
             "label": "show validation message"
           },
           "event-dates-check": {
-            "message": "Check the event’s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
+            "message": "Check the event\u2019s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
           },
           "event-dates-start-required": {
-            "message": "Start is required. Choose the event’s start date before reviewing the form.",
+            "message": "Start is required. Choose the event\u2019s start date before reviewing the form.",
             "target": "event-start-date",
             "label": "show start"
           },
           "event-dates-end-required": {
-            "message": "End is required. Choose the event’s end date before reviewing the form.",
+            "message": "End is required. Choose the event\u2019s end date before reviewing the form.",
             "target": "event-end-date",
             "label": "show end"
           }
@@ -287,7 +287,7 @@
             "label": "show validation message"
           },
           "task-assign-check": {
-            "message": "Check the application confirmation and the task’s owner. A page change alone does not prove the reassignment succeeded."
+            "message": "Check the application confirmation and the task\u2019s owner. A page change alone does not prove the reassignment succeeded."
           }
         }
       },
@@ -485,7 +485,7 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record’s task list.",
+        "Find the task in Work Queue or the related record\u2019s task list.",
         "Select its green check-mark. MOED opens Complete Task?",
         "Review the confirmation, then select Complete Task if the work is done. Cancel leaves it unchanged."
       ],
@@ -511,7 +511,7 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record’s task list.",
+        "Find the task in Work Queue or the related record\u2019s task list.",
         "Select the Archive task box icon. Archiving retains its status and details while removing it from active work and reminders.",
         "Check Archived in Work Queue to find it afterward. Required financial-closeout tasks cannot be archived to bypass closeout."
       ],
@@ -793,12 +793,12 @@
         "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
       ],
       "on_pages": {
-        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation\u2019s file fields."
       },
       "source_files": {
         "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
         "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
+        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
       },
       "subjects": [
         "powerpoint",
@@ -826,12 +826,12 @@
         "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
       ],
       "on_pages": {
-        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation\u2019s file fields."
       },
       "source_files": {
         "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
         "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
+        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
       },
       "subjects": [
         "speaker notes",
@@ -853,13 +853,13 @@
       ],
       "steps": [
         "Open Organizations and select + New Organization.",
-        "Complete the organization’s required details, then review its addresses and contact information.",
+        "Complete the organization\u2019s required details, then review its addresses and contact information.",
         "Select Create organization and check the save confirmation. Creating the organization does not create an event."
       ],
       "on_pages": {},
       "source_files": {
         "organizations.php": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42",
-        "add_organization.php": "5488088062e722778127dd1c96aae4514de090431ea23c0e186ebefe1c2232fd"
+        "add_organization.php": "04674f42d980269e75bd5d7c3a2b0ad3e5a4acd737c17ec2ee52831db536995f"
       },
       "subjects": [
         "organization"
@@ -878,13 +878,13 @@
       ],
       "steps": [
         "Open Contacts and select + New Contact.",
-        "Complete the person’s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
+        "Complete the person\u2019s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
         "Select Create contact, then check the save confirmation."
       ],
       "on_pages": {},
       "source_files": {
         "contacts.php": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c",
-        "add_contact.php": "629c4393ba783b55aa65048b06d727551322292af7ed0de0a9fbca8502c845b9"
+        "add_contact.php": "79bf97dfead0a9ded27f0905b152b1201d96eafff97127c8f55c57ec399e97fc"
       },
       "subjects": [
         "contact"
@@ -906,7 +906,7 @@
       "steps": [
         "Open the event and select Add Chron Log Entry.",
         "Enter the note in the Chron form. Record the decision, conversation outcome, or useful context.",
-        "Select Save Chron Log Entry and check that it appears in the event’s Activity."
+        "Select Save Chron Log Entry and check that it appears in the event\u2019s Activity."
       ],
       "on_pages": {},
       "source_files": {

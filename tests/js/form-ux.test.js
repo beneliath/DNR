@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { connectFieldError, fieldLabel, initialize } = require('../../src/assets/js/form-ux.js');
+const { connectFieldError, fieldLabel, focusFirstError, initialize } = require('../../src/assets/js/form-ux.js');
 
 function field(attributes = {}, labels = []) {
     return { attributes, labels, getAttribute(k) { return this.attributes[k] ?? null; }, setAttribute(k, v) { this.attributes[k] = v; } };
@@ -19,6 +19,17 @@ test('validation summary uses visible labels before accessible fallbacks', () =>
     assert.equal(fieldLabel(field({ 'aria-label': 'Fallback' }, [{ textContent: 'Event dates *' }])), 'Event dates');
     assert.equal(fieldLabel(field({ 'aria-label': 'Country' })), 'Country');
     assert.equal(fieldLabel(field()), 'This field');
+});
+
+test('linked validation focuses the first affected control through its reveal link', () => {
+    let clicked = false;
+    let summaryFocused = false;
+    focusFirstError({
+        querySelector() { return { click() { clicked = true; } }; },
+        focus() { summaryFocused = true; }
+    });
+    assert.equal(clicked, true);
+    assert.equal(summaryFocused, false);
 });
 
 test('general server error is focused without marking unrelated inputs invalid', () => {

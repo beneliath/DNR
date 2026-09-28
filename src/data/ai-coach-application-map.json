@@ -30,7 +30,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "629c4393ba783b55aa65048b06d727551322292af7ed0de0a9fbca8502c845b9",
+      "sha256": "79bf97dfead0a9ded27f0905b152b1201d96eafff97127c8f55c57ec399e97fc",
       "controls": [
         {
           "kind": "a",
@@ -127,7 +127,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "5488088062e722778127dd1c96aae4514de090431ea23c0e186ebefe1c2232fd",
+      "sha256": "04674f42d980269e75bd5d7c3a2b0ad3e5a4acd737c17ec2ee52831db536995f",
       "controls": [
         {
           "kind": "a",
@@ -137,6 +137,15 @@
         {
           "kind": "h1",
           "label": "New Organization"
+        },
+        {
+          "kind": "label",
+          "label": "Find an existing contact",
+          "for": "existing-contact-search-fallback"
+        },
+        {
+          "kind": "button",
+          "label": "Find Contacts"
         },
         {
           "kind": "label",
@@ -1067,7 +1076,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "74e3c7ad7e1459ea24190fd68e3f65b9fa01cb8ed2382d833b0a51e50980b652",
+      "sha256": "87609856f3414474d6abc32da53d702595c0297bd0365934b24a2857a051dc0b",
       "controls": [
         {
           "kind": "a",
@@ -1191,7 +1200,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c",
+      "sha256": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6",
       "controls": [
         {
           "kind": "a",
@@ -1385,7 +1394,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "7ac0589341105ccac82d7ef50481fea28f377f86820f422d54ca91f0b322ef3c",
+      "sha256": "74d0fce16fbe30cb99642bc41ddfa6efed807e997b812eb3d248bd4457f02b65",
       "controls": [
         {
           "kind": "a",
@@ -1950,7 +1959,7 @@
       ]
     },
     "index.php": {
-      "sha256": "34520054971459c4e2b51ea79e7b3e3ddf390e8dde4bd0d35ff2f2df34295d0a",
+      "sha256": "33674d04589a5a371fe36e08aae82a1e68a868c97b230cefb8b563e2deaa1a77",
       "controls": [
         {
           "kind": "a",
@@ -1972,8 +1981,7 @@
         },
         {
           "kind": "a",
-          "label": "Add New Organization",
-          "href": "add_organization.php"
+          "label": "Add New Organization"
         },
         {
           "kind": "label",

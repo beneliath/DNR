@@ -2,6 +2,7 @@
 require_once __DIR__ . '/bootstrap.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
+require_once __DIR__ . '/organization_options_helpers.php';
 startSecureSession();
 $creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
 
@@ -16,12 +17,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 
     $error = false;
     $errorMessages = array();
+    $errorFieldIds = [];
 
     $normalized_organization = \Dnr\Domain\OrganizationInput::normalize($_POST);
     foreach ($normalized_organization['data'] as $field_name => $field_value) {
         ${$field_name} = $field_value;
     }
     $errorMessages = $normalized_organization['errors'];
+    foreach ($normalized_organization['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $errorFieldIds[$index] = $field_id;
+    }
     $existing_contacts = [];
     try {
         $existing_contacts = normalizeOrganizationExistingContacts($_POST['existing_contacts'] ?? null);
@@ -90,7 +95,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             continue;
         }
         $normalized_contact = \Dnr\Domain\ContactInput::normalizeEmbedded($candidate);
-        foreach ($normalized_contact['errors'] as $contact_error) {
+        foreach ($normalized_contact['errors'] as $error_index => $contact_error) {
+            $contact_field = $normalized_contact['error_fields'][$error_index] ?? null;
+            if ($contact_field !== null) {
+                $errorFieldIds[count($errorMessages)] = $contact_index === 0
+                    ? 'contact_' . $contact_field
+                    : 'additional-' . $contact_index . '-' . $contact_field;
+            }
             $errorMessages[] = "Contact {$contact_number}: {$contact_error}";
         }
         $contacts_to_create[] = $normalized_contact['data'];
@@ -104,6 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 
         if ($check_stmt->get_result()->num_rows > 0) {
             $error = true;
+            $errorFieldIds[count($errorMessages)] = 'organization_name';
             $errorMessages[] = "An organization with this name already exists.";
         } else {
             $conn->begin_transaction();
@@ -195,11 +207,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 }
 
 $existing_contact_rows = organizationExistingContactFormRows($_POST['existing_contacts'] ?? null);
-$existing_contact_options = $conn->query(
-    'SELECT c.id, c.contact_first_name, c.contact_last_name, c.contact_email, o.organization_name
-     FROM contacts c LEFT JOIN organizations o ON o.id = c.organization_id
-     WHERE c.is_deleted = 0 ORDER BY c.contact_last_name, c.contact_first_name, c.id'
-)->fetch_all(MYSQLI_ASSOC);
+$contact_search = \Dnr\Http\RequestInput::string($_GET, 'contact_search', '', 128);
+$existing_contact_options = boundedContactOptions(
+    $conn,
+    array_column($existing_contact_rows, 'contact_id'),
+    $contact_search
+);
 $existing_contact_option_ids = array_map('intval', array_column($existing_contact_options, 'id'));
 $phone_country_code_value = trim($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
@@ -227,14 +240,22 @@ if (isset($_SESSION['success_message'])) {
     'assets/css/pages/record_workspace.min.css',
     'assets/css/pages/add_organization.min.css',
   ),
+  'scripts' => ['assets/js/relationship-search.min.js'],
 )); ?>
 <body class="add-organization-body">
 <?php include 'templates/header.php'; ?>
 <div class="container add-organization-page" role="main">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages); ?>
+    <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages, $errorFieldIds); ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
     <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Start with a name; add contacts and address details as the relationship develops.</p></div></div>
+    <noscript><form method="get" action="add_organization.php" class="card">
+        <?php if ($creation_return !== ''): ?><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+        <label for="existing-contact-search-fallback">Find an existing contact</label>
+        <input id="existing-contact-search-fallback" name="contact_search" type="search" maxlength="128" value="<?php echo htmlspecialchars($contact_search, ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="submit">Find Contacts</button>
+        <p>Search before filling the organization form. The results show up to 25 contacts.</p>
+    </form></noscript>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="add_organization.php" class="organization-form">
         <?php echo csrfInput(); ?>
@@ -370,7 +391,7 @@ if (isset($_SESSION['success_message'])) {
                     <div class="existing-organization-contact-row" data-existing-organization-contact-row>
                         <div class="form-group">
                             <label for="existing-contact-<?php echo $index; ?>">Existing Contact</label>
-                            <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select>
+                            <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select data-contact-search>
                                 <option value="">Select an existing contact</option>
                                 <?php if ($row['contact_id'] !== '' && !in_array((int) $row['contact_id'], $existing_contact_option_ids, true)): ?>
                                     <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously selected contact is unavailable</option>

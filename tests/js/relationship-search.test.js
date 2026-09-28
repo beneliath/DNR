@@ -3,16 +3,18 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-function harness() {
+function harness(kind = 'organization') {
     class Element {
         constructor(text = '', value = '') { this.textContent = text; this.value = value; this.listeners = {}; }
         addEventListener(event, callback) { this.listeners[event] = callback; }
         setAttribute() {}
         cloneNode() { return new Element(this.textContent, this.value); }
     }
-    const chosen = new Element('Saved organization', '999');
+    const chosen = new Element('Saved ' + kind, '999');
     let input, status, timer;
-    const select = {value: '999', isConnected: true, labels: [{textContent: 'Primary organization'}],
+    const select = {value: '999', isConnected: true,
+        dataset: kind === 'contact' ? {contactSearch: ''} : {},
+        labels: [{textContent: kind === 'contact' ? 'Existing Contact' : 'Primary organization'}],
         selectedOptions: [chosen], children: [chosen],
         before: (node) => { input = node; }, after: (node) => { status = node; },
         querySelector: () => new Element('None', ''),
@@ -45,4 +47,18 @@ test('failed organization lookup leaves saved choices intact', async () => {
     assert.equal(h.select.value, '999');
     assert.equal(h.select.children[0].textContent, 'Saved organization');
     assert.match(h.status.textContent, /unchanged/);
+});
+test('contact lookup keeps a selected contact and displays bounded results with identifying details', async () => {
+    const h = harness('contact');
+    const request = h.search('Taylor');
+    assert.match(h.pending[0].url, /kind=contact/);
+    h.pending[0].resolve({ok:true,json:async()=>({
+        results:[{id:2,contact_first_name:'Taylor',contact_last_name:'Smith',contact_email:'taylor@example.test',organization_name:'Host'}],
+        has_more:false
+    })});
+    await request;
+    assert.equal(h.select.value, '999');
+    assert.deepEqual(h.select.children.map(o=>o.value), ['', '999', '2']);
+    assert.match(h.select.children[2].textContent, /Taylor Smith · taylor@example\.test · Host/);
+    assert.match(h.status.textContent, /1 matching contacts/);
 });

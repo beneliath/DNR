@@ -9,10 +9,10 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → + New Engagement",
+      "entry": "Engagements \u2192 + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "34520054971459c4e2b51ea79e7b3e3ddf390e8dde4bd0d35ff2f2df34295d0a"
+        "index.php": "33674d04589a5a371fe36e08aae82a1e68a868c97b230cefb8b563e2deaa1a77"
       },
       "controls": {
         "new-organization": {
@@ -54,12 +54,12 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → event → Presentations tab → Edit Presentations",
+      "entry": "Engagements \u2192 event \u2192 Presentations tab \u2192 Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
         "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
         "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
+        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
       },
       "controls": {
         "presentations-tab": {
@@ -93,7 +93,7 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work → + New Task, or event → Tasks → Add Task. For an existing task use Edit task.",
+      "entry": "My Work \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task. For an existing task use Edit task.",
       "condition": "Related record is a search: type at least three characters in Find a related record, then choose a result. Searching alone does not select it. Change record reveals search for an existing selection. Waiting on appears when Status is Waiting. Assigned to changes ownership; the check-mark completes work.",
       "source_files": {
         "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2",
@@ -170,7 +170,7 @@
             "\\b(cannot|can t|unable|not|error|failed)\\b"
           ],
           "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
-          "message": "Waiting does not lock the task’s status. Waiting on is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
+          "message": "Waiting does not lock the task\u2019s status. Waiting on is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
           "question": "What message does MOED show when you try to save?"
         },
         {
@@ -203,11 +203,11 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements → existing event → Edit Engagement",
+      "entry": "Engagements \u2192 existing event \u2192 Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
         "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "edit_engagement.php": "415c0e2fa8b760f13c8a9febdb9ede305f07d7bcbaa00dca79cc298e48ad187c"
+        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
       },
       "controls": {
         "edit-event": {
@@ -233,7 +233,7 @@
         "editor",
         "reviewer"
       ],
-      "entry": "Calendar → Create Subscription",
+      "entry": "Calendar \u2192 Create Subscription",
       "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
         "view_calendar.php": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df"
@@ -283,7 +283,7 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work → + New Task, or event → Tasks → Add Task.",
+      "entry": "My Work \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
