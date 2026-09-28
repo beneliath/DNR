@@ -8,7 +8,7 @@ final class ContactInput
 {
     /**
      * @param array<string, mixed> $input
-     * @return array{data: array<string, int|string|null>, errors: list<string>}
+     * @return array{data: array<string, int|string|null>, errors: list<string>, error_fields: list<string|null>}
      */
     public static function normalize(array $input): array
     {
@@ -38,17 +38,23 @@ final class ContactInput
                 ?: \applicationDefaultPhoneCountryCode(),
         ];
         $errors = [];
+        $error_fields = [];
+        $add_error = static function (?string $field, string $message) use (&$errors, &$error_fields): void {
+            if (in_array($message, $errors, true)) return;
+            $errors[] = $message;
+            $error_fields[] = $field;
+        };
         if ($organization_id_is_invalid) {
-            $errors[] = 'Select a valid organization.';
+            $add_error('organization_id', 'Select a valid organization.');
         }
         if ($birthday_error !== null) {
-            $errors[] = $birthday_error;
+            $add_error('contact_birthday', $birthday_error);
         }
         if ($data['contact_first_name'] === '') {
-            $errors[] = 'First name is required.';
+            $add_error('contact_first_name', 'First name is required.');
         }
         if ($data['contact_last_name'] === '') {
-            $errors[] = 'Last name is required.';
+            $add_error('contact_last_name', 'Last name is required.');
         }
         foreach ([
             'contact_first_name' => [255, 'First name'],
@@ -59,23 +65,23 @@ final class ContactInput
         ] as $field => [$maximum, $label]) {
             $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
             if ($length_error !== null) {
-                $errors[] = $length_error;
+                $add_error($field === 'contact_email_confirm' ? 'contact_email' : $field, $length_error);
             }
         }
         $notes_error = InputText::textStorageError((string) $data['contact_notes'], 'Contact notes');
         if ($notes_error !== null) {
-            $errors[] = $notes_error;
+            $add_error('contact_notes', $notes_error);
         }
         if (!in_array($data['contact_role'], ReferenceData::contactRoles(), true)) {
-            $errors[] = 'A valid role is required.';
+            $add_error('contact_role', 'A valid role is required.');
         }
         if ($data['contact_role'] === 'other' && $data['contact_role_other'] === '') {
-            $errors[] = 'Please specify the other role.';
+            $add_error('contact_role_other', 'Please specify the other role.');
         }
         if (!filter_var($data['contact_email'], FILTER_VALIDATE_EMAIL)) {
-            $errors[] = 'Please provide a valid email address.';
+            $add_error('contact_email', 'Please provide a valid email address.');
         } elseif (!hash_equals($data['contact_email'], $data['contact_email_confirm'])) {
-            $errors[] = 'Email addresses do not match.';
+            $add_error('contact_email', 'Email addresses do not match.');
         }
         try {
             $data['contact_phone'] = \normalizePhoneNumber(
@@ -84,10 +90,10 @@ final class ContactInput
                 'Phone number'
             );
         } catch (\InvalidArgumentException $exception) {
-            $errors[] = $exception->getMessage();
+            $add_error('contact_phone', $exception->getMessage());
         }
 
-        return ['data' => $data, 'errors' => array_values(array_unique($errors))];
+        return ['data' => $data, 'errors' => $errors, 'error_fields' => $error_fields];
     }
 
     /** @return array{0: string|null, 1: string|null} */
@@ -117,7 +123,8 @@ final class ContactInput
      *   data: array{first_name: string, last_name: string, role: string,
      *     role_other: string, email: string, phone: string, birthday: string|null, notes: string,
      *     phone_country_code: string},
-     *   errors: list<string>
+     *   errors: list<string>,
+     *   error_fields: list<string|null>
      * }
      */
     public static function normalizeEmbedded(array $input): array
@@ -150,6 +157,10 @@ final class ContactInput
                 'phone_country_code' => (string) $data['contact_phone_country_code'],
             ],
             'errors' => $normalized['errors'],
+            'error_fields' => array_map(
+                static fn(?string $field): ?string => $field === null ? null : preg_replace('/\Acontact_/', '', $field),
+                $normalized['error_fields']
+            ),
         ];
     }
 }

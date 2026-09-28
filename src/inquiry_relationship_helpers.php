@@ -29,7 +29,7 @@ function searchInquiryRelationships(
         ";
         $searchParams = [$terms, $prefix];
     } else {
-        $columns = "c.id, c.organization_id, c.contact_first_name, c.contact_last_name, o.organization_name,
+        $columns = "c.id, c.organization_id, c.contact_first_name, c.contact_last_name, c.contact_email, o.organization_name,
             CONCAT(c.contact_last_name, ', ', c.contact_first_name, ' · ', COALESCE(o.organization_name, 'Standalone')) AS label";
         $from = 'FROM contacts c LEFT JOIN organizations o ON o.id = c.organization_id';
         $where = 'c.is_deleted = 0 AND (o.id IS NULL OR o.is_deleted = 0)';

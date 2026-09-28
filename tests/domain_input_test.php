@@ -92,6 +92,10 @@ expectDomainInput(
     in_array('Select a valid physical country.', $invalid_country_organization['errors'], true),
     'organization addresses should reject unsupported country values.'
 );
+expectDomainInput(
+    ($invalid_country_organization['error_fields'][array_search('Select a valid physical country.', $invalid_country_organization['errors'], true)] ?? null) === 'physical_country',
+    'organization validation should identify the affected control.'
+);
 
 $canadian_organization = OrganizationInput::normalize([
     'organization_name' => 'Canadian Organization',
@@ -138,6 +142,14 @@ expectDomainInput(
         && $embeddedContact['data']['birthday'] === '08/17',
     'organization contact rows should use the same contact validation as standalone forms.'
 );
+$invalidEmbeddedContact = ContactInput::normalizeEmbedded([
+    'first_name' => '', 'last_name' => '', 'role' => 'invalid', 'email' => 'invalid',
+]);
+expectDomainInput(
+    ($invalidEmbeddedContact['error_fields'][array_search('First name is required.', $invalidEmbeddedContact['errors'], true)] ?? null) === 'first_name'
+        && ($invalidEmbeddedContact['error_fields'][array_search('Please provide a valid email address.', $invalidEmbeddedContact['errors'], true)] ?? null) === 'email',
+    'embedded contact errors should identify controls in each organization contact row.'
+);
 
 $contact = ContactInput::normalize([
     'organization_id' => 10,
@@ -171,6 +183,22 @@ $invalidBirthdayContact = ContactInput::normalize([
 expectDomainInput(
     in_array('Birthday must be a valid date.', $invalidBirthdayContact['errors'], true),
     'contact birthdays should reject impossible calendar dates.'
+);
+$multipleContactErrors = ContactInput::normalize([
+    'contact_first_name' => '',
+    'contact_last_name' => '',
+    'contact_role' => 'invalid',
+    'contact_email' => 'invalid',
+    'contact_birthday' => '02/30',
+]);
+$contactErrorFields = array_combine($multipleContactErrors['errors'], $multipleContactErrors['error_fields']);
+expectDomainInput(
+    count($multipleContactErrors['errors']) >= 5
+        && $contactErrorFields['First name is required.'] === 'contact_first_name'
+        && $contactErrorFields['Last name is required.'] === 'contact_last_name'
+        && $contactErrorFields['Birthday must be a valid date.'] === 'contact_birthday'
+        && $contactErrorFields['Please provide a valid email address.'] === 'contact_email',
+    'contact validation should return all independent errors with their control IDs.'
 );
 
 $contactWithoutOrganization = ContactInput::normalize([

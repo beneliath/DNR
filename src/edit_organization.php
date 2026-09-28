@@ -101,12 +101,16 @@ foreach ($address_pairs as [$mailing_field, $physical_field]) {
 }
 
 // Handle form submission
+$errorFieldIds = [];
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (isset($_POST['save_organization']) || isset($_POST['save_and_add_chron']))) {
     requireValidCsrfToken();
     $normalized = \Dnr\Domain\OrganizationInput::normalize($_POST);
     $organization_input = $normalized['data'];
     $errorMessages = $normalized['errors'];
+    foreach ($normalized['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $errorFieldIds[$index] = $field_id;
+    }
     foreach ($organization_input as $field_name => $field_value) {
         ${$field_name} = $field_value;
     }
@@ -164,7 +168,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $check_stmt->execute();
             $duplicate = $check_stmt->get_result()->num_rows > 0;
             $check_stmt->close();
-            if ($duplicate) throw new InvalidArgumentException('An organization with this name already exists.');
+            if ($duplicate) {
+                $errorFieldIds[count($errorMessages)] = 'organization_name';
+                throw new InvalidArgumentException('An organization with this name already exists.');
+            }
 
         $update_stmt = $conn->prepare(
             "UPDATE organizations SET
@@ -293,7 +300,7 @@ try {
 <?php include 'templates/header.php'; ?>
 <div class="container edit-organization-page" role="main">
     <?php if (!empty($errorMessages)): ?>
-        <?php echo formErrorSummary($errorMessages); ?>
+        <?php echo formErrorSummary($errorMessages, $errorFieldIds); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>

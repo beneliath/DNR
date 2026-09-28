@@ -653,6 +653,13 @@ while ($row = $presentations_result->fetch_assoc()) {
 
 $engagement_contact_role_options = engagementContactRoles();
 $selected_engagement_organization_id = (int) ($engagement['organization_id'] ?? 0);
+$organization_search = \Dnr\Http\RequestInput::string($_GET, 'organization_search', '', 128);
+require_once __DIR__ . '/organization_options_helpers.php';
+$engagement_organization_options = boundedOrganizationOptions(
+    $conn,
+    [$selected_engagement_organization_id],
+    $organization_search
+);
 try {
     $organization_contacts = fetchOrganizationContactOptions(
         $conn,
@@ -740,12 +747,14 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
     3 => 'assets/css/pages/engagement_contacts.min.css',
     4 => 'assets/css/pages/engagement_lifecycle.min.css',
   ),
+  'scripts' => ['assets/js/relationship-search.min.js'],
 )); ?>
 <body class="edit-engagement-body">
 <?php include 'templates/header.php'; ?>
 <div class="container edit-engagement-page" role="main">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="engagements.php">Engagements</a><span aria-hidden="true">/</span><span>Edit Engagement</span></nav>
     <div class="page-heading form-page-heading edit-engagement-heading"><div><h1>Edit Engagement</h1><p class="page-intro">Update event details, schedule, presentations, and logistics.</p></div></div>
+    <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <?php if (!empty($error_message)): ?>
         <?php echo formErrorSummary($error_message); ?>
     <?php endif; ?>
@@ -764,15 +773,10 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
-            <select name="organization_id" id="organization_id" required>
-                <?php
-                // Fetch and display organizations in the dropdown
-                $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
-                while ($row = $orgs->fetch_assoc()) {
-                    $selected = ($row['id'] == $engagement['organization_id']) ? 'selected' : '';
-                    echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
-                }
-                ?>
+            <select name="organization_id" id="organization_id" data-organization-search required>
+                <?php foreach ($engagement_organization_options as $organization_option): ?>
+                    <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                <?php endforeach; ?>
             </select>
         </div>
 
@@ -790,7 +794,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <div class="event-row">
             <div class="event-group event-title-group">
                 <label class="label-container" for="event_title">Event Title</label>
-                <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
+                <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo htmlspecialchars($engagement['event_title'] ?? ''); ?>">
             </div>
 
             <div class="event-group">

@@ -15,6 +15,8 @@ if (!hasRole(['admin', 'editor'])) {
 
 $success_message = '';
 $error_message = '';
+$error_messages = [];
+$error_field_ids = [];
 $requested_organization_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'organization_id');
 $context_organization = null;
 if ($requested_organization_id !== null) {
@@ -44,7 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     foreach ($normalized_contact['data'] as $field_name => $field_value) {
         ${$field_name} = $field_value;
     }
-    $validation_errors = $normalized_contact['errors'];
+    $error_messages = $normalized_contact['errors'];
+    foreach ($normalized_contact['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $error_field_ids[$index] = $field_id;
+    }
     $additional_organizations = [];
     try {
         $additional_organizations = normalizeContactOrganizationAffiliations(
@@ -52,7 +57,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $organization_id
         );
     } catch (InvalidArgumentException $exception) {
-        $validation_errors[] = $exception->getMessage();
+        $error_messages[] = $exception->getMessage();
     }
     $photo_error = '';
     $contact_photo = null;
@@ -66,9 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     }
 
     if ($photo_error !== '') {
-        $error_message = $photo_error;
-    } elseif ($validation_errors) {
-        $error_message = $validation_errors[0];
+        $error_field_ids[count($error_messages)] = 'contact_photo';
+        $error_messages[] = $photo_error;
+    }
+    if ($error_messages !== []) {
+        $error_message = $error_messages[0];
     } else {
         $conn->begin_transaction();
         try {
@@ -162,6 +169,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $error_message = $exception instanceof InvalidArgumentException
                 ? $exception->getMessage()
                 : 'Unable to add the contact.';
+            $error_messages[] = $error_message;
         }
     }
 }
@@ -221,7 +229,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 <?php include 'templates/header.php'; ?>
 <main class="container add-contact-page">
     <?php if (!empty($error_message)): ?>
-        <?php echo formErrorSummary($error_message); ?>
+        <?php echo formErrorSummary($error_messages, $error_field_ids); ?>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>

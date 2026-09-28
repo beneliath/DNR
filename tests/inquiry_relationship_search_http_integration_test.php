@@ -9,6 +9,7 @@ $source = getenv('DNR_TEST_SOURCE_DIR') ?: __DIR__ . '/../src';
 putenv('DNR_PUBLIC_BASE_URL=https://crm.example.test');
 require_once $source . '/bootstrap.php';
 require_once $source . '/inquiry_relationship_helpers.php';
+require_once $source . '/organization_options_helpers.php';
 require_once $source . '/mattermost_integration_helpers.php';
 require_once __DIR__ . '/integration_auth_helpers.php';
 $base = rtrim(getenv('DNR_TEST_BASE_URL') ?: 'http://127.0.0.1', '/');
@@ -42,6 +43,20 @@ try {
     $conn->query("INSERT INTO contacts (organization_id, contact_first_name, contact_last_name, contact_email) VALUES ($firstOrg, 'Taylor', '$suffix', '$suffix@example.test')");
     $contactId = (int) $conn->insert_id;
     $conn->query("INSERT INTO contact_organizations (contact_id, organization_id) VALUES ($contactId, $lastOrg)");
+    $lastContactId = 0;
+    for ($i = 1; $i <= 30; $i++) {
+        $firstName = sprintf('Taylor%02d', $i);
+        $email = "{$suffix}-{$i}@example.test";
+        $conn->execute_query(
+            'INSERT INTO contacts (organization_id, contact_first_name, contact_last_name, contact_email) VALUES (?,?,?,?)',
+            [$firstOrg, $firstName, $suffix, $email]
+        );
+        $lastContactId = (int) $conn->insert_id;
+    }
+    $boundedContacts = boundedContactOptions($conn, [$lastContactId], $suffix);
+    expectInquiryLookup(count($boundedContacts) === 26
+        && in_array($lastContactId, array_map('intval', array_column($boundedContacts, 'id')), true),
+        'Contact selectors stay bounded and retain a selected contact beyond the first page');
     $results = searchInquiryRelationships($conn, 'organization', $suffix, null, $lastOrg);
     expectInquiryLookup(count($results['results']) === 25 && $results['has_more'], 'Organization searches must be bounded');
     expectInquiryLookup((int) $results['selected']['id'] === $lastOrg
@@ -87,6 +102,20 @@ try {
             expectInquiryLookup($request($path, $cookie, [])['status'] === 405, 'Search is read-only');
             $form = $request('add_inquiry.php', $cookie);
             expectInquiryLookup($form['status'] === 200 && !str_contains($form['body'], sprintf('Host %s 31', $suffix)), 'Initial form must not embed the full directory');
+            $engagementForm = $request('index.php?organization_search=' . rawurlencode($suffix), $cookie);
+            expectInquiryLookup($engagementForm['status'] === 200
+                && !str_contains($engagementForm['body'], sprintf('Host %s 31', $suffix)),
+                'New engagement must not embed every matching organization');
+            $engagementSelected = $request('index.php?' . http_build_query([
+                'organization_search' => $suffix, 'created_organization_id' => $lastOrg,
+            ]), $cookie);
+            expectInquiryLookup($engagementSelected['status'] === 200
+                && str_contains($engagementSelected['body'], 'value="' . $lastOrg . '" selected'),
+                'New engagement retains an organization beyond the first search page');
+            $organizationForm = $request('add_organization.php?contact_search=' . rawurlencode($suffix), $cookie);
+            expectInquiryLookup($organizationForm['status'] === 200
+                && !str_contains($organizationForm['body'], 'value="' . $lastContactId . '"'),
+                'New organization must not embed every matching contact');
             $conn->query("INSERT INTO booking_inquiries (title,organization_id,primary_contact_id,owner_user_id,created_by)
                 VALUES ('Lookup draft',$lastOrg,$contactId,{$userIds[$role]},{$userIds[$role]})");
             $inquiryId = (int) $conn->insert_id;

@@ -15,6 +15,12 @@
         }).filter(Boolean).join(' ') || field.getAttribute('aria-label') || 'This field';
     }
 
+    function focusFirstError(summary) {
+        const link = summary.querySelector?.('a[href^="#"]');
+        if (link?.click) link.click();
+        else summary.focus();
+    }
+
     function initialize(doc, win) {
         let nextId = 0;
         const connected = new WeakMap();
@@ -113,7 +119,7 @@
                 if (!list.children.length) return;
                 summary.append(heading, list);
                 form.prepend(summary);
-                summary.focus();
+                focusFirstError(summary);
             });
             pending.clear();
         }
@@ -157,11 +163,11 @@
         const firstSummary = summaries.find(function (summary) {
             return !summary.hidden && summary.textContent.trim() && !summary.closest('[hidden]');
         });
-        if (firstSummary) firstSummary.focus();
+        if (firstSummary) focusFirstError(firstSummary);
         doc.querySelectorAll('.success:not([role])').forEach(function (message) { message.setAttribute('role', 'status'); });
     }
 
-    if (typeof module === 'object' && module.exports) module.exports = { connectFieldError, fieldLabel, initialize };
+    if (typeof module === 'object' && module.exports) module.exports = { connectFieldError, fieldLabel, focusFirstError, initialize };
     if (typeof document === 'undefined') return;
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { initialize(document, window); });
     else initialize(document, window);

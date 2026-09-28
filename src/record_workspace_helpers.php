@@ -11,7 +11,7 @@ function safeRecordReturnUrl(mixed $value, string $fallback): string
     $parts = parse_url($value);
     $allowed = [
         'users.php', 'speakers.php', 'view_speaker.php', 'edit_speaker.php',
-        'dashboard.php', 'engagements.php', 'contacts.php', 'organizations.php', 'inquiries.php',
+        'dashboard.php', 'engagements.php', 'index.php', 'contacts.php', 'organizations.php', 'inquiries.php',
         'tasks.php', 'map.php', 'view_calendar.php', 'inbound_mail.php',
         'view_engagement.php', 'edit_engagement.php', 'view_contact.php', 'edit_contact.php',
         'view_organization.php', 'edit_organization.php', 'view_inquiry.php',

@@ -258,7 +258,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 $engagement_contact_role_options = engagementContactRoles();
 $selected_engagement_organization_id = !empty($error_message)
     ? (int) ($_POST['organization_id'] ?? 0)
-    : 0;
+    : (\Dnr\Http\RequestInput::positiveInt($_GET, 'created_organization_id') ?? 0);
+$organization_search = \Dnr\Http\RequestInput::string($_GET, 'organization_search', '', 128);
+require_once __DIR__ . '/organization_options_helpers.php';
+$engagement_organization_options = boundedOrganizationOptions(
+    $conn,
+    [$selected_engagement_organization_id],
+    $organization_search
+);
 try {
     $organization_contacts = fetchOrganizationContactOptions(
         $conn,
@@ -324,6 +331,9 @@ try {
     array (
       'path' => 'assets/js/main.min.js',
     ),
+    array (
+      'path' => 'assets/js/relationship-search.min.js',
+    ),
   ),
 )); ?>
 <body>
@@ -337,6 +347,7 @@ try {
             <p class="page-intro">Create the event, schedule, presentations, and logistics in one place.</p>
         </div>
     </div>
+    <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <!-- Form for adding a new speaking engagement -->
     <?php if (!empty($error_message)): ?>
         <?php echo formErrorSummary($error_message); ?>
@@ -352,22 +363,17 @@ try {
         <h2>Event Details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
-    <select name="organization_id" id="organization_id" required>
-        <option value="" disabled <?php echo empty($_POST['organization_id']) || !empty($success_message) ? 'selected' : ''; ?>>select an organization</option>
-        <?php
-        // Fetch and display organizations in the dropdown
-        $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
-        while ($row = $orgs->fetch_assoc()) {
-            $selected = !empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
-            echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
-        }
-        ?>
+    <select name="organization_id" id="organization_id" data-organization-search required>
+        <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an organization</option>
+        <?php foreach ($engagement_organization_options as $organization_option): ?>
+            <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+        <?php endforeach; ?>
     </select>
-    <a href="add_organization.php" class="add-org-button">Add New Organization</a>
+    <a href="add_organization.php?return_to=index.php" class="add-org-button">Add New Organization</a>
 </div>
 
         <label for="event_title">Event Title</label>
-        <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
+        <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
 
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="10"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>

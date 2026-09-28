@@ -110,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
 }
 
 $error_messages = [];
+$error_field_ids = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (isset($_POST['save_contact']) || isset($_POST['save_and_add_chron']))) {
@@ -128,6 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact_notes = (string) $normalized_contact['data']['contact_notes'];
     $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
+    foreach ($normalized_contact['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $error_field_ids[$index] = $field_id;
+    }
     $additional_organization_rows = $_POST['additional_organizations'] ?? [];
     $additional_organizations = [];
     try {
@@ -169,9 +173,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException('Choose either a new contact photo or remove the current photo.');
         }
     } catch (InvalidArgumentException $exception) {
+        $error_field_ids[count($error_messages)] = 'contact_photo';
         $error_messages[] = $exception->getMessage();
     } catch (Throwable $exception) {
         applicationLog('error', 'Unable to read contact photo upload', ['error' => $exception->getMessage()]);
+        $error_field_ids[count($error_messages)] = 'contact_photo';
         $error_messages[] = 'The contact photo could not be uploaded. Try again.';
     }
 
@@ -462,7 +468,7 @@ try {
     <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information and roles at each organization.</p></div></div>
 
     <?php if ($error_messages): ?>
-        <?php echo formErrorSummary($error_messages); ?>
+        <?php echo formErrorSummary($error_messages, $error_field_ids); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
