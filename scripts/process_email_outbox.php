@@ -244,7 +244,7 @@ do {
         $accepted = false;
         try {
             $message = decryptQueuedReimbursementEmail($queued['payload_ciphertext']);
-            $attachment = reimbursementEmailAttachment($conn, $queued, $message);
+            $attachments = reimbursementEmailAttachments($conn, $queued, $message);
             startEmailDelivery($conn, 'reimbursement_email_deliveries', $queued['id'], $queued['claim_token']);
             deliverApplicationEmailWithSession(
                 $smtpSession,
@@ -255,7 +255,7 @@ do {
                 htmlBody: $message['html_body'],
                 visibleRecipients: $message['visible_recipients'],
                 messageId: $queued['smtp_message_id'],
-                attachments: [$attachment, ...$message['inline_images']]
+                attachments: [...$attachments, ...$message['inline_images']]
             );
             $accepted = true;
             completeQueuedReimbursementEmail($conn, $queued['id'], $queued['claim_token']);

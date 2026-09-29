@@ -241,16 +241,19 @@ def main(argv=None):
     args = parse_args(argv)
     require_tools()
     branch = validate_checkout()
+    run(['python3', 'scripts/ai_help/check_source_hashes.py'], capture=True)
     if args.plan:
         print(json.dumps({
             'branch': branch,
             'bump': args.bump,
-            'stages': ['notice', 'prepare', 'commit', 'publish branch', 'protected PR checks',
+            'stages': ['AI Coach source hashes', 'notice', 'prepare', 'commit', 'publish branch', 'protected PR checks',
                        'merge', 'publish main', 'final-main CI', 'publish tag',
                        'verified backup and s1 deployment', 'receipt'],
             'polling': 'internal; one progress line every five minutes',
         }, indent=2))
         return
+
+    milestone('AI Coach source hashes match')
 
     notice_started = False
     completed = False

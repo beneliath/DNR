@@ -67,6 +67,8 @@ html body .reimbursement-apply-reminder{background:var(--primary)!important;bord
 .reimbursement-request-table th:first-child,.reimbursement-request-table td:first-child{text-align:right}
 .reimbursement-email-details{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6rem 1rem}.reimbursement-email-details dt{font-weight:650}.reimbursement-email-details dd{margin:0;overflow-wrap:anywhere}
 .reimbursement-email-preview{width:100%;min-height:300px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface)}
+#bookkeeper-note{display:block;width:100%;margin-top:.4rem;min-height:6rem;resize:vertical}
+.reimbursement-review-submit{margin-left:auto}
 .reimbursement-confirm{display:flex;align-items:center;gap:.6rem}.reimbursement-confirm input{width:auto;margin:0}
 @media(max-width:640px){.reimbursement-email-details{grid-template-columns:1fr;gap:.25rem}.reimbursement-email-details dd{margin-bottom:.75rem}}
 

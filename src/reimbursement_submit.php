@@ -46,7 +46,7 @@ if ($preview !== '') {
     if ($preview === 'package') {
         $path = null;
         try {
-            $path = reimbursementSubmissionPackage($context);
+            $path = reimbursementSubmissionPackage($context, false);
             header('Content-Type: application/zip');
             header('Content-Disposition: attachment; filename="' . $message['filename'] . '"');
             header('Content-Length: ' . filesize($path)); readfile($path);
@@ -66,7 +66,7 @@ function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((strin
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementSubmitH($error) ?></p><?php endif; ?>
 <?php if ($context && $message): ?>
 <section class="reimbursement-card"><h2>Email Details</h2>
-<dl class="reimbursement-email-details"><dt>To</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['to'] ?? [])) ?></dd><dt>Cc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['cc'] ?? [])) ?: 'None' ?></dd><dt>Bcc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['bcc'] ?? [])) ?: 'None' ?></dd><dt>Subject</dt><dd><?= reimbursementSubmitH($message['subject']) ?></dd><dt>Attachment</dt><dd><?= reimbursementSubmitH($message['filename']) ?> — expense report PDF and <?= count($context['receipts']) ?> receipt files</dd></dl>
+<dl class="reimbursement-email-details"><dt>To</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['to'] ?? [])) ?></dd><dt>Cc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['cc'] ?? [])) ?: 'None' ?></dd><dt>Bcc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['bcc'] ?? [])) ?: 'None' ?></dd><dt>Subject</dt><dd><?= reimbursementSubmitH($message['subject']) ?></dd><dt>Attachments</dt><dd><?= reimbursementSubmitH($message['filename']) ?>, <?= reimbursementSubmitH(reimbursementPackageBase($context['request']) . '.pdf') ?>, and <?= count($context['receipts']) ?> individual receipt files</dd></dl>
 <p class="field-help">Bcc recipients are hidden from other recipients. Duplicate email addresses receive one copy.</p>
 <div class="reimbursement-actions"><a class="button-secondary" href="reimbursement_submit.php?id=<?= $id ?>&amp;preview=package">Download Package for Review</a><a class="button-secondary" href="profile.php">User Profile</a><?php if (hasRole(['admin'])): ?><a class="button-secondary" href="reimbursement_setup.php">Reimbursement Setup</a><?php endif; ?></div>
 </section>
@@ -75,7 +75,7 @@ function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((strin
 <?php $receiptExpenseIds=array_unique(array_column($context['receipts'],'expense_id')); $missing=count(array_filter($context['items'],static fn($item)=>!in_array($item['expense_id'],$receiptExpenseIds))); ?>
 <p><?= count($context['items']) ?> Expenses · <?= reimbursementMoney(array_sum(array_column($context['items'],'amount_cents'))) ?> · <?= count($context['receipts']) ?> Receipts · <?= number_format(array_sum(array_column($context['receipts'],'size'))/1048576,2) ?> MB of Original Files</p>
 <?php if ($missing): ?><p class="warning"><?= $missing ?> expense(s) have no receipt. You may submit, but the bookkeeper may need supporting documentation.</p><?php endif; ?>
-<p class="field-help">A ZIP can be at most 15 MB (approximately 20 MB after email encoding, plus message headers). The final package also contains the report. Download it for review to verify its size before submitting.</p>
+<p class="field-help">The ZIP, separate report PDF, and individual receipts together can be at most 15 MB (approximately 20 MB after email encoding, plus message headers). Download the package to review its contents before submitting.</p>
 <h2>Package Contents</h2><p><?= reimbursementSubmitH(reimbursementPackageBase($context['request']).'.pdf') ?></p>
 <?php foreach ($context['items'] as $item): ?><details open><summary><?= reimbursementSubmitH($item['merchant'].' · '.reimbursementMoney((int)$item['amount_cents'])) ?></summary><ul><?php $found=false; foreach ($context['receipts'] as $receipt): if ((int)$receipt['expense_id']!==(int)$item['expense_id']) continue; $found=true; ?><li class="reimbursement-filename">receipts/<?= reimbursementSubmitH(reimbursementReceiptPackageFilename($receipt)) ?><small>Original: <?= reimbursementSubmitH($receipt['filename']) ?> · <?= number_format($receipt['size']/1024) ?> KB · <?= reimbursementSubmitH(ucfirst($receipt['scan_state'])) ?></small></li><?php endforeach; if (!$found): ?><li>No Receipt Attached</li><?php endif; ?></ul></details><?php endforeach; ?></section>
 <?php if ($recipients && $error === ''): ?><section class="reimbursement-card"><form method="post"><?= csrfInput() ?><input type="hidden" name="review_fingerprint" value="<?= reimbursementSubmitH(reimbursementReviewFingerprint($context)) ?>"><label class="reimbursement-confirm"><input type="checkbox" name="confirm_submission" value="1" required> I have reviewed the recipients, email, and package</label><p>Submitting queues the email for delivery and locks this request’s expenses and receipts. Downloads alone do not submit the request.</p><div class="reimbursement-actions"><button type="submit" class="save-button">Submit Reimbursement Request</button><a class="button-secondary" href="reimbursement_request.php?id=<?= $id ?>&amp;mode=edit">Back to Draft</a></div></form></section><?php endif; ?>

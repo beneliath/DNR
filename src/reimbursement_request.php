@@ -20,6 +20,7 @@ $request = $conn->execute_query('SELECT * FROM reimbursement_requests WHERE id =
 if (!$request) { http_response_code(404); exit('Request not found.'); }
 $isOwner = (int) $request['user_id'] === $userId;
 $canEditExpenses = $canManage && $isOwner && $request['status'] === 'draft' && !(int) $request['is_archived'];
+$canEditBookkeeperNote = $canEditExpenses && array_key_exists('bookkeeper_note', $request);
 $canEditDraft = $isEditing && $canEditExpenses;
 $canDeleteRequest = $canEditDraft;
 $selectionCleared = (string) ($_SESSION['reimbursement_selection_cleared'] ?? '');
@@ -29,7 +30,7 @@ $error = '';
 $message = (string) ($_SESSION['reimbursement_request_message'] ?? '');
 unset($_SESSION['reimbursement_request_message']);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (!$isEditing && !in_array($_POST['action'] ?? '', ['retry_delivery','resend_delivery','correction','resolve_correction'],true)) { http_response_code(405); exit('This request view is read-only.'); }
+    if (!$isEditing && !in_array($_POST['action'] ?? '', ['note','retry_delivery','resend_delivery','correction','resolve_correction'],true)) { http_response_code(405); exit('This request view is read-only.'); }
     requireValidCsrfToken();
     if (!$canManage) { http_response_code(403); exit('This account has read-only access.'); }
     $action = (string) ($_POST['action'] ?? '');
@@ -51,7 +52,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action !== 'delete' && !$isOwner) { http_response_code(403); exit('Only the request owner can change it.'); }
     if ($action !== 'delete' && ($request['status'] !== 'draft' || (int) $request['is_archived'])) { http_response_code(409); exit('Restore an archived draft before changing it. Submitted requests cannot be changed.'); }
     try {
-        if ($action === 'dates') {
+        if ($action === 'note') {
+            $deleteNote = ($_POST['delete_note'] ?? '') === '1';
+            $note = $deleteNote ? '' : reimbursementSubmissionNote($_POST['bookkeeper_note'] ?? '');
+            $conn->begin_transaction();
+            try {
+                $locked = $conn->execute_query('SELECT user_id,status,is_archived,bookkeeper_note FROM reimbursement_requests WHERE id=? FOR UPDATE', [$id])->fetch_assoc();
+                if (!$locked || (int) $locked['user_id'] !== $userId || $locked['status'] !== 'draft' || (int) $locked['is_archived']) throw new InvalidArgumentException('Only the owner of an active draft can update the note.');
+                if (!$deleteNote && $note === '' && $locked['bookkeeper_note'] !== '') throw new InvalidArgumentException('Use Delete Note to remove the saved note, or enter a new note.');
+                if ($note !== $locked['bookkeeper_note']) {
+                    $conn->execute_query('UPDATE reimbursement_requests SET bookkeeper_note=? WHERE id=?', [$note,$id]);
+                    reimbursementEvent($conn,'request',$id,$deleteNote ? 'bookkeeper_note_deleted' : 'bookkeeper_note_updated');
+                }
+                $conn->commit();
+            } catch (Throwable $e) { $conn->rollback(); throw $e; }
+            $_SESSION['reimbursement_request_message'] = $deleteNote ? 'Note to the bookkeeper deleted.' : 'Note to the bookkeeper saved. Review the email before submitting.';
+        } elseif ($action === 'dates') {
             $start=reimbursementDate($_POST['start_date'] ?? null,'start date');
             $end=reimbursementDate($_POST['end_date'] ?? null,'end date');
             if ($start>$end) throw new InvalidArgumentException('End date must follow start date.');
@@ -90,7 +106,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $_SESSION['reimbursement_request_message'] = 'Request deleted. Its expenses and receipts were kept and are available for another request.';
             header('Location: reimbursement_requests.php'); exit();
         } else throw new InvalidArgumentException('Unknown action.');
-        header('Location: reimbursement_request.php?id=' . $id . '&mode=edit&return='.rawurlencode($returnUrl)); exit();
+        if ($action === 'note' && ($_POST['continue_to_review'] ?? '') === '1') {
+            unset($_SESSION['reimbursement_request_message']);
+            header('Location: reimbursement_submit.php?id=' . $id, true, 303); exit();
+        }
+        header('Location: reimbursement_request.php?id=' . $id . '&mode='.($isEditing ? 'edit' : 'view').'&return='.rawurlencode($returnUrl), true, 303); exit();
     } catch (InvalidArgumentException $e) { $error = $e->getMessage(); }
     catch (mysqli_sql_exception $e) { $error = $e->getCode() === 1062 ? 'That expense already belongs to another request.' : 'Unable to update this request.'; }
     }
@@ -140,9 +160,10 @@ else echo 'Accepted by SMTP for all recipients. This does not confirm reading or
 <?php endif; ?>
 <?php if ($error): ?><p class="error" role="alert"><?= reimbursementRequestH($error) ?></p><?php endif; ?><?php if ($message): ?><p class="success" role="status"><?= reimbursementRequestH($message) ?></p><?php endif; ?>
 <?php if ((int) $request['is_archived']): ?><p class="field-help">Archived request. Restore it from the Requests page before making changes.</p><?php elseif (!$canEditDraft && $request['status'] === 'draft'): ?><p class="field-help">Read-only request view.<?= $canEditExpenses ? ' Select an expense below to edit it while this request is a draft.' : '' ?></p><?php elseif ($request['status'] === 'draft'): ?><p class="field-help">Review the expenses, report, and receipt package. Downloading does not change this draft.</p><?php else: ?><p class="success">Submitted <?= reimbursementRequestH($request['submitted_at']) ?> UTC. These expenses cannot appear in another request.</p><?php endif; ?>
-<nav class="reimbursement-actions" aria-label="Reimbursement Navigation"><a class="button-secondary" href="reimbursements.php">Expenses</a><a class="button-secondary" href="<?= reimbursementRequestH($returnUrl) ?>">Back to Requests</a><?php if ($canManage): ?><a class="button-secondary" href="reimbursement_cost_centers.php">Chart of Accounts</a><?php endif; ?><?php if ($canEditExpenses): ?><a class="save-button" href="reimbursement_submit.php?id=<?= $id ?>">Review and Submit</a><?php if (!$isEditing): ?><a class="button-secondary" href="reimbursement_request.php?id=<?= $id ?>&amp;mode=edit&amp;return=<?= rawurlencode($returnUrl) ?>">Edit Draft</a><?php endif; ?><?php endif; ?></nav>
+<nav class="reimbursement-actions" aria-label="Reimbursement Navigation"><a class="button-secondary" href="reimbursements.php">Expenses</a><a class="button-secondary" href="<?= reimbursementRequestH($returnUrl) ?>">Back to Requests</a><?php if ($canManage): ?><a class="button-secondary" href="reimbursement_cost_centers.php">Chart of Accounts</a><?php endif; ?><?php if ($canEditExpenses && !$isEditing): ?><a class="button-secondary" href="reimbursement_request.php?id=<?= $id ?>&amp;mode=edit&amp;return=<?= rawurlencode($returnUrl) ?>">Edit Draft</a><?php endif; ?><?php if ($canEditBookkeeperNote): ?><button type="submit" form="reimbursement-note-form" name="continue_to_review" value="1" class="save-button reimbursement-review-submit">Review and Submit</button><?php elseif ($canEditExpenses): ?><a class="save-button reimbursement-review-submit" href="reimbursement_submit.php?id=<?= $id ?>">Review and Submit</a><?php endif; ?></nav>
+<?php if ($canEditBookkeeperNote): ?><section class="reimbursement-card"><h2>Note to the Bookkeeper</h2><form id="reimbursement-note-form" method="post" data-reimbursement-note><?= csrfInput() ?><input type="hidden" name="action" value="note"><label for="bookkeeper-note">Brief note or comment (optional)</label><textarea id="bookkeeper-note" name="bookkeeper_note" rows="4" maxlength="1000"><?= reimbursementRequestH($error !== '' && isset($_POST['bookkeeper_note']) && is_string($_POST['bookkeeper_note']) ? $_POST['bookkeeper_note'] : $request['bookkeeper_note']) ?></textarea><p class="field-help">The saved note appears in the bookkeeper's email.</p><div class="reimbursement-actions"><button type="submit" class="button-secondary" data-reimbursement-save-note>Save Note</button><?php if ($request['bookkeeper_note'] !== ''): ?><button type="submit" name="delete_note" value="1" class="button-secondary">Delete Note</button><?php endif; ?></div></form></section><?php endif; ?>
 <?php if ($canEditDraft): ?><div class="reimbursement-draft-controls">
-<section class="reimbursement-card reimbursement-date-range"><h2>Request Date Range</h2><form method="post" class="reimbursement-date-range-form"><?= csrfInput() ?><input type="hidden" name="action" value="dates"><label>Start Date<input type="date" name="start_date" required value="<?= reimbursementRequestH($request['start_date']) ?>"></label><label>End Date<input type="date" name="end_date" required value="<?= reimbursementRequestH($request['end_date']) ?>"></label><button type="submit" class="button-secondary">Update Dates</button></form></section>
+<section class="reimbursement-card reimbursement-date-range"><h2>Request Date Range</h2><form method="post" class="reimbursement-date-range-form" data-reimbursement-date-range><?= csrfInput() ?><input type="hidden" name="action" value="dates"><label>Start Date<input type="date" name="start_date" required value="<?= reimbursementRequestH($request['start_date']) ?>"></label><label>End Date<input type="date" name="end_date" required value="<?= reimbursementRequestH($request['end_date']) ?>"></label><button type="submit" class="button-secondary" data-reimbursement-update-dates>Update Dates</button></form></section>
 <?php if ($available): ?><section class="reimbursement-card reimbursement-add-expense"><h2>Add an Expense in This Date Range</h2><form method="post" class="reimbursement-inline-form"><?= csrfInput() ?><input type="hidden" name="action" value="add"><label>Available Expense <select name="expense_id" required><option value="">Choose an Expense</option><?php foreach ($available as $expense): ?><option value="<?= (int) $expense['id'] ?>"><?= reimbursementRequestH($expense['expense_date'] . ' · ' . $expense['merchant'] . ' · ' . reimbursementMoney((int) $expense['amount_cents'])) ?></option><?php endforeach; ?></select></label><button type="submit" class="button-secondary">Add Expense</button></form></section><?php endif; ?>
 </div><?php endif; ?>
 <section class="reimbursement-card" id="request-expenses"><h2>Expenses</h2><p class="field-help">Receipt filenames match the files in the receipts/ folder of the package ZIP.</p><div class="reimbursement-table-wrap"><table class="data-table"><thead><tr><th scope="col">Date</th><th scope="col">Merchant / Payee</th><th scope="col">Account</th><th scope="col">Receipt Files</th><th scope="col">Amount</th><?php if ($canEditDraft): ?><th scope="col">Action</th><?php endif; ?></tr></thead><tbody>

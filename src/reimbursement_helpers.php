@@ -6,6 +6,16 @@ require_once __DIR__ . '/persistent_file_helpers.php';
 require_once __DIR__ . '/document_scanning_helpers.php';
 require_once __DIR__ . '/reimbursement_workflow_helpers.php';
 
+function reimbursementSubmissionNote(mixed $value): string
+{
+    if (!is_string($value)) throw new InvalidArgumentException('Enter a note of at most 1000 characters.');
+    $note = trim(str_replace(["\r\n", "\r"], "\n", $value));
+    if (mb_strlen($note, 'UTF-8') > 1000 || preg_match('/[\x00-\x08\x0B-\x1F\x7F]/', $note)) {
+        throw new InvalidArgumentException('Enter a note of at most 1000 characters without control characters.');
+    }
+    return $note;
+}
+
 /** The exact, unique filename used in the package's receipts directory. */
 function reimbursementReceiptPackageFilename(array $receipt): string
 {
