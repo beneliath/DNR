@@ -2860,12 +2860,22 @@
       ]
     },
     "reimbursement_expense.php": {
-      "sha256": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539",
+      "sha256": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
       "controls": [
         {
           "kind": "a",
           "label": "Reimbursements",
           "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "+ Add Expense",
+          "href": "reimbursement_expense.php"
+        },
+        {
+          "kind": "a",
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
         },
         {
           "kind": "a",
