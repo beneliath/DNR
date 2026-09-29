@@ -181,7 +181,7 @@ try {
     $path = 'reimbursement_request.php?id=' . $requestId;
     $view = $editor($path);
     expectReimbursement(str_contains($view['body'], $expectedReceiptFilename), 'Request detail identifies the exact packaged receipt filename');
-    expectReimbursement(str_contains($view['body'], 'href="' . $expensePath . '&amp;mode=view') && !str_contains($view['body'], 'name="action" value="submit"'), 'Owner draft view links expenses but has no request editing form');
+    expectReimbursement(str_contains($view['body'], 'href="' . $expensePath . '&amp;mode=view') && str_contains($view['body'], 'name="bookkeeper_note"') && !str_contains($view['body'], 'name="action" value="submit"'), 'Owner draft view links expenses and offers a bookkeeper note');
     expectReimbursement($editor($path, ['csrf_token' => $csrf, 'action' => 'submit'])['status'] === 405, 'View route must reject mutation');
     $foreign = $admin($path);
     expectReimbursement(!str_contains($foreign['body'], 'href="' . $expensePath . '"'), 'Admin must not receive edit links for another owner');
@@ -224,8 +224,23 @@ try {
     $profileSave = $editor('profile.php', ['csrf_token' => reimbursementCsrf($profile), 'first_name' => 'Test', 'last_name' => 'Owner', 'phone' => '', 'reimbursement_reviewer_email' => 'reviewer@example.test']);
     expectReimbursement($conn->execute_query('SELECT reimbursement_reviewer_email FROM users WHERE id = ?', [$users['editor']])->fetch_row()[0] === 'reviewer@example.test', 'Profile saves reimbursement reviewer');
     $conn->query("UPDATE reimbursement_setup SET bookkeeper_email = 'bookkeeper@example.test', cc_email = 'copy@example.test', reviewer_email = 'catalog@example.test' WHERE id = 1");
+    $note = "Please use the updated account.\nCall before issuing payment <script>alert(1)</script>.";
+    $draftPage = $editor($path);
+    $invalidNote = $editor($path, ['csrf_token' => reimbursementCsrf($draftPage), 'action' => 'note', 'bookkeeper_note' => str_repeat('x', 1001)]);
+    expectReimbursement(str_contains($invalidNote['body'], '1000 characters'), 'Oversized bookkeeper note is rejected');
+    $savedNote = $editor($path, ['csrf_token' => reimbursementCsrf($draftPage), 'action' => 'note', 'bookkeeper_note' => $note, 'continue_to_review' => '1']);
+    expectReimbursement($savedNote['status'] === 303 && str_contains($savedNote['headers'], $submitPath), 'Review button saves the note before opening email review');
+    expectReimbursement($conn->execute_query('SELECT bookkeeper_note FROM reimbursement_requests WHERE id = ?', [$requestId])->fetch_row()[0] === $note, 'Draft stores the bookkeeper note');
+    $notePage = $editor($path);
+    expectReimbursement(str_contains($notePage['body'], 'name="delete_note"'), 'Saved note offers an explicit Delete Note button');
+    $clearedNote = $editor($path, ['csrf_token' => reimbursementCsrf($notePage), 'action' => 'note', 'bookkeeper_note' => '']);
+    expectReimbursement(str_contains($clearedNote['body'], 'Use Delete Note') && $conn->execute_query('SELECT bookkeeper_note FROM reimbursement_requests WHERE id = ?', [$requestId])->fetch_row()[0] === $note, 'Blank input cannot silently delete a saved note');
+    $deletedNote = $editor($path, ['csrf_token' => reimbursementCsrf($notePage), 'action' => 'note', 'delete_note' => '1', 'bookkeeper_note' => $note]);
+    expectReimbursement($deletedNote['status'] === 303 && $conn->execute_query('SELECT bookkeeper_note FROM reimbursement_requests WHERE id = ?', [$requestId])->fetch_row()[0] === '', 'Delete Note clears the saved note');
+    $notePage = $editor($path);
+    $editor($path, ['csrf_token' => reimbursementCsrf($notePage), 'action' => 'note', 'bookkeeper_note' => $note, 'continue_to_review' => '1']);
     $review = $editor($submitPath);
-    expectReimbursement($review['status'] === 200 && str_contains($review['body'], 'catalog@example.test') && str_contains($review['body'], 'Email Preview'), 'Review shows recipients and email');
+    expectReimbursement($review['status'] === 200 && str_contains($review['body'], 'catalog@example.test') && str_contains($review['body'], 'Email Preview') && str_contains($review['body'], '&lt;script&gt;'), 'Review shows recipients and the escaped bookkeeper note in the email preview');
     preg_match('/name="review_fingerprint" value="([^"]+)"/', $review['body'], $fingerprint);
     expectReimbursement(!empty($fingerprint[1]), 'Review fingerprint exists');
     $preview = $editor($submitPath . '&preview=package');
@@ -237,6 +252,12 @@ try {
     expectReimbursement(count(reimbursementSubmissionRecipients($duplicate)['cc']) === 2, 'Duplicate recipients receive one copy');
     $context['items'][0]['merchant'] = '<script>alert(1)</script>';
     expectReimbursement(!str_contains(reimbursementSubmissionMessage($context)['html_body'], '<script>'), 'Email escapes merchant markup');
+    $notedMessage = reimbursementSubmissionMessage($context);
+    expectReimbursement(str_contains($notedMessage['body'], $note) && str_contains($notedMessage['html_body'], 'Note to the bookkeeper') && str_contains($notedMessage['html_body'], 'Call before issuing payment &lt;script&gt;'), 'Bookkeeper note appears in both email formats and HTML is escaped');
+    $blankNoteContext = $context; $blankNoteContext['request']['bookkeeper_note'] = '';
+    expectReimbursement(!str_contains(reimbursementSubmissionMessage($blankNoteContext)['body'], 'Note from '), 'Empty note does not add a note section');
+    try { reimbursementSubmissionNote(str_repeat('x', 1001)); throw new RuntimeException('Oversized note accepted'); }
+    catch (InvalidArgumentException $e) { expectReimbursement(str_contains($e->getMessage(), '1000'), 'Oversized note is rejected'); }
     $post = ['csrf_token' => reimbursementCsrf($review), 'review_fingerprint' => $fingerprint[1]];
     $editor($submitPath, $post);
     expectReimbursement($conn->execute_query('SELECT status FROM reimbursement_requests WHERE id = ?', [$requestId])->fetch_row()[0] === 'draft', 'Confirmation is required');
@@ -254,6 +275,7 @@ try {
     expectReimbursement(count($deliveries) === 5, 'One delivery per unique recipient');
     expectReimbursement($editor($submitPath, $post)['status'] === 409, 'Repeated submit cannot enqueue duplicates');
     $queuedMessage = decryptQueuedReimbursementEmail($deliveries[0]['payload_ciphertext']);
+    expectReimbursement(str_contains($queuedMessage['body'], $note) && str_contains($queuedMessage['html_body'], '&lt;script&gt;'), 'Queued email preserves the reviewed bookkeeper note safely');
     expectReimbursement(str_contains($queuedMessage['html_body'], $expectedReceiptFilename) && str_contains($queuedMessage['body'], $expectedReceiptFilename), 'HTML and plain-text email identify the exact receipt filename');
     $attachment = reimbursementEmailAttachment($conn, $deliveries[0], $queuedMessage);
     $tmp = tempnam(sys_get_temp_dir(), 'queued-zip-'); file_put_contents($tmp, $attachment['data']);

@@ -321,7 +321,7 @@
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "reimbursement_helpers.php": "31e26f8ecc4f6efb787a7138b5dd939d42e491ce5b1b1a102853361a466dba0f"
+        "reimbursement_helpers.php": "be2ceaf1d024faac08684ff70450afaa1856ebee26e3edb20442caca91003507"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -391,7 +391,7 @@
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
         "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
-        "reimbursement_request.php": "391feabcfc12c96f357a37ed37df7e309015fffab9020abafc0c6da767177a1f",
+        "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },
       "controls": {
@@ -414,6 +414,18 @@
         "reimbursement-request-end": {
           "label": "End Date",
           "selector": ".reimbursement-date-range-form input[name=\"end_date\"]"
+        },
+        "reimbursement-bookkeeper-note": {
+          "label": "Note to the Bookkeeper",
+          "selector": "textarea[name=\"bookkeeper_note\"]"
+        },
+        "reimbursement-review-submit": {
+          "label": "Review and Submit",
+          "selector": "button[form=\"reimbursement-note-form\"]"
+        },
+        "reimbursement-delete-note": {
+          "label": "Delete Note",
+          "selector": "button[name=\"delete_note\"]"
         }
       }
     },
@@ -429,7 +441,8 @@
       "condition": "Review recipients and package before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
-        "reimbursement_submission_helpers.php": "a32f6b6fabb52e32621eeb10da8c81d4c428ee7892e83cb0f1e7060fd47c391e"
+        "reimbursement_submission_helpers.php": "29e8b0127bbbab25b6480c2dbd0420d5fa0b7f059425be508431f9a5878d37ab",
+        "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d"
       },
       "controls": {
         "reimbursement-confirm": {

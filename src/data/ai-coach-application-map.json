@@ -2951,7 +2951,7 @@
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "391feabcfc12c96f357a37ed37df7e309015fffab9020abafc0c6da767177a1f",
+      "sha256": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d",
       "controls": [
         {
           "kind": "a",
@@ -2988,11 +2988,34 @@
         },
         {
           "kind": "a",
-          "label": "Review and Submit"
+          "label": "Edit Draft"
+        },
+        {
+          "kind": "button",
+          "label": "Review and Submit",
+          "name": "continue_to_review"
         },
         {
           "kind": "a",
-          "label": "Edit Draft"
+          "label": "Review and Submit"
+        },
+        {
+          "kind": "h2",
+          "label": "Note to the Bookkeeper"
+        },
+        {
+          "kind": "label",
+          "label": "Brief note or comment (optional)",
+          "for": "bookkeeper-note"
+        },
+        {
+          "kind": "button",
+          "label": "Save Note"
+        },
+        {
+          "kind": "button",
+          "label": "Delete Note",
+          "name": "delete_note"
         },
         {
           "kind": "h2",

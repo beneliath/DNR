@@ -1096,7 +1096,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
-        "reimbursement_request.php": "391feabcfc12c96f357a37ed37df7e309015fffab9020abafc0c6da767177a1f"
+        "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d"
       },
       "subjects": [
         "reimbursement",
@@ -1120,14 +1120,15 @@
         "editor"
       ],
       "steps": [
-        "Open Requests and use the Submit icon beside your active draft, or open the draft and select Review and Submit.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, Cc/Bcc recipients, amounts, and matching receipt filenames.",
+        "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
         "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
-        "reimbursement_submission_helpers.php": "a32f6b6fabb52e32621eeb10da8c81d4c428ee7892e83cb0f1e7060fd47c391e",
+        "reimbursement_submission_helpers.php": "29e8b0127bbbab25b6480c2dbd0420d5fa0b7f059425be508431f9a5878d37ab",
+        "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },
       "subjects": [
