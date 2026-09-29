@@ -67,7 +67,7 @@ return [
     "assets/css/pages/record_workspace.css" => "88cc6a73aeb3",
     "assets/css/pages/record_workspace.min.css" => "82a03ff3217e",
     "assets/css/pages/reimbursements.css" => "3d3ab402762a",
-    "assets/css/pages/reimbursements.min.css" => "71e5b8ee6f16",
+    "assets/css/pages/reimbursements.min.css" => "60807459bf5f",
     "assets/css/pages/short_links.css" => "a8d89fd1a3aa",
     "assets/css/pages/short_links.min.css" => "a5a867a7fdca",
     "assets/css/pages/speakers.css" => "41cd10d14e9d",
