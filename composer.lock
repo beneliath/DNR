@@ -185,16 +185,16 @@
         },
         {
             "name": "giggsey/libphonenumber-for-php",
-            "version": "9.0.39",
+            "version": "9.0.40",
             "source": {
                 "type": "git",
                 "url": "https://github.com/giggsey/libphonenumber-for-php.git",
-                "reference": "268d42f8f6401d94fd3c5c9dddb09290f81ed613"
+                "reference": "685a8c7cacb034dd06283234ae0284ce3e12c9dd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php/zipball/268d42f8f6401d94fd3c5c9dddb09290f81ed613",
-                "reference": "268d42f8f6401d94fd3c5c9dddb09290f81ed613",
+                "url": "https://api.github.com/repos/giggsey/libphonenumber-for-php/zipball/685a8c7cacb034dd06283234ae0284ce3e12c9dd",
+                "reference": "685a8c7cacb034dd06283234ae0284ce3e12c9dd",
                 "shasum": ""
             },
             "require": {
@@ -257,7 +257,7 @@
                 "issues": "https://github.com/giggsey/libphonenumber-for-php/issues",
                 "source": "https://github.com/giggsey/libphonenumber-for-php"
             },
-            "time": "2026-09-10T13:00:24+00:00"
+            "time": "2026-09-24T12:34:12+00:00"
         },
         {
             "name": "giggsey/locale",
@@ -2135,11 +2135,11 @@
     "packages-dev": [
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.14",
+            "version": "2.2.16",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/9c672e7a8e791dfc3d30e55f683e73fc0b63a3ac",
-                "reference": "9c672e7a8e791dfc3d30e55f683e73fc0b63a3ac",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
+                "reference": "46a6d9060e5a7763adfcc21ebcb8b504ebdbcb92",
                 "shasum": ""
             },
             "require": {
@@ -2195,7 +2195,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-09-12T21:39:33+00:00"
+            "time": "2026-09-25T09:31:51+00:00"
         }
     ],
     "aliases": [],
