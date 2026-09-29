@@ -142,7 +142,8 @@ try {
     expectReimbursement(reimbursementReturnUrl('reimbursements.php?q=Taxi&page=2')==='reimbursements.php?q=Taxi&page=2','Local filter context preserved');
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'queued','size'=>10]]),'Pending receipts cannot be exported');
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'rejected','size'=>10]]),'Rejected receipts cannot be exported');
-    expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'clean','size'=>16*1024*1024]]),'Oversized request rejected before rendering');
+    reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES]]);
+    expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES + 1]]),'Oversized request rejected before rendering');
     $pdf = new TCPDF(); $pdf->AddPage(); $pdf->Write(8, 'Synthetic reimbursement receipt');
     $bytes = $pdf->Output('', 'S');
     $key = storePersistentFile($conn, $bytes, 'fixture.pdf', 'application/pdf');
