@@ -668,7 +668,7 @@ function smtpMessageContent($plainTextBody, $htmlBody = null, array $attachments
                 $contentIds[$cid] = true;
                 $inline[] = $attachment;
             } else {
-                if (!in_array($type, ['application/zip', 'application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)) {
+                if (!in_array($type, ['application/zip', 'application/pdf', 'text/csv', 'image/jpeg', 'image/png', 'image/webp'], true)) {
                     throw new InvalidArgumentException('Invalid email attachment type.');
                 }
                 $total += strlen($data);

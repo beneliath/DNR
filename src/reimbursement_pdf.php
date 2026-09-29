@@ -20,7 +20,7 @@ function reimbursementPdfHeading(DnrEngagementPdf $pdf, string $label): void
     $pdf->SetTextColor(23, 32, 51);
 }
 
-/** Build the report and its image receipt pages. Original files travel in the ZIP package. */
+/** Build the report and its receipt pages. Original files travel in the ZIP package. */
 function renderReimbursementPdf(array $request, array $owner, array $items, array $receipts, array $setup): string
 {
     $pdf = new DnrEngagementPdf('P', 'mm', 'LETTER', true, 'UTF-8', false);
@@ -85,19 +85,41 @@ function renderReimbursementPdf(array $request, array $owner, array $items, arra
     }
     $html .= '<tr style="font-weight:bold;background-color:#e7f5ef;color:#137b59"><td colspan="3">Total Amount Due</td><td align="right">' . reimbursementMoney($total) . '</td></tr></tbody></table>';
     $pdf->writeHTML($html, true, false, true, false, '');
-    $images = 0;
+    $receiptNumber = 0;
     $receiptFiles = 0;
     foreach ($items as $item) {
         foreach ($receipts[(int) $item['expense_id']] ?? [] as $receipt) {
             $receiptFiles++;
-            if ($receipt['content_type'] === 'application/pdf') continue;
+            $receiptNumber++;
+            $path = persistentFilePath($receipt['storage_key']);
+            if ($receipt['content_type'] === 'application/pdf') {
+                try {
+                    $pageCount = $pdf->setSourceFile($path);
+                    if ($pageCount < 1) throw new \setasign\Fpdi\FpdiException('The PDF has no pages.');
+                    for ($pageNumber = 1; $pageNumber <= $pageCount; $pageNumber++) {
+                        $pdf->AddPage();
+                        reimbursementPdfHeading($pdf, 'Receipt ' . $receiptNumber . ' - Expense #' . $item['expense_id']
+                            . ' (PDF page ' . $pageNumber . ' of ' . $pageCount . ')');
+                        $pdf->MultiCell(0, 6, $item['expense_date'] . '  |  ' . $item['merchant'] . '  |  ' . reimbursementMoney((int) $item['amount_cents']) . '  |  ' . $item['coa_number'] . ' ' . $item['coa_description'], 0, 'L');
+                        $pdf->MultiCell(0, 5, 'Receipt File: ' . reimbursementReceiptPackageFilename($receipt), 0, 'L');
+                        $template = $pdf->importPage($pageNumber);
+                        $size = $pdf->getTemplateSize($template);
+                        $imageTop = max(44.0, $pdf->GetY() + 4.0);
+                        $scale = min(180 / $size['width'], max(1, $pdf->GetPageHeight() - 20 - $imageTop) / $size['height']);
+                        $width = $size['width'] * $scale;
+                        $pdf->useTemplate($template, ($pdf->GetPageWidth() - $width) / 2, $imageTop, $width);
+                    }
+                } catch (\setasign\Fpdi\FpdiException $error) {
+                    throw new InvalidArgumentException('Receipt ' . reimbursementReceiptPackageFilename($receipt)
+                        . ' cannot be included in the report. Upload an unprotected PDF copy.', 0, $error);
+                }
+                continue;
+            }
             $pdf->AddPage();
-            $images++;
-            reimbursementPdfHeading($pdf, 'Receipt ' . $images . ' - Expense #' . $item['expense_id']);
+            reimbursementPdfHeading($pdf, 'Receipt ' . $receiptNumber . ' - Expense #' . $item['expense_id']);
             $pdf->MultiCell(0, 6, $item['expense_date'] . '  |  ' . $item['merchant'] . '  |  ' . reimbursementMoney((int) $item['amount_cents']) . '  |  ' . $item['coa_number'] . ' ' . $item['coa_description'], 0, 'L');
             $pdf->MultiCell(0, 5, 'Receipt File: ' . reimbursementReceiptPackageFilename($receipt), 0, 'L');
             $imageTop = max(44.0, $pdf->GetY() + 4.0);
-            $path = persistentFilePath($receipt['storage_key']);
             $imagePath = $path;
             $temporary = null;
             try {

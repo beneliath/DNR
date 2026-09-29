@@ -122,6 +122,8 @@ function reimbursementEmailIndividualManifest(mixed $value): array
 {
     if (!is_array($value)) throw new DomainException('The reimbursement attachment list is invalid.');
     $manifest = []; $seen = [];
+    $expectedCsv = isset($value[0]['filename']) && is_string($value[0]['filename'])
+        ? preg_replace('/\.pdf\z/', '.csv', $value[0]['filename']) : '';
     foreach ($value as $index => $entry) {
         if (!is_array($entry)) throw new DomainException('The reimbursement attachment list is invalid.');
         $path = $entry['archive_path'] ?? null;
@@ -130,8 +132,10 @@ function reimbursementEmailIndividualManifest(mixed $value): array
         if (!is_string($path) || !is_string($filename) || !is_string($type)
             || !preg_match('/\A[A-Za-z0-9._-]{1,200}\z/D', $filename)
             || ($index === 0 && ($path !== $filename || $type !== 'application/pdf'))
-            || ($index !== 0 && ($path !== 'receipts/' . $filename
-                || !in_array($type, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)))
+            || ($index !== 0 && !($index === 1 && $path === $filename
+                && $filename === $expectedCsv && $type === 'text/csv')
+                && ($path !== 'receipts/' . $filename
+                    || !in_array($type, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)))
             || isset($seen[$path])) {
             throw new DomainException('The reimbursement attachment list is invalid.');
         }
@@ -234,6 +238,7 @@ function reimbursementEmailAttachments(mysqli $conn, array $queued, array $messa
 function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $manifest): array
 {
     $expectedReport = preg_replace('/\.zip\z/', '.pdf', $zipAttachment['filename']);
+    $expectedCsv = preg_replace('/\.zip\z/', '.csv', $zipAttachment['filename']);
     if ($expectedReport === $zipAttachment['filename']) {
         throw new DomainException('The reimbursement report attachment is invalid.');
     }
@@ -251,9 +256,15 @@ function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $ma
             // Older queued deliveries and recovery snapshots contain only the ZIP.
             // Its verified contents are the source for the separate attachments.
             $manifest = [['archive_path' => $expectedReport, 'filename' => $expectedReport, 'content_type' => 'application/pdf']];
+            $csvEntry = null;
+            $receiptEntries = [];
             for ($index = 0; $index < $archive->numFiles; $index++) {
                 $name = $archive->getNameIndex($index);
                 if ($name === $expectedReport) continue;
+                if ($name === $expectedCsv) {
+                    $csvEntry = ['archive_path' => $name, 'filename' => $name, 'content_type' => 'text/csv'];
+                    continue;
+                }
                 if (!is_string($name) || !preg_match('/\Areceipts\/([A-Za-z0-9._-]{1,200})\z/D', $name, $match)) {
                     throw new DomainException('The reimbursement package contains an unexpected file.');
                 }
@@ -261,8 +272,10 @@ function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $ma
                     'pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp',
                     default => throw new DomainException('The reimbursement package contains an unsupported receipt.'),
                 };
-                $manifest[] = ['archive_path' => $name, 'filename' => $match[1], 'content_type' => $type];
+                $receiptEntries[] = ['archive_path' => $name, 'filename' => $match[1], 'content_type' => $type];
             }
+            if ($csvEntry !== null) $manifest[] = $csvEntry;
+            array_push($manifest, ...$receiptEntries);
         }
         $manifest = reimbursementEmailIndividualManifest($manifest);
         if ($manifest[0]['filename'] !== $expectedReport) {

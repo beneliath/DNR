@@ -87,14 +87,16 @@ expectSmtpMessageFormat(
 $reimbursementMime = smtpMessageContent('Report attached.', '<p>Report attached.</p>', [
     ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => 'PK'],
     ['filename' => 'request.pdf', 'content_type' => 'application/pdf', 'data' => '%PDF-'],
+    ['filename' => 'request.csv', 'content_type' => 'text/csv', 'data' => "Date of Expense,Amount (USD)\r\n9/29/2026,$12.34\r\n"],
     ['filename' => 'receipt.jpg', 'content_type' => 'image/jpeg', 'data' => 'JPEG'],
 ]);
 expectSmtpMessageFormat(
     str_contains($reimbursementMime['headers'][0], 'multipart/mixed')
-        && substr_count($reimbursementMime['body'], 'Content-Disposition: attachment;') === 3
+        && substr_count($reimbursementMime['body'], 'Content-Disposition: attachment;') === 4
         && str_contains($reimbursementMime['body'], 'Content-Type: application/pdf; name="request.pdf"')
+        && str_contains($reimbursementMime['body'], 'Content-Type: text/csv; name="request.csv"')
         && str_contains($reimbursementMime['body'], 'Content-Type: image/jpeg; name="receipt.jpg"'),
-    'Reimbursement email should permit a ZIP, report PDF, and individual receipt attachments.'
+    'Reimbursement email should permit ZIP, report PDF, CSV, and individual receipt attachments.'
 );
 
 putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('M', 32)));
