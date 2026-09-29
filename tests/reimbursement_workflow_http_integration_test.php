@@ -104,7 +104,7 @@ try {
     expectReimbursement($editor($expensePath . '&mode=view', $input + ['csrf_token' => $csrf, 'action' => 'save'])['status'] === 405, 'Expense view must reject forged POSTs');
     $actionsList = $editor('reimbursements.php?start_date=2026-01-01&end_date=2026-12-31');
     expectReimbursement(str_contains($actionsList['body'], '>Actions</th>') && str_contains($actionsList['body'], 'form="expense-archive-' . $expenseId . '"') && !str_contains($actionsList['body'], 'form="expense-delete-' . $expenseId . '"'), 'Editor list must offer view/edit/archive but no delete');
-    expectReimbursement(substr_count($actionsList['body'], 'data-select-all-available') === 2, 'Available expense selection appears above and below the table');
+    expectReimbursement(preg_match_all('/<button[^>]*data-select-all-available[^>]*>/', $actionsList['body']) === 2, 'Available expense selection appears above and below the table');
     $availableResponse = $editor('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31&q=Workflow');
     $availableRows = json_decode($availableResponse['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'] ?? [];
     expectReimbursement($availableResponse['status'] === 200 && count($availableRows) === 1 && (int) $availableRows[0]['id'] === $expenseId, 'Bulk selection returns only matching available expenses owned by the current user');
