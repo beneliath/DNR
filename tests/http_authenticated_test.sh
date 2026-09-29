@@ -10,6 +10,12 @@ temporary_directory=$(mktemp -d)
 fixtures_created=0
 
 compose() {
+    if [ -n "${DNR_INTEGRATION_PROJECT:-}" ]; then
+        docker compose --env-file "$DNR_INTEGRATION_ENV_FILE" -p "$DNR_INTEGRATION_PROJECT" \
+            -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml \
+            -f "$DNR_INTEGRATION_OVERLAY" "$@"
+        return
+    fi
     if [ -n "${DNR_TEST_COMPOSE_PROJECT:-}" ]; then
         docker compose -p "$DNR_TEST_COMPOSE_PROJECT" \
             -f docker-compose.yaml -f docker-compose.dev.yaml "$@"
@@ -232,7 +238,7 @@ grep -q 'scope=unassigned&amp;per_page=20' "$temporary_directory/unassigned-defa
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/everyone-page-size.html" \
     "$base_url/tasks.php?scope=everyone&per_page=50"
 grep -q 'scope=everyone&amp;per_page=50' "$temporary_directory/everyone-page-size.html"
-mine_url=$(sed -n 's/.*href="\([^"]*\)">My work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
+mine_url=$(sed -n 's/.*href="\([^"]*\)">My Work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
 test -n "$mine_url"
 case "$mine_url" in *per_page=*) echo 'Ownership links must not carry another view size.' >&2; exit 1 ;; esac
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/mine-page-size.html" "$base_url/$mine_url"
@@ -569,7 +575,7 @@ admin_unlock_expires_at=$(admin_unlock_deadline)
 # deleting fixture data or consuming the administrator elevation.
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-elevated.html" \
     "$base_url/audit_log.php?retention_days=36500"
-grep -q 'Administrator access unlocked' "$temporary_directory/admin-audit-elevated.html"
+grep -q 'Administrator Access Unlocked' "$temporary_directory/admin-audit-elevated.html"
 admin_csrf=$(csrf_from "$temporary_directory/admin-audit-elevated.html")
 status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-audit-prune.headers" \
     -o /dev/null -w '%{http_code}' \

@@ -55,8 +55,9 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|verify]')
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|verify]')
+    authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
     scanning_only = sys.argv[1:] == ['scanning']
     recovery_only = sys.argv[1:] == ['recovery']
@@ -119,6 +120,11 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if authenticated_only:
+                address = subprocess.check_output(compose + ['port', 'ingress', '80'], cwd=ROOT, env=env, text=True).strip()
+                env['DNR_TEST_BASE_URL'] = 'http://' + address
+                subprocess.run(['bash', '-E', '-c', 'trap \'echo "HTTP assertion failed at line $LINENO" >&2\' ERR; source tests/http_authenticated_test.sh'], cwd=ROOT, env=env, check=True)
+                return
             if reimbursements_only:
                 subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
