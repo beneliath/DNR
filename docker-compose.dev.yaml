@@ -15,13 +15,6 @@ services:
       - ./src:/var/www/html:ro
       - ./tests:/opt/dnr/tests:ro
 
-  mail-dispatch:
-    volumes:
-      - ./src:/var/www/html:ro
-      - ./scripts/process_email_outbox.php:/opt/dnr/bin/process_email_outbox.php:ro
-    environment:
-      DNR_MAIL_DISPATCH_RELOAD_ON_CHANGE: "1"
-
   downloads:
     volumes:
       - ./src:/var/www/html:ro

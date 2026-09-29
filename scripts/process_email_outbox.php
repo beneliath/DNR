@@ -38,16 +38,15 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
     fwrite(STDERR, "Another account-email worker is already running.\n");
     exit(0);
 }
-$reloadOnSourceChange = getenv('DNR_MAIL_DISPATCH_RELOAD_ON_CHANGE') === '1';
 $sourceHashes = [];
-if ($reloadOnSourceChange) {
+if ($loop) {
     foreach (get_included_files() as $sourceFile) {
         $sourceHashes[$sourceFile] = hash_file('sha256', $sourceFile);
     }
 }
 
 do {
-    if ($reloadOnSourceChange) {
+    if ($loop) {
         foreach ($sourceHashes as $sourceFile => $originalHash) {
             if (!is_file($sourceFile) || hash_file('sha256', $sourceFile) !== $originalHash) {
                 fwrite(STDERR, "Mail worker source changed; restarting before claiming another delivery.\n");
