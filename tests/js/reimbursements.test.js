@@ -123,6 +123,31 @@ test('Select All Available leaves selection intact when more than 500 expenses m
   assert.equal(ui.error.hidden, true);
 });
 
+test('Update Dates blinks only while the request dates differ from their loaded values', () => {
+  const fields = [{value: '2026-07-01'}, {value: '2026-09-29'}];
+  const events = {};
+  let blinking = false;
+  const button = {classList: {toggle(name, active) {
+    assert.equal(name, 'reimbursement-apply-reminder');
+    blinking = active;
+  }}};
+  const form = {
+    querySelectorAll: () => fields,
+    querySelector: () => button,
+    addEventListener(name, handler) { events[name] = handler; }
+  };
+  vm.runInNewContext(source, {document: {querySelectorAll(selector) {
+    return selector === '[data-reimbursement-filters], [data-reimbursement-date-range]' ? [form] : [];
+  }}});
+  fields[0].value = '2026-07-02'; events.input();
+  assert.equal(blinking, true);
+  fields[1].value = '2026-09-30'; events.change();
+  fields[0].value = '2026-07-01'; events.input();
+  assert.equal(blinking, true);
+  fields[1].value = '2026-09-29'; events.change();
+  assert.equal(blinking, false);
+});
+
 function receiptUpload(clipboard = null) {
   const node = () => ({events: {}, textContent: '', classList: {toggle() {}, add() {}, remove() {}}, addEventListener(name, fn) {this.events[name] = fn;}});
   const input = Object.assign(node(), {files: [{name:'existing.pdf', type:'application/pdf', size:12}]});

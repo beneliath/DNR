@@ -116,9 +116,9 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
   update();
 });
 
-document.querySelectorAll('[data-reimbursement-filters]').forEach(function (form) {
+document.querySelectorAll('[data-reimbursement-filters], [data-reimbursement-date-range]').forEach(function (form) {
   const fields = Array.from(form.querySelectorAll('input, select'));
-  const apply = form.querySelector('[data-reimbursement-apply]');
+  const apply = form.querySelector('[data-reimbursement-apply], [data-reimbursement-update-dates]');
   if (!apply) return;
   const appliedValues = fields.map(function (field) { return field.value; });
   function updateApplyReminder() {
