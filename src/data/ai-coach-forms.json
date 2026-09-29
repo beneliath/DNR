@@ -320,7 +320,7 @@
       "entry": "Reimbursements → + Add Expense",
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
-        "reimbursement_expense.php": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539",
+        "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
         "reimbursement_helpers.php": "31e26f8ecc4f6efb787a7138b5dd939d42e491ce5b1b1a102853361a466dba0f"
       },
       "controls": {
