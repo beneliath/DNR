@@ -277,13 +277,22 @@ try {
     $queuedMessage = decryptQueuedReimbursementEmail($deliveries[0]['payload_ciphertext']);
     expectReimbursement(str_contains($queuedMessage['body'], $note) && str_contains($queuedMessage['html_body'], '&lt;script&gt;'), 'Queued email preserves the reviewed bookkeeper note safely');
     expectReimbursement(str_contains($queuedMessage['html_body'], $expectedReceiptFilename) && str_contains($queuedMessage['body'], $expectedReceiptFilename), 'HTML and plain-text email identify the exact receipt filename');
-    $attachment = reimbursementEmailAttachment($conn, $deliveries[0], $queuedMessage);
+    $attachments = reimbursementEmailAttachments($conn, $deliveries[0], $queuedMessage);
+    expectReimbursement(count($attachments) === 3 && $attachments[0]['content_type'] === 'application/zip'
+        && $attachments[1]['content_type'] === 'application/pdf' && str_starts_with($attachments[1]['data'], '%PDF-')
+        && $attachments[2]['filename'] === $expectedReceiptFilename && $attachments[2]['data'] === $bytes,
+        'Queued email has the ZIP, original report PDF, and individual receipt');
+    $legacyMessage = $queuedMessage; unset($legacyMessage['individual_attachments']);
+    expectReimbursement(count(reimbursementEmailAttachments($conn, $deliveries[0], $legacyMessage)) === 1, 'Older queued messages retain ZIP-only attachments');
+    $attachment = $attachments[0];
     $tmp = tempnam(sys_get_temp_dir(), 'queued-zip-'); file_put_contents($tmp, $attachment['data']);
     $zip = new ZipArchive(); $zip->open($tmp);
     expectReimbursement($zip->numFiles === 2 && $zip->getFromIndex(1) === $bytes, 'Immutable queued ZIP includes intact receipt');
+    expectReimbursement($zip->getFromName($attachments[1]['filename']) === $attachments[1]['data'], 'Separate report is byte-identical to the report in the ZIP');
     $zip->close(); unlink($tmp);
-    $mime = smtpMessageContent($queuedMessage['body'], $queuedMessage['html_body'], [$attachment, ...$queuedMessage['inline_images']]);
-    expectReimbursement(str_contains($mime['headers'][0], 'multipart/mixed') && str_contains($mime['body'], 'Content-Disposition: attachment;'), 'SMTP message contains ZIP attachment');
+    $mime = smtpMessageContent($queuedMessage['body'], $queuedMessage['html_body'], [...$attachments, ...$queuedMessage['inline_images']]);
+    expectReimbursement(str_contains($mime['headers'][0], 'multipart/mixed')
+        && substr_count($mime['body'], 'Content-Disposition: attachment;') === 3, 'SMTP message contains all three file attachments');
     expectReimbursement($queuedMessage['inline_images'] === [] && str_contains($queuedMessage['html_body'], htmlspecialchars(emailBrandLogoUrl(), ENT_QUOTES, 'UTF-8')) && str_contains($queuedMessage['html_body'], 'display:block;width:227px;'), 'Submission uses the hosted digest logo at its original display size');
     require_once $source . '/notification_helpers.php';
     $digestImage = emailBrandInlineImage();

@@ -1121,13 +1121,15 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches the ZIP, a separate report PDF, and each receipt separately.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
-        "reimbursement_submission_helpers.php": "29e8b0127bbbab25b6480c2dbd0420d5fa0b7f059425be508431f9a5878d37ab",
+        "reimbursement_submit.php": "cb84136e7620e354709c7436ede99b2055412c3d38a665e098a34095fb3e9e47",
+        "reimbursement_submission_helpers.php": "0fdf2d1dc9becd163e6d001404740ac5fdfddb25b2d8860819bd57f87ca2a3a1",
+        "reimbursement_email_helpers.php": "7bef2598b9ae07aa6b8164ffc719d06a1676bb607f5e68c0170443bb1cb5c89b",
+        "email_helpers.php": "dcb59747c1fe7e9b40762d7383e702c92dc38419945f1db7ce01e2e028d39217",
         "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },

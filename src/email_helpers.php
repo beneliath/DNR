@@ -668,7 +668,9 @@ function smtpMessageContent($plainTextBody, $htmlBody = null, array $attachments
                 $contentIds[$cid] = true;
                 $inline[] = $attachment;
             } else {
-                if ($type !== 'application/zip') throw new InvalidArgumentException('Invalid email attachment type.');
+                if (!in_array($type, ['application/zip', 'application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)) {
+                    throw new InvalidArgumentException('Invalid email attachment type.');
+                }
                 $total += strlen($data);
                 if ($total > 15 * 1024 * 1024) throw new InvalidArgumentException('Email attachments exceed 15 MB.');
                 $files[] = $attachment;

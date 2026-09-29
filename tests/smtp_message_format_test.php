@@ -84,6 +84,19 @@ expectSmtpMessageFormat(
     'HTML messages should use multipart/alternative with intact plain-text and HTML parts.'
 );
 
+$reimbursementMime = smtpMessageContent('Report attached.', '<p>Report attached.</p>', [
+    ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => 'PK'],
+    ['filename' => 'request.pdf', 'content_type' => 'application/pdf', 'data' => '%PDF-'],
+    ['filename' => 'receipt.jpg', 'content_type' => 'image/jpeg', 'data' => 'JPEG'],
+]);
+expectSmtpMessageFormat(
+    str_contains($reimbursementMime['headers'][0], 'multipart/mixed')
+        && substr_count($reimbursementMime['body'], 'Content-Disposition: attachment;') === 3
+        && str_contains($reimbursementMime['body'], 'Content-Type: application/pdf; name="request.pdf"')
+        && str_contains($reimbursementMime['body'], 'Content-Type: image/jpeg; name="receipt.jpg"'),
+    'Reimbursement email should permit a ZIP, report PDF, and individual receipt attachments.'
+);
+
 putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('M', 32)));
 $legacyCiphertext = \Dnr\Security\ApplicationKey::seal(json_encode([
     'recipient' => 'legacy@example.test',

@@ -111,10 +111,34 @@ function decryptQueuedReimbursementEmail(string $ciphertext): array
         'body' => (string) ($message['body'] ?? ''),
         'html_body' => (string) ($message['html_body'] ?? ''),
         'filename' => (string) ($message['filename'] ?? ''),
+        'individual_attachments' => reimbursementEmailIndividualManifest($message['individual_attachments'] ?? []),
         'inline_images' => emailInlineImages($message['inline_images'] ?? []),
         'reply_to' => reimbursementEmailNormalizeOptionalAddress($message['reply_to'] ?? ''),
         'visible_recipients' => smtpNormalizeVisibleRecipients($message['visible_recipients'] ?? null),
     ];
+}
+
+function reimbursementEmailIndividualManifest(mixed $value): array
+{
+    if (!is_array($value)) throw new DomainException('The reimbursement attachment list is invalid.');
+    $manifest = []; $seen = [];
+    foreach ($value as $index => $entry) {
+        if (!is_array($entry)) throw new DomainException('The reimbursement attachment list is invalid.');
+        $path = $entry['archive_path'] ?? null;
+        $filename = $entry['filename'] ?? null;
+        $type = $entry['content_type'] ?? null;
+        if (!is_string($path) || !is_string($filename) || !is_string($type)
+            || !preg_match('/\A[A-Za-z0-9._-]{1,200}\z/D', $filename)
+            || ($index === 0 && ($path !== $filename || $type !== 'application/pdf'))
+            || ($index !== 0 && ($path !== 'receipts/' . $filename
+                || !in_array($type, ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'], true)))
+            || isset($seen[$path])) {
+            throw new DomainException('The reimbursement attachment list is invalid.');
+        }
+        $seen[$path] = true;
+        $manifest[] = ['archive_path' => $path, 'filename' => $filename, 'content_type' => $type];
+    }
+    return $manifest;
 }
 
 function reimbursementEmailNormalizeOptionalAddress(mixed $address): string
@@ -201,3 +225,50 @@ function reimbursementEmailAttachment(mysqli $conn, array $queued, array $messag
     return ['filename' => $message['filename'], 'content_type' => 'application/zip', 'data' => $data];
 }
 
+function reimbursementEmailAttachments(mysqli $conn, array $queued, array $message): array
+{
+    $zipAttachment = reimbursementEmailAttachment($conn, $queued, $message);
+    return reimbursementAttachmentsFromVerifiedZip($zipAttachment, $message['individual_attachments'] ?? []);
+}
+
+function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $manifest): array
+{
+    if ($manifest === []) return [$zipAttachment]; // Queued before individual attachments were introduced.
+    $manifest = reimbursementEmailIndividualManifest($manifest);
+    $expectedReport = preg_replace('/\.zip\z/', '.pdf', $zipAttachment['filename']);
+    if ($expectedReport === $zipAttachment['filename'] || $manifest[0]['filename'] !== $expectedReport) {
+        throw new DomainException('The reimbursement report attachment is invalid.');
+    }
+    $path = tempnam(sys_get_temp_dir(), 'dnr-email-zip-');
+    if ($path === false) throw new RuntimeException('Unable to inspect the reimbursement package.');
+    $archive = new ZipArchive();
+    $opened = false;
+    try {
+        if (file_put_contents($path, $zipAttachment['data']) !== strlen($zipAttachment['data'])) {
+            throw new DomainException('The reimbursement package could not be staged.');
+        }
+        if ($archive->open($path) !== true) throw new DomainException('The reimbursement package could not be opened.');
+        $opened = true;
+        if ($archive->numFiles !== count($manifest)) throw new DomainException('The reimbursement package contents changed.');
+        $total = strlen($zipAttachment['data']);
+        foreach ($manifest as $entry) {
+            $stat = $archive->statName($entry['archive_path']);
+            if (!$stat || !isset($stat['size'])) throw new DomainException('A reimbursement attachment is missing.');
+            $total += (int) $stat['size'];
+            if ($total > 15 * 1024 * 1024) throw new DomainException('Email attachments exceed 15 MB.');
+        }
+        $attachments = [$zipAttachment];
+        foreach ($manifest as $entry) {
+            $data = $archive->getFromName($entry['archive_path']);
+            $stat = $archive->statName($entry['archive_path']);
+            if (!is_string($data) || strlen($data) !== (int) $stat['size']) {
+                throw new DomainException('A reimbursement attachment could not be read.');
+            }
+            $attachments[] = ['filename' => $entry['filename'], 'content_type' => $entry['content_type'], 'data' => $data];
+        }
+        return $attachments;
+    } finally {
+        if ($opened) $archive->close();
+        unlink($path);
+    }
+}

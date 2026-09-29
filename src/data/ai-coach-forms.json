@@ -440,8 +440,8 @@
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
       "condition": "Review recipients and package before confirming. Submission queues email and locks content.",
       "source_files": {
-        "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
-        "reimbursement_submission_helpers.php": "29e8b0127bbbab25b6480c2dbd0420d5fa0b7f059425be508431f9a5878d37ab",
+        "reimbursement_submit.php": "cb84136e7620e354709c7436ede99b2055412c3d38a665e098a34095fb3e9e47",
+        "reimbursement_submission_helpers.php": "0fdf2d1dc9becd163e6d001404740ac5fdfddb25b2d8860819bd57f87ca2a3a1",
         "reimbursement_request.php": "ab5d959fa96359f3cab07dbe97fb88b8af8fb08e957c680c09054cfca072298d"
       },
       "controls": {
