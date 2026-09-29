@@ -283,7 +283,9 @@ try {
         && $attachments[2]['filename'] === $expectedReceiptFilename && $attachments[2]['data'] === $bytes,
         'Queued email has the ZIP, original report PDF, and individual receipt');
     $legacyMessage = $queuedMessage; unset($legacyMessage['individual_attachments']);
-    expectReimbursement(count(reimbursementEmailAttachments($conn, $deliveries[0], $legacyMessage)) === 1, 'Older queued messages retain ZIP-only attachments');
+    $legacyAttachments = reimbursementEmailAttachments($conn, $deliveries[0], $legacyMessage);
+    expectReimbursement(count($legacyAttachments) === 3 && $legacyAttachments[1]['data'] === $attachments[1]['data']
+        && $legacyAttachments[2]['data'] === $bytes, 'Older queued messages attach the report and receipts from the original ZIP');
     $attachment = $attachments[0];
     $tmp = tempnam(sys_get_temp_dir(), 'queued-zip-'); file_put_contents($tmp, $attachment['data']);
     $zip = new ZipArchive(); $zip->open($tmp);

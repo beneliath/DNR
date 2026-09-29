@@ -233,10 +233,8 @@ function reimbursementEmailAttachments(mysqli $conn, array $queued, array $messa
 
 function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $manifest): array
 {
-    if ($manifest === []) return [$zipAttachment]; // Queued before individual attachments were introduced.
-    $manifest = reimbursementEmailIndividualManifest($manifest);
     $expectedReport = preg_replace('/\.zip\z/', '.pdf', $zipAttachment['filename']);
-    if ($expectedReport === $zipAttachment['filename'] || $manifest[0]['filename'] !== $expectedReport) {
+    if ($expectedReport === $zipAttachment['filename']) {
         throw new DomainException('The reimbursement report attachment is invalid.');
     }
     $path = tempnam(sys_get_temp_dir(), 'dnr-email-zip-');
@@ -249,6 +247,27 @@ function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $ma
         }
         if ($archive->open($path) !== true) throw new DomainException('The reimbursement package could not be opened.');
         $opened = true;
+        if ($manifest === []) {
+            // Older queued deliveries and recovery snapshots contain only the ZIP.
+            // Its verified contents are the source for the separate attachments.
+            $manifest = [['archive_path' => $expectedReport, 'filename' => $expectedReport, 'content_type' => 'application/pdf']];
+            for ($index = 0; $index < $archive->numFiles; $index++) {
+                $name = $archive->getNameIndex($index);
+                if ($name === $expectedReport) continue;
+                if (!is_string($name) || !preg_match('/\Areceipts\/([A-Za-z0-9._-]{1,200})\z/D', $name, $match)) {
+                    throw new DomainException('The reimbursement package contains an unexpected file.');
+                }
+                $type = match (strtolower(pathinfo($match[1], PATHINFO_EXTENSION))) {
+                    'pdf' => 'application/pdf', 'jpg' => 'image/jpeg', 'png' => 'image/png', 'webp' => 'image/webp',
+                    default => throw new DomainException('The reimbursement package contains an unsupported receipt.'),
+                };
+                $manifest[] = ['archive_path' => $name, 'filename' => $match[1], 'content_type' => $type];
+            }
+        }
+        $manifest = reimbursementEmailIndividualManifest($manifest);
+        if ($manifest[0]['filename'] !== $expectedReport) {
+            throw new DomainException('The reimbursement report attachment is invalid.');
+        }
         if ($archive->numFiles !== count($manifest)) throw new DomainException('The reimbursement package contents changed.');
         $total = strlen($zipAttachment['data']);
         foreach ($manifest as $entry) {
