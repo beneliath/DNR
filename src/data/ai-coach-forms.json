@@ -357,7 +357,7 @@
             "\\b(limit|size|large|mb|many|maximum)\\b"
           ],
           "source": "manual-topic-reimbursements-add-an-expense-and-receipts",
-          "message": "An expense allows up to 20 receipts totaling 15 MB. Supported formats are JPEG, PNG, WebP, and PDF. A request allows up to 100 receipts and 15 MB of originals, and its final ZIP must also fit 15 MB. Split a large request or reduce source image sizes.",
+          "message": "An expense allows up to 20 receipts totaling 15 MB. Supported formats are JPEG, PNG, WebP, and PDF. A request allows up to 100 receipts and 25 MB of originals. Only its ZIP is emailed; the full email must fit within 25 MB including Base64 encoding, headers, and body, so the ZIP is capped at 18 MB. The submission review meter reaches 100% at 18 MB and also shows the total encoded email size. Split a large request or reduce source image sizes.",
           "question": ""
         },
         {
@@ -440,8 +440,8 @@
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
-        "reimbursement_submit.php": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
-        "reimbursement_submission_helpers.php": "420f580d698e676a44619f7defdd394e88fe53dbf30f670a32784debc00fb951",
+        "reimbursement_submit.php": "44e1cd0cbe2569a6acaabd4427763866debbba511d88dab774f7d47c3689be9f",
+        "reimbursement_submission_helpers.php": "50d53142c17721e89851940925a1b7bccbc6b08673724dc0de7229d7e626c98e",
         "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e"
       },
       "controls": {

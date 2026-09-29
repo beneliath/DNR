@@ -3172,7 +3172,7 @@
       ]
     },
     "reimbursement_submit.php": {
-      "sha256": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
+      "sha256": "44e1cd0cbe2569a6acaabd4427763866debbba511d88dab774f7d47c3689be9f",
       "controls": [
         {
           "kind": "a",
@@ -3217,6 +3217,11 @@
         {
           "kind": "h2",
           "label": "Submission Readiness"
+        },
+        {
+          "kind": "h3",
+          "label": "Email Attachment Size",
+          "id": "email-size-label"
         },
         {
           "kind": "h2",

@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 const REIMBURSEMENT_MAX_RECEIPTS = 20;
-const REIMBURSEMENT_MAX_RECEIPT_BYTES = 15 * 1024 * 1024;
+require_once __DIR__ . '/reimbursement_limits.php';
+const REIMBURSEMENT_MAX_RECEIPT_BYTES = 25_000_000;
 const REIMBURSEMENT_MAX_EXPENSE_BYTES = 15 * 1024 * 1024;
 const REIMBURSEMENT_SNAPSHOT_DAYS = 365;
 
@@ -36,7 +37,7 @@ function reimbursementReceiptsReady(array $receipts): void
         }
     }
     if (count($receipts)>100 || array_sum(array_column($receipts,'size'))>REIMBURSEMENT_MAX_RECEIPT_BYTES) {
-        throw new InvalidArgumentException('This request exceeds 100 receipts or 15 MB of receipt files. Remove expenses from this draft and submit smaller requests.');
+        throw new InvalidArgumentException('This request exceeds 100 receipts or 25 MB of receipt files. Remove expenses from this draft and submit smaller requests.');
     }
 }
 

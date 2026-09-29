@@ -2,6 +2,7 @@
 declare(strict_types=1);
 require_once __DIR__ . '/email_helpers.php';
 require_once __DIR__ . '/persistent_file_helpers.php';
+require_once __DIR__ . '/reimbursement_limits.php';
 
 function maintainQueuedReimbursementEmail(mysqli $conn, int $leaseSeconds = 600): void
 {
@@ -212,7 +213,7 @@ function failQueuedReimbursementEmail(
 function reimbursementEmailAttachment(mysqli $conn, array $queued, array $message): array
 {
     $metadata = persistentFileMetadata($conn, $queued['attachment_key']);
-    if ((int) $metadata['size'] > 15 * 1024 * 1024) throw new DomainException('The reimbursement attachment exceeds 15 MB.');
+    if ((int) $metadata['size'] > REIMBURSEMENT_MAX_PACKAGE_BYTES) throw new DomainException('The reimbursement attachment exceeds 18 MB.');
     // A long-lived worker must release its shared storage lock after reading.
     $lockPath = persistentFileRoot() . '/.lifecycle.lock';
     if (is_link($lockPath)) throw new RuntimeException('Invalid file lifecycle lock.');
@@ -220,7 +221,7 @@ function reimbursementEmailAttachment(mysqli $conn, array $queued, array $messag
     if (!$guard) throw new RuntimeException('Persistent storage is unavailable.');
     try {
         if (!flock($guard, LOCK_SH)) throw new RuntimeException('Persistent storage is busy.');
-        $data = file_get_contents(persistentFilePath($queued['attachment_key']), false, null, 0, 15 * 1024 * 1024 + 1);
+        $data = file_get_contents(persistentFilePath($queued['attachment_key']), false, null, 0, REIMBURSEMENT_MAX_PACKAGE_BYTES + 1);
         if (!is_string($data) || strlen($data) !== (int) $metadata['size']
             || !hash_equals($metadata['checksum'], hash('sha256', $data))) {
             throw new DomainException('The reimbursement attachment failed its integrity check.');
@@ -232,11 +233,23 @@ function reimbursementEmailAttachment(mysqli $conn, array $queued, array $messag
 function reimbursementEmailAttachments(mysqli $conn, array $queued, array $message): array
 {
     $zipAttachment = reimbursementEmailAttachment($conn, $queued, $message);
-    return reimbursementAttachmentsFromVerifiedZip($zipAttachment, $message['individual_attachments'] ?? []);
+    $attachments = reimbursementAttachmentsFromVerifiedZip($zipAttachment, $message['individual_attachments'] ?? []);
+    try {
+        smtpMessageData(
+            (string) (getenv('DNR_MAIL_FROM') ?: $message['reply_to']), deploymentConfig()->string('brand.mail_name'),
+            $message['recipient'], $message['subject'], $message['body'], $message['reply_to'],
+            $message['html_body'], $message['visible_recipients'], $queued['smtp_message_id'] ?? null,
+            [...$attachments, ...($message['inline_images'] ?? [])]
+        );
+    } catch (InvalidArgumentException $e) { throw new DomainException($e->getMessage(), 0, $e); }
+    return $attachments;
 }
 
 function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $manifest): array
 {
+    if (strlen($zipAttachment['data']) > REIMBURSEMENT_MAX_PACKAGE_BYTES) {
+        throw new DomainException('The reimbursement ZIP attachment exceeds 18 MB.');
+    }
     $expectedReport = preg_replace('/\.zip\z/', '.pdf', $zipAttachment['filename']);
     $expectedCsv = preg_replace('/\.zip\z/', '.csv', $zipAttachment['filename']);
     if ($expectedReport === $zipAttachment['filename']) {
@@ -254,7 +267,7 @@ function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $ma
         $opened = true;
         if ($manifest === []) {
             // Older queued deliveries and recovery snapshots contain only the ZIP.
-            // Its verified contents are the source for the separate attachments.
+            // Validate the saved package inventory; email only the ZIP.
             $manifest = [['archive_path' => $expectedReport, 'filename' => $expectedReport, 'content_type' => 'application/pdf']];
             $csvEntry = null;
             $receiptEntries = [];
@@ -282,23 +295,11 @@ function reimbursementAttachmentsFromVerifiedZip(array $zipAttachment, array $ma
             throw new DomainException('The reimbursement report attachment is invalid.');
         }
         if ($archive->numFiles !== count($manifest)) throw new DomainException('The reimbursement package contents changed.');
-        $total = strlen($zipAttachment['data']);
         foreach ($manifest as $entry) {
             $stat = $archive->statName($entry['archive_path']);
             if (!$stat || !isset($stat['size'])) throw new DomainException('A reimbursement attachment is missing.');
-            $total += (int) $stat['size'];
-            if ($total > 15 * 1024 * 1024) throw new DomainException('Email attachments exceed 15 MB.');
         }
-        $attachments = [$zipAttachment];
-        foreach ($manifest as $entry) {
-            $data = $archive->getFromName($entry['archive_path']);
-            $stat = $archive->statName($entry['archive_path']);
-            if (!is_string($data) || strlen($data) !== (int) $stat['size']) {
-                throw new DomainException('A reimbursement attachment could not be read.');
-            }
-            $attachments[] = ['filename' => $entry['filename'], 'content_type' => $entry['content_type'], 'data' => $data];
-        }
-        return $attachments;
+        return [$zipAttachment];
     } finally {
         if ($opened) $archive->close();
         unlink($path);
