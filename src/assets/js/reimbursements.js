@@ -19,8 +19,13 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
   const buttons = Array.from(document.querySelectorAll('[data-create-reimbursement]'));
   const summaries = Array.from(form.querySelectorAll('[data-selection-count]'));
   const clearButtons = Array.from(form.querySelectorAll('[data-clear-selection]'));
+  const selectAllButtons = Array.from(form.querySelectorAll('[data-select-all-available]'));
+  const selectionErrors = Array.from(form.querySelectorAll('[data-selection-error]'));
   let selected = new Set();
   let metadata = {};
+  function showSelectionError(message) {
+    selectionErrors.forEach(function (error) { error.textContent = message; error.hidden = !message; });
+  }
   function restore() {
     try {
       const saved = JSON.parse(sessionStorage.getItem(key));
@@ -68,12 +73,38 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
     box.addEventListener('change', function () {
       if (box.checked && selected.size >= 500) { box.checked = false; summaries.forEach(function (summary) { summary.textContent = 'Select at most 500 expenses per request.'; }); return; }
       if (box.checked) selected.add(box.value); else selected.delete(box.value);
+      showSelectionError('');
       update();
+    });
+  });
+  selectAllButtons.forEach(function (button) {
+    button.addEventListener('click', async function () {
+      selectAllButtons.forEach(function (item) { item.disabled = true; });
+      showSelectionError('');
+      try {
+        const response = await fetch(form.dataset.availableUrl, {credentials: 'same-origin'});
+        if (!response.ok) throw new Error('Unable to load available expenses.');
+        const result = await response.json();
+        if (result.too_many) { showSelectionError('More than 500 available expenses match these filters. Narrow the list before selecting all.'); return; }
+        if (!Array.isArray(result.expenses)) throw new Error('Invalid available expenses response.');
+        const available = result.expenses.map(function (expense) { return String(expense.id); });
+        if (new Set([...selected, ...available]).size > 500) {
+          showSelectionError('The combined selection exceeds 500 expenses. Clear Selection or narrow the list before selecting all.'); return;
+        }
+        result.expenses.forEach(function (expense) {
+          const id = String(expense.id);
+          selected.add(id);
+          metadata[id] = {amount: Number(expense.amount_cents), missing: Number(expense.receipt_count) === 0};
+        });
+        boxes.forEach(function (box) { box.checked = selected.has(box.value); });
+        update();
+      } catch (_) { showSelectionError('Unable to select available expenses. Try again.'); }
+      finally { selectAllButtons.forEach(function (item) { item.disabled = false; }); }
     });
   });
   clearButtons.forEach(function (clear) {
     clear.addEventListener('click', function () {
-      selected.clear(); boxes.forEach(function (box) { box.checked = false; }); update();
+      selected.clear(); boxes.forEach(function (box) { box.checked = false; }); showSelectionError(''); update();
     });
   });
   window.addEventListener('pageshow', function (event) {

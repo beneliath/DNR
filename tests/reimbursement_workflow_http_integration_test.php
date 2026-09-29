@@ -104,6 +104,11 @@ try {
     expectReimbursement($editor($expensePath . '&mode=view', $input + ['csrf_token' => $csrf, 'action' => 'save'])['status'] === 405, 'Expense view must reject forged POSTs');
     $actionsList = $editor('reimbursements.php?start_date=2026-01-01&end_date=2026-12-31');
     expectReimbursement(str_contains($actionsList['body'], '>Actions</th>') && str_contains($actionsList['body'], 'form="expense-archive-' . $expenseId . '"') && !str_contains($actionsList['body'], 'form="expense-delete-' . $expenseId . '"'), 'Editor list must offer view/edit/archive but no delete');
+    expectReimbursement(substr_count($actionsList['body'], 'data-select-all-available') === 2, 'Available expense selection appears above and below the table');
+    $availableResponse = $editor('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31&q=Workflow');
+    $availableRows = json_decode($availableResponse['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'] ?? [];
+    expectReimbursement($availableResponse['status'] === 200 && count($availableRows) === 1 && (int) $availableRows[0]['id'] === $expenseId, 'Bulk selection returns only matching available expenses owned by the current user');
+    expectReimbursement($reviewer('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31')['status'] === 403, 'Read-only users cannot request bulk expense selection');
     $editorDelete = $editor('reimbursements.php', ['csrf_token' => $csrf, 'action' => 'delete_expense', 'expense_id' => $expenseId]);
     expectReimbursement($editorDelete['status'] === 403, 'Editor must not delete expenses');
     $archivedExpense = $editor('reimbursements.php', ['csrf_token' => $csrf, 'action' => 'archive_expense', 'expense_id' => $expenseId]);
@@ -168,6 +173,9 @@ try {
     preg_match('/Location: reimbursement_request.php\?id=(\d+)/i', $created['headers'], $match);
     expectReimbursement($created['status'] === 302 && isset($match[1]), 'Draft creation redirects to edit');
     $requestId = (int) $match[1]; $requests[] = $requestId;
+    $claimedResponse = $editor('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31&q=Workflow');
+    $claimedRows = json_decode($claimedResponse['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'];
+    expectReimbursement(!in_array($expenseId, array_map(static fn($row) => (int) $row['id'], $claimedRows), true), 'Expenses already in a request are excluded from bulk selection');
     expectReimbursementRejected(fn() => changeReimbursementExpenseArchive($conn, $expenseId, $users['editor'], true), 'Expenses in drafts cannot be archived');
     expectReimbursementRejected(fn() => deleteReimbursementExpense($conn, $expenseId), 'Expenses in requests cannot be deleted');
     $path = 'reimbursement_request.php?id=' . $requestId;
