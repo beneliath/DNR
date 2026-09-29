@@ -35,7 +35,7 @@ foreach ([$new_engagement_source, $edit_engagement_source] as $engagement_source
     );
 }
 
-foreach (['Topic/Title', 'Date', 'Time', 'Duration (minutes)'] as $presentation_label) {
+foreach (['Topic/Title', 'Date', 'Time', 'Duration (Minutes)'] as $presentation_label) {
     expectRequiredLabelStyle(
         !str_contains(
             $presentation_form_source,

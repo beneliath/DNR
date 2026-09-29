@@ -51,7 +51,7 @@ function fixture(kind, request = async () => ({ ok: true, json: async () => ({ u
     const button = node();
     button.tag = 'button';
     button.parent = form;
-    button.attrs = { class: 'delete-button', 'aria-label': 'Delete task' };
+    button.attrs = { class: 'delete-button', 'aria-label': 'Delete Task' };
     if (kind === 'delete') {
         form.attrs['data-delete-confirmation'] = '';
         form.dataset.deleteConfirmation = 'Permanently delete this record?';
@@ -189,11 +189,11 @@ test('proactive Admin Unlock preserves the current page, query and tab', async (
 
 test('bulk deletion shows the selected count in an explicit confirmation and cancel never submits', async () => {
     const f = fixture('bulk', async () => ({ ok: true, json: async () => ({ unlocked: true, csrf_token: 'fresh-token' }) }));
-    f.button.dataset.confirmTitle = 'Are you sure?';
+    f.button.dataset.confirmTitle = 'Are You Sure?';
     f.button.dataset.confirm = 'Permanently delete 3 selected items? This cannot be undone.';
     await f.submit();
     assert.equal(f.nodes['action-confirmation'].open, true);
-    assert.equal(f.nodes['action-confirmation-title'].textContent, 'Are you sure?');
+    assert.equal(f.nodes['action-confirmation-title'].textContent, 'Are You Sure?');
     assert.match(f.nodes['action-confirmation-message'].textContent, /3 selected items/);
     assert.equal(f.submissions(), 0);
     await f.nodes['cancel-action-confirmation'].fire('click');

@@ -23,6 +23,7 @@ x-app-environment: &app-environment
   DNR_REQUIRE_DATABASE_ENCRYPTION: "1"
   DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
   DNR_INBOUND_ROUTING_KEY_FILE: /run/secrets/dnr_inbound_routing_key
+  DNR_EMAIL_LOGO_URL: ${DNR_EMAIL_LOGO_URL:-}
   DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
   DNR_TRUSTED_PROXY_IPS: ${DNR_TRUSTED_PROXY_IPS:-192.168.65.1},${DNR_INGRESS_PROXY_IP:-172.30.255.254}
   DNR_TRUSTED_CLOUDFLARE_PROXY_IPS: ${DNR_TRUSTED_CLOUDFLARE_PROXY_IPS:-172.18.0.0/24}
@@ -76,6 +77,37 @@ services:
       retries: 6
       start_period: 180s
     labels: *watchtower-disabled-labels
+
+  receipt-previews:
+    image: ${DNR_APP_IMAGE:-dnr-app:local}
+    profiles: [reimbursements]
+    # Process execution is enabled only in this isolated CLI worker, never Apache.
+    entrypoint: ["php", "-d", "disable_functions=exec,passthru,shell_exec,system,popen", "/opt/dnr/bin/process_receipt_previews.php", "--loop"]
+    user: www-data
+    restart: unless-stopped
+    read_only: true
+    mem_limit: 384m
+    cpus: 0.5
+    pids_limit: 16
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=64m,mode=1777"]
+    environment:
+      <<: *app-environment
+    secrets: [dnr_mysql_app_password]
+    volumes:
+      - uploaded_files:/var/lib/dnr/files
+      - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
+    networks: [backend]
+    depends_on:
+      migrator:
+        condition: service_completed_successfully
+    labels: *watchtower-disabled-labels
+    healthcheck:
+      test: ["CMD", "php", "/opt/dnr/bin/check_worker_health.php", "receipt-previews"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   document-scans:
     image: ${DNR_APP_IMAGE:-dnr-app:local}

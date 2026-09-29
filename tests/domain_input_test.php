@@ -321,7 +321,7 @@ $overlongOrganization = OrganizationInput::normalize([
     'organization_name' => str_repeat('A', 256),
 ]);
 expectDomainInput(
-    in_array('Organization name must be 255 characters or fewer.', $overlongOrganization['errors'], true),
+    in_array('Organization Name must be 255 characters or fewer.', $overlongOrganization['errors'], true),
     'overlong organization names should produce a validation error.'
 );
 
@@ -332,7 +332,7 @@ $overlongContact = ContactInput::normalize([
     'contact_role' => 'admin',
 ]);
 expectDomainInput(
-    in_array('First name must be 255 characters or fewer.', $overlongContact['errors'], true),
+    in_array('First Name must be 255 characters or fewer.', $overlongContact['errors'], true),
     'overlong contact fields should produce a validation error.'
 );
 

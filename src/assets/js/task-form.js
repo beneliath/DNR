@@ -50,7 +50,7 @@
     const generalOption = Array.from(select.options).find(function (option) { return option.value === 'general'; });
     function showSelection() {
         const option = select.selectedOptions[0];
-        selectedLabel.textContent = option && option.value ? option.textContent : 'No record selected';
+        selectedLabel.textContent = option && option.value ? option.textContent : 'No Record Selected';
         selectedCard.hidden = false;
         if (clearButton) clearButton.hidden = !select.value || select.value === 'general';
     }

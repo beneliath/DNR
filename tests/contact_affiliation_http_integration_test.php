@@ -171,7 +171,7 @@ try {
     expectAffiliationHttp($failedOrganization['status'] === 200
         && str_contains($failedOrganization['body'], 'Select an active contact and organization.')
         && str_contains($failedOrganization['body'], htmlspecialchars($roleTitle, ENT_QUOTES, 'UTF-8'))
-        && str_contains($failedOrganization['body'], 'Previously selected contact is unavailable'),
+        && str_contains($failedOrganization['body'], 'Previously Selected Contact Is Unavailable'),
         'An unavailable existing contact must show validation and preserve all draft selections and roles.');
     expectAffiliationHttp((int) $conn->execute_query('SELECT COUNT(*) AS total FROM organizations WHERE organization_name = ?',
         [$invalidOrganization['organization_name']])->fetch_assoc()['total'] === 0

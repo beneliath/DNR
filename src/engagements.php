@@ -315,7 +315,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
         <p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
 
-    <div class="summary-grid" aria-label="Engagement summary">
+    <div class="summary-grid" aria-label="Engagement Summary">
         <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => 'active', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
            class="summary-card summary-confirmed<?php echo in_array($lifecycle_filter, ['all', 'active'], true) ? ' is-selected' : ''; ?>"
            <?php echo $lifecycle_filter === 'active' ? 'aria-current="true"' : ''; ?>><span class="summary-icon" aria-hidden="true">◆</span><span><small>Active</small><strong><?php echo $summary['active']; ?></strong></span></a>
@@ -346,7 +346,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <input type="search" id="engagement-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="title, organization, contact, chron log text, &quot;and&quot;/or user">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => '', 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </div>
-            <fieldset class="engagement-date-window" aria-label="Engagement dates">
+            <fieldset class="engagement-date-window" aria-label="Engagement Dates">
                 <label for="engagement-date-from">From
                     <input type="date" name="date_from" id="engagement-date-from" value="<?php echo htmlspecialchars($date_from, ENT_QUOTES, 'UTF-8'); ?>">
                 </label>
@@ -358,14 +358,14 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             </fieldset>
             <?php if ($date_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($date_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Engagement archive status">
+        <div class="control-group" aria-label="Engagement Archive Status">
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Current</a>
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $summary['archived']; ?>)</a>
         </div>
 
-        <div class="control-group" aria-label="Engagement lifecycle filter">
+        <div class="control-group" aria-label="Engagement Lifecycle Filter">
             <span class="control-label">Lifecycle:</span>
             <?php foreach (['all' => 'All'] + engagementLifecycleStatuses() as $lifecycle_value => $lifecycle_label): ?>
                 <a href="<?php echo htmlspecialchars($list_url(['lifecycle' => $lifecycle_value, 'cursor' => null]), ENT_QUOTES, 'UTF-8'); ?>"
@@ -374,7 +374,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
             <?php endforeach; ?>
         </div>
 
-        <div class="control-group" aria-label="Engagement sort order">
+        <div class="control-group" aria-label="Engagement Sort Order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
                 <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'org', 'org_sort' => $org_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>"
@@ -436,15 +436,15 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                     <?php $closeout_applicable = !in_array((string) $row['lifecycle_status'], ['postponed', 'canceled'], true); ?>
                     <td class="engagement-closeout">
                         <span class="event-closeout-badge <?php echo $is_financially_closed ? 'is-closed' : ($closeout_applicable ? 'is-open' : 'is-not-applicable'); ?>"
-                              aria-label="Financial closeout: <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'Not applicable'); ?>">
+                              aria-label="Financial Closeout: <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'Not Applicable'); ?>">
                             <?php echo $is_financially_closed ? 'Closed' : ($closeout_applicable ? 'Open' : 'N/A'); ?>
                         </span>
                     </td>
                     <td>
                         <div class="action-buttons">
-                            <a href="view_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                            <a href="view_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Event" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit event" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                <a href="edit_engagement.php?id=<?php echo $row['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Event" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
@@ -454,7 +454,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                                         <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                         <input type="hidden" name="list_status" value="archived">
                                         <input type="hidden" name="action" value="restore">
-                                        <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore event" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
+                                        <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore Event" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
                                     </form>
                                 <?php else: ?>
                                     <form method="post" action="engagements.php">
@@ -463,20 +463,20 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
                                         <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                         <input type="hidden" name="list_status" value="active">
                                         <input type="hidden" name="action" value="archive">
-                                        <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive event" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
+                                        <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive Event" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                                     </form>
                                 <?php endif; ?>
                             <?php endif; ?>
                             <?php if (canDeleteEntries($user_role)): ?>
                                 <form method="post" action="engagements.php"
                                       data-delete-confirmation="Permanently delete this event, its presentations, and its Chron entries?"
-                                      <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
+                                      <?php if ($show_archived): ?>data-archive-button-label="Keep Archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
                                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                     <input type="hidden" name="engagement_id" value="<?php echo (int) $row['id']; ?>">
                                     <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                     <input type="hidden" name="action" value="delete">
-                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete event" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Event" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                                 </form>
                             <?php endif; ?>
                         </div>

@@ -127,7 +127,7 @@ foreach ([0 => [], 19 => [], 20 => [], 21 => [20, 50], 50 => [20, 50], 51 => [20
     preg_match_all('/class="sort-button page-size-button[^>]*>(\d+)<\/a>/', $html, $matches);
     expectPaginationHelper(array_map('intval', $matches[1]) === $expectedSizes,
         'The 50-record option appears at 21 records and the 100-record option appears at 51 records.');
-    expectPaginationHelper($total <= 20 ? $html === '' : str_contains($html, 'Records per page:'),
+    expectPaginationHelper($total <= 20 ? $html === '' : str_contains($html, 'Records Per Page:'),
         'Visible tools use Records per page; small lists have no tool at either placement.');
 }
 

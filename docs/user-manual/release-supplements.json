@@ -1,0 +1,127 @@
+{
+  "14": [
+    [
+      "Screen Reference: Expenses",
+      [
+        "Open Reimbursements from Work in the sidebar. + Add Expense opens entry; Requests opens the request register; Chart of Accounts opens the shared account list for editors and administrators. Search Expenses matches the available expense search fields; use Start Date, End Date, and Apply to set the browsing range. Administrator Expense Owner defaults to the signed-in user; All Users is an explicit choice. Active and Archived switch visibility. Date, Merchant, Owner, Account, Amount, and Status sorting toggle direction; page-size and pagination controls limit displayed rows.",
+        "The table shows Include, Date, Merchant / Payee, Owner where permitted, Account, Receipts, Amount, Status, and Actions. Hovering a row reveals its view link; explicit icons and links remain usable. Available means unclaimed and eligible for the current owner; Draft or Submitted links to its request. Submitted rows are green. The mobile disclosure exposes additional owner/account/receipt detail.",
+        "Include checkboxes are available only for the signed-in owner's active unclaimed expenses. Create Draft Request from Selected Expenses appears above and below the list. Selected count, amount, and missing-receipt count reflect selections across pages in this tab; filtering or successful creation clears stale selection. Clear Selection appears at both ends when applicable. Dates for New Request exposes Request Start Date and Request End Date independently of list filters. Server validation rechecks every selection.",
+        "View opens an expense without edit controls. Edit is limited to the owner's editable expense. Archive and Restore preserve the record; Delete is administrator-only and requires confirmation and current administrator unlock. Expenses associated with requests have additional restrictions: submitted items are locked and draft items are managed through their request."
+      ]
+    ],
+    [
+      "Screen Reference: Expense Entry and Detail",
+      [
+        "Expense Date, Merchant or Payee, Amount (USD), and Account are required. Description or Purpose provides supporting context. Choose an Account lists active chart-of-accounts entries; an existing archived assignment may be retained. Amounts are stored in integer cents. Save Expense saves all fields and staged receipts; Back to Expenses or Back to Request returns to the originating context.",
+        "Expense Receipts accepts Upload Receipt, the drop area, Paste Image, the keyboard paste area, and Take a Receipt Photo when the device supports it. A camera prompt depends on browser/device support. Clipboard reads may require a user gesture and permission; keyboard paste is the fallback. New picks append to staged files; review filename, count, and byte totals and remove unintended selections before saving. An expense allows 20 receipts with 15 MiB combined originals, and each receipt must also satisfy the 15 MiB limit. Formats: JPEG, PNG, WebP, PDF.",
+        "The saved Receipts pane shows image or first-page PDF previews, filenames, Open Original Receipt, and Delete Receipt where permitted. Preview failure does not by itself mean that the original is missing. Original downloads require authorization. If scanning is enabled, queued/scanning/rejected files cannot be previewed, downloaded, or submitted until they are clean; installation status determines whether scanning is required. Rejected files should be replaced with a safe original.",
+        "Delete Expense is outside the Receipts pane and deletes the whole eligible expense and its receipts. Delete Receipt removes only that attachment. Both require the applicable permissions and confirmation; submitted records expose neither mutation. Expense History records changes. Duplicate detection is an advisory; version conflicts reject stale saves and preserve text values. File inputs may need reselecting after errors. Repeated creation with the same save token does not create duplicate expenses."
+      ]
+    ],
+    [
+      "Screen Reference: Requests Register",
+      [
+        "Open Requests from Reimbursements. Search Requests accepts a request reference or owner search; administrators can filter Owner. Status offers All Statuses, Draft, or Submitted. Expense Dates From and Through filter overlapping request date windows. Sort By offers Created, Submitted, Total, Owner, and Request; Direction chooses ascending or descending. Apply refreshes the list. Active/Archived and pagination retain the selected context.",
+        "Columns are Request (hash and readable request number), Owner, Expense Dates, Expenses, Receipts, Total, Status, Status Set, and Actions. Status Set is the creation time for Draft and submission time for Submitted; this screen currently labels these timestamps UTC. Submitted rows are green. Hover/click opens a read-only view; the View icon does the same.",
+        "The paper-plane Submit icon appears only for the signed-in owner's eligible active draft. Edit opens that draft. Archive/Restore changes visibility, preserving record links and locks. Delete is available only for an eligible draft with the required role; an administrator cannot delete a submitted request to free its expenses."
+      ]
+    ],
+    [
+      "Screen Reference: Request View and Edit",
+      [
+        "The header identifies owner, date range, and status. Download Report PDF and Download Package ZIP are available when items exist; submitted requests use Download Submitted Package. Expenses, Back to Requests, Chart of Accounts, Edit Draft, and Review and Submit appear according to role, ownership, state, and view mode. Back to Requests preserves an allowed originating list URL.",
+        "Edit Draft places Request Date Range and Add an Expense in This Date Range in equal-width panels that stack on narrow screens. Set Start Date and End Date and choose Update Dates. The range must encompass every included expense. Available Expense contains the owner's eligible unclaimed expenses inside that range; choose one and Add Expense. The add panel is absent when none are available.",
+        "Expenses lists Date, Merchant / Payee, Account, Receipt Files, Amount, and Remove in editable drafts. Merchant links always open permitted read-only expense detail. Remove frees that expense from the draft without deleting its receipt files. Total Amount Due sums the items. Delete Request sits directly on the page background; it removes only the draft and preserves its expenses and receipts.",
+        "Submitted views add delivery summary/history, correction controls for authorized users, and Request History. Archive does not cancel mail or unlock content. Reviewers cannot edit; editors and administrators cannot change another owner's expense content merely because it is visible."
+      ]
+    ],
+    [
+      "Screen Reference: Email Review and Submission",
+      [
+        "Review Reimbursement Email shows Email Details (subject and recipients), a readable Email Preview in either app theme, Submission Readiness, and Package Contents. Check each listed expense, amount, receipt count, scan state, filename, and original-file size. Missing receipts are advisory; unresolved required security checks, configuration errors, or oversized packages prevent submission.",
+        "To is the configured bookkeeper. Cc includes the submitting owner, optional Reimbursement Reviewer Email, and optional Cc Email Address. Bcc Email Address receives a hidden copy. Recipient addresses are validated and duplicate routing is resolved by the application; the preview is the authoritative list. Bcc recipients are absent from recipient-visible report content. The message uses the MOED email header and footer.",
+        "The attached ZIP includes the Expense Report PDF and every original receipt in receipts/. It is the same package represented by the download. Each receipt filename begins with expense and receipt identifiers; the report's Expense Detail and Receipt Files sections match those names. Image receipt pages are convenient previews; PDFs and images remain separate original files in the ZIP.",
+        "A request is limited to 100 receipts and 15 MiB of originals; the finished ZIP also has a 15 MiB limit. Base64 email encoding adds roughly one third plus headers. Split a large request or reduce source image sizes before review. Select I Have Reviewed the Recipients, Email, and Package, then Submit Reimbursement Request. The app rechecks the review fingerprint, records the original package, queues delivery, sets Submitted, and locks the associated content. Merely opening the preview sends nothing."
+      ]
+    ],
+    [
+      "Screen Reference: Delivery Recovery and Correction",
+      [
+        "Email Delivery distinguishes Pending/Queued, Sending, Retry, Accepted by SMTP, Failed, Delivery Uncertain/Needs Review, and Cancelled. It lists recipient type/address when retained, attempts, and last acceptance. Exact labels may describe the worker state rather than the request state. Submitted means the request was recorded and locked; it does not mean delivered, read, approved, or paid.",
+        "Retry Failed Delivery applies to known failures. Send Another Copy applies to accepted, uncertain, or cancelled copies when the approved snapshot is available, the request is active, and no correction remains unresolved. Enter a reason, confirm you have checked the prior delivery, and confirm sending. Recovery reuses the original approved recipient, message, and package; changing settings does not redirect that copy. Never repeatedly resend an uncertain copy without checking whether it arrived.",
+        "Record a Correction requires a reason. It keeps the submitted record and expense links, records the actor/time, and cancels pending/retry copies only. Sending, accepted, and uncertain copies cannot be recalled. Resolve Correction requires a Resolution Note documenting agreement with the bookkeeper. It neither sends mail nor unlocks an expense. Coordinate replacements externally to avoid duplicate reimbursement.",
+        "Exact-message recovery is retained for 365 days. Some legacy records have no approved-message snapshot or original package; the UI explains what is unavailable. Downloaded originals are immutable, including any historical formatting. Request History records submission, archive, correction, and recovery actions. The app does not track payment status."
+      ]
+    ],
+    [
+      "Screen Reference: Chart of Accounts",
+      [
+        "Editors and administrators can open Chart of Accounts. Add Account or Edit Account contains required COA Number (up to 20 characters) and Description (up to 120). Save/Add persists the entry; Cancel abandons edit mode. The COA number is globally unique across active and archived entries.",
+        "The list provides Search Chart of Accounts, Active/In Use/Archived, and ascending/descending sort on COA Number, Description, or Expenses. In Use means active accounts referenced by at least one expense. Each row shows those values and Edit, Archive/Restore, and administrator Delete icons where allowed. Search/sort/view context is preserved while editing. Delete requires an unused account, confirmation, and administrator unlock. Archive is the safe way to retire an account with history."
+      ]
+    ],
+    [
+      "Screen Reference: Reimbursement Setup and Profile",
+      [
+        "Reimbursement Setup is administrator-only in the sidebar. Organization Name identifies the report/email organization. Bookkeeper First Name and Last Name personalize the recipient; Bookkeeper Email Address is the destination; Bookkeeper Phone Number appears in the report context. Cc Email Address adds a visible copy; Bcc Email Address adds a hidden copy. Save Reimbursement Setup requires current administrator unlock. Validation errors preserve entries. Saved settings apply to future submissions.",
+        "My Profile → Personal Details includes Reimbursement Reviewer Email, an optional personal Cc recipient. Save the profile to persist it. The verified account email also receives a copy. The reviewer field is independent of recovery-email verification and does not grant the reviewer application access. The app records reviewer-setting changes without exposing the address in the audit message."
+      ]
+    ],
+    [
+      "Reimbursement Troubleshooting and Access",
+      [
+        "No Include checkbox or a disabled Create Draft Request button: check that the expense is yours, active, unclaimed, and selected. A dash for a Draft/Submitted expense protects it from inclusion twice. Administrator All Users visibility does not transfer ownership.",
+        "No Submit/Edit icon: confirm the request is your active draft and that you have an editor or administrator role. Submitted and archived requests are not editable drafts. A missing Add Expense panel means no eligible available expense is in that request's date range.",
+        "Paste Image fails: use the button after copying an image, allow browser permission if prompted, or use the focused paste area and normal keyboard shortcut. Pasted text is not a receipt. Save Expense is still required. If files fail size/type checks, keep valid selections and remove or replace the rejected file.",
+        "Delivery is queued indefinitely or reports a development transport: ask the deployment administrator to verify the real SMTP worker and transport; changing the request to another draft is not a delivery fix. Accepted by SMTP is not a receipt. For uncertain delivery, check the recipient/provider before any intentional resend.",
+        "Cannot modify a submitted expense or receipt: this is an intentional content lock. Record a correction and coordinate with the bookkeeper. Chart-of-accounts edits and profile changes do not rewrite the original PDF. Original package missing on a legacy record: preserve the received package if available and contact the administrator; do not submit the same expenses again."
+      ]
+    ]
+  ],
+  "1": [
+    [
+      "Sidebar and Validation Updates",
+      [
+        "Sidebar section headings expand/collapse and remember the user choice. Scroll the central menu independently of the logo/account area. On narrow screens, close the navigation drawer before continuing the form. AI Coach highlights and walkthrough spacing help locate controls; the coach still cannot click, save, or send on your behalf.",
+        "Relationship selectors return bounded results. Refine the search if a desired organization/contact is not listed; selected existing values remain available. Validation summaries link directly to invalid fields. Correct required fields and save; do not discard the entire form solely because a result is outside the initial search page."
+      ]
+    ]
+  ],
+  "5": [
+    [
+      "Engagement Filters and Visit Reporting",
+      [
+        "Engagements provides start/end date filtering in addition to existing search/status controls. Links from dashboard upcoming-event and inquiry panes retain the relevant destination view. Clear or broaden filters before concluding a record is absent.",
+        "Short-link statistics offers Speaker, Link Type, From and Through dates in the configured local time zone, Apply Filters, totals, and Referrers/Browsers/Countries/Operating Systems charts. Detailed visit rows identify event/resource context and use date grouping and chart highlighting where available. Presentation resource/QR cards show their tracked totals. Reset Statistics retains its separate administrator confirmation; viewing or filtering is read-only.",
+        "Network → Remote Document Responses adds response/timing measurements for PDF and PowerPoint traffic. These operational counts are not equivalent to tracked public-link visits. Direct downloads and tracked link opens have different analytics paths."
+      ]
+    ]
+  ],
+  "6": [
+    [
+      "Duplicate Merge Screen Reference",
+      [
+        "Review Possible Duplicates is an administrator action on organization/contact detail. Find the Record to Keep searches bounded candidates; choose Surviving Record and Preview Merge. Check the displayed source/target, relationship counts, and each field's Keep or Use Source choice. Confirm that both records describe the same entity, then Merge into Surviving Record with administrator authorization.",
+        "The merge moves relationships, Chron, tasks, inquiries, and email references; identical assignments combine and conflicting affiliation roles must be resolved first. The source is archived with original field values, and cannot be restored independently. For contacts, the survivor keeps its primary organization, role, and photo; source affiliations are added and its original photo remains on the archived source. The merge sends no email. Concurrent modifications invalidate the preview: refresh and review again."
+      ]
+    ]
+  ],
+  "9": [
+    [
+      "Amazon Location and Map Fallback",
+      [
+        "Configured deployments use Amazon Location maps; otherwise the supported OpenStreetMap-based view remains available. Expand the collapsed attribution/credits to identify the active provider. Date, lifecycle, confirmation, missing-address, pending-lookup, and unlocated-record controls retain their existing meaning. Fit Visible Pins adjusts the viewport; Edit Location changes the record location. Provider configuration belongs to the operator, not to the event location form."
+      ]
+    ]
+  ],
+  "12": [
+    [
+      "Recent Administration and Recovery Changes",
+      [
+        "Network diagnostics compares remote page, image, PDF and PowerPoint response measurements, with Refresh and administrator Reset Statistics. Loading or empty measurements are not proof that an upload failed. Operations shows current deployment and ingestion health. Follow the runbook if document scanning or delivery workers are unhealthy.",
+        "Backups include uploaded files; the browser backup workflow detects capacity problems and gives an actionable error rather than silently producing a partial download. Keep backup encryption/recovery material secure and follow the application's restore validation. Sensitive deployment secrets are not fields in Reimbursement Setup.",
+        "The deployment has bounded data/file maintenance, encryption-key rotation support, and optional private document scanning. These are operator services, not extra end-user buttons. Scanner requirements are configuration-dependent; pending/rejected required checks prevent protected file use. Local development may deliberately leave scanning disabled."
+      ]
+    ]
+  ]
+}

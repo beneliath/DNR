@@ -361,7 +361,7 @@
                 if (display) {
                     display.textContent = hasReplacement
                         ? input.files[0].name
-                        : (display.dataset.emptyFileLabel || "No PDF selected");
+                        : (display.dataset.emptyFileLabel || "No PDF Selected");
                 }
                 if (notice) {
                     var fileType = notice.dataset.fileType;

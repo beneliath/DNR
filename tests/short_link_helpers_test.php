@@ -37,7 +37,7 @@ expectShortLink($report['period'] === 'month' && array_column($report['timeline'
 $rows = array_map(static fn(int $i): array => ['label'=>(string)$i,'total'=>'10'], range(1,20));
 $report = shortLinkReportData(array_replace($emptyStats, ['referrer'=>$rows,'browser'=>$rows,'os'=>$rows,'country'=>[['label'=>'ZZ','total'=>'13'],['label'=>'US','total'=>'192']],'total'=>205]), '2026-09-07 00:00:00', '2026-09-08 00:00:00');
 foreach (['referrer','browser','os','country'] as $dimension) expectShortLink(array_sum(array_column($report[$dimension], 'total')) === 205, 'Category buckets preserve all traffic, including rows beyond the SQL limit');
-expectShortLink(end($report['referrer']) === ['label'=>'Other referrers','total'=>145], 'Donut remainder includes every omitted source');
+expectShortLink(end($report['referrer']) === ['label'=>'Other Referrers','total'=>145], 'Donut remainder includes every omitted source');
 expectShortLink($report['country'][0] === ['label'=>'ZZ','total'=>13], 'Unknown locations stay separate from mapped countries');
 $resourceRows = [
     ['label'=>'2026-09-07', 'link_id'=>1, 'link_type'=>'notes', 'custom_label'=>null, 'event_title'=>'Event <One>', 'topic_title'=>'Talk & Q&A', 'engagement_id'=>3, 'presentation_id'=>4, 'total'=>2],

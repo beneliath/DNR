@@ -55,7 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     'actor_user_id' => $user_id,
                     'target_user_id' => $user_id,
                     'entity_type' => 'calendar_subscription',
-                    'entity_label' => 'Revoked calendar subscriptions',
+                    'entity_label' => 'Revoked Calendar Subscriptions',
                     'details' => 'Purged revoked subscriptions: ' . $purged_count,
                 ])) {
                     throw new RuntimeException('Unable to audit revoked subscription cleanup.');
@@ -258,14 +258,14 @@ $webcal_url = $calendar_url === null
         <section class="security-card calendar-card" id="new-calendar-link" aria-labelledby="new-calendar-title">
             <div class="calendar-new-link-heading">
                 <h3 id="new-calendar-title">Save This New Link</h3>
-                <span class="calendar-new-link-context">Shown only once</span>
+                <span class="calendar-new-link-context">Shown Only Once</span>
             </div>
             <p>This token is shown only once. Add it to your calendar now or copy it to an approved password manager.</p>
             <p><strong>Includes:</strong> <?php echo htmlspecialchars(calendarSubscriptionContentSummary($new_subscription), ENT_QUOTES, 'UTF-8'); ?></p>
-            <label for="calendar-url"><strong>Private calendar subscription URL</strong></label>
+            <label for="calendar-url"><strong>Private Calendar Subscription URL</strong></label>
             <div class="calendar-url-row">
                 <input type="url" id="calendar-url" readonly value="<?php echo htmlspecialchars($calendar_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="button" id="copy-calendar-url" class="action-icon-button" aria-label="Copy calendar URL" title="Copy calendar URL" data-tooltip="Copy URL">
+                <button type="button" id="copy-calendar-url" class="action-icon-button" aria-label="Copy Calendar URL" title="Copy Calendar URL" data-tooltip="Copy URL">
                     <svg class="action-icon calendar-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
                     <svg class="action-icon calendar-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
                 </button>

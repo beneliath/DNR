@@ -36,7 +36,7 @@ $destination = twoFactorRecoveryCodesDestination($initial_login);
             <code><?php echo htmlspecialchars($code); ?></code>
         <?php endforeach; ?>
     </div>
-    <p><a href="<?php echo htmlspecialchars($destination, ENT_QUOTES, 'UTF-8'); ?>" class="security-button save-button">I saved these codes</a></p>
+    <p><a href="<?php echo htmlspecialchars($destination, ENT_QUOTES, 'UTF-8'); ?>" class="security-button save-button">I Saved These Codes</a></p>
 </main>
 <?php include 'templates/footer.php'; ?>
 </body>

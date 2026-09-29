@@ -67,7 +67,7 @@ expectFailedLoginAudit(
     'Required two-factor enrollment failures should be sent to the audit log.'
 );
 expectFailedLoginAudit(
-    str_contains($audit_log_source, "'failed_login' => 'Failed login'"),
+    str_contains($audit_log_source, "'failed_login' => 'Failed Login'"),
     'The Audit Log page should label failed login events clearly.'
 );
 

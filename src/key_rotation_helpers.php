@@ -9,6 +9,8 @@ const APPLICATION_ENCRYPTED_COLUMNS = [
     'email_outbox' => 'payload_ciphertext',
     'notification_outbox' => 'payload_ciphertext',
     'engagement_email_deliveries' => 'payload_ciphertext',
+    'reimbursement_email_deliveries' => 'payload_ciphertext',
+    'reimbursement_submissions' => 'snapshot_ciphertext',
 ];
 
 /** Repeat with next_id; rerunning an applied batch is harmless. Never log plaintext. */

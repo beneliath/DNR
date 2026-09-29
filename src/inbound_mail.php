@@ -169,7 +169,7 @@ if ($selectedId) {
 }
 
 $statusLabels = [
-    'review' => 'Needs review',
+    'review' => 'Needs Review',
     'pending' => 'Pending',
     'processing' => 'Processing',
     'failed' => 'Failed',
@@ -196,13 +196,13 @@ $statusLabels = [
             <h1>Inbound Mail</h1>
             <p class="page-intro">Read incoming mail, check its destinations, and save the conversation to Chron.</p>
         </div>
-        <a class="button-secondary inbound-refresh" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, $requestedId ? ['id' => $requestedId] : [])), ENT_QUOTES, 'UTF-8'); ?>">Refresh inbox</a>
+        <a class="button-secondary inbound-refresh" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, $requestedId ? ['id' => $requestedId] : [])), ENT_QUOTES, 'UTF-8'); ?>">Refresh Inbox</a>
     </div>
 
     <?php if ($messageNotice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($messageNotice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($messageError !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($messageError, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <nav class="summary-grid task-summary-grid inbound-status-filters" aria-label="Inbound message status">
+    <nav class="summary-grid task-summary-grid inbound-status-filters" aria-label="Inbound Message Status">
         <?php foreach ($statusLabels as $status => $label): ?>
             <?php $count = $status === 'all' ? array_sum($counts) : ($counts[$status] ?? 0); ?>
             <a class="summary-card inbound-status-filter<?php echo $statusFilter === $status ? ' is-selected' : ''; ?>"<?php echo $statusFilter === $status ? ' aria-current="page"' : ''; ?> href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['status' => $status, 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">
@@ -214,14 +214,14 @@ $statusLabels = [
     <form method="get" action="inbound_mail.php" class="inbound-queue-search" id="inbound-queue-search">
         <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
-        <div class="inbound-search-field"><label for="inbox-search">Search messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search subject, sender, or message content"></div>
-        <div><label for="inbox-sort">Order</label><select name="sort" id="inbox-sort"><option value="oldest"<?php echo $queueSort === 'oldest' ? ' selected' : ''; ?>>Oldest first</option><option value="newest"<?php echo $queueSort === 'newest' ? ' selected' : ''; ?>>Newest first</option></select></div>
+        <div class="inbound-search-field"><label for="inbox-search">Search Messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Subject, Sender, or Message Content"></div>
+        <div><label for="inbox-sort">Order</label><select name="sort" id="inbox-sort"><option value="oldest"<?php echo $queueSort === 'oldest' ? ' selected' : ''; ?>>Oldest First</option><option value="newest"<?php echo $queueSort === 'newest' ? ' selected' : ''; ?>>Newest First</option></select></div>
         <button type="submit" class="button-secondary">Search</button>
-        <?php if ($queueSearch !== ''): ?><a class="inbound-clear-search" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">Clear search</a><?php endif; ?>
+        <?php if ($queueSearch !== ''): ?><a class="inbound-clear-search" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>">Clear Search</a><?php endif; ?>
     </form>
 
     <div class="inbound-mail-layout<?php echo $requestedId ? ' inbound-message-open' : ''; ?>">
-        <section class="inbound-queue" aria-label="Inbound messages">
+        <section class="inbound-queue" aria-label="Inbound Messages">
             <div class="inbound-queue-heading">
                 <h2><?php echo htmlspecialchars($statusLabels[$statusFilter], ENT_QUOTES, 'UTF-8'); ?></h2>
                 <span><?php echo number_format($queueTotal); ?> <?php echo $queueTotal === 1 ? 'message' : 'messages'; ?></span>
@@ -240,15 +240,15 @@ $statusLabels = [
                     </a>
                 <?php endforeach; ?>
                 <?php if (!$messages): ?>
-                    <div class="inbound-empty-state"><span class="inbound-empty-icon" aria-hidden="true">&#9993;</span><h3><?php echo $queueSearch !== '' ? 'No matches found' : ($statusFilter === 'review' ? 'You’re all caught up' : 'No messages here'); ?></h3><p><?php echo $queueSearch !== '' ? 'Try another search or clear it to see this inbox.' : 'Choose another status to browse your mail.'; ?></p><a href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'status' => $queueSearch !== '' ? $statusFilter : 'all', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $queueSearch !== '' ? 'Clear search' : 'View all mail'; ?></a></div>
+                    <div class="inbound-empty-state"><span class="inbound-empty-icon" aria-hidden="true">&#9993;</span><h3><?php echo $queueSearch !== '' ? 'No matches found' : ($statusFilter === 'review' ? 'You’re all caught up' : 'No messages here'); ?></h3><p><?php echo $queueSearch !== '' ? 'Try another search or clear it to see this inbox.' : 'Choose another status to browse your mail.'; ?></p><a href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, ['q' => '', 'status' => $queueSearch !== '' ? $statusFilter : 'all', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $queueSearch !== '' ? 'Clear Search' : 'View all mail'; ?></a></div>
                 <?php endif; ?>
             </div>
             <?php renderPagination($queueTotal, $queuePage, $queuePageSize, 'inbound_mail.php?' . http_build_query($queueContext), 'messages', 'Message pages'); ?>
         </section>
 
-        <section class="inbound-message-detail" id="inbound-detail" aria-label="Selected inbound message" tabindex="-1">
+        <section class="inbound-message-detail" id="inbound-detail" aria-label="Selected Inbound Message" tabindex="-1">
             <?php if (!$selectedMessage): ?>
-                <div class="inbound-empty-state inbound-reader-empty"><span class="inbound-empty-icon" aria-hidden="true">&#9993;</span><h2><?php echo $requestedId ? 'Message unavailable' : 'Your reading space'; ?></h2><p><?php echo $requestedId ? 'This message may have been removed. Choose another message from the inbox.' : 'Select a message to read it and choose where to save it.'; ?></p><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query($queueContext), ENT_QUOTES, 'UTF-8'); ?>">Back to messages</a></div>
+                <div class="inbound-empty-state inbound-reader-empty"><span class="inbound-empty-icon" aria-hidden="true">&#9993;</span><h2><?php echo $requestedId ? 'Message Unavailable' : 'Your Reading Space'; ?></h2><p><?php echo $requestedId ? 'This message may have been removed. Choose another message from the inbox.' : 'Select a message to read it and choose where to save it.'; ?></p><a class="button-secondary" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query($queueContext), ENT_QUOTES, 'UTF-8'); ?>">Back to Messages</a></div>
             <?php else: ?>
                 <?php
                 $toAddresses = inboundEmailDecodeAddressList($selectedMessage['to_addresses']);
@@ -258,7 +258,7 @@ $statusLabels = [
                 $canReviewMessage = in_array($selectedMessage['status'], ['review', 'failed', 'pending'], true);
                 ?>
                 <div class="inbound-detail-toolbar">
-                    <a class="inbound-back-link" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query($queueContext), ENT_QUOTES, 'UTF-8'); ?>">&#8592; Back to messages</a>
+                    <a class="inbound-back-link" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query($queueContext), ENT_QUOTES, 'UTF-8'); ?>">&#8592; Back to Messages</a>
                     <span class="inbound-status inbound-status-<?php echo htmlspecialchars((string) $selectedMessage['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($statusLabels[(string) $selectedMessage['status']] ?? ucfirst((string) $selectedMessage['status']), ENT_QUOTES, 'UTF-8'); ?></span>
                     <span class="inbound-message-id">Message #<?php echo (int) $selectedMessage['id']; ?></span>
                 </div>
@@ -275,19 +275,19 @@ $statusLabels = [
                                 <div><dt>Attachments</dt><dd><?php echo htmlspecialchars($attachmentNames ? implode(', ', $attachmentNames) : 'None', ENT_QUOTES, 'UTF-8'); ?><?php if ($attachmentNames): ?><p class="field-help">Filenames only; attachment contents are not stored</p><?php endif; ?></dd></div>
                             </dl>
                         </details>
-                        <section class="inbound-message-body" aria-label="Message content">
-                            <pre tabindex="0" aria-label="Message text"><?php echo renderTextWithLinks($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', false); ?></pre>
+                        <section class="inbound-message-body" aria-label="Message Content">
+                            <pre tabindex="0" aria-label="Message Text"><?php echo renderTextWithLinks($bodyPreview !== '' ? $bodyPreview : '[No plain-text message body was available.]', false); ?></pre>
                             <?php if (mb_strlen((string) $selectedMessage['body_text'], 'UTF-8') > 100000): ?><p class="field-help">The review preview is limited to 100,000 characters; the retained source text is longer.</p><?php endif; ?>
                         </section>
                 <?php if ($selectedRouting): ?>
                     <details class="inbound-routing-summary">
-                        <summary>Routing details</summary>
+                        <summary>Routing Details</summary>
                         <p>Sender classification: <strong><?php echo htmlspecialchars(ucfirst((string) $selectedRouting['sender']['type']), ENT_QUOTES, 'UTF-8'); ?></strong> — <?php echo htmlspecialchars((string) $selectedRouting['sender']['label'], ENT_QUOTES, 'UTF-8'); ?></p>
                         <?php if ($selectedRouting['sender_authenticated']): ?>
                             <p class="success">Sender authentication: <?php echo match ($selectedRouting['sender_authentication_method']) {
-                                'proton-internal' => 'Verified by Proton (internal message)',
-                                'proton-dmarc' => 'DMARC verified by Proton',
-                                default => 'DMARC verified by the trusted mailbox provider',
+                                'proton-internal' => 'Verified by Proton (Internal Message)',
+                                'proton-dmarc' => 'DMARC Verified by Proton',
+                                default => 'DMARC Verified by the Trusted Mailbox Provider',
                             }; ?></p>
                         <?php endif; ?>
                         <?php foreach ($selectedRouting['engagements'] as $engagement): ?>
@@ -312,7 +312,7 @@ $statusLabels = [
 
                         <?php if (canDeleteEntries($userRole)): ?>
                             <details class="inbound-admin-actions">
-                                <summary>Manage retained email</summary>
+                                <summary>Manage Retained Email</summary>
                                 <p class="field-help">Permanently remove this source email. Existing Chron entries are kept. Administrator confirmation is required.</p>
                             <form method="post" action="inbound_mail.php" data-admin-unlock-required data-confirm="Permanently purge this inbound mail entry? Associated Contact, Organization, and Engagement Chron Log entries will be preserved, but their source-email links will be removed. This cannot be undone.">
                                 <?php echo csrfInput(); ?>
@@ -328,7 +328,7 @@ $statusLabels = [
                             </details>
                         <?php endif; ?>
                     </div>
-                    <aside class="inbound-filing-panel" aria-label="Message filing">
+                    <aside class="inbound-filing-panel" aria-label="Message Filing">
                         <?php if ($canReviewMessage && !empty($selectedMessage['review_reason'])): ?><div class="inbound-review-notice"><strong><?php echo $selectedMessage['status'] === 'failed' ? 'Filing needs attention' : 'Review needed'; ?></strong><p><?php echo htmlspecialchars((string) $selectedMessage['review_reason'], ENT_QUOTES, 'UTF-8'); ?></p></div><?php endif; ?>
                 <?php if ($canReviewMessage && $selectedRouting): ?>
                     <form method="post" action="inbound_mail.php" class="inbound-review-form">
@@ -344,7 +344,7 @@ $statusLabels = [
                         <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
                         <div class="inbound-review-actions">
                             <p id="inbound-selection-summary" class="field-help" role="status" aria-live="polite">Choose at least one destination to save this message</p>
-                            <button type="submit" name="action" value="approve" class="save-button" aria-describedby="inbound-selection-summary">Save to Chron logs</button>
+                            <button type="submit" name="action" value="approve" class="save-button" aria-describedby="inbound-selection-summary">Save to Chron Logs</button>
                         </div>
                         <?php if ($selectedRouting['contacts']): ?>
                         <fieldset>
@@ -373,12 +373,12 @@ $statusLabels = [
                         <fieldset>
                             <legend>Engagement</legend>
                             <?php $markerEngagements = $selectedRouting['engagements']; ?>
-                            <label for="inbound-engagement-search">Find an active engagement</label>
-                            <input type="search" id="inbound-engagement-search" disabled class="inbound-engagement-search" aria-describedby="inbound-engagement-search-status" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by marker, ID, title, or organization">
+                            <label for="inbound-engagement-search">Find an Active Engagement</label>
+                            <input type="search" id="inbound-engagement-search" disabled class="inbound-engagement-search" aria-describedby="inbound-engagement-search-status" data-engagement-search-url="inbound_engagement_search.php" autocomplete="off" placeholder="Search by Marker, ID, Title, or Organization">
                             <p id="inbound-engagement-search-status" class="field-help" role="status" aria-live="polite">Search by name (2+ characters), ID, or email marker</p>
                             <label for="inbound-engagement-id">Engagement</label>
                             <select id="inbound-engagement-id" name="engagement_ids[]" class="inbound-engagement-select">
-                                <option value="">No engagement selected</option>
+                                <option value="">No Engagement Selected</option>
                                 <?php foreach ($markerEngagements as $engagement): ?>
                                     <option value="<?php echo (int) $engagement['id']; ?>" selected><?php echo htmlspecialchars((string) $engagement['marker'] . ' · ' . (string) $engagement['label'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
@@ -386,11 +386,11 @@ $statusLabels = [
                             <p class="field-help">An engagement identified by a valid email marker is preselected. You can search to choose a different one.</p>
                             <noscript><p class="error">JavaScript is required to search for an engagement that was not selected by a valid email marker.</p></noscript>
                         </fieldset>
-                        <button type="submit" name="action" value="retry" class="button-secondary">Find matches again</button>
+                        <button type="submit" name="action" value="retry" class="button-secondary">Find Matches Again</button>
                         <details class="inbound-other-actions">
-                            <summary>Other actions</summary>
+                            <summary>Other Actions</summary>
                             <p class="field-help">Reject this message if it should not be saved to Chron. Existing Chron entries are preserved.</p>
-                            <button type="submit" name="action" value="reject" class="danger-button">Reject message</button>
+                            <button type="submit" name="action" value="reject" class="danger-button">Reject Message</button>
                         </details>
                     </form>
                 <?php endif; ?>

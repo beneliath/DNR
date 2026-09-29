@@ -157,6 +157,15 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financi
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.email_message_templates TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_cost_centers TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_expenses TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_receipts TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_requests TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_email_deliveries TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.reimbursement_request_items TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.reimbursement_submissions TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.reimbursement_events TO '${MYSQL_USER}'@'%';
+GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.reimbursement_setup TO '${MYSQL_USER}'@'%';
 GRANT INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${MYSQL_USER}'@'%';
 GRANT SELECT (
     id, message_id, contact_id, recipient_name, recipient_email, recipient_type,
@@ -237,6 +246,9 @@ GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.email_outbox TO '${mail_dispatch_u
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.user_email_tokens TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.notification_outbox TO '${mail_dispatch_user}'@'%';
 GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.engagement_email_deliveries TO '${mail_dispatch_user}'@'%';
+GRANT SELECT, UPDATE ON \`${MYSQL_DATABASE}\`.reimbursement_email_deliveries TO '${mail_dispatch_user}'@'%';
+GRANT SELECT (created_at, snapshot_ciphertext), UPDATE (snapshot_ciphertext) ON \`${MYSQL_DATABASE}\`.reimbursement_submissions TO '${mail_dispatch_user}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.stored_files TO '${mail_dispatch_user}'@'%';
 GRANT SELECT (
     id, username, first_name, email, email_verified_at, role,
     auth_version, account_status, task_digest_enabled,

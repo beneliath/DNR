@@ -290,17 +290,17 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
             <input type="hidden" name="lifetime_giving_sort" value="<?php echo $lifetime_giving_sort; ?>">
             <input type="hidden" name="sort_by" value="<?php echo $sort_column; ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
-            <label class="visually-hidden" for="organization-search">Search organizations</label>
+            <label class="visually-hidden" for="organization-search">Search Organizations</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search organizations">
+            <input type="search" id="organization-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Organizations">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($list_url(['q' => null]), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Organization archive status">
+        <div class="control-group" aria-label="Organization Archive Status">
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'active']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
             <a href="<?php echo htmlspecialchars($list_url(['status' => 'archived']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
-        <div class="control-group" aria-label="Organization sort order">
+        <div class="control-group" aria-label="Organization Sort Order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
                 <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'name', 'name_sort' => $sort_column === 'name' && $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === 'name' ? ' active' : ''; ?>"<?php echo $sort_column === 'name' ? ' aria-current="true"' : ''; ?>>
@@ -355,9 +355,9 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                     <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_giving']); ?></strong></td>
                     <td>
                         <div class="action-buttons">
-                            <a href="view_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                            <a href="view_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                             <?php if (!$show_archived && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit organization" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                <a href="edit_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Organization" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <?php endif; ?>
                             <?php if (canArchiveEntries($user_role)): ?>
                                 <?php if ($show_archived): ?>
@@ -367,7 +367,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="archived">
                                         <input type="hidden" name="action" value="restore">
-                                        <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore organization" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
+                                        <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore Organization" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
                                     </form>
                                 <?php else: ?>
                                     <form method="post" action="organizations.php">
@@ -376,20 +376,20 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                                         <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                         <input type="hidden" name="list_status" value="active">
                                         <input type="hidden" name="action" value="archive">
-                                        <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive organization" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
+                                        <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive Organization" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                                     </form>
                                 <?php endif; ?>
                             <?php endif; ?>
                             <?php if (canDeleteEntries($user_role)): ?>
                                 <form method="post" action="organizations.php"
                                       data-delete-confirmation="Permanently delete this organization and all of its contacts and events?"
-                                      <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
+                                      <?php if ($show_archived): ?>data-archive-button-label="Keep Archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                     <?php echo csrfInput(); ?>
                                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                     <input type="hidden" name="organization_id" value="<?php echo (int) $org['id']; ?>">
                                     <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                     <input type="hidden" name="action" value="delete">
-                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete organization" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Organization" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                                 </form>
                             <?php endif; ?>
                         </div>

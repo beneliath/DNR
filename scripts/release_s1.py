@@ -286,6 +286,7 @@ def main(argv=None):
             run(['git', 'push', remote, f'{head}:refs/heads/{branch}'])
         stage = 'protected PR checks and merge'
         pr = open_or_update_pr(branch, title, release_body(version, args.summary.strip()))
+        milestone('Release PR: ' + pr['url'])
         merged = wait_for_pr(pr['number'], head, args.ci_timeout_minutes)
         milestone(f'PR #{pr["number"]} merged as {merged[:12]}')
         run(['git', 'fetch', 'origin'])

@@ -110,8 +110,8 @@ expectAuditLogPurgeFeature(
     'terminal pruning should preview by default and use the same bounded definer procedure as the UI.'
 );
 expectAuditLogPurgeFeature(
-    str_contains($page, "'audit_log_pruned' => 'Audit log pruned'")
-        && str_contains($page, "'audit_log_prune_batch' => 'Audit log pruning batch'")
+    str_contains($page, "'audit_log_pruned' => 'Audit Log Pruned'")
+        && str_contains($page, "'audit_log_prune_batch' => 'Audit Log Pruning Batch'")
         && str_contains($manual, 'In the Retention panel')
         && str_contains($manual, './scripts/prune_audit_log.sh DAYS')
         && str_contains($readme, '### Audit-log retention')

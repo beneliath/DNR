@@ -8,14 +8,14 @@ require_once __DIR__ . '/engagement_contact_helpers.php';
 function emailMessageTemplatePlaceholders(): array
 {
     return [
-        'event_name' => 'Event name',
-        'organization_name' => 'Organization name',
-        'event_dates' => 'Event date range',
-        'event_start_date' => 'Event start date',
-        'event_end_date' => 'Event end date',
-        'event_location' => 'Event location',
-        'speaker_names' => 'Speaker names',
-        'presentation_schedule' => 'Presentation schedule (message only)',
+        'event_name' => 'Event Name',
+        'organization_name' => 'Organization Name',
+        'event_dates' => 'Event Date Range',
+        'event_start_date' => 'Event Start Date',
+        'event_end_date' => 'Event End Date',
+        'event_location' => 'Event Location',
+        'speaker_names' => 'Speaker Names',
+        'presentation_schedule' => 'Presentation Schedule (Message Only)',
     ];
 }
 
@@ -189,7 +189,7 @@ function changeEmailMessageTemplateStatus(mysqli $conn, int $id, int $version, s
 /** Call inside the queue transaction to keep archive/delete from racing a new message. */
 function emailMessageTemplateLabelForSend(mysqli $conn, string $key): string
 {
-    if ($key === 'custom') return 'Custom message';
+    if ($key === 'custom') return 'Custom Message';
     $stmt = $conn->prepare('SELECT name FROM email_message_templates WHERE template_key = ? AND is_archived = 0 FOR SHARE');
     if (!$stmt) throw new RuntimeException('Unable to check the email template.');
     $stmt->bind_param('s', $key);

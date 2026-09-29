@@ -64,7 +64,7 @@ expectFollowUpTaskFeature(
     str_contains($queue, "'my' => 'My Active Work'") === false
         && str_contains($helpers, "'my' => 'My Active Work'")
         && str_contains($helpers, "'overdue' => 'Overdue'")
-        && str_contains($helpers, "'today' => 'Due today'")
+        && str_contains($helpers, "'today' => 'Due Today'")
         && str_contains($helpers, "'upcoming' => 'Next ' . \$upcomingDays . ' days'")
         && str_contains($helpers, "applicationWorkflowSetting('task_upcoming_days')")
         && str_contains($queue, 'assigned_to IS NULL')
@@ -75,7 +75,7 @@ expectFollowUpTaskFeature(
     str_contains($queue, 'followUpTaskQueueState($_GET')
         && str_contains($queue, '$summary_where = array_slice($where, 1)')
         && str_contains($queue, "'scope' => \$scope")
-        && str_contains($queue, 'aria-label="Work ownership"')
+        && str_contains($queue, 'aria-label="Work Ownership"')
         && !str_contains($queue, 'class="task-reminder-panel"'),
     'one ownership scope should drive both task counts and result destinations.'
 );

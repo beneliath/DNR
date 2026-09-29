@@ -2,7 +2,7 @@
     const rows = Array.from(document.querySelectorAll('[data-location-id]'));
     const buttons = Array.from(document.querySelectorAll('[data-location-filter]'));
     const empty = document.getElementById('map-list-empty');
-    const labels = {found: 'On map', needs_address: 'Needs address', pending: 'Awaiting lookup', not_found: 'No matching location', failed: 'Lookup unavailable'};
+    const labels = {found: 'On Map', needs_address: 'Needs Address', pending: 'Awaiting Lookup', not_found: 'No Matching Location', failed: 'Lookup Unavailable'};
     const help = {
         found: '', needs_address: 'Enter an event address to add a pin.',
         pending: 'The location lookup is queued or in progress.',

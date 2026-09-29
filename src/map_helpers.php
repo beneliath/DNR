@@ -22,8 +22,8 @@ function engagementMapStyleUrl(): string
 function engagementMapStatuses()
 {
     return [
-        'work_in_progress' => 'Work in progress',
-        'under_review' => 'Under review',
+        'work_in_progress' => 'Work in Progress',
+        'under_review' => 'Under Review',
         'confirmed' => 'Confirmed',
     ];
 }

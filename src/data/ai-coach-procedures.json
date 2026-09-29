@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "verified_against": "MOED 2.3.5 source and Comprehensive Manual, 2026-09-24",
+  "verified_against": "Reimbursement guidance verified against current MOED 2.3.21 source and September 29, 2026 guide; existing procedures retain their individual source hashes.",
   "procedures": [
     {
       "id": "edit-event-dates",
@@ -23,8 +23,8 @@
         "edit_engagement.php": "You are already in Edit Engagement. Change Start and End in the event fields."
       },
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
       },
       "subjects": [
         "event",
@@ -36,7 +36,7 @@
         "event-dates"
       ],
       "walkthrough": {
-        "label": "change event dates",
+        "label": "Change Event Dates",
         "request": "How do I change the dates of an existing event?",
         "rules": [
           {
@@ -126,7 +126,7 @@
             "message": "Open the intended event from Engagements; do not create another event to change the dates."
           },
           "event-dates-open": {
-            "message": "Select Edit Engagement to open this event\u2019s form.",
+            "message": "Select Edit Engagement to open this event’s form.",
             "target": "edit-event",
             "label": "show edit engagement"
           },
@@ -152,15 +152,15 @@
             "label": "show validation message"
           },
           "event-dates-check": {
-            "message": "Check the event\u2019s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
+            "message": "Check the event’s displayed dates and the application confirmation. Navigation alone does not confirm a successful save."
           },
           "event-dates-start-required": {
-            "message": "Start is required. Choose the event\u2019s start date before reviewing the form.",
+            "message": "Start is required. Choose the event’s start date before reviewing the form.",
             "target": "event-start-date",
             "label": "show start"
           },
           "event-dates-end-required": {
-            "message": "End is required. Choose the event\u2019s end date before reviewing the form.",
+            "message": "End is required. Choose the event’s end date before reviewing the form.",
             "target": "event-end-date",
             "label": "show end"
           }
@@ -189,17 +189,17 @@
         "editor"
       ],
       "steps": [
-        "Open Work Queue and find the existing task. Select its Edit task control.",
-        "In Assigned to, choose the intended user. Review the task and select Save changes.",
+        "Open Work Queue and find the existing task. Select its Edit Task control.",
+        "In Assigned To, choose the intended user. Review the task and select Save Changes.",
         "Check the saved owner in Work Queue. The green check-mark completes a task; it does not assign it."
       ],
       "on_pages": {
-        "edit_task.php": "You are already in Edit Task. Find Assigned to in the form."
+        "edit_task.php": "You are already in Edit Task. Find Assigned To in the form."
       },
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
-        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
-        "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2"
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
+        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
+        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f"
       },
       "subjects": [
         "task",
@@ -211,7 +211,7 @@
         "task"
       ],
       "walkthrough": {
-        "label": "assign a task",
+        "label": "Assign a Task",
         "request": "How do I assign a task?",
         "rules": [
           {
@@ -263,21 +263,21 @@
         "default_step": "task-assign-start",
         "steps": {
           "task-assign-start": {
-            "message": "Open My Work and find the existing task. Use its Edit task action to change the owner. The green check-mark completes work; it does not assign it.",
+            "message": "Open My Work and find the existing task. Use its Edit Task action to change the owner. The green check-mark completes work; it does not assign it.",
             "href": "tasks.php",
             "label": "open my work"
           },
           "task-assign-record": {
-            "message": "Find the intended task and select Edit task. Do not use the green completion check-mark to assign it."
+            "message": "Find the intended task and select Edit Task. Do not use the green completion check-mark to assign it."
           },
           "task-assign-owner": {
-            "message": "In Assigned to, choose the intended user, or Unassigned if nobody should own it. Review your selection, then select i have reviewed the details here.",
+            "message": "In Assigned To, choose the intended user, or Unassigned if nobody should own it. Review your selection, then select i have reviewed the details here.",
             "target": "task-assignee",
             "label": "show assigned to",
             "acknowledge": true
           },
           "task-assign-save": {
-            "message": "Review the task and select Save changes. Check the saved owner afterward; selecting a user alone has not saved the change.",
+            "message": "Review the task and select Save Changes. Check the saved owner afterward; selecting a user alone has not saved the change.",
             "target": "save-task",
             "label": "show save changes"
           },
@@ -287,7 +287,7 @@
             "label": "show validation message"
           },
           "task-assign-check": {
-            "message": "Check the application confirmation and the task\u2019s owner. A page change alone does not prove the reassignment succeeded."
+            "message": "Check the application confirmation and the task’s owner. A page change alone does not prove the reassignment succeeded."
           }
         }
       },
@@ -310,17 +310,17 @@
       ],
       "steps": [
         "For an event task, open the event, select Tasks, then Add Task. For general work, open Work Queue and use + New Task.",
-        "Enter Title and Notes; verify Related record, Assigned to, Due date, Priority, and Status.",
+        "Enter Title and Notes; verify Related Record, Assigned To, Due Date, Priority, and Status.",
         "Select Add task and check that the task appears for the intended record."
       ],
       "on_pages": {
-        "add_task.php": "You are already in the task form. Start with Title and verify Related record."
+        "add_task.php": "You are already in the task form. Start with Title and verify Related Record."
       },
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
         "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
-        "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2"
+        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f"
       },
       "subjects": [
         "task",
@@ -333,7 +333,7 @@
         "task-entry"
       ],
       "walkthrough": {
-        "label": "add a task",
+        "label": "Add a Task",
         "request": "How do I add a task?",
         "rules": [
           {
@@ -430,7 +430,7 @@
             "label": "show title"
           },
           "task-create-review": {
-            "message": "Review Related record. To change it, use Change record, type at least three characters in Find a related record, then select the matching result. Review Assigned to, Due date, Priority, Status, and Notes. Select i have reviewed the details when ready.",
+            "message": "Review Related Record. To change it, use Change Record, type at least three characters in Find a Related Record, then select the matching result. Review Assigned To, Due Date, Priority, Status, and Notes. Select i have reviewed the details when ready.",
             "target": "task-related",
             "label": "show related record",
             "acknowledge": true
@@ -449,7 +449,7 @@
             "message": "Check the application confirmation and find the new task on the intended record or in My Work. Navigation alone does not confirm it was saved."
           },
           "task-create-event-add": {
-            "message": "Select Add Task inside Tasks. The event is carried into the task form as its Related record.",
+            "message": "Select Add Task inside Tasks. The event is carried into the task form as its Related Record.",
             "target": "event-add-task",
             "label": "show add task"
           }
@@ -485,13 +485,13 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record\u2019s task list.",
+        "Find the task in Work Queue or the related record’s task list.",
         "Select its green check-mark. MOED opens Complete Task?",
         "Review the confirmation, then select Complete Task if the work is done. Cancel leaves it unchanged."
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
       },
       "subjects": [
         "task"
@@ -511,13 +511,13 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record\u2019s task list.",
+        "Find the task in Work Queue or the related record’s task list.",
         "Select the Archive task box icon. Archiving retains its status and details while removing it from active work and reminders.",
         "Check Archived in Work Queue to find it afterward. Required financial-closeout tasks cannot be archived to bypass closeout."
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
       },
       "subjects": [
         "task"
@@ -543,7 +543,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b"
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
       },
       "subjects": [
         "task"
@@ -571,7 +571,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_calendar.php": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df"
+        "view_calendar.php": "3ada12725cf9dfe704aa5783e828e6f8fe5df9d9450a38eac9338e9f084db6b6"
       },
       "subjects": [
         "calendar",
@@ -583,7 +583,7 @@
         "calendar"
       ],
       "walkthrough": {
-        "label": "subscribe to your calendar",
+        "label": "Subscribe to Your Calendar",
         "request": "How do I subscribe to MOED in my own calendar?",
         "rules": [
           {
@@ -663,7 +663,7 @@
             "label": "show create private link"
           },
           "calendar-copy-link": {
-            "message": "Save This New Link is available. Use Copy calendar URL, then add it as a subscribed calendar in your calendar app. Keep the URL private and do not paste it into the coach.",
+            "message": "Save This New Link is available. Use Copy Calendar URL, then add it as a subscribed calendar in your calendar app. Keep the URL private and do not paste it into the coach.",
             "target": "calendar-copy",
             "label": "show copy calendar url"
           },
@@ -693,8 +693,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_inquiry.php": "04fe8c3584605d3c3d92c9cfd99d43e0aa9a64f41e799396c9034f35880a84d7",
-        "convert_inquiry.php": "0e4e6a8902e13458e3164b97400dd5e2c815b85ae543421a5d97fcb08e6a2be7"
+        "view_inquiry.php": "e55e6c753d87013c6ab506f586d00eed02526df3849433e4552bf79b063f8edc",
+        "convert_inquiry.php": "5b6c84d188654ca430deb4b09e1ef2885f7169a956d788a731e7b3af3fd8c038"
       },
       "subjects": [
         "inquiry"
@@ -713,12 +713,12 @@
       ],
       "steps": [
         "Open Organizations and select Archived.",
-        "Find the record and select Restore organization.",
+        "Find the record and select Restore Organization.",
         "Check that the record has returned to the current view."
       ],
       "on_pages": {},
       "source_files": {
-        "organizations.php": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42"
+        "organizations.php": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635"
       },
       "subjects": [
         "organization"
@@ -738,12 +738,12 @@
       "steps": [
         "Open Contacts and select Archived.",
         "Its organization must be active; restore that organization first if necessary.",
-        "Find the record and select Restore contact.",
+        "Find the record and select Restore Contact.",
         "Check that the record has returned to the current view."
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c"
+        "contacts.php": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4"
       },
       "subjects": [
         "contact"
@@ -763,12 +763,12 @@
       "steps": [
         "Open Engagements and select Archived.",
         "Its organization must be active; restore that organization first if necessary.",
-        "Find the record and select Restore event.",
+        "Find the record and select Restore Event.",
         "Check that the record has returned to the current view."
       ],
       "on_pages": {},
       "source_files": {
-        "engagements.php": "19cfedad7376dd6ab150de946db3f61f15c9da3913a16e6f0d5302e05fab453d"
+        "engagements.php": "1ad90904d4bf68960a1742d7d624f51489b39c8665a28797765accc580e06406"
       },
       "subjects": [
         "event",
@@ -789,16 +789,16 @@
       ],
       "steps": [
         "Open the event, select the Presentations tab, then Edit Presentations.",
-        "Find the intended presentation and select Remove current PPT. Do not also select a replacement file.",
+        "Find the intended presentation and select Remove Current PPT. Do not also select a replacement file.",
         "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
       ],
       "on_pages": {
-        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation\u2019s file fields."
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
+        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
       },
       "subjects": [
         "powerpoint",
@@ -822,16 +822,16 @@
       ],
       "steps": [
         "Open the event, select the Presentations tab, then Edit Presentations.",
-        "Find the intended presentation and select Remove current PDF. Do not also select a replacement file.",
+        "Find the intended presentation and select Remove Current PDF. Do not also select a replacement file.",
         "Review the pending change and select Save Changes in the bottom bar. Removal takes effect only after saving."
       ],
       "on_pages": {
-        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation\u2019s file fields."
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
+        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
       },
       "subjects": [
         "speaker notes",
@@ -853,13 +853,13 @@
       ],
       "steps": [
         "Open Organizations and select + New Organization.",
-        "Complete the organization\u2019s required details, then review its addresses and contact information.",
-        "Select Create organization and check the save confirmation. Creating the organization does not create an event."
+        "Complete the organization’s required details, then review its addresses and contact information.",
+        "Select Create Organization and check the save confirmation. Creating the organization does not create an event."
       ],
       "on_pages": {},
       "source_files": {
-        "organizations.php": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42",
-        "add_organization.php": "04674f42d980269e75bd5d7c3a2b0ad3e5a4acd737c17ec2ee52831db536995f"
+        "organizations.php": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635",
+        "add_organization.php": "7c71e3a9677d8e4fbca680e92cb00b9f576716994d3fbc9cc6eb1274e3eb7052"
       },
       "subjects": [
         "organization"
@@ -878,13 +878,13 @@
       ],
       "steps": [
         "Open Contacts and select + New Contact.",
-        "Complete the person\u2019s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
-        "Select Create contact, then check the save confirmation."
+        "Complete the person’s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
+        "Select Create Contact, then check the save confirmation."
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c",
-        "add_contact.php": "79bf97dfead0a9ded27f0905b152b1201d96eafff97127c8f55c57ec399e97fc"
+        "contacts.php": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4",
+        "add_contact.php": "8500659d8f3f76c1765eb98e324001e8a9eb8988b55d924bc2c1a7407599a966"
       },
       "subjects": [
         "contact"
@@ -906,11 +906,11 @@
       "steps": [
         "Open the event and select Add Chron Log Entry.",
         "Enter the note in the Chron form. Record the decision, conversation outcome, or useful context.",
-        "Select Save Chron Log Entry and check that it appears in the event\u2019s Activity."
+        "Select Save Chron Log Entry and check that it appears in the event’s Activity."
       ],
       "on_pages": {},
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763"
       },
       "subjects": [
         "event",
@@ -935,8 +935,8 @@
         "Select Change Password. Check the confirmation; other sessions will be signed out. If MOED requests recent two-factor verification, sign in again first."
       ],
       "source_files": {
-        "two_factor_settings.php": "712a0d508b314cbf8badc88f0092afb8d8532266db88bcbf9c555b775c5b5e2d",
-        "templates/header.php": "456af949f75d4ccae13ccf09c75921834fbe89069a5e44eab31fa70dc26ed261"
+        "two_factor_settings.php": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
+        "templates/header.php": "ee1fa8e2659399588038cce770b86a49da3ff517e731470fc07d9b24544a7ac0"
       },
       "subjects": [
         "password"
@@ -954,16 +954,16 @@
         "editor"
       ],
       "steps": [
-        "Open the existing task with Edit task. You are changing its Related record, not creating another task.",
-        "In Related record, select Change record if a record is already selected. Type at least three characters into Find a related record and choose the intended matching record. Searching alone does not select it.",
-        "Select Save changes and check the saved relationship."
+        "Open the existing task with Edit Task. You are changing its Related Record, not creating another task.",
+        "In Related Record, select Change Record if a record is already selected. Type at least three characters into Find a Related Record and choose the intended matching record. Searching alone does not select it.",
+        "Select Save Changes and check the saved relationship."
       ],
       "on_pages": {
-        "edit_task.php": "You are already in Edit Task. Find Related record."
+        "edit_task.php": "You are already in Edit Task. Find Related Record."
       },
       "source_files": {
-        "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2",
-        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85"
+        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
+        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32"
       },
       "subjects": [
         "task",
@@ -990,16 +990,16 @@
         "editor"
       ],
       "steps": [
-        "Open the existing task with Edit task.",
+        "Open the existing task with Edit Task.",
         "Enter or revise Notes in that task form. These are text notes; they are separate from presentation speaker-notes PDFs.",
-        "Select Save changes and check the task."
+        "Select Save Changes and check the task."
       ],
       "on_pages": {
         "edit_task.php": "You are already in Edit Task. Find Notes."
       },
       "source_files": {
-        "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2",
-        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85"
+        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
+        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32"
       },
       "subjects": [
         "task",
@@ -1014,6 +1014,275 @@
           "save-task"
         ]
       }
+    },
+    {
+      "id": "reimbursement-add-expense",
+      "patterns": [
+        "\\b(add|create|new|record)\\b",
+        "\\bexpense\\b",
+        "^(?!.*\\b(request|draft|receipt)\\b)"
+      ],
+      "topic": "manual-topic-reimbursements-add-an-expense-and-receipts",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Reimbursements and select + Add Expense.",
+        "Enter Expense Date, Merchant or Payee, Amount (USD), Account, and Description or Purpose. Add receipt files if available.",
+        "Select Save Expense. Only your own editable expenses can be changed."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursement_expense.php": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539"
+      },
+      "subjects": [
+        "reimbursement",
+        "expense",
+        "receipt"
+      ],
+      "forms": [
+        "reimbursement-expense"
+      ]
+    },
+    {
+      "id": "reimbursement-receipts",
+      "patterns": [
+        "\\b(receipt|receipts)\\b",
+        "\\b(add|upload|attach|paste|camera|photo)\\b"
+      ],
+      "topic": "manual-topic-reimbursements-add-an-expense-and-receipts",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open your editable expense from Reimbursements, or use + Add Expense.",
+        "Use Upload Receipt, the drop area, Paste Image, or Take a Receipt Photo. If clipboard access fails, focus the paste area and use your normal paste shortcut.",
+        "Review selected files and select Save Expense; choosing files alone does not upload them. Submitted expenses are locked."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursement_expense.php": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539",
+        "assets/js/reimbursements.js": "17221ea4ba47708edcf3b1cab2667ab6992009730775dc046e3dda9311b14240"
+      },
+      "subjects": [
+        "reimbursement",
+        "expense",
+        "receipt"
+      ],
+      "forms": [
+        "reimbursement-expense"
+      ]
+    },
+    {
+      "id": "reimbursement-create-draft",
+      "patterns": [
+        "\\b(create|make|new)\\b",
+        "\\b(draft|request)\\b",
+        "\\b(reimbursement|expense|expenses)\\b",
+        "^(?!.*\\b(submit|send)\\b)"
+      ],
+      "topic": "manual-topic-reimbursements-create-and-edit-a-draft-request",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Reimbursements and select your active available expenses. Check the selected total and missing receipts.",
+        "Use Dates for New Request to adjust the request range if needed. These are separate from browsing filters.",
+        "Select Create Draft Request from Selected Expenses, then review the draft. Draft creation does not send email."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursements.php": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+        "reimbursement_request.php": "6f89846eab85c9fb579752af399aafca25a736e00fd85b7702a1c89e9b359253"
+      },
+      "subjects": [
+        "reimbursement",
+        "expense",
+        "receipt"
+      ],
+      "forms": [
+        "reimbursement-draft"
+      ]
+    },
+    {
+      "id": "reimbursement-submit-request",
+      "patterns": [
+        "\\b(submit|send)\\b",
+        "\\b(reimbursement|expense|expenses)\\b",
+        "^(?!.*\\b(retry|resend|again|another copy)\\b)"
+      ],
+      "topic": "manual-topic-reimbursements-review-and-submit-a-reimbursement",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Requests and use the Submit icon beside your active draft, or open the draft and select Review and Submit.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, Cc/Bcc recipients, amounts, and matching receipt filenames.",
+        "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
+        "reimbursement_submission_helpers.php": "a32f6b6fabb52e32621eeb10da8c81d4c428ee7892e83cb0f1e7060fd47c391e",
+        "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
+      },
+      "subjects": [
+        "reimbursement",
+        "expense",
+        "receipt"
+      ],
+      "forms": [
+        "reimbursement-submit",
+        "reimbursement-draft"
+      ]
+    },
+    {
+      "id": "reimbursement-chart-of-accounts",
+      "patterns": [
+        "\\b(chart of accounts|coa|cost centers?)\\b",
+        "\\b(open|find|manage|add|edit|archive|sort|search)\\b"
+      ],
+      "topic": "manual-topic-reimbursements-manage-the-chart-of-accounts",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Reimbursements or Requests and select Chart of Accounts.",
+        "Search COA numbers/descriptions, choose Active, In Use, or Archived, and use COA Number, Description, or Expenses to sort.",
+        "Use Add Account or Edit to save a unique COA Number and Description. Archive accounts with history; only administrators can delete unused accounts."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursement_cost_centers.php": "31d4076e6d23ee7f3904848382a128ab1ddeb5e18a37d43ee8c3c0b71a57f17d"
+      },
+      "subjects": [
+        "chart of accounts",
+        "coa",
+        "cost center",
+        "account"
+      ],
+      "forms": []
+    },
+    {
+      "id": "reimbursement-setup-recipients",
+      "patterns": [
+        "\\b(reimbursement|bookkeeper)\\b",
+        "\\b(setup|settings|bcc|cc|recipient|bookkeeper)\\b",
+        "\\b(change|set|configure|update|where|find)\\b",
+        "^(?!.*\\breviewer\\b)"
+      ],
+      "topic": "manual-topic-reimbursements-set-reimbursement-recipients",
+      "roles": [
+        "admin"
+      ],
+      "steps": [
+        "Open Reimbursement Setup under Administration in the sidebar.",
+        "Enter the organization and bookkeeper details, Cc Email Address, and Bcc Email Address.",
+        "Unlock administrator actions and select Save Reimbursement Setup. These settings apply to future submissions; recovery sends the original approved message."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "reimbursement_setup.php": "4fe01188ab8638dfdbe4b0d338f086598d77adb84cf9cbe29ca651e0b3d941a3"
+      },
+      "subjects": [
+        "reimbursement",
+        "bookkeeper",
+        "bcc",
+        "cc"
+      ],
+      "forms": [
+        "reimbursement-setup"
+      ]
+    },
+    {
+      "id": "reimbursement-reviewer-email",
+      "patterns": [
+        "\\b(reimbursement|expense)\\b",
+        "\\breviewer\\b",
+        "\\b(change|set|add|update|where|find)\\b"
+      ],
+      "topic": "manual-topic-reimbursements-set-reimbursement-recipients",
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "steps": [
+        "Open My Profile and find Personal Details.",
+        "Set Reimbursement Reviewer Email and save the profile. This recipient receives a Cc copy when you submit.",
+        "Check the actual routing in the submission preview; this field is separate from your verified account email."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "profile.php": "f9df250d2f4a0171e53b1c5128cdf4caf89a36be3d8f5542f87136871cd9bb7a"
+      },
+      "subjects": [
+        "reviewer",
+        "reimbursement"
+      ],
+      "forms": []
+    },
+    {
+      "id": "reimbursement-delivery-recovery",
+      "patterns": [
+        "\\b(reimbursement|expense|bookkeeper)\\b",
+        "\\b(retry|resend|send again|another copy)\\b"
+      ],
+      "topic": "manual-topic-reimbursements-track-delivery-and-handle-corrections",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the submitted request and review Email Delivery. Confirm with the recipient or provider whether an uncertain or accepted copy arrived.",
+        "Use Retry Failed Delivery for a known failure, or Send Another Copy where offered. Enter a reason and confirm the prior delivery review before sending.",
+        "Recovery uses the original approved recipient and package for up to 365 days. Do not submit these expenses again just because email failed."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "templates/reimbursement_delivery_history.php": "3ec059345cc3413920fd5d5bce0e85a46c946aac1c20df03051a74be7ad6cc8c",
+        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+      },
+      "subjects": [
+        "reimbursement",
+        "delivery",
+        "bookkeeper",
+        "expense"
+      ],
+      "forms": []
+    },
+    {
+      "id": "reimbursement-correction",
+      "patterns": [
+        "\\b(reimbursement|expense|request)\\b",
+        "\\b(correction|correct|resolve)\\b"
+      ],
+      "topic": "manual-topic-reimbursements-track-delivery-and-handle-corrections",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open the submitted request and expand Record a Correction.",
+        "Enter the reason and confirm. Only unsent copies are cancelled; accepted/sending copies cannot be recalled and expenses stay locked.",
+        "Coordinate with the bookkeeper. Use Resolve Correction with a Resolution Note to record the agreement; this does not send mail or unlock the expenses."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "templates/reimbursement_delivery_history.php": "3ec059345cc3413920fd5d5bce0e85a46c946aac1c20df03051a74be7ad6cc8c",
+        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+      },
+      "subjects": [
+        "reimbursement",
+        "expense",
+        "receipt"
+      ],
+      "forms": []
     }
   ]
 }

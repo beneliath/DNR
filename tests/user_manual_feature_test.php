@@ -36,6 +36,7 @@ $chapters = [
     'work-queue',
     'chron-mail',
     'map-calendar',
+    'reimbursements',
     'profile-security',
     'mattermost',
     'administration',
@@ -119,7 +120,7 @@ expectUserManual(
         && str_contains($manual, '<strong>Add MOED task</strong> creates follow-up work')
         && str_contains($manual, 'Add to MOED Chron')
         && str_contains($manual, "adds the post to the linked engagement's history")
-        && str_contains($manual, 'Send Engagement Email From Mattermost')
+        && str_contains($manual, 'Send Engagement Email from Mattermost')
         && str_contains($manual, 'Send via MOED email')
         && str_contains($manual, 'Send and add to Chron')
         && str_contains($manual, 'Each unique address receives a separate message')
@@ -142,7 +143,7 @@ expectUserManual(
         && str_contains($manual, 'PDF up to 100 MB')
         && str_contains($manual, 'Speaker QR Codes')
         && str_contains($manual, 'website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck')
-        && str_contains($manual, '<strong>Copy link</strong> icon')
+        && str_contains($manual, '<strong>Copy Link</strong> icon')
         && str_contains($manual, 'Speakers → Edit Speaker → Custom Links')
         && str_contains($manual, 'Download PNG or SVG')
         && str_contains($manual, 'Save Changes')
@@ -157,8 +158,8 @@ expectUserManual(
         && str_contains($manual, 'Speakers assigned to active presentations are optional and unchecked by default')
         && str_contains($manual, 'To and Cc addresses are visible')
         && str_contains($manual, 'Bcc addresses stay hidden')
-        && str_contains($manual, '<strong>Cc me</strong>')
-        && str_contains($manual, '<strong>Bcc me</strong>')
+        && str_contains($manual, '<strong>Cc Me</strong>')
+        && str_contains($manual, '<strong>Bcc Me</strong>')
         && str_contains($manual, 'share-safe brief')
         && str_contains($manual, 'Queue Email')
         && str_contains($manual, 'Retry Failed Deliveries')

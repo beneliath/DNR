@@ -78,11 +78,11 @@ try {
     $data = $mapData($page);
     $csrf = $data['locationLookup']['csrfToken'];
     $fields = ['csrf_token' => $csrf, 'engagement_ids' => (string) $engagementId];
-    expectMapHttp(str_contains($page['body'], 'Show missing addresses') && !str_contains($page['body'], 'Find missing addresses'), 'The filter action must describe its behavior');
+    expectMapHttp(str_contains($page['body'], 'Show Missing Addresses') && !str_contains($page['body'], 'Find missing addresses'), 'The filter action must describe its behavior');
     $missing = $mapData($request($path . '&location=needs_address'));
     expectMapHttp(array_column($missing['events'], 'id') === [$missingId], 'A country-only record should need an address; an unresolved address should not');
     $empty = $request('map.php?date_from=2098-01-01&date_to=2098-01-02&location=needs_address');
-    expectMapHttp(str_contains($empty['body'], 'No missing addresses') && str_contains($empty['body'], 'Show all locations')
+    expectMapHttp(str_contains($empty['body'], 'No missing addresses') && str_contains($empty['body'], 'Show All Locations')
         && str_contains($empty['body'], 'id="engagement-map" class="engagement-map" hidden'), 'Empty results should explain the filter and hide the world map');
     expectMapHttp($request('map_geocode.php', ['engagement_ids' => $engagementId, 'retry' => '1'])['status'] === 400, 'Retry must require CSRF');
     $normal = $request('map_geocode.php', $fields);
@@ -110,7 +110,7 @@ try {
     expectMapHttp($done['json']['locations'][0]['provider'] === 'geoapify' && $done['json']['locations'][0]['confidence'] === 0.99,
         'Provider and match quality should survive worker storage and status polling');
     $pinPage = $request('map_pin.php?id=' . $engagementId);
-    expectMapHttp($pinPage['status'] === 200 && str_contains($pinPage['body'], 'Save confirmed pin'), 'Editor should be able to set a map pin');
+    expectMapHttp($pinPage['status'] === 200 && str_contains($pinPage['body'], 'Save Confirmed Pin'), 'Editor should be able to set a map pin');
     $pinFields = ['csrf_token' => $csrf, 'address_hash' => $addressHash, 'latitude' => '28.84', 'longitude' => '-82.35'];
     expectMapHttp($request('map_pin.php?id=' . $engagementId, $pinFields)['status'] === 400, 'Pin confirmation must be explicit');
     expectMapHttp($request('map_pin.php?id=' . $engagementId, array_merge($pinFields, ['latitude' => '100', 'confirm_pin' => 'yes']))['status'] === 400, 'Reject invalid coordinates');

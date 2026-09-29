@@ -382,7 +382,7 @@ try {
         $conn,
         $inquiry,
         'proposal_follow_up',
-        'Proposal follow-up',
+        'Proposal Follow-Up',
         'Hello, this is the inquiry follow-up.',
         $userId,
         $username

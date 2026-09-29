@@ -83,7 +83,7 @@ final class OrganizationInput
             $add_error('organization_name', 'Organization name is required.');
         }
         foreach ([
-            'organization_name' => [255, 'Organization name'],
+            'organization_name' => [255, 'Organization Name'],
             'affiliation' => [255, 'Affiliation'],
             'distinctives' => [255, 'Distinctives'],
             'website_url' => [255, 'Website URL'],

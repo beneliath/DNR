@@ -1,6 +1,6 @@
 (function () {
     'use strict';
-    const workflowLabels = { engagement: 'add a new event', notes: 'add speaker notes pdf', presentation: 'add a powerpoint', waiting: 'understand waiting tasks' };
+    const workflowLabels = { engagement: 'Add a New Event', notes: 'Add Speaker Notes PDF', presentation: 'Add a PowerPoint', waiting: 'Understand Waiting Tasks' };
 
     function nextStep(page, workflow, state, role, definitions = {}) {
         if (!workflow) return '';
@@ -275,9 +275,9 @@
             ? 'The next step uses ' + (step.label || 'this control').replace(/^show /i, '') + ', but it is not visible on this page. I cannot determine why it is missing. Use the manual or report the missing control below.'
             : step.message;
         find('show').hidden = !targetVisible;
-        find('show').textContent = (step.label || 'show me').toLowerCase();
+        find('show').textContent = (step.label || 'Show Me');
         find('go').hidden = !step.href;
-        if (step.href) { find('go').href = step.href; find('go').textContent = step.label.toLowerCase(); }
+        if (step.href) { find('go').href = step.href; find('go').textContent = step.label; }
         find('step-note').textContent = step.target && !targetVisible
             ? 'That control is not visible here. Check the selected page or tab, or report it with i can’t see that control.'
             : 'You make the changes; the coach follows your progress.';
@@ -302,7 +302,7 @@
         const title = document.createElement('strong');
         title.textContent = message.workflow === 'engagement' ? 'Add a new event' : message.workflow === 'notes' ? 'Add speaker notes PDF' : message.workflow === 'presentation' ? 'Add a PowerPoint' : 'Understand Waiting tasks';
         const copy = document.createElement('p'); copy.textContent = definition.message;
-        const resume = document.createElement('button'); resume.type = 'button'; resume.className = 'button-secondary'; resume.textContent = 'resume walkthrough';
+        const resume = document.createElement('button'); resume.type = 'button'; resume.className = 'button-secondary'; resume.textContent = 'Resume Walkthrough';
         resume.addEventListener('click', function () { requestWorkflow(message.workflow); });
         card.append(title, copy, resume); return card;
     }
@@ -326,7 +326,7 @@
         item.className = 'coach-message coach-message-' + message.role;
         if (message.id) messageNodes.set(message.id, item);
         const label = document.createElement('strong');
-        label.textContent = message.role === 'user' ? 'You' : message.mode === 'manual' ? 'ai coach · Comprehensive Manual' : message.mode === 'conversation' ? 'ai coach' : 'ai coach · guided step';
+        label.textContent = message.role === 'user' ? 'You' : message.mode === 'manual' ? 'ai coach · Comprehensive Manual' : message.mode === 'conversation' ? 'AI Coach' : 'ai coach · guided step';
         const copy = document.createElement('p');
         copy.textContent = message.content;
         item.append(label, copy);
@@ -609,7 +609,7 @@
             else receiveReply(data, number);
         } catch (_) {
             if (number !== requestNumber || !pending) return;
-            find('status').textContent = 'Reconnecting to your answer…';
+            find('status').textContent = 'Reconnecting to Your Answer…';
             schedulePoll(active, number);
         }
     }
@@ -658,7 +658,7 @@
         controller = new AbortController();
         const number = ++requestNumber;
         setBusy(true);
-        find('status').textContent = 'Continuing your question…';
+        find('status').textContent = 'Continuing Your Question…';
         pollPending(controller, number);
     }
 })();

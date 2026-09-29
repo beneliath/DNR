@@ -25,7 +25,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
         <div class="inquiry-form-grid">
             <div class="form-group">
                 <label for="inquiry-organization">Organization</label>
-                <label class="visually-hidden" for="inquiry-organization-search">Search organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search organizations" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-organization-search">Search Organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Organizations" autocomplete="off">
                 <select id="inquiry-organization" name="organization_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_organizations as $organization): ?>
@@ -35,7 +35,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             </div>
             <div class="form-group">
                 <label for="inquiry-contact">Primary Contact</label>
-                <label class="visually-hidden" for="inquiry-contact-search">Search compatible contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search compatible contacts" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-contact-search">Search Compatible Contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Compatible Contacts" autocomplete="off">
                 <select id="inquiry-contact" name="primary_contact_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_contacts as $contact): ?>
@@ -45,8 +45,8 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                 </select>
             </div>
         </div>
-        <noscript><button type="submit" name="search_inquiry_relationships" value="1" formnovalidate>Search organizations and contacts</button></noscript>
-        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create contact</a></div>
+        <noscript><button type="submit" name="search_inquiry_relationships" value="1" formnovalidate>Search Organizations and Contacts</button></noscript>
+        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Contact</a></div>
         <p class="field-help" id="inquiry-relationship-status" role="status">Search by name to find a record. Up to 25 matches are shown. Choose an organization to narrow contacts. Standalone contacts can be selected when no organization is chosen. Creating a related record keeps this inquiry draft.</p>
         <div class="form-group inquiry-request-summary">
             <label for="inquiry-summary">What Is Being Requested?</label>

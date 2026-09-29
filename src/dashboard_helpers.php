@@ -70,7 +70,7 @@ function dashboardEngagementLabel(array $engagement): string
         return $event_title;
     }
     $organization_name = trim((string) ($engagement['organization_name'] ?? ''));
-    return $organization_name !== '' ? $organization_name : 'Untitled engagement';
+    return $organization_name !== '' ? $organization_name : 'Untitled Engagement';
 }
 
 function dashboardDateRangeLabel(mixed $start_date, mixed $end_date): string
@@ -99,10 +99,10 @@ function dashboardConfirmationStatusLabel(mixed $status): string
 {
     $status = trim((string) $status);
     return match ($status) {
-        'work_in_progress' => 'Work in progress',
-        'under_review' => 'Under review',
+        'work_in_progress' => 'Work in Progress',
+        'under_review' => 'Under Review',
         'confirmed' => 'Confirmed',
-        default => 'Status not set',
+        default => 'Status Not Set',
     };
 }
 

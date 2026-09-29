@@ -26,6 +26,8 @@ $reminderIndexMigration = $read('migrations/20260824_optimize_task_reminders.sql
 $order = $read('migrations/order.txt');
 $helpers = $read('src/notification_helpers.php');
 $digestTemplate = $read('src/daily_digest_email.php');
+require_once __DIR__ . '/../src/email_ascii_footer.php';
+$digestFooter = renderEmailAsciiFooter();
 $emailHelpers = $read('src/email_helpers.php');
 $worker = $read('scripts/process_email_outbox.php');
 $profile = $read('src/profile.php');
@@ -108,17 +110,18 @@ expectTaskNotificationsFeature(
         && str_contains($helpers, "'html_body' => renderDailyTaskDigestHtml(")
         && str_contains($helpers, "'html_body' => is_string(\$message['html_body']")
         && str_contains($digestTemplate, 'function renderDailyTaskDigestHtml(')
-        && str_contains($digestTemplate, 'applicationBrandEmailLogo()')
+        && str_contains($digestTemplate, 'emailBrandLogoUrl()')
         && str_contains($digestTemplate, 'class="masthead-logo"')
         && str_contains($digestTemplate, 'name="color-scheme" content="light only"')
         && str_contains($digestTemplate, '#ffe8ee')
         && str_contains($digestTemplate, '#d92d20')
         && str_contains($digestTemplate, '#e4f2ff')
         && str_contains($digestTemplate, '#2563eb')
-        && str_contains($digestTemplate, 'aria-label="ASCII art cat"')
-        && str_contains(preg_replace('/<\/?a\b[^>]*>/', '', $digestTemplate), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
-        && str_contains($digestTemplate, 'text-align:left;white-space:pre')
-        && str_contains($digestTemplate, 'opacity:0.35')
+        && str_contains($digestTemplate, 'renderEmailAsciiFooter()')
+        && str_contains($digestFooter, 'aria-label="ASCII Art Cat"')
+        && str_contains(preg_replace('/<\/?a\b[^>]*>/', '', $digestFooter), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
+        && str_contains($digestFooter, 'text-align:left;white-space:pre')
+        && str_contains($digestFooter, 'opacity:0.35')
         && str_contains($digestTemplate, "dailyTaskDigestHtmlUrl('edit_task.php'")
         && str_contains($digestTemplate, "dailyTaskDigestHtmlUrl('view_engagement.php'")
         && str_contains($emailHelpers, 'Content-Type: multipart/alternative; boundary=')

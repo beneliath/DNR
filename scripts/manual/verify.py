@@ -13,7 +13,7 @@ pages=reader.pages
 page_ids={p.indirect_reference.idnum:n for n,p in enumerate(pages)}
 assert len(pages)==report['pages']
 texts=[p.extract_text() or '' for p in pages]
-for number in range(1,14):
+for number in range(1,15):
     idx=report['destinations']['chapter-'+str(number)]-1
     assert f'CHAPTER {number:02}' in texts[idx], ('Wrong chapter target',number,idx)
 links=0
@@ -49,7 +49,7 @@ for number,shot in enumerate(shots,1):
 all_text='\n'.join(texts)
 assert 'Archiving an engagement or inquiry also hides its tasks' in ' '.join(all_text.split())
 for expected in ['Delete an ai coach Request', 'Drop PDF here', 'Drop PowerPoint here', 'Retry loading weeks', 'first week', 'Select records for permanent deletion', 'Delete inactive users individually or in a group', 'Use Enter without losing your place', 'DELETE USERS', 'DELETE USER', 'Select all on this page', 'Amber Deactivate', 'original five-minute deadline', 'Removal pending', 'PPT Slidedeck', 'Download PPT Slidedeck', 'Copy link', 'Due tomorrow', 'Backups include uploaded files', 'Archive a finished inquiry','Restore Inquiry','Archive tasks without changing their status','Restore task','Lock Admin Actions','Mail Ingestion','Historical mailbox review','Daily Digest delivery days','Reset Network Traffic Statistics','Compare Remote Network Performance','Complete Task?','Automatically locks in','Last backup created','Birthdays','Change Recovery Email','Reset presentation statistics','Closeout','Mattermost','Retry Failed Deliveries','PRUNE','Topic finder','Manage Email Templates','Archive and Restore','Delete and Access','Speaker names','Changing templates keeps your speaker selection']:
-    assert expected in ' '.join(all_text.split()),('Missing required topic',expected)
+    assert expected.casefold() in ' '.join(all_text.split()).casefold(),('Missing required topic',expected)
 for expected in [
     'Learn with ai coach', 'Follow an Interactive Walkthrough',
     'Manage the Coach Conversation', 'Rate an Answer and Report a Missing Control',
@@ -60,7 +60,7 @@ for expected in [
     'New conversation', 'Stop answer', 'Feedback review queue',
     'Needs revalidation', '500 MB', '600 MB total',
 ]:
-    assert expected in ' '.join(all_text.split()), ('Missing new feature guidance', expected)
+    assert expected.casefold() in ' '.join(all_text.split()).casefold(), ('Missing new feature guidance', expected)
 for forbidden in ['Genesis 49:9,10','Revelation 5:5','Do you see Him?','ASCII art cat','Lorem ipsum','TODO:','Traceback','Fatal error','Undefined variable', 'Speakers remain available permanently and cannot be archived or deleted.', 'Speaker profiles are permanent; update an existing profile', 'Some account lifecycle actions consume the unlock earlier.']:
     assert forbidden not in all_text,('Unexpected placeholder/error',forbidden)
 # Double braces are now intentional, documented template fields. Reject unknown tokens.
@@ -143,7 +143,7 @@ assert len(report['full_width_blocks'])>=5
 for block in report['full_width_blocks']:
     assert abs(block['width']-manual.CW)<.1,('Reference block not full width',block)
 assert 'Administrator' in texts[report['full_width_blocks'][0]['page']-1]
-result={'pages':len(pages),'screenshots':len(shots),'internal_links':links,'bookmarks':outline_count,'chapter_targets':'13/13 valid','walkthrough_layout':'all screenshots, captions, and steps remain on one page','external_pdf_actions':0,'readme_appendix':{'sections':len(manual.README_HEADINGS),'text_fragments_verified':fragments,'attachment_bytes':len(readme),'attachment_matches_current_source':True,'sha256':hashlib.sha256(readme).hexdigest()}}
+result={'pages':len(pages),'screenshots':len(shots),'internal_links':links,'bookmarks':outline_count,'chapter_targets':'14/14 valid','walkthrough_layout':'all screenshots, captions, and steps remain on one page','external_pdf_actions':0,'readme_appendix':{'sections':len(manual.README_HEADINGS),'text_fragments_verified':fragments,'attachment_bytes':len(readme),'attachment_matches_current_source':True,'sha256':hashlib.sha256(readme).hexdigest()}}
 result['format']={'reference_text':'two columns','walkthrough_instructions':'two columns below spanning screenshots','readme_reverse_pages':reverse_pages,'readme_colors':'white text on black','cover_logo':'native SVG paths; no raster image or white backdrop','column_gutters':'clear'}
 result['format'].update({'full_width_reference_blocks':len(report['full_width_blocks']),'automatic_word_breaks':0})
 result['format'].update({'sparse_reference_pages_checked':sparse_pages_checked,'stray_continuation_pages':0,'paragraph_widows_and_orphans':'disabled','screenshot_footer_policy':report['screenshot_footer_policy']})

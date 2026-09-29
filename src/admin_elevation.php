@@ -49,9 +49,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" action="admin_elevation.php" class="security-form" autocomplete="off">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="return" value="<?php echo htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8'); ?>">
-            <label for="admin_password">Administrator password</label>
+            <label for="admin_password">Administrator Password</label>
             <input type="password" name="admin_password" id="admin_password" autocomplete="current-password" maxlength="72" required autofocus>
-            <label for="admin_code">Fresh authenticator code or recovery code</label>
+            <label for="admin_code">Fresh Authenticator Code or Recovery Code</label>
             <input type="text" name="admin_code" id="admin_code" autocomplete="one-time-code" autocapitalize="characters" spellcheck="false" required>
             <div class="action-buttons create-form-actions">
                 <a href="<?php echo htmlspecialchars($return_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Cancel</a>

@@ -171,11 +171,11 @@ $remaining_codes = !empty($user['two_factor_enabled'])
             <form method="post" action="two_factor_settings.php" class="security-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="regenerate_codes">
-                <label for="recovery_password">Current password</label>
+                <label for="recovery_password">Current Password</label>
                 <input type="password" name="password" id="recovery_password" autocomplete="current-password" maxlength="72" required>
-                <label for="recovery_current_code">Current authenticator code</label>
+                <label for="recovery_current_code">Current Authenticator Code</label>
                 <input type="text" name="current_code" id="recovery_current_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
-                <button type="submit" class="security-button">Generate new codes</button>
+                <button type="submit" class="security-button">Generate New Codes</button>
             </form>
         </section>
 

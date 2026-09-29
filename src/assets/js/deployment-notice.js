@@ -5,20 +5,20 @@
         if (!notice || !['preparing', 'pending', 'deploying', 'failed'].includes(notice.phase)) return null;
         if (['preparing', 'pending'].includes(notice.phase) && notice.expires_at <= serverNow) return null;
         if (notice.phase === 'preparing') {
-            return { title: 'An update is being prepared', detail: 'You can continue working. A five-minute save countdown will appear before maintenance starts.', timer: '' };
+            return { title: 'An Update Is Being Prepared', detail: 'You can continue working. A five-minute save countdown will appear before maintenance starts.', timer: '' };
         }
         if (notice.phase === 'deploying') {
-            return { title: 'Deployment in progress', detail: 'The system is being updated. Please wait before making changes.', timer: '' };
+            return { title: 'Deployment in Progress', detail: 'The system is being updated. Please wait before making changes.', timer: '' };
         }
         if (notice.phase === 'failed') {
-            return { title: 'Update needs attention', detail: 'Please wait for an administrator before making changes.', timer: '' };
+            return { title: 'Update Needs Attention', detail: 'Please wait for an administrator before making changes.', timer: '' };
         }
         const remaining = Math.max(0, Math.min(300, Math.ceil(notice.not_before - serverNow)));
         if (!remaining) {
-            return { title: 'Update pending', detail: 'Please save your work. Deployment will begin shortly.', timer: '' };
+            return { title: 'Update Pending', detail: 'Please save your work. Deployment will begin shortly.', timer: '' };
         }
         return {
-            title: 'Scheduled update in',
+            title: 'Scheduled Update In',
             detail: 'Please save your work before the countdown ends.',
             timer: `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}`,
         };

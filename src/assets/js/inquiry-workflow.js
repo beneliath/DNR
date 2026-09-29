@@ -35,7 +35,7 @@
     }
     function restoreSelection(select, id, snapshot) {
         if (id && !Array.from(select.options).some(function (option) { return option.value === String(id); })) {
-            select.appendChild(optionFromRecord(snapshot || {id: id, label: 'Selected record #' + id}));
+            select.appendChild(optionFromRecord(snapshot || {id: id, label: 'Selected Record #' + id}));
         }
         select.value = String(id || '');
     }

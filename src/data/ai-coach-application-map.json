@@ -2,7 +2,7 @@
   "index_version": 1,
   "pages": {
     "accept_invitation.php": {
-      "sha256": "2c02c79aceebe043fa22577917dad13f0ae7f89090f7f614592eecf677739ef0",
+      "sha256": "aa8cf75b58123dbc37c42ffc194265e925b36ec66d4f85292f6ae3b68ca4ff0d",
       "controls": [
         {
           "kind": "h1",
@@ -20,7 +20,7 @@
         },
         {
           "kind": "button",
-          "label": "Activate account"
+          "label": "Activate Account"
         },
         {
           "kind": "a",
@@ -30,7 +30,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "79bf97dfead0a9ded27f0905b152b1201d96eafff97127c8f55c57ec399e97fc",
+      "sha256": "8500659d8f3f76c1765eb98e324001e8a9eb8988b55d924bc2c1a7407599a966",
       "controls": [
         {
           "kind": "a",
@@ -43,17 +43,17 @@
         },
         {
           "kind": "label",
-          "label": "Primary organization",
+          "label": "Primary Organization",
           "for": "organization_id"
         },
         {
           "kind": "label",
-          "label": "Organization name",
+          "label": "Organization Name",
           "for": "inline-organization-name"
         },
         {
           "kind": "button",
-          "label": "Create and select"
+          "label": "Create and Select"
         },
         {
           "kind": "label",
@@ -67,7 +67,7 @@
         },
         {
           "kind": "label",
-          "label": "Primary role",
+          "label": "Primary Role",
           "for": "contact_role"
         },
         {
@@ -107,13 +107,13 @@
         },
         {
           "kind": "submit",
-          "label": "Create contact",
+          "label": "Create Contact",
           "name": "save_contact"
         }
       ]
     },
     "add_inquiry.php": {
-      "sha256": "bd3e48d3ad69163996064e449e8ee8e94db07133c6944244b9ddde9ae59e601b",
+      "sha256": "48e9f9c7c572f279740ffbd089f557286dd61f06a83915f6dcfef966d5dff24f",
       "controls": [
         {
           "kind": "a",
@@ -127,7 +127,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "04674f42d980269e75bd5d7c3a2b0ad3e5a4acd737c17ec2ee52831db536995f",
+      "sha256": "7c71e3a9677d8e4fbca680e92cb00b9f576716994d3fbc9cc6eb1274e3eb7052",
       "controls": [
         {
           "kind": "a",
@@ -140,7 +140,7 @@
         },
         {
           "kind": "label",
-          "label": "Find an existing contact",
+          "label": "Find an Existing Contact",
           "for": "existing-contact-search-fallback"
         },
         {
@@ -200,12 +200,12 @@
         },
         {
           "kind": "label",
-          "label": "Address line 1",
+          "label": "Address Line 1",
           "for": "physical_address_line_1"
         },
         {
           "kind": "label",
-          "label": "Address line 2",
+          "label": "Address Line 2",
           "for": "physical_address_line_2"
         },
         {
@@ -215,12 +215,12 @@
         },
         {
           "kind": "label",
-          "label": "State / province",
+          "label": "State / Province",
           "for": "physical_state"
         },
         {
           "kind": "label",
-          "label": "Postal code",
+          "label": "Postal Code",
           "for": "physical_zipcode"
         },
         {
@@ -229,12 +229,12 @@
         },
         {
           "kind": "label",
-          "label": "Address line 1",
+          "label": "Address Line 1",
           "for": "mailing_address_line_1"
         },
         {
           "kind": "label",
-          "label": "Address line 2",
+          "label": "Address Line 2",
           "for": "mailing_address_line_2"
         },
         {
@@ -244,12 +244,12 @@
         },
         {
           "kind": "label",
-          "label": "State / province",
+          "label": "State / Province",
           "for": "mailing_state"
         },
         {
           "kind": "label",
-          "label": "Postal code",
+          "label": "Postal Code",
           "for": "mailing_zipcode"
         },
         {
@@ -263,7 +263,7 @@
         },
         {
           "kind": "label",
-          "label": "Role With This Organization",
+          "label": "Role with This Organization",
           "for": "existing-contact-role-"
         },
         {
@@ -377,13 +377,13 @@
         },
         {
           "kind": "submit",
-          "label": "Create organization",
+          "label": "Create Organization",
           "name": "save_org"
         }
       ]
     },
     "add_standard_task.php": {
-      "sha256": "80e6be982512ac84457ac6f576ef45387e5121428e372f0418eb501c6da74ca0",
+      "sha256": "26f398e234b7176866edcc975c156946fb9bafaf57c2a6f31101eea3cb460b45",
       "controls": [
         {
           "kind": "a",
@@ -412,7 +412,7 @@
       ]
     },
     "admin_elevation.php": {
-      "sha256": "159d05ecc5198990a3cf4f6fa89a2cd1f68e385ea80348e888b38bdc3c21fe79",
+      "sha256": "867c2d7251a5b186913faa33be65cb7cfc658d049cd194ba78aa525e1e047322",
       "controls": [
         {
           "kind": "h1",
@@ -420,12 +420,12 @@
         },
         {
           "kind": "label",
-          "label": "Administrator password",
+          "label": "Administrator Password",
           "for": "admin_password"
         },
         {
           "kind": "label",
-          "label": "Fresh authenticator code or recovery code",
+          "label": "Fresh Authenticator Code or Recovery Code",
           "for": "admin_code"
         },
         {
@@ -440,25 +440,25 @@
       ]
     },
     "ai_coach_improvements.php": {
-      "sha256": "4c8b412f3242bd0579c27532928f9f2f8add00ecd234e06dbc73d1d247a124d0",
+      "sha256": "a3e2e6bc14822f7347166ed3f6a00b657dad9dfac5f58329875db543c5e557d1",
       "controls": [
         {
           "kind": "h1",
-          "label": "ai coach Improvements"
+          "label": "AI Coach Improvements"
         },
         {
           "kind": "a",
-          "label": "Request log",
+          "label": "Request Log",
           "href": "ai_coach_requests.php"
         },
         {
           "kind": "label",
-          "label": "Question (remove names and private record details)",
+          "label": "Question (Remove Names and Private Record Details)",
           "for": "question"
         },
         {
           "kind": "label",
-          "label": "Verified expected guidance",
+          "label": "Verified Expected Guidance",
           "for": "expected_guidance"
         },
         {
@@ -471,11 +471,11 @@
         },
         {
           "kind": "button",
-          "label": "Save improvement"
+          "label": "Save Improvement"
         },
         {
           "kind": "a",
-          "label": "All improvements",
+          "label": "All Improvements",
           "href": "ai_coach_improvements.php"
         },
         {
@@ -489,7 +489,7 @@
         },
         {
           "kind": "a",
-          "label": "Original request"
+          "label": "Original Request"
         },
         {
           "kind": "h2",
@@ -497,16 +497,16 @@
         },
         {
           "kind": "a",
-          "label": "New improvement"
+          "label": "New Improvement"
         },
         {
           "kind": "a",
-          "label": "Export approved test cases"
+          "label": "Export Approved Test Cases"
         }
       ]
     },
     "audit_log.php": {
-      "sha256": "a12b7a2605b398e9910e6f5a59e9db277b2219cae1ed6d93f9bb8017124ec179",
+      "sha256": "bb9c514bd306e41553860d0f9f0faf36bdbededc660565ab3c78259a11a8a568",
       "controls": [
         {
           "kind": "h1",
@@ -524,7 +524,7 @@
         },
         {
           "kind": "label",
-          "label": "Days to keep",
+          "label": "Days to Keep",
           "for": "retention-days"
         },
         {
@@ -538,7 +538,7 @@
         },
         {
           "kind": "label",
-          "label": "Type PRUNE to confirm permanent deletion",
+          "label": "Type PRUNE To Confirm Permanent Deletion",
           "for": "prune-confirmation"
         },
         {
@@ -547,7 +547,7 @@
         },
         {
           "kind": "label",
-          "label": "Search audit log",
+          "label": "Search Audit Log",
           "for": "audit-search"
         },
         {
@@ -557,17 +557,17 @@
         },
         {
           "kind": "label",
-          "label": "From date",
+          "label": "From Date",
           "for": "audit-from"
         },
         {
           "kind": "label",
-          "label": "To date",
+          "label": "To Date",
           "for": "audit-to"
         },
         {
           "kind": "label",
-          "label": "Exact IP address",
+          "label": "Exact IP Address",
           "for": "audit-ip"
         },
         {
@@ -582,7 +582,7 @@
       ]
     },
     "bulk_delete.php": {
-      "sha256": "7d1c631adc2521d54db98ff9299733ac2b924e0edeb2c6bf864e242aee514fe1",
+      "sha256": "43a48e23a551b0f740b544d62b9d64bf98306497846ff97556ee4cf9488f4521",
       "controls": [
         {
           "kind": "h1",
@@ -590,7 +590,7 @@
         },
         {
           "kind": "label",
-          "label": "Type DELETE USERS to confirm",
+          "label": "Type DELETE USERS To Confirm",
           "for": "bulk-delete-confirmation"
         },
         {
@@ -604,7 +604,7 @@
       ]
     },
     "close_engagement.php": {
-      "sha256": "e34d473d790b10e3f2664e40a09e12cabd74d391ef71fa6e496cb9ce99607feb",
+      "sha256": "86ef91a254d8b412618ecf679982641cab4cabfc9d3206c881d26a421a409717",
       "controls": [
         {
           "kind": "a",
@@ -626,7 +626,7 @@
         },
         {
           "kind": "legend",
-          "label": "Actual receipts"
+          "label": "Actual Receipts"
         },
         {
           "kind": "label",
@@ -635,7 +635,7 @@
         },
         {
           "kind": "label",
-          "label": "Closeout notes",
+          "label": "Closeout Notes",
           "for": "notes"
         },
         {
@@ -648,13 +648,13 @@
         },
         {
           "kind": "button",
-          "label": "Save draft",
+          "label": "Save Draft",
           "name": "action"
         }
       ]
     },
     "compose_engagement_email.php": {
-      "sha256": "6d8f90b15b1d3130cd577a917119acdf8698fb4a53971c45251cbb7ab07f586f",
+      "sha256": "aaab4f9b96cd1ba929dcfa6277fb9c794f3d622dc690a6c2f0381ec3494f408c",
       "controls": [
         {
           "kind": "a",
@@ -679,7 +679,7 @@
         },
         {
           "kind": "label",
-          "label": "Message template",
+          "label": "Message Template",
           "for": "template_key"
         },
         {
@@ -704,11 +704,11 @@
         },
         {
           "kind": "legend",
-          "label": "Event contacts and speakers"
+          "label": "Event Contacts and Speakers"
         },
         {
           "kind": "label",
-          "label": "Send as:"
+          "label": "Send As:"
         },
         {
           "kind": "label",
@@ -716,11 +716,11 @@
         },
         {
           "kind": "label",
-          "label": "Send as:"
+          "label": "Send As:"
         },
         {
           "kind": "label",
-          "label": "Your copy:",
+          "label": "Your Copy:",
           "for": "sender-copy"
         },
         {
@@ -734,7 +734,7 @@
         },
         {
           "kind": "label",
-          "label": "Plain-text message *",
+          "label": "Plain-Text Message *",
           "for": "body"
         },
         {
@@ -748,7 +748,7 @@
       ]
     },
     "compose_inquiry_email.php": {
-      "sha256": "f2da019f48d829ecd0fb2d5aeb0fe465264dbbd782fdbe43ce20f9fd4f742442",
+      "sha256": "6898ace67f015fe0595506a3bf280dbdf3c65a3f3430853363d4d45e3fbc7057",
       "controls": [
         {
           "kind": "a",
@@ -791,7 +791,7 @@
         },
         {
           "kind": "label",
-          "label": "Plain-text message *",
+          "label": "Plain-Text Message *",
           "for": "body"
         },
         {
@@ -805,7 +805,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "12a8709bd5a819d99178922b6112689b04e5d1fe08bd2885832db10759071f3c",
+      "sha256": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4",
       "controls": [
         {
           "kind": "a",
@@ -814,7 +814,7 @@
         },
         {
           "kind": "label",
-          "label": "Search contacts",
+          "label": "Search Contacts",
           "for": "contact-search"
         },
         {
@@ -845,7 +845,7 @@
       ]
     },
     "convert_inquiry.php": {
-      "sha256": "0e4e6a8902e13458e3164b97400dd5e2c815b85ae543421a5d97fcb08e6a2be7",
+      "sha256": "5b6c84d188654ca430deb4b09e1ef2885f7169a956d788a731e7b3af3fd8c038",
       "controls": [
         {
           "kind": "a",
@@ -862,19 +862,19 @@
         },
         {
           "kind": "legend",
-          "label": "Reconcile the inquiry next action"
+          "label": "Reconcile the Inquiry Next Action"
         },
         {
           "kind": "label",
-          "label": "Carry forward as an engagement task"
+          "label": "Carry Forward as an Engagement Task"
         },
         {
           "kind": "label",
-          "label": "Resolve at booking"
+          "label": "Resolve at Booking"
         },
         {
           "kind": "label",
-          "label": "Resolution reason if resolving",
+          "label": "Resolution Reason If Resolving",
           "for": "next-action-reason"
         },
         {
@@ -903,13 +903,13 @@
         },
         {
           "kind": "button",
-          "label": "Book engagement \u00b7 move tasks",
+          "label": "Book Engagement \u00b7 Move Tasks",
           "name": "convert_inquiry"
         }
       ]
     },
     "dashboard.php": {
-      "sha256": "02e5dad19d01321e5862fc6104a20cf190e0f4b7c99cb15a1766d02b4fb9f984",
+      "sha256": "b62d0b3988606170a0acb28194a362ddfde832f73dd95e30b044bc38a4894d1a",
       "controls": [
         {
           "kind": "h1",
@@ -955,7 +955,7 @@
         },
         {
           "kind": "a",
-          "label": "@ Mail For Review"
+          "label": "@ Mail for Review"
         },
         {
           "kind": "h2",
@@ -1076,7 +1076,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "87609856f3414474d6abc32da53d702595c0297bd0365934b24a2857a051dc0b",
+      "sha256": "01e6f2ddbfd2f542eebe258706d22dc1e9f5db704cc3538fa761d30cf14bfb33",
       "controls": [
         {
           "kind": "a",
@@ -1089,7 +1089,7 @@
         },
         {
           "kind": "label",
-          "label": "Primary organization",
+          "label": "Primary Organization",
           "for": "organization_id"
         },
         {
@@ -1104,7 +1104,7 @@
         },
         {
           "kind": "label",
-          "label": "Primary role",
+          "label": "Primary Role",
           "for": "contact_role"
         },
         {
@@ -1139,7 +1139,7 @@
         },
         {
           "kind": "label",
-          "label": "Remove current photo"
+          "label": "Remove Current Photo"
         },
         {
           "kind": "a",
@@ -1154,7 +1154,7 @@
       ]
     },
     "edit_email_template.php": {
-      "sha256": "8f3e4d5f511f01717339e9f17b2cb30f46c96e52f5ecf25850534d0c5adc80b0",
+      "sha256": "ee84ab4209a80ed7b1da30a9cc85a16dac691dcf779bca4a3ac84ec183ff7de8",
       "controls": [
         {
           "kind": "a",
@@ -1167,7 +1167,7 @@
         },
         {
           "kind": "label",
-          "label": "Template name",
+          "label": "Template Name",
           "for": "template-name"
         },
         {
@@ -1177,7 +1177,7 @@
         },
         {
           "kind": "label",
-          "label": "Plain-text message",
+          "label": "Plain-Text Message",
           "for": "template-body"
         },
         {
@@ -1190,17 +1190,17 @@
         },
         {
           "kind": "legend",
-          "label": "Suggested event contacts"
+          "label": "Suggested Event Contacts"
         },
         {
           "kind": "label",
-          "label": "Display order",
+          "label": "Display Order",
           "for": "template-order"
         }
       ]
     },
     "edit_engagement.php": {
-      "sha256": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6",
+      "sha256": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f",
       "controls": [
         {
           "kind": "a",
@@ -1256,15 +1256,15 @@
         },
         {
           "kind": "label",
-          "label": "book table provided"
+          "label": "Book Table Provided"
         },
         {
           "kind": "label",
-          "label": "brochures permitted"
+          "label": "Brochures Permitted"
         },
         {
           "kind": "legend",
-          "label": "All travel covered"
+          "label": "All Travel Covered"
         },
         {
           "kind": "label",
@@ -1394,7 +1394,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "74d0fce16fbe30cb99642bc41ddfa6efed807e997b812eb3d248bd4457f02b65",
+      "sha256": "af3d325d7628c07c0f4170a281bfe9769f1f58cbb50bcb7c380166a840c4fcad",
       "controls": [
         {
           "kind": "a",
@@ -1458,12 +1458,12 @@
         },
         {
           "kind": "label",
-          "label": "Address line 1",
+          "label": "Address Line 1",
           "for": "physical_address_line_1"
         },
         {
           "kind": "label",
-          "label": "Address line 2",
+          "label": "Address Line 2",
           "for": "physical_address_line_2"
         },
         {
@@ -1473,12 +1473,12 @@
         },
         {
           "kind": "label",
-          "label": "State / province",
+          "label": "State / Province",
           "for": "physical_state"
         },
         {
           "kind": "label",
-          "label": "Postal code",
+          "label": "Postal Code",
           "for": "physical_zipcode"
         },
         {
@@ -1487,12 +1487,12 @@
         },
         {
           "kind": "label",
-          "label": "Address line 1",
+          "label": "Address Line 1",
           "for": "mailing_address_line_1"
         },
         {
           "kind": "label",
-          "label": "Address line 2",
+          "label": "Address Line 2",
           "for": "mailing_address_line_2"
         },
         {
@@ -1502,12 +1502,12 @@
         },
         {
           "kind": "label",
-          "label": "State / province",
+          "label": "State / Province",
           "for": "mailing_state"
         },
         {
           "kind": "label",
-          "label": "Postal code",
+          "label": "Postal Code",
           "for": "mailing_zipcode"
         },
         {
@@ -1523,7 +1523,7 @@
       ]
     },
     "edit_speaker.php": {
-      "sha256": "76e52b8d47bc29182a4878a1236e6d7a4fa6f41bb801ef5d576901b3e382a77a",
+      "sha256": "c523d2b0eceeb602fa683fe15ddc32c3cba7c1d7158c5ec6888a5f4d2639f6e6",
       "controls": [
         {
           "kind": "a",
@@ -1575,7 +1575,7 @@
         },
         {
           "kind": "label",
-          "label": "Remove current photo"
+          "label": "Remove Current Photo"
         },
         {
           "kind": "a",
@@ -1584,12 +1584,12 @@
         },
         {
           "kind": "button",
-          "label": "Save speaker"
+          "label": "Save Speaker"
         }
       ]
     },
     "edit_standard_task.php": {
-      "sha256": "d18c169499b11963a4fe62f4f291388a0bc2999b104245d8c87c2bd8cb1661ee",
+      "sha256": "7b076ca2b1b29939a811773cffaa959f9854027e5990aa5de8439be073d31752",
       "controls": [
         {
           "kind": "a",
@@ -1608,7 +1608,7 @@
       ]
     },
     "edit_task.php": {
-      "sha256": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
+      "sha256": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
       "controls": [
         {
           "kind": "a",
@@ -1622,7 +1622,7 @@
       ]
     },
     "edit_user.php": {
-      "sha256": "66654c738bb54d1997d9cb06ef1fd949b7a7ed5f4ed8e5a1302b3550d1477f83",
+      "sha256": "a448c387284541276d9ab8a8f279b16c43ce79263c6825fd7b56e9858f7bd8dd",
       "controls": [
         {
           "kind": "a",
@@ -1640,22 +1640,22 @@
         },
         {
           "kind": "label",
-          "label": "First name",
+          "label": "First Name",
           "for": "first_name"
         },
         {
           "kind": "label",
-          "label": "Last name",
+          "label": "Last Name",
           "for": "last_name"
         },
         {
           "kind": "label",
-          "label": "Email address",
+          "label": "Email Address",
           "for": "email"
         },
         {
           "kind": "label",
-          "label": "Phone number",
+          "label": "Phone Number",
           "for": "phone"
         },
         {
@@ -1665,12 +1665,12 @@
         },
         {
           "kind": "label",
-          "label": "Choose a new picture",
+          "label": "Choose a New Picture",
           "for": "profile_picture"
         },
         {
           "kind": "label",
-          "label": "Remove current picture"
+          "label": "Remove Current Picture"
         },
         {
           "kind": "label",
@@ -1689,16 +1689,16 @@
         },
         {
           "kind": "label",
-          "label": "Enable daily work digest Delivery requires an active account with a verified email address"
+          "label": "Enable Daily Work Digest Delivery requires an active account with a verified email address"
         },
         {
           "kind": "label",
-          "label": "Delivery time",
+          "label": "Delivery Time",
           "for": "task_digest_time"
         },
         {
           "kind": "legend",
-          "label": "Delivery days"
+          "label": "Delivery Days"
         },
         {
           "kind": "button",
@@ -1710,7 +1710,7 @@
         },
         {
           "kind": "button",
-          "label": "Every day"
+          "label": "Every Day"
         },
         {
           "kind": "a",
@@ -1719,13 +1719,13 @@
         },
         {
           "kind": "submit",
-          "label": "Save changes",
+          "label": "Save Changes",
           "name": ""
         }
       ]
     },
     "email_templates.php": {
-      "sha256": "9cbb57ddb486a2389ce9ba49862e3e92a8fd4b2ea9b23c1b218abb98535b20db",
+      "sha256": "f560c994980000376f76014876f453f9db4e9dd6a65cbde0e47126fa44906279",
       "controls": [
         {
           "kind": "a",
@@ -1743,7 +1743,7 @@
         },
         {
           "kind": "label",
-          "label": "Search email templates",
+          "label": "Search Email Templates",
           "for": "template-search"
         },
         {
@@ -1762,7 +1762,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "19cfedad7376dd6ab150de946db3f61f15c9da3913a16e6f0d5302e05fab453d",
+      "sha256": "1ad90904d4bf68960a1742d7d624f51489b39c8665a28797765accc580e06406",
       "controls": [
         {
           "kind": "a",
@@ -1851,7 +1851,7 @@
       ]
     },
     "inbound_mail.php": {
-      "sha256": "dbe984c0cbefb3b356828fa8f7a3010c8b75f399edb017b18f2d96ed35e27a97",
+      "sha256": "864049597e2c375593e904cf2b2d6376191ff547bfc91615a51042f8664aa7eb",
       "controls": [
         {
           "kind": "h1",
@@ -1859,12 +1859,12 @@
         },
         {
           "kind": "a",
-          "label": "Refresh inbox",
+          "label": "Refresh Inbox",
           "href": ""
         },
         {
           "kind": "label",
-          "label": "Search messages",
+          "label": "Search Messages",
           "for": "inbox-search"
         },
         {
@@ -1878,17 +1878,17 @@
         },
         {
           "kind": "a",
-          "label": "Clear search",
+          "label": "Clear Search",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "Back to messages",
+          "label": "Back to Messages",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "\u2190 Back to messages",
+          "label": "\u2190 Back to Messages",
           "href": ""
         },
         {
@@ -1901,7 +1901,7 @@
         },
         {
           "kind": "button",
-          "label": "Save to Chron logs",
+          "label": "Save to Chron Logs",
           "name": "action"
         },
         {
@@ -1922,7 +1922,7 @@
         },
         {
           "kind": "label",
-          "label": "Find an active engagement",
+          "label": "Find an Active Engagement",
           "for": "inbound-engagement-search"
         },
         {
@@ -1932,12 +1932,12 @@
         },
         {
           "kind": "button",
-          "label": "Find matches again",
+          "label": "Find Matches Again",
           "name": "action"
         },
         {
           "kind": "button",
-          "label": "Reject message",
+          "label": "Reject Message",
           "name": "action"
         },
         {
@@ -1959,7 +1959,7 @@
       ]
     },
     "index.php": {
-      "sha256": "33674d04589a5a371fe36e08aae82a1e68a868c97b230cefb8b563e2deaa1a77",
+      "sha256": "8a86794d0390d8fb566219f75f631457671bc712cc1b1aa919b199ac1ba51ec4",
       "controls": [
         {
           "kind": "a",
@@ -2023,15 +2023,15 @@
         },
         {
           "kind": "label",
-          "label": "book table provided"
+          "label": "Book Table Provided"
         },
         {
           "kind": "label",
-          "label": "brochures permitted"
+          "label": "Brochures Permitted"
         },
         {
           "kind": "legend",
-          "label": "All travel covered"
+          "label": "All Travel Covered"
         },
         {
           "kind": "label",
@@ -2098,7 +2098,7 @@
         },
         {
           "kind": "label",
-          "label": "Initial Chron entry",
+          "label": "Initial Chron Entry",
           "for": "chron_entry"
         },
         {
@@ -2119,7 +2119,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "cbaebb51063b52a400afc554907613e13bb401d10e6e3ecdafcb99b326e16312",
+      "sha256": "ce2fb89ef3c2a94b119cf7569f7d54701611b47b24a15142dc34c469b5b4f54a",
       "controls": [
         {
           "kind": "a",
@@ -2132,7 +2132,7 @@
         },
         {
           "kind": "label",
-          "label": "Search inquiries"
+          "label": "Search Inquiries"
         },
         {
           "kind": "label",
@@ -2140,7 +2140,7 @@
         },
         {
           "kind": "label",
-          "label": "Next action dueNext action dueOverdueDue TodayNext 7 DaysNo action due dateMissing Next Action"
+          "label": "Next Action DueNext Action DueOverdueDue TodayNext 7 DaysNo Action Due DateMissing Next Action"
         },
         {
           "kind": "label",
@@ -2183,7 +2183,7 @@
       ]
     },
     "login.php": {
-      "sha256": "75fa21787fdd184890fdd451c21abcbfb989b62cda5aa609e7e1f63729fa615e",
+      "sha256": "14b00fb32cfefb84603e71e6020b388af13d60a5d804b5b9c7d29af8f9488f56",
       "controls": [
         {
           "kind": "h1",
@@ -2201,17 +2201,17 @@
         },
         {
           "kind": "button",
-          "label": "Sign in"
+          "label": "Sign In"
         },
         {
           "kind": "a",
-          "label": "Forgot your password?",
+          "label": "Forgot Your Password?",
           "href": "recover_password.php"
         }
       ]
     },
     "map.php": {
-      "sha256": "3fbf4b6e13f7ae54685760c254d2fcaf469ede3770f71bb81b1bb20ae0b45621",
+      "sha256": "cbc5d673c013af4c9a7438dd7e72e7aa15d87cbca3e45a506e2138668567daf6",
       "controls": [
         {
           "kind": "h1",
@@ -2229,7 +2229,7 @@
         },
         {
           "kind": "legend",
-          "label": "Date window"
+          "label": "Date Window"
         },
         {
           "kind": "label",
@@ -2262,22 +2262,18 @@
         },
         {
           "kind": "button",
-          "label": "Fit visible pins",
+          "label": "Fit Visible Pins",
           "id": "fit-map-pins"
         },
         {
           "kind": "a",
-          "label": "Show all locations",
+          "label": "Show All Locations",
           "href": ""
         },
         {
           "kind": "a",
-          "label": "Reset filters",
+          "label": "Reset Filters",
           "href": "map.php"
-        },
-        {
-          "kind": "a",
-          "label": "Geoapify"
         },
         {
           "kind": "h2",
@@ -2286,29 +2282,29 @@
         },
         {
           "kind": "a",
-          "label": "Show all locations"
+          "label": "Show All Locations"
         },
         {
           "kind": "a",
-          "label": "Show missing addresses"
+          "label": "Show Missing Addresses"
         },
         {
           "kind": "button",
-          "label": "All on this page"
+          "label": "All on This Page"
         },
         {
           "kind": "button",
-          "label": "Retry lookup"
+          "label": "Retry Lookup"
         },
         {
           "kind": "a",
-          "label": "Edit location",
+          "label": "Edit Location",
           "href": ""
         }
       ]
     },
     "map_pin.php": {
-      "sha256": "8071a6003daa140b4e5c72eb1b79401064801ebc3aeeae1af668de2622fd1b65",
+      "sha256": "64354b96198aa7d799ebd394f3b2ce074f886cfde28177806c0088ea292b344f",
       "controls": [
         {
           "kind": "h1",
@@ -2316,7 +2312,7 @@
         },
         {
           "kind": "a",
-          "label": "Edit engagement"
+          "label": "Edit Engagement"
         },
         {
           "kind": "a",
@@ -2343,11 +2339,11 @@
         },
         {
           "kind": "button",
-          "label": "Save confirmed pin"
+          "label": "Save Confirmed Pin"
         },
         {
           "kind": "button",
-          "label": "Use automatic lookup",
+          "label": "Use Automatic Lookup",
           "name": "action"
         }
       ]
@@ -2399,7 +2395,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "a055f96a42aa5de057ec588543fe181a15b98d85496d992d94c0958c3cc55397",
+      "sha256": "dc566df97efcec6ae50f4cb8c65af64a748569bcee66c3e05217163ecb46e789",
       "controls": [
         {
           "kind": "h1",
@@ -2445,7 +2441,7 @@
       ]
     },
     "operations.php": {
-      "sha256": "cf9981b1002a5ebe2b709b345b095cfd077878f637f64d44fc007ce231595654",
+      "sha256": "4851d1b3c24699965d3a11dc8f8205cd18e09f21c5afd2df6ae047c484d4e8c3",
       "controls": [
         {
           "kind": "h1",
@@ -2471,7 +2467,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "910b41b1f6cddef29ae1fc01e6527f50436072d0c39e66156145a5e42ac43a42",
+      "sha256": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635",
       "controls": [
         {
           "kind": "a",
@@ -2480,7 +2476,7 @@
         },
         {
           "kind": "label",
-          "label": "Search organizations",
+          "label": "Search Organizations",
           "for": "organization-search"
         },
         {
@@ -2506,7 +2502,7 @@
       ]
     },
     "outbound_mail.php": {
-      "sha256": "b69ce4e6fbdabddb87202adfc4c0ab395b3c43491222fccebd5b1b0e3d92f1ca",
+      "sha256": "a77453f73f2c4b99b0b249aed181e22a07b229a3121665b5f4b8ed84e8392d80",
       "controls": [
         {
           "kind": "a",
@@ -2545,7 +2541,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "42c8bb16ac8e7496ce480da04f655da0593d1484bc37e7022e4218310240e8d8",
+      "sha256": "f9df250d2f4a0171e53b1c5128cdf4caf89a36be3d8f5542f87136871cd9bb7a",
       "controls": [
         {
           "kind": "h1",
@@ -2558,12 +2554,12 @@
         },
         {
           "kind": "label",
-          "label": "Choose a new picture",
+          "label": "Choose a New Picture",
           "for": "profile_picture"
         },
         {
           "kind": "label",
-          "label": "Remove current picture"
+          "label": "Remove Current Picture"
         },
         {
           "kind": "h2",
@@ -2572,22 +2568,27 @@
         },
         {
           "kind": "label",
-          "label": "First name",
+          "label": "First Name",
           "for": "first_name"
         },
         {
           "kind": "label",
-          "label": "Last name",
+          "label": "Last Name",
           "for": "last_name"
         },
         {
           "kind": "label",
-          "label": "Email address",
+          "label": "Reimbursement Reviewer Email",
+          "for": "reimbursement-reviewer-email"
+        },
+        {
+          "kind": "label",
+          "label": "Email Address",
           "for": "email"
         },
         {
           "kind": "label",
-          "label": "Phone number",
+          "label": "Phone Number",
           "for": "phone"
         },
         {
@@ -2597,12 +2598,12 @@
         },
         {
           "kind": "label",
-          "label": "Delivery time",
+          "label": "Delivery Time",
           "for": "task_digest_time"
         },
         {
           "kind": "legend",
-          "label": "Delivery days"
+          "label": "Delivery Days"
         },
         {
           "kind": "button",
@@ -2614,7 +2615,7 @@
         },
         {
           "kind": "button",
-          "label": "Every day"
+          "label": "Every Day"
         },
         {
           "kind": "a",
@@ -2627,7 +2628,7 @@
         },
         {
           "kind": "button",
-          "label": "Resend email verification"
+          "label": "Resend Email Verification"
         },
         {
           "kind": "h2",
@@ -2640,17 +2641,17 @@
         },
         {
           "kind": "label",
-          "label": "New email address",
+          "label": "New Email Address",
           "for": "new-email"
         },
         {
           "kind": "label",
-          "label": "Current password",
+          "label": "Current Password",
           "for": "email-password"
         },
         {
           "kind": "label",
-          "label": "Fresh authenticator code",
+          "label": "Fresh Authenticator Code",
           "for": "email-authentication-code"
         },
         {
@@ -2660,7 +2661,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "4f34a5f0a656902c6a899fe2bb30fca3d906b4a84b724786067d460dc0864f89",
+      "sha256": "881ce275e79480835dbc9862625c4368e337cceb2c723baaef8e0da304caf3d0",
       "controls": [
         {
           "kind": "h1",
@@ -2672,7 +2673,7 @@
         },
         {
           "kind": "label",
-          "label": "Find the record to keep",
+          "label": "Find the Record to Keep",
           "for": "merge-search"
         },
         {
@@ -2681,7 +2682,7 @@
         },
         {
           "kind": "label",
-          "label": "Surviving record",
+          "label": "Surviving Record",
           "for": "merge-target"
         },
         {
@@ -2711,7 +2712,7 @@
       ]
     },
     "recover_password.php": {
-      "sha256": "73dad34cac9b76b7c81d173d6c379992f87fd869c6d4f603b5f7fc22284171b8",
+      "sha256": "0b19541d854c5049d45aa94496c834b749da4a09905088a8ef1bbcebf3722ac8",
       "controls": [
         {
           "kind": "h1",
@@ -2802,8 +2803,500 @@
         }
       ]
     },
+    "reimbursement_cost_centers.php": {
+      "sha256": "31d4076e6d23ee7f3904848382a128ab1ddeb5e18a37d43ee8c3c0b71a57f17d",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Reimbursements",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Chart of Accounts"
+        },
+        {
+          "kind": "a",
+          "label": "+ Add Expense",
+          "href": "reimbursement_expense.php"
+        },
+        {
+          "kind": "a",
+          "label": "Expenses",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
+        },
+        {
+          "kind": "label",
+          "label": "COA Number"
+        },
+        {
+          "kind": "label",
+          "label": "Description"
+        },
+        {
+          "kind": "a",
+          "label": "Cancel",
+          "href": ""
+        },
+        {
+          "kind": "h2",
+          "label": "Chart of Accounts"
+        },
+        {
+          "kind": "label",
+          "label": "Search Chart of Accounts",
+          "for": "cost-center-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        }
+      ]
+    },
+    "reimbursement_expense.php": {
+      "sha256": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Reimbursements",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Expense"
+        },
+        {
+          "kind": "a",
+          "label": "View Expense #"
+        },
+        {
+          "kind": "a",
+          "label": "draft request"
+        },
+        {
+          "kind": "label",
+          "label": "Expense Date"
+        },
+        {
+          "kind": "label",
+          "label": "Merchant or Payee"
+        },
+        {
+          "kind": "label",
+          "label": "Amount (USD)"
+        },
+        {
+          "kind": "label",
+          "label": "Account Choose an Account"
+        },
+        {
+          "kind": "label",
+          "label": "Description or Purpose"
+        },
+        {
+          "kind": "label",
+          "label": "Upload Receipt",
+          "for": "receipt-files"
+        },
+        {
+          "kind": "button",
+          "label": "Paste Image"
+        },
+        {
+          "kind": "label",
+          "label": "Paste a Receipt Image",
+          "for": "receipt-paste-target"
+        },
+        {
+          "kind": "label",
+          "label": "Take a Receipt Photo",
+          "for": "receipt-photo"
+        },
+        {
+          "kind": "button",
+          "label": "Drop Receipts Here or click to choose \u00b7 JPEG, PNG, WebP, PDF \u00b7 up to 15 MB each Select Save expense to upload."
+        },
+        {
+          "kind": "button",
+          "label": "Save Expense"
+        },
+        {
+          "kind": "h2",
+          "label": "Receipts ()"
+        },
+        {
+          "kind": "a",
+          "label": "PDFOpen Original Receipt"
+        },
+        {
+          "kind": "button",
+          "label": "Delete Expense"
+        }
+      ]
+    },
+    "reimbursement_request.php": {
+      "sha256": "6f89846eab85c9fb579752af399aafca25a736e00fd85b7702a1c89e9b359253",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Reimbursements",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Reimbursement Request"
+        },
+        {
+          "kind": "a",
+          "label": "Download Report PDF"
+        },
+        {
+          "kind": "a",
+          "label": "Expenses",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Requests",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Chart of Accounts",
+          "href": "reimbursement_cost_centers.php"
+        },
+        {
+          "kind": "a",
+          "label": "Review and Submit"
+        },
+        {
+          "kind": "a",
+          "label": "Edit Draft"
+        },
+        {
+          "kind": "h2",
+          "label": "Request Date Range"
+        },
+        {
+          "kind": "label",
+          "label": "Start Date"
+        },
+        {
+          "kind": "label",
+          "label": "End Date"
+        },
+        {
+          "kind": "button",
+          "label": "Update Dates"
+        },
+        {
+          "kind": "h2",
+          "label": "Add an Expense in This Date Range"
+        },
+        {
+          "kind": "label",
+          "label": "Available Expense Choose an Expense"
+        },
+        {
+          "kind": "button",
+          "label": "Add Expense"
+        },
+        {
+          "kind": "h2",
+          "label": "Expenses"
+        },
+        {
+          "kind": "button",
+          "label": "Remove"
+        },
+        {
+          "kind": "button",
+          "label": "Delete Request"
+        }
+      ]
+    },
+    "reimbursement_requests.php": {
+      "sha256": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Reimbursements",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Requests"
+        },
+        {
+          "kind": "a",
+          "label": "Expenses",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Chart of Accounts",
+          "href": "reimbursement_cost_centers.php"
+        },
+        {
+          "kind": "label",
+          "label": "Search Requests"
+        },
+        {
+          "kind": "label",
+          "label": "OwnerAll Users"
+        },
+        {
+          "kind": "label",
+          "label": "StatusAll StatusesDraftSubmitted"
+        },
+        {
+          "kind": "label",
+          "label": "Expense Dates From"
+        },
+        {
+          "kind": "label",
+          "label": "Through"
+        },
+        {
+          "kind": "label",
+          "label": "Sort By"
+        },
+        {
+          "kind": "label",
+          "label": "DirectionDescending \u2193Ascending \u2191"
+        },
+        {
+          "kind": "button",
+          "label": "Apply"
+        },
+        {
+          "kind": "h2",
+          "label": "Reimbursement Requests"
+        },
+        {
+          "kind": "a",
+          "label": "Active",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Archived",
+          "href": ""
+        }
+      ]
+    },
+    "reimbursement_setup.php": {
+      "sha256": "4fe01188ab8638dfdbe4b0d338f086598d77adb84cf9cbe29ca651e0b3d941a3",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Reimbursement Setup"
+        },
+        {
+          "kind": "label",
+          "label": "Organization Name"
+        },
+        {
+          "kind": "label",
+          "label": "Bookkeeper First Name"
+        },
+        {
+          "kind": "label",
+          "label": "Bookkeeper Last Name"
+        },
+        {
+          "kind": "label",
+          "label": "Bookkeeper Email Address"
+        },
+        {
+          "kind": "label",
+          "label": "Bookkeeper Phone Number",
+          "for": "bookkeeper_phone"
+        },
+        {
+          "kind": "label",
+          "label": "Bcc Email Address"
+        },
+        {
+          "kind": "label",
+          "label": "Cc Email Address"
+        },
+        {
+          "kind": "button",
+          "label": "Save Reimbursement Setup"
+        }
+      ]
+    },
+    "reimbursement_submit.php": {
+      "sha256": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
+      "controls": [
+        {
+          "kind": "a",
+          "label": "Reimbursements",
+          "href": "reimbursements.php"
+        },
+        {
+          "kind": "a",
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
+        },
+        {
+          "kind": "h1",
+          "label": "Review Reimbursement Email"
+        },
+        {
+          "kind": "h2",
+          "label": "Email Details"
+        },
+        {
+          "kind": "a",
+          "label": "Download Package for Review"
+        },
+        {
+          "kind": "a",
+          "label": "User Profile",
+          "href": "profile.php"
+        },
+        {
+          "kind": "a",
+          "label": "Reimbursement Setup",
+          "href": "reimbursement_setup.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Email Preview"
+        },
+        {
+          "kind": "a",
+          "label": "Open Email Preview"
+        },
+        {
+          "kind": "h2",
+          "label": "Submission Readiness"
+        },
+        {
+          "kind": "h2",
+          "label": "Package Contents"
+        },
+        {
+          "kind": "label",
+          "label": "I have reviewed the recipients, email, and package"
+        },
+        {
+          "kind": "button",
+          "label": "Submit Reimbursement Request"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Draft"
+        }
+      ]
+    },
+    "reimbursements.php": {
+      "sha256": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Reimbursements"
+        },
+        {
+          "kind": "a",
+          "label": "+ Add Expense",
+          "href": "reimbursement_expense.php"
+        },
+        {
+          "kind": "a",
+          "label": "Requests",
+          "href": "reimbursement_requests.php"
+        },
+        {
+          "kind": "a",
+          "label": "Chart of Accounts",
+          "href": "reimbursement_cost_centers.php"
+        },
+        {
+          "kind": "h2",
+          "label": "Expenses"
+        },
+        {
+          "kind": "a",
+          "label": "Active",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Archived",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "Search Expenses",
+          "for": "reimbursement-search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear",
+          "href": ""
+        },
+        {
+          "kind": "label",
+          "label": "Start Date"
+        },
+        {
+          "kind": "label",
+          "label": "End Date"
+        },
+        {
+          "kind": "label",
+          "label": "Expense Owner All Users"
+        },
+        {
+          "kind": "button",
+          "label": "Apply"
+        },
+        {
+          "kind": "button",
+          "label": "Create Draft Request from Selected Expenses"
+        },
+        {
+          "kind": "label",
+          "label": "Request Start Date"
+        },
+        {
+          "kind": "label",
+          "label": "Request End Date"
+        },
+        {
+          "kind": "button",
+          "label": "Clear Selection"
+        },
+        {
+          "kind": "a",
+          "label": "View Receipts and Details"
+        },
+        {
+          "kind": "button",
+          "label": "Clear Selection"
+        },
+        {
+          "kind": "button",
+          "label": "Create Draft Request from Selected Expenses"
+        }
+      ]
+    },
     "reset_presentation_stats.php": {
-      "sha256": "3ef58c9653cde9131cf34b6d1a112a6885a9cb66b1429e5b4ee6a6d881872981",
+      "sha256": "69aaf4be76da8e86a455dd3db4459cc17a644f437c7f86ff61acb5104fc26230",
       "controls": [
         {
           "kind": "h1",
@@ -2821,7 +3314,7 @@
       ]
     },
     "reset_user_password.php": {
-      "sha256": "cc08da09c0fa83b01f5bca690fc7b0a3392a25719d7fa843fad6e804b919fef2",
+      "sha256": "487acc9446769109d34980d4234024ee3e5979962095fe38900765c3d2302baf",
       "controls": [
         {
           "kind": "h1",
@@ -2829,12 +3322,12 @@
         },
         {
           "kind": "label",
-          "label": "Temporary password",
+          "label": "Temporary Password",
           "for": "new_password"
         },
         {
           "kind": "label",
-          "label": "Confirm temporary password",
+          "label": "Confirm Temporary Password",
           "for": "new_password_confirmation"
         },
         {
@@ -2844,12 +3337,12 @@
         },
         {
           "kind": "button",
-          "label": "Set temporary password"
+          "label": "Set Temporary Password"
         }
       ]
     },
     "restore_chron_entries.php": {
-      "sha256": "9cf29562c499d94f45fd22dafb2ff97647b7346f708eca7abc5ea9b7e3814e44",
+      "sha256": "02642f9286b2f0b193ca8a1945d412be909a5b99d3ba4267df990846f33c90c2",
       "controls": [
         {
           "kind": "a",
@@ -2866,7 +3359,7 @@
         },
         {
           "kind": "label",
-          "label": "Select all archived entries"
+          "label": "Select All Archived Entries"
         },
         {
           "kind": "button",
@@ -2875,7 +3368,7 @@
         },
         {
           "kind": "label",
-          "label": "Select this entry"
+          "label": "Select This Entry"
         },
         {
           "kind": "a",
@@ -2888,7 +3381,7 @@
       ]
     },
     "restore_entity_chron_entries.php": {
-      "sha256": "aa192592ab3f965552f15fc1418f80beaff3ac79de35a6b74325fa13586f222a",
+      "sha256": "c78e7066a0de40326155b941225e0adb00710c94796dbf692848c7d2473ece0a",
       "controls": [
         {
           "kind": "a",
@@ -2901,7 +3394,7 @@
         },
         {
           "kind": "label",
-          "label": "Select all archived entries"
+          "label": "Select All Archived Entries"
         },
         {
           "kind": "button",
@@ -2910,7 +3403,7 @@
         },
         {
           "kind": "label",
-          "label": "Select this entry"
+          "label": "Select This Entry"
         },
         {
           "kind": "a",
@@ -2925,7 +3418,7 @@
       ]
     },
     "restore_presentations.php": {
-      "sha256": "ac5a508f7c7266870c349c21ce5977880b3b70fa086594305d44fe909586adb4",
+      "sha256": "ee49539f87c774baebd95f7f8892db0a31a2804fc4883cde1e7073a2a36b1056",
       "controls": [
         {
           "kind": "a",
@@ -2955,12 +3448,12 @@
         },
         {
           "kind": "label",
-          "label": "Presentation date",
+          "label": "Presentation Date",
           "for": "restore-presentation-date-"
         },
         {
           "kind": "label",
-          "label": "Presentation time",
+          "label": "Presentation Time",
           "for": "restore-presentation-time-"
         },
         {
@@ -2978,16 +3471,16 @@
       ]
     },
     "setup_2fa.php": {
-      "sha256": "3347a22166d75dae6395fbee4f632b2503386b6f195989fddcb57ce0e57acf44",
+      "sha256": "f9b5e96383f55023b64f185c7c89fafe5a27691e648bb72504a10dcd7d0c32ea",
       "controls": [
         {
           "kind": "label",
-          "label": "Current password",
+          "label": "Current Password",
           "for": "password"
         },
         {
           "kind": "label",
-          "label": "Current authenticator code",
+          "label": "Current Authenticator Code",
           "for": "current_code"
         },
         {
@@ -3000,7 +3493,7 @@
         },
         {
           "kind": "label",
-          "label": "Six-digit authentication code",
+          "label": "Six-Digit Authentication Code",
           "for": "authentication_code"
         },
         {
@@ -3018,7 +3511,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "9baece4ac4c87824ba793092fd317fffa37bb3e46e7ff2a413729d98bde0a2fa",
+      "sha256": "1a5af1b3ba00af487bd1e876985214fa44f2e099b809994733e5541b632da9ad",
       "controls": [
         {
           "kind": "a",
@@ -3074,7 +3567,7 @@
         },
         {
           "kind": "h2",
-          "label": "tracked visits in the selected period"
+          "label": "Tracked Visits in the Selected Period"
         },
         {
           "kind": "h2",
@@ -3133,7 +3626,7 @@
         },
         {
           "kind": "label",
-          "label": "Link enabled"
+          "label": "Link Enabled"
         },
         {
           "kind": "button",
@@ -3150,7 +3643,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "f442b946d974447a28215edc08cba01ff1fb465e33deb1e3c5adeaca22d8e31d",
+      "sha256": "97094d2fa49879c5467546eac207196a187685e799d54c591c51e69234af04b7",
       "controls": [
         {
           "kind": "h1",
@@ -3162,7 +3655,7 @@
         },
         {
           "kind": "label",
-          "label": "Search speakers",
+          "label": "Search Speakers",
           "for": "speaker-search"
         },
         {
@@ -3178,7 +3671,7 @@
       ]
     },
     "standard_tasks.php": {
-      "sha256": "77cade789aec9df3cb086db181c2b3ffd17d58c452c10c4ad6ceb0d6ea61be82",
+      "sha256": "cc8b3e2e3f5552f5d33b1d37c8e8e4f28997312557844089f0dc05fc67ea99a8",
       "controls": [
         {
           "kind": "a",
@@ -3206,7 +3699,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
+      "sha256": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
       "controls": [
         {
           "kind": "h1",
@@ -3224,7 +3717,7 @@
         },
         {
           "kind": "label",
-          "label": "Search tasks",
+          "label": "Search Tasks",
           "for": "task-search"
         },
         {
@@ -3234,7 +3727,7 @@
         },
         {
           "kind": "a",
-          "label": "Clear record filter",
+          "label": "Clear Record Filter",
           "href": ""
         },
         {
@@ -3244,7 +3737,7 @@
       ]
     },
     "two_factor_recovery_codes.php": {
-      "sha256": "288ced4d8f840283ff080673d6a05efcc96eafdf3876d5b970c20c0d12381287",
+      "sha256": "12d6a2ae5e02758f5cdfaa696766d92f36927d94e6ab1f4a3285a529615f8d13",
       "controls": [
         {
           "kind": "h1",
@@ -3252,13 +3745,13 @@
         },
         {
           "kind": "a",
-          "label": "I saved these codes",
+          "label": "I Saved These Codes",
           "href": ""
         }
       ]
     },
     "two_factor_settings.php": {
-      "sha256": "712a0d508b314cbf8badc88f0092afb8d8532266db88bcbf9c555b775c5b5e2d",
+      "sha256": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
       "controls": [
         {
           "kind": "h1",
@@ -3305,22 +3798,22 @@
         },
         {
           "kind": "label",
-          "label": "Current password",
+          "label": "Current Password",
           "for": "recovery_password"
         },
         {
           "kind": "label",
-          "label": "Current authenticator code",
+          "label": "Current Authenticator Code",
           "for": "recovery_current_code"
         },
         {
           "kind": "button",
-          "label": "Generate new codes"
+          "label": "Generate New Codes"
         }
       ]
     },
     "users.php": {
-      "sha256": "e0a510f622f57a585a041f842d06c673b560489016cb6f7fe81e5248c3c2deb9",
+      "sha256": "b8841689c335345ef9d6d14b0bfcc5fae056dded6908be29324a3e3163b6aafd",
       "controls": [
         {
           "kind": "h1",
@@ -3357,7 +3850,7 @@
         },
         {
           "kind": "a",
-          "label": "Edit user"
+          "label": "Edit User"
         },
         {
           "kind": "a",
@@ -3381,12 +3874,12 @@
         },
         {
           "kind": "button",
-          "label": "Delete user"
+          "label": "Delete User"
         }
       ]
     },
     "verify_2fa.php": {
-      "sha256": "4dd56690ac5c06fe1172525b08bb6fecc07570df861b8bd1ae2c3e9d5802ff78",
+      "sha256": "69a264161303d623f0647d815e77da9f3ec02d28d2d275f7e818d27290fd0f3a",
       "controls": [
         {
           "kind": "h1",
@@ -3394,7 +3887,7 @@
         },
         {
           "kind": "label",
-          "label": "Authentication code",
+          "label": "Authentication Code",
           "for": "authentication_code"
         },
         {
@@ -3426,7 +3919,7 @@
       ]
     },
     "view_calendar.php": {
-      "sha256": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df",
+      "sha256": "3ada12725cf9dfe704aa5783e828e6f8fe5df9d9450a38eac9338e9f084db6b6",
       "controls": [
         {
           "kind": "h1",
@@ -3444,7 +3937,7 @@
         },
         {
           "kind": "label",
-          "label": "Private calendar subscription URL",
+          "label": "Private Calendar Subscription URL",
           "for": "calendar-url"
         },
         {
@@ -3487,7 +3980,7 @@
       ]
     },
     "view_contact.php": {
-      "sha256": "1010a845b5ad47a36662a09fc44cd34403f8e68be32c9c96b9040026592994a3",
+      "sha256": "d15a684d7c357b87f32f2025aab880cd29bb8e479181731fbbc092da44eb2e7a",
       "controls": [
         {
           "kind": "a",
@@ -3519,7 +4012,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
+      "sha256": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
       "controls": [
         {
           "kind": "a",
@@ -3591,7 +4084,7 @@
         },
         {
           "kind": "label",
-          "label": "Your unsaved Chron edit",
+          "label": "Your Unsaved Chron Edit",
           "for": "engagement-unsaved-chron"
         },
         {
@@ -3670,7 +4163,7 @@
         },
         {
           "kind": "a",
-          "label": "Correct final report"
+          "label": "Correct Final Report"
         },
         {
           "kind": "h3",
@@ -3728,7 +4221,7 @@
       ]
     },
     "view_inquiry.php": {
-      "sha256": "04fe8c3584605d3c3d92c9cfd99d43e0aa9a64f41e799396c9034f35880a84d7",
+      "sha256": "e55e6c753d87013c6ab506f586d00eed02526df3849433e4552bf79b063f8edc",
       "controls": [
         {
           "kind": "a",
@@ -3789,7 +4282,7 @@
         },
         {
           "kind": "label",
-          "label": "Your unsaved Chron edit",
+          "label": "Your Unsaved Chron Edit",
           "for": "inquiry-unsaved-chron"
         },
         {
@@ -3858,7 +4351,7 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "ecd8f5e206b06d48aaa00b356f782c0eb20560d0b5457fbac35dfcc62573937b",
+      "sha256": "2df113f8fe3fde8a5a8e07e3a404a3cd5dbe49b8cc963e704f2b5ee41ca473ca",
       "controls": [
         {
           "kind": "a",
@@ -3883,15 +4376,15 @@
         },
         {
           "kind": "a",
-          "label": "Open tasks"
+          "label": "Open Tasks"
         },
         {
           "kind": "a",
-          "label": "Record a conversation"
+          "label": "Record a Conversation"
         },
         {
           "kind": "a",
-          "label": "Read activity"
+          "label": "Read Activity"
         },
         {
           "kind": "h2",
@@ -3977,7 +4470,7 @@
       ]
     },
     "view_standard_task.php": {
-      "sha256": "f6832472585c29ce0b4347118656669c499f9523cfcd0fd1a4a7d9afaa19e5c0",
+      "sha256": "7cf5b1c5c82ce331b6d96daeaddaafe56af0bf2137e87de993310ea27d3d571a",
       "controls": [
         {
           "kind": "a",
@@ -4006,7 +4499,7 @@
         },
         {
           "kind": "button",
-          "label": "Permanently delete"
+          "label": "Permanently Delete"
         }
       ]
     }

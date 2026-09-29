@@ -57,10 +57,10 @@ final class ContactInput
             $add_error('contact_last_name', 'Last name is required.');
         }
         foreach ([
-            'contact_first_name' => [255, 'First name'],
-            'contact_last_name' => [255, 'Last name'],
+            'contact_first_name' => [255, 'First Name'],
+            'contact_last_name' => [255, 'Last Name'],
             'contact_role_other' => [255, 'Other role'],
-            'contact_email' => [255, 'Email address'],
+            'contact_email' => [255, 'Email Address'],
             'contact_email_confirm' => [255, 'Email confirmation'],
         ] as $field => [$maximum, $label]) {
             $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
@@ -87,7 +87,7 @@ final class ContactInput
             $data['contact_phone'] = \normalizePhoneNumber(
                 $data['contact_phone_country_code'],
                 $data['contact_phone'],
-                'Phone number'
+                'Phone Number'
             );
         } catch (\InvalidArgumentException $exception) {
             $add_error('contact_phone', $exception->getMessage());

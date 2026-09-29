@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
 
 $standard_task_form_action = 'add_standard_task.php';
 $standard_task_form_cancel_url = 'standard_tasks.php';
-$standard_task_form_submit_label = 'Add standard task';
+$standard_task_form_submit_label = 'Add Standard Task';
 $standard_task_form_allow_generation = $user_role === 'admin';
 ?>
 <!DOCTYPE html>

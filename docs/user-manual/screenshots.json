@@ -5,7 +5,7 @@
     "title": "The online manual and navigation",
     "route": "help.php",
     "steps": [
-      "Open User Manual near the bottom of the scrollable sidebar. Its 13 chapters match this PDF.",
+      "Open User Manual near the bottom of the scrollable sidebar. Its 14 chapters match this PDF.",
       "Use the chapter rail and topic cards to browse, or press / to focus Search the manual.",
       "The fixed bottom bar keeps Top and Bottom available while you read. They jump to either end of the page."
     ],
@@ -1784,5 +1784,291 @@
       1005,
       929
     ]
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-expenses",
+    "title": "Find and Filter Expenses",
+    "route": "reimbursements.php",
+    "steps": [
+      "Open Reimbursements from the sidebar. Use + Add Expense to record a new expense, Requests to review packages, or Chart of Accounts to manage account choices.",
+      "Choose Active or Archived. Search by merchant or purpose and set the date range. Administrators also have Expense Owner. Select Apply.",
+      "Use the sort controls to change ordering. The rows below contain expense status, receipts, amounts, and actions. Scroll horizontally on smaller screens to see the remaining columns."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-expenses.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      28,
+      885,
+      575
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-selection",
+    "title": "Select Expenses for a New Draft",
+    "route": "reimbursements.php",
+    "steps": [
+      "Select only your available, unclaimed expenses. Draft or submitted expenses cannot be selected again.",
+      "Check the selection count, Selected Total, and missing-receipt count. Clear Selection removes the current selection.",
+      "Expand Dates for New Request to set the request range, then select Create Draft Request from Selected Expenses. Server validation rechecks eligibility and totals."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-selection.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      300,
+      25,
+      875,
+      650
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-expense-entry",
+    "title": "Enter Expense Details",
+    "route": "reimbursement_expense.php?id=3&mode=edit",
+    "steps": [
+      "Enter Expense Date, Merchant or Payee, Amount (USD), Account, and Description or Purpose.",
+      "Use an active account for a new assignment. An existing expense can retain its previously assigned archived account.",
+      "Continue to Expense Receipts below these fields, then select Save Expense. Only the owner can edit an eligible expense."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-expense-entry.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      20,
+      880,
+      460
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-receipts",
+    "title": "Attach and Review Receipts",
+    "route": "reimbursement_expense.php?id=3&mode=edit",
+    "steps": [
+      "Use Upload Receipt, drag-and-drop, or Paste Image; on supported phones, the camera option captures a photo. If clipboard access is blocked, use the keyboard paste shortcut or upload.",
+      "Select Save Expense to store selected files. The Receipts panel shows saved previews and original filenames; select a receipt to open the original.",
+      "Supported formats are JPEG, PNG, WebP, and PDF. Each expense allows at most 20 receipts totaling 15 MB. Submitted receipts stay locked."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-receipts.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      45,
+      880,
+      635
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Scrolled expense editor. Preview is a fictional PDF receipt; the original remains downloadable."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-requests",
+    "title": "Find Draft and Submitted Requests",
+    "route": "reimbursement_requests.php",
+    "steps": [
+      "Open Requests. Filter by search text, owner, status, and expense dates; choose sort field and direction, then Apply.",
+      "Switch between Active and Archived. The request identifier or hovered row opens its detail view.",
+      "Use the available Submit, View, Edit, Archive, Restore, or protected Delete actions. Eligibility and ownership determine which actions appear; submitted rows use light green."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-requests.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      28,
+      885,
+      600
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-draft",
+    "title": "Adjust a Draft Request",
+    "route": "reimbursement_request.php?id=1&mode=edit",
+    "steps": [
+      "Use Download Report PDF or Download Package ZIP to inspect a draft without submitting it.",
+      "Set Start Date and End Date in Request Date Range, then Update Dates. Existing included expenses must remain within the range.",
+      "Choose an eligible Available Expense and select Add Expense. Continue to the expense table to check filenames and totals, then Review and Submit."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-draft.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      25,
+      880,
+      515
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-detail",
+    "title": "Match Expense Amounts to Receipt Files",
+    "route": "reimbursement_request.php?id=1&mode=edit",
+    "steps": [
+      "The expense table identifies the date, merchant, account, exact package receipt filenames, and amount together.",
+      "Remove detaches an expense from a draft; it does not delete the underlying expense or receipt files.",
+      "Compare filenames with the ZIP receipts/ folder and verify Total Amount Due. Request History records the workflow; submitted downloads preserve the original approved package."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-detail.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      0,
+      880,
+      580
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-review",
+    "title": "Review Email Recipients and Attachment",
+    "route": "reimbursement_submit.php?id=1",
+    "steps": [
+      "Open Review and Submit from your draft, or use its Submit icon in Requests.",
+      "Check Email Details: To is the bookkeeper; Cc includes the owner and configured visible copies; Bcc is hidden from other recipients.",
+      "Download Package for Review and inspect the Email Preview below. Use User Profile or Reimbursement Setup to correct routing before submission."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-review.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      25,
+      880,
+      545
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-confirm",
+    "title": "Check the Package and Confirm Submission",
+    "route": "reimbursement_submit.php?id=1",
+    "steps": [
+      "Review Submission Readiness, including expense count, total, receipt count, and file size. The final ZIP must fit the 15 MB limit.",
+      "Expand Package Contents by expense and compare exact filenames and original receipt names with the report.",
+      "After checking recipients, email, and package, select the confirmation checkbox and Submit Reimbursement Request. This queues delivery and locks the request; downloading alone does not submit."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-confirm.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      105,
+      880,
+      607
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Scrolled submission review. No confirmation or send button was activated during capture."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-delivery",
+    "title": "Check Delivery and Record Corrections",
+    "route": "reimbursement_request.php?id=1",
+    "steps": [
+      "Open a submitted request and inspect Email Delivery for each recipient. Queued, failed, uncertain, or accepted delivery is separate from reimbursement payment.",
+      "For a known failure, use Retry Failed Delivery where offered. Before Send Another Copy, review prior delivery and check whether it already arrived; a duplicate may otherwise be sent.",
+      "Expand Record a Correction to record an issue, then coordinate with the bookkeeper. Corrections keep original records locked; Resolve Correction records the agreed outcome."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-delivery.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      145,
+      880,
+      465
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "The fictional request is queued in an isolated environment with no mail worker. No email was sent."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-accounts",
+    "title": "Search and Manage the Chart of Accounts",
+    "route": "reimbursement_cost_centers.php?show=used",
+    "steps": [
+      "Use Add Account with a unique COA Number and Description. Archived accounts still reserve their numbers.",
+      "Search the Chart of Accounts, then choose Active, In Use, or Archived. Sort COA Number, Description, or Expenses in either direction.",
+      "The table below offers Edit, Archive, and Restore as appropriate. Only administrators can delete unused accounts; accounts associated with expenses must be archived."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-accounts.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      25,
+      880,
+      650
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-setup",
+    "title": "Set Organization and Shared Recipients",
+    "route": "reimbursement_setup.php",
+    "steps": [
+      "Administrators open Reimbursement Setup and enter Organization Name and the bookkeeper name, email, and phone.",
+      "Set Bcc Email Address for a hidden copy and Cc Email Address for a visible shared copy. Check the resulting recipients on each submission review.",
+      "Select Save Reimbursement Setup and complete administrator confirmation when requested. Changes affect drafts and future submissions, not saved original packages."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-setup.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      290,
+      25,
+      880,
+      600
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Fictional documentation records. The screen continues below the illustrated area."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-profile",
+    "title": "Set Your Personal Reimbursement Reviewer",
+    "route": "profile.php",
+    "steps": [
+      "Open My Profile from the sidebar and find Personal Details.",
+      "Enter Reimbursement Reviewer Email. This address receives a Cc copy of requests you submit and is separate from your account email.",
+      "Select Save Changes below the profile panels. Verify the actual recipients again before submitting a reimbursement."
+    ],
+    "shell": false,
+    "file": "screenshots/reimbursement-profile.png",
+    "captured_at": "2026-09-29",
+    "crop": [
+      735,
+      140,
+      425,
+      425
+    ],
+    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
+    "note": "Personal Details crop from the current profile screen, with fictional example.org addresses."
   }
 ]

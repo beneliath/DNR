@@ -1,7 +1,7 @@
 <?php
 $task_form_values = is_array($task_form_values ?? null) ? $task_form_values : [];
 $task_form_action = (string) ($task_form_action ?? 'add_task.php');
-$task_form_submit_label = (string) ($task_form_submit_label ?? 'Save task');
+$task_form_submit_label = (string) ($task_form_submit_label ?? 'Save Task');
 $task_users = is_array($task_users ?? null) ? $task_users : [];
 $task_selected_subject = (string) ($task_selected_subject ?? 'general');
 $task_selected_record = is_array($task_selected_record ?? null) ? $task_selected_record : null;
@@ -14,7 +14,7 @@ $task_selected_priority = (string) ($task_form_values['priority'] ?? 'normal');
 $task_selected_assignee = (string) ($task_form_values['assigned_to'] ?? '');
 $task_require_engagement_subject = !empty($task_require_engagement_subject);
 $task_duplicate_url = (string) ($task_duplicate_url ?? '');
-$task_subject_label = $task_require_engagement_subject ? 'Destination event' : 'Related record';
+$task_subject_label = $task_require_engagement_subject ? 'Destination event' : 'Related Record';
 $task_subject_search_placeholder = $task_require_engagement_subject
     ? 'Search events'
     : 'Search inquiries, engagements, organizations, or contacts';
@@ -40,14 +40,14 @@ $task_subject_search_url = 'task_subject_search.php'
         </div>
         <div class="form-group">
             <label for="task-subject" class="required"><?php echo htmlspecialchars($task_subject_label, ENT_QUOTES, 'UTF-8'); ?></label>
-            <div class="task-selected-record" id="task-selected-record" hidden><div><small>Selected record</small><strong id="task-selected-record-label"></strong></div><button type="button" class="button-secondary" id="task-change-record">Change record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record">Clear relationship</button><?php endif; ?></div>
-            <div id="task-record-search-panel"><label for="task-subject-search">Find a related record</label>
+            <div class="task-selected-record" id="task-selected-record" hidden><div><small>Selected record</small><strong id="task-selected-record-label"></strong></div><button type="button" class="button-secondary" id="task-change-record">Change Record</button><?php if (!$task_require_engagement_subject): ?><button type="button" class="button-secondary" id="task-clear-record">Clear Relationship</button><?php endif; ?></div>
+            <div id="task-record-search-panel"><label for="task-subject-search">Find a Related Record</label>
             <input type="search" id="task-subject-search" disabled aria-describedby="task-subject-status" autocomplete="off" placeholder="<?php echo htmlspecialchars($task_subject_search_placeholder, ENT_QUOTES, 'UTF-8'); ?>" data-subject-search-url="<?php echo htmlspecialchars($task_subject_search_url, ENT_QUOTES, 'UTF-8'); ?>">
             <noscript><p class="field-help">Enable JavaScript to search for another related record.</p></noscript>
-            <div id="task-subject-results" class="task-subject-results" aria-label="Matching records"></div></div>
+            <div id="task-subject-results" class="task-subject-results" aria-label="Matching Records"></div></div>
             <select id="task-subject" name="subject" required>
                 <?php if ($task_require_engagement_subject): ?>
-                    <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select destination event</option>
+                    <option value="" disabled<?php echo $task_selected_subject === '' ? ' selected' : ''; ?>>Select Destination Event</option>
                 <?php else: ?>
                     <option value="general"<?php echo $task_selected_subject === 'general' ? ' selected' : ''; ?>><?php echo htmlspecialchars(applicationGeneralWorkLabel(), ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endif; ?>
@@ -63,7 +63,7 @@ $task_subject_search_url = 'task_subject_search.php'
         <h2>Ownership &amp; Timing</h2>
         <div class="task-form-grid">
             <div class="form-group">
-                <label for="task-assignee">Assigned to</label>
+                <label for="task-assignee">Assigned To</label>
                 <select id="task-assignee" name="assigned_to">
                     <option value="">Unassigned</option>
                     <?php foreach ($task_users as $task_user): ?>
@@ -72,7 +72,7 @@ $task_subject_search_url = 'task_subject_search.php'
                 </select>
             </div>
             <div class="form-group">
-                <label for="task-due-date">Due date</label>
+                <label for="task-due-date">Due Date</label>
                 <input type="date" id="task-due-date" name="due_date" value="<?php echo htmlspecialchars($task_form_values['due_date'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>
             <div class="form-group">
@@ -94,7 +94,7 @@ $task_subject_search_url = 'task_subject_search.php'
         </div>
         <p class="field-help" id="task-cancel-closeout-note" hidden>Canceling a task removes it from active work. For engagement tasks under the closeout policy, a task due on or before the last dated presentation must still be marked Completed before the event can be financially finalized. Check the event closeout before canceling pre-event work.</p>
         <div class="form-group" id="task-waiting-on-group">
-            <label for="task-waiting-on">Waiting on</label>
+            <label for="task-waiting-on">Waiting On</label>
             <input type="text" id="task-waiting-on" name="waiting_on" maxlength="255" value="<?php echo htmlspecialchars($task_form_values['waiting_on'] ?? '', ENT_QUOTES, 'UTF-8'); ?>" placeholder="Person, organization, or missing decision">
         </div>
     </section>

@@ -3,9 +3,9 @@ declare(strict_types=1);
 
 function aiCoachImprovementCategories(): array
 {
-    return ['routing' => 'Wrong workflow', 'ui_state' => 'Wrong control or page state', 'permissions' => 'Role or permissions',
-        'retrieval' => 'Relevant manual content was missed', 'manual_gap' => 'Manual content needs clarification',
-        'instruction' => 'Answer contradicted the evidence', 'reliability' => 'Timing or connection failure'];
+    return ['routing' => 'Wrong Workflow', 'ui_state' => 'Wrong Control or Page State', 'permissions' => 'Role or Permissions',
+        'retrieval' => 'Relevant Manual Content Was Missed', 'manual_gap' => 'Manual Content Needs Clarification',
+        'instruction' => 'Answer Contradicted the Evidence', 'reliability' => 'Timing or Connection Failure'];
 }
 
 function aiCoachTriageImprovement(array $request): string

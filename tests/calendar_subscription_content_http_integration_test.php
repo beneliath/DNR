@@ -167,7 +167,7 @@ try {
         revokeCalendarSubscription($conn, $ownerId, (int) $stored['id']);
         expectCalendarContent($request($feedPath, null, '', $feed['etag'])['status'] === 404, 'Revocation must precede conditional cache handling');
     }
-    $mine = createCalendarSubscription($conn, $ownerId, 'My work', ['my_work']);
+    $mine = createCalendarSubscription($conn, $ownerId, 'My Work', ['my_work']);
     $other = createCalendarSubscription($conn, $otherId, 'Other owner', ['my_work']);
     $minePath = 'calendar.php?token=' . $mine['token'];
     $mineFeed = $request($minePath);

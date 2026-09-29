@@ -78,11 +78,12 @@ expectHeaderScope(
     'Desktop and mobile brand links should return to the daily dashboard.'
 );
 expectHeaderScope(
-    substr_count($header_markup, 'class="nav-link admin-nav-link') === 4
+    substr_count($header_markup, 'class="nav-link admin-nav-link') === 5
         && str_contains($header_markup, '<span>Admin Unlock</span>')
         && str_contains($header_markup, '<span>Users</span>')
         && str_contains($header_markup, '<span>Database</span>')
-        && str_contains($header_markup, '<span>Network</span>'),
+        && str_contains($header_markup, '<span>Network</span>')
+        && str_contains($header_markup, '<span>Reimbursement Setup</span>'),
     'Administrator-only navigation links should carry the dedicated visual treatment.'
 );
 
@@ -109,7 +110,7 @@ foreach ([
         $badge_case['label'] === null
             ? !$has_badge
             : $has_badge
-                && $badge_match[1] === $badge_case['active'] . ' active tasks assigned to you'
+                && $badge_match[1] === $badge_case['active'] . ' Active Tasks Assigned to You'
                 && $badge_match[2] === $badge_case['label'],
         'My Work should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
     );
@@ -269,7 +270,7 @@ expectHeaderScope(
 );
 expectHeaderScope(
     str_contains($footer_source, 'class="footer-ascii-cat"')
-        && str_contains($footer_source, 'aria-label="ASCII art cat"')
+        && str_contains($footer_source, 'aria-label="ASCII Art Cat"')
         && str_contains(preg_replace('/<\/?(?:a|button)\b[^>]*>/', '', $footer_source), "  (il),-''  (li),'  ((!.-'\n\nGenesis 49:9,10 ... Revelation 5:5")
         && str_contains($footer_source, 'Do you see Him?'),
     'The shared footer should leave one blank line between the ASCII cat and the Genesis/Revelation line.'

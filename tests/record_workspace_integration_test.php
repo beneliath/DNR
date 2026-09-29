@@ -60,14 +60,14 @@ try {
         foreach (['engagements.php', 'engagements.php?lifecycle=invalid', 'engagements.php?lifecycle[]=active'] as $returnPath) {
             $returned = recordHttp($returnPath, $editorSession, null, [], $cookies);
             $dom = new DOMDocument(); @$dom->loadHTML($returned['body']); $xpath = new DOMXPath($dom);
-            $selected = $xpath->query('//div[@aria-label="Engagement lifecycle filter"]//a[@aria-current="true"]')->item(0);
+            $selected = $xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0);
             expectRecordHttp($returned['status'] === 200 && $selected instanceof DOMElement
                 && trim($selected->textContent) === ucfirst($lifecycle),
                 'Returning restores the saved lifecycle filter and ignores invalid input');
         }
         $otherUser = recordHttp('engagements.php', $sessions['reviewer'][0], null, [], $cookies);
         $dom = new DOMDocument(); @$dom->loadHTML($otherUser['body']); $xpath = new DOMXPath($dom);
-        expectRecordHttp(trim($xpath->query('//div[@aria-label="Engagement lifecycle filter"]//a[@aria-current="true"]')->item(0)->textContent) === 'All',
+        expectRecordHttp(trim($xpath->query('//div[@aria-label="Engagement Lifecycle Filter"]//a[@aria-current="true"]')->item(0)->textContent) === 'All',
             'Lifecycle preferences do not leak between users sharing a browser');
     }
     $orgName = 'Relationship HTTP ' . $suffix;
@@ -108,7 +108,7 @@ try {
                 && $form->getAttribute('action') === 'tasks.php'
                 && $form->getAttribute('data-confirm-title') === 'Delete Task?'
                 && str_contains($form->getAttribute('data-confirm'), 'cannot be undone')
-                && $xpath->query('.//button[@type="submit" and @aria-label="Delete task"]', $form)->length === 1,
+                && $xpath->query('.//button[@type="submit" and @aria-label="Delete Task"]', $form)->length === 1,
                 'Task deletion uses a labelled POST control and permanent-deletion confirmation');
             foreach ($xpath->query('.//input', $form) as $input) {
                 $deleteFields[$input->getAttribute('name')] = $input->getAttribute('value');
@@ -331,7 +331,7 @@ try {
             }
             expectRecordHttp($xpath->query('//form[@role="search"]//input[@name="sort_by" and @value="' . $column . '"]')->length === 1,
                 'Search retains the financial sort');
-            $activeSort = $xpath->query('//div[@aria-label="Organization sort order"]//a[@aria-current="true"]')->item(0);
+            $activeSort = $xpath->query('//div[@aria-label="Organization Sort Order"]//a[@aria-current="true"]')->item(0);
             expectRecordHttp($activeSort instanceof DOMElement, 'The active giving sort is identified');
             parse_str((string) parse_url($activeSort->getAttribute('href'), PHP_URL_QUERY), $toggleQuery);
             expectRecordHttp($toggleQuery[$column . '_sort'] === ($direction === 'asc' ? 'desc' : 'asc') && !isset($toggleQuery['page']),

@@ -1,4 +1,8 @@
 services:
+  receipt-previews:
+    volumes:
+      - ./src:/var/www/html:ro
+      - ./scripts/process_receipt_previews.php:/opt/dnr/bin/process_receipt_previews.php:ro
   document-scans:
     volumes:
       - ./src:/var/www/html:ro

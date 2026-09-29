@@ -122,7 +122,7 @@ expectSmtpMessageFormat(
     is_string($source)
         && str_contains($source, 'smtpNormalizeLineEndings(implode("\\n", [')
         && str_contains($source, "'Reply-To: <' . \$replyTo . '>'")
-        && str_contains($source, 'smtpMessageContent($body, $htmlBody)')
+        && str_contains($source, 'smtpMessageContent($body, $htmlBody, $attachments)')
         && !str_contains($source, '$message = str_replace("\\n", "\\r\\n", $message);'),
     'SMTP delivery should support validated Reply-To and optional HTML while normalizing the envelope exactly once.'
 );

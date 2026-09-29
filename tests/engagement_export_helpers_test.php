@@ -184,7 +184,7 @@ expectExport(
     'Plain text preserves the multi-line Unicode event description.'
 );
 expectExport(
-    str_contains($plain_text, "Jamie Smith\nEvent Roles: Primary host, Travel\nRole: Events Director"),
+    str_contains($plain_text, "Jamie Smith\nEvent Roles: Primary Host, Travel\nRole: Events Director"),
     'Plain text includes event-specific and organization contact roles.'
 );
 expectExport(str_contains($plain_text, 'Phone: +1 312-555-0100'), 'Exports format canonical telephone values for display.');

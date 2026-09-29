@@ -96,7 +96,7 @@ $presentationContext = null;
 $context = '';
 if ($activeLink !== null) {
     $reportTitle = shortLinkLabel($activeLink) . ' QR Code Statistics';
-    $context = ($activeLink['topic_title'] ?: 'Untitled presentation') . ' · ' . $activeLink['speaker_name'];
+    $context = ($activeLink['topic_title'] ?: 'Untitled Presentation') . ' · ' . $activeLink['speaker_name'];
 } elseif (isset($filters['presentation_id'])) {
     $stmt = $conn->prepare('SELECT p.id, p.topic_title, p.engagement_id, e.event_title, s.name AS speaker_name
         FROM presentations p JOIN engagements e ON e.id = p.engagement_id
@@ -105,7 +105,7 @@ if ($activeLink !== null) {
     $presentationContext = $stmt->get_result()->fetch_assoc();
     $stmt->close();
     if (!$presentationContext) { http_response_code(404); exit('Presentation not found.'); }
-    $context = ($presentationContext['topic_title'] ?: 'Untitled presentation') . ' · ' . $presentationContext['speaker_name'];
+    $context = ($presentationContext['topic_title'] ?: 'Untitled Presentation') . ' · ' . $presentationContext['speaker_name'];
 } elseif (isset($filters['engagement_id'])) {
     $stmt = $conn->prepare('SELECT event_title FROM engagements WHERE id = ?');
     $stmt->bind_param('i', $filters['engagement_id']); $stmt->execute();
@@ -135,14 +135,14 @@ if ($activeLink !== null) {
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
             <a href="view_engagement.php?id=<?php echo (int) $activeLink['engagement_id']; ?>"><?php echo $h($activeLink['event_title']); ?></a><span aria-hidden="true">/</span>
-            <a href="view_engagement.php?id=<?php echo (int) $activeLink['engagement_id']; ?>#engagement-presentations"><?php echo $h($activeLink['topic_title'] ?: 'Untitled presentation'); ?></a><span aria-hidden="true">/</span>
+            <a href="view_engagement.php?id=<?php echo (int) $activeLink['engagement_id']; ?>#engagement-presentations"><?php echo $h($activeLink['topic_title'] ?: 'Untitled Presentation'); ?></a><span aria-hidden="true">/</span>
             <span aria-current="page"><?php echo $h($reportTitle); ?></span>
         </nav>
     <?php elseif ($presentationContext !== null): ?>
         <nav class="breadcrumb" aria-label="Breadcrumb">
             <a href="engagements.php">Engagements</a><span aria-hidden="true">/</span>
             <a href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>"><?php echo $h($presentationContext['event_title']); ?></a><span aria-hidden="true">/</span>
-            <a href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>#presentation-<?php echo (int) $presentationContext['id']; ?>"><?php echo $h($presentationContext['topic_title'] ?: 'Untitled presentation'); ?></a><span aria-hidden="true">/</span>
+            <a href="view_engagement.php?id=<?php echo (int) $presentationContext['engagement_id']; ?>#presentation-<?php echo (int) $presentationContext['id']; ?>"><?php echo $h($presentationContext['topic_title'] ?: 'Untitled Presentation'); ?></a><span aria-hidden="true">/</span>
             <span aria-current="page">Presentation Statistics</span>
         </nav>
     <?php endif; ?>
@@ -161,10 +161,10 @@ if ($activeLink !== null) {
             <?php if (isset($filters[$key])): ?><input type="hidden" name="<?php echo $key; ?>" value="<?php echo (int) $filters[$key]; ?>"><?php endif; ?>
         <?php endforeach; ?>
         <?php if (!$isSingleLink): ?>
-        <div><label for="speaker_filter">Speaker</label><select name="speaker_id" id="speaker_filter"><option value="">All speakers</option>
+        <div><label for="speaker_filter">Speaker</label><select name="speaker_id" id="speaker_filter"><option value="">All Speakers</option>
             <?php foreach ($speakers as $speaker): ?><option value="<?php echo (int) $speaker['id']; ?>" <?php echo ($filters['speaker_id'] ?? null) === (int) $speaker['id'] ? 'selected' : ''; ?>><?php echo $h($speaker['name']); ?></option><?php endforeach; ?>
         </select></div>
-        <div><label for="type_filter">Link Type</label><select name="type" id="type_filter"><option value="">All types</option><?php foreach (SHORT_LINK_TYPES as $key => $label): ?><option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>><?php echo $h($label); ?></option><?php endforeach; ?></select></div>
+        <div><label for="type_filter">Link Type</label><select name="type" id="type_filter"><option value="">All Types</option><?php foreach (SHORT_LINK_TYPES as $key => $label): ?><option value="<?php echo $key; ?>" <?php echo $type === $key ? 'selected' : ''; ?>><?php echo $h($label); ?></option><?php endforeach; ?></select></div>
         <?php endif; ?>
         <div><label for="from_filter">From (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="from_filter" name="from" value="<?php echo $h($from); ?>" required></div>
         <div><label for="to_filter">Through (<?php echo $h(applicationTimezoneName()); ?>)</label><input type="date" id="to_filter" name="to" value="<?php echo $h($to); ?>" required></div>
@@ -174,19 +174,19 @@ if ($activeLink !== null) {
     <?php if ($presentationContext !== null): ?><p class="field-help">Totals combine visits to all matching QR codes for this presentation, including disabled codes and codes for previous speakers. A person opening multiple codes contributes multiple visits.</p><?php endif; ?>
     <?php if (!empty($stats['resources_truncated'])): ?><p class="field-help">Detailed rows are limited to 2,000 resource-period groups. Other resources are combined; all visits remain in the totals. Select a speaker, event, or individual link to see more detail.</p><?php endif; ?>
     <p class="field-help">Historical visits older than the configured detail-retention period retain their times and link totals; browser, device, country, and referrer details may be summarized.</p>
-    <section class="short-link-report" aria-label="Traffic statistics">
+    <section class="short-link-report" aria-label="Traffic Statistics">
         <div class="stats-overview">
             <div class="stats-summary">
                 <?php if ($selectedSpeaker !== null): ?>
                     <img class="stats-speaker-avatar" src="speaker_photo.php?id=<?php echo (int) $selectedSpeaker['id']; ?>&amp;v=<?php echo (int) $selectedSpeaker['version']; ?>" alt="Photo or initials for <?php echo $h($selectedSpeaker['name']); ?>" width="64" height="64">
                 <?php endif; ?>
                 <div class="stats-summary-copy">
-                    <h2 class="stats-headline"><strong><?php echo number_format($stats['total']); ?></strong> tracked visits in the selected period</h2>
+                    <h2 class="stats-headline"><strong><?php echo number_format($stats['total']); ?></strong> Tracked Visits in the Selected Period</h2>
                     <p class="stats-meta"><?php echo $h($from); ?> – <?php echo $h($to); ?> · <?php echo number_format($linkCount); ?> <?php echo $linkCount === 1 ? 'link' : 'links'; ?> · Updated at <?php echo $h(applicationTimestampLabel(gmdate('Y-m-d H:i:s'), 'H:i T')); ?></p>
                 </div>
             </div>
-            <nav class="stats-periods" aria-label="Statistics date range">
-                <?php foreach ([7 => '7 days', 30 => '30 days', 90 => '90 days', 365 => '1 year'] as $days => $label): ?>
+            <nav class="stats-periods" aria-label="Statistics Date Range">
+                <?php foreach ([7 => '7 Days', 30 => '30 Days', 90 => '90 Days', 365 => '1 Year'] as $days => $label): ?>
                     <?php $rangeFrom = applicationBusinessDateOffset(-($days - 1)); $rangeTo = applicationBusinessDate(); ?>
                     <a href="short_links.php?<?php echo $h(http_build_query($filters + ['from' => $rangeFrom, 'to' => $rangeTo])); ?>" <?php echo $from === $rangeFrom && $to === $rangeTo ? 'aria-current="true"' : ''; ?>><?php echo $label; ?></a>
                 <?php endforeach; ?>
@@ -195,9 +195,9 @@ if ($activeLink !== null) {
         <p id="stats-chart-help" class="stats-screen-reader">Hover or tap to inspect visits. On a focused chart use arrow keys to explore values. Exact values are also available in each data table.</p>
         <p id="stats-chart-error" class="field-help" hidden>Charts could not load. Visit counts are available in the data tables below.</p>
         <noscript><p class="field-help">Enable JavaScript for interactive charts, or open the data tables below.</p></noscript>
-        <section class="stats-timeline" aria-label="Visits over time">
+        <section class="stats-timeline" aria-label="Visits Over Time">
             <p class="stats-chart-caption"><?php echo $report['period'] === 'month' ? 'Monthly' : 'Daily'; ?> visits · <?php echo $h(applicationTimezoneName()); ?><?php echo $report['period'] === 'month' ? ' · First and last months include only the selected dates' : ''; ?></p>
-            <div class="stats-canvas stats-canvas-timeline" id="stats-timeline-wrap" hidden><canvas id="stats-timeline" role="img" tabindex="0" aria-label="Tracked visits over time" aria-describedby="stats-chart-help"></canvas></div>
+            <div class="stats-canvas stats-canvas-timeline" id="stats-timeline-wrap" hidden><canvas id="stats-timeline" role="img" tabindex="0" aria-label="Tracked Visits Over Time" aria-describedby="stats-chart-help"></canvas></div>
             <?php if (!$stats['total']): ?><p class="stats-empty">No tracked visits in this period</p><?php endif; ?>
             <?php $dimension = 'timeline'; $dimensionTitle = $report['period'] === 'month' ? 'Monthly visits' : 'Daily visits'; include 'templates/short_link_stats_table.php'; ?>
         </section>
@@ -205,8 +205,8 @@ if ($activeLink !== null) {
             <section class="stats-panel" aria-labelledby="stats-referrers-heading">
                 <h2 id="stats-referrers-heading">Referrers</h2>
                 <div class="stats-referrers" id="stats-referrer-wrap" hidden>
-                    <ul class="stats-legend" id="stats-referrer-legend" aria-label="Referrer breakdown"></ul>
-                    <div class="stats-canvas stats-canvas-doughnut"><canvas id="stats-referrer" role="img" tabindex="0" aria-label="Visits by referrer" aria-describedby="stats-chart-help"></canvas><div class="stats-doughnut-total" aria-hidden="true"><strong><?php echo number_format($stats['total']); ?></strong><span>visits</span></div></div>
+                    <ul class="stats-legend" id="stats-referrer-legend" aria-label="Referrer Breakdown"></ul>
+                    <div class="stats-canvas stats-canvas-doughnut"><canvas id="stats-referrer" role="img" tabindex="0" aria-label="Visits by Referrer" aria-describedby="stats-chart-help"></canvas><div class="stats-doughnut-total" aria-hidden="true"><strong><?php echo number_format($stats['total']); ?></strong><span>visits</span></div></div>
                 </div>
                 <?php if (!$stats['total']): ?><p class="stats-empty">No referrer data in this period</p><?php endif; ?>
                 <p class="stats-chart-caption">Leading sources · Remaining sources grouped together</p>
@@ -214,16 +214,16 @@ if ($activeLink !== null) {
             </section>
             <section class="stats-panel" aria-labelledby="stats-browsers-heading">
                 <h2 id="stats-browsers-heading">Browsers</h2>
-                <div class="stats-canvas stats-canvas-bars" id="stats-browser-wrap" hidden><canvas id="stats-browser" role="img" tabindex="0" aria-label="Visits by browser" aria-describedby="stats-chart-help"></canvas></div>
+                <div class="stats-canvas stats-canvas-bars" id="stats-browser-wrap" hidden><canvas id="stats-browser" role="img" tabindex="0" aria-label="Visits by Browser" aria-describedby="stats-chart-help"></canvas></div>
                 <?php if (!$stats['total']): ?><p class="stats-empty">No browser data in this period</p><?php endif; ?>
                 <?php $dimension = 'browser'; $dimensionTitle = 'Browsers'; include 'templates/short_link_stats_table.php'; ?>
             </section>
             <section class="stats-panel" aria-labelledby="stats-countries-heading">
                 <h2 id="stats-countries-heading">Countries</h2>
                 <div class="stats-map" id="stats-map" hidden>
-                    <svg id="stats-world" viewBox="0 0 800 420" role="group" aria-label="World map of tracked visits" aria-describedby="stats-map-help"></svg>
+                    <svg id="stats-world" viewBox="0 0 800 420" role="group" aria-label="World Map of Tracked Visits" aria-describedby="stats-map-help"></svg>
                     <div class="stats-map-tooltip" id="stats-map-tooltip" role="status" hidden></div>
-                    <div class="stats-map-scale" aria-label="Map colour intensity"><span>Fewer visits</span><span class="stats-map-scale-gradient"></span><span>More visits</span></div>
+                    <div class="stats-map-scale" aria-label="Map Colour Intensity"><span>Fewer visits</span><span class="stats-map-scale-gradient"></span><span>More visits</span></div>
                 </div>
                 <p class="stats-chart-caption" id="stats-map-help">Hover, tap or focus a country for visit counts</p>
                 <p class="stats-chart-caption" id="stats-unmapped"></p>
@@ -232,9 +232,9 @@ if ($activeLink !== null) {
             </section>
             <section class="stats-panel" aria-labelledby="stats-os-heading">
                 <h2 id="stats-os-heading">Operating Systems</h2>
-                <div class="stats-canvas stats-canvas-bars" id="stats-os-wrap" hidden><canvas id="stats-os" role="img" tabindex="0" aria-label="Visits by operating system" aria-describedby="stats-chart-help"></canvas></div>
+                <div class="stats-canvas stats-canvas-bars" id="stats-os-wrap" hidden><canvas id="stats-os" role="img" tabindex="0" aria-label="Visits by Operating System" aria-describedby="stats-chart-help"></canvas></div>
                 <?php if (!$stats['total']): ?><p class="stats-empty">No operating system data in this period</p><?php endif; ?>
-                <?php $dimension = 'os'; $dimensionTitle = 'Operating systems'; include 'templates/short_link_stats_table.php'; ?>
+                <?php $dimension = 'os'; $dimensionTitle = 'Operating Systems'; include 'templates/short_link_stats_table.php'; ?>
             </section>
         </div>
         <p class="stats-footnote">Visits are not unique people or verified QR scans. Known bots, prefetches and HEAD requests are excluded. Referrers may be unavailable for camera scans. Countries are approximate; unknown locations appear separately.</p>
@@ -254,7 +254,7 @@ if ($activeLink !== null) {
         $url = (string) ($link['qr_url'] ?? ''); ?>
         <article class="short-link-card">
             <div class="short-link-card-heading"><h3><?php echo $h($label); ?></h3><span><?php echo number_format((int) $link['visits']); ?> visits</span></div>
-            <p><a href="view_engagement.php?id=<?php echo (int) $link['engagement_id']; ?>"><?php echo $h($link['event_title']); ?></a><br><?php echo $h($link['topic_title'] ?: 'Untitled presentation'); ?> · <?php echo $h($link['speaker_name']); ?></p>
+            <p><a href="view_engagement.php?id=<?php echo (int) $link['engagement_id']; ?>"><?php echo $h($link['event_title']); ?></a><br><?php echo $h($link['topic_title'] ?: 'Untitled Presentation'); ?> · <?php echo $h($link['speaker_name']); ?></p>
             <?php if ((int) $link['speaker_id'] !== (int) $link['current_speaker_id']): ?><p class="field-help">Previous speaker · original attribution retained</p><?php endif; ?>
             <?php if ($url !== ''): ?>
                 <img class="short-link-qr" src="data:image/png;base64,<?php echo base64_encode($link['qr_png']); ?>" alt="<?php echo $h($label); ?> QR code" width="180" height="180">
@@ -268,14 +268,14 @@ if ($activeLink !== null) {
             <form method="post" class="short-link-edit">
                 <?php echo csrfInput(); ?><input type="hidden" name="link_id" value="<?php echo $id; ?>"><input type="hidden" name="version" value="<?php echo (int) $link['version']; ?>">
                 <?php if (!in_array($link['link_type'], ['notes', 'slidedeck'], true)): ?><label for="target_<?php echo $id; ?>">Destination</label><input id="target_<?php echo $id; ?>" type="url" name="target_url" value="<?php echo $h($link['target_url']); ?>" maxlength="2048" required><?php endif; ?>
-                <label class="short-link-enabled"><input type="checkbox" name="is_enabled" value="1" <?php echo $link['is_enabled'] ? 'checked' : ''; ?>> Link enabled</label>
+                <label class="short-link-enabled"><input type="checkbox" name="is_enabled" value="1" <?php echo $link['is_enabled'] ? 'checked' : ''; ?>> Link Enabled</label>
                 <button type="submit" class="button-primary">Save Link</button>
             </form>
             <?php else: ?><p><?php echo $h($link['target_url'] ?? (shortLinkLabel($link) . ' download')); ?></p><p><?php echo $link['is_enabled'] ? 'Enabled' : 'Disabled'; ?></p><?php endif; ?>
         </article>
     <?php endforeach; ?>
     </div>
-    <nav class="short-link-pagination" aria-label="Link pages">
+    <nav class="short-link-pagination" aria-label="Link Pages">
         <?php if ($page > 1): ?><a href="short_links.php?<?php echo $h(http_build_query($filters + ['from' => $from, 'to' => $to, 'page' => $page - 1])); ?>">Previous</a><?php endif; ?>
         <span>Page <?php echo $page; ?> of <?php echo max(1, (int) ceil($linkCount / 50)); ?></span>
         <?php if ($offset + 50 < $linkCount): ?><a href="short_links.php?<?php echo $h(http_build_query($filters + ['from' => $from, 'to' => $to, 'page' => $page + 1])); ?>">Next</a><?php endif; ?>

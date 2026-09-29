@@ -153,6 +153,10 @@ if [ -s "$coach_key_file" ]; then
     export DNR_AI_COACH_KNOWN_HOSTS_FILE=$coach_hosts_file
     set -- --profile coach -f docker-compose.ai-coach.yaml "$@"
 fi
+# Reimbursement receipt previews are part of every production application release.
+case "$mode" in
+    production*|prod*) set -- --profile reimbursements "$@" ;;
+esac
 case "$mode" in
     development|dev)
         exec docker compose \

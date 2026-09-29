@@ -180,7 +180,7 @@ $restore_query = http_build_query([
             <div class="chron-restore-toolbar">
                 <label class="chron-select-all">
                     <input type="checkbox" id="select-all-chron-entries">
-                    Select all archived entries
+                    Select All Archived Entries
                 </label>
                 <button type="submit" name="restore_selected" value="1" class="restore-button">Restore Selected</button>
             </div>
@@ -195,7 +195,7 @@ $restore_query = http_build_query([
                     <article class="chron-entry-card chron-restore-card">
                         <label class="chron-restore-selection">
                             <input type="checkbox" name="chron_entry_ids[]" value="<?php echo (int) $chron_entry['id']; ?>">
-                            <span>Select this entry</span>
+                            <span>Select This Entry</span>
                         </label>
                         <div class="chron-entry-meta">
                             <div>

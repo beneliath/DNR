@@ -25,8 +25,10 @@ $nav_groups = [
     'contacts' => ['contacts.php', 'add_contact.php', 'edit_contact.php', 'view_contact.php', 'contact_photo.php'],
     'inbound_mail' => ['inbound_mail.php'],
     'email_templates' => ['email_templates.php', 'edit_email_template.php'],
+    'reimbursements' => ['reimbursements.php', 'reimbursement_expense.php', 'reimbursement_request.php', 'reimbursement_requests.php', 'reimbursement_cost_centers.php', 'reimbursement_submit.php'],
     'users' => ['users.php', 'register.php', 'edit_user.php', 'audit_log.php', 'reset_user_password.php'],
     'admin_unlock' => ['admin_elevation.php'],
+    'reimbursement_setup' => ['reimbursement_setup.php'],
     'database' => ['database_maintenance.php'],
     'network' => ['network_diagnostics.php'],
     'ai_coach' => ['ai_coach_requests.php'],
@@ -101,7 +103,7 @@ if (!empty($_SESSION['user_id'])) {
 ?>
 
 <header class="app-shell-header">
-    <a class="skip-link" href="#app-content-start" data-skip-link>Skip to main content</a>
+    <a class="skip-link" href="#app-content-start" data-skip-link>Skip to Main Content</a>
     <div class="mobile-app-bar">
         <button type="button" class="mobile-menu-button" data-nav-toggle aria-controls="app-sidebar" aria-expanded="false">
             <span class="visually-hidden">Open Navigation</span>
@@ -117,7 +119,7 @@ if (!empty($_SESSION['user_id'])) {
     </div>
 
     <?php if (!empty($_SESSION['user_id'])): ?>
-        <section class="deployment-notice-banner" data-deployment-notice data-status-url="deployment_status.php" aria-label="Deployment notice" hidden>
+        <section class="deployment-notice-banner" data-deployment-notice data-status-url="deployment_status.php" aria-label="Deployment Notice" hidden>
             <div class="deployment-notice-heading">
                 <strong data-deployment-title role="status" aria-live="polite"></strong>
                 <span data-deployment-timer role="timer" aria-live="off"></span>
@@ -127,7 +129,7 @@ if (!empty($_SESSION['user_id'])) {
     <?php endif; ?>
 
     <?php if ($admin_unlock_expires_at !== null): ?>
-        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator unlock status" hidden>
+        <section class="admin-unlock-banner" data-admin-unlock data-expires-at="<?php echo $admin_unlock_expires_at; ?>" data-server-now="<?php echo microtime(true); ?>" aria-label="Administrator Unlock Status" hidden>
             <div class="admin-unlock-copy">
                 <strong role="status">Administrator actions unlocked</strong>
                 <span>Sensitive actions are available until the timer expires.</span>
@@ -140,13 +142,13 @@ if (!empty($_SESSION['user_id'])) {
             </form>
             <div class="admin-unlock-countdown">
                 <span>Automatically locks in</span>
-                <span data-admin-unlock-timer role="timer" aria-label="Time until administrator actions lock" aria-live="off"></span>
+                <span data-admin-unlock-timer role="timer" aria-label="Time Until Administrator Actions Lock" aria-live="off"></span>
             </div>
         </section>
     <?php endif; ?>
 
     <?php if ($role_preview !== null): ?>
-        <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator role preview">
+        <section class="role-preview-banner" data-role-preview-banner aria-label="Administrator Role Preview">
             <div class="role-preview-banner-copy">
                 <strong>Viewing as <?php echo htmlspecialchars($role_preview_label, ENT_QUOTES, 'UTF-8'); ?></strong>
                 <span>Navigation and permissions reflect this role. Actions still affect live data.</span>
@@ -160,8 +162,8 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <div class="app-sidebar" id="app-sidebar" aria-label="Application navigation" data-nav-preference-user="<?php echo htmlspecialchars((string) ($_SESSION['user_id'] ?? $username), ENT_QUOTES, 'UTF-8'); ?>">
-        <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close navigation</button>
+    <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars((string) ($_SESSION['user_id'] ?? $username), ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close Navigation</button>
         <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
@@ -176,7 +178,7 @@ if (!empty($_SESSION['user_id'])) {
                     </a></li>
                         <li><a href="tasks.php?owner=me" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>My Work</span>
-                        <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> active tasks assigned to you"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
+                        <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> Active Tasks Assigned to You"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
                     </a></li>
                         <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>
                         <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v5.5l-4 2V13L3 5Z"/></svg><span>Booking Pipeline</span>
@@ -188,6 +190,9 @@ if (!empty($_SESSION['user_id'])) {
                         <?php endif; ?>
                         <li><a href="email_templates.php" class="nav-link<?php echo $active_nav === 'email_templates' ? ' active' : ''; ?>"<?php echo $active_nav === 'email_templates' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6M7 16h4"/></svg><span>Email Templates</span>
+                        </a></li>
+                        <li><a href="reimbursements.php" class="nav-link<?php echo $active_nav === 'reimbursements' ? ' active' : ''; ?>"<?php echo $active_nav === 'reimbursements' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><path d="M8 7h8M8 11h8M8 15h4m3 0 2 2 3-4"/></svg><span>Reimbursements</span>
                         </a></li>
                     </ul>
                 </details>
@@ -232,9 +237,12 @@ if (!empty($_SESSION['user_id'])) {
                         <li><a href="database_maintenance.php" class="nav-link admin-nav-link<?php echo $active_nav === 'database' ? ' active' : ''; ?>"<?php echo $active_nav === 'database' ? ' aria-current="page"' : ''; ?>>
                             <svg aria-hidden="true" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.66 3.58 3 8 3s8-1.34 8-3V5M4 11v6c0 1.66 3.58 3 8 3s8-1.34 8-3v-6"/></svg><span>Database</span>
                         </a></li>
+                        <li><a href="reimbursement_setup.php" class="nav-link admin-nav-link<?php echo $active_nav === 'reimbursement_setup' ? ' active' : ''; ?>"<?php echo $active_nav === 'reimbursement_setup' ? ' aria-current="page"' : ''; ?>>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></svg><span>Reimbursement Setup</span>
+                        </a></li>
                         <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled()): ?>
                         <li><a href="ai_coach_requests.php" class="nav-link admin-nav-link<?php echo $active_nav === 'ai_coach' ? ' active' : ''; ?>"<?php echo $active_nav === 'ai_coach' ? ' aria-current="page"' : ''; ?>>
-                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>ai coach Requests</span>
+                            <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M21 15a3 3 0 0 1-3 3H8l-5 4V6a3 3 0 0 1 3-3h12a3 3 0 0 1 3 3zM7 8h10M7 12h7"/></svg><span>AI Coach Requests</span>
                         </a></li>
                         <?php endif; ?>
                         <li><a href="network_diagnostics.php" class="nav-link admin-nav-link<?php echo $active_nav === 'network' ? ' active' : ''; ?>"<?php echo $active_nav === 'network' ? ' aria-current="page"' : ''; ?>>
@@ -247,7 +255,7 @@ if (!empty($_SESSION['user_id'])) {
 
             <?php if ($authenticated_user_role === 'admin'): ?>
                 <details class="role-preview-disclosure">
-                <summary id="role-preview-label">Preview access</summary>
+                <summary id="role-preview-label">Preview Access</summary>
                 <form method="post" action="role_preview.php" class="role-preview-control">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
@@ -263,7 +271,7 @@ if (!empty($_SESSION['user_id'])) {
                 </details>
             <?php endif; ?>
 
-            <nav class="utility-navigation" aria-label="Account and application">
+            <nav class="utility-navigation" aria-label="Account and Application">
                 <a href="mattermost.php" class="nav-link<?php echo $active_nav === 'mattermost' ? ' active' : ''; ?>"<?php echo $active_nav === 'mattermost' ? ' aria-current="page"' : ''; ?>>
                     <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 3v-4.5A2 2 0 0 1 3 15V7a2 2 0 0 1 2-2Z"/><path d="M8 10h8M8 14h5"/></svg><span>Mattermost</span>
                 </a>
@@ -281,7 +289,7 @@ if (!empty($_SESSION['user_id'])) {
         </div>
 
         <div class="sidebar-account">
-            <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
+            <a href="profile.php" class="sidebar-account-link<?php echo $active_nav === 'profile' ? ' active' : ''; ?>"<?php echo $active_nav === 'profile' ? ' aria-current="page"' : ''; ?> aria-label="Open Profile for <?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?>">
                 <img class="account-avatar" src="profile_picture.php?v=<?php echo $profile_picture_version; ?>" alt="">
                 <span class="account-copy"><strong><?php echo htmlspecialchars($user_display_name, ENT_QUOTES, 'UTF-8'); ?></strong><small><?php echo htmlspecialchars($role_preview === null ? ucfirst($user_role) : $role_preview_label . ' preview', ENT_QUOTES, 'UTF-8'); ?></small></span>
             </a>

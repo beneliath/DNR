@@ -246,19 +246,19 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">
             <div class="form-group form-flex-one">
-                <label for="organization_id">Primary organization</label>
+                <label for="organization_id">Primary Organization</label>
                 <select name="organization_id" id="organization_id" data-organization-search>
-                    <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No organization</option>
+                    <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No Organization</option>
                     <?php foreach ($contact_organization_options as $row): ?>
                         <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <details class="inline-organization-creator" data-inline-organization>
-                <summary>New organization</summary>
-                <label for="inline-organization-name">Organization name</label>
+                <summary>New Organization</summary>
+                <label for="inline-organization-name">Organization Name</label>
                 <input id="inline-organization-name" type="text" maxlength="255" data-organization-name autocomplete="organization">
-                <button type="button" class="button-secondary" data-create-organization>Create and select</button>
+                <button type="button" class="button-secondary" data-create-organization>Create and Select</button>
                 <p data-organization-status role="status" aria-live="polite"></p>
                 <noscript><p>JavaScript is needed to create an organization here. You can save this contact without an organization and link it later.</p></noscript>
             </details>
@@ -277,7 +277,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 
         <div class="role-container">
             <div class="form-group contact-role-field">
-                <label for="contact_role" class="required">Primary role</label>
+                <label for="contact_role" class="required">Primary Role</label>
                 <select name="contact_role" id="contact_role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -335,7 +335,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 <br>
         <div class="form-group create-form-actions create-form-actions-flush">
             <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_contact" value="Create contact" class="save-button save-button-flush">
+            <input type="submit" name="save_contact" value="Create Contact" class="save-button save-button-flush">
         </div>
     </form>
 </main>

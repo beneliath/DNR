@@ -94,8 +94,8 @@ try {
     $xpath = taskArchiveDom($archivePage['body']);
     expectTaskArchive($archivePage['status'] === 200 && str_contains($archivePage['body'], 'Archive task ' . $suffix)
         && $xpath->query('//button[@aria-label="Restore task"]')->length === 1
-        && $xpath->query('//button[@aria-label="Complete task"]')->length === 0
-        && $xpath->query('//a[@aria-label="Edit task"]')->length === 0
+        && $xpath->query('//button[@aria-label="Complete Task"]')->length === 0
+        && $xpath->query('//a[@aria-label="Edit Task"]')->length === 0
         && str_contains($archivePage['body'], 'Showing 1 of 1 task'), 'Archived queue shows restore and matching counts without editing controls');
     $restore = taskArchiveFields($archivePage['body'], $taskId, 'restore');
     taskArchiveHttp('tasks.php', $editor, array_replace($restore, ['task_version' => $before['updated_at']]));

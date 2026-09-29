@@ -19,6 +19,8 @@ function filesWithExtension(directory, extension) {
 
 test("record and reference tables use the shared typography contract", function () {
     for (const phpFile of filesWithExtension(sourceRoot, ".php")) {
+        // Exported PDFs and email documents carry their own typography.
+        if (["reimbursement_pdf.php", "reimbursement_submission_helpers.php"].includes(path.basename(phpFile))) continue;
         const source = fs.readFileSync(phpFile, "utf8");
         for (const match of source.matchAll(/<table\b([^>]*)>/gi)) {
             const attributes = match[1];

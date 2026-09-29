@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
 }
 $standard_task_form_action = 'edit_standard_task.php?id=' . $template_id;
 $standard_task_form_cancel_url = 'view_standard_task.php?id=' . $template_id;
-$standard_task_form_submit_label = 'Save changes';
+$standard_task_form_submit_label = 'Save Changes';
 ?>
 <!DOCTYPE html>
 <html lang="en">
