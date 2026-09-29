@@ -1064,7 +1064,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "assets/js/reimbursements.js": "17221ea4ba47708edcf3b1cab2667ab6992009730775dc046e3dda9311b14240"
+        "assets/js/reimbursements.js": "804275b7f975708c13b0a90e97d4ed8f639b8fdcb433da49690ba63b2c91de0e"
       },
       "subjects": [
         "reimbursement",
@@ -1089,13 +1089,13 @@
         "editor"
       ],
       "steps": [
-        "Open Reimbursements and select your active available expenses. Check the selected total and missing receipts.",
+        "Open Reimbursements and select your active available expenses individually or use Select All Available for the current filters. Check the selected total and missing receipts.",
         "Use Dates for New Request to adjust the request range if needed. These are separate from browsing filters.",
         "Select Create Draft Request from Selected Expenses, then review the draft. Draft creation does not send email."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursements.php": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+        "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
         "reimbursement_request.php": "6f89846eab85c9fb579752af399aafca25a736e00fd85b7702a1c89e9b359253"
       },
       "subjects": [

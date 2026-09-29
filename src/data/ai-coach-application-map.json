@@ -3214,7 +3214,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+      "sha256": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
       "controls": [
         {
           "kind": "h1",
@@ -3289,11 +3289,19 @@
         },
         {
           "kind": "button",
+          "label": "Select All Available"
+        },
+        {
+          "kind": "button",
           "label": "Clear Selection"
         },
         {
           "kind": "a",
           "label": "View Receipts and Details"
+        },
+        {
+          "kind": "button",
+          "label": "Select All Available"
         },
         {
           "kind": "button",
