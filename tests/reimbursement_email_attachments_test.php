@@ -15,18 +15,24 @@ try {
     if ($zip->open($path, ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Unable to create test ZIP.');
     $zip->addFromString('request.pdf', '%PDF-report');
     $zip->addFromString('receipts/receipt.jpg', 'JPEG-receipt');
+    $zip->addFromString('receipts/second.png', 'PNG-receipt');
     $zip->close();
     $attachment = ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => file_get_contents($path)];
     $manifest = [
         ['archive_path' => 'request.pdf', 'filename' => 'request.pdf', 'content_type' => 'application/pdf'],
         ['archive_path' => 'receipts/receipt.jpg', 'filename' => 'receipt.jpg', 'content_type' => 'image/jpeg'],
+        ['archive_path' => 'receipts/second.png', 'filename' => 'second.png', 'content_type' => 'image/png'],
     ];
     $files = reimbursementAttachmentsFromVerifiedZip($attachment, $manifest);
-    expectReimbursementAttachment(count($files) === 3 && $files[0]['data'] === $attachment['data']
-        && $files[1]['data'] === '%PDF-report' && $files[2]['data'] === 'JPEG-receipt',
+    expectReimbursementAttachment(count($files) === 4 && $files[0]['data'] === $attachment['data']
+        && $files[1]['data'] === '%PDF-report' && $files[2]['data'] === 'JPEG-receipt'
+        && $files[3]['data'] === 'PNG-receipt',
         'Separate attachments must match the immutable ZIP entries.');
-    expectReimbursementAttachment(reimbursementAttachmentsFromVerifiedZip($attachment, []) === [$attachment],
-        'Older queued messages keep their ZIP-only attachment.');
+    $legacyFiles = reimbursementAttachmentsFromVerifiedZip($attachment, []);
+    expectReimbursementAttachment(count($legacyFiles) === 4 && $legacyFiles[1]['data'] === '%PDF-report'
+        && $legacyFiles[2]['filename'] === 'receipt.jpg' && $legacyFiles[2]['data'] === 'JPEG-receipt'
+        && $legacyFiles[3]['filename'] === 'second.png' && $legacyFiles[3]['data'] === 'PNG-receipt',
+        'Older queued messages also attach the report and each receipt from the saved ZIP.');
     $manifest[1]['archive_path'] = 'receipts/missing.jpg';
     $manifest[1]['filename'] = 'missing.jpg';
     try {

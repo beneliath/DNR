@@ -38,8 +38,22 @@ if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
     fwrite(STDERR, "Another account-email worker is already running.\n");
     exit(0);
 }
+$sourceHashes = [];
+if ($loop) {
+    foreach (get_included_files() as $sourceFile) {
+        $sourceHashes[$sourceFile] = hash_file('sha256', $sourceFile);
+    }
+}
 
 do {
+    if ($loop) {
+        foreach ($sourceHashes as $sourceFile => $originalHash) {
+            if (!is_file($sourceFile) || hash_file('sha256', $sourceFile) !== $originalHash) {
+                fwrite(STDERR, "Mail worker source changed; restarting before claiming another delivery.\n");
+                exit(75);
+            }
+        }
+    }
     $pass_succeeded = true;
     $processed = 0;
     $smtpSession = null;
