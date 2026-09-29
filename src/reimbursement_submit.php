@@ -50,12 +50,26 @@ if ($preview !== '') {
             header('Content-Type: application/zip');
             header('Content-Disposition: attachment; filename="' . $message['filename'] . '"');
             header('Content-Length: ' . filesize($path)); readfile($path);
-        } catch (Throwable $e) { http_response_code(409); echo 'Unable to prepare the package. Check the receipt files and the 15 MB attachment limit.'; }
+        } catch (Throwable $e) { http_response_code(409); echo 'Unable to prepare the package. Check the receipt files and the 18 MB ZIP attachment limit.'; }
         finally { if ($path !== null) unlink($path); }
         exit();
     }
     http_response_code(400); exit('Invalid preview.');
 }
+$emailBytes = null; $zipBytes = null;
+if ($context && $recipients && $error === '') {
+    $sizePath = null;
+    try {
+        $sizePath = reimbursementBuildPackage($context);
+        $zipBytes = filesize($sizePath);
+        $emailBytes = reimbursementEmailSize($context, $sizePath);
+    } catch (Throwable $e) {
+        applicationLog('error', 'Unable to measure reimbursement email', ['request_id' => $id, 'error' => $e->getMessage()]);
+        $error = 'Unable to calculate the email size. Submission is disabled. Check the receipts and reload this review.';
+    } finally { if ($sizePath !== null) unlink($sizePath); }
+}
+$sizeAllowed = $emailBytes !== null && $emailBytes <= SMTP_MAX_MESSAGE_BYTES && $zipBytes <= REIMBURSEMENT_MAX_PACKAGE_BYTES;
+$emailPercent = $zipBytes !== null ? $zipBytes / REIMBURSEMENT_MAX_PACKAGE_BYTES * 100 : null;
 function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8'); }
 ?>
 <!DOCTYPE html><html lang="en">
@@ -66,7 +80,7 @@ function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((strin
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementSubmitH($error) ?></p><?php endif; ?>
 <?php if ($context && $message): ?>
 <section class="reimbursement-card"><h2>Email Details</h2>
-<dl class="reimbursement-email-details"><dt>To</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['to'] ?? [])) ?></dd><dt>Cc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['cc'] ?? [])) ?: 'None' ?></dd><dt>Bcc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['bcc'] ?? [])) ?: 'None' ?></dd><dt>Subject</dt><dd><?= reimbursementSubmitH($message['subject']) ?></dd><dt>Attachments</dt><dd><?= reimbursementSubmitH($message['filename']) ?>, <?= reimbursementSubmitH(reimbursementPackageBase($context['request']) . '.pdf') ?>, <?= reimbursementSubmitH(reimbursementPackageBase($context['request']) . '.csv') ?>, and <?= count($context['receipts']) ?> individual receipt files</dd></dl>
+<dl class="reimbursement-email-details"><dt>To</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['to'] ?? [])) ?></dd><dt>Cc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['cc'] ?? [])) ?: 'None' ?></dd><dt>Bcc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['bcc'] ?? [])) ?: 'None' ?></dd><dt>Subject</dt><dd><?= reimbursementSubmitH($message['subject']) ?></dd><dt>Attachments</dt><dd><?= reimbursementSubmitH($message['filename']) ?> (ZIP containing the expense report PDF, CSV, and all original receipts)</dd></dl>
 <p class="field-help">Bcc recipients are hidden from other recipients. Duplicate email addresses receive one copy.</p>
 <div class="reimbursement-actions"><a class="button-secondary" href="reimbursement_submit.php?id=<?= $id ?>&amp;preview=package">Download Package for Review</a><a class="button-secondary" href="profile.php">User Profile</a><?php if (hasRole(['admin'])): ?><a class="button-secondary" href="reimbursement_setup.php">Reimbursement Setup</a><?php endif; ?></div>
 </section>
@@ -75,9 +89,32 @@ function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((strin
 <?php $receiptExpenseIds=array_unique(array_column($context['receipts'],'expense_id')); $missing=count(array_filter($context['items'],static fn($item)=>!in_array($item['expense_id'],$receiptExpenseIds))); ?>
 <p><?= count($context['items']) ?> Expenses · <?= reimbursementMoney(array_sum(array_column($context['items'],'amount_cents'))) ?> · <?= count($context['receipts']) ?> Receipts · <?= number_format(array_sum(array_column($context['receipts'],'size'))/1048576,2) ?> MB of Original Files</p>
 <?php if ($missing): ?><p class="warning"><?= $missing ?> expense(s) have no receipt. You may submit, but the bookkeeper may need supporting documentation.</p><?php endif; ?>
-<p class="field-help">The ZIP, separate report PDF, CSV, and individual receipts together can be at most 15 MB (approximately 20 MB after email encoding, plus message headers). Download the package to review its contents before submitting.</p>
+<p class="field-help">Only the ZIP package is attached. It contains the expense report PDF, CSV, and all original receipts. The complete email must fit within 25 MB, including the message, headers, and email encoding; the ZIP is limited to 18 MB to leave room for encoding and message content. Download the package to review its contents before submitting.</p>
+<div class="reimbursement-size <?= $sizeAllowed ? 'reimbursement-size-ok' : 'reimbursement-size-over' ?>">
+<h3 id="email-size-label">Email Attachment Size</h3>
+<?php if ($emailBytes !== null): ?>
+<p id="email-size-value"><strong><?= number_format($emailPercent, 1) ?>%</strong> of the 18 MB ZIP limit · <?= number_format($zipBytes / 1000000, 2) ?> MB / 18 MB</p>
+<?php $gaugePercent = min(100, max(0, $emailPercent)); $gaugeAngle = M_PI * (1 - $gaugePercent / 100); ?>
+<div class="reimbursement-size-gauge" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="<?= round($gaugePercent, 1) ?>" aria-labelledby="email-size-label" aria-describedby="email-size-value email-size-status" aria-valuetext="<?= reimbursementSubmitH(number_format($emailPercent, 1) . '% of the 18 MB ZIP limit') ?>">
+<svg viewBox="0 0 320 216" aria-hidden="true" focusable="false">
+<defs><linearGradient id="email-size-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#86b9eb" stop-opacity=".55"/><stop offset="100%" stop-color="#86b9eb" stop-opacity=".03"/></linearGradient></defs>
+<path d="M 28 158 A 132 132 0 0 1 292 158 Z" fill="url(#email-size-fill)"/>
+<path class="reimbursement-gauge-grid" d="M 28 158 H 292 M 160 26 V 158 M 66.66 64.66 L 85 83 M 253.34 64.66 L 235 83"/>
+<path class="reimbursement-gauge-outline" d="M 28 158 A 132 132 0 0 1 292 158"/>
+<path class="reimbursement-gauge-progress" d="M 28 158 A 132 132 0 0 1 292 158" pathLength="100" stroke-dasharray="<?= $gaugePercent ?> 100"/>
+<line class="reimbursement-gauge-needle <?= $gaugePercent <= 50 ? 'reimbursement-gauge-low' : ($gaugePercent <= 75 ? 'reimbursement-gauge-medium' : 'reimbursement-gauge-high') ?>" x1="160" y1="158" x2="<?= round(160 + 110 * cos($gaugeAngle), 2) ?>" y2="<?= round(158 - 110 * sin($gaugeAngle), 2) ?>"/>
+<circle cx="160" cy="158" r="5" fill="#74ade6"/>
+<text class="reimbursement-gauge-label" x="28" y="183" text-anchor="middle">0%</text>
+<text class="reimbursement-gauge-label" x="292" y="183" text-anchor="middle">100%</text>
+<text class="reimbursement-gauge-value" x="160" y="207" text-anchor="middle"><?= number_format($gaugePercent, 1) ?>%</text>
+</svg>
+</div>
+<p>Total encoded email: <?= number_format($emailBytes / 1000000, 2) ?> MB / 25 MB, including headers, message, and encoding.</p>
+<p id="email-size-status"><?= $sizeAllowed ? 'Within both size limits.' : 'Over the limit. Reduce receipt sizes or split this draft before submitting.' ?></p>
+<?php else: ?><p id="email-size-status">Email size unavailable. Submission is disabled until the size can be verified.</p><?php endif; ?>
+</div>
 <h2>Package Contents</h2><p><?= reimbursementSubmitH(reimbursementPackageBase($context['request']).'.pdf') ?><br><?= reimbursementSubmitH(reimbursementPackageBase($context['request']).'.csv') ?> (one row per expense; receipt filenames are separated by semicolons)</p>
 <?php foreach ($context['items'] as $item): ?><details open><summary><?= reimbursementSubmitH($item['merchant'].' · '.reimbursementMoney((int)$item['amount_cents'])) ?></summary><ul><?php $found=false; foreach ($context['receipts'] as $receipt): if ((int)$receipt['expense_id']!==(int)$item['expense_id']) continue; $found=true; ?><li class="reimbursement-filename">receipts/<?= reimbursementSubmitH(reimbursementReceiptPackageFilename($receipt)) ?><small>Original: <?= reimbursementSubmitH($receipt['filename']) ?> · <?= number_format($receipt['size']/1024) ?> KB · <?= reimbursementSubmitH(ucfirst($receipt['scan_state'])) ?></small></li><?php endforeach; if (!$found): ?><li>No Receipt Attached</li><?php endif; ?></ul></details><?php endforeach; ?></section>
-<?php if ($recipients && $error === ''): ?><section class="reimbursement-card"><form method="post"><?= csrfInput() ?><input type="hidden" name="review_fingerprint" value="<?= reimbursementSubmitH(reimbursementReviewFingerprint($context)) ?>"><label class="reimbursement-confirm"><input type="checkbox" name="confirm_submission" value="1" required> I have reviewed the recipients, email, and package</label><p>Submitting queues the email for delivery and locks this request’s expenses and receipts. Downloads alone do not submit the request.</p><div class="reimbursement-actions"><button type="submit" class="save-button">Submit Reimbursement Request</button><a class="button-secondary" href="reimbursement_request.php?id=<?= $id ?>&amp;mode=edit">Back to Draft</a></div></form></section><?php endif; ?>
+<?php if ($recipients): ?><section class="reimbursement-card"><form method="post"><?= csrfInput() ?><input type="hidden" name="review_fingerprint" value="<?= reimbursementSubmitH(reimbursementReviewFingerprint($context)) ?>"><label class="reimbursement-confirm"><input type="checkbox" name="confirm_submission" value="1" required> I have reviewed the recipients, email, and package</label><p>Submitting queues the email for delivery and locks this request’s expenses and receipts. Downloads alone do not submit the request.</p><div class="reimbursement-actions"><button type="submit" class="save-button"<?= (!$sizeAllowed || $error !== '') ? ' disabled aria-describedby="email-size-status"' : '' ?>>Submit Reimbursement Request</button><a class="button-secondary" href="reimbursement_request.php?id=<?= $id ?>&amp;mode=edit">Back to Draft</a></div></form></section><?php endif; ?>
 <?php endif; ?>
 </main><?php include 'templates/footer.php'; ?></body></html>

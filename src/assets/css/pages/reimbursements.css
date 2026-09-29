@@ -135,3 +135,18 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .reimbursement-draft-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:1.2rem;margin:1.2rem 0}
 .reimbursement-draft-controls>.reimbursement-card{margin:0;min-width:0;width:100%}
 @media(max-width:900px){.reimbursement-draft-controls{grid-template-columns:minmax(0,1fr)}}
+
+.reimbursement-size { margin-block: 1.5rem; }
+.reimbursement-size-gauge { width: min(100%, 22rem); margin-block: 1rem; }
+.reimbursement-size-gauge svg { display: block; width: 100%; height: auto; overflow: visible; }
+.reimbursement-gauge-grid { fill: none; stroke: #9aafc5; stroke-width: 1; opacity: .3; }
+.reimbursement-gauge-outline { fill: none; stroke: #78afe6; stroke-width: 2.5; }
+.reimbursement-gauge-progress { fill: none; stroke: #78afe6; stroke-width: 4; }
+.reimbursement-gauge-needle { stroke-width: 3; stroke-linecap: round; }
+.reimbursement-gauge-label { fill: var(--text-muted, #667085); font-size: 12px; }
+.reimbursement-gauge-value { fill: var(--text, #172033); font-size: 28px; font-weight: 600; }
+.reimbursement-size-over #email-size-status { font-weight: 600; }
+
+.reimbursement-gauge-low { stroke: #239463; }
+.reimbursement-gauge-medium { stroke: #e58a24; }
+.reimbursement-gauge-high { stroke: #df4b50; }

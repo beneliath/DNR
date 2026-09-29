@@ -1121,15 +1121,15 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches the ZIP, a separate report PDF, an expense CSV, and each receipt separately. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every original receipt. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
-        "reimbursement_submission_helpers.php": "420f580d698e676a44619f7defdd394e88fe53dbf30f670a32784debc00fb951",
-        "reimbursement_email_helpers.php": "50ecf50ad237b133e15f201f929ab2c8544745b0557a0a82a2cb0a1f7c3d22c6",
-        "email_helpers.php": "fd0e95ee4f91c5797a78f5c595efec6a5fdb6211d6c8cda7c9be096d8afd676b",
+        "reimbursement_submit.php": "44e1cd0cbe2569a6acaabd4427763866debbba511d88dab774f7d47c3689be9f",
+        "reimbursement_submission_helpers.php": "50d53142c17721e89851940925a1b7bccbc6b08673724dc0de7229d7e626c98e",
+        "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
+        "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
         "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },
@@ -1249,7 +1249,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "e38bcb62f3664db517d537233fdb4537d92260a2a5c363dab3f74c7d72e21bac",
-        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
       },
       "subjects": [
         "reimbursement",
@@ -1278,7 +1278,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "e38bcb62f3664db517d537233fdb4537d92260a2a5c363dab3f74c7d72e21bac",
-        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
       },
       "subjects": [
         "reimbursement",

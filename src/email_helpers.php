@@ -6,6 +6,9 @@ require_once __DIR__ . '/email_inline_image_helpers.php';
 
 require_once __DIR__ . '/application_runtime.php';
 
+// Proton limits the complete outgoing message, measured in decimal bytes.
+const SMTP_MAX_MESSAGE_BYTES = 25_000_000;
+
 function normalizeAccountEmail($email)
 {
     $email = strtolower(trim((string) $email));
@@ -672,7 +675,7 @@ function smtpMessageContent($plainTextBody, $htmlBody = null, array $attachments
                     throw new InvalidArgumentException('Invalid email attachment type.');
                 }
                 $total += strlen($data);
-                if ($total > 15 * 1024 * 1024) throw new InvalidArgumentException('Email attachments exceed 15 MB.');
+                if ($total > SMTP_MAX_MESSAGE_BYTES) throw new InvalidArgumentException('The complete encoded email exceeds 25 MB.');
                 $files[] = $attachment;
             }
         }
@@ -761,6 +764,32 @@ function smtpTlsStreamContext($host)
     return stream_context_create(['ssl' => $ssl_options]);
 }
 
+/** Build the same complete MIME message for preflight and actual SMTP delivery. */
+function smtpMessageData(string $from, string $fromName, string $recipient, string $subject, string $body, string $replyTo = '', ?string $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = []): string
+{
+    $messageId ??= '<' . bin2hex(random_bytes(24)) . '@dnr.invalid>';
+    $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
+    $encoded_name = '=?UTF-8?B?' . base64_encode($fromName) . '?=';
+    $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
+    $content = smtpMessageContent($body, $htmlBody, $attachments);
+    $message = smtpNormalizeLineEndings(implode("\n", [
+        'From: ' . $encoded_name . ' <' . $from . '>',
+        ...smtpRecipientHeaders($recipient, $visibleRecipients),
+        ...($replyToHeader !== '' ? [$replyToHeader] : []),
+        'Subject: ' . $encoded_subject,
+        'Message-ID: ' . $messageId,
+        'MIME-Version: 1.0',
+        ...$content['headers'],
+        'Date: ' . gmdate(DATE_RFC2822),
+        '',
+        $content['body'],
+    ]));
+    if (strlen($message) + 2 > SMTP_MAX_MESSAGE_BYTES) {
+        throw new InvalidArgumentException('The complete encoded email exceeds 25 MB. Reduce receipt sizes or split this draft before submitting.');
+    }
+    return $message;
+}
+
 final class SmtpSession
 {
     /** @var resource|null */
@@ -845,22 +874,8 @@ final class SmtpSession
             throw new InvalidArgumentException('Invalid SMTP Message-ID.');
         }
         $stream = $this->stream;
-        $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
-        $encoded_name = '=?UTF-8?B?' . base64_encode($this->fromName) . '?=';
-        $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
-        $content = smtpMessageContent($body, $htmlBody, $attachments);
-        $message = smtpNormalizeLineEndings(implode("\n", [
-            'From: ' . $encoded_name . ' <' . $this->from . '>',
-            ...smtpRecipientHeaders($recipient, $visibleRecipients),
-            ...($replyToHeader !== '' ? [$replyToHeader] : []),
-            'Subject: ' . $encoded_subject,
-            'Message-ID: ' . $messageId,
-            'MIME-Version: 1.0',
-            ...$content['headers'],
-            'Date: ' . gmdate(DATE_RFC2822),
-            '',
-            $content['body'],
-        ]));
+        $message = smtpMessageData($this->from, $this->fromName, $recipient, (string) $subject, (string) $body,
+            $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
         try {
             smtpCommand($stream, 'MAIL FROM:<' . $this->from . '>', [250]);
