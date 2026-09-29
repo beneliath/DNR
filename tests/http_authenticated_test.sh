@@ -219,8 +219,8 @@ test "$(fixture digest-schedule "$fixture_suffix" editor)" = '16:45:00|21'
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
     "$base_url/tasks.php"
-grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
-grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-label="Work Ownership"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-current="page">My Work</a>' "$temporary_directory/editor-task-reminders.html"
 grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=20"' "$temporary_directory/editor-task-reminders.html"
 ! grep -q 'numbered-pagination' "$temporary_directory/editor-task-reminders.html"
 
@@ -316,7 +316,7 @@ curl -fsS -b "$editor_cookies" \
     -o "$temporary_directory/editor-organization-contacts.json" \
     "$base_url/organization_contacts.php?organization_id=$organization_id"
 grep -q "\"id\":$contact_id" "$temporary_directory/editor-organization-contacts.json"
-grep -q '"primary_host":"Primary host"' "$temporary_directory/editor-organization-contacts.json"
+grep -q '"primary_host":"Primary Host"' "$temporary_directory/editor-organization-contacts.json"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
@@ -356,7 +356,7 @@ grep -q '"engagements":' "$temporary_directory/editor-reschedule-options.json"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-view-engagement.html" \
     "$base_url/view_engagement.php?id=$engagement_id"
-grep -q 'Primary host' "$temporary_directory/editor-view-engagement.html"
+grep -q 'Primary Host' "$temporary_directory/editor-view-engagement.html"
 grep -q '>Travel<' "$temporary_directory/editor-view-engagement.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement.html" \
