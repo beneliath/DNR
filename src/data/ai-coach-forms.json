@@ -390,11 +390,15 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
-        "reimbursements.php": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+        "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
         "reimbursement_request.php": "6f89846eab85c9fb579752af399aafca25a736e00fd85b7702a1c89e9b359253",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },
       "controls": {
+        "reimbursement-select-all-available": {
+          "label": "Select All Available",
+          "selector": "button[data-select-all-available]"
+        },
         "reimbursement-create-draft": {
           "label": "Create Draft Request from Selected Expenses",
           "selector": "button[data-create-reimbursement]"

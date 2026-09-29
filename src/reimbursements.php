@@ -98,6 +98,17 @@ if ($search !== '') {
         OR LOCATE(LOWER(?), LOWER(COALESCE(r.status, 'available'))) > 0)";
     array_push($queryParams, ...array_fill(0, 6, $search));
 }
+if (($_GET['action'] ?? '') === 'available_expenses') {
+    if (!$canSelect || $error !== '') { http_response_code(403); exit(); }
+    $available = $conn->execute_query('SELECT e.id, e.amount_cents,
+        (SELECT COUNT(*) FROM reimbursement_receipts x WHERE x.expense_id = e.id) AS receipt_count
+        ' . $fromSql . $whereSql . ' AND e.user_id = ? AND ri.request_id IS NULL
+        ORDER BY e.id LIMIT 501', array_merge($queryParams, [$userId]))->fetch_all(MYSQLI_ASSOC);
+    header('Content-Type: application/json; charset=UTF-8');
+    header('Cache-Control: no-store');
+    echo json_encode(['too_many' => count($available) > 500, 'expenses' => count($available) > 500 ? [] : $available], JSON_THROW_ON_ERROR);
+    exit();
+}
 $sortDirection = strtoupper($sortDir);
 $orderSql = match ($sortBy) {
     'merchant' => "e.merchant {$sortDirection}",
@@ -154,9 +165,9 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
         <?php if ($search !== ''): ?><p class="result-context">Showing expenses matching “<?= reimbursementH($search) ?>”.</p><?php endif; ?>
         <?php if ($canSelect): ?><div class="reimbursement-actions reimbursement-create-actions reimbursement-create-actions-top"><button type="submit" form="reimbursement-create-form" class="save-button" data-create-reimbursement>Create Draft Request from Selected Expenses</button></div><?php endif; ?>
         <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, $listUrl, 'expenses', 'Expense pages'); ?>
-        <form method="post" action="<?= reimbursementH($listUrl . '&page=' . $pagination['page']) ?>" id="reimbursement-create-form"<?= $canSelect ? ' data-reimbursement-selection' : '' ?> data-selection-key="reimbursement-selection-<?= $userId ?>" data-selection-scope="<?= hash('sha256', json_encode([$start, $end, $ownerFilterId, $search])) ?>">
+        <form method="post" action="<?= reimbursementH($listUrl . '&page=' . $pagination['page']) ?>" id="reimbursement-create-form"<?= $canSelect ? ' data-reimbursement-selection data-available-url="' . reimbursementH($listUrl . '&action=available_expenses') . '"' : '' ?> data-selection-key="reimbursement-selection-<?= $userId ?>" data-selection-scope="<?= hash('sha256', json_encode([$start, $end, $ownerFilterId, $search])) ?>">
             <?= csrfInput() ?><?php if ($canSelect): ?><details><summary>Dates for New Request</summary><p class="field-help">These dates apply to the draft you create. The browsing filters above stay unchanged.</p><div class="reimbursement-inline-form"><label>Request Start Date<input type="date" name="start_date" required value="<?= reimbursementH($_POST['start_date'] ?? $start) ?>"></label><label>Request End Date<input type="date" name="end_date" required value="<?= reimbursementH($_POST['end_date'] ?? $end) ?>"></label></div></details><?php endif; ?>
-            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count role="status" aria-live="polite"></span><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span></div><?php endif; ?>
+            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count role="status" aria-live="polite"></span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
             <div class="reimbursement-table-wrap"><table class="data-table reimbursement-expense-table"><thead><tr><th scope="col">Include</th><th scope="col">Date</th><th scope="col">Merchant / Payee</th><th scope="col">Owner</th><th scope="col">Account</th><th scope="col">Receipts</th><th scope="col">Amount</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead><tbody>
                 <?php foreach ($expenses as $expense):
                     $expenseId = (int) $expense['id'];
@@ -180,7 +191,7 @@ function reimbursementH(mixed $value): string { return htmlspecialchars((string)
                 </tr><?php endforeach; ?>
                 <?php if (!$expenses): ?><tr><td colspan="9"><?= $search !== '' ? 'No expenses match this search and date range.' : 'No expenses in this date range.' ?></td></tr><?php endif; ?>
             </tbody></table></div>
-            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count></span><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span></div><?php endif; ?>
+            <?php if ($canSelect): ?><div class="reimbursement-selection-summary" hidden><span data-selection-count></span><button type="button" class="button-secondary" data-select-all-available>Select All Available</button><button type="button" class="button-secondary" data-clear-selection>Clear Selection</button><span data-selection-total></span><span data-selection-error role="alert" hidden></span></div><?php endif; ?>
         </form>
         <?php foreach ($expenses as $expense): $expenseId = (int) $expense['id']; ?>
             <?php if ($canManage && (int) $expense['user_id'] === $userId && $expense['request_id'] === null): ?><form method="post" id="expense-archive-<?= $expenseId ?>" action="<?= reimbursementH($returnUrl) ?>" hidden><?= csrfInput() ?><input type="hidden" name="action" value="<?= $showArchived ? 'restore_expense' : 'archive_expense' ?>"><input type="hidden" name="expense_id" value="<?= $expenseId ?>"></form><?php endif; ?>

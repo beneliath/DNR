@@ -4,20 +4,29 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const source = fs.readFileSync(require.resolve('../../src/assets/js/reimbursements.js'), 'utf8');
-function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = false, checked = []} = {}) {
+function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = false, checked = [], available = []} = {}) {
   const node = () => ({dataset: {}, events: {}, addEventListener(name, fn) { this.events[name] = fn; }});
   const boxes = ids.map(value => Object.assign(node(), {value, checked: checked.includes(value)}));
   const hidden = [];
   const count = {parentElement: {hidden: true}};
   const lowerCount = {parentElement: {hidden: true}};
+  const total = {};
+  const lowerTotal = {};
   const clear = node();
   const lowerClear = node();
+  const selectAll = node();
+  const lowerSelectAll = node();
+  const error = {hidden: true};
+  const lowerError = {hidden: true};
   const buttons = [{}, {}];
-  const form = Object.assign(node(), {dataset: {selectionKey: 'user', selectionScope: scope},
+  const form = Object.assign(node(), {dataset: {selectionKey: 'user', selectionScope: scope, availableUrl: '/available'},
     querySelector(selector) { return selector === '[data-selection-count]' ? count : clear; },
     querySelectorAll(selector) {
       if (selector === '[data-selection-count]') return [count, lowerCount];
+      if (selector === '[data-selection-total]') return [total, lowerTotal];
       if (selector === '[data-clear-selection]') return [clear, lowerClear];
+      if (selector === '[data-select-all-available]') return [selectAll, lowerSelectAll];
+      if (selector === '[data-selection-error]') return [error, lowerError];
       if (selector === 'input[name="expense_ids[]"]') return boxes;
       if (selector === '[data-off-page-selection]') return [...hidden];
       return ids.concat(ineligible).map(id => ({dataset: {selectionExpense: id}, querySelector: () => boxes.find(box => box.value === id)}));
@@ -25,7 +34,7 @@ function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = 
     appendChild(input) { hidden.push(input); input.remove = () => hidden.splice(hidden.indexOf(input), 1); }
   });
   const events = {};
-  vm.runInNewContext(source, {sessionStorage: storage, window: {addEventListener(name, fn) { events[name] = fn; }}, document: {
+  vm.runInNewContext(source, {sessionStorage: storage, fetch: async () => ({ok: true, json: async () => available}), window: {addEventListener(name, fn) { events[name] = fn; }}, document: {
     querySelectorAll(selector) {
       if (selector === '[data-clear-reimbursement-selection]') return clearOnSuccess ? [{dataset: {clearReimbursementSelection: 'user'}}] : [];
       if (selector === '[data-reimbursement-selection]') return [form];
@@ -33,7 +42,8 @@ function page(storage, ids, {scope = 'range', ineligible = [], clearOnSuccess = 
       return [];
     }, createElement: () => node()
   }});
-  return {boxes, hidden, count, lowerCount, clear, lowerClear, buttons, events, select(id, value = true) { const box = boxes.find(box => box.value === id); box.checked = value; box.events.change(); }};
+  return {boxes, hidden, count, lowerCount, total, lowerTotal, clear, lowerClear, selectAll, lowerSelectAll, error, lowerError, buttons, events,
+    select(id, value = true) { const box = boxes.find(box => box.value === id); box.checked = value; box.events.change(); }};
 }
 function storage() {
   const map = new Map();
@@ -80,6 +90,37 @@ test('unavailable browser storage still permits current-page selection and prese
   form.select('2');
   assert.equal(form.count.textContent, '2 expenses selected');
   assert.equal(form.buttons[0].disabled, false);
+});
+test('Select All Available includes eligible expenses on other pages and updates totals', async () => {
+  const state = storage();
+  const first = page(state, ['1', '2'], {available: {expenses: [
+    {id: 1, amount_cents: 4009, receipt_count: 1},
+    {id: 2, amount_cents: 6177, receipt_count: 0},
+    {id: 3, amount_cents: 2399, receipt_count: 1}
+  ]}});
+  await first.selectAll.events.click();
+  assert.deepEqual(first.boxes.map(box => box.checked), [true, true]);
+  assert.deepEqual(first.hidden.map(input => input.value), ['3']);
+  assert.equal(first.count.textContent, '3 expenses selected (1 on other pages)');
+  assert.match(first.total.textContent, /Selected Total: \$125\.85 · 1 Without Receipts/);
+  assert.equal(first.lowerTotal.textContent, first.total.textContent);
+  assert.equal(first.lowerSelectAll.disabled, false);
+  assert.equal(first.lowerClear.hidden, false);
+  assert.equal(first.hidden.length, 1);
+  const next = page(state, ['3']);
+  assert.equal(next.boxes[0].checked, true);
+  assert.equal(next.count.textContent, '3 expenses selected (2 on other pages)');
+});
+test('Select All Available leaves selection intact when more than 500 expenses match', async () => {
+  const state = storage();
+  const ui = page(state, ['1'], {available: {too_many: true, expenses: []}});
+  ui.select('1');
+  await ui.lowerSelectAll.events.click();
+  assert.equal(ui.boxes[0].checked, true);
+  assert.match(ui.error.textContent, /More than 500/);
+  assert.equal(ui.error.hidden, false);
+  ui.clear.events.click();
+  assert.equal(ui.error.hidden, true);
 });
 
 function receiptUpload(clipboard = null) {
