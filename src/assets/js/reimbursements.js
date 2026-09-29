@@ -337,3 +337,42 @@ document.querySelectorAll('.reimbursement-page a[href^="reimbursement_expense.ph
   url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search);
   link.href = url.href;
 });
+
+// Match invitation submission feedback while preserving the named submit button.
+document.querySelectorAll('[data-reimbursement-progress]').forEach(function (button) {
+  const status = document.querySelector('[data-reimbursement-progress-status]');
+  if (!status) return;
+  const label = button.textContent;
+  const form = button.form;
+  let busy = false;
+  function start(event) {
+    if (event.defaultPrevented || button.disabled) return;
+    if (busy) { event.preventDefault(); return; }
+    busy = true;
+    button.setAttribute('aria-busy', 'true');
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = (button.dataset || {}).submittingLabel || 'Preparing Review…';
+    status.hidden = false;
+    if (form) form.setAttribute('aria-busy', 'true');
+    // Do not disable the button: continue_to_review must be included in the POST.
+  }
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      if (busy) { event.preventDefault(); return; }
+      if (event.submitter === button) start(event);
+    });
+  } else {
+    button.addEventListener('click', function (event) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      start(event);
+    });
+  }
+  window.addEventListener('pageshow', function () {
+    busy = false;
+    button.removeAttribute('aria-busy');
+    button.removeAttribute('aria-disabled');
+    button.textContent = label;
+    status.hidden = true;
+    if (form) form.removeAttribute('aria-busy');
+  });
+});

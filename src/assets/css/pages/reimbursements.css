@@ -150,3 +150,5 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .reimbursement-gauge-low { stroke: #239463; }
 .reimbursement-gauge-medium { stroke: #e58a24; }
 .reimbursement-gauge-high { stroke: #df4b50; }
+
+[data-reimbursement-progress][aria-busy="true"] { cursor: wait; opacity: .72; transform: none !important; }
