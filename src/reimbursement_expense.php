@@ -84,7 +84,10 @@ $amountValue = isset($expense['amount']) ? (string) $expense['amount'] : ($id ? 
 <body><?php include 'templates/header.php'; ?>
 <main class="container reimbursement-page reimbursement-form-page">
 <nav class="breadcrumb" aria-label="Breadcrumb"><a href="reimbursements.php">Reimbursements</a><span aria-hidden="true">/</span><span><?= $id ? 'Expense #' . $id : 'New Expense' ?></span></nav>
-<div class="page-heading"><div><h1><?= $id ? 'Expense' : 'New Expense' ?></h1><p class="page-intro"><?= $canEdit ? 'Enter the expense details and attach one or more receipt files.' : 'View the expense details and attached receipts.' ?></p></div><?php if ($isViewing && $canManage && $isOwner && !$locked): ?><a class="button-secondary" href="reimbursement_expense.php?id=<?= $id ?>&amp;return=<?= rawurlencode($returnUrl) ?>">Edit Expense</a><?php endif; ?></div>
+<div class="page-heading"><div><h1><?= $id ? 'Expense' : 'New Expense' ?></h1><p class="page-intro"><?= $canEdit ? 'Enter the expense details and attach one or more receipt files.' : 'View the expense details and attached receipts.' ?></p></div>
+<?php if (isset($_GET['saved']) && $canManage): ?>
+<nav class="page-heading-actions" aria-label="Reimbursement Navigation"><a class="button-add" href="reimbursement_expense.php">+ Add Expense</a><a class="button-secondary" href="reimbursement_requests.php">Requests</a></nav>
+<?php elseif ($isViewing && $canManage && $isOwner && !$locked): ?><a class="button-secondary" href="reimbursement_expense.php?id=<?= $id ?>&amp;return=<?= rawurlencode($returnUrl) ?>">Edit Expense</a><?php endif; ?></div>
 <?php if ($owner && !$isOwner): ?><p class="field-help">Owner: <?= reimbursementExpenseH($owner['display_name']) ?>. You can view this expense and its receipts.</p><?php endif; ?>
 <?php if ($error): ?><p class="error" role="alert"><?= reimbursementExpenseH($error) ?></p><?php endif; ?>
 <?php if (isset($_GET['saved'])): ?><p class="success" role="status">Expense saved.</p><?php endif; ?>

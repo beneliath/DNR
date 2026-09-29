@@ -66,7 +66,7 @@ return [
     "assets/css/pages/profile.min.css" => "eb61d21d4a63",
     "assets/css/pages/record_workspace.css" => "88cc6a73aeb3",
     "assets/css/pages/record_workspace.min.css" => "82a03ff3217e",
-    "assets/css/pages/reimbursements.css" => "3d7049da9090",
+    "assets/css/pages/reimbursements.css" => "75dd30f52838",
     "assets/css/pages/reimbursements.min.css" => "9babd2f01ee8",
     "assets/css/pages/short_links.css" => "a8d89fd1a3aa",
     "assets/css/pages/short_links.min.css" => "a5a867a7fdca",
