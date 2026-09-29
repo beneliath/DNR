@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/follow_up_task_helpers.php';
 
-class DnrEngagementPdf extends TCPDF {
+class DnrEngagementPdf extends \setasign\Fpdi\Tcpdf\Fpdi {
     private $engagement_title = 'Engagement';
     private $document_label = 'ENGAGEMENT';
     private $document_label_suffix = ' BRIEF';
