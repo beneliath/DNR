@@ -1121,15 +1121,15 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches the ZIP, a separate report PDF, and each receipt separately.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches the ZIP, a separate report PDF, an expense CSV, and each receipt separately. The CSV has one row per expense with matching receipt filenames.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "cb84136e7620e354709c7436ede99b2055412c3d38a665e098a34095fb3e9e47",
-        "reimbursement_submission_helpers.php": "0fdf2d1dc9becd163e6d001404740ac5fdfddb25b2d8860819bd57f87ca2a3a1",
-        "reimbursement_email_helpers.php": "e01344a0ea65c9aeeecbf2306b821aca7b48a477d42c8fd3e4482691c63b3cec",
-        "email_helpers.php": "dcb59747c1fe7e9b40762d7383e702c92dc38419945f1db7ce01e2e028d39217",
+        "reimbursement_submit.php": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
+        "reimbursement_submission_helpers.php": "0a52242746347c978f34c994f3c964fba55dd97b317d9803e1702f5dcbb83d69",
+        "reimbursement_email_helpers.php": "50ecf50ad237b133e15f201f929ab2c8544745b0557a0a82a2cb0a1f7c3d22c6",
+        "email_helpers.php": "fd0e95ee4f91c5797a78f5c595efec6a5fdb6211d6c8cda7c9be096d8afd676b",
         "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e",
         "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
       },

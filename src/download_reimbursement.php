@@ -69,7 +69,7 @@ try {
         echo $pdf;
         exit();
     }
-    $temporary = createReimbursementZip($pdf, $receiptRows, $base);
+    $temporary = createReimbursementZip($pdf, reimbursementExpenseCsv($items, $receiptRows), $receiptRows, $base);
     try {
         header('Content-Type: application/zip');
         header('Content-Disposition: attachment; filename="' . $base . '.zip"');

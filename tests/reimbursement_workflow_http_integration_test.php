@@ -200,7 +200,13 @@ try {
         if ($format === 'zip') {
             $tmp = tempnam(sys_get_temp_dir(), 'reimburse-zip-'); file_put_contents($tmp, $download['body']);
             $zip = new ZipArchive(); $zip->open($tmp);
-            expectReimbursement($zip->numFiles === 2, 'ZIP must include report and receipt');
+            expectReimbursement($zip->numFiles === 3 && str_ends_with($zip->getNameIndex(1), '.csv'), 'ZIP must include report, expense CSV, and receipt');
+            $csvLines = explode("\r\n", trim($zip->getFromIndex(1)));
+            $csvFields = str_getcsv($csvLines[1], ',', '"', '');
+            expectReimbursement(count($csvFields) === 6 && $csvFields[0] === '2026-06-10'
+                && $csvFields[1] === 'Workflow fixture' && $csvFields[3] === 'Synthetic receipt'
+                && $csvFields[4] === '65.40' && $csvFields[5] === $expectedReceiptFilename,
+                'Draft ZIP CSV contains importable expense details and the exact receipt filename');
             expectReimbursement($zip->locateName('receipts/' . $expectedReceiptFilename) !== false, 'Receipt filename in request matches the actual ZIP entry'); $zip->close(); unlink($tmp);
         }
     }
@@ -278,23 +284,26 @@ try {
     expectReimbursement(str_contains($queuedMessage['body'], $note) && str_contains($queuedMessage['html_body'], '&lt;script&gt;'), 'Queued email preserves the reviewed bookkeeper note safely');
     expectReimbursement(str_contains($queuedMessage['html_body'], $expectedReceiptFilename) && str_contains($queuedMessage['body'], $expectedReceiptFilename), 'HTML and plain-text email identify the exact receipt filename');
     $attachments = reimbursementEmailAttachments($conn, $deliveries[0], $queuedMessage);
-    expectReimbursement(count($attachments) === 3 && $attachments[0]['content_type'] === 'application/zip'
+    expectReimbursement(count($attachments) === 4 && $attachments[0]['content_type'] === 'application/zip'
         && $attachments[1]['content_type'] === 'application/pdf' && str_starts_with($attachments[1]['data'], '%PDF-')
-        && $attachments[2]['filename'] === $expectedReceiptFilename && $attachments[2]['data'] === $bytes,
-        'Queued email has the ZIP, original report PDF, and individual receipt');
+        && $attachments[2]['content_type'] === 'text/csv' && str_contains($attachments[2]['data'], $expectedReceiptFilename)
+        && $attachments[3]['filename'] === $expectedReceiptFilename && $attachments[3]['data'] === $bytes,
+        'Queued email has the ZIP, original report PDF, CSV, and individual receipt');
     $legacyMessage = $queuedMessage; unset($legacyMessage['individual_attachments']);
     $legacyAttachments = reimbursementEmailAttachments($conn, $deliveries[0], $legacyMessage);
-    expectReimbursement(count($legacyAttachments) === 3 && $legacyAttachments[1]['data'] === $attachments[1]['data']
-        && $legacyAttachments[2]['data'] === $bytes, 'Older queued messages attach the report and receipts from the original ZIP');
+    expectReimbursement(count($legacyAttachments) === 4 && $legacyAttachments[1]['data'] === $attachments[1]['data']
+        && $legacyAttachments[2]['data'] === $attachments[2]['data']
+        && $legacyAttachments[3]['data'] === $bytes, 'Older queued messages attach every file from the original ZIP');
     $attachment = $attachments[0];
     $tmp = tempnam(sys_get_temp_dir(), 'queued-zip-'); file_put_contents($tmp, $attachment['data']);
     $zip = new ZipArchive(); $zip->open($tmp);
-    expectReimbursement($zip->numFiles === 2 && $zip->getFromIndex(1) === $bytes, 'Immutable queued ZIP includes intact receipt');
+    expectReimbursement($zip->numFiles === 3 && $zip->getFromIndex(2) === $bytes, 'Immutable queued ZIP includes intact receipt');
     expectReimbursement($zip->getFromName($attachments[1]['filename']) === $attachments[1]['data'], 'Separate report is byte-identical to the report in the ZIP');
+    expectReimbursement($zip->getFromName($attachments[2]['filename']) === $attachments[2]['data'], 'Separate CSV is byte-identical to the CSV in the ZIP');
     $zip->close(); unlink($tmp);
     $mime = smtpMessageContent($queuedMessage['body'], $queuedMessage['html_body'], [...$attachments, ...$queuedMessage['inline_images']]);
     expectReimbursement(str_contains($mime['headers'][0], 'multipart/mixed')
-        && substr_count($mime['body'], 'Content-Disposition: attachment;') === 3, 'SMTP message contains all three file attachments');
+        && substr_count($mime['body'], 'Content-Disposition: attachment;') === 4, 'SMTP message contains all four file attachments');
     expectReimbursement($queuedMessage['inline_images'] === [] && str_contains($queuedMessage['html_body'], htmlspecialchars(emailBrandLogoUrl(), ENT_QUOTES, 'UTF-8')) && str_contains($queuedMessage['html_body'], 'display:block;width:227px;'), 'Submission uses the hosted digest logo at its original display size');
     require_once $source . '/notification_helpers.php';
     $digestImage = emailBrandInlineImage();
