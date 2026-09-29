@@ -834,13 +834,13 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" name="book_table" <?php echo $engagement['book_table'] ? 'checked' : ''; ?>> book table provided
+                    <input type="checkbox" name="book_table" <?php echo $engagement['book_table'] ? 'checked' : ''; ?>> Book Table Provided
                 </label>
                 <label class="checkbox-label">
-                    <input type="checkbox" name="brochures" <?php echo $engagement['brochures'] ? 'checked' : ''; ?>> brochures permitted
+                    <input type="checkbox" name="brochures" <?php echo $engagement['brochures'] ? 'checked' : ''; ?>> Brochures Permitted
                 </label>
             </div>
-            <fieldset class="radio-row"><legend>All travel covered</legend>
+            <fieldset class="radio-row"><legend>All Travel Covered</legend>
                 <div class="radio-options">
                     <?php
                     $travel_covered = $engagement['travel_covered'] ?? 'unknown';
@@ -969,7 +969,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
                 <div class="form-field">
                     <label for="caller_user_id">Caller</label>
                     <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
+                        <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
                         <?php
                         // Fetch and display users in the dropdown
                         $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
@@ -1091,7 +1091,7 @@ $submitted_chron_versions = is_array($_POST['chron_entry_versions'] ?? null)
         <?php renderPagination($chron_entry_count, $chron_page, $chron_page_size, recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_edit_return]) . '#chron-log', 'entries', 'Chron log pages', 'chron_page', 'chron_per_page'); ?>
     </section>
 
-    <div class="engagement-page-actions" aria-label="Engagement form actions">
+    <div class="engagement-page-actions" aria-label="Engagement Form Actions">
         <div class="engagement-edit-actions-inner">
             <a href="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
             <button type="submit" name="save_engagement" value="1" class="save-button" form="engagement-edit-form">Save Changes</button>

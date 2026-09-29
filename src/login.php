@@ -76,7 +76,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle('Sign in'), array (
+<?php renderPageHead(applicationPageTitle('Sign In'), array (
   'styles' =>
   array (
     0 => 'assets/css/style.min.css',
@@ -92,7 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
   ),
 )); ?>
 <body class="fullscreen-center">
-  <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
+  <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to Dark Theme">
     <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
     <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
   </button>
@@ -120,9 +120,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         <input type="password" name="password" id="password" autocomplete="current-password" maxlength="72" required>
       </div>
 
-      <button type="submit" class="login-button">Sign in</button>
+      <button type="submit" class="login-button">Sign In</button>
     </form>
-    <p class="login-secondary-link"><a href="recover_password.php">Forgot your password?</a></p>
+    <p class="login-secondary-link"><a href="recover_password.php">Forgot Your Password?</a></p>
     <p class="auth-assurance">
       <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg>
       Protected with two-factor authentication

@@ -108,7 +108,7 @@ expectStandardEventTaskFeature(
         && str_contains($helpers, "'custom.' . bin2hex(random_bytes(16))")
         && str_contains($helpers, 'INSERT INTO standard_event_tasks')
         && str_contains($helpers, 'created_by')
-        && str_contains($add, "'Add standard task'"),
+        && str_contains($add, "'Add Standard Task'"),
     'authorized users should be able to add stable, audited standard-task definitions.'
 );
 expectStandardEventTaskFeature(

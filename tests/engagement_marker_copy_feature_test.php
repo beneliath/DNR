@@ -19,7 +19,7 @@ expectEngagementMarkerCopy(
     str_contains($page, 'class="action-icon-button engagement-marker-copy"')
         && str_contains($page, '$engagement_marker = applicationInboundMarker($engagement_id)')
         && str_contains($page, 'data-copy-text="<?php echo htmlspecialchars($engagement_marker')
-        && str_contains($page, 'aria-label="Copy email routing marker"')
+        && str_contains($page, 'aria-label="Copy Email Routing Marker"')
         && str_contains($page, 'id="engagement-marker-copy-status"')
         && str_contains($page, 'engagement-marker-copy-icon')
         && str_contains($page, 'engagement-marker-copied-icon'),

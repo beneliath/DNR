@@ -79,7 +79,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
     ),
 };
 ?>
-<section class="security-card calendar-card calendar-viewer" id="event-calendar" aria-label="Schedule calendar" data-month="<?php echo $calendar_month['month']; ?>" data-mode="<?php echo $calendar_view_mode; ?>" data-today="<?php echo $calendar_month['today']; ?>">
+<section class="security-card calendar-card calendar-viewer" id="event-calendar" aria-label="Schedule Calendar" data-month="<?php echo $calendar_month['month']; ?>" data-mode="<?php echo $calendar_view_mode; ?>" data-today="<?php echo $calendar_month['today']; ?>">
     <div class="calendar-viewer-heading">
         <div class="calendar-month-heading-copy">
             <p class="calendar-viewer-kicker">Schedule Calendar</p>
@@ -91,7 +91,7 @@ $calendar_month_summary = match ($calendar_view_mode) {
             <h2 id="calendar-agenda-title"><time datetime="<?php echo $calendar_day['date']; ?>"><?php echo htmlspecialchars($calendar_day['label'], ENT_QUOTES, 'UTF-8'); ?></time></h2>
             <p class="calendar-month-summary"><?php echo htmlspecialchars($calendar_day_summary, ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
-        <nav class="calendar-month-navigation calendar-desktop-navigation" aria-label="Calendar month navigation">
+        <nav class="calendar-month-navigation calendar-desktop-navigation" aria-label="Calendar Month Navigation">
             <a class="calendar-month-control" href="<?php echo htmlspecialchars(calendarViewerPageUrl($calendar_month['previous_month'], $calendar_view_mode), ENT_QUOTES, 'UTF-8'); ?>" aria-label="View <?php echo htmlspecialchars((new DateTimeImmutable($calendar_month['previous_month'] . '-01'))->format('F Y'), ENT_QUOTES, 'UTF-8'); ?>">
                 <span aria-hidden="true">←</span> Previous
             </a>
@@ -100,18 +100,18 @@ $calendar_month_summary = match ($calendar_view_mode) {
                 Next <span aria-hidden="true">→</span>
             </a>
         </nav>
-        <nav class="calendar-agenda-navigation" aria-label="Daily agenda navigation">
-            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['previous_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['previous_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
+        <nav class="calendar-agenda-navigation" aria-label="Daily Agenda Navigation">
+            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['previous_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Previous Day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['previous_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
                 <span aria-hidden="true">←</span>
             </a>
             <a class="calendar-month-control calendar-month-today" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['today'], true), ENT_QUOTES, 'UTF-8'); ?>"<?php if ($calendar_day['is_today']): ?> aria-current="date"<?php endif; ?>>Today</a>
-            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['next_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['next_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
+            <a class="calendar-month-control calendar-agenda-arrow" href="<?php echo htmlspecialchars(calendarViewerPageUrl(null, $calendar_view_mode, $calendar_day['next_day'], true), ENT_QUOTES, 'UTF-8'); ?>" aria-label="Next Day, <?php echo htmlspecialchars((new DateTimeImmutable($calendar_day['next_day']))->format('l, F j, Y'), ENT_QUOTES, 'UTF-8'); ?>">
                 <span aria-hidden="true">→</span>
             </a>
         </nav>
     </div>
 
-    <nav class="calendar-view-filters" aria-label="Calendar content">
+    <nav class="calendar-view-filters" aria-label="Calendar Content">
         <?php foreach ($calendar_mode_labels as $mode_value => $mode_label): ?>
             <?php
             $filter_classes = ['calendar-view-filter', 'calendar-view-filter-' . str_replace('_', '-', $mode_value)];

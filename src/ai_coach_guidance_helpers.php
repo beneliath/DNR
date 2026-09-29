@@ -35,7 +35,7 @@ function aiCoachContextQuestion(array $request): string
         foreach (['speaker notes PDF' => '/\b(speaker notes|notes pdf|pdf speaker notes)\b/',
                   'PowerPoint' => '/\b(powerpoint|pptx?|slidedeck)\b/',
                   'task' => '/\btasks?\b/', 'engagement' => '/\b(events?|engagements?)\b/',
-                  'calendar subscription' => '/\bcalendar\b/'] as $subject => $pattern) {
+                  'Calendar Subscription' => '/\bcalendar\b/'] as $subject => $pattern) {
             if (preg_match($pattern, $text)) return $question . ' (' . $subject . ')';
         }
     }
@@ -86,7 +86,7 @@ function aiCoachHasApplicationEvidence(array $request): bool
 function aiCoachMutationIntent(string $question): bool
 {
     $q = aiCoachNormalize($question);
-    return (bool) preg_match('/\b(add|adding|create|creating|edit|editing|change|changing|assign|reassign|upload|replace|remove|delete|archive|restore|unarchive|convert|reschedule|complete|finish|reopen|mark|set|save)\b/', $q);
+    return (bool) preg_match('/\b(add|adding|create|creating|edit|editing|change|changing|assign|reassign|upload|replace|remove|delete|archive|restore|unarchive|convert|reschedule|complete|finish|reopen|mark|set|save|submit|send|resend|retry|correct|resolve)\b/', $q);
 }
 
 function aiCoachCreationIntent(string $question): bool
@@ -200,6 +200,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
     $contextQuestion = aiCoachContextQuestion($request);
     if ($request['role'] === 'reviewer' && in_array(aiCoachIntentMode($request), ['perform','navigate'], true) && (aiCoachMutationIntent($contextQuestion) || aiCoachMatchWorkflow($contextQuestion) !== '')
         && !aiCoachPersonalCalendarIntent($contextQuestion)
+        && !(preg_match('/\b(reimbursement|expense)\b/', $q) && preg_match('/\breviewer\b/', $q) && preg_match('/\b(my|own)\b/', $q) && !preg_match('/\b(other|another|someone)\b/', $q))
         && !preg_match('/\b(calendar subscription|private link|theme|my password|my profile)\b/', $q)
         && !(preg_match('/\b(change|update) (my |own |the )?password\b/', $q) && !preg_match('/\b(another|other|user|someone)\b/', $q))) {
         return ['message' => 'Your current role is read-only. You can view the available records, but an editor or administrator must make this change. I can explain the process without directing you to controls your role cannot use.',
@@ -262,7 +263,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
             'question'=>'','sources'=>aiCoachSources([aiCoachManualTopics()['manual-topic-engagements-pdf-speaker-notes']]),'mode'=>'guide','engine'=>'verified-tab-path'];
     }
 
-    $workflow = in_array(aiCoachIntentMode($request), ['explain','ambiguous','troubleshoot'], true) && $q !== 'understand waiting tasks' ? '' : aiCoachMatchWorkflow($contextQuestion);
+    $workflow = in_array(aiCoachIntentMode($request), ['explain','ambiguous','troubleshoot'], true) && $q !== 'Understand Waiting Tasks' ? '' : aiCoachMatchWorkflow($contextQuestion);
     if ($workflow === 'attachments') return ['message' => 'Speaker-notes PDFs and PowerPoint files are separate attachments on each presentation. Which one would you like to work on first?',
         'question' => '', 'sources' => aiCoachSources(aiCoachRetrieve('PDF Speaker Notes PPT Slidedeck')), 'mode' => 'guide', 'workflow_options' => ['notes', 'presentation']];
     if ($workflow !== '') return aiCoachWorkflowReply($workflow, $request);

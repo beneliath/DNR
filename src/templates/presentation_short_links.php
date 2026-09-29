@@ -18,7 +18,7 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
         <?php endif; ?>
     </div>
     <?php endif; ?>
-    <template id="presentation-qr-pdf-options-<?php echo (int) $short_link_presentation_id; ?>" data-presentation-title="<?php echo htmlspecialchars(trim((string) ($presentation['topic_title'] ?? '')) ?: 'Untitled presentation', ENT_QUOTES, 'UTF-8'); ?>">
+    <template id="presentation-qr-pdf-options-<?php echo (int) $short_link_presentation_id; ?>" data-presentation-title="<?php echo htmlspecialchars(trim((string) ($presentation['topic_title'] ?? '')) ?: 'Untitled Presentation', ENT_QUOTES, 'UTF-8'); ?>">
         <?php foreach ($short_links as $short_link): ?>
             <?php $label = shortLinkLabel($short_link); $qr_available = !empty($short_link['qr_png']) && !empty($short_link['qr_url']); ?>
             <div class="qr-pdf-option" data-qr-pdf-option>
@@ -27,7 +27,7 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
                 <?php if ($qr_available): ?>
                     <img src="short_link_qr.php?id=<?php echo (int) $short_link['id']; ?>" alt="" width="64" height="64" loading="lazy">
                 <?php endif; ?>
-                <span class="qr-pdf-option-label"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?><?php if (!$short_link['is_enabled']): ?><small>Disabled link</small><?php endif; ?><?php if (!$qr_available): ?><small>QR image awaiting setup</small><?php endif; ?></span>
+                <span class="qr-pdf-option-label"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?><?php if (!$short_link['is_enabled']): ?><small>Disabled Link</small><?php endif; ?><?php if (!$qr_available): ?><small>QR Image Awaiting Setup</small><?php endif; ?></span>
                 </label>
                 <button type="button" class="button-secondary qr-pdf-drag-handle" data-qr-pdf-drag aria-label="Reorder <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?>" aria-describedby="qr-pdf-order-help">
                     <span data-qr-pdf-position aria-hidden="true"></span>
@@ -42,20 +42,20 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
             <div class="presentation-qr-display">
                 <div class="presentation-view-asset-label"><?php echo htmlspecialchars($label); ?><?php echo $short_link['is_enabled'] ? '' : ' (Disabled)'; ?></div>
                 <?php if (!empty($short_link['qr_png'])): ?>
-                <button type="button" class="presentation-view-qr-button" data-copy-qr-url="<?php echo $qr_url; ?>" aria-label="Copy <?php echo htmlspecialchars($label); ?> QR code">
+                <button type="button" class="presentation-view-qr-button" data-copy-qr-url="<?php echo $qr_url; ?>" aria-label="Copy <?php echo htmlspecialchars($label); ?> QR Code">
                     <img src="data:image/png;base64,<?php echo base64_encode($short_link['qr_png']); ?>" alt="<?php echo htmlspecialchars($label); ?> QR code" width="160" height="160">
-                    <span>Click to copy</span>
+                    <span>Click to Copy</span>
                 </button>
                 <span class="presentation-qr-status" data-copy-status role="status" aria-live="polite"></span>
                 <?php if (!empty($short_link['qr_url'])): ?>
-                <button type="button" class="button-secondary presentation-copy-link" data-copy-qr-link="<?php echo htmlspecialchars($short_link['qr_url'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="Copy <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR link" title="Copy link">
+                <button type="button" class="button-secondary presentation-copy-link" data-copy-qr-link="<?php echo htmlspecialchars($short_link['qr_url'], ENT_QUOTES, 'UTF-8'); ?>" aria-label="Copy <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> QR Link" title="Copy Link">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-2 2"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l2-2"/></svg>
-                    <span>Copy link</span>
+                    <span>Copy Link</span>
                 </button>
                 <?php endif; ?>
                 <div><a href="<?php echo $qr_url; ?>&amp;format=png&amp;download=1">PNG</a> · <a href="<?php echo $qr_url; ?>&amp;format=svg&amp;download=1">SVG</a></div>
                 <?php else: ?><p>QR images awaiting setup</p><?php endif; ?>
-                <div class="presentation-qr-visits" title="All-time tracked visits">Tracked visits: <strong><?php echo number_format((int) $short_link['tracked_visits']); ?></strong></div>
+                <div class="presentation-qr-visits" title="All-Time Tracked Visits">Tracked visits: <strong><?php echo number_format((int) $short_link['tracked_visits']); ?></strong></div>
                 <a class="button-secondary" href="short_links.php?id=<?php echo (int) $short_link['id']; ?>" aria-label="<?php echo htmlspecialchars($label); ?> QR Code Statistics">Statistics</a>
             </div>
         <?php endforeach; ?>

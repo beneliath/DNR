@@ -137,7 +137,7 @@ $task_status_labels = followUpTaskStatuses();
         </div>
     </div>
 
-    <div class="summary-grid dashboard-summary-grid" aria-label="Daily operations summary">
+    <div class="summary-grid dashboard-summary-grid" aria-label="Daily Operations Summary">
         <a class="summary-card dashboard-summary-card" href="tasks.php?view=all">
             <span class="summary-icon" aria-hidden="true">≡</span>
             <span><small>All Active Work</small><strong><?php echo $task_summary['all']; ?></strong></span>
@@ -168,7 +168,7 @@ $task_status_labels = followUpTaskStatuses();
         <?php if ($can_manage): ?>
             <a class="summary-card dashboard-summary-card dashboard-summary-mail" href="inbound_mail.php?status=review">
                 <span class="summary-icon" aria-hidden="true">@</span>
-                <span><small>Mail For Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
+                <span><small>Mail for Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
             </a>
         <?php endif; ?>
     </div>
@@ -314,7 +314,7 @@ $task_status_labels = followUpTaskStatuses();
         </section>
     </div>
     <details class="dashboard-pipeline-disclosure" open>
-        <summary>Booking pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
+        <summary>Booking Pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
     <div class="dashboard-inquiry-grid">
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">

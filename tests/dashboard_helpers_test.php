@@ -67,8 +67,8 @@ expectDashboardHelper(
 );
 
 expectDashboardHelper(
-    dashboardConfirmationStatusLabel('under_review') === 'Under review'
-        && dashboardConfirmationStatusLabel('unexpected') === 'Status not set',
+    dashboardConfirmationStatusLabel('under_review') === 'Under Review'
+        && dashboardConfirmationStatusLabel('unexpected') === 'Status Not Set',
     'dashboard statuses should use stable user-facing labels.'
 );
 

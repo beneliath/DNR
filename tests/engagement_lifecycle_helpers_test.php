@@ -19,7 +19,7 @@ expectEngagementLifecycleHelper(
 );
 expectEngagementLifecycleHelper(
     engagementLifecycleLabel('postponed') === 'Postponed'
-        && engagementLifecycleLabel('invalid') === 'Lifecycle not set',
+        && engagementLifecycleLabel('invalid') === 'Lifecycle Not Set',
     'lifecycle labels should be readable and safely handle unknown values.'
 );
 expectEngagementLifecycleHelper(

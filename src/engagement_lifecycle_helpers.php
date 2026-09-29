@@ -15,7 +15,7 @@ function engagementLifecycleStatuses(): array
 
 function engagementLifecycleLabel(mixed $status): string
 {
-    return engagementLifecycleStatuses()[trim((string) $status)] ?? 'Lifecycle not set';
+    return engagementLifecycleStatuses()[trim((string) $status)] ?? 'Lifecycle Not Set';
 }
 
 /** @param array<string, mixed> $engagement */
@@ -24,7 +24,7 @@ function engagementReferenceLabel(array $engagement): string
     $title = trim((string) ($engagement['event_title'] ?? ''));
     $organization = trim((string) ($engagement['organization_name'] ?? ''));
     $date = trim((string) ($engagement['event_start_date'] ?? ''));
-    $label = $title !== '' ? $title : ($organization !== '' ? $organization : 'Untitled engagement');
+    $label = $title !== '' ? $title : ($organization !== '' ? $organization : 'Untitled Engagement');
     return $date !== '' ? $label . ' · ' . $date : $label;
 }
 

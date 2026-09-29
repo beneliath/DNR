@@ -81,7 +81,7 @@ def main():
             return run(['sh', 'scripts/compose_with_provenance.sh', mode, *args], env=env)
         def application_writers():
             configured = set(compose('config', '--services').splitlines())
-            return [name for name in ('web', 'backup', 'document-scans', 'data-maintenance', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache', 'ai-coach-worker')
+            return [name for name in ('web', 'backup', 'receipt-previews', 'document-scans', 'data-maintenance', 'file-monitor', 'downloads', 'geocoder', 'mail-ingest', 'mail-dispatch', 'notes-cache', 'ai-coach-worker')
                     if name in configured]
         def container(service):
             return compose('ps', '-aq', service).splitlines()[-1]

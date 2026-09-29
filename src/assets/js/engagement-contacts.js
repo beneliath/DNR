@@ -84,7 +84,7 @@
             remove.type = 'button';
             remove.className = 'button-secondary engagement-contact-remove';
             remove.dataset.removeAddedContact = '';
-            remove.textContent = 'Remove from event';
+            remove.textContent = 'Remove from Event';
             fieldset.append(hidden, remove);
         }
         if (contact.email) {
@@ -220,7 +220,7 @@
                 const button = document.createElement('button');
                 button.type = 'button';
                 button.className = 'button-secondary';
-                button.textContent = 'Add to event';
+                button.textContent = 'Add to Event';
                 button.setAttribute('aria-label', 'Add ' + String(contact.name || 'contact') + ' to event');
                 button.addEventListener('click', function () {
                     let card = existingCard(contact.id);

@@ -21,7 +21,7 @@
     if (!total || !completion) return;
     function update() {
         const result = receiptSummary(fields.map(function (field) { return field.value; }));
-        total.textContent = result.valid ? 'Total entered: $' + result.total : 'Check receipt amounts';
+        total.textContent = result.valid ? 'Total entered: $' + result.total : 'Check Receipt Amounts';
         completion.textContent = result.valid ? result.entered + ' of ' + fields.length + ' categories entered' : 'Use non-negative amounts with up to two decimal places';
     }
     fields.forEach(function (field) { field.addEventListener('input', update); });

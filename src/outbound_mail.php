@@ -98,7 +98,7 @@ $inquiryTemplateLabels = [
 ];
 $templateLabel = $isInquiryMessage
     ? ($inquiryTemplateLabels[(string) $message['template_key']] ?? 'Custom Message')
-    : ((string) ($message['template_label'] ?? 'Custom message'));
+    : ((string) ($message['template_label'] ?? 'Custom Message'));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,7 +134,7 @@ $templateLabel = $isInquiryMessage
             <div><dt><?php echo $parentLabel; ?></dt><dd><a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($parentTitle, ENT_QUOTES, 'UTF-8'); ?></a></dd></div>
             <div><dt>Template</dt><dd><?php echo htmlspecialchars($templateLabel, ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Created</dt><dd><?php echo htmlspecialchars(applicationTimestampLabel($message['created_at'], 'F j, Y \a\t g:i A T'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Created by</dt><dd><?php echo htmlspecialchars((string) ($message['created_by_username'] ?: 'System'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Created By</dt><dd><?php echo htmlspecialchars((string) ($message['created_by_username'] ?: 'System'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
             <div><dt>Replies</dt><dd><?php echo !empty($message['reply_to']) ? 'Return to ' . htmlspecialchars((string) $message['reply_to'], ENT_QUOTES, 'UTF-8') : 'Return to the application sender'; ?></dd></div>
             <?php if (!$isInquiryMessage): ?><div><dt>Event Brief</dt><dd><?php echo !empty($message['included_event_brief']) ? 'Included' : 'Not Included'; ?></dd></div><?php endif; ?>
         </dl>

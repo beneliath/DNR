@@ -73,7 +73,7 @@ function presentationAssetDefinitions(): array
         ],
         'speaker_notes_qr' => [
             'kind' => 'image',
-            'label' => 'speaker notes QR code',
+            'label' => 'Speaker Notes QR Code',
             'query_type' => 'notes_qr',
             'data_column' => 'speaker_notes_qr_image',
             'mime_column' => 'speaker_notes_qr_mime',
@@ -84,7 +84,7 @@ function presentationAssetDefinitions(): array
         ],
         'speaker_website_qr' => [
             'kind' => 'image',
-            'label' => 'speaker website QR code',
+            'label' => 'Speaker Website QR Code',
             'query_type' => 'website_qr',
             'data_column' => 'speaker_website_qr_image',
             'mime_column' => 'speaker_website_qr_mime',
@@ -95,7 +95,7 @@ function presentationAssetDefinitions(): array
         ],
         'speaker_donation_qr' => [
             'kind' => 'image',
-            'label' => 'speaker donation QR code',
+            'label' => 'Speaker Donation QR Code',
             'query_type' => 'donation_qr',
             'data_column' => 'speaker_donation_qr_image',
             'mime_column' => 'speaker_donation_qr_mime',

@@ -103,7 +103,7 @@
                 menu.id = 'phone-country-menu-' + (++pickerSequence);
             }
             trigger.setAttribute('aria-controls', menu.id);
-            menu.setAttribute('aria-label', trigger.dataset.phoneCountryLabel || 'Phone country code');
+            menu.setAttribute('aria-label', trigger.dataset.phoneCountryLabel || 'Phone Country Code');
             if (selected) {
                 selected.scrollIntoView({ block: 'nearest' });
                 selected.focus();
@@ -130,7 +130,7 @@
         dialCode.textContent = countryCode;
         trigger.setAttribute(
             'aria-label',
-            `${trigger.dataset.phoneCountryLabel || 'Phone country code'}: ${countryName} ${countryCode}`
+            `${trigger.dataset.phoneCountryLabel || 'Phone Country Code'}: ${countryName} ${countryCode}`
         );
         picker.querySelectorAll('[data-phone-country-option]').forEach(function (candidate) {
             candidate.setAttribute('aria-selected', String(candidate === option));

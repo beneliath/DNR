@@ -156,7 +156,7 @@ $priority_labels = followUpTaskPriorities();
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
     <div class="list-controls standard-task-controls">
-        <div class="control-group" aria-label="Standard event task archive status">
+        <div class="control-group" aria-label="Standard Event Task Archive Status">
             <a href="standard_tasks.php?status=active" class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active (<?php echo $counts['active']; ?>)</a>
             <a href="standard_tasks.php?status=archived" class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived (<?php echo $counts['archived']; ?>)</a>
         </div>
@@ -166,7 +166,7 @@ $priority_labels = followUpTaskPriorities();
 
     <div class="data-table-scroll">
     <table class="task-table standard-task-table data-table">
-        <thead><tr><th>Order</th><th>Standard task</th><th>Due rule</th><th>Priority</th><th>Generated</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Order</th><th>Standard Task</th><th>Due Rule</th><th>Priority</th><th>Generated</th><th>Actions</th></tr></thead>
         <tbody>
         <?php if (!$standard_tasks): ?><tr><td colspan="6" class="empty-state">No <?php echo $show_archived ? 'archived' : 'active'; ?> standard event tasks.</td></tr><?php endif; ?>
         <?php foreach ($standard_tasks as $standard_task): ?>
@@ -183,15 +183,15 @@ $priority_labels = followUpTaskPriorities();
                 <td><?php echo (int) $standard_task['generated_count']; ?> event task<?php echo (int) $standard_task['generated_count'] === 1 ? '' : 's'; ?></td>
                 <td>
                     <div class="task-actions">
-                        <a href="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button view-button" aria-label="View standard task" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                        <a href="view_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button view-button" aria-label="View Standard Task" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                         <?php if (!$show_archived && !$is_required_standard_task && canManageFollowUpTasks($user_role)): ?>
-                            <a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit standard task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                            <a href="edit_standard_task.php?id=<?php echo (int) $standard_task['id']; ?>" class="action-button action-icon-button edit-button" aria-label="Edit Standard Task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                         <?php endif; ?>
                         <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $show_archived)): ?>
-                            <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $list_status; ?>"><input type="hidden" name="action" value="<?php echo $show_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="action-button action-icon-button <?php echo $show_archived ? 'restore-button' : 'archive-button'; ?>" aria-label="<?php echo $show_archived ? 'Restore' : 'Archive'; ?> standard task" title="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>" data-tooltip="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>"><?php echo actionIconSvg($show_archived ? 'restore' : 'archive'); ?></button></form>
+                            <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $list_status; ?>"><input type="hidden" name="action" value="<?php echo $show_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="action-button action-icon-button <?php echo $show_archived ? 'restore-button' : 'archive-button'; ?>" aria-label="<?php echo $show_archived ? 'Restore' : 'Archive'; ?> Standard Task" title="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>" data-tooltip="<?php echo $show_archived ? 'Restore' : 'Archive'; ?>"><?php echo actionIconSvg($show_archived ? 'restore' : 'archive'); ?></button></form>
                         <?php endif; ?>
                         <?php if ($show_archived && !$is_required_standard_task && canDeleteEntries($user_role)): ?>
-                            <form method="post" action="standard_tasks.php" data-delete-confirmation="Permanently delete this standard task? Existing tasks already added to events will remain." data-archive-button-label="Keep archived"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="archived"><input type="hidden" name="action" value="delete"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete standard task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
+                            <form method="post" action="standard_tasks.php" data-delete-confirmation="Permanently delete this standard task? Existing tasks already added to events will remain." data-archive-button-label="Keep Archived"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="archived"><input type="hidden" name="action" value="delete"><button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Standard Task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button></form>
                         <?php endif; ?>
                     </div>
                 </td>

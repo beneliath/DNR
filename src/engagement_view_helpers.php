@@ -55,7 +55,7 @@ function engagementViewProgress(array $engagement): array
     } elseif (in_array($lifecycle, ['postponed', 'canceled'], true)) {
         $exception = ['key' => $lifecycle, 'label' => ucfirst($lifecycle)];
     } elseif ($lifecycle !== 'active') {
-        $exception = ['key' => 'unknown_lifecycle', 'label' => 'Lifecycle not set'];
+        $exception = ['key' => 'unknown_lifecycle', 'label' => 'Lifecycle Not Set'];
     } else {
         $confirmation_index = array_search(
             $confirmation,
@@ -63,7 +63,7 @@ function engagementViewProgress(array $engagement): array
             true
         );
         if ($confirmation_index === false) {
-            $exception = ['key' => 'unknown_confirmation', 'label' => 'Confirmation not set'];
+            $exception = ['key' => 'unknown_confirmation', 'label' => 'Confirmation Not Set'];
         } else {
             $current_index = $confirmation_index;
         }

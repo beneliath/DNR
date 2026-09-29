@@ -14,7 +14,7 @@ function harness(kind = 'organization') {
     let input, status, timer;
     const select = {value: '999', isConnected: true,
         dataset: kind === 'contact' ? {contactSearch: ''} : {},
-        labels: [{textContent: kind === 'contact' ? 'Existing Contact' : 'Primary organization'}],
+        labels: [{textContent: kind === 'contact' ? 'Existing Contact' : 'Primary Organization'}],
         selectedOptions: [chosen], children: [chosen],
         before: (node) => { input = node; }, after: (node) => { status = node; },
         querySelector: () => new Element('None', ''),

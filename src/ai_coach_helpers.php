@@ -21,6 +21,10 @@ function aiCoachPages(): array
 {
     return [
         'dashboard.php' => 'Dashboard', 'help.php' => 'User Manual',
+        'reimbursements.php' => 'Reimbursements', 'reimbursement_expense.php' => 'Expense Detail',
+        'reimbursement_requests.php' => 'Reimbursement Requests', 'reimbursement_request.php' => 'Reimbursement Request',
+        'reimbursement_submit.php' => 'Review Reimbursement Email', 'reimbursement_cost_centers.php' => 'Chart of Accounts',
+        'reimbursement_setup.php' => 'Reimbursement Setup',
         'engagements.php' => 'Engagements', 'view_engagement.php' => 'Engagement Details',
         'edit_engagement.php' => 'Edit Engagement', 'index.php' => 'New Engagement',
         'tasks.php' => 'Work Queue', 'add_task.php' => 'New Task', 'edit_task.php' => 'Edit Task',
@@ -57,25 +61,25 @@ function aiCoachSteps(): array
         'engagement-date-order' => ['message' => 'End is earlier than Start. Correct the dates before continuing.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'new-end-date', 'label' => 'Show End'],
         'engagement-other-type' => ['message' => 'You selected Other for Event Type. Describe the type in Other Event Type.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'new-other-type', 'label' => 'Show Other Event Type'],
         'engagement-review' => ['message' => 'The basic fields are filled in. Review Event Type, then add any known contacts, presentations, logistics, and planning states. A complete presentation is needed before choosing Confirmed. When you have reviewed those sections, select I have reviewed the details here.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'new-event-type', 'label' => 'Show Event Type', 'acknowledge' => true],
-        'engagement-save' => ['message' => 'Select Create engagement at the bottom of the form when you are ready. MOED validates the whole form; the coach has not saved anything.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'create-engagement', 'label' => 'Show Create engagement'],
-        'engagement-errors' => ['message' => 'MOED is showing a validation message. Correct the listed fields before selecting Create engagement again.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'form-errors', 'label' => 'Show the validation message'],
+        'engagement-save' => ['message' => 'Select Create engagement at the bottom of the form when you are ready. MOED validates the whole form; the coach has not saved anything.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'create-engagement', 'label' => 'Show Create Engagement'],
+        'engagement-errors' => ['message' => 'MOED is showing a validation message. Correct the listed fields before selecting Create engagement again.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement', 'target' => 'form-errors', 'label' => 'Show the Validation Message'],
         'engagement-check' => ['message' => 'Check MOED’s save confirmation and find the new event in Engagements. Open its title to review the saved details. A page change alone does not prove a successful save.', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement'],
         'presentation-start' => ['message' => 'A PowerPoint belongs to one presentation. Open Engagements and choose its parent event first; then we will find the intended presentation.', 'source' => $ppt, 'href' => 'engagements.php', 'label' => 'Open Engagements'],
         'presentation-record' => ['message' => 'Choose the engagement you want to update from the list. I will stay with you when you open it.', 'source' => $ppt],
         'presentation-tab' => ['message' => 'Select the Presentations tab to find the presentation you want to update.', 'source' => $ppt, 'target' => 'presentations-tab', 'label' => 'Show Presentations'],
         'presentation-edit' => ['message' => 'Select Edit Presentations to open the presentation fields. This opens the form; it does not change the record.', 'source' => $ppt, 'target' => 'edit-presentations', 'label' => 'Show Edit Presentations'],
-        'presentation-choose' => ['message' => 'Find the intended presentation and select Choose PPT or Replace PPT. Choose a .ppt or .pptx file up to 500 MB. Keep all files in one save under 600 MB total.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT fields'],
+        'presentation-choose' => ['message' => 'Find the intended presentation and select Choose PPT or Replace PPT. Choose a .ppt or .pptx file up to 500 MB. Keep all files in one save under 600 MB total.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT Fields'],
         'presentation-save' => ['message' => 'Your file is selected but is not saved yet. Review the pending changes, then select Save Changes in the bottom bar. The file QR code appears only after a successful save.', 'source' => $ppt, 'target' => 'save-engagement', 'label' => 'Show Save Changes'],
-        'presentation-conflict' => ['message' => 'A presentation has both a replacement file and Remove current PPT selected. Choose replacement or removal, not both, before saving.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT fields'],
-        'presentation-size' => ['message' => 'The selected files exceed the upload limit. Each PowerPoint must be no more than 500 MB, and all files in one save must total less than 600 MB. Choose smaller files before saving.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT fields'],
-        'presentation-errors' => ['message' => 'MOED is showing a validation message. Read it and correct the affected fields before trying to save again. The coach has not confirmed a successful upload.', 'source' => $ppt, 'target' => 'form-errors', 'label' => 'Show the validation message'],
+        'presentation-conflict' => ['message' => 'A presentation has both a replacement file and Remove current PPT selected. Choose replacement or removal, not both, before saving.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT Fields'],
+        'presentation-size' => ['message' => 'The selected files exceed the upload limit. Each PowerPoint must be no more than 500 MB, and all files in one save must total less than 600 MB. Choose smaller files before saving.', 'source' => $ppt, 'target' => 'ppt-picker', 'label' => 'Show the PPT Fields'],
+        'presentation-errors' => ['message' => 'MOED is showing a validation message. Read it and correct the affected fields before trying to save again. The coach has not confirmed a successful upload.', 'source' => $ppt, 'target' => 'form-errors', 'label' => 'Show the Validation Message'],
         'presentation-check' => ['message' => 'Check the intended presentation for its saved filename and PPT Slidedeck QR code. A return to this page alone does not prove that the upload succeeded.', 'source' => $ppt, 'target' => 'presentations-tab', 'label' => 'Show Presentations'],
         'waiting-start' => ['message' => 'Open the Work Queue and choose the task you want to understand. Open its edit form when you are ready to review its status.', 'source' => $waiting, 'href' => 'tasks.php', 'label' => 'Open Work Queue'],
         'waiting-record' => ['message' => 'Find your task and select its Edit action. Choose the task yourself; I will continue on its form.', 'source' => $waiting],
         'waiting-status' => ['message' => 'Review Status. Choose Waiting only when progress depends on a person, organization, or decision. You make the selection.', 'source' => $waiting, 'target' => 'task-status', 'label' => 'Show Status'],
-        'waiting-description' => ['message' => 'Waiting on is required because the status is Waiting. Describe the person, organization, or decision blocking progress. The coach does not read or fill in that description.', 'source' => $waiting, 'target' => 'task-waiting-on', 'label' => 'Show Waiting on'],
-        'waiting-save' => ['message' => 'Waiting on now has a value. Review the rest of the form and select its Save button when ready. Other required fields or validation errors may still need attention.', 'source' => $waiting, 'target' => 'save-task', 'label' => 'Show the Save button'],
-        'waiting-errors' => ['message' => 'MOED is showing a validation message. Read it and correct the affected fields before trying to save again. A change is only saved after the application accepts it.', 'source' => $waiting, 'target' => 'form-errors', 'label' => 'Show the validation message'],
+        'waiting-description' => ['message' => 'Waiting on is required because the status is Waiting. Describe the person, organization, or decision blocking progress. The coach does not read or fill in that description.', 'source' => $waiting, 'target' => 'task-waiting-on', 'label' => 'Show Waiting On'],
+        'waiting-save' => ['message' => 'Waiting on now has a value. Review the rest of the form and select its Save button when ready. Other required fields or validation errors may still need attention.', 'source' => $waiting, 'target' => 'save-task', 'label' => 'Show the Save Button'],
+        'waiting-errors' => ['message' => 'MOED is showing a validation message. Read it and correct the affected fields before trying to save again. A change is only saved after the application accepts it.', 'source' => $waiting, 'target' => 'form-errors', 'label' => 'Show the Validation Message'],
         'read-only' => ['message' => 'Your current role is read-only. You can learn about this workflow in the manual, but an editor or administrator must make the changes.', 'source' => 'manual-topic-roles-roles-and-access'],
     ];
     $notesSource = 'manual-topic-engagements-pdf-speaker-notes';
@@ -84,7 +88,7 @@ function aiCoachSteps(): array
         $step['source'] = $notesSource;
         if (($step['target'] ?? '') === 'ppt-picker') {
             $step['target'] = 'pdf-picker';
-            $step['label'] = 'Show the PDF fields';
+            $step['label'] = 'Show the PDF Fields';
         }
         $steps[str_replace('presentation-', 'notes-', $id)] = $step;
     }
@@ -239,6 +243,7 @@ function aiCoachFailureReply(array $topics, string $stage, Throwable $exception)
 function aiCoachMatchWorkflow(string $question): string
 {
     $q = aiCoachNormalize($question);
+    if (preg_match('/\b(reimbursements?|expenses?|receipts?|bookkeeper|chart of accounts)\b/', $q)) return '';
     if (preg_match('/\b(delete|remove|archive|download|view|print|export|what is|what are|why)\b/', $q)) return '';
     $action = preg_match('/\b(add(?:ing)?|attach(?:ing)?|upload(?:ing)?|replac(?:e|ing)|choos(?:e|ing)|creat(?:e|ing)|new|set up|schedul(?:e|ing)|start|put|share|walk me through)\b/', $q);
     $notes = preg_match('/\bspeaker s? ?notes?\b|\bspeakers notes?\b|\bspeaking notes?\b|\bnotes? pdf\b|\bpdf speaker notes?\b/', $q);
@@ -256,20 +261,20 @@ function aiCoachMatchWorkflow(string $question): string
 function aiCoachWorkflows(): array
 {
     $workflows = [
-        'engagement' => ['title' => 'Create a new event / engagement', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement',
+        'engagement' => ['title' => 'Create a New Event / Engagement', 'source' => 'manual-topic-engagements-create-or-edit-an-engagement',
             'intent' => 'Create a NEW event record. Not add tasks/contacts/presentations to an existing event, edit dates, or convert an inquiry.',
             'message' => 'In MOED, an event is called an engagement. Start with New Engagement, then choose its Organization within that form. I’ll guide you one step at a time from your current page.'],
-        'notes' => ['title' => 'Upload or replace speaker notes PDF', 'source' => 'manual-topic-engagements-pdf-speaker-notes',
+        'notes' => ['title' => 'Upload or Replace Speaker Notes PDF', 'source' => 'manual-topic-engagements-pdf-speaker-notes',
             'intent' => 'Attach or replace the PDF of speaker notes on an individual presentation. Not speaker biography or ordinary text notes.',
             'message' => 'Speaker-notes PDFs belong to individual presentations. Let’s find the presentation, choose its PDF, and save it. I’ll guide you from this page.'],
-        'presentation' => ['title' => 'Upload or replace PowerPoint', 'source' => 'manual-topic-engagements-ppt-slidedeck',
+        'presentation' => ['title' => 'Upload or Replace PowerPoint', 'source' => 'manual-topic-engagements-ppt-slidedeck',
             'intent' => 'Attach a PPT/PPTX slide deck to an individual presentation. Not create a presentation or download its slides.',
             'message' => 'A PowerPoint is attached to an individual presentation. Let’s find that presentation and its PPT Slidedeck field, then save the file.'],
-        'waiting' => ['title' => 'Set a task to Waiting', 'source' => 'manual-topic-work-queue-fast-actions-and-record-level-work',
+        'waiting' => ['title' => 'Set a Task to Waiting', 'source' => 'manual-topic-work-queue-fast-actions-and-record-level-work',
             'intent' => 'Mark a task Waiting or fill in its Waiting on description because somebody or something is blocking progress.',
             'message' => 'Waiting is for a task that depends on someone or something else. I’ll help you find its status and explain what to put in Waiting on.'],
     ];
-    $labels = ['engagement'=>['add a new event','How do I add a new event?'], 'notes'=>['add speaker notes pdf','How do I add speaker notes PDF?'], 'presentation'=>['add a powerpoint','How do I attach a PowerPoint?'], 'waiting'=>['understand waiting tasks','Help me set a task to Waiting']];
+    $labels = ['engagement'=>['Add a New Event','How do I add a new event?'], 'notes'=>['Add Speaker Notes PDF','How do I add speaker notes PDF?'], 'presentation'=>['Add a PowerPoint','How do I attach a PowerPoint?'], 'waiting'=>['Understand Waiting Tasks','Help me set a task to Waiting']];
     foreach ($workflows as $id => &$workflow) { [$workflow['label'],$workflow['request']]=$labels[$id]; $workflow['roles']=['admin','editor']; }
     unset($workflow);
     foreach (aiCoachInteractiveProcedures() as $id=>$procedure) $workflows[$id]=[
@@ -306,11 +311,11 @@ function aiCoachApplicationContext(string $page): array
     return ['page' => $page, 'page_name' => aiCoachPages()[$page] ?? 'MOED', 'static_controls_not_live_visibility' => $controls,
         'navigation_rules' => [
             'An event is an Engagement. To CREATE one, open Engagements, then + New Engagement (index.php). Select Organization INSIDE that form. Organization Details has no create-event action.',
-            'New Engagement requires Organization, Event Title, Start and End. Its submit label is Create engagement. Edit Engagement uses Save Changes.',
+            'New Engagement requires Organization, Event Title, Start and End. Its submit label is Create Engagement. Edit Engagement uses Save Changes.',
             'On Engagement Details select the Presentations tab BEFORE Edit Presentations. On Edit Engagement find the intended presentation, then Choose PDF / Replace PDF or Choose PPT / Replace PPT, then Save Changes.',
             'A file belongs to an individual presentation, not directly to an engagement. Do not infer a successful save from selecting a file or navigating.',
             'Booked is not the same as the Confirmed planning status. Engagements can remain Work In Progress while optional details are added later.',
-            'On Engagement Details, Tasks then Add Task opens task creation. The new-task submit button is Add task.',
+            'On Engagement Details, Tasks then Add Task opens task creation. The new-task submit button is Add Task.',
             'For a personal calendar: open Calendar, find Create Subscription, enter Device or Service, choose the content, and select Create Private Link. Only AFTER creating it does Save This New Link appear with the one-time URL to copy into the calendar app.',
             'The user makes every selection and save. The coach never sees record field values. Ask about what they see only when needed.',
         ]];
@@ -330,6 +335,7 @@ function aiCoachChapterCatalog(array $catalog): array
 function aiCoachWorkflowCandidates(string $question): array
 {
     $q = aiCoachNormalize($question);
+    if (preg_match('/\b(reimbursements?|expenses?|receipts?|bookkeeper|chart of accounts)\b/', $q)) return [];
     // A guided card needs positive evidence of its subject. Other questions still
     // get a conversational model answer from the full manual's relevant chapter.
     $ids = [];

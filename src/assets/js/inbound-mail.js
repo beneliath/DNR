@@ -58,7 +58,7 @@
         const fragment = document.createDocumentFragment();
         const empty = document.createElement('option');
         empty.value = '';
-        empty.textContent = 'No engagement selected';
+        empty.textContent = 'No Engagement Selected';
         fragment.appendChild(empty);
 
         mergeEngagementOptions(results, current).forEach(function (engagement) {

@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if (mb_strlen($first_name, 'UTF-8') > 100 || mb_strlen($last_name, 'UTF-8') > 100) {
             throw new InvalidArgumentException('First and last names must be 100 characters or fewer.');
         }
-        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone number');
+        $phone = normalizePhoneNumber($phone_country_code, $phone, 'Phone Number');
         $picture = profilePictureFromUpload($_FILES['profile_picture'] ?? []);
         if ($picture !== null && $remove_profile_picture) {
             throw new InvalidArgumentException('Choose either a new profile picture or remove the current picture.');
@@ -239,22 +239,22 @@ $task_digest_day_options = [
             <h2 id="personal-details-heading">Personal Details</h2>
             <div class="profile-field-grid">
                 <div class="form-group">
-                    <label for="first_name">First name</label>
+                    <label for="first_name">First Name</label>
                     <input type="text" id="first_name" name="first_name" maxlength="100" autocomplete="given-name" value="<?php echo htmlspecialchars((string) ($user['first_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="form-group">
-                    <label for="last_name">Last name</label>
+                    <label for="last_name">Last Name</label>
                     <input type="text" id="last_name" name="last_name" maxlength="100" autocomplete="family-name" value="<?php echo htmlspecialchars((string) ($user['last_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                 </div>
                 <div class="form-group">
-                    <label for="email">Email address</label>
+                    <label for="email">Email Address</label>
                     <input type="email" id="email" readonly value="<?php echo htmlspecialchars((string) ($user['email'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                     <p class="field-help">The user can change their recovery email in My Profile after confirming their password and authenticator code.</p>
                 </div>
                 <div class="form-group">
-                    <label for="phone">Phone number</label>
+                    <label for="phone">Phone Number</label>
                     <div class="phone-input-group" data-phone-input-group>
-                        <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Phone country code'); ?>
+                        <?php echo phoneCountryPicker('phone_country_code', $phone_country_code_value, 'Phone Country Code'); ?>
                         <input type="tel" id="phone" name="phone" value="<?php echo htmlspecialchars($phone_local_value, ENT_QUOTES, 'UTF-8'); ?>" autocomplete="tel-national" inputmode="tel" data-phone-number>
                     </div>
                 </div>
@@ -266,13 +266,13 @@ $task_digest_day_options = [
             </div>
             <div class="profile-picture-controls">
                 <h2 id="profile-picture-heading">Profile Picture</h2>
-                <label for="profile_picture">Choose a new picture</label>
+                <label for="profile_picture">Choose a New Picture</label>
                 <input type="hidden" name="MAX_FILE_SIZE" value="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>">
                 <input type="file" id="profile_picture" name="profile_picture" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo PROFILE_PICTURE_MAX_BYTES; ?>" data-profile-picture-input>
                 <p class="field-help">JPEG, PNG, or WebP. Maximum file size: 5 MB.</p>
                 <p class="profile-picture-preview-status" hidden aria-live="polite" data-profile-picture-preview-status></p>
                 <?php if (!empty($user['profile_picture_mime'])): ?>
-                    <label class="profile-picture-remove"><input type="checkbox" name="remove_profile_picture" value="1" data-remove-profile-picture> Remove current picture</label>
+                    <label class="profile-picture-remove"><input type="checkbox" name="remove_profile_picture" value="1" data-remove-profile-picture> Remove Current Picture</label>
                 <?php endif; ?>
             </div>
         </section>
@@ -290,24 +290,24 @@ $task_digest_day_options = [
                 <input type="checkbox" name="task_digest_enabled" value="1" data-task-digest-enabled
                     <?php echo !empty($user['task_digest_enabled']) ? 'checked' : ''; ?>>
                 <span>
-                    <strong>Enable daily work digest</strong>
+                    <strong>Enable Daily Work Digest</strong>
                     <small>Delivery requires an active account with a verified email address<?php echo empty($user['email_verified_at']) ? '; this user’s email is not currently verified' : ''; ?></small>
                 </span>
             </label>
             <div class="profile-notification-schedule" data-task-digest-schedule>
                 <div class="profile-notification-time">
-                    <label for="task_digest_time">Delivery time</label>
+                    <label for="task_digest_time">Delivery Time</label>
                     <input type="time" id="task_digest_time" name="task_digest_time"
                         value="<?php echo htmlspecialchars($task_digest_time_value, ENT_QUOTES, 'UTF-8'); ?>"
                         step="60" required>
                     <small>Uses <?php echo htmlspecialchars(applicationTimezoneName(), ENT_QUOTES, 'UTF-8'); ?> time.</small>
                 </div>
                 <fieldset class="profile-notification-days">
-                    <legend>Delivery days</legend>
-                    <div class="profile-notification-presets" aria-label="Delivery day presets">
+                    <legend>Delivery Days</legend>
+                    <div class="profile-notification-presets" aria-label="Delivery Day Presets">
                         <button type="button" class="button-secondary" data-task-digest-days="31">Weekdays</button>
                         <button type="button" class="button-secondary" data-task-digest-days="96">Weekends</button>
-                        <button type="button" class="button-secondary" data-task-digest-days="127">Every day</button>
+                        <button type="button" class="button-secondary" data-task-digest-days="127">Every Day</button>
                     </div>
                     <div class="profile-notification-day-options">
                         <?php foreach ($task_digest_day_options as $day_value => $day_option): ?>
@@ -322,7 +322,7 @@ $task_digest_day_options = [
                 </fieldset>
             </div>
         </section>
-        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save changes" class="save-button"></div>
+        <div class="action-buttons"><a href="users.php" class="cancel-button">Cancel</a><input type="submit" value="Save Changes" class="save-button"></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

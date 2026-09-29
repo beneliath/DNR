@@ -85,12 +85,12 @@ try {
         <?php foreach ($mailboxes as $mailbox): ?>
             <h3><?php echo htmlspecialchars((string) $mailbox['mailbox_label'], ENT_QUOTES, 'UTF-8'); ?></h3>
             <dl class="operations-details">
-                <div><dt>Mailbox scan</dt><dd><?php echo (int) $mailbox['consecutive_failures'] > 0 ? 'Failing' : ((int) $mailbox['stale'] ? 'Check overdue' : ((int) $mailbox['catching_up'] ? 'Catching up' : 'Up to date')); ?></dd></div>
-                <div><dt>Last successful check</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_checked_at']) ? applicationTimestampLabel($mailbox['last_checked_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                <div><dt>Last imported message</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_imported_at']) ? applicationTimestampLabel($mailbox['last_imported_at'], 'Y-m-d H:i:s T') : 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                <div><dt>Consecutive failed checks</dt><dd><?php echo (int) $mailbox['consecutive_failures']; ?></dd></div>
-                <div><dt>Latest mailbox error</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_error'] ?? 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                <div><dt>Historical messages awaiting import review</dt><dd><?php echo (int) $mailbox['reconciliation_count']; ?></dd></div>
+                <div><dt>Mailbox Scan</dt><dd><?php echo (int) $mailbox['consecutive_failures'] > 0 ? 'Failing' : ((int) $mailbox['stale'] ? 'Check overdue' : ((int) $mailbox['catching_up'] ? 'Catching up' : 'Up to date')); ?></dd></div>
+                <div><dt>Last Successful Check</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_checked_at']) ? applicationTimestampLabel($mailbox['last_checked_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Last Imported Message</dt><dd><?php echo htmlspecialchars((!empty($mailbox['last_imported_at']) ? applicationTimestampLabel($mailbox['last_imported_at'], 'Y-m-d H:i:s T') : 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Consecutive Failed Checks</dt><dd><?php echo (int) $mailbox['consecutive_failures']; ?></dd></div>
+                <div><dt>Latest Mailbox Error</dt><dd><?php echo htmlspecialchars((string) ($mailbox['last_error'] ?? 'None'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Historical Messages Awaiting Import Review</dt><dd><?php echo (int) $mailbox['reconciliation_count']; ?></dd></div>
             </dl>
         <?php endforeach; ?>
         <p>Quarantined messages awaiting review: <?php echo (int) $quarantine['total']; ?>. Historical messages require an explicit import or ignore decision before they can enter the normal mail queue.</p>
@@ -99,13 +99,13 @@ try {
     <section class="record-section">
             <h2>Deployment State</h2>
         <dl class="operations-details">
-            <div><dt>Application version</dt><dd><?php echo htmlspecialchars(APP_VERSION, ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Last migration</dt><dd><?php echo htmlspecialchars((!empty($migration['last_applied_at']) ? applicationTimestampLabel($migration['last_applied_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Last encrypted backup</dt><dd><?php echo htmlspecialchars((!empty($backup['last_backup_at']) ? applicationTimestampLabel($backup['last_backup_at'], 'Y-m-d H:i:s T') : 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Last backup result</dt><dd><?php echo htmlspecialchars((string) ($backup['last_backup_details'] ?? 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-            <div><dt>Geocoding pending / processing</dt><dd><?php echo (int) ($geocoding['pending'] ?? 0); ?> / <?php echo (int) ($geocoding['processing'] ?? 0); ?></dd></div>
-            <div><dt>Highest geocoding attempt count</dt><dd><?php echo (int) ($geocoding['maximum_attempts'] ?? 0); ?></dd></div>
-            <div><dt>Inbound mail queued / review</dt><dd><?php echo (int) ($inboundMail['queued_count'] ?? 0); ?> / <?php echo (int) ($inboundMail['review_count'] ?? 0); ?></dd></div>
+            <div><dt>Application Version</dt><dd><?php echo htmlspecialchars(APP_VERSION, ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Last Migration</dt><dd><?php echo htmlspecialchars((!empty($migration['last_applied_at']) ? applicationTimestampLabel($migration['last_applied_at'], 'Y-m-d H:i:s T') : 'Never'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Last Encrypted Backup</dt><dd><?php echo htmlspecialchars((!empty($backup['last_backup_at']) ? applicationTimestampLabel($backup['last_backup_at'], 'Y-m-d H:i:s T') : 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Last Backup Result</dt><dd><?php echo htmlspecialchars((string) ($backup['last_backup_details'] ?? 'No recorded backup'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+            <div><dt>Geocoding Pending / Processing</dt><dd><?php echo (int) ($geocoding['pending'] ?? 0); ?> / <?php echo (int) ($geocoding['processing'] ?? 0); ?></dd></div>
+            <div><dt>Highest Geocoding Attempt Count</dt><dd><?php echo (int) ($geocoding['maximum_attempts'] ?? 0); ?></dd></div>
+            <div><dt>Inbound Mail Queued / Review</dt><dd><?php echo (int) ($inboundMail['queued_count'] ?? 0); ?> / <?php echo (int) ($inboundMail['review_count'] ?? 0); ?></dd></div>
         </dl>
         <p><a href="ready.php" class="button-secondary">View Readiness Response</a></p>
     </section>

@@ -89,10 +89,10 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
             </form>
         <?php endif; ?>
         <?php if (canArchiveEntries($user_role) && (!$is_required_standard_task || $is_archived)): ?>
-            <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $is_archived ? 'archived' : 'active'; ?>"><input type="hidden" name="action" value="<?php echo $is_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="<?php echo $is_archived ? 'restore-button' : 'archive-button'; ?>"><?php echo $is_archived ? 'Restore standard task' : 'Archive standard task'; ?></button></form>
+            <form method="post" action="standard_tasks.php"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="<?php echo $is_archived ? 'archived' : 'active'; ?>"><input type="hidden" name="action" value="<?php echo $is_archived ? 'restore' : 'archive'; ?>"><button type="submit" class="<?php echo $is_archived ? 'restore-button' : 'archive-button'; ?>"><?php echo $is_archived ? 'Restore Standard Task' : 'Archive Standard Task'; ?></button></form>
         <?php endif; ?>
         <?php if ($is_archived && !$is_required_standard_task && canDeleteEntries($user_role)): ?>
-            <form method="post" action="standard_tasks.php" data-delete-confirmation="Permanently delete this standard task? Existing tasks already added to events will remain." data-archive-button-label="Keep archived"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="archived"><input type="hidden" name="action" value="delete"><button type="submit" class="delete-button">Permanently delete</button></form>
+            <form method="post" action="standard_tasks.php" data-delete-confirmation="Permanently delete this standard task? Existing tasks already added to events will remain." data-archive-button-label="Keep Archived"><?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $standard_task['id']; ?>"><input type="hidden" name="list_status" value="archived"><input type="hidden" name="action" value="delete"><button type="submit" class="delete-button">Permanently Delete</button></form>
         <?php endif; ?>
     </div>
 </div>

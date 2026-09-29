@@ -144,8 +144,8 @@ expectCoach(aiCoachDecodeReply($ack,[])['sources']===[],'Conversation is valid w
 $payload=aiCoachPayload(aiCoachValidateRequest(['question'=>'Explain the task status'],'editor'),aiCoachRetrieve('task status'));
 expectCoach($payload['options']['num_predict']<=320,'Answer generation is bounded');
 echo "Coaching defect regressions passed.\n";
-expectCoach(count(aiCoachProcedures())===19,'Every verified procedure still matches the current source files and PDF');
-foreach ([['How do I assign a task to someone?','tasks.php','assign-task','Assigned to'],['How do I add a second day to an existing event?','view_engagement.php','edit-event-dates','Edit Engagement'],['How can I see these events in Apple Calendar on my phone?','view_calendar.php','calendar-subscription','Create Private Link'],['How do I restore an archived organization?','organizations.php','restore-organization','Restore organization'],['How do I remove a PowerPoint?','edit_engagement.php','remove-ppt','Remove current PPT']] as [$q,$page,$procedure,$label]) {
+expectCoach(count(aiCoachProcedures())===count(json_decode(file_get_contents(__DIR__.'/../src/data/ai-coach-procedures.json'),true)['procedures']),'Every verified procedure still matches the current source files and PDF');
+foreach ([['How do I assign a task to someone?','tasks.php','assign-task','Assigned To'],['How do I add a second day to an existing event?','view_engagement.php','edit-event-dates','Edit Engagement'],['How can I see these events in Apple Calendar on my phone?','view_calendar.php','calendar-subscription','Create Private Link'],['How do I restore an archived organization?','organizations.php','restore-organization','Restore Organization'],['How do I remove a PowerPoint?','edit_engagement.php','remove-ppt','Remove Current PPT']] as [$q,$page,$procedure,$label]) {
     $r=aiCoachImmediateReply(aiCoachValidateRequest(['question'=>$q,'page'=>$page],'editor'));
     expectCoach(($r['procedure']??'')===$procedure && str_contains($r['message'],$label),'Verified next-action procedure: '.$procedure);
 }
@@ -184,15 +184,15 @@ $r=aiCoachValidateRequest(['question'=>'How do I add a task?','page'=>'view_enga
 expectCoach(aiCoachImmediateReply($r)['engine']==='verified-missing-control', 'Do not offer Add Task when absent from the open Tasks tab');
 $r=aiCoachValidateRequest(['question'=>'I need to hand this follow-up to a colleague. Where do I do that?','page'=>'edit_task.php'],'editor');
 $selected=aiCoachResolveSelection(['procedure'=>'assign-task','intent'=>'action','confidence'=>'high'],$r);
-expectCoach(($selected['workflow']??'')==='assign-task' && str_contains($selected['message'],'Assigned to'), 'Clear semantic assignment uses the verified form');
+expectCoach(($selected['workflow']??'')==='assign-task' && str_contains($selected['message'],'Assigned To'), 'Clear semantic assignment uses the verified form');
 expectCoach(aiCoachResolveSelection(['procedure'=>'assign-task','intent'=>'action','confidence'=>'low','question'=>'Do you want to change the task owner?'],$r)['engine']==='intent-clarification','Uncertain selection asks before supplying steps');
 expectCoach(aiCoachResolveSelection(['procedure'=>'assign-task','intent'=>'explanation','confidence'=>'high'],$r)===null,'Explanations do not launch a procedure');
 $payload=aiCoachPayload($r,aiCoachRetrieve('assign task'));
 $context=json_decode($payload['messages'][1]['content'],true);
 expectCoach(in_array('assign-task',array_column($context['known_procedures'],'id'),true),'Assignment is offered to the interpreter');
-expectCoach(str_contains(json_encode($context['target_form_evidence']),'Find a related record'), 'Evidence names the real search control');
+expectCoach(str_contains(json_encode($context['target_form_evidence']),'Find a Related Record'), 'Evidence names the real search control');
 expectCoach(!str_contains(json_encode($context['target_form_evidence']),'selector'), 'Browser selectors do not enter model evidence');
-expectCoach(count(aiCoachForms())===7 && count(aiCoachInteractiveProcedures())===4, 'All reviewed form and interactive procedure source hashes match');
+expectCoach(count(aiCoachForms())===count(json_decode(file_get_contents(__DIR__.'/../src/data/ai-coach-forms.json'),true)['forms']) && count(aiCoachInteractiveProcedures())===4, 'All reviewed form and interactive procedure source hashes match');
 foreach (aiCoachInteractiveProcedures() as $procedure) foreach ($procedure['walkthrough']['steps'] as $step) {
     expectCoach(!isset($step['target']) || isset(aiCoachControlCatalog()[$step['target']]), 'Every new highlight target comes from a reviewed control');
 }
@@ -205,5 +205,5 @@ foreach (["Why can’t I change the status of a task that is waiting for someone
 $reply=aiCoachImmediateReply(aiCoachValidateRequest(['question'=>'How do I change the status of my task from Waiting to Completed?','page'=>'edit_task.php'],'editor'));
 expectCoach($reply['engine']==='verified-form-rule' && str_contains($reply['message'],'cleared') && !isset($reply['workflow']), 'Leaving Waiting does not require entering Waiting on');
 $reply=aiCoachImmediateReply(aiCoachValidateRequest(['question'=>'How do I change the status of this task from Waiting to Canceled?','page'=>'add_task.php'],'editor'));
-expectCoach(str_contains($reply['message'],'select Add task') && !str_contains($reply['message'],'Save changes') && !str_contains($reply['message'],'Completed'), 'A new task status change stays in its draft and uses Add task');
+expectCoach(str_contains($reply['message'],'select Add task') && !str_contains($reply['message'],'Save Changes') && !str_contains($reply['message'],'Completed'), 'A new task status change stays in its draft and uses Add task');
 echo "Intent, source-contract, permission and compound-goal regressions passed.\n";

@@ -55,34 +55,34 @@ try {
 $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
 ?>
 <!DOCTYPE html><html lang="en">
-<?php renderPageHead(applicationPageTitle('ai coach Improvements'), ['styles'=>['assets/css/style.min.css','assets/css/modern.min.css','assets/css/pages/ai_coach_requests.min.css']]); ?>
+<?php renderPageHead(applicationPageTitle('AI Coach Improvements'), ['styles'=>['assets/css/style.min.css','assets/css/modern.min.css','assets/css/pages/ai_coach_requests.min.css']]); ?>
 <body><?php include 'templates/header.php'; ?>
 <main class="container coach-review-page">
-<div class="page-heading"><div><h1>ai coach Improvements</h1><p class="page-intro">Turn verified corrections into lasting guidance and regression checks.</p></div><a class="button-secondary" href="ai_coach_requests.php">Request log</a></div>
+<div class="page-heading"><div><h1>AI Coach Improvements</h1><p class="page-intro">Turn verified corrections into lasting guidance and regression checks.</p></div><a class="button-secondary" href="ai_coach_requests.php">Request Log</a></div>
 <p>Verify the actual MOED workflow, correct the manual or guidance where needed, and check the expected answer. These cases remain when the request log is cleared. Approval enables matching explanations for the same role, page, and guidance version; it does not retrain the model.</p>
 <?php if ($error): ?><p class="error" role="alert"><?php echo $escape($error); ?></p><?php endif; ?>
 <?php if (isset($_GET['saved']) && !$error): ?><p class="success" role="status">Improvement saved.</p><?php endif; ?>
 <?php if ($record): ?>
-<section class="coach-review-card"><h2><?php echo $record['id'] ? 'Improvement #' . (int) $record['id'] : 'New improvement'; ?></h2>
+<section class="coach-review-card"><h2><?php echo $record['id'] ? 'Improvement #' . (int) $record['id'] : 'New Improvement'; ?></h2>
 <?php if ($record['status']==='approved' && ($record['guidance_revision'] ?? '')!==aiCoachGuidanceRevision()): ?><p class="error">The guidance changed. Recheck and approve this case before its answer can be reused.</p><?php endif; ?>
 <form method="post" action="ai_coach_improvements.php<?php echo $record['id'] ? '?id=' . (int) $record['id'] : ''; ?>">
 <?php echo csrfInput(); ?>
 <?php foreach (['id','version','source_request_id'] as $key): ?><input type="hidden" name="<?php echo $key; ?>" value="<?php echo $escape($record[$key]); ?>"><?php endforeach; ?>
-<label for="question">Question (remove names and private record details)</label><textarea id="question" name="question" rows="3" maxlength="1200" required><?php echo $escape($record['question']); ?></textarea>
+<label for="question">Question (Remove Names and Private Record Details)</label><textarea id="question" name="question" rows="3" maxlength="1200" required><?php echo $escape($record['question']); ?></textarea>
 <div class="coach-improvement-fields">
-<?php foreach (['category'=>aiCoachImprovementCategories(),'user_role'=>['admin'=>'Administrator','editor'=>'Editor','reviewer'=>'Reviewer'],'page_path'=>aiCoachPages(),'guided_step'=>[''=>'No active walkthrough']+aiCoachSteps(),'expected_workflow'=>[''=>'No required walkthrough']+array_map(static fn($w)=>$w['title'],aiCoachWorkflows()),'status'=>['draft'=>'Draft','approved'=>'Approved']] as $key=>$options): ?>
+<?php foreach (['category'=>aiCoachImprovementCategories(),'user_role'=>['admin'=>'Administrator','editor'=>'Editor','reviewer'=>'Reviewer'],'page_path'=>aiCoachPages(),'guided_step'=>[''=>'No Active Walkthrough']+aiCoachSteps(),'expected_workflow'=>[''=>'No Required Walkthrough']+array_map(static fn($w)=>$w['title'],aiCoachWorkflows()),'status'=>['draft'=>'Draft','approved'=>'Approved']] as $key=>$options): ?>
 <div><label for="<?php echo $key; ?>"><?php echo $escape(ucfirst(str_replace('_',' ',$key))); ?></label><select id="<?php echo $key; ?>" name="<?php echo $key; ?>"><?php foreach ($options as $value=>$label): ?><option value="<?php echo $escape($value); ?>"<?php echo $record[$key]===$value ? ' selected' : ''; ?>><?php echo $escape(is_array($label) ? ($label['title'] ?? $value) : $label); ?></option><?php endforeach; ?></select></div>
 <?php endforeach; ?>
 </div>
-<label for="expected_guidance">Verified expected guidance</label><textarea id="expected_guidance" name="expected_guidance" rows="6" maxlength="2000" required><?php echo $escape($record['expected_guidance']); ?></textarea>
+<label for="expected_guidance">Verified Expected Guidance</label><textarea id="expected_guidance" name="expected_guidance" rows="6" maxlength="2000" required><?php echo $escape($record['expected_guidance']); ?></textarea>
 <p>Use exact control labels and the real entry point. An AI answer is evidence of a problem, not proof of application behavior.</p>
-<?php foreach (['topic_ids'=>'Manual topic IDs (one per line)','required_terms'=>'Words or phrases the answer must include (one per line)','forbidden_terms'=>'Words or phrases the answer must not include (one per line)'] as $key=>$label): ?>
+<?php foreach (['topic_ids'=>'Manual Topic IDs (One Per Line)','required_terms'=>'Words or Phrases the Answer Must Include (One Per Line)','forbidden_terms'=>'Words or phrases the answer must not include (one per line)'] as $key=>$label): ?>
 <label for="<?php echo $key; ?>"><?php echo $label; ?></label><textarea id="<?php echo $key; ?>" name="<?php echo $key; ?>" rows="3" maxlength="3000"><?php echo $escape(implode("\n", json_decode($record[$key],true) ?: [])); ?></textarea>
 <?php endforeach; ?>
-<details><summary>Find current Comprehensive Manual topic IDs</summary><ul class="coach-topic-list"><?php foreach (aiCoachManualTopics() as $topic): ?><li><a href="<?php echo $escape('assets/docs/moed-comprehensive-user-manual.pdf#page=' . (int)$topic['page']); ?>"><?php echo $escape($topic['title']); ?></a> <code><?php echo $escape($topic['id']); ?></code></li><?php endforeach; ?></ul></details>
+<details><summary>Find Current Comprehensive Manual Topic IDs</summary><ul class="coach-topic-list"><?php foreach (aiCoachManualTopics() as $topic): ?><li><a href="<?php echo $escape('assets/docs/moed-comprehensive-user-manual.pdf#page=' . (int)$topic['page']); ?>"><?php echo $escape($topic['title']); ?></a> <code><?php echo $escape($topic['id']); ?></code></li><?php endforeach; ?></ul></details>
 <label class="coach-check"><input type="checkbox" name="verified" value="1"> I checked this guidance against the current application and manual</label>
 <label class="coach-check"><input type="checkbox" name="redacted" value="1"> This case contains no private names, record details, credentials, or personal data</label>
-<button class="button-primary" type="submit">Save improvement</button> <a class="button-secondary" href="ai_coach_improvements.php">All improvements</a>
+<button class="button-primary" type="submit">Save Improvement</button> <a class="button-secondary" href="ai_coach_improvements.php">All Improvements</a>
 </form></section>
 <?php else: ?>
 <section class="coach-review-card" aria-labelledby="feedback-queue-heading">
@@ -98,10 +98,10 @@ $escape = static fn(mixed $value): string => htmlspecialchars((string) $value, E
 </tbody></table></div><?php endif; ?>
 </section>
 <?php if ($reviews): ?><section class="coach-review-card"><h2>Recent Development Reviews</h2><ul>
-<?php foreach ($reviews as $review): ?><li><strong><?php echo $escape(ucfirst($review['disposition'])); ?></strong>: <?php echo $escape($review['summary']); ?><span class="coach-request-secondary"><?php echo $escape(applicationTimestampLabel($review['reviewed_at'],'M j, Y g:i A')); ?><?php if ($review['request_id']): ?> · <a href="ai_coach_requests.php?id=<?php echo (int)$review['request_id']; ?>">Original request</a><?php endif; ?></span></li><?php endforeach; ?>
+<?php foreach ($reviews as $review): ?><li><strong><?php echo $escape(ucfirst($review['disposition'])); ?></strong>: <?php echo $escape($review['summary']); ?><span class="coach-request-secondary"><?php echo $escape(applicationTimestampLabel($review['reviewed_at'],'M j, Y g:i A')); ?><?php if ($review['request_id']): ?> · <a href="ai_coach_requests.php?id=<?php echo (int)$review['request_id']; ?>">Original Request</a><?php endif; ?></span></li><?php endforeach; ?>
 </ul></section><?php endif; ?>
 <h2>Verified Guidance Cases</h2>
-<p><a class="button-primary" href="ai_coach_improvements.php?new=1">New improvement</a> <a class="button-secondary" href="ai_coach_improvements.php?export=1">Export approved test cases</a></p>
+<p><a class="button-primary" href="ai_coach_improvements.php?new=1">New Improvement</a> <a class="button-secondary" href="ai_coach_improvements.php?export=1">Export Approved Test Cases</a></p>
 <div class="data-table-scroll coach-request-table-wrapper"><table class="data-table coach-request-table"><thead><tr><th scope="col">Question</th><th scope="col">Issue</th><th scope="col">Status</th></tr></thead><tbody>
 <?php foreach ($rows as $row): ?><tr><td><a class="coach-request-question" href="ai_coach_improvements.php?id=<?php echo (int)$row['id']; ?>"><?php echo $escape($row['question']); ?></a></td><td><?php echo $escape(aiCoachImprovementCategories()[$row['category']] ?? $row['category']); ?></td><td><?php echo $escape($row['status']==='approved' && $row['guidance_revision']!==aiCoachGuidanceRevision() ? 'Needs revalidation' : ucfirst($row['status'])); ?></td></tr><?php endforeach; ?>
 <?php if (!$rows): ?><tr><td colspan="3" class="coach-request-empty">No improvements yet. Start from a problem response in the request log or create a new case.</td></tr><?php endif; ?>

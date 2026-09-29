@@ -186,7 +186,7 @@ function normalizeSpeakerInput(array $input): array
         $data[$field] = $url;
     }
     if (array_key_exists('phone_country_code', $input)) {
-        $data['phone'] = normalizePhoneNumber($input['phone_country_code'], $data['phone'], 'Phone number');
+        $data['phone'] = normalizePhoneNumber($input['phone_country_code'], $data['phone'], 'Phone Number');
     }
     $phoneUtil = \libphonenumber\PhoneNumberUtil::getInstance();
     try {

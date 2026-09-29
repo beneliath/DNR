@@ -9,10 +9,10 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements \u2192 + New Engagement",
+      "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "33674d04589a5a371fe36e08aae82a1e68a868c97b230cefb8b563e2deaa1a77"
+        "index.php": "8a86794d0390d8fb566219f75f631457671bc712cc1b1aa919b199ac1ba51ec4"
       },
       "controls": {
         "new-organization": {
@@ -40,7 +40,7 @@
           "selector": "#new-engagement-form #event_type_other"
         },
         "create-engagement": {
-          "label": "Create engagement",
+          "label": "Create Engagement",
           "selector": "#new-engagement-form input[type=submit][name=save_engagement]"
         }
       }
@@ -54,12 +54,12 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements \u2192 event \u2192 Presentations tab \u2192 Edit Presentations",
+      "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "templates/presentation_form.php": "1abcc805d1ea7f4706cf892e0b46c01dfae128ea0182f21b710759a1bd761029",
-        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
+        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
       },
       "controls": {
         "presentations-tab": {
@@ -93,14 +93,14 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task. For an existing task use Edit task.",
-      "condition": "Related record is a search: type at least three characters in Find a related record, then choose a result. Searching alone does not select it. Change record reveals search for an existing selection. Waiting on appears when Status is Waiting. Assigned to changes ownership; the check-mark completes work.",
+      "entry": "My Work → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
+      "condition": "Related Record is a search: type at least three characters in Find a Related Record, then choose a result. Searching alone does not select it. Change Record reveals search for an existing selection. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
-        "templates/follow_up_task_form.php": "5fc9da29fb8f0524cf95fb531448a060972d75a7d073849a582830da56d5b7e2",
+        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
         "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
-        "edit_task.php": "c064d1b18d302144cbe85cdf72ca985863a59a773d9d11396c09d26744b34a85",
-        "assets/js/task-form.js": "3dabef0425fb8d34cbe539c1aa6e64641a798e5546a5dacb9c56d395497e88de",
-        "follow_up_task_helpers.php": "6baa51735745a7ceec2e7a9db46b7dcd0be25ab09243962a21582d61cca928ea"
+        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
+        "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
+        "follow_up_task_helpers.php": "478d429c80a8e69a762f39bcea4cb5c4b2f59ae9a9a36ef2280387cb599383cf"
       },
       "controls": {
         "task-title": {
@@ -112,27 +112,27 @@
           "selector": "#task-details"
         },
         "task-related": {
-          "label": "Related record",
+          "label": "Related Record",
           "selector": "#task-selected-record, #task-record-search-panel"
         },
         "task-change-record": {
-          "label": "Change record",
+          "label": "Change Record",
           "selector": "#task-change-record"
         },
         "task-search": {
-          "label": "Find a related record",
+          "label": "Find a Related Record",
           "selector": "#task-subject-search"
         },
         "task-results": {
-          "label": "Matching records",
+          "label": "Matching Records",
           "selector": "#task-subject-results button"
         },
         "task-assignee": {
-          "label": "Assigned to",
+          "label": "Assigned To",
           "selector": "#task-assignee"
         },
         "task-due": {
-          "label": "Due date",
+          "label": "Due Date",
           "selector": "#task-due-date"
         },
         "task-priority": {
@@ -144,11 +144,11 @@
           "selector": "#task-status"
         },
         "task-waiting-on": {
-          "label": "Waiting on",
+          "label": "Waiting On",
           "selector": "#task-waiting-on"
         },
         "save-task": {
-          "label": "Add task on New Task; Save changes on Edit Task",
+          "label": "Add Task on New Task; Save Changes on Edit Task",
           "selector": ".follow-up-task-form button[name=\"save_task\"]"
         }
       },
@@ -170,7 +170,7 @@
             "\\b(cannot|can t|unable|not|error|failed)\\b"
           ],
           "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
-          "message": "Waiting does not lock the task\u2019s status. Waiting on is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
+          "message": "Waiting does not lock the task’s status. Waiting On is required only when the status you are saving is Waiting. When you change to another status, that description is cleared. I cannot see the form values or the validation message, so I cannot identify the cause of this failure yet.",
           "question": "What message does MOED show when you try to save?"
         },
         {
@@ -185,10 +185,10 @@
             "\\b(from waiting|to completed|to complete|to open|to in progress|to canceled)\\b"
           ],
           "source": "manual-topic-work-queue-fast-actions-and-record-level-work",
-          "message": "1. Open the intended task using Edit task.\n2. In Status, select the intended status. Waiting on is required only if the new status is Waiting; you do not need to fill it before switching to another status.\n3. Select Save changes and check the saved status. Completing a task does not archive it.",
+          "message": "1. Open the intended task using Edit Task.\n2. In Status, select the intended status. Waiting On is required only if the new status is Waiting; you do not need to fill it before switching to another status.\n3. Select Save Changes and check the saved status. Completing a task does not archive it.",
           "on_pages": {
-            "edit_task.php": "1. You are already in Edit Task. In Status, choose the status you want to save.\n2. Waiting on is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Select Save changes and check the saved status. Completing a task does not archive it.",
-            "add_task.php": "1. You are in the New Task form. In Status, choose the status you want to save.\n2. Waiting on is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Finish the required task details, then select Add task and check the created task. This draft does not have an Edit task action yet."
+            "edit_task.php": "1. You are already in Edit Task. In Status, choose the status you want to save.\n2. Waiting On is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Select Save Changes and check the saved status. Completing a task does not archive it.",
+            "add_task.php": "1. You are in the New Task form. In Status, choose the status you want to save.\n2. Waiting On is required only if the new status is Waiting; it is cleared when another status is saved.\n3. Finish the required task details, then select Add task and check the created task. This draft does not have an Edit Task action yet."
           },
           "question": ""
         }
@@ -203,11 +203,11 @@
         "admin",
         "editor"
       ],
-      "entry": "Engagements \u2192 existing event \u2192 Edit Engagement",
+      "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d",
-        "edit_engagement.php": "ad8231497561a4b8e9e703f9e0658f0a7b30a83ebe1b3bf4c60e949086ae3ba6"
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
       },
       "controls": {
         "edit-event": {
@@ -233,10 +233,10 @@
         "editor",
         "reviewer"
       ],
-      "entry": "Calendar \u2192 Create Subscription",
+      "entry": "Calendar → Create Subscription",
       "condition": "Create Private Link must be selected by the user. Save This New Link and its copy control appear only after creation. The URL is secret; never collect it.",
       "source_files": {
-        "view_calendar.php": "d8ca757254b5b2f6a68233666ec56eca7e0b59dbbbc0a007c84b8573f73a19df"
+        "view_calendar.php": "3ada12725cf9dfe704aa5783e828e6f8fe5df9d9450a38eac9338e9f084db6b6"
       },
       "controls": {
         "calendar-device": {
@@ -252,7 +252,7 @@
           "selector": "[aria-labelledby=\"create-calendar-title\"] button[type=submit]"
         },
         "calendar-copy": {
-          "label": "Copy calendar URL",
+          "label": "Copy Calendar URL",
           "selector": "#copy-calendar-url"
         }
       }
@@ -269,7 +269,7 @@
       "source_files": {},
       "controls": {
         "form-errors": {
-          "label": "Validation message",
+          "label": "Validation Message",
           "selector": ".form-error-summary, .container > .error, .edit-engagement-page .error"
         }
       }
@@ -283,11 +283,11 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work \u2192 + New Task, or event \u2192 Tasks \u2192 Add Task.",
+      "entry": "My Work → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "8b06ca51ad6f45155068e6e744370e6576990cd6ac386d3185ac4f69eaae623b",
-        "view_engagement.php": "7776eb46c6f4bfb69795c125e73d9609aebd3bc5a5b960ad097017bb3f06632d"
+        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
+        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763"
       },
       "controls": {
         "tasks-tab": {
@@ -308,6 +308,162 @@
         "Completed or canceled shows finished tasks that have not been archived. Archived is a separate view. A completed task can stay visible for reference.",
         "The green check-mark opens Complete Task?; it is not an assignment control. Assigned to is in Edit Task."
       ]
+    },
+    "reimbursement-expense": {
+      "pages": [
+        "reimbursement_expense.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Reimbursements → + Add Expense",
+      "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
+      "source_files": {
+        "reimbursement_expense.php": "c7b6017d4f23ebcc494be5de139ea9e17356b1a760eff18c97163501c6ba6539",
+        "reimbursement_helpers.php": "31e26f8ecc4f6efb787a7138b5dd939d42e491ce5b1b1a102853361a466dba0f"
+      },
+      "controls": {
+        "reimbursement-expense-date": {
+          "label": "Expense Date",
+          "selector": "input[name=\"expense_date\"]"
+        },
+        "reimbursement-merchant": {
+          "label": "Merchant or Payee",
+          "selector": "input[name=\"merchant\"]"
+        },
+        "reimbursement-amount": {
+          "label": "Amount (USD)",
+          "selector": "input[name=\"amount\"]"
+        },
+        "reimbursement-account": {
+          "label": "Account",
+          "selector": "select[name=\"cost_center_id\"]"
+        },
+        "reimbursement-save-expense": {
+          "label": "Save Expense",
+          "selector": "button.save-button[type=\"submit\"]"
+        }
+      },
+      "guidance_rules": [
+        {
+          "modes": [
+            "explain",
+            "troubleshoot",
+            "perform"
+          ],
+          "patterns": [
+            "\\b(receipt|expense|reimbursement)\\b",
+            "\\b(limit|size|large|mb|many|maximum)\\b"
+          ],
+          "source": "manual-topic-reimbursements-add-an-expense-and-receipts",
+          "message": "An expense allows up to 20 receipts totaling 15 MB. Supported formats are JPEG, PNG, WebP, and PDF. A request allows up to 100 receipts and 15 MB of originals, and its final ZIP must also fit 15 MB. Split a large request or reduce source image sizes.",
+          "question": ""
+        },
+        {
+          "modes": [
+            "explain",
+            "troubleshoot",
+            "perform"
+          ],
+          "patterns": [
+            "\\b(receipt|expense|reimbursement)\\b",
+            "\\b(submitted|locked)\\b",
+            "\\b(edit|delete|remove|change|unlock)\\b"
+          ],
+          "source": "manual-topic-reimbursements-track-delivery-and-handle-corrections",
+          "message": "Submitted expenses and receipts stay locked, including for administrators. Open the submitted request and record a correction, then coordinate with the bookkeeper. A correction does not recall sent mail or free the expenses for another request.",
+          "question": ""
+        }
+      ]
+    },
+    "reimbursement-draft": {
+      "pages": [
+        "reimbursements.php",
+        "reimbursement_requests.php",
+        "reimbursement_request.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
+      "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
+      "source_files": {
+        "reimbursements.php": "bd39b2876a760bf075d5665984f96039d536e2c212ad92484ad2e0918f04e1d8",
+        "reimbursement_request.php": "6f89846eab85c9fb579752af399aafca25a736e00fd85b7702a1c89e9b359253",
+        "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
+      },
+      "controls": {
+        "reimbursement-create-draft": {
+          "label": "Create Draft Request from Selected Expenses",
+          "selector": "button[data-create-reimbursement]"
+        },
+        "reimbursement-clear-selection": {
+          "label": "Clear Selection",
+          "selector": "button[data-clear-selection]"
+        },
+        "reimbursement-request-start": {
+          "label": "Start Date",
+          "selector": ".reimbursement-date-range-form input[name=\"start_date\"]"
+        },
+        "reimbursement-request-end": {
+          "label": "End Date",
+          "selector": ".reimbursement-date-range-form input[name=\"end_date\"]"
+        }
+      }
+    },
+    "reimbursement-submit": {
+      "pages": [
+        "reimbursement_submit.php"
+      ],
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
+      "condition": "Review recipients and package before confirming. Submission queues email and locks content.",
+      "source_files": {
+        "reimbursement_submit.php": "5c4a16eada739ac2cd56b4a6b23b2480acbea45b400c581ea28a06faae31f8ee",
+        "reimbursement_submission_helpers.php": "a32f6b6fabb52e32621eeb10da8c81d4c428ee7892e83cb0f1e7060fd47c391e"
+      },
+      "controls": {
+        "reimbursement-confirm": {
+          "label": "I have reviewed the recipients, email, and package.",
+          "selector": "input[name=\"confirm_submission\"]"
+        },
+        "reimbursement-send": {
+          "label": "Submit Reimbursement Request",
+          "selector": "form:has(input[name=\"confirm_submission\"]) button[type=\"submit\"]"
+        }
+      }
+    },
+    "reimbursement-setup": {
+      "pages": [
+        "reimbursement_setup.php"
+      ],
+      "roles": [
+        "admin"
+      ],
+      "entry": "Administration → Reimbursement Setup",
+      "condition": "Administrator access and recent administrator unlock are required to save.",
+      "source_files": {
+        "reimbursement_setup.php": "4fe01188ab8638dfdbe4b0d338f086598d77adb84cf9cbe29ca651e0b3d941a3"
+      },
+      "controls": {
+        "reimbursement-bookkeeper": {
+          "label": "Bookkeeper Email Address",
+          "selector": "input[name=\"bookkeeper_email\"]"
+        },
+        "reimbursement-cc": {
+          "label": "Cc Email Address",
+          "selector": "input[name=\"cc_email\"]"
+        },
+        "reimbursement-bcc": {
+          "label": "Bcc Email Address",
+          "selector": "input[name=\"reviewer_email\"]"
+        }
+      }
     }
   }
 }

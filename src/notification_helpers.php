@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/application_runtime.php';
+require_once __DIR__ . '/email_inline_image_helpers.php';
 require_once __DIR__ . '/dashboard_helpers.php';
 require_once __DIR__ . '/follow_up_task_helpers.php';
 require_once __DIR__ . '/daily_digest_email.php';
@@ -425,6 +426,7 @@ function dailyTaskDigestMessage(array $user, array $digest, string $businessDate
         'subject' => $brandName . ' daily work digest · ' . $businessDate,
         'body' => renderDailyTaskDigestText($user, $digest, $businessDate),
         'html_body' => renderDailyTaskDigestHtml($user, $digest, $businessDate),
+        'inline_images' => [],
     ];
 }
 
@@ -437,6 +439,7 @@ function queueNotificationPayload(
 ): bool {
     $recipient = normalizeAccountEmail($message['recipient'] ?? '');
     $json = json_encode([
+        'inline_images' => $message['inline_images'] ?? [],
         'recipient' => $recipient,
         'subject' => (string) ($message['subject'] ?? ''),
         'body' => (string) ($message['body'] ?? ''),
@@ -751,7 +754,7 @@ function decryptQueuedNotificationEmail(string $ciphertext): array
     $decoded = json_decode(
         \Dnr\Security\ApplicationKey::open($ciphertext),
         true,
-        4,
+        16,
         JSON_THROW_ON_ERROR
     );
     if (!is_array($decoded)
@@ -763,6 +766,7 @@ function decryptQueuedNotificationEmail(string $ciphertext): array
         throw new RuntimeException('The queued notification payload is invalid.');
     }
     return [
+        'inline_images' => emailInlineImages($decoded['inline_images'] ?? []),
         'recipient' => normalizeAccountEmail($decoded['recipient']),
         'subject' => $decoded['subject'],
         'body' => $decoded['body'],

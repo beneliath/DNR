@@ -157,7 +157,7 @@ $task_inactive_subject = $current_subject_record && !$current_subject_record['ac
     ? $current_subject_record
     : null;
 $task_form_action = 'edit_task.php?id=' . $task_id;
-$task_form_submit_label = 'Save changes';
+$task_form_submit_label = 'Save Changes';
 $task_duplicate_url = 'add_task.php?' . http_build_query([
     'duplicate_from' => $task_id,
     'return_to' => $task_return_to,

@@ -385,7 +385,7 @@ function calendarViewerEventLabel(array $engagement) {
         return $event_title;
     }
     $organization = trim((string) ($engagement['organization_name'] ?? ''));
-    return $organization !== '' ? $organization : 'Untitled event';
+    return $organization !== '' ? $organization : 'Untitled Event';
 }
 
 function calendarViewerEventTone(array $engagement) {

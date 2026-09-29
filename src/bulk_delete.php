@@ -110,12 +110,12 @@ releaseApplicationSessionLock();
         <?php echo csrfInput(); ?>
         <input type="hidden" name="selection" value="<?php echo htmlspecialchars($selection, ENT_QUOTES, 'UTF-8'); ?>">
         <?php if ($draft['entity'] === 'user' && $eligible_count > 0): ?>
-            <label for="bulk-delete-confirmation">Type <strong>DELETE USERS</strong> to confirm</label>
+            <label for="bulk-delete-confirmation">Type <strong>DELETE USERS</strong> To Confirm</label>
             <input id="bulk-delete-confirmation" name="delete_confirmation" required pattern="DELETE USERS" autocomplete="off" spellcheck="false">
         <?php endif; ?>
         <div class="bulk-delete-review-actions">
             <button type="submit" class="button-secondary" form="bulk-delete-cancel-form">Cancel</button>
-            <button type="submit" class="delete-button" data-admin-unlock-required data-confirm-title="Are you sure?" data-confirm="Permanently delete <?php echo $eligible_count; ?> selected item(s) and the related data described above? This cannot be undone." data-confirm-label="Delete permanently"<?php echo $eligible_count === 0 ? ' disabled' : ''; ?>>Permanently delete <?php echo $eligible_count; ?> item<?php echo $eligible_count === 1 ? '' : 's'; ?></button>
+            <button type="submit" class="delete-button" data-admin-unlock-required data-confirm-title="Are You Sure?" data-confirm="Permanently delete <?php echo $eligible_count; ?> selected item(s) and the related data described above? This cannot be undone." data-confirm-label="Delete Permanently"<?php echo $eligible_count === 0 ? ' disabled' : ''; ?>>Permanently delete <?php echo $eligible_count; ?> item<?php echo $eligible_count === 1 ? '' : 's'; ?></button>
         </div>
     </form>
     <form id="bulk-delete-cancel-form" method="post" action="bulk_delete.php" hidden>

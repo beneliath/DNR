@@ -241,53 +241,53 @@ $category_labels = [
     'security' => 'Security',
 ];
 $login_event_labels = [
-    'successful_login' => 'Successful login',
-    'failed_login' => 'Failed login',
+    'successful_login' => 'Successful Login',
+    'failed_login' => 'Failed Login',
     'logout' => 'Logout',
 ];
 $database_action_labels = [
     'database_insert' => 'Created',
     'database_update' => 'Updated',
     'database_delete' => 'Deleted',
-    'presentation_statistics_reset' => 'Reset statistics',
+    'presentation_statistics_reset' => 'Reset Statistics',
 ];
 $entity_labels = [
     'users' => 'user',
     'organizations' => 'organization',
     'contacts' => 'contact',
-    'contact_organizations' => 'contact organization',
-    'inbound_email_messages' => 'inbound email',
+    'contact_organizations' => 'Contact Organization',
+    'inbound_email_messages' => 'Inbound Email',
     'engagements' => 'engagement',
     'presentations' => 'presentation',
-    'audit_log' => 'audit log',
-    'calendar_subscription' => 'calendar subscription',
+    'audit_log' => 'Audit Log',
+    'calendar_subscription' => 'Calendar Subscription',
 ];
 $security_event_labels = [
-    'password_recovery_started' => 'Password recovery started',
-    'password_recovery_factor_failed' => 'Password recovery verification failed',
-    'password_recovery_factor_verified' => 'Password recovery verification succeeded',
-    'password_recovered' => 'Password recovered',
-    'password_changed' => 'Password changed',
-    'admin_password_reset' => 'Administrator reset password',
-    'admin_password_reset_auth_failed' => 'Administrator password-reset verification failed',
-    'two_factor_enabled' => 'Two-factor authentication enabled',
-    'two_factor_replaced' => 'Two-factor authentication replaced',
-    'two_factor_disabled' => 'Two-factor authentication disabled',
-    'two_factor_admin_reset' => 'Administrator reset two-factor authentication',
-    'two_factor_login' => 'Two-factor login verification succeeded',
-    'recovery_code_login' => 'Recovery-code login verification succeeded',
-    'recovery_codes_regenerated' => 'Recovery codes regenerated',
-    'user_deleted' => 'User deleted',
-    'database_backup_created' => 'Database backup created',
-    'database_backup_auth_failed' => 'Database backup verification failed',
-    'database_restored' => 'Database restored',
-    'database_restore_auth_failed' => 'Database restore verification failed',
-    'audit_log_purged' => 'Audit log purged',
-    'audit_log_pruned' => 'Audit log pruned',
-    'audit_log_prune_batch' => 'Audit log pruning batch',
-    'calendar_subscription_created' => 'Calendar subscription created',
-    'calendar_subscription_revoked' => 'Calendar subscription revoked',
-    'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged',
+    'password_recovery_started' => 'Password Recovery Started',
+    'password_recovery_factor_failed' => 'Password Recovery Verification Failed',
+    'password_recovery_factor_verified' => 'Password Recovery Verification Succeeded',
+    'password_recovered' => 'Password Recovered',
+    'password_changed' => 'Password Changed',
+    'admin_password_reset' => 'Administrator Reset Password',
+    'admin_password_reset_auth_failed' => 'Administrator Password-Reset Verification Failed',
+    'two_factor_enabled' => 'Two-Factor Authentication Enabled',
+    'two_factor_replaced' => 'Two-Factor Authentication Replaced',
+    'two_factor_disabled' => 'Two-Factor Authentication Disabled',
+    'two_factor_admin_reset' => 'Administrator Reset Two-Factor Authentication',
+    'two_factor_login' => 'Two-Factor Login Verification Succeeded',
+    'recovery_code_login' => 'Recovery-Code Login Verification Succeeded',
+    'recovery_codes_regenerated' => 'Recovery Codes Regenerated',
+    'user_deleted' => 'User Deleted',
+    'database_backup_created' => 'Database Backup Created',
+    'database_backup_auth_failed' => 'Database Backup Verification Failed',
+    'database_restored' => 'Database Restored',
+    'database_restore_auth_failed' => 'Database Restore Verification Failed',
+    'audit_log_purged' => 'Audit Log Purged',
+    'audit_log_pruned' => 'Audit Log Pruned',
+    'audit_log_prune_batch' => 'Audit Log Pruning Batch',
+    'calendar_subscription_created' => 'Calendar Subscription Created',
+    'calendar_subscription_revoked' => 'Calendar Subscription Revoked',
+    'calendar_subscriptions_purged' => 'Revoked Calendar Subscriptions Purged',
 ];
 $audit_timezone_name = applicationTimezoneName();
 $audit_timezone = applicationTimezone();
@@ -408,9 +408,9 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                 <p>Keep the most recent number of days you choose and permanently delete only older entries.</p>
             </div>
             <?php if ($admin_actions_unlocked): ?>
-                <span class="audit-retention-unlocked">Administrator access unlocked</span>
+                <span class="audit-retention-unlocked">Administrator Access Unlocked</span>
             <?php else: ?>
-                <span class="audit-retention-locked">Fresh confirmation required to prune</span>
+                <span class="audit-retention-locked">Fresh Confirmation Required to Prune</span>
             <?php endif; ?>
         </div>
 
@@ -421,7 +421,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <?php if ($from_date !== ''): ?><input type="hidden" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
             <?php if ($to_date !== ''): ?><input type="hidden" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
             <?php if ($ip_filter !== ''): ?><input type="hidden" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
-            <label for="retention-days">Days to keep</label>
+            <label for="retention-days">Days to Keep</label>
             <input type="number" id="retention-days" name="retention_days"
                    value="<?php echo htmlspecialchars($retention_input_value, ENT_QUOTES, 'UTF-8'); ?>"
                    min="1" max="36500" step="1" inputmode="numeric" required>
@@ -458,7 +458,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                             <?php echo csrfInput(); ?>
                             <input type="hidden" name="action" value="prune">
                             <input type="hidden" name="retention_days" value="<?php echo (int) $retention_days; ?>">
-                            <label for="prune-confirmation">Type <strong>PRUNE</strong> to confirm permanent deletion</label>
+                            <label for="prune-confirmation">Type <strong>PRUNE</strong> To Confirm Permanent Deletion</label>
                             <div class="audit-retention-confirm-row">
                                 <input type="text" id="prune-confirmation" name="prune_confirmation"
                                        pattern="PRUNE" autocomplete="off" autocapitalize="characters"
@@ -479,20 +479,20 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
             <input type="hidden" name="category" value="<?php echo htmlspecialchars($category, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <span class="audit-search-field">
-                <label class="visually-hidden" for="audit-search">Search audit log</label>
+                <label class="visually-hidden" for="audit-search">Search Audit Log</label>
                 <span class="search-icon" aria-hidden="true">⌕</span>
-                <input type="search" id="audit-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search audit log">
+                <input type="search" id="audit-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Audit Log">
                 <?php if ($search !== '' || $from_date !== '' || $to_date !== '' || $ip_filter !== ''): ?><a href="<?php echo htmlspecialchars(auditLogPageUrl(null, $category, $page_size), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
             </span>
-            <label class="visually-hidden" for="audit-from">From date</label>
+            <label class="visually-hidden" for="audit-from">From Date</label>
             <input type="date" id="audit-from" name="from" value="<?php echo htmlspecialchars($from_date, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="audit-to">To date</label>
+            <label class="visually-hidden" for="audit-to">To Date</label>
             <input type="date" id="audit-to" name="to" value="<?php echo htmlspecialchars($to_date, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="audit-ip">Exact IP address</label>
+            <label class="visually-hidden" for="audit-ip">Exact IP Address</label>
             <input type="text" id="audit-ip" name="ip" value="<?php echo htmlspecialchars($ip_filter, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Exact IP">
             <button type="submit" class="filter-button">Apply</button>
         </form>
-        <nav class="audit-filters" aria-label="Audit log filters">
+        <nav class="audit-filters" aria-label="Audit Log Filters">
             <a href="<?php echo htmlspecialchars(auditLogPageUrl(null, '', $page_size, $search, $from_date, $to_date, $ip_filter), ENT_QUOTES, 'UTF-8'); ?>"
                class="filter-button<?php echo $category === '' ? ' active' : ''; ?>">All</a>
             <?php foreach ($allowed_categories as $filter_category): ?>
@@ -519,7 +519,7 @@ function auditLogTimestamps($created_at, DateTimeZone $display_timezone) {
                     <th>User</th>
                     <th>Event</th>
                     <th>Record</th>
-                    <th>IP address</th>
+                    <th>IP Address</th>
                 </tr>
             </thead>
             <tbody>

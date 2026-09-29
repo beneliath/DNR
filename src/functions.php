@@ -158,14 +158,15 @@ function sendApplicationSecurityHeaders() {
     $nonce = contentSecurityPolicyNonce();
     $page = basename((string) ($_SERVER['PHP_SELF'] ?? ''));
     $map_page = in_array($page, ['map.php', 'map_pin.php'], true);
-    $style_source = $map_page ? "'self' 'unsafe-inline'" : "'self'";
-    $style_attribute_source = $map_page ? "'unsafe-inline'" : "'none'";
+    $inline_styles = $map_page || $page === 'reimbursement_submit.php';
+    $style_source = $inline_styles ? "'self' 'unsafe-inline'" : "'self'";
+    $style_attribute_source = $inline_styles ? "'unsafe-inline'" : "'none'";
     $map_tile_source = deploymentConfig()->tileCspSource();
     header("Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{$nonce}'; script-src-attr 'none'; style-src {$style_source}; style-src-attr {$style_attribute_source}; img-src 'self' data: blob: {$map_tile_source}; font-src 'self'; connect-src 'self' {$map_tile_source}; worker-src 'self' blob:; child-src blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'");
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: DENY');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: camera=(), microphone=(), geolocation=()');
+    header('Permissions-Policy: camera=(self), microphone=(), geolocation=()');
 }
 
 function persistApplicationSession(): void {
@@ -496,7 +497,7 @@ function addressCountryPicker(
         . $escape($selected_choice['name']) . '</span>';
     $html .= '<span class="address-country-chevron" aria-hidden="true"></span></button>';
     $html .= '<div class="address-country-menu" id="' . $escape($menu_id)
-        . '" role="listbox" aria-label="Country options" hidden data-address-country-menu>';
+        . '" role="listbox" aria-label="Country Options" hidden data-address-country-menu>';
     foreach ($choices as $code => $choice) {
         $is_selected = $code === $selected_code;
         $html .= '<button type="button" class="address-country-option" role="option" tabindex="-1" aria-selected="'
@@ -666,7 +667,7 @@ function normalizePhoneCountryCode($country_code) {
     return $country_code;
 }
 
-function normalizePhoneNumber($country_code, $national_number, $label = 'Phone number') {
+function normalizePhoneNumber($country_code, $national_number, $label = 'Phone Number') {
     if (!is_scalar($national_number) && $national_number !== null) {
         throw new InvalidArgumentException("Enter a valid {$label} for the selected country.");
     }
@@ -825,7 +826,7 @@ function phoneCountryCallingCodeChoices() {
     ];
 }
 
-function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'Phone country code') {
+function phoneCountryPicker($field_name, $selected_code = null, $aria_label = 'Phone Country Code') {
     $selected_code = $selected_code ?? applicationDefaultPhoneCountryCode();
     try {
         $selected_code = normalizePhoneCountryCode($selected_code);
@@ -1027,6 +1028,11 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'dashboard.php',
         'engagements.php',
         'email_templates.php',
+        'reimbursements.php',
+        'reimbursement_expense.php',
+        'reimbursement_request.php',
+        'reimbursement_requests.php',
+        'reimbursement_submit.php',
         'help.php',
         'inquiries.php',
         'map.php',
@@ -1060,6 +1066,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'edit_contact.php',
         'edit_engagement.php',
         'edit_email_template.php',
+        'reimbursement_cost_centers.php',
         'edit_inquiry.php',
         'edit_organization.php',
         'edit_standard_task.php',
@@ -1079,6 +1086,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'database_maintenance.php',
         'edit_user.php',
         'network_diagnostics.php',
+        'reimbursement_setup.php',
         'operations.php',
         'register.php',
         'reset_presentation_stats.php',
@@ -2077,6 +2085,8 @@ function actionIconSvg($action)
         'edit' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg>',
         'start' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4Z"/></svg>',
         'complete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16 9"/></svg>',
+        'submit' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13"/></svg>',
+        'save' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M4 3h14l3 3v15H3V3h1Z"/><path d="M7 3v6h10V3M7 21v-8h10v8M14 3v4"/></svg>',
         'archive' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v12h14V8M9 12h6"/></svg>',
         'restore' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
         'delete' => '<svg class="action-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 10v6M14 10v6"/></svg>',

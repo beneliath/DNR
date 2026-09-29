@@ -146,7 +146,7 @@ try {
                                     <a href="view_organization.php?id=<?php echo (int) $affiliation['organization_id']; ?>"><?php echo htmlspecialchars($affiliation['organization_name'], ENT_QUOTES, 'UTF-8'); ?></a>
                                     <span class="contact-affiliation-kind"><?php echo !empty($affiliation['is_primary']) ? 'Primary' : 'Additional'; ?></span>
                                     <?php if (!empty($affiliation['organization_is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
-                                    <small><?php echo htmlspecialchars($affiliation['role_title'] ?: 'Role not specified', ENT_QUOTES, 'UTF-8'); ?></small>
+                                    <small><?php echo htmlspecialchars($affiliation['role_title'] ?: 'Role Not Specified', ENT_QUOTES, 'UTF-8'); ?></small>
                                 </li>
                             <?php endforeach; ?>
                         </ul>

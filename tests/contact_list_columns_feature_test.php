@@ -41,8 +41,8 @@ expectContactListColumns(
 );
 
 expectContactListColumns(
-    str_contains($contacts_page, '<th>Phone number</th>')
-        && str_contains($contacts_page, '<th>Email address</th>')
+    str_contains($contacts_page, '<th>Phone Number</th>')
+        && str_contains($contacts_page, '<th>Email Address</th>')
         && str_contains($contacts_page, 'colspan="5"'),
     'the table headings and empty state should account for both contact-method columns.'
 );
@@ -64,8 +64,8 @@ expectContactListColumns(
 );
 
 expectContactListColumns(
-    str_contains($styles, '.contact-table td:nth-child(3)::before { content: "Phone number"; }')
-        && str_contains($styles, '.contact-table td:nth-child(4)::before { content: "Email address"; }')
+    str_contains($styles, '.contact-table td:nth-child(3)::before { content: "Phone Number"; }')
+        && str_contains($styles, '.contact-table td:nth-child(4)::before { content: "Email Address"; }')
         && str_contains($styles, '.contact-table td:nth-child(5)::before { content: "Actions"; }'),
     'responsive contact cards should label the new columns correctly.'
 );

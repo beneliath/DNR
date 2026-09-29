@@ -127,10 +127,10 @@ if (!$custom_links) $custom_links = [['key' => '', 'label' => '', 'url' => '']];
                 <input type="file" id="speaker_photo" name="speaker_photo" accept="image/jpeg,image/png,image/webp" data-max-bytes="<?php echo SPEAKER_PHOTO_MAX_BYTES; ?>" data-photo-label="speaker" data-contact-photo-input>
                 <p class="field-help">JPEG, PNG, or WebP; maximum 5 MB.</p>
                 <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
-                <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove current photo</label><?php endif; ?>
+                <?php if (!empty($speaker['photo_mime'])): ?><label class="contact-photo-remove"><input type="checkbox" name="remove_speaker_photo" value="1" <?php echo isset($_POST['remove_speaker_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove Current Photo</label><?php endif; ?>
             </div>
         </div>
-        <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button">Save speaker</button></div>
+        <div class="form-actions speaker-form-actions"><a class="button button-secondary" href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>">Cancel</a><button type="submit" class="save-button">Save Speaker</button></div>
     </form>
 </div>
 <?php include 'templates/footer.php'; ?>

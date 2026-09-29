@@ -34,7 +34,7 @@ expectCalendarSubscriptionPurge(
     'the purge control must be CSRF-protected, counted, and explicitly confirmed.'
 );
 expectCalendarSubscriptionPurge(
-    str_contains($audit_log, "'calendar_subscriptions_purged' => 'Revoked calendar subscriptions purged'"),
+    str_contains($audit_log, "'calendar_subscriptions_purged' => 'Revoked Calendar Subscriptions Purged'"),
     'the audit log should present a readable label for purge events.'
 );
 

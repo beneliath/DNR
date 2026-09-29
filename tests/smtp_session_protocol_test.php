@@ -102,7 +102,7 @@ function smtpFakeRelayRun($server, string $scenario): array
             return $result;
         }
 
-        if (in_array($scenario, ['html', 'recipient-headers'], true)) {
+        if (in_array($scenario, ['html', 'recipient-headers', 'attachment', 'inline-image'], true)) {
             $result['message_data'] = smtpFakeRelayEnvelope($first, true);
             $result['messages']++;
             smtpFakeRelayExpect($first, 'QUIT');
@@ -256,12 +256,16 @@ function runSmtpSessionScenario(string $scenario): ?array
             'First message',
             'First message body',
             '',
-            $scenario === 'html'
-                ? '<!doctype html><html><body><p>Rich message body.</p></body></html>'
-                : null,
+            in_array($scenario, ['attachment', 'inline-image'], true)
+                ? '<html><body><img src="cid:logo@dnr.invalid"></body></html>'
+                : ($scenario === 'html' ? '<!doctype html><html><body><p>Rich message body.</p></body></html>' : null),
             visibleRecipients: $scenario === 'recipient-headers'
                 ? ['to' => ['primary@example.test'], 'cc' => ['copy@example.test']] : null,
-            messageId: '<stable-delivery-id@dnr.invalid>'
+            messageId: '<stable-delivery-id@dnr.invalid>',
+            attachments: [
+                ...($scenario === 'attachment' ? [['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => "PK\x03\x04synthetic-zip"]] : []),
+                ...(in_array($scenario, ['attachment', 'inline-image'], true) ? [['filename' => 'logo.png', 'content_type' => 'image/png', 'content_id' => 'logo@dnr.invalid', 'data' => file_get_contents(__DIR__ . '/../src/assets/dnr-logo-email.png')]] : []),
+            ]
         );
         if (in_array($scenario, ['reuse', 'pre-data-reconnect'], true)) {
             deliverApplicationEmailWithSession(
@@ -326,6 +330,20 @@ expectSmtpSessionProtocol($typed !== null && $typed['child_status'] === 0
     && str_contains($typedData, 'Cc: <copy@example.test>')
     && !str_contains($typedData, 'recipient@example.test') && !str_contains($typedData, 'Bcc:'),
     'Bcc delivery should use its own SMTP envelope with only To and Cc in message headers.');
+
+$attachment = runSmtpSessionScenario('attachment');
+$attachmentWire = $attachment['message_data'] ?? '';
+expectSmtpSessionProtocol($attachment['client_error'] === null && str_contains($attachmentWire, 'Content-Type: multipart/mixed;')
+    && str_contains($attachmentWire, 'Content-Type: multipart/alternative;')
+    && str_contains($attachmentWire, 'Content-Disposition: attachment; filename="request.zip"')
+    && str_contains($attachmentWire, base64_encode("PK\x03\x04synthetic-zip")), 'ZIP attachment survives SMTP wire encoding alongside plain and HTML parts.');
+
+foreach ([$attachment, runSmtpSessionScenario('inline-image')] as $inlineResult) {
+    $wire = $inlineResult['message_data'] ?? '';
+    expectSmtpSessionProtocol($inlineResult['client_error'] === null && str_contains($wire, 'Content-Type: multipart/related;')
+        && str_contains($wire, 'Content-ID: <logo@dnr.invalid>')
+        && str_contains($wire, 'Content-Disposition: inline; filename="logo.png"'), 'The logo travels as a related inline image with or without a ZIP.');
+}
 
 $html = runSmtpSessionScenario('html');
 $htmlMessage = is_array($html) && is_string($html['message_data'] ?? null)

@@ -28,7 +28,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
         <div class="error"><?php echo htmlspecialchars($presentation_action_error); ?></div>
     <?php endif; ?>
     <p class="field-help">Presentation details are optional and can be filled in after the event is created. Actual attendance can be recorded after the event. Add at least one presentation before setting the engagement status to confirmed.</p>
-    <p class="field-help"><a href="speakers.php" target="_blank" rel="noopener">View or manage speakers (opens in a new tab)</a></p>
+    <p class="field-help"><a href="speakers.php" target="_blank" rel="noopener">View or Manage Speakers (Opens in a New Tab)</a></p>
     <div class="presentations-outer-box<?php echo $has_saved_presentations ? ' has-saved-presentations' : ''; ?>">
         <div class="presentations-inner-container">
             <?php foreach ($presentation_form_rows as $presentation_index => $presentation): ?>
@@ -80,7 +80,7 @@ foreach ($presentation_form_rows as $presentation_form_row) {
                                 </select>
                             </div>
                             <div class="form-field attendance">
-                                <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (minutes)</label>
+                                <label for="duration_minutes_<?php echo $presentation_dom_id; ?>">Duration (Minutes)</label>
                                 <input type="number" name="presentations[<?php echo $presentation_dom_id; ?>][duration_minutes]" id="duration_minutes_<?php echo $presentation_dom_id; ?>" min="1" max="1440" step="1" value="<?php echo htmlspecialchars((string) (array_key_exists('duration_minutes', $presentation) ? $presentation['duration_minutes'] : ($is_saved_presentation ? '' : 60)), ENT_QUOTES, 'UTF-8'); ?>">
                             </div>
                         </div>

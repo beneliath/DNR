@@ -103,14 +103,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" action="reset_user_password.php?id=<?php echo $target_user_id; ?>" class="security-form">
             <?php echo csrfInput(); ?>
 
-            <label for="new_password">Temporary password</label>
+            <label for="new_password">Temporary Password</label>
             <input type="password" name="new_password" id="new_password" autocomplete="new-password" minlength="12" maxlength="72" required>
 
-            <label for="new_password_confirmation">Confirm temporary password</label>
+            <label for="new_password_confirmation">Confirm Temporary Password</label>
             <input type="password" name="new_password_confirmation" id="new_password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required>
 
             <a href="users.php" class="danger-button cancel-button">Cancel</a>
-            <button type="submit" class="security-button">Set temporary password</button>
+            <button type="submit" class="security-button">Set Temporary Password</button>
         </form>
     </section>
 </main>

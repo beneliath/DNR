@@ -45,7 +45,7 @@ foreach ($source_files as $source_file) {
     $source = file_get_contents($source_file->getPathname());
     preg_match_all('/<h[1-6][^>]*>(.*?)<\/h[1-6]>/si', $source, $heading_matches);
     foreach ($heading_matches[1] as $heading_markup) {
-        if (str_contains($heading_markup, '<?php')) {
+        if (str_contains($heading_markup, '<?') || preg_match('/[\'\"]\s*\./', $heading_markup)) {
             continue;
         }
         $heading = html_entity_decode(strip_tags($heading_markup), ENT_QUOTES | ENT_HTML5, 'UTF-8');

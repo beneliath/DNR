@@ -9,7 +9,7 @@ const preparing = { ...notice, phase: 'preparing', not_before: null, expires_at:
 test('preparation remains informative without a countdown even after twenty minutes', () => {
     for (const now of [1000, 2200, 2800]) {
         const view = noticePresentation(preparing, now);
-        assert.equal(view.title, 'An update is being prepared');
+        assert.equal(view.title, 'An Update Is Being Prepared');
         assert.match(view.detail, /You can continue working/);
         assert.equal(view.timer, '');
     }
@@ -26,17 +26,17 @@ test('shared countdown is normal, bounded, and never restarts for a newly opened
 
 test('zero says pending until the server actually begins deployment', () => {
     for (const now of [1300, 1480]) {
-        assert.equal(noticePresentation(notice, now).title, 'Update pending');
+        assert.equal(noticePresentation(notice, now).title, 'Update Pending');
         assert.equal(noticePresentation(notice, now).timer, '');
     }
-    assert.equal(noticePresentation({ ...notice, phase: 'deploying' }, 1480).title, 'Deployment in progress');
+    assert.equal(noticePresentation({ ...notice, phase: 'deploying' }, 1480).title, 'Deployment in Progress');
 });
 
 test('cancelled, completed, and stale notices clear; failed maintenance stays visible', () => {
     assert.equal(noticePresentation(null, 1100), null);
     assert.equal(noticePresentation(notice, 2000), null);
     for (const phase of ['cancelled', 'complete']) assert.equal(noticePresentation({ ...notice, phase }, 1100), null);
-    assert.equal(noticePresentation({ ...notice, phase: 'failed' }, 3000).title, 'Update needs attention');
+    assert.equal(noticePresentation({ ...notice, phase: 'failed' }, 3000).title, 'Update Needs Attention');
 });
 
 test('browser polling updates the banner without credentials, preserves it on outage, and clears it on cancellation', async () => {
@@ -68,7 +68,7 @@ test('browser polling updates the banner without credentials, preserves it on ou
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/deployment-notice.js'), 'utf8'), context);
     await new Promise(resolve => setImmediate(resolve));
     assert.equal(banner.hidden, false);
-    assert.equal(nodes.title.textContent, 'An update is being prepared');
+    assert.equal(nodes.title.textContent, 'An Update Is Being Prepared');
     assert.equal(nodes.timer.hidden, true);
     assert.equal(banner.dataset.deploymentPhase, 'preparing');
     payload = { server_now: 1120, notice };
@@ -80,15 +80,15 @@ test('browser polling updates the banner without credentials, preserves it on ou
     fail = true;
     await events.online();
     assert.equal(banner.hidden, false);
-    assert.equal(nodes.title.textContent, 'Scheduled update in');
+    assert.equal(nodes.title.textContent, 'Scheduled Update In');
     fail = false;
     payload = { server_now: 1300, notice };
     await events.online();
-    assert.equal(nodes.title.textContent, 'Update pending');
+    assert.equal(nodes.title.textContent, 'Update Pending');
     assert.equal(banner.dataset.deploymentPhase, 'pending');
     payload = { server_now: 1300, notice: { ...notice, phase: 'deploying' } };
     await events.online();
-    assert.equal(nodes.title.textContent, 'Deployment in progress');
+    assert.equal(nodes.title.textContent, 'Deployment in Progress');
     assert.equal(nodes.timer.hidden, true);
     assert.equal(banner.dataset.deploymentPhase, 'deploying');
     fail = true;
@@ -97,7 +97,7 @@ test('browser polling updates the banner without credentials, preserves it on ou
     fail = false;
     payload = { server_now: 1400, notice: { ...notice, phase: 'failed' } };
     await events.online();
-    assert.equal(nodes.title.textContent, 'Update needs attention');
+    assert.equal(nodes.title.textContent, 'Update Needs Attention');
     assert.equal(banner.dataset.deploymentPhase, 'failed');
     payload = { server_now: 1400, notice: null };
     await events.pageshow();

@@ -5,7 +5,7 @@ final class SmtpUncertainDeliveryException extends RuntimeException {}
 
 function emailDeliveryTable(string $table): string
 {
-    if (!in_array($table, ['email_outbox', 'notification_outbox', 'engagement_email_deliveries'], true)) {
+    if (!in_array($table, ['email_outbox', 'notification_outbox', 'engagement_email_deliveries', 'reimbursement_email_deliveries'], true)) {
         throw new InvalidArgumentException('Invalid delivery queue.');
     }
     return $table;

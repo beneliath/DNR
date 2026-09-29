@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   ),
 )); ?>
 <body class="fullscreen-center">
-    <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to dark theme">
+    <button type="button" class="mobile-theme-button auth-theme-toggle" data-theme-toggle aria-label="Switch to Dark Theme">
         <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
         <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
     </button>
@@ -118,7 +118,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <form method="post" action="verify_2fa.php">
             <?php echo csrfInput(); ?>
             <div class="form-group">
-                <label for="authentication_code">Authentication code</label>
+                <label for="authentication_code">Authentication Code</label>
                 <input
                     type="text"
                     name="authentication_code"

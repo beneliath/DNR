@@ -154,7 +154,7 @@ expectTaskNotificationHelper(
         && str_contains($message['body'], 'FINANCIAL CLOSEOUTS (1)')
         && str_contains($message['body'], 'Waiting on: the event coordinator')
         && str_contains($message['body'], 'Call <the> host & confirm — Overdue · 2026-08-22')
-        && str_contains($message['body'], 'Pack materials — Due tomorrow')
+        && str_contains($message['body'], 'Pack materials — Due Tomorrow')
         && str_contains($message['body'], 'Mail For Review: 2')
         && str_contains($message['body'], 'https://moed.example.test/tasks.php?view=my')
         && str_contains($message['body'], 'https://moed.example.test/dashboard.php')
@@ -178,7 +178,7 @@ expectTaskNotificationHelper(
         )
         && str_contains($message['html_body'], 'Upcoming Engagements')
         && str_contains($message['html_body'], 'My Work')
-        && str_contains($message['html_body'], 'Due tomorrow')
+        && str_contains($message['html_body'], 'Due Tomorrow')
         && str_contains($message['html_body'], 'Needs Attention')
         && str_contains($message['html_body'], 'bgcolor="#ffe8ee"')
         && str_contains($message['html_body'], 'bgcolor="#d92d20"')
@@ -196,7 +196,7 @@ expectTaskNotificationHelper(
             $message['html_body'],
             'https://moed.example.test/inbound_mail.php?status=review'
         )
-        && str_contains($message['html_body'], 'aria-label="ASCII art cat"')
+        && str_contains($message['html_body'], 'aria-label="ASCII Art Cat"')
         && str_contains(strip_tags($message['html_body'], '<br>'), 'Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?')
         && !str_contains($message['html_body'], 'appointment, appointed time')
         && !str_contains($message['html_body'], 'lang="he"')
@@ -209,6 +209,8 @@ expectTaskNotificationHelper(
         && !str_contains($message['html_body'], 'Call <the> host & confirm'),
     'the HTML alternative should mirror the light Dashboard, link its records, escape data, and preserve the exact due-date highlights.'
 );
+
+expectTaskNotificationHelper($message['inline_images'] === [] && !str_contains($message['html_body'], 'cid:'), 'The digest uses its original public hosted logo.');
 
 $reviewerMessage = dailyTaskDigestMessage([
     'email' => 'reviewer@example.test',

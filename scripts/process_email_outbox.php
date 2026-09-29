@@ -12,6 +12,9 @@ require_once '/var/www/html/worker_health_helpers.php';
 require_once '/var/www/html/email_helpers.php';
 require_once '/var/www/html/notification_helpers.php';
 require_once '/var/www/html/engagement_email_helpers.php';
+require_once '/var/www/html/reimbursement_email_helpers.php';
+$reimbursementsOnly = in_array('--reimbursements-only', $argv, true);
+$limitedQueues = $reimbursementsOnly || in_array('--account-and-reimbursements', $argv, true);
 
 $loop = in_array('--loop', $argv, true);
 $batchSize = max(1, min(100, (int) (getenv('DNR_EMAIL_OUTBOX_BATCH_SIZE') ?: 20)));
@@ -40,7 +43,7 @@ do {
     $pass_succeeded = true;
     $processed = 0;
     $smtpSession = null;
-    if (!$loop || time() - $lastScheduleCheck >= $scheduleInterval) {
+    if (!$limitedQueues && (!$loop || time() - $lastScheduleCheck >= $scheduleInterval)) {
         try {
             $processed += queueDueDailyTaskDigests($conn);
         } catch (Throwable $exception) {
@@ -53,11 +56,14 @@ do {
     }
 
     $businessDate = applicationBusinessDate();
-    foreach ([
+    $queues = $limitedQueues ? [] : [
         'account email' => static fn() => maintainQueuedAccountEmail($conn),
         'notification email' => static fn() => maintainQueuedNotificationEmail($conn, $businessDate),
         'engagement email' => static fn() => maintainQueuedEngagementEmail($conn),
-    ] as $queueName => $maintainQueue) {
+    ];
+    if (!$reimbursementsOnly) $queues['account email'] = static fn() => maintainQueuedAccountEmail($conn);
+    $queues['reimbursement email'] = static fn() => maintainQueuedReimbursementEmail($conn);
+    foreach ($queues as $queueName => $maintainQueue) {
         try {
             // Sweep invalid or abandoned leases once per bounded worker cycle,
             // rather than repeating table-wide maintenance before every claim.
@@ -71,7 +77,7 @@ do {
         }
     }
 
-    for ($index = 0; $index < $batchSize; $index++) {
+    for ($index = 0; $index < ($reimbursementsOnly ? 0 : $batchSize); $index++) {
         $queued = claimQueuedAccountEmail($conn, 600, false);
         if ($queued === null) {
             break;
@@ -134,7 +140,7 @@ do {
         $processed++;
     }
 
-    for ($index = 0; $index < $notificationBatchSize; $index++) {
+    for ($index = 0; $index < ($limitedQueues ? 0 : $notificationBatchSize); $index++) {
         $queued = claimQueuedNotificationEmail($conn, $businessDate, 600, false);
         if ($queued === null) {
             break;
@@ -150,7 +156,8 @@ do {
                 $message['body'],
                 '',
                 is_string($message['html_body'] ?? null) ? $message['html_body'] : null,
-                messageId: $queued['smtp_message_id']
+                messageId: $queued['smtp_message_id'],
+                attachments: $message['inline_images']
             );
             $accepted = true;
             completeQueuedNotificationEmail($conn, $queued['id'], $queued['claim_token']);
@@ -181,7 +188,7 @@ do {
         $processed++;
     }
 
-    for ($index = 0; $index < $engagementBatchSize; $index++) {
+    for ($index = 0; $index < ($limitedQueues ? 0 : $engagementBatchSize); $index++) {
         $queued = claimQueuedEngagementEmail($conn, 600, false);
         if ($queued === null) {
             break;
@@ -222,6 +229,56 @@ do {
             applicationLog('error', 'Queued engagement-email delivery failed', [
                 'delivery_id' => $queued['id'],
                 'message_id' => $queued['message_id'],
+                'error' => $exception->getMessage(),
+            ]);
+        }
+        recordWorkerHeartbeat('mail-dispatch', $pass_succeeded);
+        $processed++;
+    }
+
+    for ($index = 0; $index < (accountMailTransport() === 'smtp' ? $batchSize : 0); $index++) {
+        $queued = claimQueuedReimbursementEmail($conn, 600, false);
+        if ($queued === null) {
+            break;
+        }
+        $accepted = false;
+        try {
+            $message = decryptQueuedReimbursementEmail($queued['payload_ciphertext']);
+            $attachment = reimbursementEmailAttachment($conn, $queued, $message);
+            startEmailDelivery($conn, 'reimbursement_email_deliveries', $queued['id'], $queued['claim_token']);
+            deliverApplicationEmailWithSession(
+                $smtpSession,
+                $message['recipient'],
+                $message['subject'],
+                $message['body'],
+                $message['reply_to'],
+                htmlBody: $message['html_body'],
+                visibleRecipients: $message['visible_recipients'],
+                messageId: $queued['smtp_message_id'],
+                attachments: [$attachment, ...$message['inline_images']]
+            );
+            $accepted = true;
+            completeQueuedReimbursementEmail($conn, $queued['id'], $queued['claim_token']);
+        } catch (Throwable $exception) {
+            $pass_succeeded = false;
+            try {
+                failQueuedReimbursementEmail(
+                    $conn,
+                    $queued['id'],
+                    $queued['attempts'],
+                    $accepted ? new SmtpUncertainDeliveryException('Delivery accepted but completion could not be recorded.', 0, $exception) : $exception,
+                    $exception instanceof DomainException,
+                    $queued['claim_token']
+                );
+            } catch (Throwable $recordException) {
+            $pass_succeeded = false;
+                applicationLog('error', 'Unable to record reimbursement-email delivery failure', [
+                    'delivery_id' => $queued['id'],
+                    'error' => $recordException->getMessage(),
+                ]);
+            }
+            applicationLog('error', 'Queued reimbursement-email delivery failed', [
+                'delivery_id' => $queued['id'],
                 'error' => $exception->getMessage(),
             ]);
         }

@@ -155,7 +155,7 @@ foreach ($engagement_rows as $row) {
     $map_events[] = [
         'id' => (int) $row['id'],
         'locationState' => $location_state,
-        'title' => $event_title !== '' ? $event_title : ($organization_name !== '' ? $organization_name : 'Untitled engagement'),
+        'title' => $event_title !== '' ? $event_title : ($organization_name !== '' ? $organization_name : 'Untitled Engagement'),
         'organization' => $organization_name,
         'status' => (string) $row['confirmation_status'],
         'statusLabel' => $status_labels[$row['confirmation_status']] ?? 'Unknown',
@@ -173,7 +173,7 @@ foreach ($engagement_rows as $row) {
 }
 
 $all_locations_url = 'map.php?' . http_build_query(array_merge($map_context, ['location' => 'all', 'page' => 1]));
-$empty_title = $map_events === [] ? ($location_filter === 'needs_address' ? 'No missing addresses' : 'No matching engagements') : 'No locations on the map yet';
+$empty_title = $map_events === [] ? ($location_filter === 'needs_address' ? 'No missing addresses' : 'No Matching Engagements') : 'No Locations on the Map Yet';
 $empty_description = $map_events === []
     ? ($location_filter === 'needs_address' ? 'Every engagement matching your other filters has an address entered. An entered address may still need a location lookup.' : 'Change your filters to see engagement locations.')
     : 'Check the locations below. Add missing addresses or retry unresolved lookups to place them on the map.';
@@ -228,12 +228,12 @@ $map_payload = [
         <p class="error"><?php echo htmlspecialchars($filter_error, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endforeach; ?>
 
-    <form method="get" action="map.php" class="map-filters" aria-label="Map filters">
+    <form method="get" action="map.php" class="map-filters" aria-label="Map Filters">
         <input type="hidden" name="per_page" value="<?php echo $map_event_limit; ?>">
         <div class="map-filter-field map-lifecycle-filter">
             <label for="map-lifecycle">Lifecycle</label>
             <select name="lifecycle" id="map-lifecycle">
-                <option value="">All lifecycle states</option>
+                <option value="">All Lifecycle States</option>
                 <?php foreach ($lifecycle_labels as $lifecycle_value => $lifecycle_label): ?>
                     <option value="<?php echo htmlspecialchars($lifecycle_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $filters['lifecycle'] === $lifecycle_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($lifecycle_label, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
@@ -242,14 +242,14 @@ $map_payload = [
         <div class="map-filter-field map-status-filter">
             <label for="map-status">Confirmation</label>
             <select name="status" id="map-status">
-                <option value="">All statuses</option>
+                <option value="">All Statuses</option>
                 <?php foreach ($status_labels as $status_value => $status_label): ?>
                     <option value="<?php echo htmlspecialchars($status_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $filters['status'] === $status_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($status_label, ENT_QUOTES, 'UTF-8'); ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
         <fieldset class="map-date-window">
-            <legend>Date window</legend>
+            <legend>Date Window</legend>
             <div class="map-filter-field">
                 <label for="map-date-from">From</label>
                 <input type="date" name="date_from" id="map-date-from" value="<?php echo htmlspecialchars($filters['date_from'], ENT_QUOTES, 'UTF-8'); ?>">
@@ -262,7 +262,7 @@ $map_payload = [
         </fieldset>
         <div class="map-filter-field">
             <label for="map-location">Location</label>
-            <select name="location" id="map-location"><option value="all"<?php echo $location_filter === 'all' ? ' selected' : ''; ?>>All locations</option><option value="needs_address"<?php echo $location_filter === 'needs_address' ? ' selected' : ''; ?>>Needs address</option><option value="with_address"<?php echo $location_filter === 'with_address' ? ' selected' : ''; ?>>Has an address</option></select>
+            <select name="location" id="map-location"><option value="all"<?php echo $location_filter === 'all' ? ' selected' : ''; ?>>All Locations</option><option value="needs_address"<?php echo $location_filter === 'needs_address' ? ' selected' : ''; ?>>Needs Address</option><option value="with_address"<?php echo $location_filter === 'with_address' ? ' selected' : ''; ?>>Has an Address</option></select>
         </div>
         <div class="map-filter-actions">
             <button type="submit" class="button-add">Apply Filters</button>
@@ -276,7 +276,7 @@ $map_payload = [
                 <h2 id="map-region-title">Engagement Locations</h2>
                 <p id="map-feedback" class="map-feedback" role="status" aria-live="polite"><?php echo $cached_pin_count; ?> visible pins</p>
             </div>
-            <button type="button" id="fit-map-pins" class="button-secondary"<?php echo $cached_pin_count === 0 ? ' disabled' : ''; ?>>Fit visible pins</button>
+            <button type="button" id="fit-map-pins" class="button-secondary"<?php echo $cached_pin_count === 0 ? ' disabled' : ''; ?>>Fit Visible Pins</button>
         </div>
         <div class="map-legend" aria-label="Pin colors show confirmation; pin outlines show lifecycle">
             <span><i class="map-legend-dot status-work-in-progress-pin" aria-hidden="true"></i>Work in progress</span>
@@ -287,7 +287,7 @@ $map_payload = [
         <div id="map-empty-state" class="map-empty-state"<?php echo $cached_pin_count > 0 ? ' hidden' : ''; ?>>
             <h3 id="map-empty-title"><?php echo htmlspecialchars($empty_title, ENT_QUOTES, 'UTF-8'); ?></h3>
             <p id="map-empty-description"><?php echo htmlspecialchars($empty_description, ENT_QUOTES, 'UTF-8'); ?></p>
-            <?php if ($location_filter !== 'all'): ?><a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>">Show all locations</a><?php elseif ($map_events === []): ?><a class="button-secondary" href="map.php">Reset filters</a><?php endif; ?>
+            <?php if ($location_filter !== 'all'): ?><a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>">Show All Locations</a><?php elseif ($map_events === []): ?><a class="button-secondary" href="map.php">Reset Filters</a><?php endif; ?>
         </div>
         <div id="engagement-map" class="engagement-map"<?php echo $cached_pin_count === 0 ? ' hidden' : ''; ?> aria-label="Interactive engagement map. Use the controls to zoom and drag the map to pan"></div>
         <noscript><p class="map-unavailable">JavaScript is required to display and navigate the engagement map.</p></noscript>
@@ -296,14 +296,14 @@ $map_payload = [
     <section class="map-location-list" aria-labelledby="location-list-heading">
         <div class="map-list-heading"><div><h2 id="location-list-heading">Locations to Review</h2><p><?php echo $map_total; ?> matching engagements · Page <?php echo $map_page; ?> of <?php echo $map_pages; ?></p></div>
         <?php if ($location_filter === 'needs_address'): ?>
-        <a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>#location-list-heading">Show all locations</a>
+        <a class="button-secondary" href="<?php echo htmlspecialchars($all_locations_url, ENT_QUOTES, 'UTF-8'); ?>#location-list-heading">Show All Locations</a>
         <?php else: ?>
-        <a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['location' => 'needs_address', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>#location-list-heading">Show missing addresses</a>
+        <a class="button-secondary" href="<?php echo htmlspecialchars('map.php?' . http_build_query(array_merge($map_context, ['location' => 'needs_address', 'page' => 1])), ENT_QUOTES, 'UTF-8'); ?>#location-list-heading">Show Missing Addresses</a>
         <?php endif; ?></div>
         <p class="map-list-help">Missing addresses need address details entered. Unresolved lookups already have an address; use Retry lookup to ask the mapping service again.</p>
-        <nav class="map-list-filters" aria-label="Locations on this page">
-            <button type="button" data-location-filter="all" aria-pressed="true">All on this page <span data-location-count="all"><?php echo count($map_events); ?></span></button>
-            <?php foreach (['found' => 'On map', 'needs_address' => 'Needs address', 'pending' => 'Awaiting lookup', 'not_found' => 'Not located'] as $key => $label): ?>
+        <nav class="map-list-filters" aria-label="Locations on This Page">
+            <button type="button" data-location-filter="all" aria-pressed="true">All on This Page <span data-location-count="all"><?php echo count($map_events); ?></span></button>
+            <?php foreach (['found' => 'On Map', 'needs_address' => 'Needs Address', 'pending' => 'Awaiting Lookup', 'not_found' => 'Not Located'] as $key => $label): ?>
             <button type="button" data-location-filter="<?php echo $key; ?>" aria-pressed="false"><?php echo $label; ?> <span data-location-count="<?php echo $key; ?>"><?php echo count(array_filter($map_events, static fn ($event) => $event['locationState'] === $key || ($key === 'not_found' && $event['locationState'] === 'failed'))); ?></span></button>
             <?php endforeach; ?>
         </nav>
@@ -312,11 +312,11 @@ $map_payload = [
             <?php foreach ($map_events as $event): ?>
             <li data-location-id="<?php echo $event['id']; ?>" data-location-state="<?php echo $event['locationState']; ?>">
                 <div><a href="<?php echo htmlspecialchars($event['viewUrl'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['title'], ENT_QUOTES, 'UTF-8'); ?></a><span><?php echo htmlspecialchars($event['dateLabel'] . ' · ' . $event['lifecycleLabel'] . ' · ' . $event['statusLabel'], ENT_QUOTES, 'UTF-8'); ?></span><span><?php echo htmlspecialchars($event['address'] ?: 'No event address recorded', ENT_QUOTES, 'UTF-8'); ?></span></div>
-                <div><strong data-location-label><?php echo ['found' => 'On map', 'needs_address' => 'Needs address', 'pending' => 'Awaiting lookup', 'not_found' => 'No matching location', 'failed' => 'Lookup unavailable'][$event['locationState']]; ?></strong>
+                <div><strong data-location-label><?php echo ['found' => 'On Map', 'needs_address' => 'Needs Address', 'pending' => 'Awaiting Lookup', 'not_found' => 'No Matching Location', 'failed' => 'Lookup Unavailable'][$event['locationState']]; ?></strong>
                 <span class="map-location-help" data-location-help><?php echo htmlspecialchars(['found' => $event['locationNote'], 'needs_address' => 'Enter an event address to add a pin.', 'pending' => 'The location lookup is queued or in progress.', 'not_found' => 'The mapping service could not confidently match this address. Retry or set the pin yourself.', 'failed' => 'The location service could not complete this lookup. Try again.'][$event['locationState']], ENT_QUOTES, 'UTF-8'); ?></span>
-                <?php if ($can_edit_map): ?><button type="button" class="button-secondary" data-retry-location="<?php echo $event['id']; ?>"<?php echo in_array($event['locationState'], ['not_found', 'failed'], true) ? '' : ' hidden'; ?>>Retry lookup</button><?php endif; ?>
+                <?php if ($can_edit_map): ?><button type="button" class="button-secondary" data-retry-location="<?php echo $event['id']; ?>"<?php echo in_array($event['locationState'], ['not_found', 'failed'], true) ? '' : ' hidden'; ?>>Retry Lookup</button><?php endif; ?>
                 <?php if ($can_edit_map && $event['address'] !== ''): ?><a class="button-secondary" href="<?php echo htmlspecialchars('map_pin.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>"><?php echo $event['provider'] === 'manual' ? 'Adjust confirmed pin' : 'Set map pin'; ?></a><?php endif; ?>
-                <?php if ($can_edit_map): ?><a class="button-secondary" href="<?php echo htmlspecialchars('edit_engagement.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>">Edit location</a><?php endif; ?></div>
+                <?php if ($can_edit_map): ?><a class="button-secondary" href="<?php echo htmlspecialchars('edit_engagement.php?' . http_build_query(['id' => $event['id'], 'return_to' => $map_return]), ENT_QUOTES, 'UTF-8'); ?>">Edit Location</a><?php endif; ?></div>
             </li>
             <?php endforeach; ?>
         </ul>

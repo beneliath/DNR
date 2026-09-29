@@ -1,6 +1,6 @@
 # MOED comprehensive PDF manual
 
-The PDF follows the 13 chapters and light-theme palette of `src/help.php`, with
+The PDF follows the 14 chapters and light-theme palette of `src/help.php`, with
 actual application screenshots, numbered walkthroughs, PDF bookmarks, a clickable
 contents page, related-chapter links, an alphabetical topic finder, and page
 navigation. Text remains searchable and selectable.
@@ -35,9 +35,33 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 24, 2026 edition applies to application version **2.3.5**. The
+The September 29, 2026 edition applies to application version **2.4.0**. The
 cover, scope and edition notes, README appendix version reference, and PDF
 metadata use the current `VERSION` value.
+
+The September 29 refresh adds Reimbursements as Chapter 10, between Map and
+Calendar and Profile and Security. The online manual uses a numbered three-step
+pipeline, recipient cards, concise instructions, and searchable topics. The PDF
+adds screen-by-screen references for expenses, receipts, request registers,
+drafts, email review, delivery recovery, corrections, Chart of Accounts, setup,
+and the personal reviewer email. Payment tracking remains external.
+
+Other additions cover sidebar preferences, engagement date filters, short-link
+visit details, duplicate merges, bounded relationship selectors, Amazon Location
+with map fallback, document/network diagnostics, and recovery safeguards.
+Thirteen new Reimbursements figures show the current application in an isolated
+preview with fictional expenses, receipts, and example.org recipients. Captures
+cover filters, selection, expense entry, receipts, requests, draft editing,
+filename matching, email review, readiness, delivery, accounts, setup, and profile.
+No external email was sent. Existing screenshots are retained where relevant.
+
+Run `scripts/manual/export-online.py` before building to export the current sidebar
+chapters without a database or user session. `release-supplements.json` supplies
+additional exhaustive PDF references. The PDF retrieval index and application map
+must be rebuilt after installing the PDF. Reimbursement procedures and form rules
+use reviewed source hashes and cite the new manual topics; these are verified
+instructions, not new interactive walkthroughs or model training. Existing approved
+coach cases retain their normal revalidation requirements.
 
 The September 24 refresh covers changes since the last PDF commit (`e7fd36ab`):
 continuous desktop calendar scrolling with complete-month Previous/Next navigation

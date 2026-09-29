@@ -52,7 +52,7 @@ function renderEngagementEmailTemplates(array $engagement, array $presentations,
             'suggested_roles' => $roles,
         ];
     }
-    $templates['custom'] = ['label' => 'Custom message', 'subject' => $marker, 'body' => '', 'suggested_roles' => []];
+    $templates['custom'] = ['label' => 'Custom Message', 'subject' => $marker, 'body' => '', 'suggested_roles' => []];
     return $templates;
 }
 

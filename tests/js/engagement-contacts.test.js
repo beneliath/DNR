@@ -117,7 +117,7 @@ test('loading and failed organization changes preserve roles and block premature
     assert.equal(fixture.parts.retryContactLoad.hidden, false);
     const retrying = fixture.parts.retryContactLoad.listeners.click();
     fixture.requests[2].resolve({ ok: true, json: async () => ({ contacts: [{ id: 101, name: 'Original contact' }],
-        roles: { primary_host: 'Primary host', travel: 'Travel' } }) });
+        roles: { primary_host: 'Primary Host', travel: 'Travel' } }) });
     await retrying;
     assert.equal(fixture.parts.engagementContactList.querySelectorAll('input[type="checkbox"]:checked').length, 1,
         'Retry must restore the original role instead of caching the pending empty list');

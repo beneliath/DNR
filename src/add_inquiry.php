@@ -116,7 +116,7 @@ $inquiry_form_submit_label = 'Create Inquiry';
 <?php include 'templates/header.php'; ?>
 <main class="container inquiry-form-page">
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="inquiries.php">Booking Pipeline</a><span aria-hidden="true">/</span><span>New Inquiry</span></nav>
-    <header class="page-heading inquiry-form-heading"><div><p class="eyebrow">Pre-engagement</p><h1>New Inquiry</h1><p class="page-intro">Capture the request, assign its next action, and qualify it before creating an engagement.</p></div></header>
+    <header class="page-heading inquiry-form-heading"><div><p class="eyebrow">Pre-Engagement</p><h1>New Inquiry</h1><p class="page-intro">Capture the request, assign its next action, and qualify it before creating an engagement.</p></div></header>
     <?php if ($sourceMessage): ?><p class="inquiry-source-banner">Creating from inbound message #<?php echo (int) $sourceMessage['id']; ?>. Its retained content will become the first Chron entry.</p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php include 'templates/booking_inquiry_form.php'; ?>

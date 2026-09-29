@@ -5,7 +5,7 @@ $standard_task_form_values = is_array($standard_task_form_values ?? null)
 $standard_task_form_action = (string) ($standard_task_form_action ?? 'standard_tasks.php');
 $standard_task_form_cancel_url = (string) ($standard_task_form_cancel_url
     ?? ('view_standard_task.php?id=' . (int) ($standard_task_form_values['id'] ?? 0)));
-$standard_task_form_submit_label = (string) ($standard_task_form_submit_label ?? 'Save changes');
+$standard_task_form_submit_label = (string) ($standard_task_form_submit_label ?? 'Save Changes');
 $priority_labels = followUpTaskPriorities();
 $due_anchor_labels = standardEventTaskDueAnchors();
 $selected_priority = (string) ($standard_task_form_values['priority'] ?? 'normal');
@@ -42,7 +42,7 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
                 </select>
             </div>
             <div class="form-group">
-                <label for="standard-task-anchor" class="required">Due date relative to</label>
+                <label for="standard-task-anchor" class="required">Due Date Relative To</label>
                 <select id="standard-task-anchor" name="due_anchor" required>
                     <?php foreach ($due_anchor_labels as $anchor_value => $anchor_label): ?>
                         <option value="<?php echo htmlspecialchars($anchor_value, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $selected_anchor === $anchor_value ? ' selected' : ''; ?>><?php echo htmlspecialchars($anchor_label, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -50,12 +50,12 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
                 </select>
             </div>
             <div class="form-group">
-                <label for="standard-task-offset" class="required">Day offset</label>
+                <label for="standard-task-offset" class="required">Day Offset</label>
                 <input type="number" id="standard-task-offset" name="due_offset_days" min="-3650" max="3650" step="1" required value="<?php echo htmlspecialchars($standard_task_form_values['due_offset_days'] ?? '0', ENT_QUOTES, 'UTF-8'); ?>">
                 <small class="field-help">Use a negative number for days before the event date and a positive number for days after.</small>
             </div>
             <div class="form-group">
-                <label for="standard-task-order" class="required">Display order</label>
+                <label for="standard-task-order" class="required">Display Order</label>
                 <input type="number" id="standard-task-order" name="sort_order" min="0" max="65535" step="1" required value="<?php echo htmlspecialchars($standard_task_form_values['sort_order'] ?? '0', ENT_QUOTES, 'UTF-8'); ?>">
                 <small class="field-help">Lower numbers are shown and generated first.</small>
             </div>
@@ -67,7 +67,7 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
             <h2>Existing Engagements</h2>
             <label class="standard-task-generation-option" for="generate-existing-engagements">
                 <input type="checkbox" id="generate-existing-engagements" name="generate_existing_engagements" value="1" aria-describedby="standard-task-generation-help"<?php echo ($standard_task_form_values['generate_existing_engagements'] ?? '') === '1' ? ' checked' : ''; ?>>
-                <span>Also add this task to all active, open engagements</span>
+                <span>Also Add This Task to All Active, Open Engagements</span>
             </label>
             <p id="standard-task-generation-help" class="field-help">Creates this task for every unarchived engagement with an Active lifecycle and an open financial closeout. Each copy uses the due-date rule above and is assigned to the engagement’s active Caller, or to you if no active Caller is assigned. Existing copies are kept.</p>
         </section>

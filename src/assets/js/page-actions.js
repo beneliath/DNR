@@ -551,7 +551,7 @@
         if (!rows || !add || !rows.firstElementChild) return;
         const template = rows.firstElementChild.cloneNode(true);
         template.querySelectorAll('option').forEach(function (option) {
-            if (option.textContent === 'Previously selected contact is unavailable') option.remove();
+            if (option.textContent === 'Previously Selected Contact Is Unavailable') option.remove();
         });
         function update() {
             Array.from(rows.children).forEach(function (row, index) {
@@ -661,12 +661,12 @@
             {
                 start: document.getElementById('preferred-start'),
                 end: document.getElementById('preferred-end'),
-                label: 'Preferred range'
+                label: 'Preferred Range'
             },
             {
                 start: document.getElementById('alternate-start'),
                 end: document.getElementById('alternate-end'),
-                label: 'Alternate range'
+                label: 'Alternate Range'
             }
         ].filter(function (range) { return range.start && range.end; });
         inquiryDateRanges.forEach(function (range) {
@@ -785,15 +785,15 @@
                 try {
                     await copyText(button.dataset.copyText || '');
                     button.classList.add('is-copied');
-                    button.setAttribute('aria-label', 'Email routing marker copied');
+                    button.setAttribute('aria-label', 'Email Routing Marker Copied');
                     button.setAttribute('title', 'Copied');
                     button.dataset.tooltip = 'Copied';
                     if (status) status.textContent = 'Email routing marker copied to the clipboard.';
                 } catch (error) {
                     button.classList.add('is-copy-failed');
-                    button.setAttribute('aria-label', 'Email routing marker could not be copied');
-                    button.setAttribute('title', 'Copy failed');
-                    button.dataset.tooltip = 'Copy failed';
+                    button.setAttribute('aria-label', 'Email Routing Marker Could Not Be Copied');
+                    button.setAttribute('title', 'Copy Failed');
+                    button.dataset.tooltip = 'Copy Failed';
                     if (status) status.textContent = 'The email routing marker could not be copied.';
                 }
 
@@ -870,7 +870,7 @@
             qrCopyStatus(button, 'QR code preview is unavailable.', true);
             return;
         }
-        const buttonLabel = button.getAttribute('aria-label') || 'Copy QR code';
+        const buttonLabel = button.getAttribute('aria-label') || 'Copy QR Code';
         const qrContext = buttonLabel
             .replace(/^Copy\s+/i, '')
             .replace(/\s+QR code$/i, '')
@@ -1107,7 +1107,7 @@
                         button.textContent = 'Copied!';
                         status.textContent = originalLabel + ' copied to the clipboard.';
                     } catch (error) {
-                        button.textContent = 'Copy failed';
+                        button.textContent = 'Copy Failed';
                         status.textContent = originalLabel + ' could not be copied.';
                     } finally {
                         button.disabled = false;
@@ -1134,7 +1134,7 @@
             const status = form.querySelector('[data-invitation-submit-status]');
             if (!button || !status) return;
             const idleLabel = button.textContent;
-            const submittingLabel = button.dataset.submittingLabel || 'Sending invitation…';
+            const submittingLabel = button.dataset.submittingLabel || 'Sending Invitation…';
 
             const reset = function () {
                 delete form.dataset.submitting;
@@ -1306,7 +1306,36 @@
         });
     }
 
+    function initializeIconTooltips() {
+        const selector = '.action-icon-button, [data-tooltip]';
+        function normalize(control) {
+            if (!control.matches(selector)) return;
+            const title = control.getAttribute('title');
+            if (title === null) return;
+            if (!control.getAttribute('data-tooltip')) control.setAttribute('data-tooltip', title);
+            if (!control.getAttribute('aria-label') && !control.getAttribute('aria-labelledby') && !control.textContent.trim()) {
+                control.setAttribute('aria-label', title);
+            }
+            control.removeAttribute('title');
+        }
+        document.querySelectorAll(selector).forEach(normalize);
+        // AJAX lists and copy controls can insert icons or update their titles.
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver(function (changes) {
+                changes.forEach(function (change) {
+                    if (change.type === 'attributes') normalize(change.target);
+                    else change.addedNodes.forEach(function (node) {
+                        if (node.nodeType !== 1) return;
+                        normalize(node);
+                        node.querySelectorAll(selector).forEach(normalize);
+                    });
+                });
+            }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['title', 'data-tooltip', 'class'] });
+        }
+    }
+
     function initialize() {
+        initializeIconTooltips();
         initializeStatusMessages();
         initializeContactRole();
         initializeMailingAddress();

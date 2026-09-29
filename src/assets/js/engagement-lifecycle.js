@@ -41,14 +41,14 @@
         rescheduleFields.hidden = !state.rescheduleVisible;
         rescheduleSelect.disabled = !state.rescheduleVisible;
         badge.className = 'lifecycle-badge lifecycle-' + status;
-        badge.textContent = labels[status] || 'Lifecycle not set';
+        badge.textContent = labels[status] || 'Lifecycle Not Set';
     }
 
     function replaceOptions(engagements) {
         const fragment = document.createDocumentFragment();
         const empty = document.createElement('option');
         empty.value = '';
-        empty.textContent = 'No replacement event linked';
+        empty.textContent = 'No Replacement Event Linked';
         fragment.appendChild(empty);
         engagements.forEach(function (engagement) {
             const option = document.createElement('option');

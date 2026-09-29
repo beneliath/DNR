@@ -251,7 +251,7 @@ if (isset($_SESSION['success_message'])) {
     <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Start with a name; add contacts and address details as the relationship develops.</p></div></div>
     <noscript><form method="get" action="add_organization.php" class="card">
         <?php if ($creation_return !== ''): ?><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
-        <label for="existing-contact-search-fallback">Find an existing contact</label>
+        <label for="existing-contact-search-fallback">Find an Existing Contact</label>
         <input id="existing-contact-search-fallback" name="contact_search" type="search" maxlength="128" value="<?php echo htmlspecialchars($contact_search, ENT_QUOTES, 'UTF-8'); ?>">
         <button type="submit">Find Contacts</button>
         <p>Search before filling the organization form. The results show up to 25 contacts.</p>
@@ -265,7 +265,7 @@ if (isset($_SESSION['success_message'])) {
             <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
         </div>
 
-        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Organization details</summary>
+        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Organization Details</summary>
         <div class="form-group">
             <label for="notes">Notes</label>
             <textarea id="notes" name="notes" rows="6"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
@@ -318,11 +318,11 @@ if (isset($_SESSION['success_message'])) {
             <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="physical_address_line_1">Address line 1</label>
+                    <label for="physical_address_line_1">Address Line 1</label>
                     <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="physical_address_line_2">Address line 2</label>
+                    <label for="physical_address_line_2">Address Line 2</label>
                     <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -330,11 +330,11 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="physical" data-region-required="false">
-                    <label for="physical_state">State / province</label>
+                    <label for="physical_state">State / Province</label>
                     <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="physical_zipcode">Postal code</label>
+                    <label for="physical_zipcode">Postal Code</label>
                     <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
@@ -352,11 +352,11 @@ if (isset($_SESSION['success_message'])) {
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="mailing_address_line_1">Address line 1</label>
+                    <label for="mailing_address_line_1">Address Line 1</label>
                     <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="mailing_address_line_2">Address line 2</label>
+                    <label for="mailing_address_line_2">Address Line 2</label>
                     <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -364,11 +364,11 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
-                    <label for="mailing_state">State / province</label>
+                    <label for="mailing_state">State / Province</label>
                     <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="mailing_zipcode">Postal code</label>
+                    <label for="mailing_zipcode">Postal Code</label>
                     <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
@@ -392,9 +392,9 @@ if (isset($_SESSION['success_message'])) {
                         <div class="form-group">
                             <label for="existing-contact-<?php echo $index; ?>">Existing Contact</label>
                             <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select data-contact-search>
-                                <option value="">Select an existing contact</option>
+                                <option value="">Select an Existing Contact</option>
                                 <?php if ($row['contact_id'] !== '' && !in_array((int) $row['contact_id'], $existing_contact_option_ids, true)): ?>
-                                    <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously selected contact is unavailable</option>
+                                    <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously Selected Contact Is Unavailable</option>
                                 <?php endif; ?>
                                 <?php foreach ($existing_contact_options as $option): ?>
                                     <option value="<?php echo (int) $option['id']; ?>"<?php echo (string) $option['id'] === $row['contact_id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars(
@@ -406,11 +406,11 @@ if (isset($_SESSION['success_message'])) {
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="existing-contact-role-<?php echo $index; ?>">Role With This Organization</label>
+                            <label for="existing-contact-role-<?php echo $index; ?>">Role with This Organization</label>
                             <input type="text" id="existing-contact-role-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][role_title]"
                                 value="<?php echo htmlspecialchars($row['role_title'], ENT_QUOTES, 'UTF-8'); ?>" maxlength="255" placeholder="e.g., Board member" data-existing-contact-role>
                         </div>
-                        <button type="button" class="button-secondary" data-remove-existing-organization-contact aria-label="Remove existing contact">Remove</button>
+                        <button type="button" class="button-secondary" data-remove-existing-organization-contact aria-label="Remove Existing Contact">Remove</button>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -537,7 +537,7 @@ if (isset($_SESSION['success_message'])) {
         </details>
         <div class="form-group create-form-actions create-form-actions-end">
             <a href="<?php echo htmlspecialchars($creation_return ?: 'organizations.php', ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_org" value="Create organization" class="save-button">
+            <input type="submit" name="save_org" value="Create Organization" class="save-button">
         </div>
     </form>
 </div>

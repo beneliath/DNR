@@ -368,11 +368,11 @@ try {
             <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="physical_address_line_1">Address line 1</label>
+                    <label for="physical_address_line_1">Address Line 1</label>
                     <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="physical_address_line_2">Address line 2</label>
+                    <label for="physical_address_line_2">Address Line 2</label>
                     <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -380,11 +380,11 @@ try {
                     <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($organization['physical_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="physical" data-region-required="false">
-                    <label for="physical_state">State / province</label>
+                    <label for="physical_state">State / Province</label>
                     <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="physical_zipcode">Postal code</label>
+                    <label for="physical_zipcode">Postal Code</label>
                     <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
@@ -401,11 +401,11 @@ try {
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="mailing_address_line_1">Address line 1</label>
+                    <label for="mailing_address_line_1">Address Line 1</label>
                     <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($organization['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="mailing_address_line_2">Address line 2</label>
+                    <label for="mailing_address_line_2">Address Line 2</label>
                     <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($organization['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -413,11 +413,11 @@ try {
                     <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($organization['mailing_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
-                    <label for="mailing_state">State / province</label>
+                    <label for="mailing_state">State / Province</label>
                     <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($organization['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="mailing_zipcode">Postal code</label>
+                    <label for="mailing_zipcode">Postal Code</label>
                     <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($organization['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>

@@ -63,7 +63,7 @@ expectDashboardFeature(
         && str_contains($dashboard, 'href="inquiries.php?view=active&amp;owner=me" class="button-secondary dashboard-panel-button">Open My Inquiries</a>')
         && str_contains($dashboard, '<small>Booking Inquiries</small>')
         && str_contains($dashboard, '<small>All Active Work</small>')
-        && str_contains($dashboard, '<small>Mail For Review</small>')
+        && str_contains($dashboard, '<small>Mail for Review</small>')
         && str_contains($dashboard, '<small>Financial Closeouts</small>'),
     'daily work should lead the upcoming schedule and the secondary pipeline should be expanded by default while remaining collapsible.'
 );

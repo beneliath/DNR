@@ -10,6 +10,12 @@ temporary_directory=$(mktemp -d)
 fixtures_created=0
 
 compose() {
+    if [ -n "${DNR_INTEGRATION_PROJECT:-}" ]; then
+        docker compose --env-file "$DNR_INTEGRATION_ENV_FILE" -p "$DNR_INTEGRATION_PROJECT" \
+            -f docker-compose.yaml -f docker-compose.dev.yaml -f docker-compose.mail.yaml \
+            -f "$DNR_INTEGRATION_OVERLAY" "$@"
+        return
+    fi
     if [ -n "${DNR_TEST_COMPOSE_PROJECT:-}" ]; then
         docker compose -p "$DNR_TEST_COMPOSE_PROJECT" \
             -f docker-compose.yaml -f docker-compose.dev.yaml "$@"
@@ -219,8 +225,8 @@ test "$(fixture digest-schedule "$fixture_suffix" editor)" = '16:45:00|21'
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
     "$base_url/tasks.php"
-grep -q 'aria-label="Work ownership"' "$temporary_directory/editor-task-reminders.html"
-grep -q 'aria-current="page">My work</a>' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-label="Work Ownership"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-current="page">My Work</a>' "$temporary_directory/editor-task-reminders.html"
 grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=20"' "$temporary_directory/editor-task-reminders.html"
 ! grep -q 'numbered-pagination' "$temporary_directory/editor-task-reminders.html"
 
@@ -232,7 +238,7 @@ grep -q 'scope=unassigned&amp;per_page=20' "$temporary_directory/unassigned-defa
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/everyone-page-size.html" \
     "$base_url/tasks.php?scope=everyone&per_page=50"
 grep -q 'scope=everyone&amp;per_page=50' "$temporary_directory/everyone-page-size.html"
-mine_url=$(sed -n 's/.*href="\([^"]*\)">My work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
+mine_url=$(sed -n 's/.*href="\([^"]*\)">My Work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
 test -n "$mine_url"
 case "$mine_url" in *per_page=*) echo 'Ownership links must not carry another view size.' >&2; exit 1 ;; esac
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/mine-page-size.html" "$base_url/$mine_url"
@@ -316,7 +322,7 @@ curl -fsS -b "$editor_cookies" \
     -o "$temporary_directory/editor-organization-contacts.json" \
     "$base_url/organization_contacts.php?organization_id=$organization_id"
 grep -q "\"id\":$contact_id" "$temporary_directory/editor-organization-contacts.json"
-grep -q '"primary_host":"Primary host"' "$temporary_directory/editor-organization-contacts.json"
+grep -q '"primary_host":"Primary Host"' "$temporary_directory/editor-organization-contacts.json"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
@@ -356,7 +362,7 @@ grep -q '"engagements":' "$temporary_directory/editor-reschedule-options.json"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-view-engagement.html" \
     "$base_url/view_engagement.php?id=$engagement_id"
-grep -q 'Primary host' "$temporary_directory/editor-view-engagement.html"
+grep -q 'Primary Host' "$temporary_directory/editor-view-engagement.html"
 grep -q '>Travel<' "$temporary_directory/editor-view-engagement.html"
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-edit-engagement.html" \
@@ -569,7 +575,7 @@ admin_unlock_expires_at=$(admin_unlock_deadline)
 # deleting fixture data or consuming the administrator elevation.
 curl -fsS -b "$admin_cookies" -o "$temporary_directory/admin-audit-elevated.html" \
     "$base_url/audit_log.php?retention_days=36500"
-grep -q 'Administrator access unlocked' "$temporary_directory/admin-audit-elevated.html"
+grep -q 'Administrator Access Unlocked' "$temporary_directory/admin-audit-elevated.html"
 admin_csrf=$(csrf_from "$temporary_directory/admin-audit-elevated.html")
 status=$(curl -sS -b "$admin_cookies" -D "$temporary_directory/admin-audit-prune.headers" \
     -o /dev/null -w '%{http_code}' \

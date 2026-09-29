@@ -12,7 +12,7 @@
         const selected = items.filter(item => item.checked).length;
         count.textContent = `${selected} selected`;
         submit.disabled = selected === 0;
-        submit.textContent = selected ? `Delete selected (${selected})` : 'Delete selected';
+        submit.textContent = selected ? `Delete selected (${selected})` : 'Delete Selected';
         selectAll.checked = items.length > 0 && selected === items.length;
         selectAll.indeterminate = selected > 0 && selected < items.length;
         selectAll.disabled = items.length === 0;

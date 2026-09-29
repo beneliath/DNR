@@ -1004,7 +1004,7 @@ function bookingInquiryEmailTemplates(array $inquiry): array
     $context = $organization !== '' ? $title . ' with ' . $organization : $title;
     return [
         'initial_response' => [
-            'label' => 'Initial response',
+            'label' => 'Initial Response',
             'subject' => 'Re: ' . $title . ' ' . $marker,
             'body' => "Hello,\n\nThank you for reaching out about {$context}. We have received your inquiry and will review the details. The dates currently noted are {$date}.\n\nThank you,",
         ],
@@ -1014,17 +1014,17 @@ function bookingInquiryEmailTemplates(array $inquiry): array
             'body' => "Hello,\n\nTo continue evaluating {$context}, please reply with the venue, audience, schedule, presentation expectations, and primary on-site contact.\n\nThank you,",
         ],
         'date_options' => [
-            'label' => 'Date options',
+            'label' => 'Date Options',
             'subject' => 'Date options: ' . $title . ' ' . $marker,
             'body' => "Hello,\n\nWe are reviewing date options for {$context}. The current preferred range is {$date}. Please reply with any flexibility or alternate dates.\n\nThank you,",
         ],
         'proposal_follow_up' => [
-            'label' => 'Proposal follow-up',
+            'label' => 'Proposal Follow-Up',
             'subject' => 'Following up: ' . $title . ' ' . $marker,
             'body' => "Hello,\n\nI am following up on the proposal for {$context}. Please let us know whether you have questions or are ready to confirm the booking details.\n\nThank you,",
         ],
         'custom' => [
-            'label' => 'Custom message',
+            'label' => 'Custom Message',
             'subject' => $marker,
             'body' => '',
         ],

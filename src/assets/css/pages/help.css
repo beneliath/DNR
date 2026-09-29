@@ -1505,3 +1505,12 @@ kbd {
     display: block;
   }
 }
+
+/* A three-step pipeline for the reimbursement quick start. */
+.manual-reimbursement-pipeline{gap:28px;grid-template-columns:repeat(3,minmax(0,1fr))}
+.manual-reimbursement-pipeline>.manual-card:not(:last-child)::after{content:"→";position:absolute;right:-24px;top:38px;color:var(--accent);font-size:24px;line-height:1;z-index:1}
+.manual-pipeline-step{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;color:var(--accent)}
+.manual-pipeline-step .manual-card-number{margin:0}
+.manual-pipeline-step svg{box-sizing:content-box;display:block;flex:none;width:24px;height:24px;padding:8px;border-radius:10px;background:var(--primary-subtle);color:var(--primary);fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.manual-reimbursement-pipeline>.manual-card:last-child .manual-pipeline-step svg{background:var(--accent-subtle);color:var(--accent)}
+@media(max-width:1100px){.manual-reimbursement-pipeline{grid-template-columns:minmax(0,1fr)}.manual-reimbursement-pipeline>.manual-card:not(:last-child)::after{content:"↓";right:auto;top:auto;left:calc(50% - 12px);bottom:-25px}}

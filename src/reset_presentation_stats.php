@@ -68,7 +68,7 @@ $h = static fn($value): string => htmlspecialchars((string) $value, ENT_QUOTES |
     <h1>Reset Presentation Statistics</h1>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo $h($error); ?></p><?php endif; ?>
     <section class="security-card">
-        <h2><?php echo $h($presentation['topic_title'] ?: 'Untitled presentation'); ?></h2>
+        <h2><?php echo $h($presentation['topic_title'] ?: 'Untitled Presentation'); ?></h2>
         <p><?php echo $h($presentation['event_title']); ?> · <?php echo $h($presentation['speaker_name']); ?></p>
         <p>This permanently clears all recorded QR and link visits for this presentation, across every date, including disabled links and links for previous speakers. This cannot be undone.</p>
         <p>QR codes, destinations, uploaded notes, and presentation details stay the same. New visits start counting from zero. Other presentations are unaffected.</p>

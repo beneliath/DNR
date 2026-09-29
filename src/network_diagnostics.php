@@ -91,15 +91,15 @@ unset($_SESSION['_network_statistics_reset']);
         <?php foreach (['IPv4', 'IPv6'] as $family): ?>
         <article class="network-metric-card" data-network-card="<?php echo strtolower($family); ?>" data-state="pending">
             <div class="network-card-heading">
-                <div><p class="network-eyebrow">Public client route</p><h2><?php echo $family; ?></h2></div>
+                <div><p class="network-eyebrow">Public Client Route</p><h2><?php echo $family; ?></h2></div>
                 <span class="network-path-state" data-network-state="<?php echo strtolower($family); ?>">Loading</span>
             </div>
             <p class="network-latency"><strong data-network-load="<?php echo strtolower($family); ?>">—</strong><span> ms median load</span></p>
             <dl class="network-route-details">
-                <div><dt>Remote samples</dt><dd data-network-samples="<?php echo strtolower($family); ?>">0</dd></div>
-                <div><dt>75th percentile</dt><dd data-network-p75="<?php echo strtolower($family); ?>">—</dd></div>
+                <div><dt>Remote Samples</dt><dd data-network-samples="<?php echo strtolower($family); ?>">0</dd></div>
+                <div><dt>75th Percentile</dt><dd data-network-p75="<?php echo strtolower($family); ?>">—</dd></div>
                 <div><dt>Median TTFB</dt><dd data-network-ttfb="<?php echo strtolower($family); ?>">—</dd></div>
-                <div><dt>Most-seen edge</dt><dd data-network-colo="<?php echo strtolower($family); ?>">—</dd></div>
+                <div><dt>Most-Seen Edge</dt><dd data-network-colo="<?php echo strtolower($family); ?>">—</dd></div>
             </dl>
         </article>
         <?php endforeach; ?>
@@ -119,19 +119,19 @@ unset($_SESSION['_network_statistics_reset']);
 
     <section class="network-page-breakdown network-document-breakdown" aria-labelledby="document-download-heading">
         <div class="network-section-heading">
-            <div><p class="network-eyebrow">PDF and PowerPoint downloads</p><h2 id="document-download-heading">Remote Document Responses</h2></div>
+            <div><p class="network-eyebrow">PDF and PowerPoint Downloads</p><h2 id="document-download-heading">Remote Document Responses</h2></div>
         </div>
         <p>Server timings for PDF, PPT, and PPTX responses, including inline views and byte-range requests. Duration ends when PHP finishes handling the response; it does not measure when the browser finishes downloading. Response size is the advertised size, including partial responses.</p>
         <div class="responsive-table">
             <table class="data-table">
                 <thead><tr>
-                    <th scope="col">Format / route</th>
-                    <th scope="col">Median duration</th>
-                    <th scope="col">75th percentile</th>
-                    <th scope="col">Median time to headers</th>
-                    <th scope="col">Median response size</th>
-                    <th scope="col">Samples (partial)</th>
-                    <th scope="col">Most-seen edge</th>
+                    <th scope="col">Format / Route</th>
+                    <th scope="col">Median Duration</th>
+                    <th scope="col">75th Percentile</th>
+                    <th scope="col">Median Time to Headers</th>
+                    <th scope="col">Median Response Size</th>
+                    <th scope="col">Samples (Partial)</th>
+                    <th scope="col">Most-Seen Edge</th>
                 </tr></thead>
                 <tbody data-network-downloads><tr><td colspan="7">Loading document measurements…</td></tr></tbody>
             </table>
@@ -141,8 +141,8 @@ unset($_SESSION['_network_statistics_reset']);
 
     <section class="network-page-breakdown" aria-labelledby="slow-page-heading">
         <div class="network-section-heading">
-            <div><p class="network-eyebrow">Page detail</p><h2 id="slow-page-heading">Slowest Observed Pages</h2></div>
-            <p data-network-updated>Waiting for data…</p>
+            <div><p class="network-eyebrow">Page Detail</p><h2 id="slow-page-heading">Slowest Observed Pages</h2></div>
+            <p data-network-updated>Waiting for Data…</p>
         </div>
         <div class="responsive-table">
             <table class="data-table">
@@ -158,9 +158,9 @@ unset($_SESSION['_network_statistics_reset']);
                         <th scope="colgroup" colspan="2" class="network-family-heading network-family-divider">IPv6</th>
                     </tr>
                     <tr>
-                        <th scope="col">75th percentile</th>
+                        <th scope="col">75th Percentile</th>
                         <th scope="col">Samples</th>
-                        <th scope="col" class="network-family-divider">75th percentile</th>
+                        <th scope="col" class="network-family-divider">75th Percentile</th>
                         <th scope="col">Samples</th>
                     </tr>
                 </thead>

@@ -364,7 +364,7 @@ try {
 <div class="organization-container">
     <label for="organization_id">Organization</label>
     <select name="organization_id" id="organization_id" data-organization-search required>
-        <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an organization</option>
+        <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an Organization</option>
         <?php foreach ($engagement_organization_options as $organization_option): ?>
             <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
         <?php endforeach; ?>
@@ -435,13 +435,13 @@ try {
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> book table provided
+                    <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> Book Table Provided
                 </label>
                 <label class="checkbox-label">
-                    <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> brochures permitted
+                    <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> Brochures Permitted
                 </label>
             </div>
-            <fieldset class="radio-row"><legend>All travel covered</legend>
+            <fieldset class="radio-row"><legend>All Travel Covered</legend>
                 <div class="radio-options">
                     <?php
                     $travel_covered = $_POST['travel_covered'] ?? 'unknown';
@@ -568,7 +568,7 @@ try {
         <section class="form-section chron-log-section" id="chron-log">
             <h2>Chron Log</h2>
             <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
-            <label for="chron_entry">Initial Chron entry</label>
+            <label for="chron_entry">Initial Chron Entry</label>
             <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
         </section>
 
@@ -577,7 +577,7 @@ try {
                 <div class="form-field">
                     <label for="caller_user_id">Caller</label>
                     <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
+                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
                         <?php
                         // Fetch and display users in the dropdown
                         $users = $conn->query(
