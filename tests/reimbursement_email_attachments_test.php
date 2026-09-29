@@ -14,7 +14,7 @@ try {
     $zip = new ZipArchive();
     if ($zip->open($path, ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Unable to create test ZIP.');
     $zip->addFromString('request.pdf', '%PDF-report');
-    $zip->addFromString('request.csv', "Date of Expense,Amount\r\n2026-09-29,12.34\r\n");
+    $zip->addFromString('request.csv', "Date of Expense,Amount (USD)\r\n9/29/2026,$12.34\r\n");
     $zip->addFromString('receipts/receipt.jpg', 'JPEG-receipt');
     $zip->addFromString('receipts/second.png', 'PNG-receipt');
     $zip->close();
@@ -28,7 +28,7 @@ try {
     $files = reimbursementAttachmentsFromVerifiedZip($attachment, $manifest);
     expectReimbursementAttachment(count($files) === 5 && $files[0]['data'] === $attachment['data']
         && $files[1]['data'] === '%PDF-report' && $files[2]['content_type'] === 'text/csv'
-        && $files[2]['data'] === "Date of Expense,Amount\r\n2026-09-29,12.34\r\n"
+        && $files[2]['data'] === "Date of Expense,Amount (USD)\r\n9/29/2026,$12.34\r\n"
         && $files[3]['data'] === 'JPEG-receipt' && $files[4]['data'] === 'PNG-receipt',
         'Separate attachments must match the immutable ZIP entries.');
     $legacyFiles = reimbursementAttachmentsFromVerifiedZip($attachment, []);

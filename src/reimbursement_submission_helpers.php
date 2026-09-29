@@ -87,13 +87,14 @@ function reimbursementExpenseCsv(array $items, array $receipts): string
     $stream = fopen('php://temp', 'w+');
     if ($stream === false) throw new RuntimeException('Unable to prepare reimbursement CSV.');
     try {
-        $rows = [['Date of Expense', 'Merchant/Payee', 'COA Number', 'Description', 'Amount', 'Receipt Filename(s)']];
+        $rows = [['Date of Expense', 'Merchant/Payee', 'COA Number', 'Description', 'Amount (USD)', 'Receipt Filename(s)']];
         foreach ($items as $item) {
             $cents = (int) $item['amount_cents'];
+            [$year, $month, $day] = explode('-', reimbursementDate($item['expense_date'], 'expense date'));
             $rows[] = [
-                (string) $item['expense_date'], reimbursementCsvText($item['merchant']),
+                (int) $month . '/' . (int) $day . '/' . $year, reimbursementCsvText($item['merchant']),
                 reimbursementCsvText($item['coa_number']), reimbursementCsvText($item['description']),
-                sprintf('%d.%02d', intdiv($cents, 100), $cents % 100),
+                sprintf('$%d.%02d', intdiv($cents, 100), $cents % 100),
                 implode('; ', $namesByExpense[(int) $item['expense_id']] ?? []),
             ];
         }

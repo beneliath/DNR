@@ -87,7 +87,7 @@ expectSmtpMessageFormat(
 $reimbursementMime = smtpMessageContent('Report attached.', '<p>Report attached.</p>', [
     ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => 'PK'],
     ['filename' => 'request.pdf', 'content_type' => 'application/pdf', 'data' => '%PDF-'],
-    ['filename' => 'request.csv', 'content_type' => 'text/csv', 'data' => "Date of Expense,Amount\r\n2026-09-29,12.34\r\n"],
+    ['filename' => 'request.csv', 'content_type' => 'text/csv', 'data' => "Date of Expense,Amount (USD)\r\n9/29/2026,$12.34\r\n"],
     ['filename' => 'receipt.jpg', 'content_type' => 'image/jpeg', 'data' => 'JPEG'],
 ]);
 expectSmtpMessageFormat(

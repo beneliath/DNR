@@ -203,9 +203,9 @@ try {
             expectReimbursement($zip->numFiles === 3 && str_ends_with($zip->getNameIndex(1), '.csv'), 'ZIP must include report, expense CSV, and receipt');
             $csvLines = explode("\r\n", trim($zip->getFromIndex(1)));
             $csvFields = str_getcsv($csvLines[1], ',', '"', '');
-            expectReimbursement(count($csvFields) === 6 && $csvFields[0] === '2026-06-10'
+            expectReimbursement(count($csvFields) === 6 && $csvFields[0] === '6/10/2026'
                 && $csvFields[1] === 'Workflow fixture' && $csvFields[3] === 'Synthetic receipt'
-                && $csvFields[4] === '65.40' && $csvFields[5] === $expectedReceiptFilename,
+                && $csvFields[4] === '$65.40' && $csvFields[5] === $expectedReceiptFilename,
                 'Draft ZIP CSV contains importable expense details and the exact receipt filename');
             expectReimbursement($zip->locateName('receipts/' . $expectedReceiptFilename) !== false, 'Receipt filename in request matches the actual ZIP entry'); $zip->close(); unlink($tmp);
         }

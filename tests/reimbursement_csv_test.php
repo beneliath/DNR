@@ -11,7 +11,7 @@ function expectReimbursementCsv(bool $condition, string $message): void
 
 $items = [
     ['expense_id' => 11, 'expense_date' => '2026-09-29', 'merchant' => '=SUM(1,1)',
-        'coa_number' => '5291', 'description' => "Travel, \"sample\"\nSecond line", 'amount_cents' => 12345],
+        'coa_number' => '5291', 'description' => "Travel, \"sample\"\nSecond line", 'amount_cents' => 248857],
     ['expense_id' => 12, 'expense_date' => '2026-09-28', 'merchant' => 'Book shop',
         'coa_number' => '5451', 'description' => 'Reference book', 'amount_cents' => 450],
 ];
@@ -29,12 +29,12 @@ $first = fgetcsv($stream, 0, ',', '"', '');
 $second = fgetcsv($stream, 0, ',', '"', '');
 $end = fgetcsv($stream, 0, ',', '"', '');
 fclose($stream);
-expectReimbursementCsv($header === ['Date of Expense', 'Merchant/Payee', 'COA Number', 'Description', 'Amount', 'Receipt Filename(s)'],
+expectReimbursementCsv($header === ['Date of Expense', 'Merchant/Payee', 'COA Number', 'Description', 'Amount (USD)', 'Receipt Filename(s)'],
     'CSV includes the requested import columns.');
-expectReimbursementCsv($first === ['2026-09-29', "'=SUM(1,1)", '5291', "Travel, \"sample\"\nSecond line", '123.45',
+expectReimbursementCsv($first === ['9/29/2026', "'=SUM(1,1)", '5291', "Travel, \"sample\"\nSecond line", '$2488.57',
     'expense-11-receipt-2-first.png; expense-11-receipt-3-second.jpg'],
     'Multiple receipts stay in one expense row, with spreadsheet formula text escaped.');
-expectReimbursementCsv($second === ['2026-09-28', 'Book shop', '5451', 'Reference book', '4.50', ''] && $end === false,
+expectReimbursementCsv($second === ['9/28/2026', 'Book shop', '5451', 'Reference book', '$4.50', ''] && $end === false,
     'An expense without receipts has one row and a blank filename cell.');
 
 echo "Reimbursement CSV tests passed.\n";

@@ -441,7 +441,7 @@
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
         "reimbursement_submit.php": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
-        "reimbursement_submission_helpers.php": "0a52242746347c978f34c994f3c964fba55dd97b317d9803e1702f5dcbb83d69",
+        "reimbursement_submission_helpers.php": "420f580d698e676a44619f7defdd394e88fe53dbf30f670a32784debc00fb951",
         "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e"
       },
       "controls": {
