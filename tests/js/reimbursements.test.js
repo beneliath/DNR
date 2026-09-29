@@ -137,7 +137,7 @@ test('Update Dates blinks only while the request dates differ from their loaded 
     addEventListener(name, handler) { events[name] = handler; }
   };
   vm.runInNewContext(source, {document: {querySelectorAll(selector) {
-    return selector === '[data-reimbursement-filters], [data-reimbursement-date-range]' ? [form] : [];
+    return selector === '[data-reimbursement-filters], [data-reimbursement-date-range], [data-reimbursement-note]' ? [form] : [];
   }}});
   fields[0].value = '2026-07-02'; events.input();
   assert.equal(blinking, true);
@@ -145,6 +145,28 @@ test('Update Dates blinks only while the request dates differ from their loaded 
   fields[0].value = '2026-07-01'; events.input();
   assert.equal(blinking, true);
   fields[1].value = '2026-09-29'; events.change();
+  assert.equal(blinking, false);
+});
+
+test('Save Note blinks only while the note differs from its loaded value', () => {
+  const note = {value: 'Please review this receipt.'};
+  const events = {};
+  let blinking = false;
+  const button = {classList: {toggle(name, active) {
+    assert.equal(name, 'reimbursement-apply-reminder');
+    blinking = active;
+  }}};
+  const form = {
+    querySelectorAll: () => [note],
+    querySelector: () => button,
+    addEventListener(name, handler) { events[name] = handler; }
+  };
+  vm.runInNewContext(source, {document: {querySelectorAll(selector) {
+    return selector === '[data-reimbursement-filters], [data-reimbursement-date-range], [data-reimbursement-note]' ? [form] : [];
+  }}});
+  note.value = 'Please review this receipt and call me.'; events.input();
+  assert.equal(blinking, true);
+  note.value = 'Please review this receipt.'; events.input();
   assert.equal(blinking, false);
 });
 
