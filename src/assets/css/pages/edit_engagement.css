@@ -9,6 +9,227 @@
     font-size: 1.55rem;
 }
 
+.edit-engagement-page .engagement-event-details-section > h2 {
+    border-bottom: 0;
+}
+
+.edit-engagement-page .engagement-logistics-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 520px), 1fr));
+    align-items: start;
+    gap: clamp(24px, 3vw, 48px);
+}
+
+.edit-engagement-page .engagement-logistics-layout > * {
+    min-width: 0;
+}
+
+.edit-engagement-page .engagement-logistics-controls > h2,
+.edit-engagement-page .engagement-logistics-layout .address-section > h3 {
+    margin: 0 0 24px;
+    line-height: 1.3;
+}
+
+.edit-engagement-page .engagement-logistics-controls > h2 {
+    font-size: 1.55rem;
+}
+
+.edit-engagement-page .engagement-logistics-layout .address-section > h3 {
+    font-size: 1.2rem;
+}
+
+.edit-engagement-page .engagement-logistics-controls .checkbox-row {
+    display: grid;
+    justify-items: start;
+    gap: 16px;
+    margin: 0 0 20px;
+}
+
+.edit-engagement-page .engagement-logistics-controls .checkbox-group,
+.edit-engagement-page .engagement-logistics-controls .radio-options {
+    flex-wrap: wrap;
+    gap: 8px 18px;
+}
+
+.edit-engagement-page .engagement-logistics-controls .radio-row {
+    margin: 0;
+}
+
+.edit-engagement-page .engagement-logistics-controls .compensation-grid {
+    gap: 16px;
+    margin: 0 0 20px;
+}
+
+.edit-engagement-page .engagement-logistics-controls .compensation-type-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+    gap: 16px;
+    margin: 0;
+}
+
+.edit-engagement-page .engagement-logistics-controls .lodging-details-row {
+    grid-template-columns: 10rem minmax(0, 1fr);
+}
+
+.edit-engagement-page .engagement-logistics-controls .lodging-details-row #housing_type {
+    width: 100%;
+    max-width: 100%;
+}
+
+.edit-engagement-page .engagement-logistics-controls .compensation-type-row .form-field,
+.edit-engagement-page .engagement-logistics-controls .amount-row .form-field {
+    min-width: 0;
+}
+
+.edit-engagement-page .engagement-logistics-controls #compensation_type,
+.edit-engagement-page .engagement-logistics-controls #housing_type {
+    width: 100%;
+}
+
+.edit-engagement-page .engagement-logistics-controls .amount-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.edit-engagement-page .engagement-logistics-controls .amount-row .form-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.edit-engagement-page .engagement-logistics-controls .currency-input {
+    width: 100%;
+}
+
+.edit-engagement-page .engagement-logistics-controls .currency-input input[type="number"] {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+    margin: 0;
+}
+
+.edit-engagement-page .engagement-logistics-layout .address-section {
+    align-self: end;
+    margin: 0;
+}
+
+.edit-engagement-page .engagement-logistics-layout .address-fields > .form-field {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.edit-engagement-page .engagement-logistics-layout .address-fields label,
+.edit-engagement-page .engagement-logistics-layout .address-fields input[type="text"] {
+    margin-bottom: 0;
+}
+
+.edit-engagement-page .engagement-logistics-layout .event-address-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.edit-engagement-page .engagement-logistics-layout .event-address-row .form-field {
+    min-width: 0;
+    gap: 8px;
+}
+
+.edit-engagement-page .form-draft-panel {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 8px;
+}
+
+.edit-engagement-page .engagement-form > .required-fields-note {
+    margin-bottom: 8px;
+}
+
+.edit-engagement-page #event_description {
+    /* Eleven complete text lines plus the 8px padding and 1px border on each edge. */
+    height: calc(16.5em + 18px);
+    line-height: 1.5;
+}
+
+.edit-engagement-page .engagement-contact-add-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 450px), 1fr));
+    gap: 24px;
+}
+
+.edit-engagement-page .engagement-contact-add-grid > .engagement-contact-add-section {
+    min-width: 0;
+    border-top: 0;
+}
+
+.edit-engagement-page .engagement-contact-add-grid .engagement-contacts-heading {
+    flex-wrap: wrap;
+}
+
+.edit-engagement-page .engagement-contact-add-grid .engagement-contacts-heading > div {
+    min-width: 0;
+}
+
+.edit-engagement-page .presentation-fields .form-field {
+    gap: 10px !important;
+}
+
+.edit-engagement-page .presentation-fields .form-field > label {
+    margin-bottom: 0;
+}
+
+.edit-engagement-page .presentation-assets {
+    border-top: 0;
+}
+
+.edit-engagement-page .event-schedule-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px 24px;
+}
+
+.edit-engagement-page .engagement-event-details-section .organization-container > :is(label, input, select),
+.edit-engagement-page .event-schedule-row :is(.date-field, .event-caller-field) > :is(label, input, select) {
+    margin-block: 0;
+}
+
+.edit-engagement-page .event-schedule-row .date-fields {
+    flex-wrap: wrap;
+    margin: 15px 0;
+}
+
+.edit-engagement-page .event-caller-field {
+    align-items: center;
+    margin-left: auto;
+    gap: 12px;
+}
+
+.edit-engagement-page .event-caller-field > label,
+.edit-engagement-page .event-caller-field > select {
+    margin-bottom: 0;
+}
+
+.edit-engagement-page .event-caller-field > select {
+    width: 14rem;
+    max-width: 100%;
+}
+
+.edit-engagement-page .chron-entry-card + .chron-entry-card::before {
+    border-top-color: color-mix(in srgb, var(--accent) 35%, var(--border-strong));
+}
+
+.edit-engagement-page .chron-entry-card {
+    border: 0;
+    box-shadow: none;
+}
+
+.edit-engagement-page .chron-entry-actions {
+    border-top: 0;
+}
+
 /* Leave room for the fixed actions, including devices with a home indicator. */
 body.edit-engagement-body {
     padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));

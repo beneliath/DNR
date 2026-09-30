@@ -10,6 +10,11 @@
     padding-inline: var(--app-content-padding);
 }
 
+.compose-engagement-email-page > .compose-engagement-email-eyebrow {
+    margin-bottom: 4px;
+    text-align: center;
+}
+
 .compose-engagement-email-heading h1 {
     font-size: clamp(1.8rem, 3vw, 2.3rem);
 }
@@ -297,6 +302,27 @@ html body main.container.engagement-email-page.compose-engagement-email-page > f
 
 .email-brief-preview {
     margin-top: 12px;
+}
+
+.reply-follow-up > legend {
+    margin-bottom: 8px;
+}
+
+.reply-follow-up-toggle {
+    display: flex;
+    width: fit-content;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.reply-follow-up-toggle input[type="checkbox"] {
+    flex: 0 0 auto;
+    margin: 0;
+}
+
+.engagement-email-page .reply-follow-up-date {
+    width: min(100%, 18rem);
 }
 
 .email-brief-preview summary {

@@ -22,7 +22,7 @@
             </select>
         </div>
 
-        <div class="form-field lifecycle-field">
+        <div class="form-field lifecycle-field" data-confirmation-field<?php echo $selected_lifecycle_status === 'completed' ? ' hidden' : ''; ?>>
             <label for="confirmation_status">Confirmation Status</label>
             <select name="confirmation_status" id="confirmation_status">
                 <?php foreach ($engagement_confirmation_statuses as $confirmation_value): ?>

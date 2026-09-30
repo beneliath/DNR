@@ -721,6 +721,10 @@ html body .edit-presentations-button:not(:hover):not(:focus-visible) {
     margin-bottom: 18px;
 }
 
+.engagement-next-action-card > h2 {
+    margin-bottom: 24px;
+}
+
 .engagement-next-action-content {
     display: flex;
     align-items: flex-start;
