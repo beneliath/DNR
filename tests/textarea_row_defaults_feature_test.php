@@ -19,8 +19,8 @@ $entityChronEditor = $read('src/templates/entity_chron_log_edit_section.php');
 
 expectTextareaRowDefault(
     str_contains($newEngagement, 'name="event_description" id="event_description" rows="10"')
-        && str_contains($editEngagement, 'name="event_description" id="event_description" rows="10"'),
-    'event descriptions should default to 10 rows on create and edit forms.'
+        && str_contains($editEngagement, 'name="event_description" id="event_description" rows="11"'),
+    'event descriptions should default to 10 rows on create and 11 complete rows on edit.'
 );
 
 expectTextareaRowDefault(
