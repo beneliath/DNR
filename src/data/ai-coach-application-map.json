@@ -127,7 +127,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "5984ed8d54db2eb162425b9a23f6df962528591e48dae21eab6645cab896e515",
+      "sha256": "5c6b65ee47f1fef66afc1e74608978d46401fceb83a8bd8861ca36250e468885",
       "controls": [
         {
           "kind": "a",
@@ -1102,7 +1102,7 @@
       ]
     },
     "edit_contact.php": {
-      "sha256": "01e6f2ddbfd2f542eebe258706d22dc1e9f5db704cc3538fa761d30cf14bfb33",
+      "sha256": "dce524884686ff6865dd6bce385d1fe2060301790373bf7eef141056c0a4196f",
       "controls": [
         {
           "kind": "a",
@@ -1420,7 +1420,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "af3d325d7628c07c0f4170a281bfe9769f1f58cbb50bcb7c380166a840c4fcad",
+      "sha256": "0637cdafc64220b6f13cebd9bc8b2812ebc826394d7bab9ef88f19f2a77a69b7",
       "controls": [
         {
           "kind": "a",
@@ -1788,7 +1788,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "0e38b30c27575d744ba25ab17c1b63e685df06958b576dc917e8bbc8392e4f6b",
+      "sha256": "dd639720bc92086cc1ee714b2fcfd740dfa616a7b6ea807aaf66f2de43717719",
       "controls": [
         {
           "kind": "a",
@@ -2421,7 +2421,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "dc566df97efcec6ae50f4cb8c65af64a748569bcee66c3e05217163ecb46e789",
+      "sha256": "30984c720e2b5a42a6b37630ccb1d10a8332e56f7d4b3462c2e51fc3d7c7d2ca",
       "controls": [
         {
           "kind": "h1",
@@ -2438,6 +2438,15 @@
         {
           "kind": "a",
           "label": "Reset Statistics"
+        },
+        {
+          "kind": "label",
+          "label": "Data Window:",
+          "for": "network-window-days"
+        },
+        {
+          "kind": "button",
+          "label": "Apply"
         },
         {
           "kind": "h2",
@@ -2580,7 +2589,7 @@
       ]
     },
     "profile.php": {
-      "sha256": "f9df250d2f4a0171e53b1c5128cdf4caf89a36be3d8f5542f87136871cd9bb7a",
+      "sha256": "22b831c6237364405da3a437f5cee83bedc3805a0d7a11902a31fcf85a19d044",
       "controls": [
         {
           "kind": "h1",
@@ -3230,7 +3239,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "a26ee7e7d29cff5ef6cfdc1f991da08ad7d1937d971d090efc58e7864bc3b89c",
+      "sha256": "5321cd562a7771586b5b51ed36a2694a55a40af69a2d19344f7d5b36174ffa8e",
       "controls": [
         {
           "kind": "h1",
@@ -3813,7 +3822,7 @@
       ]
     },
     "tasks.php": {
-      "sha256": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
+      "sha256": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
       "controls": [
         {
           "kind": "h1",
@@ -4122,7 +4131,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+      "sha256": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
       "controls": [
         {
           "kind": "a",
@@ -4330,7 +4339,7 @@
       ]
     },
     "view_inquiry.php": {
-      "sha256": "e55e6c753d87013c6ab506f586d00eed02526df3849433e4552bf79b063f8edc",
+      "sha256": "d1a3ec3c6ddfbfed54800a912ce72fae8772322d3be85495821d8db0e4860b44",
       "controls": [
         {
           "kind": "a",
@@ -4460,7 +4469,7 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "05def64f802e495fe69597ce0b9127e8be58ad8055676fce4dd187588d34d90d",
+      "sha256": "21f4f60be0ba94a3f247cd3319d35b03507ca601d78b2ef8092600a41f32752e",
       "controls": [
         {
           "kind": "h1",

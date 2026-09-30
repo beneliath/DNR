@@ -4,23 +4,63 @@
     body.classList.add('has-app-shell');
     if (document.querySelector('[data-role-preview-banner]')) body.classList.add('role-preview-active');
 
-    function initialize() {
-        const sidebar = document.getElementById('app-sidebar');
-        if (sidebar) {
-            const preferenceUser = sidebar.getAttribute('data-nav-preference-user');
-            sidebar.querySelectorAll('[data-nav-group]').forEach(function (section) {
-                const storageKey = 'dnr.sidebar.' + encodeURIComponent(preferenceUser) + '.' + section.getAttribute('data-nav-group');
-                try {
-                    const saved = localStorage.getItem(storageKey);
-                    if (saved === 'open' || saved === 'closed') section.open = saved === 'open';
-                } catch (_) { /* Keep the defaults when browser storage is unavailable. */ }
-                section.addEventListener('toggle', function () {
-                    try {
-                        localStorage.setItem(storageKey, section.open ? 'open' : 'closed');
-                    } catch (_) { /* The section still works without browser storage. */ }
-                });
-            });
+    const sidebar = document.getElementById('app-sidebar');
+    if (sidebar) {
+        const preferenceUser = sidebar.getAttribute('data-nav-preference-user');
+        const preferenceCookie = sidebar.getAttribute('data-nav-preference-cookie');
+        const sections = Array.from(sidebar.querySelectorAll('[data-nav-group]'));
+        function storageKey(section) {
+            return 'dnr.sidebar.' + encodeURIComponent(preferenceUser) + '.' + section.getAttribute('data-nav-group');
         }
+        function saveCookie() {
+            if (!preferenceCookie) return;
+            const state = sections.map(function (section) {
+                return section.getAttribute('data-nav-group') + '=' + (section.open ? '1' : '0');
+            }).join(',');
+            document.cookie = preferenceCookie + '=' + encodeURIComponent(state)
+                + '; Path=/; Max-Age=31536000; SameSite=Lax'
+                + (window.location.protocol === 'https:' ? '; Secure' : '');
+        }
+        sections.forEach(function (section) {
+            try {
+                const saved = localStorage.getItem(storageKey(section));
+                if (saved === 'open' || saved === 'closed') section.open = saved === 'open';
+            } catch (_) { /* Keep the defaults when browser storage is unavailable. */ }
+            section.addEventListener('toggle', function () {
+                try {
+                    localStorage.setItem(storageKey(section), section.open ? 'open' : 'closed');
+                } catch (_) { /* The section still works without browser storage. */ }
+                saveCookie();
+            });
+        });
+        saveCookie();
+        function collapseSections() {
+            sections.forEach(function (section) {
+                section.open = false;
+                try {
+                    localStorage.setItem(storageKey(section), 'closed');
+                } catch (_) { /* The sections still collapse without browser storage. */ }
+            });
+            saveCookie();
+        }
+        sidebar.addEventListener('click', function (event) {
+            if (event.target.closest('.site-navigation a[href]')) saveCookie();
+        });
+        document.querySelectorAll('.app-brand, .mobile-brand').forEach(function (brand) {
+            brand.addEventListener('click', function (event) {
+                if (event.defaultPrevented || event.button !== 0 || (!event.metaKey && !event.ctrlKey)) return;
+                event.preventDefault();
+                collapseSections();
+            });
+            brand.addEventListener('contextmenu', function (event) {
+                if (event.defaultPrevented || !event.ctrlKey) return;
+                event.preventDefault();
+                collapseSections();
+            });
+        });
+    }
+
+    function initialize() {
         const toggle = document.querySelector('[data-nav-toggle]');
         const closeButton = document.querySelector('[data-nav-close]');
         const backdrop = document.querySelector('[data-nav-backdrop]');

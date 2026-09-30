@@ -20,6 +20,27 @@ html.dark-mode .tasks-page {
     box-shadow: none;
 }
 
+@media (min-width: 761px) {
+    .tasks-page .task-list-controls {
+        flex-wrap: wrap;
+    }
+
+    .tasks-page .task-list-controls .list-filter-summary {
+        width: auto;
+        flex: 0 1 auto;
+    }
+
+    .tasks-page .task-list-controls .list-search-form {
+        width: min(100%, 720px);
+        min-width: min(100%, 300px);
+        flex: 0 1 720px;
+    }
+}
+
+.tasks-page [data-task-bulk] {
+    margin-bottom: 12px !important;
+}
+
 .tasks-page .task-table th:first-child {
     text-transform: none;
 }

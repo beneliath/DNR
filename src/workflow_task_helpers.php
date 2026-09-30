@@ -61,6 +61,81 @@ function createEmailFollowUpTask(mysqli $conn, int $messageId, string $type, int
 }
 
 /** Thread headers are evidence of a possible reply, never authorization to complete a task. */
+function emailHeadersReferenceMessage(string $rawHeaders, string $smtpMessageId): bool
+{
+    $headers = preg_replace('/\r?\n[ \t]+/', ' ', $rawHeaders);
+    preg_match_all('/^(?:In-Reply-To|References):([^\r\n]*)/mi', $headers, $matches);
+    preg_match_all('/<[^<>\s]+>/', implode(' ', $matches[1]), $ids);
+    return in_array('<' . trim($smtpMessageId, '<>') . '>', $ids[0], true);
+}
+
+/** Load email follow-up labels for a task page with a fixed number of queries. */
+function emailFollowUpStatesForTasks(mysqli $conn, array $taskIds): array
+{
+    $taskIds = array_values(array_unique(array_filter(array_map('intval', $taskIds), static fn (int $id): bool => $id > 0)));
+    if (!$taskIds || !workflowTasksAvailable($conn)) return [];
+
+    $placeholders = implode(',', array_fill(0, count($taskIds), '?'));
+    $messages = $conn->execute_query(
+        "SELECT m.id, m.follow_up_task_id, t.status AS task_status, t.is_archived
+         FROM engagement_email_messages m
+         JOIN follow_up_tasks t ON t.id = m.follow_up_task_id
+         WHERE m.follow_up_task_id IN ({$placeholders})
+         ORDER BY m.id",
+        $taskIds
+    )->fetch_all(MYSQLI_ASSOC);
+
+    $states = [];
+    $openMessageIds = [];
+    $taskIdByMessageId = [];
+    foreach ($messages as $message) {
+        $taskId = (int) $message['follow_up_task_id'];
+        // A task normally has one message; use the first one consistently if it has more.
+        if (isset($states[$taskId])) continue;
+        $closed = !in_array($message['task_status'], ['open', 'in_progress', 'waiting'], true)
+            || (bool) $message['is_archived'];
+        $messageId = (int) $message['id'];
+        $states[$taskId] = ['id' => $messageId, 'label' => $closed ? 'Follow-up closed' : 'Awaiting reply'];
+        if (!$closed) {
+            $openMessageIds[] = $messageId;
+            $taskIdByMessageId[$messageId] = $taskId;
+        }
+    }
+    if (!$openMessageIds) return $states;
+
+    $placeholders = implode(',', array_fill(0, count($openMessageIds), '?'));
+    $candidates = $conn->execute_query(
+        "SELECT ranked.message_id, ranked.smtp_message_id, i.raw_headers
+         FROM (
+             SELECT d.id AS delivery_id, d.message_id, d.smtp_message_id, i.id AS inbound_id,
+                    ROW_NUMBER() OVER (PARTITION BY d.id ORDER BY i.received_at DESC) AS candidate_rank
+             FROM engagement_email_deliveries d
+             JOIN engagement_email_messages m ON m.id = d.message_id
+             JOIN inbound_email_messages i ON i.status = 'processed'
+                 AND i.received_at >= m.created_at
+                 AND LOWER(i.sender_address) = LOWER(d.recipient_email)
+             WHERE d.message_id IN ({$placeholders}) AND d.smtp_message_id IS NOT NULL
+                 AND (EXISTS (SELECT 1 FROM engagement_chron_entries c
+                              WHERE c.inbound_email_message_id = i.id AND c.engagement_id = m.engagement_id)
+                   OR EXISTS (SELECT 1 FROM booking_inquiry_chron_entries c
+                              WHERE c.inbound_email_message_id = i.id AND c.booking_inquiry_id = m.booking_inquiry_id))
+         ) ranked
+         JOIN inbound_email_messages i ON i.id = ranked.inbound_id
+         WHERE ranked.candidate_rank <= 100
+         ORDER BY ranked.delivery_id, ranked.candidate_rank",
+        $openMessageIds
+    );
+    while ($candidate = $candidates->fetch_assoc()) {
+        $taskId = $taskIdByMessageId[(int) $candidate['message_id']];
+        if ($states[$taskId]['label'] === 'Awaiting reply'
+            && emailHeadersReferenceMessage($candidate['raw_headers'], $candidate['smtp_message_id'])) {
+            $states[$taskId]['label'] = 'Reply received — review needed';
+        }
+    }
+    return $states;
+}
+
+/** Thread headers are evidence of a possible reply, never authorization to complete a task. */
 function emailFollowUpState(mysqli $conn, int $messageId): ?array
 {
     if (!workflowTasksAvailable($conn)) return null;
@@ -75,10 +150,7 @@ function emailFollowUpState(mysqli $conn, int $messageId): ?array
               OR EXISTS (SELECT 1 FROM booking_inquiry_chron_entries c WHERE c.inbound_email_message_id=i.id AND c.booking_inquiry_id=?))
             ORDER BY i.received_at DESC LIMIT 100", [$message['created_at'],$delivery['recipient_email'],$message['engagement_id'],$message['booking_inquiry_id']])->fetch_all(MYSQLI_ASSOC);
         foreach ($candidates as $candidate) {
-            $headers = preg_replace('/\r?\n[ \t]+/', ' ', $candidate['raw_headers']);
-            preg_match_all('/^(?:In-Reply-To|References):([^\r\n]*)/mi', $headers, $matches);
-            preg_match_all('/<[^<>\s]+>/', implode(' ', $matches[1]), $ids);
-            if (in_array('<' . trim($delivery['smtp_message_id'], '<>') . '>', $ids[0], true)) {
+            if (emailHeadersReferenceMessage($candidate['raw_headers'], $delivery['smtp_message_id'])) {
                 $message['reply_id'] = (int) $candidate['id'];
                 break 2;
             }

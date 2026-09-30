@@ -425,7 +425,7 @@ $task_digest_day_options = [
                     <small>Email me on the selected days with a Dashboard-style snapshot of upcoming engagements, My Work, event readiness, and financial closeouts<?php echo in_array((string) $user['role'], ['admin', 'editor'], true) ? ', plus inbound mail awaiting review' : ''; ?>. Overdue and due-today tasks are highlighted</small>
                 </span>
             </label>
-            <div class="profile-notification-schedule" data-task-digest-schedule>
+            <div class="profile-notification-schedule" data-task-digest-schedule<?php echo !empty($user['task_digest_enabled']) && !empty($user['email_verified_at']) ? '' : ' hidden'; ?>>
                 <?php if (!empty($user['email_verified_at'])): ?>
                     <input type="hidden" name="task_digest_schedule_present" value="1">
                 <?php endif; ?>
@@ -456,7 +456,7 @@ $task_digest_day_options = [
                     </div>
                 </fieldset>
             </div>
-            <p class="field-help" data-task-digest-paused<?php echo !empty($user['task_digest_enabled']) ? ' hidden' : ''; ?>>Digest delivery is off. Your previous schedule is kept for when you turn it on.</p>
+            <p class="field-help" data-task-digest-paused<?php echo !empty($user['task_digest_enabled']) && !empty($user['email_verified_at']) ? ' hidden' : ''; ?>>Digest delivery is off. Your previous schedule is kept for when you turn it on.</p>
             <?php if (empty($user['email_verified_at'])): ?>
                 <p class="field-help">Verify your email address to enable daily digests.</p>
             <?php else: ?>

@@ -7,7 +7,8 @@
 
     function networkAssessment(families, coverage = {}) {
         if (coverage.truncated) {
-            return { state: 'warning', status: 'Partial window', title: 'Recent Traffic Sample Only', detail: 'More than 5,000 measurements arrived in 24 hours. These results cover only the newest samples; a missing address family may have earlier traffic.' };
+            const days = coverage.window_days || 1;
+            return { state: 'warning', status: 'Partial window', title: 'Recent Traffic Sample Only', detail: `More than 5,000 measurements arrived in ${days} day${days === 1 ? '' : 's'}. These results cover only the newest samples; a missing address family may have earlier traffic.` };
         }
         const ipv4 = families.IPv4 || {};
         const ipv6 = families.IPv6 || {};
@@ -61,7 +62,7 @@
             : 'No samples');
     }
 
-    function renderPages(pages) {
+    function renderPages(pages, days) {
         const body = root.querySelector('[data-network-pages]');
         if (!body) return;
         body.replaceChildren();
@@ -69,7 +70,7 @@
             const row = body.insertRow();
             const cell = row.insertCell();
             cell.colSpan = 5;
-            cell.textContent = 'No remote measurements have arrived in the last 24 hours.';
+            cell.textContent = `No remote measurements have arrived in the last ${days} day${days === 1 ? '' : 's'}.`;
             return;
         }
         pages.forEach(function (page) {
@@ -104,7 +105,7 @@
     function render(payload) {
         renderFamily('ipv4', payload.families.IPv4 || {});
         renderFamily('ipv6', payload.families.IPv6 || {});
-        renderPages(payload.pages || []);
+        renderPages(payload.pages || [], payload.coverage?.window_days || 1);
         renderDownloads(payload.downloads || {});
         const assessment = networkAssessment(payload.families || {}, payload.coverage || {});
         const summary = root.querySelector('[data-network-summary]');

@@ -397,7 +397,7 @@ try {
             </div>
         </div>
 
-        <div class="address-section" id="mailing_address_section" data-address-optional>
+        <div class="address-section" id="mailing_address_section" data-address-optional<?php echo $same_address ? ' hidden' : ''; ?>>
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">

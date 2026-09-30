@@ -75,13 +75,14 @@ function renderPageHead($title, array $options = []) {
     echo '    <title>' . htmlspecialchars($full_title, ENT_QUOTES, 'UTF-8') . '</title>' . PHP_EOL;
     echo '    <link rel="icon" type="image/svg+xml" href="'
         . htmlspecialchars(assetUrl('assets/favicon.svg'), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
+    renderScript('assets/js/theme-init.min.js', false);
     foreach ($styles as $style) {
         echo '    <link rel="stylesheet" href="'
             . htmlspecialchars(assetUrl((string) $style), ENT_QUOTES, 'UTF-8') . '">' . PHP_EOL;
     }
     foreach ($scripts as $script) {
         $path = is_array($script) ? ($script['path'] ?? '') : $script;
-        if ($path === '') {
+        if ($path === '' || $path === 'assets/js/theme-init.min.js') {
             continue;
         }
         $defer = !is_array($script) || !array_key_exists('defer', $script) || $script['defer'];

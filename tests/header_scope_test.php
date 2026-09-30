@@ -52,6 +52,24 @@ expectHeaderScope(
     'The desktop sidebar should render one logo element with versioned light- and dark-theme sources.'
 );
 expectHeaderScope(
+    str_contains($header_markup, 'data-nav-preference-cookie="dnr_sidebar_')
+        && !str_contains($header_markup, 'nav-state-loading'),
+    'The sidebar should render without hiding its search control during navigation.'
+);
+$nav_cookie = 'dnr_sidebar_' . substr(hash('sha256', 'Test User'), 0, 12);
+$_COOKIE[$nav_cookie] = 'work=0,schedule=0,relationships=0,administration=1';
+ob_start();
+include __DIR__ . '/../src/templates/header.php';
+$saved_header_markup = ob_get_clean();
+unset($_COOKIE[$nav_cookie]);
+expectHeaderScope(
+    preg_match('/data-nav-group="work">\s*<summary>/', $saved_header_markup) === 1
+        && preg_match('/data-nav-group="schedule">\s*<summary>/', $saved_header_markup) === 1
+        && preg_match('/data-nav-group="relationships">\s*<summary>/', $saved_header_markup) === 1
+        && preg_match('/data-nav-group="administration" open>\s*<summary>/', $saved_header_markup) === 1,
+    'The server should render saved sidebar groups before the browser paints the next page.'
+);
+expectHeaderScope(
     substr_count($header_markup, 'class="mobile-brand-logo"') === 1
         && str_contains($header_markup, 'src="assets/dnr-logo.svg?rev=mobile-crop-1&amp;v=test"')
         && str_contains($header_markup, 'data-light-src="assets/dnr-logo.svg?rev=mobile-crop-1&amp;v=test"')

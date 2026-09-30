@@ -36,5 +36,18 @@ expectFavicon(
     ) === 1,
     'the shared page head should publish the fingerprinted SVG favicon on every rendered page.'
 );
+expectFavicon(
+    preg_match('/<script src="assets\/js\/theme-init\.min\.js\?h=[0-9a-f]{12}"><\/script>/', $head) === 1,
+    'the shared page head should initialize the theme before the page body renders.'
+);
+
+ob_start();
+renderPageHead('Sign In', ['styles' => ['assets/css/modern.min.css'], 'scripts' => [['path' => 'assets/js/theme-init.min.js', 'defer' => false]]]);
+$login_head = (string) ob_get_clean();
+expectFavicon(
+    substr_count($login_head, 'theme-init.min.js') === 1
+        && strpos($login_head, 'theme-init.min.js') < strpos($login_head, 'modern.min.css'),
+    'theme initialization should run once before the theme stylesheet, including on pages that request it explicitly.'
+);
 
 echo "Favicon feature tests passed.\n";

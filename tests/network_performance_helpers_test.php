@@ -12,6 +12,18 @@ function expectNetworkPerformance(bool $condition, string $message): void
     }
 }
 
+foreach (range(1, 7) as $days) {
+    expectNetworkPerformance(networkPerformanceWindowDays((string) $days) === $days,
+        'each supported data window should be accepted');
+}
+expectNetworkPerformance(
+    networkPerformanceWindowDays(null) === 1
+        && networkPerformanceWindowDays('0') === 1
+        && networkPerformanceWindowDays('8') === 1
+        && networkPerformanceWindowDays('2.5') === 1
+        && networkPerformanceWindowDays(['7']) === 1,
+    'missing or invalid data windows should use the one-day default');
+
 expectNetworkPerformance(
     networkPerformanceAddressFamily('127.0.0.1') === null
         && networkPerformanceAddressFamily('192.168.1.25') === null
@@ -124,6 +136,10 @@ $windowRows[5000]['recorded_at'] = '2026-09-27 11:00:00';
 $window = summarizeNetworkPerformanceWindow($windowRows);
 expectNetworkPerformance($window['coverage']['truncated'] && $window['sample_count'] === 5000,
     'the lookahead row must indicate truncation without entering the summary');
+$sevenDayWindow = summarizeNetworkPerformanceWindow($windowRows, 7);
+expectNetworkPerformance($sevenDayWindow['window_days'] === 7 && $sevenDayWindow['window_hours'] === 168
+    && $sevenDayWindow['coverage']['window_days'] === 7 && $sevenDayWindow['coverage']['window_hours'] === 168,
+    'summary metadata should describe the selected seven-day window');
 expectNetworkPerformance($window['coverage']['from'] === '2026-09-27T12:00:00+00:00'
     && $window['coverage']['through'] === '2026-09-27T13:00:00+00:00',
     'coverage must describe the included rows with an explicit UTC offset');

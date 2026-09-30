@@ -84,6 +84,14 @@ $profile_picture_version = (int) ($_SESSION['profile_picture_version'] ?? 0);
 $shell_brand_label = applicationBrandLabel();
 $shell_logo_light = applicationBrandLogo('light');
 $shell_logo_dark = applicationBrandLogo('dark');
+$nav_preference_user = (string) ($_SESSION['user_id'] ?? $username);
+$nav_preference_cookie = 'dnr_sidebar_' . substr(hash('sha256', $nav_preference_user), 0, 12);
+$nav_saved_state = [];
+foreach (explode(',', (string) ($_COOKIE[$nav_preference_cookie] ?? '')) as $entry) {
+    if (preg_match('/\A(work|schedule|relationships|administration)=([01])\z/', $entry, $matches)) {
+        $nav_saved_state[$matches[1]] = $matches[2] === '1';
+    }
+}
 $nav_task_count = 0;
 if (!empty($_SESSION['user_id'])) {
     try {
@@ -164,7 +172,7 @@ if (!empty($_SESSION['user_id'])) {
         </section>
     <?php endif; ?>
 
-    <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars((string) ($_SESSION['user_id'] ?? $username), ENT_QUOTES, 'UTF-8'); ?>">
+    <div class="app-sidebar" id="app-sidebar" aria-label="Application Navigation" data-nav-preference-user="<?php echo htmlspecialchars($nav_preference_user, ENT_QUOTES, 'UTF-8'); ?>" data-nav-preference-cookie="<?php echo htmlspecialchars($nav_preference_cookie, ENT_QUOTES, 'UTF-8'); ?>">
         <button type="button" class="sidebar-close-button button-secondary" data-nav-close>Close Navigation</button>
         <a class="app-brand" href="dashboard.php" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
@@ -177,7 +185,7 @@ if (!empty($_SESSION['user_id'])) {
         </form>
         <div class="sidebar-scroll-area">
             <nav class="site-navigation" aria-label="Primary">
-                <details class="nav-group nav-group-disclosure" data-nav-group="work" open>
+                <details class="nav-group nav-group-disclosure" data-nav-group="work"<?php echo ($nav_saved_state['work'] ?? true) ? ' open' : ''; ?>>
                     <summary><h2 class="nav-group-heading" id="nav-work">Work</h2></summary>
                     <ul>
                         <li><a href="dashboard.php" class="nav-link<?php echo $active_nav === 'dashboard' ? ' active' : ''; ?>"<?php echo $active_nav === 'dashboard' ? ' aria-current="page"' : ''; ?>>
@@ -203,7 +211,7 @@ if (!empty($_SESSION['user_id'])) {
                         </a></li>
                     </ul>
                 </details>
-                <details class="nav-group nav-group-disclosure" data-nav-group="schedule" open>
+                <details class="nav-group nav-group-disclosure" data-nav-group="schedule"<?php echo ($nav_saved_state['schedule'] ?? true) ? ' open' : ''; ?>>
                     <summary><h2 class="nav-group-heading" id="nav-schedule">Schedule</h2></summary>
                     <ul>
                         <li><a href="engagements.php" class="nav-link<?php echo $active_nav === 'engagements' ? ' active' : ''; ?>"<?php echo $active_nav === 'engagements' ? ' aria-current="page"' : ''; ?>>
@@ -217,7 +225,7 @@ if (!empty($_SESSION['user_id'])) {
                     </a></li>
                     </ul>
                 </details>
-                <details class="nav-group nav-group-disclosure" data-nav-group="relationships" open>
+                <details class="nav-group nav-group-disclosure" data-nav-group="relationships"<?php echo ($nav_saved_state['relationships'] ?? true) ? ' open' : ''; ?>>
                     <summary><h2 class="nav-group-heading" id="nav-relationships">Relationships</h2></summary>
                     <ul>
                         <li><a href="organizations.php" class="nav-link<?php echo $active_nav === 'organizations' ? ' active' : ''; ?>"<?php echo $active_nav === 'organizations' ? ' aria-current="page"' : ''; ?>>
@@ -232,7 +240,7 @@ if (!empty($_SESSION['user_id'])) {
                     </ul>
                 </details>
                 <?php if ($user_role === 'admin'): ?>
-                <details class="nav-group nav-group-disclosure" data-nav-group="administration">
+                <details class="nav-group nav-group-disclosure" data-nav-group="administration"<?php echo ($nav_saved_state['administration'] ?? false) ? ' open' : ''; ?>>
                     <summary><h2 class="nav-group-heading" id="nav-administration">Administration</h2></summary>
                     <ul>
                         <li><a href="<?php echo htmlspecialchars($admin_unlock_url, ENT_QUOTES, 'UTF-8'); ?>" class="nav-link admin-nav-link<?php echo $active_nav === 'admin_unlock' ? ' active' : ''; ?>" data-admin-unlock-link<?php echo $active_nav === 'admin_unlock' ? ' aria-current="page"' : ''; ?>>

@@ -104,6 +104,10 @@ try {
     expectReimbursement($editor($expensePath . '&mode=view', $input + ['csrf_token' => $csrf, 'action' => 'save'])['status'] === 405, 'Expense view must reject forged POSTs');
     $actionsList = $editor('reimbursements.php?start_date=2026-01-01&end_date=2026-12-31');
     expectReimbursement(str_contains($actionsList['body'], '>Actions</th>') && str_contains($actionsList['body'], 'form="expense-archive-' . $expenseId . '"') && !str_contains($actionsList['body'], 'form="expense-delete-' . $expenseId . '"'), 'Editor list must offer view/edit/archive but no delete');
+    $availableView = $editor('reimbursements.php?state=available&start_date=2026-01-01&end_date=2026-12-31');
+    $draftView = $editor('reimbursements.php?state=draft&start_date=2026-01-01&end_date=2026-12-31');
+    expectReimbursement(str_contains($availableView['body'], 'data-selection-expense="' . $expenseId . '"') && !str_contains($draftView['body'], 'data-selection-expense="' . $expenseId . '"'), 'Available state shows only unclaimed expenses');
+    expectReimbursement(str_contains($availableView['body'], '>State:') && str_contains($availableView['body'], 'state=available'), 'State selector and current filter appear in the expense list');
     expectReimbursement(preg_match_all('/<button[^>]*data-select-all-available[^>]*>/', $actionsList['body']) === 2, 'Available expense selection appears above and below the table');
     $availableResponse = $editor('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31&q=Workflow');
     $availableRows = json_decode($availableResponse['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'] ?? [];
@@ -174,6 +178,9 @@ try {
     preg_match('/Location: reimbursement_request.php\?id=(\d+)/i', $created['headers'], $match);
     expectReimbursement($created['status'] === 302 && isset($match[1]), 'Draft creation redirects to edit');
     $requestId = (int) $match[1]; $requests[] = $requestId;
+    $draftView = $editor('reimbursements.php?state=draft&start_date=2026-01-01&end_date=2026-12-31');
+    $availableView = $editor('reimbursements.php?state=available&start_date=2026-01-01&end_date=2026-12-31');
+    expectReimbursement(str_contains($draftView['body'], 'data-selection-expense="' . $expenseId . '"') && !str_contains($availableView['body'], 'data-selection-expense="' . $expenseId . '"'), 'Draft state includes claimed expenses and Available excludes them');
     $claimedResponse = $editor('reimbursements.php?action=available_expenses&start_date=2026-01-01&end_date=2026-12-31&q=Workflow');
     $claimedRows = json_decode($claimedResponse['body'], true, 512, JSON_THROW_ON_ERROR)['expenses'];
     expectReimbursement(!in_array($expenseId, array_map(static fn($row) => (int) $row['id'], $claimedRows), true), 'Expenses already in a request are excluded from bulk selection');
@@ -321,6 +328,9 @@ try {
 
     $row = $conn->execute_query('SELECT status, submitted_at FROM reimbursement_requests WHERE id = ?', [$requestId])->fetch_assoc();
     expectReimbursement($row['status'] === 'submitted' && $row['submitted_at'] !== null, 'Status timestamp must be recorded');
+    $submittedView = $editor('reimbursements.php?state=submitted&start_date=2026-01-01&end_date=2026-12-31');
+    $draftView = $editor('reimbursements.php?state=draft&start_date=2026-01-01&end_date=2026-12-31');
+    expectReimbursement(str_contains($submittedView['body'], 'data-selection-expense="' . $expenseId . '"') && !str_contains($draftView['body'], 'data-selection-expense="' . $expenseId . '"'), 'Submitted state follows the request transition');
     expectReimbursementRejected(fn() => saveReimbursementExpense($conn, $users['editor'], $input, [], $expenseId), 'Submitted expense must be locked');
     expectReimbursementRejected(fn() => deleteReimbursementReceipt($conn, $expenseId, $receiptId, $users['editor']), 'Submitted receipt must be locked');
     expectReimbursementRejected(fn() => createReimbursementRequest($conn, $users['editor'], '2026-01-01', '2026-12-31', [$expenseId]), 'An expense cannot belong to two requests');

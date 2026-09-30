@@ -35,6 +35,7 @@ function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initializ
 
     const panels = (inquiry ? ["inquiry-activity", "inquiry-correspondence", "inquiry-tasks"]
         : ["chron-log", "correspondence", "engagement-tasks"]).map(id => node(id));
+    panels.forEach((panel, index) => { panel.hidden = index !== selected; });
     const tabs = panels.map((panel, index) => node(panel.id + "-tab", {
         "aria-controls": panel.id,
         "aria-selected": String(index === selected)
@@ -114,9 +115,9 @@ function assertSelected(fixture, expectedIndex) {
     });
 }
 
-test("engagement tabs progressively enhance visible panels and switch by click", function () {
+test("engagement tabs start with inactive panels hidden and switch by click", function () {
     const fixture = recordTabsFixture({ initialize: false });
-    assert.ok(fixture.panels.every(panel => !panel.hidden));
+    assert.deepEqual(fixture.panels.map(panel => panel.hidden), [false, true, true]);
     fixture.initialize();
     assertSelected(fixture, 0);
     for (const index of [1, 2, 0]) {
@@ -148,6 +149,7 @@ test("initial record fragments reveal their panel, including nested task anchors
         const fixture = recordTabsFixture({ hash });
         assertSelected(fixture, selected);
         assert.equal(fixture.focused, null);
+        assert.equal(fixture.nodes.get(decodeURIComponent(hash.slice(1))).scrolls, 1);
     }
 });
 

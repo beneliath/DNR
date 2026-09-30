@@ -1231,11 +1231,13 @@
                     return panel === target || panel.contains(target);
                 }) : -1;
             };
-            const requestedPanel = panelForTarget(hashTarget(window.location.hash));
+            const requestedTarget = hashTarget(window.location.hash);
+            const requestedPanel = panelForTarget(requestedTarget);
             const selectedTab = tabs.findIndex(function (tab) {
                 return tab.getAttribute('aria-selected') === 'true';
             });
             activate(requestedPanel >= 0 ? requestedPanel : Math.max(0, selectedTab), false);
+            if (requestedPanel >= 0) requestedTarget.scrollIntoView({ block: 'start' });
 
             window.addEventListener('hashchange', function () {
                 const target = hashTarget(window.location.hash);
