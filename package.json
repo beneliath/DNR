@@ -15,7 +15,7 @@
     "chart.js": "^4.5.1",
     "d3-geo": "^3.1.1",
     "esbuild": "^0.28.2",
-    "maplibre-gl": "6.10.0"
+    "maplibre-gl": "6.11.2"
   },
   "dependencies": {
     "pdfjs-dist": "6.3.289"
