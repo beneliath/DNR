@@ -36,6 +36,43 @@
     margin: 0;
 }
 
+.network-window-controls {
+    margin-bottom: 18px;
+}
+
+.network-window-form {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
+.network-window-form label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin: 0;
+    font-weight: 650;
+}
+
+#network-window-days {
+    width: 7.5rem !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    min-height: 44px;
+    margin: 0;
+}
+
+.network-window-form button {
+    min-height: 44px;
+    margin: 0;
+}
+
 .network-diagnostics-summary {
     display: flex;
     align-items: center;

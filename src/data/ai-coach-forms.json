@@ -57,7 +57,7 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
         "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
         "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
       },
@@ -96,7 +96,7 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
       "condition": "Related Record is a search: type at least three characters in Find a Related Record, then choose a result. Searching alone does not select it. Change Record reveals search for an existing selection. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
-        "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
+        "templates/follow_up_task_form.php": "963a91e272b3db578044785c80dd35a1c503fcf37a4c6b60f7ce9e54d5f28a4b",
         "add_task.php": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
@@ -206,7 +206,7 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
         "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
       },
       "controls": {
@@ -286,8 +286,8 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
-        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd"
+        "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
+        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19"
       },
       "controls": {
         "tasks-tab": {
@@ -390,7 +390,7 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
-        "reimbursements.php": "a26ee7e7d29cff5ef6cfdc1f991da08ad7d1937d971d090efc58e7864bc3b89c",
+        "reimbursements.php": "5321cd562a7771586b5b51ed36a2694a55a40af69a2d19344f7d5b36174ffa8e",
         "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
         "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },

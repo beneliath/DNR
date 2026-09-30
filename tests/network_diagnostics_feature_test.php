@@ -84,5 +84,13 @@ expectNetworkDiagnostics(
         && str_contains($page, '<th scope="colgroup" colspan="2" class="network-family-heading">IPv4</th>'),
     'the responsive admin page should compare both public families, contact images, and observed page loads.'
 );
+expectNetworkDiagnostics(
+    str_contains($page, 'id="network-window-days"')
+        && str_contains($page, 'class="network-window-controls"')
+        && str_contains($endpoint, "networkPerformanceWindowDays(\$_GET['days'] ?? null)")
+        && str_contains($helpers, 'INTERVAL ? DAY')
+        && str_contains($styles, '#network-window-days'),
+    'administrators should be able to choose a compact one-to-seven-day data window.'
+);
 
 echo "Network diagnostics feature tests passed.\n";

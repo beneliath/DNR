@@ -2870,6 +2870,10 @@ html body .container > .standard-event-task-form,
   margin-bottom: 10px;
 }
 
+html.has-js .follow-up-task-form #task-subject {
+  display: none !important;
+}
+
 .follow-up-task-form .task-selected-record {
   align-items: center;
   flex-wrap: wrap;
@@ -6631,6 +6635,24 @@ html body .presentation-generated-links button.presentation-copy-link {
 input.bulk-delete-checkbox { flex: 0 0 20px; margin: 0; }
 .contact-name-cell > .bulk-delete-checkbox { align-self: center; }
 .bulk-delete-help { flex-basis: 100%; margin: 0; font-size: .875rem; color: var(--text-muted); }
+
+/* These record lists place controls directly on the page. */
+:is(.organizations-page, .contacts-page, .engagements-page) > .list-controls {
+  margin: 15px 0 20px !important;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+}
+:is(.organizations-page, .contacts-page, .engagements-page) > .bulk-delete-toolbar {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .bulk-delete-review { max-width: 850px; }
 .bulk-delete-review-list { padding-left: 24px; max-height: 50vh; overflow: auto; }
 .bulk-delete-review-list li { padding: 8px 0; }

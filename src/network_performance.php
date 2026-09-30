@@ -13,9 +13,10 @@ header('X-Content-Type-Options: nosniff');
 
 if ($method === 'GET') {
     requireAdmin();
+    $windowDays = networkPerformanceWindowDays($_GET['days'] ?? null);
     session_write_close();
     header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(fetchNetworkPerformanceSummary($conn), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+    echo json_encode(fetchNetworkPerformanceSummary($conn, $windowDays), JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     exit;
 }
 

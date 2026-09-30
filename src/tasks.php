@@ -351,6 +351,8 @@ if ($bind_types !== '') {
 $task_stmt->execute();
 $tasks = $task_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 $task_stmt->close();
+require_once __DIR__ . '/workflow_task_helpers.php';
+$email_follow_up_states = emailFollowUpStatesForTasks($conn, array_column($tasks, 'id'));
 $queue_url = static function (array $overrides = []) use ($queue_parameters) {
     $parameters = array_merge($queue_parameters, $overrides);
     if ($parameters['scope'] !== $queue_parameters['scope']) {
@@ -499,10 +501,8 @@ $active_task_statuses = followUpTaskActiveStatuses();
                     <?php if ($can_manage_tasks && !$is_archived): ?><a class="record-link" href="<?php echo htmlspecialchars($task_edit_url, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong><?php endif; ?>
                     <div class="task-record-priority"><span class="task-priority-legend-item task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($task_priority_label, ENT_QUOTES, 'UTF-8'); ?></span></div>
                     <?php if (!empty($task['details'])): ?><small class="task-notes-preview"><?php echo htmlspecialchars(strlen($task['details']) > 160 ? substr($task['details'], 0, 157) . '…' : $task['details'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
-                    <?php require_once __DIR__ . '/workflow_task_helpers.php';
-                    $emailLink=workflowTasksAvailable($conn) ? $conn->execute_query('SELECT id FROM engagement_email_messages WHERE follow_up_task_id=? LIMIT 1',[(int)$task['id']])->fetch_assoc() : null;
-                    if ($emailLink): $emailState=emailFollowUpState($conn,(int)$emailLink['id']); ?>
-                    <small><a href="outbound_mail.php?id=<?php echo (int)$emailLink['id']; ?>"><?php echo htmlspecialchars($emailState['label'],ENT_QUOTES,'UTF-8'); ?></a></small>
+                    <?php if (isset($email_follow_up_states[(int) $task['id']])): $emailState = $email_follow_up_states[(int) $task['id']]; ?>
+                    <small><a href="outbound_mail.php?id=<?php echo $emailState['id']; ?>"><?php echo htmlspecialchars($emailState['label'], ENT_QUOTES, 'UTF-8'); ?></a></small>
                     <?php endif; ?>
                     <?php if ($task['status'] === 'waiting' && !empty($task['waiting_on'])): ?><small class="task-waiting-on">Waiting on: <?php echo htmlspecialchars($task['waiting_on'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?>
                 </td>

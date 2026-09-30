@@ -353,7 +353,7 @@ if (isset($_SESSION['success_message'])) {
             </div>
         </div>
 
-        <div id="mailing_address_section" data-address-optional class="address-section">
+        <div id="mailing_address_section" data-address-optional class="address-section"<?php echo ($_POST['same_address'] ?? 'yes') === 'no' ? '' : ' hidden'; ?>>
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">

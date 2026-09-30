@@ -2,6 +2,12 @@
 
 declare(strict_types=1);
 
+function networkPerformanceWindowDays(mixed $requested): int
+{
+    if (!is_int($requested) && !is_string($requested)) return 1;
+    return preg_match('/\A[1-7]\z/D', (string) $requested) === 1 ? (int) $requested : 1;
+}
+
 function networkPerformanceAddressFamily(?string $address): ?string
 {
     if ($address === null || filter_var(
@@ -202,8 +208,9 @@ function networkPerformancePercentile(array $values, float $percentile): ?float
 }
 
 /** @param list<array<string, mixed>> $rows @return array<string, mixed> */
-function summarizeNetworkPerformanceRows(array $rows): array
+function summarizeNetworkPerformanceRows(array $rows, int $days = 1): array
 {
+    $days = networkPerformanceWindowDays($days);
     $downloads = [];
     foreach (['pdf', 'ppt', 'pptx'] as $type) {
         foreach (['IPv4', 'IPv6'] as $family) {
@@ -281,7 +288,8 @@ function summarizeNetworkPerformanceRows(array $rows): array
     });
 
     return [
-        'window_hours' => 24,
+        'window_hours' => $days * 24,
+        'window_days' => $days,
         'sample_count' => count($rows),
         'generated_at' => gmdate(DATE_ATOM),
         'families' => $families,
@@ -291,29 +299,32 @@ function summarizeNetworkPerformanceRows(array $rows): array
 }
 
 /** @return array<string, mixed> */
-function fetchNetworkPerformanceSummary(mysqli $conn): array
+function fetchNetworkPerformanceSummary(mysqli $conn, int $days = 1): array
 {
-    $result = $conn->query(
+    $days = networkPerformanceWindowDays($days);
+    $result = $conn->execute_query(
         'SELECT recorded_at, address_family, page_path, cloudflare_colo, sample_type, response_bytes, response_status, server_headers_ms, ttfb_ms, load_ms, image_count, image_max_ms, '
         . 'contact_image_count, contact_image_max_ms '
         . 'FROM network_performance_samples '
-        . 'WHERE recorded_at >= UTC_TIMESTAMP(6) - INTERVAL 24 HOUR '
-        . 'ORDER BY recorded_at DESC, id DESC LIMIT 5001'
+        . 'WHERE recorded_at >= UTC_TIMESTAMP(6) - INTERVAL ? DAY '
+        . 'ORDER BY recorded_at DESC, id DESC LIMIT 5001',
+        [$days]
     );
-    return summarizeNetworkPerformanceWindow($result->fetch_all(MYSQLI_ASSOC));
+    return summarizeNetworkPerformanceWindow($result->fetch_all(MYSQLI_ASSOC), $days);
 }
 
 /** Fetch one extra row to detect truncation without counting the whole history. */
-function summarizeNetworkPerformanceWindow(array $rows): array
+function summarizeNetworkPerformanceWindow(array $rows, int $days = 1): array
 {
+    $days = networkPerformanceWindowDays($days);
     $truncated = count($rows) > 5000;
     $rows = array_slice($rows, 0, 5000);
     $first = $rows === [] ? null : $rows[count($rows) - 1]['recorded_at'];
     $last = $rows[0]['recorded_at'] ?? null;
     $utc = static fn(?string $value): ?string => $value === null ? null
         : (new DateTimeImmutable($value, new DateTimeZone('UTC')))->format(DATE_ATOM);
-    return summarizeNetworkPerformanceRows($rows) + ['coverage' => [
+    return summarizeNetworkPerformanceRows($rows, $days) + ['coverage' => [
         'truncated' => $truncated, 'limit' => 5000, 'count' => count($rows),
-        'from' => $utc($first), 'through' => $utc($last), 'window_hours' => 24,
+        'from' => $utc($first), 'through' => $utc($last), 'window_hours' => $days * 24, 'window_days' => $days,
     ]];
 }

@@ -17,6 +17,8 @@ if (!in_array($method, ['GET', 'POST'], true)) {
     exit;
 }
 
+$windowDays = networkPerformanceWindowDays($_GET['days'] ?? null);
+$pageUrl = 'network_diagnostics.php' . ($windowDays === 1 ? '' : '?days=' . $windowDays);
 $resetError = '';
 if ($method === 'POST') {
     requireValidCsrfToken();
@@ -24,11 +26,11 @@ if ($method === 'POST') {
         http_response_code(400);
         exit('Select a valid reset action.');
     }
-    requireRecentAdminElevation('network_diagnostics.php');
+    requireRecentAdminElevation($pageUrl);
     try {
         resetNetworkPerformanceStatistics($conn, (int) $_SESSION['user_id']);
         $_SESSION['_network_statistics_reset'] = true;
-        header('Location: network_diagnostics.php', true, 303);
+        header('Location: ' . $pageUrl, true, 303);
         exit;
     } catch (Throwable $exception) {
         http_response_code(500);
@@ -51,22 +53,22 @@ unset($_SESSION['_network_statistics_reset']);
 ]); ?>
 <body class="network-diagnostics-body">
 <?php include 'templates/header.php'; ?>
-<main class="container network-diagnostics-page" data-network-diagnostics data-summary-url="network_performance.php">
+<main class="container network-diagnostics-page" data-network-diagnostics data-summary-url="network_performance.php?days=<?php echo $windowDays; ?>">
     <div class="page-heading network-diagnostics-heading">
         <div>
             <h1>Remote Network Performance</h1>
-            <p class="page-intro">Compare actual MOED page loads and document responses from public IPv4 and IPv6 clients during the last 24 hours.</p>
+            <p class="page-intro">Compare actual MOED page loads and document responses from public IPv4 and IPv6 clients during the last <?php echo $windowDays; ?> day<?php echo $windowDays === 1 ? '' : 's'; ?>.</p>
         </div>
         <div class="network-diagnostics-actions">
             <button type="button" class="button-add" data-network-refresh>Refresh</button>
             <?php if (hasRecentAdminElevation()): ?>
-                <form method="post" action="network_diagnostics.php" class="network-statistics-reset-form" data-admin-unlock-required data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page, image, and document timings? This cannot be undone. New traffic will start counting from zero.">
+                <form method="post" action="<?php echo htmlspecialchars($pageUrl, ENT_QUOTES, 'UTF-8'); ?>" class="network-statistics-reset-form" data-admin-unlock-required data-confirm="Clear all recorded IPv4 and IPv6 traffic statistics, including page, image, and document timings? This cannot be undone. New traffic will start counting from zero.">
                     <?php echo csrfInput(); ?>
                     <input type="hidden" name="action" value="reset_statistics">
                     <button type="submit" class="button-secondary statistics-reset-button">Reset Statistics</button>
                 </form>
             <?php else: ?>
-                <a href="admin_elevation.php?return=network_diagnostics.php" class="button-secondary statistics-reset-button">Reset Statistics</a>
+                <a href="admin_elevation.php?return=<?php echo rawurlencode($pageUrl); ?>" class="button-secondary statistics-reset-button">Reset Statistics</a>
             <?php endif; ?>
         </div>
     </div>
@@ -77,6 +79,18 @@ unset($_SESSION['_network_statistics_reset']);
     <?php if ($resetError !== ''): ?>
         <p class="error" role="alert"><?php echo htmlspecialchars($resetError, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
+
+    <div class="network-window-controls">
+        <form method="get" action="network_diagnostics.php" class="network-window-form">
+            <label for="network-window-days">Data Window:</label>
+            <select id="network-window-days" name="days">
+                <?php for ($days = 1; $days <= 7; $days++): ?>
+                    <option value="<?php echo $days; ?>"<?php echo $windowDays === $days ? ' selected' : ''; ?>><?php echo $days; ?> day<?php echo $days === 1 ? '' : 's'; ?></option>
+                <?php endfor; ?>
+            </select>
+            <button type="submit" class="button-secondary">Apply</button>
+        </form>
+    </div>
 
     <section class="network-diagnostics-summary" aria-labelledby="network-result-heading" data-network-summary data-state="pending">
         <div>
@@ -178,7 +192,7 @@ unset($_SESSION['_network_statistics_reset']);
             <li>Results appear after the updated application receives public traffic; an empty IPv6 card means no IPv6 sample has arrived yet.</li>
         </ul>
         <p data-network-coverage aria-live="polite"></p>
-        <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard shows up to 5,000 of the newest measurements from the last 24 hours and reports their actual coverage.</p>
+        <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard shows up to 5,000 of the newest measurements from the selected <?php echo $windowDays; ?>-day window and reports their actual coverage.</p>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

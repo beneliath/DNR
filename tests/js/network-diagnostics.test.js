@@ -30,3 +30,9 @@ test('assessment flags a material IPv6 delay and accepts comparable paths', () =
     assert.equal(formatMilliseconds(7.25), '7.3 ms');
     assert.equal(formatMilliseconds(null), '—');
 });
+
+test('partial coverage names the selected data window', () => {
+    const assessment = networkAssessment({}, { truncated: true, window_days: 7 });
+    assert.equal(assessment.status, 'Partial window');
+    assert.match(assessment.detail, /in 7 days/);
+});

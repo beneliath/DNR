@@ -517,7 +517,7 @@ try {
                     <?php endforeach; ?>
                 </select>
             </div>
-            <div class="form-group" id="other_role_group">
+            <div class="form-group" id="other_role_group"<?php echo ($contact['contact_role'] ?? '') === 'other' ? '' : ' hidden'; ?>>
                 <label for="contact_role_other">Other Role Description</label>
                 <input type="text" name="contact_role_other" id="contact_role_other" value="<?php echo htmlspecialchars($contact['contact_role_other'] ?? '', ENT_QUOTES, 'UTF-8'); ?>">
             </div>

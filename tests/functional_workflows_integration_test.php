@@ -85,11 +85,24 @@ $inquiry=fetchBookingInquiry($conn,$id);$data['next_action_task_choice']=0;$data
 updateBookingInquiry($conn,$id,$data,$inquiry['updated_at']); $inquiry=fetchBookingInquiry($conn,$id);
 $messageId=queueBookingInquiryEmail($conn,$inquiry,'initial_response','Functional reply test','Please reply',$uid,$suffix,'2027-01-10');
 $state=emailFollowUpState($conn,$messageId); workflowExpect($state && $state['label']==='Awaiting reply','Email creates waiting task');
+$emailTaskId=(int)$state['follow_up_task_id'];
+$pageStates=emailFollowUpStatesForTasks($conn,[$taskId,$emailTaskId,$emailTaskId]);
+workflowExpect(count($pageStates)===1 && $pageStates[$emailTaskId]['id']===$messageId
+    && $pageStates[$emailTaskId]['label']==='Awaiting reply','Task page batches linked email states');
 $conn->execute_query('UPDATE engagement_email_deliveries SET smtp_message_id=? WHERE message_id=?',['<functional-test@example.test>',$messageId]);
 $raw="In-Reply-To: <functional-test@example.test>\r\n";
 $conn->execute_query("INSERT INTO inbound_email_messages(transport,transport_key,deduplication_hash,gateway_address,sender_address,to_addresses,cc_addresses,subject,received_at,body_text,attachment_names,raw_headers,status) VALUES ('file',?,UNHEX(SHA2(?,256)),'inbound@example.test','host@example.test','[]','[]','Reply',DATE_ADD(UTC_TIMESTAMP(),INTERVAL 1 SECOND),'Yes','[]',?,'processed')",[$suffix,$suffix,$raw]);$reply=(int)$conn->insert_id;
 $conn->execute_query('INSERT INTO booking_inquiry_chron_entries(booking_inquiry_id,inbound_email_message_id,entry_text) VALUES (?,?,?)',[$id,$reply,'Reply']);
 $state=emailFollowUpState($conn,$messageId);workflowExpect($state['reply_id']===$reply && $state['task_status']==='waiting','Reply detected without completing task');
+$pageStates=emailFollowUpStatesForTasks($conn,[$emailTaskId]);
+workflowExpect($pageStates[$emailTaskId]['label']===$state['label'],'Task page recognizes received replies');
+$queue=$request('tasks.php?scope=everyone&view=all&task_id='.$emailTaskId);
+workflowExpect($queue['status']===200 && str_contains($queue['body'],'Reply received — review needed'),
+    'Task page renders the batched reply label');
+$conn->execute_query("UPDATE follow_up_tasks SET status='completed', completed_at=CURRENT_TIMESTAMP(6) WHERE id=?",[$emailTaskId]);
+$pageStates=emailFollowUpStatesForTasks($conn,[$emailTaskId]);
+workflowExpect($pageStates[$emailTaskId]['label']==='Follow-up closed','Task page keeps closed email follow-up label');
+$conn->execute_query("UPDATE follow_up_tasks SET status='waiting', completed_at=NULL WHERE id=?",[$emailTaskId]);
 foreach(['add_contact.php','add_organization.php','edit_inquiry.php?id='.$id,'compose_inquiry_email.php?id='.$id,'outbound_mail.php?id='.$messageId,'email_templates.php?status=archived'] as $path) {
  $response=$request($path);workflowExpect($response['status']===200 && !str_contains($response['body'],'Fatal error') && !str_contains($response['body'],'Warning:'),'Page renders: '.$path);
 }

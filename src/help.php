@@ -1042,7 +1042,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection" id="network-performance">
                     <h3>Compare Remote Network Performance</h3>
-                    <p>Administrators open <strong>Network</strong> in the sidebar to view <strong>Remote Network Performance</strong>. It compares measured page loads from signed-in public IPv4 and IPv6 clients during the last 24 hours. Select <strong>Refresh</strong> for current results; the page also refreshes every 30 seconds.</p>
+                    <p>Administrators open <strong>Network</strong> in the sidebar to view <strong>Remote Network Performance</strong>. It compares measured page loads from signed-in public IPv4 and IPv6 clients. Choose a data window from 1 to 7 days, then select <strong>Apply</strong>. Select <strong>Refresh</strong> for current results; the page also refreshes every 30 seconds.</p>
                     <ul class="manual-check-list">
                         <li><strong>IPv4 and IPv6 cards:</strong> review the median page-load time, sample count, 75th percentile, median TTFB (time to first byte), and most-seen Cloudflare edge when available. Lower durations mean faster observed loads.</li>
                         <li><strong>Contact images:</strong> compare the median duration of the slowest contact image on pages that loaded at least one contact photo. The accompanying count is the number of those pages.</li>

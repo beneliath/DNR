@@ -249,7 +249,7 @@ $contact_stmt->close();
     include 'templates/entity_chron_log_view_section.php';
     ?>
 
-    <div class="contacts-section" id="organization-contacts" role="tabpanel" aria-labelledby="organization-contacts-tab">
+    <div class="contacts-section" id="organization-contacts" role="tabpanel" aria-labelledby="organization-contacts-tab" hidden>
         <div class="section-heading-row">
             <h3>Contacts</h3>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
@@ -287,7 +287,7 @@ $contact_stmt->close();
         <?php endif; ?>
     </div>
 
-    <section id="organization-events" role="tabpanel" aria-labelledby="organization-events-tab">
+    <section id="organization-events" role="tabpanel" aria-labelledby="organization-events-tab" hidden>
         <h2>Engagements <span><?php echo $organization_event_count; ?></span></h2>
         <p>Upcoming and historical engagements, including archived records.</p>
         <?php renderPagination($organization_event_count, $organization_event_page, $organization_event_size, $record_pagination_url . '#organization-events', 'engagements', 'Organization engagement pages', 'events_page', 'events_per_page'); ?>
@@ -299,7 +299,7 @@ $contact_stmt->close();
         </tbody></table></div>
         <?php renderPagination($organization_event_count, $organization_event_page, $organization_event_size, $record_pagination_url . '#organization-events', 'engagements', 'Organization engagement pages', 'events_page', 'events_per_page'); ?>
     </section>
-<div id="organization-tasks" role="tabpanel" aria-labelledby="organization-tasks-tab">    <?php
+<div id="organization-tasks" role="tabpanel" aria-labelledby="organization-tasks-tab" hidden>    <?php
     $context_task_subject_type = 'organization';
     $context_task_subject_id = $org_id;
     $context_task_subject_active = !$is_archived;
@@ -307,7 +307,7 @@ $contact_stmt->close();
     include 'templates/follow_up_task_section.php';
     ?>
 
-</div>    <section class="organization-financials" id="organization-financials" role="tabpanel" aria-labelledby="organization-financials-tab">
+</div>    <section class="organization-financials" id="organization-financials" role="tabpanel" aria-labelledby="organization-financials-tab" hidden>
         <div class="section-heading-row">
             <div>
                 <h2 id="organization-financial-heading">Financial History</h2>
