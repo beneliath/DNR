@@ -208,9 +208,9 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <a href="view_engagement.php?id=<?php echo $engagementId; ?>">Engagement Details</a><span aria-hidden="true">/</span>
         <span>Send Email</span>
     </nav>
+    <p class="eyebrow compose-engagement-email-eyebrow">Outbound Correspondence</p>
     <header class="page-heading compose-engagement-email-heading">
         <div>
-            <p class="eyebrow">Outbound Correspondence</p>
             <h1>Send an Engagement Email</h1>
             <p class="page-intro"><?php echo htmlspecialchars(engagementEmailEventLabel($engagement), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
@@ -358,9 +358,9 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
             </details>
         </section>
 
-        <fieldset><legend>Reply Follow-Up</legend>
-<label><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
-<label for="follow-up-date">Follow-Up Date</label><input id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+        <fieldset class="reply-follow-up"><legend>Reply Follow-Up</legend>
+<label class="reply-follow-up-toggle"><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
+<label for="follow-up-date">Follow-Up Date</label><input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
 <p>The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p></fieldset>
 <div class="email-compose-actions">
             <a href="view_engagement.php?id=<?php echo $engagementId; ?>#correspondence" class="button-secondary">Cancel</a>
