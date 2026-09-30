@@ -21,6 +21,15 @@
     margin-top: 18px;
 }
 
+.engagement-lifecycle-grid:has([data-confirmation-field][hidden]) {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 32rem;
+}
+
+.engagement-lifecycle-grid [data-confirmation-field][hidden] {
+    display: none;
+}
+
 .engagement-lifecycle-grid .lifecycle-field {
     display: flex;
     align-items: stretch;
