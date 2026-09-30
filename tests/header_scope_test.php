@@ -67,7 +67,7 @@ expectHeaderScope(
 );
 expectHeaderScope(
     preg_match(
-        '/id="nav-work">Work<\/h2>.*<span>Dashboard<\/span>.*<span>My Work<\/span>.*<span>Booking Pipeline<\/span>.*<span>Inbox<\/span>.*id="nav-schedule">Schedule<\/h2>.*<span>Engagements<\/span>.*<span>Calendar<\/span>.*<span>Map<\/span>.*id="nav-relationships">Relationships<\/h2>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*id="nav-administration">Administration<\/h2>/s',
+        '/id="nav-work">Work<\/h2>.*<span>Dashboard<\/span>.*<span>Tasks<\/span>.*<span>Booking Pipeline<\/span>.*<span>Inbox<\/span>.*id="nav-schedule">Schedule<\/h2>.*<span>Engagements<\/span>.*<span>Calendar<\/span>.*<span>Map<\/span>.*id="nav-relationships">Relationships<\/h2>.*<span>Organizations<\/span>.*<span>Contacts<\/span>.*id="nav-administration">Administration<\/h2>/s',
         $header_markup
     ) === 1,
     'Navigation should group daily work, scheduling, relationships, and administration with Calendar in Schedule.'
@@ -112,7 +112,7 @@ foreach ([
             : $has_badge
                 && $badge_match[1] === $badge_case['active'] . ' Active Tasks Assigned to You'
                 && $badge_match[2] === $badge_case['label'],
-        'My Work should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
+        'Tasks should count all personal active tasks, exclude shared closeout reminders, hide zero, and cap large counts.'
     );
 }
 unset($_SESSION['user_id'], $request_reminder_counts);

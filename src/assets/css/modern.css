@@ -6638,17 +6638,6 @@ input.bulk-delete-checkbox { flex: 0 0 20px; margin: 0; }
 .bulk-delete-review-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
 
 /* Shared workflow controls: readable labels, stable layouts, and touch targets. */
-.record-merge-picker { max-width: 640px; display: grid; gap: 24px; }
-.record-merge-picker-field { display: grid; gap: 8px; }
-html body .record-merge-picker label { margin: 0; }
-.record-merge-picker-controls { display: grid; grid-template-columns: minmax(0, 1fr) 140px; align-items: stretch; gap: 12px; }
-html body .record-merge-picker-controls input,
-html body .record-merge-picker-controls select,
-html body .record-merge-picker-controls button { width: 100%; min-width: 0; margin: 0; }
-@media (max-width: 480px) {
-  .record-merge-picker-controls { grid-template-columns: minmax(0, 1fr); }
-  html body .record-merge-picker-controls button { width: auto; justify-self: start; }
-}
 .shell-search { display: flex; width: 100%; gap: 6px; padding: 0 0 12px; }
 .shell-search input { flex: 1; min-width: 0; width: 100%; min-height: 40px; margin: 0; }
 html body .shell-search button { flex-shrink: 0; padding: 8px; font-size: .78rem; }

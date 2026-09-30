@@ -2699,57 +2699,6 @@
         }
       ]
     },
-    "record_merge.php": {
-      "sha256": "c10fb8238ebabeba25887ea08ffb9c7bef935fd44a5b87319a6181eabc927036",
-      "controls": [
-        {
-          "kind": "h1",
-          "label": "Review a Possible Duplicate"
-        },
-        {
-          "kind": "a",
-          "label": "the surviving record"
-        },
-        {
-          "kind": "label",
-          "label": "Find the Record to Keep",
-          "for": "merge-search"
-        },
-        {
-          "kind": "button",
-          "label": "Search"
-        },
-        {
-          "kind": "label",
-          "label": "Surviving Record",
-          "for": "merge-target"
-        },
-        {
-          "kind": "button",
-          "label": "Preview Merge"
-        },
-        {
-          "kind": "h2",
-          "label": "Keep"
-        },
-        {
-          "kind": "label",
-          "label": "Keep:"
-        },
-        {
-          "kind": "label",
-          "label": "Use source:"
-        },
-        {
-          "kind": "label",
-          "label": "I reviewed these records and confirm they represent the same"
-        },
-        {
-          "kind": "button",
-          "label": "Merge into Surviving Record"
-        }
-      ]
-    },
     "recover_password.php": {
       "sha256": "0b19541d854c5049d45aa94496c834b749da4a09905088a8ef1bbcebf3722ac8",
       "controls": [
@@ -4511,12 +4460,8 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "2df113f8fe3fde8a5a8e07e3a404a3cd5dbe49b8cc963e704f2b5ee41ca473ca",
+      "sha256": "05def64f802e495fe69597ce0b9127e8be58ad8055676fce4dd187588d34d90d",
       "controls": [
-        {
-          "kind": "a",
-          "label": "Review Possible Duplicates"
-        },
         {
           "kind": "h1",
           "label": "Archived"

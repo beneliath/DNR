@@ -2,21 +2,21 @@
   "pages": 171,
   "screenshots": 100,
   "internal_links": 1484,
-  "bookmarks": 372,
+  "bookmarks": 371,
   "chapter_targets": "14/14 valid",
   "walkthrough_layout": "all screenshots, captions, and steps remain on one page",
   "external_pdf_actions": 0,
   "readme_appendix": {
-    "sections": 61,
-    "text_fragments_verified": 1171,
-    "attachment_bytes": 106151,
+    "sections": 62,
+    "text_fragments_verified": 1188,
+    "attachment_bytes": 108441,
     "attachment_matches_current_source": true,
-    "sha256": "2d137f9e98a95b8c6f5a41dc5102adb06ce4f512ac576adff9774d91eddf4ea1"
+    "sha256": "697962f5bc49e595a00908ac6dacbfe084a1f2c4f87a3930e325ee6907c990d9"
   },
   "format": {
     "reference_text": "two columns",
     "walkthrough_instructions": "two columns below spanning screenshots",
-    "readme_reverse_pages": 25,
+    "readme_reverse_pages": 26,
     "readme_colors": "white text on black",
     "cover_logo": "native SVG paths; no raster image or white backdrop",
     "column_gutters": "clear",
@@ -28,7 +28,7 @@
     "screenshot_footer_policy": "Copyright line only; decorative footer artwork and text omitted"
   },
   "release": {
-    "version": "2.4.0",
+    "version": "2.4.8",
     "edition_date": "September 29, 2026",
     "cover_and_metadata": "verified"
   }
