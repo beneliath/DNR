@@ -26,17 +26,9 @@ try {
         ['archive_path' => 'receipts/second.png', 'filename' => 'second.png', 'content_type' => 'image/png'],
     ];
     $files = reimbursementAttachmentsFromVerifiedZip($attachment, $manifest);
-    expectReimbursementAttachment(count($files) === 5 && $files[0]['data'] === $attachment['data']
-        && $files[1]['data'] === '%PDF-report' && $files[2]['content_type'] === 'text/csv'
-        && $files[2]['data'] === "Date of Expense,Amount (USD)\r\n9/29/2026,$12.34\r\n"
-        && $files[3]['data'] === 'JPEG-receipt' && $files[4]['data'] === 'PNG-receipt',
-        'Separate attachments must match the immutable ZIP entries.');
+    expectReimbursementAttachment($files === [$attachment], 'Only the immutable ZIP is attached.');
     $legacyFiles = reimbursementAttachmentsFromVerifiedZip($attachment, []);
-    expectReimbursementAttachment(count($legacyFiles) === 5 && $legacyFiles[1]['data'] === '%PDF-report'
-        && $legacyFiles[2]['filename'] === 'request.csv' && $legacyFiles[2]['data'] === $files[2]['data']
-        && $legacyFiles[3]['filename'] === 'receipt.jpg' && $legacyFiles[3]['data'] === 'JPEG-receipt'
-        && $legacyFiles[4]['filename'] === 'second.png' && $legacyFiles[4]['data'] === 'PNG-receipt',
-        'Older queued messages also attach the report and each receipt from the saved ZIP.');
+    expectReimbursementAttachment($legacyFiles === [$attachment], 'Older queued messages also attach only the ZIP.');
     $wrongCsv = $manifest;
     $wrongCsv[1]['filename'] = 'other.csv';
     try {
@@ -60,23 +52,42 @@ try {
     $zip->close();
     $oldAttachment = [...$attachment, 'data' => file_get_contents($path)];
     $oldFiles = reimbursementAttachmentsFromVerifiedZip($oldAttachment, []);
-    expectReimbursementAttachment(count($oldFiles) === 3 && $oldFiles[2]['data'] === 'JPEG-receipt',
-        'Saved packages created before CSV support still attach their available files.');
+    expectReimbursementAttachment($oldFiles === [$oldAttachment], 'Packages created before CSV support still deliver as one ZIP.');
     $oldManifest = [$manifest[0], ['archive_path' => 'receipts/receipt.jpg', 'filename' => 'receipt.jpg', 'content_type' => 'image/jpeg']];
-    expectReimbursementAttachment(count(reimbursementAttachmentsFromVerifiedZip($oldAttachment, $oldManifest)) === 3,
+    expectReimbursementAttachment(count(reimbursementAttachmentsFromVerifiedZip($oldAttachment, $oldManifest)) === 1,
         'Previously approved attachment manifests still deliver without a CSV.');
     $zip = new ZipArchive();
     if ($zip->open($path, ZipArchive::OVERWRITE) !== true) throw new RuntimeException('Unable to replace test ZIP.');
-    $zip->addFromString('request.pdf', str_repeat('A', 15 * 1024 * 1024));
+    $zip->addFromString('request.pdf', str_repeat('A', 26 * 1024 * 1024));
     $zip->close();
     $attachment['data'] = file_get_contents($path);
+    expectReimbursementAttachment(count(reimbursementAttachmentsFromVerifiedZip($attachment, [$manifest[0]])) === 1,
+        'The limit applies to the compressed ZIP, not its uncompressed contents.');
+    // STORE makes the archive size predictable and exercises the exact limit.
+    $zip = new ZipArchive();
+    $zip->open($path, ZipArchive::OVERWRITE);
+    $zip->addFromString('request.pdf', 'A');
+    $zip->setCompressionName('request.pdf', ZipArchive::CM_STORE);
+    $zip->close();
+    $overhead = strlen(file_get_contents($path)) - 1;
+    $zip->open($path, ZipArchive::OVERWRITE);
+    $zip->addFromString('request.pdf', str_repeat('A', REIMBURSEMENT_MAX_PACKAGE_BYTES - $overhead));
+    $zip->setCompressionName('request.pdf', ZipArchive::CM_STORE);
+    $zip->close();
+    $attachment['data'] = file_get_contents($path);
+    expectReimbursementAttachment(strlen($attachment['data']) === REIMBURSEMENT_MAX_PACKAGE_BYTES,
+        'Boundary fixture must be exactly 18 MB.');
+    expectReimbursementAttachment(count(reimbursementAttachmentsFromVerifiedZip($attachment, [$manifest[0]])) === 1,
+        'A ZIP exactly at 18 MB is accepted.');
+    $attachment['data'] .= 'X';
     try {
         reimbursementAttachmentsFromVerifiedZip($attachment, [$manifest[0]]);
-        throw new RuntimeException('Oversized attachments were accepted.');
+        throw new RuntimeException('Oversized ZIP was accepted.');
     } catch (DomainException $exception) {
-        expectReimbursementAttachment(str_contains($exception->getMessage(), '15 MB'),
-            'Combined attachment size must be checked before extracting large files.');
+        expectReimbursementAttachment(str_contains($exception->getMessage(), '18 MB'),
+            'A ZIP one byte over 18 MB must be rejected.');
     }
+
 } finally {
     unlink($path);
 }

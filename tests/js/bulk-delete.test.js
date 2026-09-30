@@ -22,12 +22,11 @@ test('individual selection, mixed select-all, and clear keep the selected count 
     items[1].checked = true;
     items[1].events.change();
     assert.equal(controls.count.textContent, '1 selected');
-    assert.equal(controls['select-all'].indeterminate, true);
+    assert.equal(controls['select-all'].disabled, false);
     assert.equal(controls.submit.textContent, 'Delete selected (1)');
-    controls['select-all'].checked = true;
-    controls['select-all'].events.change();
+    controls['select-all'].events.click();
     assert.equal(items.every(item => item.checked), true);
-    assert.equal(controls['select-all'].indeterminate, false);
+    assert.equal(controls['select-all'].disabled, true);
     assert.equal(controls.count.textContent, '3 selected');
     controls.clear.events.click();
     assert.equal(items.some(item => item.checked), false);

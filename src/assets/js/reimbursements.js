@@ -58,6 +58,7 @@ document.querySelectorAll('[data-reimbursement-selection]').forEach(function (fo
     const known = Array.from(selected).filter(function (id) { return metadata[id]; });
     const cents = known.reduce(function (sum, id) { return sum + metadata[id].amount; }, 0);
     const missing = known.filter(function (id) { return metadata[id].missing; }).length;
+    document.querySelectorAll('[data-flow-selection]').forEach(function (summary) { summary.textContent = selected.size + ' expenses · $' + (cents / 100).toFixed(2) + (known.length < selected.size ? ' known total · Refresh older selections' : ' selected'); });
     form.querySelectorAll('[data-selection-total]').forEach(function (summary) { summary.textContent = 'Selected Total: $' + (cents / 100).toFixed(2) + ' · ' + missing + ' Without Receipts' + (known.length < selected.size ? ' · Refresh older selections to include their totals' : '') + ' (rechecked when creating the draft)'; });
     clearButtons.forEach(function (clear) { clear.hidden = selected.size === 0; });
     form.querySelectorAll('[data-off-page-selection]').forEach(function (input) { input.remove(); });
@@ -336,4 +337,43 @@ document.querySelectorAll('.reimbursement-page a[href^="reimbursement_expense.ph
   const url = new URL(link.href, window.location.href);
   url.searchParams.set('return', window.location.pathname.split('/').pop() + window.location.search);
   link.href = url.href;
+});
+
+// Match invitation submission feedback while preserving the named submit button.
+document.querySelectorAll('[data-reimbursement-progress]').forEach(function (button) {
+  const status = document.querySelector('[data-reimbursement-progress-status]');
+  if (!status) return;
+  const label = button.textContent;
+  const form = button.form;
+  let busy = false;
+  function start(event) {
+    if (event.defaultPrevented || button.disabled) return;
+    if (busy) { event.preventDefault(); return; }
+    busy = true;
+    button.setAttribute('aria-busy', 'true');
+    button.setAttribute('aria-disabled', 'true');
+    button.textContent = (button.dataset || {}).submittingLabel || 'Preparing Review…';
+    status.hidden = false;
+    if (form) form.setAttribute('aria-busy', 'true');
+    // Do not disable the button: continue_to_review must be included in the POST.
+  }
+  if (form) {
+    form.addEventListener('submit', function (event) {
+      if (busy) { event.preventDefault(); return; }
+      if (event.submitter === button) start(event);
+    });
+  } else {
+    button.addEventListener('click', function (event) {
+      if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      start(event);
+    });
+  }
+  window.addEventListener('pageshow', function () {
+    busy = false;
+    button.removeAttribute('aria-busy');
+    button.removeAttribute('aria-disabled');
+    button.textContent = label;
+    status.hidden = true;
+    if (form) form.removeAttribute('aria-busy');
+  });
 });

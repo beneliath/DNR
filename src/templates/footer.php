@@ -1,3 +1,16 @@
+<?php if (in_array($_SESSION['role'] ?? '', ['admin', 'editor'], true) && !empty($_SESSION['task_completion_undo']) && ($_SESSION['task_completion_undo']['expires'] ?? 0) >= time()): ?>
+<aside class="task-undo-notice" aria-label="Recent task completion">
+    <span role="status">Completed: <?php echo htmlspecialchars($_SESSION['task_completion_undo']['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+    <form action="tasks.php" method="post">
+        <?php echo csrfInput(); ?>
+        <input type="hidden" name="action" value="undo_completion">
+        <input type="hidden" name="undo_token" value="<?php echo htmlspecialchars($_SESSION['task_completion_undo']['token'], ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($_SESSION['task_completion_undo']['return_to'], ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="submit" class="button-secondary">Undo</button>
+    </form>
+    <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss completion notice">Dismiss</button>
+</aside>
+<?php endif; ?>
 <?php
 require_once __DIR__ . '/../application_runtime.php';
 require_once __DIR__ . '/../github_version_helpers.php';
@@ -89,7 +102,8 @@ Genesis 49:9,10 ... Revelation 5:5
         <input type="hidden" name="presentation_id" id="qr-pdf-presentation-id">
         <input type="hidden" name="qr_selection" value="1">
         <div class="qr-pdf-selection-bar">
-            <label class="checkbox-label"><input type="checkbox" id="qr-pdf-select-all" autofocus> Select All</label>
+            <button type="button" class="button-secondary" id="qr-pdf-select-all">Select All Available</button>
+            <button type="button" class="button-secondary" id="qr-pdf-clear-selection" hidden>Clear Selection</button>
             <span id="qr-pdf-selection-count" class="dialog-supporting-text" role="status" aria-live="polite"></span>
         </div>
         <div id="qr-pdf-options" class="qr-pdf-options" role="group" aria-label="QR Codes to Include"></div>
@@ -105,8 +119,14 @@ Genesis 49:9,10 ... Revelation 5:5
 
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>
+<?php renderScript('assets/js/workflow-ui.min.js'); ?>
 <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled() && !empty($_SESSION['user_id'])) include __DIR__ . '/ai_coach.php'; ?>
 <?php if (!empty($_SESSION['user_id'])): ?>
 <span hidden data-network-performance data-endpoint="network_performance.php" data-csrf-token="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>"></span>
 <?php renderScript('assets/js/network-performance.min.js'); ?>
 <?php endif; ?>
+
+<?php foreach ($_SESSION['clear_form_drafts'] ?? [] as $draftKey): ?><span hidden data-clear-form-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>"></span><?php endforeach; unset($_SESSION['clear_form_drafts']); ?>
+<?php renderScript('assets/js/form-drafts.min.js'); ?>
+
+<?php renderScript('assets/js/creation-duplicates.min.js'); ?>

@@ -331,6 +331,7 @@ $list_current_url = paginationUrl('engagements.php' . $list_url(), $current_page
     </div>
 
     <div class="list-controls engagement-controls">
+        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Lifecycle' => ucfirst($lifecycle_filter), 'Search' => $search, 'From' => $date_from, 'Through' => $date_to], 'engagements.php?status=active&lifecycle=all'); ?>
         <form method="get" action="engagements.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">

@@ -142,7 +142,8 @@ try {
     expectReimbursement(reimbursementReturnUrl('reimbursements.php?q=Taxi&page=2')==='reimbursements.php?q=Taxi&page=2','Local filter context preserved');
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'queued','size'=>10]]),'Pending receipts cannot be exported');
     expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'rejected','size'=>10]]),'Rejected receipts cannot be exported');
-    expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'clean','size'=>16*1024*1024]]),'Oversized request rejected before rendering');
+    reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES]]);
+    expectReimbursementRejected(fn()=>reimbursementReceiptsReady([['scan_state'=>'clean','size'=>REIMBURSEMENT_MAX_RECEIPT_BYTES + 1]]),'Oversized request rejected before rendering');
     $pdf = new TCPDF(); $pdf->AddPage(); $pdf->Write(8, 'Synthetic reimbursement receipt');
     $bytes = $pdf->Output('', 'S');
     $key = storePersistentFile($conn, $bytes, 'fixture.pdf', 'application/pdf');
@@ -247,6 +248,9 @@ try {
     $editor($path, ['csrf_token' => reimbursementCsrf($notePage), 'action' => 'note', 'bookkeeper_note' => $note, 'continue_to_review' => '1']);
     $review = $editor($submitPath);
     expectReimbursement($review['status'] === 200 && str_contains($review['body'], 'catalog@example.test') && str_contains($review['body'], 'Email Preview') && str_contains($review['body'], '&lt;script&gt;'), 'Review shows recipients and the escaped bookkeeper note in the email preview');
+    expectReimbursement(str_contains($review['body'], 'Email Attachment Size')
+        && str_contains($review['body'], 'role="meter"') && str_contains($review['body'], 'of the 18 MB ZIP limit'),
+        'Submission review includes the measured email size meter');
     preg_match('/name="review_fingerprint" value="([^"]+)"/', $review['body'], $fingerprint);
     expectReimbursement(!empty($fingerprint[1]), 'Review fingerprint exists');
     $preview = $editor($submitPath . '&preview=package');
@@ -284,26 +288,22 @@ try {
     expectReimbursement(str_contains($queuedMessage['body'], $note) && str_contains($queuedMessage['html_body'], '&lt;script&gt;'), 'Queued email preserves the reviewed bookkeeper note safely');
     expectReimbursement(str_contains($queuedMessage['html_body'], $expectedReceiptFilename) && str_contains($queuedMessage['body'], $expectedReceiptFilename), 'HTML and plain-text email identify the exact receipt filename');
     $attachments = reimbursementEmailAttachments($conn, $deliveries[0], $queuedMessage);
-    expectReimbursement(count($attachments) === 4 && $attachments[0]['content_type'] === 'application/zip'
-        && $attachments[1]['content_type'] === 'application/pdf' && str_starts_with($attachments[1]['data'], '%PDF-')
-        && $attachments[2]['content_type'] === 'text/csv' && str_contains($attachments[2]['data'], $expectedReceiptFilename)
-        && $attachments[3]['filename'] === $expectedReceiptFilename && $attachments[3]['data'] === $bytes,
-        'Queued email has the ZIP, original report PDF, CSV, and individual receipt');
+    expectReimbursement(count($attachments) === 1 && $attachments[0]['content_type'] === 'application/zip',
+        'Queued email attaches only the ZIP');
     $legacyMessage = $queuedMessage; unset($legacyMessage['individual_attachments']);
     $legacyAttachments = reimbursementEmailAttachments($conn, $deliveries[0], $legacyMessage);
-    expectReimbursement(count($legacyAttachments) === 4 && $legacyAttachments[1]['data'] === $attachments[1]['data']
-        && $legacyAttachments[2]['data'] === $attachments[2]['data']
-        && $legacyAttachments[3]['data'] === $bytes, 'Older queued messages attach every file from the original ZIP');
+    expectReimbursement($legacyAttachments === $attachments, 'Older queued messages also attach only the ZIP');
     $attachment = $attachments[0];
     $tmp = tempnam(sys_get_temp_dir(), 'queued-zip-'); file_put_contents($tmp, $attachment['data']);
     $zip = new ZipArchive(); $zip->open($tmp);
     expectReimbursement($zip->numFiles === 3 && $zip->getFromIndex(2) === $bytes, 'Immutable queued ZIP includes intact receipt');
-    expectReimbursement($zip->getFromName($attachments[1]['filename']) === $attachments[1]['data'], 'Separate report is byte-identical to the report in the ZIP');
-    expectReimbursement($zip->getFromName($attachments[2]['filename']) === $attachments[2]['data'], 'Separate CSV is byte-identical to the CSV in the ZIP');
+    $base = substr($queuedMessage['filename'], 0, -4);
+    expectReimbursement(str_starts_with($zip->getFromName($base . '.pdf'), '%PDF-'), 'ZIP retains the report PDF');
+    expectReimbursement(str_contains($zip->getFromName($base . '.csv'), $expectedReceiptFilename), 'ZIP retains the CSV');
     $zip->close(); unlink($tmp);
     $mime = smtpMessageContent($queuedMessage['body'], $queuedMessage['html_body'], [...$attachments, ...$queuedMessage['inline_images']]);
     expectReimbursement(str_contains($mime['headers'][0], 'multipart/mixed')
-        && substr_count($mime['body'], 'Content-Disposition: attachment;') === 4, 'SMTP message contains all four file attachments');
+        && substr_count($mime['body'], 'Content-Disposition: attachment;') === 1, 'SMTP message contains only one ZIP attachment');
     expectReimbursement($queuedMessage['inline_images'] === [] && str_contains($queuedMessage['html_body'], htmlspecialchars(emailBrandLogoUrl(), ENT_QUOTES, 'UTF-8')) && str_contains($queuedMessage['html_body'], 'display:block;width:227px;'), 'Submission uses the hosted digest logo at its original display size');
     require_once $source . '/notification_helpers.php';
     $digestImage = emailBrandInlineImage();

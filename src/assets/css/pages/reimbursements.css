@@ -135,3 +135,32 @@ html body .reimbursement-receipt-upload .presentation-pdf-picker-row :is(.presen
 .reimbursement-draft-controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch;gap:1.2rem;margin:1.2rem 0}
 .reimbursement-draft-controls>.reimbursement-card{margin:0;min-width:0;width:100%}
 @media(max-width:900px){.reimbursement-draft-controls{grid-template-columns:minmax(0,1fr)}}
+
+.reimbursement-size { margin-block: 1.5rem; }
+.reimbursement-size-gauge { width: min(100%, 22rem); margin-block: 1rem; }
+.reimbursement-size-gauge svg { display: block; width: 100%; height: auto; overflow: visible; }
+.reimbursement-gauge-grid { fill: none; stroke: #9aafc5; stroke-width: 1; opacity: .3; }
+.reimbursement-gauge-outline { fill: none; stroke: #78afe6; stroke-width: 2.5; }
+.reimbursement-gauge-progress { fill: none; stroke: #78afe6; stroke-width: 4; }
+.reimbursement-gauge-needle { stroke-width: 3; stroke-linecap: round; }
+.reimbursement-gauge-label { fill: var(--text-muted, #667085); font-size: 12px; }
+.reimbursement-gauge-value { fill: var(--text, #172033); font-size: 28px; font-weight: 600; }
+.reimbursement-size-over #email-size-status { font-weight: 600; }
+
+.reimbursement-gauge-low { stroke: #239463; }
+.reimbursement-gauge-medium { stroke: #e58a24; }
+.reimbursement-gauge-high { stroke: #df4b50; }
+
+[data-reimbursement-progress][aria-busy="true"] { cursor: wait; opacity: .72; transform: none !important; }
+
+.reimbursement-progress { position: sticky; top: 12px; z-index: 20; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin: 18px 0; padding: 14px 18px; box-shadow: 0 2px 6px #0001; }
+.reimbursement-progress ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; list-style: none; padding: 0; margin: 0; }
+.reimbursement-progress li { display: flex; gap: 8px; align-items: center; color: var(--text-muted); font-size: .85rem; }
+.reimbursement-progress li[aria-current="step"] { color: var(--text); font-weight: 750; }
+.progress-number { display: grid; place-items: center; width: 28px; height: 28px; flex: 0 0 28px; border: 1px solid var(--border-strong); border-radius: 50%; }
+.reimbursement-progress [aria-current="step"] .progress-number { background: var(--primary); color: var(--primary-button-fg); border-color: var(--primary); }
+.reimbursement-progress-total { margin: 12px 0 0; padding-top: 10px; border-top: 1px solid var(--border); font-weight: 650; }
+@media (max-width: 720px) {
+    .reimbursement-progress { top: 68px; padding: 12px; }
+    .reimbursement-progress ol { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+}

@@ -97,15 +97,7 @@
       ]
     ]
   ],
-  "6": [
-    [
-      "Duplicate Merge Screen Reference",
-      [
-        "Review Possible Duplicates is an administrator action on organization/contact detail. Find the Record to Keep searches bounded candidates; choose Surviving Record and Preview Merge. Check the displayed source/target, relationship counts, and each field's Keep or Use Source choice. Confirm that both records describe the same entity, then Merge into Surviving Record with administrator authorization.",
-        "The merge moves relationships, Chron, tasks, inquiries, and email references; identical assignments combine and conflicting affiliation roles must be resolved first. The source is archived with original field values, and cannot be restored independently. For contacts, the survivor keeps its primary organization, role, and photo; source affiliations are added and its original photo remains on the archived source. The merge sends no email. Concurrent modifications invalidate the preview: refresh and review again."
-      ]
-    ]
-  ],
+  "6": [],
   "9": [
     [
       "Amazon Location and Map Fallback",

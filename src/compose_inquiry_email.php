@@ -60,11 +60,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $subject,
             $body,
             (int) $_SESSION['user_id'],
-            (string) $_SESSION['username']
+            (string) $_SESSION['username'],
+            isset($_POST['track_reply']) ? (string) ($_POST['follow_up_date'] ?? '') : null
         );
         $_SESSION['inquiry_action_message'] = ($mailTransport === 'log'
             ? 'The message was accepted by the development mail transport.'
             : 'The message was queued for delivery.') . ' Outbound message #' . $messageId . '.';
+        $_SESSION['clear_form_drafts'][] = 'compose_inquiry_email.php:' . $inquiryId;
         header('Location: view_inquiry.php?id=' . $inquiryId . '#correspondence');
         exit();
     } catch (InvalidArgumentException | DomainException $exception) {
@@ -96,12 +98,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if (!$deliveryAvailable): ?><p class="warning">Email delivery is not available. The message can be reviewed but not queued until mail is enabled.</p><?php endif; ?>
     <?php if (!$recipientAvailable): ?><p class="warning">Add a valid email address to the inquiry’s primary contact before sending correspondence.</p><?php endif; ?>
-    <form method="post" action="compose_inquiry_email.php" class="engagement-email-form" data-engagement-email-form>
+    <form method="post" action="compose_inquiry_email.php" class="engagement-email-form" data-recoverable-draft="compose_inquiry_email.php:<?php echo (int)$inquiryId; ?>" data-draft-version="<?php echo htmlspecialchars((string)$inquiry['updated_at'], ENT_QUOTES, 'UTF-8'); ?>" data-engagement-email-form>
         <?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>">
         <section class="email-compose-card"><div class="email-section-heading"><div><span>01</span><h2>Choose a Template</h2></div><p>Start with a common inquiry response, then edit it freely.</p></div><label for="template_key">Message Template</label><select name="template_key" id="template_key" data-email-template><?php foreach ($templates as $key => $template): ?><option value="<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $key === $templateKey ? ' selected' : ''; ?>><?php echo htmlspecialchars($template['label'], ENT_QUOTES, 'UTF-8'); ?></option><?php endforeach; ?></select></section>
         <section class="email-compose-card"><div class="email-section-heading"><div><span>02</span><h2>Recipient</h2></div><p>Inquiry correspondence goes to the primary contact and is recorded in the Inquiry, Contact, and Organization Chron logs where applicable.</p></div><div class="inquiry-email-recipient"><strong><?php echo htmlspecialchars((string) ($inquiry['contact_name'] ?: 'Primary contact not selected'), ENT_QUOTES, 'UTF-8'); ?></strong><span><?php echo htmlspecialchars((string) ($inquiry['contact_email'] ?: 'No Valid Email Address'), ENT_QUOTES, 'UTF-8'); ?></span></div></section>
         <section class="email-compose-card"><div class="email-section-heading"><div><span>03</span><h2>Write the Message</h2></div><p>The signed inquiry marker is appended automatically so replies return to this inquiry.</p></div><div class="form-field"><label for="subject">Subject <span class="required" aria-hidden="true">*</span></label><input type="text" name="subject" id="subject" maxlength="255" required value="<?php echo htmlspecialchars($subject, ENT_QUOTES, 'UTF-8'); ?>" data-email-subject></div><div class="form-field"><label for="body">Plain-Text Message <span class="required" aria-hidden="true">*</span></label><textarea name="body" id="body" rows="14" maxlength="100000" required data-email-body><?php echo htmlspecialchars($body, ENT_QUOTES, 'UTF-8'); ?></textarea></div></section>
-        <div class="email-compose-actions"><a href="view_inquiry.php?id=<?php echo $inquiryId; ?>#correspondence" class="button-secondary">Cancel</a><button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$recipientAvailable ? ' disabled' : ''; ?> data-confirm="Queue this inquiry message for delivery?">Queue Email</button></div>
+        <fieldset><legend>Reply Follow-Up</legend>
+<label><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
+<label for="follow-up-date">Follow-Up Date</label><input id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+<p>The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p></fieldset>
+<div class="email-compose-actions"><a href="view_inquiry.php?id=<?php echo $inquiryId; ?>#correspondence" class="button-secondary">Cancel</a><button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$recipientAvailable ? ' disabled' : ''; ?> data-confirm="Queue this inquiry message for delivery?">Queue Email</button></div>
     </form>
 </main>
 <script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>" type="application/json" id="engagement-email-template-data"><?php echo json_encode($templates, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

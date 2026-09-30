@@ -572,6 +572,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $success_message .= ' ' . $canceled_task_count . ' open task'
                 . ($canceled_task_count === 1 ? ' was' : 's were') . ' canceled.';
         }
+        $_SESSION['clear_form_drafts'][] = 'edit_engagement.php:' . $engagement_id;
         $_SESSION['engagement_action_message'] = $success_message;
         applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 
@@ -764,12 +765,12 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
     <?php if ($chron_action_error !== ''): ?>
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-recoverable-draft="edit_engagement.php:<?php echo (int)$engagement_id; ?>" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
-        <section class="form-section">
+        <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+        <section class="form-section engagement-event-details-section">
         <h2>Event Details &amp; Schedule</h2>
         <div class="organization-container">
             <label for="organization_id">Organization</label>
@@ -780,14 +781,34 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
             </select>
         </div>
 
-        <div class="date-fields">
-            <div class="date-field">
-                <label for="event_start_date">Start<span class="required">*</span></label>
-                <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
+        <div class="event-schedule-row">
+            <div class="date-fields">
+                <div class="date-field">
+                    <label for="event_start_date">Start<span class="required">*</span></label>
+                    <input type="date" name="event_start_date" id="event_start_date" required value="<?php echo htmlspecialchars($engagement['event_start_date']); ?>">
+                </div>
+                <div class="date-field">
+                    <label for="event_end_date">End<span class="required">*</span></label>
+                    <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
+                </div>
             </div>
-            <div class="date-field">
-                <label for="event_end_date">End<span class="required">*</span></label>
-                <input type="date" name="event_end_date" id="event_end_date" required value="<?php echo htmlspecialchars($engagement['event_end_date']); ?>">
+            <div class="form-field event-caller-field">
+                <label for="caller_user_id">Caller</label>
+                <select name="caller_user_id" id="caller_user_id">
+                    <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
+                    <?php
+                    $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
+                    $users = $conn->query(
+                        "SELECT id, username FROM users
+                         WHERE account_status = 'active' OR id = {$current_caller_id}
+                         ORDER BY username"
+                    );
+                    while ($row = $users->fetch_assoc()) {
+                        $selected = (int) ($engagement['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
+                        echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
+                    }
+                    ?>
+                </select>
             </div>
         </div>
 
@@ -817,7 +838,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         </div>
 
         <label for="event_description">Event Description</label>
-        <textarea name="event_description" id="event_description" rows="10"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
+        <textarea name="event_description" id="event_description" rows="11"><?php echo htmlspecialchars($engagement['event_description'] ?? ''); ?></textarea>
         </section>
 
         <?php include 'templates/engagement_contact_form.php'; ?>
@@ -829,7 +850,9 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         include 'templates/presentation_form.php';
         ?>
 
-        <section class="form-section">
+        <section class="form-section engagement-logistics-section">
+        <div class="engagement-logistics-layout">
+        <div class="engagement-logistics-controls">
         <h2>Logistics &amp; Compensation</h2>
         <div class="checkbox-row">
             <div class="checkbox-group">
@@ -898,11 +921,11 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
             </div>
         </div>
 
-        <div class="compensation-type-row">
+        <div class="compensation-type-row lodging-details-row">
             <div class="form-field">
                 <div class="field-group">
                     <label for="housing_type">Lodging Type</label>
-                    <select name="housing_type" id="housing_type" class="narrow-select">
+                    <select name="housing_type" id="housing_type">
                         <?php
                         $housing_types = \Dnr\Domain\ReferenceData::housingTypes();
                         $selected_housing = $engagement['housing_type'] ?? 'Unknown';
@@ -923,6 +946,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
             </div>
         </div>
 
+        </div>
         <div class="address-section is-saved-address-section">
             <h3>Event Location</h3>
             <div class="address-fields">
@@ -960,35 +984,11 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
                 </div>
             </div>
         </div>
+        </div>
         </section>
 
         <?php include 'templates/engagement_lifecycle_form.php'; ?>
 
-        <div class="form-row">
-            <div class="engagement-inline-row">
-                <div class="form-field">
-                    <label for="caller_user_id">Caller</label>
-                    <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($engagement['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
-                        <?php
-                        // Fetch and display users in the dropdown
-                        $current_caller_id = (int) ($engagement['caller_user_id'] ?? 0);
-                        $users = $conn->query(
-                            "SELECT id, username FROM users
-                             WHERE account_status = 'active' OR id = {$current_caller_id}
-                             ORDER BY username"
-                        );
-                        while ($row = $users->fetch_assoc()) {
-                            $selected = (int) ($engagement['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
-                            echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-            </div>
-
-        </div>
     </form>
 
     <?php foreach ($presentations as $presentation_management_row): ?>

@@ -113,7 +113,7 @@ try{
   $engagementView=$request('view_engagement.php?id='.$event,null,$cookie);
   $viewDoc=new DOMDocument();@$viewDoc->loadHTML($engagementView['body']);$viewXpath=new DOMXPath($viewDoc);
   foreach($links as$generatedLink)expectLinkHttp($viewXpath->query('//div[contains(@class,"presentation-qr-display")]//a[@href="short_links.php?id='.$generatedLink['id'].'"]')->length===1,'Each presentation QR card opens its own statistics: '.$role);
-  expectLinkHttp($viewXpath->query('//a[@href="short_links.php?presentation_id='.$pid.'" and normalize-space()="Combined Presentation Statistics"]')->length===1,'Each presentation offers combined statistics alongside its per-code links');
+  expectLinkHttp($viewXpath->query('//a[@href="short_links.php?presentation_id='.$pid.'" and normalize-space()="Statistics"]')->length===1,'Each presentation offers combined statistics alongside its per-code links');
   expectLinkHttp($viewXpath->query('//a[@href="reset_presentation_stats.php?presentation_id='.$pid.'"]')->length===($role==='admin'?1:0),'Only admins see the separate presentation statistics reset action');
   expectLinkHttp($viewXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$pid.'&type=notes" and @target="_blank" and @rel="noopener" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Each uploaded notes file has its own correctly labelled new-tab button: '.$role);
   $preview=$viewXpath->query('//div[contains(@class,"presentation-qr-display")]//img')->item(0);

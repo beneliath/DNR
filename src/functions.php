@@ -1021,6 +1021,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
     }
 
     $shared_pages = [
+        'search.php',
         'speakers.php',
         'short_links.php',
         'view_speaker.php',
@@ -1053,6 +1054,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'view_standard_task.php',
     ];
     $editor_pages = [
+        'task_bulk.php',
         'edit_speaker.php',
         'add_contact.php',
         'add_inquiry.php',
@@ -1091,7 +1093,6 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'register.php',
         'reset_presentation_stats.php',
         'reset_user_password.php',
-        'record_merge.php',
         'users.php',
     ];
 

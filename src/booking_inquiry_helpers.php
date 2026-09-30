@@ -349,6 +349,7 @@ function normalizeBookingInquiryInput(mysqli $conn, array $input): array
         'priority' => $priority,
         'next_action' => $nextAction === '' ? null : $nextAction,
         'next_action_due_date' => $nextActionDue,
+        'next_action_task_choice' => ctype_digit($text('next_action_task_choice')) ? (int) $text('next_action_task_choice') : 0,
     ];
 }
 
@@ -472,6 +473,8 @@ function createBookingInquiry(
         $stmt->execute();
         $inquiryId = (int) $conn->insert_id;
         $stmt->close();
+        require_once __DIR__ . '/workflow_task_helpers.php';
+        saveInquiryNextActionTask($conn, $inquiryId, $data, null, $userId);
         insertBookingInquiryStageHistory(
             $conn, $inquiryId, null, 'new', 'Inquiry created.', $userId, $username
         );
@@ -576,6 +579,8 @@ function updateBookingInquiry(
         );
         $stmt->execute();
         $stmt->close();
+        require_once __DIR__ . '/workflow_task_helpers.php';
+        saveInquiryNextActionTask($conn, $inquiryId, $data, (int) ($current['next_action_task_id'] ?? 0), (int) ($_SESSION['user_id'] ?? $current['created_by']));
         $conn->commit();
     } catch (Throwable $exception) {
         $conn->rollback();
@@ -894,7 +899,10 @@ function convertBookingInquiry(
 
         $nextActionTaskId = null;
         if ($nextActionResolution !== '' && $nextActionDecision === 'carry_forward') {
-            $nextActionTaskId = insertFollowUpTask($conn, [
+            if (!empty($inquiry['next_action_task_id'])) {
+                $nextActionTaskId = (int) $inquiry['next_action_task_id'];
+                $conn->execute_query("UPDATE follow_up_tasks SET subject_type='engagement', engagement_id=?, inquiry_id=NULL WHERE id=?", [$engagementId, $nextActionTaskId]);
+            } else $nextActionTaskId = insertFollowUpTask($conn, [
                 'title' => (string) $inquiry['next_action'], 'details' => 'Carried forward from inquiry #' . $inquiryId,
                 'status' => 'open', 'priority' => (string) $inquiry['priority'],
                 'due_date' => $inquiry['next_action_due_date'], 'waiting_on' => null,
@@ -902,6 +910,9 @@ function convertBookingInquiry(
                 'organization_id' => null, 'contact_id' => null, 'inquiry_id' => null,
                 'assigned_to' => $callerId,
             ], $userId);
+        }
+        if ($nextActionDecision === 'resolved' && !empty($inquiry['next_action_task_id'])) {
+            $conn->execute_query("UPDATE follow_up_tasks SET status='completed', waiting_on=NULL, completed_by=?, completed_at=UTC_TIMESTAMP() WHERE id=? AND inquiry_id=? AND status IN ('open','in_progress','waiting')", [$userId,$inquiry['next_action_task_id'],$inquiryId]);
         }
         $chronText = 'BOOKED FROM INQUIRY #' . $inquiryId
             . "\nThe inquiry remains the source record for pre-booking history."
@@ -935,7 +946,7 @@ function convertBookingInquiry(
             unset($taskId);
             $move->bind_param(...$values);
             $move->execute();
-            $moved = $move->affected_rows;
+            $moved = $move->affected_rows + ($nextActionTaskId !== null && in_array($nextActionTaskId, $taskIds, true) ? 1 : 0);
             $move->close();
         }
 
@@ -954,6 +965,8 @@ function convertBookingInquiry(
             throw new RuntimeException('Unable to queue the engagement location.');
         }
 
+        // The locked inquiry's task summary may have changed as its linked task moved.
+        $expectedVersion = (string) fetchBookingInquiry($conn, $inquiryId, true)['updated_at'];
         $booked = 'booked';
         $update = $conn->prepare(
             'UPDATE booking_inquiries
@@ -1122,7 +1135,8 @@ function queueBookingInquiryEmail(
     mixed $subject,
     mixed $body,
     int $userId,
-    string $username
+    string $username,
+    ?string $followUpDate = null
 ): int {
     $transport = accountMailTransport();
     $inquiryId = (int) ($inquiry['id'] ?? 0);
@@ -1230,6 +1244,8 @@ function queueBookingInquiryEmail(
         $contactChron->bind_param('iisis', $contactId, $messageId, $chronText, $userId, $username);
         $contactChron->execute();
         $contactChron->close();
+        require_once __DIR__ . '/workflow_task_helpers.php';
+        createEmailFollowUpTask($conn, $messageId, 'inquiry', $inquiryId, $userId, $followUpDate);
         $conn->commit();
     } catch (Throwable $exception) {
         $conn->rollback();

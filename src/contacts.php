@@ -301,6 +301,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
     <?php endif; ?>
 
     <div class="list-controls">
+        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
         <form method="get" action="contacts.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">

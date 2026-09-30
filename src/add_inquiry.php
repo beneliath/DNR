@@ -78,6 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
         $_SESSION['inquiry_action_message'] = $sourceMessage
             ? 'Inquiry created from inbound mail with the source correspondence preserved.'
             : 'Inquiry created.';
+        $_SESSION['clear_form_drafts'][] = 'add_inquiry.php:new';
         header('Location: view_inquiry.php?id=' . $inquiryId);
         exit();
     } catch (Throwable $exception) {

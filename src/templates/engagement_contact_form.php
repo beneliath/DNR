@@ -24,6 +24,7 @@
             <?php endforeach; ?>
         <?php endif; ?>
     </div>
+    <div class="engagement-contact-add-grid">
     <div class="engagement-contact-add-section">
         <h3>Add Existing Contacts</h3>
         <p class="field-help" id="engagement-contact-search-help">Search the contact directory by name or email. Contacts you select will also be associated with this organization when you save the event, keeping their other organizations.</p>
@@ -62,5 +63,6 @@
             include __DIR__ . '/engagement_new_contact_card.php';
             ?>
         </template>
+    </div>
     </div>
 </section>

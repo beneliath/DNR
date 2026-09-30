@@ -236,3 +236,75 @@ test('picker file count limit preserves the current valid selection', () => {
   assert.equal(ui.input.files.length,1);
   assert.match(ui.status.textContent,/at most 20/);
 });
+
+function reviewFeedback(link = false, submitting = false) {
+  const node = () => ({events: {}, attributes: {}, addEventListener(name, fn) { this.events[name] = fn; },
+    setAttribute(name, value) { this.attributes[name] = value; }, removeAttribute(name) { delete this.attributes[name]; }});
+  const form = link ? null : node();
+  const button = Object.assign(node(), {form, name: 'continue_to_review', value: '1', textContent: submitting ? 'Submit Reimbursement Request' : 'Review and Submit', dataset: submitting ? {submittingLabel: 'Submitting Request…'} : {}});
+  const status = {hidden: true};
+  const window = node();
+  vm.runInNewContext(source, {window, document: {
+    querySelectorAll: selector => selector === '[data-reimbursement-progress]' ? [button] : [],
+    querySelector: () => status
+  }});
+  const event = values => Object.assign({defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }}, values);
+  return {form, button, status, window, event};
+}
+test('review submission shows progress without dropping named submitter; blocks repeats and resets on Back', () => {
+  const ui = reviewFeedback();
+  ui.form.events.submit(ui.event({submitter: {name: 'save_note'}}));
+  assert.equal(ui.status.hidden, true);
+  ui.form.events.submit(ui.event({submitter: ui.button, defaultPrevented: true}));
+  assert.equal(ui.status.hidden, true);
+  ui.form.events.submit(ui.event({submitter: ui.button}));
+  assert.equal(ui.status.hidden, false);
+  assert.equal(ui.button.textContent, 'Preparing Review…');
+  assert.equal(ui.button.attributes['aria-busy'], 'true');
+  assert.ok(!ui.button.disabled);
+  assert.equal(ui.button.name, 'continue_to_review');
+  assert.equal(ui.button.value, '1');
+  const repeated = ui.event({submitter: ui.button});
+  ui.form.events.submit(repeated);
+  assert.equal(repeated.defaultPrevented, true);
+  ui.window.events.pageshow();
+  assert.equal(ui.status.hidden, true);
+  assert.equal(ui.button.textContent, 'Review and Submit');
+  assert.equal(ui.button.attributes['aria-disabled'], undefined);
+  const retry = ui.event({submitter: ui.button});
+  ui.form.events.submit(retry);
+  assert.equal(retry.defaultPrevented, false);
+});
+test('review link preserves modified clicks and shows feedback for ordinary navigation', () => {
+  const ui = reviewFeedback(true);
+  ui.button.events.click(ui.event({button: 0, ctrlKey: true}));
+  assert.equal(ui.status.hidden, true);
+  ui.button.events.click(ui.event({button: 0}));
+  assert.equal(ui.status.hidden, false);
+  const repeated = ui.event({button: 0});
+  ui.button.events.click(repeated);
+  assert.equal(repeated.defaultPrevented, true);
+});
+
+test('final submission shows its own busy label, blocks duplicates, and resets without bypassing size restrictions', () => {
+  const ui = reviewFeedback(false, true);
+  ui.button.disabled = true;
+  ui.form.events.submit(ui.event({submitter: ui.button}));
+  assert.equal(ui.status.hidden, true);
+  ui.window.events.pageshow();
+  assert.equal(ui.button.disabled, true);
+  ui.button.disabled = false;
+  ui.form.events.submit(ui.event({submitter: ui.button, defaultPrevented: true}));
+  assert.equal(ui.status.hidden, true);
+  ui.form.events.submit(ui.event({submitter: ui.button}));
+  assert.equal(ui.button.textContent, 'Submitting Request…');
+  assert.equal(ui.status.hidden, false);
+  assert.equal(ui.form.attributes['aria-busy'], 'true');
+  const repeat = ui.event({submitter: ui.button});
+  ui.form.events.submit(repeat);
+  assert.equal(repeat.defaultPrevented, true);
+  ui.window.events.pageshow();
+  assert.equal(ui.status.hidden, true);
+  assert.equal(ui.form.attributes['aria-busy'], undefined);
+  assert.equal(ui.button.textContent, 'Submit Reimbursement Request');
+});

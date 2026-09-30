@@ -235,6 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                                 . ($standard_task_count === 1 ? ' was' : 's were')
                                 . ' added and assigned to ' . $standard_task_assignee_label . '.'
                             : '');
+        $_SESSION['clear_form_drafts'][] = 'index.php:new';
                     header('Location: engagements.php');
                     exit();
                 } else {
@@ -357,7 +358,7 @@ try {
     <?php endif; ?>
 
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" enctype="multipart/form-data">
+    <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <section class="form-section">
         <h2>Event Details</h2>

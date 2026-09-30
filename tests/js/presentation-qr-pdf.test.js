@@ -15,7 +15,7 @@ function fixture() {
         }, properties);
     }
     const nodes = Object.fromEntries([
-        'presentation-qr-pdf-dialog', 'presentation-qr-pdf-form', 'qr-pdf-options', 'qr-pdf-select-all',
+        'presentation-qr-pdf-dialog', 'presentation-qr-pdf-form', 'qr-pdf-options', 'qr-pdf-select-all', 'qr-pdf-clear-selection',
         'qr-pdf-selection-count', 'prepare-qr-pdf', 'qr-pdf-empty', 'qr-pdf-error', 'cancel-qr-pdf',
         'qr-pdf-presentation-id', 'presentation-qr-pdf-context', 'qr-pdf-order-status'
     ].map(id => [id, element()]));
@@ -125,7 +125,7 @@ test('QR selection opens with available codes and submits only checked resources
     assert.equal(f.focused(), f.nodes['qr-pdf-select-all']);
     f.options.inputs[0].checked = false;
     f.options.change();
-    assert.equal(f.nodes['qr-pdf-select-all'].indeterminate, true);
+    assert.equal(f.nodes['qr-pdf-clear-selection'].hidden, false);
     assert.deepEqual(f.submit(), { presentation: '1', ids: ['12'] });
     assert.equal(f.dialog.open, false);
     assert.equal(f.focused(), f.buttons[0]);
@@ -135,14 +135,12 @@ test('clearing all codes blocks an empty PDF, and select all restores available 
     const f = fixture();
     f.open(0);
     const selectAll = f.nodes['qr-pdf-select-all'];
-    selectAll.checked = false;
-    selectAll.change();
+    f.nodes['qr-pdf-clear-selection'].click();
     assert.equal(f.nodes['prepare-qr-pdf'].disabled, true);
     assert.equal(f.nodes['qr-pdf-error'].hidden, false);
     assert.equal(f.submit(), null);
     assert.equal(f.dialog.open, true);
-    selectAll.checked = true;
-    selectAll.change();
+    selectAll.click();
     assert.equal(f.nodes['prepare-qr-pdf'].disabled, false);
     assert.equal(f.nodes['qr-pdf-error'].hidden, true);
     assert.deepEqual(f.submit().ids, ['11', '12']);
@@ -227,12 +225,10 @@ test('rows can be arranged before any are selected and keep that order when sele
     const f = fixture();
     f.open(0);
     const selectAll = f.nodes['qr-pdf-select-all'];
-    selectAll.checked = false;
-    selectAll.change();
+    f.nodes['qr-pdf-clear-selection'].click();
     f.drag(0, 1);
     assert.deepEqual(f.options.inputs.map(input => input.value), ['12', '11', '13']);
     assert.equal(f.nodes['prepare-qr-pdf'].disabled, true);
-    selectAll.checked = true;
-    selectAll.change();
+    selectAll.click();
     assert.deepEqual(f.submit().ids, ['12', '11']);
 });

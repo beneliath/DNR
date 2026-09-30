@@ -23,8 +23,8 @@
         "edit_engagement.php": "You are already in Edit Engagement. Change Start and End in the event fields."
       },
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
-        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+        "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
       },
       "subjects": [
         "event",
@@ -189,16 +189,16 @@
         "editor"
       ],
       "steps": [
-        "Open Work Queue and find the existing task. Select its Edit Task control.",
+        "Open Tasks and find the existing task. Select its Edit Task control.",
         "In Assigned To, choose the intended user. Review the task and select Save Changes.",
-        "Check the saved owner in Work Queue. The green check-mark completes a task; it does not assign it."
+        "Check the saved owner in Tasks. The green check-mark completes a task; it does not assign it."
       ],
       "on_pages": {
         "edit_task.php": "You are already in Edit Task. Find Assigned To in the form."
       },
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
-        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
+        "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f"
       },
       "subjects": [
@@ -263,9 +263,9 @@
         "default_step": "task-assign-start",
         "steps": {
           "task-assign-start": {
-            "message": "Open My Work and find the existing task. Use its Edit Task action to change the owner. The green check-mark completes work; it does not assign it.",
+            "message": "Open Tasks and find the existing task. Use its Edit Task action to change the owner. The green check-mark completes work; it does not assign it.",
             "href": "tasks.php",
-            "label": "open my work"
+            "label": "open tasks"
           },
           "task-assign-record": {
             "message": "Find the intended task and select Edit Task. Do not use the green completion check-mark to assign it."
@@ -309,7 +309,7 @@
         "editor"
       ],
       "steps": [
-        "For an event task, open the event, select Tasks, then Add Task. For general work, open Work Queue and use + New Task.",
+        "For an event task, open the event, select Tasks, then Add Task. For general work, open Tasks and use + New Task.",
         "Enter Title and Notes; verify Related Record, Assigned To, Due Date, Priority, and Status.",
         "Select Add task and check that the task appears for the intended record."
       ],
@@ -317,9 +317,9 @@
         "add_task.php": "You are already in the task form. Start with Title and verify Related Record."
       },
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
-        "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+        "add_task.php": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
         "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f"
       },
       "subjects": [
@@ -410,9 +410,9 @@
         "default_step": "task-create-start",
         "steps": {
           "task-create-start": {
-            "message": "Open My Work (Work Queue) and select + New Task. To attach work to an event, open that event and use its Tasks tab.",
+            "message": "Open Tasks (Tasks) and select + New Task. To attach work to an event, open that event and use its Tasks tab.",
             "href": "tasks.php",
-            "label": "open my work"
+            "label": "open tasks"
           },
           "task-create-list": {
             "message": "Select + New Task to open the task form. You choose whether this is general work or belongs to a record.",
@@ -446,7 +446,7 @@
             "label": "show validation message"
           },
           "task-create-check": {
-            "message": "Check the application confirmation and find the new task on the intended record or in My Work. Navigation alone does not confirm it was saved."
+            "message": "Check the application confirmation and find the new task on the intended record or in Tasks. Navigation alone does not confirm it was saved."
           },
           "task-create-event-add": {
             "message": "Select Add Task inside Tasks. The event is carried into the task form as its Related Record.",
@@ -485,13 +485,13 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record’s task list.",
-        "Select its green check-mark. MOED opens Complete Task?",
-        "Review the confirmation, then select Complete Task if the work is done. Cancel leaves it unchanged."
+        "Find the task on Tasks.",
+        "Select its green check-mark to complete it immediately.",
+        "Use Undo in the completion notice if needed. Undo is available for ten minutes unless the task changes. Related-record task controls may still ask for confirmation."
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d"
       },
       "subjects": [
         "task"
@@ -511,13 +511,13 @@
         "editor"
       ],
       "steps": [
-        "Find the task in Work Queue or the related record’s task list.",
+        "Find the task in Tasks or the related record’s task list.",
         "Select the Archive task box icon. Archiving retains its status and details while removing it from active work and reminders.",
-        "Check Archived in Work Queue to find it afterward. Required financial-closeout tasks cannot be archived to bypass closeout."
+        "Check Archived in Tasks to find it afterward. Required financial-closeout tasks cannot be archived to bypass closeout."
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d"
       },
       "subjects": [
         "task"
@@ -537,13 +537,13 @@
         "editor"
       ],
       "steps": [
-        "Open Work Queue and select Archived, or use View Archived Tasks on the related record.",
+        "Open Tasks and select Archived, or use View Archived Tasks on the related record.",
         "Find the task and select Restore task. Its original status, owner, due date, and details are retained.",
         "If its parent event or inquiry is archived, restore that parent first. A restored Completed task remains Completed."
       ],
       "on_pages": {},
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74"
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d"
       },
       "subjects": [
         "task"
@@ -718,7 +718,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "organizations.php": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635"
+        "organizations.php": "d265bf18adedb3f2e1d8f670cbf00f1be3689a4e383523023c325951d980499f"
       },
       "subjects": [
         "organization"
@@ -743,7 +743,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4"
+        "contacts.php": "c2b6f09b4d239e6fd6367743de409af26d0efee6ddeccd2450bac610f6471c31"
       },
       "subjects": [
         "contact"
@@ -768,7 +768,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "engagements.php": "1ad90904d4bf68960a1742d7d624f51489b39c8665a28797765accc580e06406"
+        "engagements.php": "0e38b30c27575d744ba25ab17c1b63e685df06958b576dc917e8bbc8392e4f6b"
       },
       "subjects": [
         "event",
@@ -796,9 +796,9 @@
         "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
         "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
-        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
+        "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
       },
       "subjects": [
         "powerpoint",
@@ -829,9 +829,9 @@
         "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation’s file fields."
       },
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
         "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
-        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
+        "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
       },
       "subjects": [
         "speaker notes",
@@ -854,12 +854,13 @@
       "steps": [
         "Open Organizations and select + New Organization.",
         "Complete the organization’s required details, then review its addresses and contact information.",
+        "Review possible duplicate matches. Use an existing record, or acknowledge that this is a distinct record before saving.",
         "Select Create Organization and check the save confirmation. Creating the organization does not create an event."
       ],
       "on_pages": {},
       "source_files": {
-        "organizations.php": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635",
-        "add_organization.php": "7c71e3a9677d8e4fbca680e92cb00b9f576716994d3fbc9cc6eb1274e3eb7052"
+        "organizations.php": "d265bf18adedb3f2e1d8f670cbf00f1be3689a4e383523023c325951d980499f",
+        "add_organization.php": "5984ed8d54db2eb162425b9a23f6df962528591e48dae21eab6645cab896e515"
       },
       "subjects": [
         "organization"
@@ -879,12 +880,13 @@
       "steps": [
         "Open Contacts and select + New Contact.",
         "Complete the person’s details and any organization affiliations. Event-specific contact roles are assigned separately when editing an event.",
+        "Review possible duplicate matches. Use an existing record, or acknowledge that this is a distinct record before saving.",
         "Select Create Contact, then check the save confirmation."
       ],
       "on_pages": {},
       "source_files": {
-        "contacts.php": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4",
-        "add_contact.php": "8500659d8f3f76c1765eb98e324001e8a9eb8988b55d924bc2c1a7407599a966"
+        "contacts.php": "c2b6f09b4d239e6fd6367743de409af26d0efee6ddeccd2450bac610f6471c31",
+        "add_contact.php": "21da425ea44d04f46e0ce5d8461713e5b99faf76a5235547729b223976761745"
       },
       "subjects": [
         "contact"
@@ -910,7 +912,7 @@
       ],
       "on_pages": {},
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763"
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd"
       },
       "subjects": [
         "event",
@@ -936,7 +938,7 @@
       ],
       "source_files": {
         "two_factor_settings.php": "7dceac282186b918c4e0a865cbf00affd9f1de01e3976755fb5c1e6448dea069",
-        "templates/header.php": "ee1fa8e2659399588038cce770b86a49da3ff517e731470fc07d9b24544a7ac0"
+        "templates/header.php": "e52148c6319ecbba6fb73301156a04635354a06e86b28c93016735cac3c98d53"
       },
       "subjects": [
         "password"
@@ -963,7 +965,7 @@
       },
       "source_files": {
         "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
-        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32"
+        "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5"
       },
       "subjects": [
         "task",
@@ -999,7 +1001,7 @@
       },
       "source_files": {
         "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
-        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32"
+        "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5"
       },
       "subjects": [
         "task",
@@ -1064,7 +1066,7 @@
       "on_pages": {},
       "source_files": {
         "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "assets/js/reimbursements.js": "2735c668ef6195251397641206024476ef2600b5341716e39497ea4af543742e"
+        "assets/js/reimbursements.js": "641fc02bb37a9f6c37be0a9be7359b6f55f824db64e942f0ade09e31e1282fc7"
       },
       "subjects": [
         "reimbursement",
@@ -1095,8 +1097,8 @@
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
-        "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e"
+        "reimbursements.php": "a26ee7e7d29cff5ef6cfdc1f991da08ad7d1937d971d090efc58e7864bc3b89c",
+        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
       },
       "subjects": [
         "reimbursement",
@@ -1121,17 +1123,17 @@
       ],
       "steps": [
         "Open Requests and use the Submit icon beside your active draft, or open the draft, enter an optional Note to the Bookkeeper, and select Review and Submit. That button saves the note before opening review.",
-        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches the ZIP, a separate report PDF, an expense CSV, and each receipt separately. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
+        "Review Email Details, Email Preview, Submission Readiness, and Package Contents. Check the bookkeeper, note, Cc/Bcc recipients, amounts, and matching receipt filenames. The email attaches only the ZIP, containing the report PDF, expense CSV, and every original receipt. The ZIP is capped at 18 MB; the submission review meter reaches 100% at 18 MB. The complete encoded email, including headers and body, must also fit within 25 MB. Submission is disabled if either limit is exceeded or size cannot be calculated. The CSV has one row per expense with matching receipt filenames, dates such as 6/30/2026, and Amount (USD) values such as $2488.57.",
         "Select the review checkbox, then Submit Reimbursement Request. This queues delivery and locks the expenses and receipts; it does not mark them paid."
       ],
       "on_pages": {},
       "source_files": {
-        "reimbursement_submit.php": "4a7df32c38c54d2e6eb212650edb79cd374ae2340f6a493c775e1f904e443b47",
-        "reimbursement_submission_helpers.php": "420f580d698e676a44619f7defdd394e88fe53dbf30f670a32784debc00fb951",
-        "reimbursement_email_helpers.php": "50ecf50ad237b133e15f201f929ab2c8544745b0557a0a82a2cb0a1f7c3d22c6",
-        "email_helpers.php": "fd0e95ee4f91c5797a78f5c595efec6a5fdb6211d6c8cda7c9be096d8afd676b",
-        "reimbursement_request.php": "33d235f1c43455d408c73c28d1e0843aa45ef089fc9d25c5071ae6852b2baf0e",
-        "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
+        "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
+        "reimbursement_submission_helpers.php": "b9681cf9cc42dff6308fe40236b08326cd059b0f81088759f2fa68c9ed80e6d5",
+        "reimbursement_email_helpers.php": "0524e40417f32032b735d3c82a8b22fa1843441e2f20af2c4b0704f218514acf",
+        "email_helpers.php": "d1cfe19d05a902cdf748389a9cee575b8e5b6eddbb7a583d6bd1d40b24789e15",
+        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "subjects": [
         "reimbursement",
@@ -1249,7 +1251,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "e38bcb62f3664db517d537233fdb4537d92260a2a5c363dab3f74c7d72e21bac",
-        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
       },
       "subjects": [
         "reimbursement",
@@ -1278,7 +1280,7 @@
       "on_pages": {},
       "source_files": {
         "templates/reimbursement_delivery_history.php": "e38bcb62f3664db517d537233fdb4537d92260a2a5c363dab3f74c7d72e21bac",
-        "reimbursement_workflow_helpers.php": "d5a57026fcd63abb495c9efae2ab9e76c51548f3b5bb1913a02eaa32b9cbd0ad"
+        "reimbursement_workflow_helpers.php": "3cde9c6414f7cc3188fb1e5256373e9c6f475f6b1b45274422d711e538224278"
       },
       "subjects": [
         "reimbursement",

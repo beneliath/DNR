@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
 include 'contact_photo_helpers.php';
@@ -74,6 +75,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         $error_field_ids[count($error_messages)] = 'contact_photo';
         $error_messages[] = $photo_error;
     }
+    $duplicateWarning = creationDuplicateWarning($conn, 'contact', $_POST);
+    if (!creationDuplicatesAcknowledged($duplicateWarning, $_POST)) $error_messages[] = 'Review possible existing records, or confirm that this is a different record.';
     if ($error_messages !== []) {
         $error_message = $error_messages[0];
     } else {
@@ -241,7 +244,9 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
         : 'Connect a person with their organizations and roles.'; ?></p></div></div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
+    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form" data-duplicate-kind="contact">
+<?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'contact', $creation_return); ?>
+
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">

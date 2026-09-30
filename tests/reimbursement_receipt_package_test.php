@@ -9,6 +9,8 @@ require_once __DIR__ . '/../src/reimbursement_email_helpers.php';
 $root = sys_get_temp_dir() . '/dnr-receipt-package-' . bin2hex(random_bytes(8));
 if (!mkdir($root, 0700)) throw new RuntimeException('Unable to create test storage.');
 $previousRoot = getenv('DNR_FILE_STORAGE_PATH');
+$previousBase = getenv('DNR_PUBLIC_BASE_URL');
+putenv('DNR_PUBLIC_BASE_URL=https://example.test');
 putenv('DNR_FILE_STORAGE_PATH=' . $root);
 
 try {
@@ -59,28 +61,48 @@ try {
     $base = reimbursementPackageBase($context['request']);
     $packagePath = createReimbursementZip($report, reimbursementExpenseCsv($context['items'], $receipts), $receipts, $base);
     try {
+        $context['owner'] += ['email' => 'owner@example.test', 'reimbursement_reviewer_email' => ''];
+        $context['setup']['bookkeeper_email'] = 'bookkeeper@example.test';
+        $context['setup']['reviewer_email'] = '';
+        $message = reimbursementSubmissionMessage($context, true);
+        $recipients = reimbursementSubmissionRecipients($context);
+        $mime = smtpMessageData(
+            (string) (getenv('DNR_MAIL_FROM') ?: $context['owner']['email']), deploymentConfig()->string('brand.mail_name'),
+            $recipients['to'][0], $message['subject'], $message['body'], $context['owner']['email'], $message['html_body'],
+            ['to' => $recipients['to'], 'cc' => $recipients['cc']],
+            attachments: [['filename' => $base . '.zip', 'content_type' => 'application/zip', 'data' => file_get_contents($packagePath)]]
+        );
+        if (reimbursementEmailSize($context, $packagePath) !== strlen($mime) + 2) {
+            throw new RuntimeException('The review meter must exactly match the full encoded SMTP message size.');
+        }
         $attachments = reimbursementAttachmentsFromVerifiedZip(
             ['filename' => $base . '.zip', 'content_type' => 'application/zip', 'data' => file_get_contents($packagePath)],
             reimbursementIndividualAttachmentManifest($context)
         );
-        if (count($attachments) !== 6) throw new RuntimeException('The email must attach the ZIP, PDF report, CSV, and three receipts.');
-        foreach ($receipts as $index => $receipt) {
-            $attachment = $attachments[$index + 3];
-            if ($attachment['filename'] !== reimbursementReceiptPackageFilename($receipt)
-                || $attachment['content_type'] !== $receipt['content_type']
-                || $attachment['data'] !== file_get_contents($root . '/' . $receipt['storage_key'])) {
-                throw new RuntimeException('A separate receipt differs from the ZIP original.');
+        if (count($attachments) !== 1) throw new RuntimeException('The email must attach only the ZIP.');
+        $zip = new ZipArchive();
+        $zip->open($packagePath);
+        if ($zip->numFiles !== 5 || $zip->getFromName($base . '.pdf') !== $report
+            || $zip->getFromName($base . '.csv') !== reimbursementExpenseCsv($context['items'], $receipts)) {
+            throw new RuntimeException('The ZIP must retain the report, CSV, and three receipts.');
+        }
+        foreach ($receipts as $receipt) {
+            if ($zip->getFromName('receipts/' . reimbursementReceiptPackageFilename($receipt))
+                !== file_get_contents($root . '/' . $receipt['storage_key'])) {
+                throw new RuntimeException('A ZIP receipt differs from the original.');
             }
         }
+        $zip->close();
         $mime = smtpMessageContent('Test report', '<p>Test report</p>', $attachments);
-        if (substr_count($mime['body'], 'Content-Disposition: attachment;') !== 6) {
-            throw new RuntimeException('The SMTP message must include all six file parts.');
+        if (substr_count($mime['body'], 'Content-Disposition: attachment;') !== 1) {
+            throw new RuntimeException('The SMTP message must include only one ZIP file part.');
         }
     } finally {
         unlink($packagePath);
     }
-    echo "Reimbursement receipt package: report and all six MIME attachments verified.\n";
+    echo "Reimbursement receipt package: report, ZIP contents, and single MIME attachment verified.\n";
 } finally {
+    putenv($previousBase === false ? 'DNR_PUBLIC_BASE_URL' : 'DNR_PUBLIC_BASE_URL=' . $previousBase);
     foreach (glob($root . '/*') ?: [] as $path) unlink($path);
     if (is_file($root . '/.lifecycle.lock')) unlink($root . '/.lifecycle.lock');
     rmdir($root);

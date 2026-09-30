@@ -225,8 +225,8 @@ test "$(fixture digest-schedule "$fixture_suffix" editor)" = '16:45:00|21'
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-task-reminders.html" \
     "$base_url/tasks.php"
-grep -q 'aria-label="Work Ownership"' "$temporary_directory/editor-task-reminders.html"
-grep -q 'aria-current="page">My Work</a>' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-label="Task Ownership"' "$temporary_directory/editor-task-reminders.html"
+grep -q 'aria-current="page">My Tasks</a>' "$temporary_directory/editor-task-reminders.html"
 grep -q 'href="tasks.php?view=overdue&amp;scope=mine&amp;per_page=20"' "$temporary_directory/editor-task-reminders.html"
 ! grep -q 'numbered-pagination' "$temporary_directory/editor-task-reminders.html"
 
@@ -238,7 +238,7 @@ grep -q 'scope=unassigned&amp;per_page=20' "$temporary_directory/unassigned-defa
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/everyone-page-size.html" \
     "$base_url/tasks.php?scope=everyone&per_page=50"
 grep -q 'scope=everyone&amp;per_page=50' "$temporary_directory/everyone-page-size.html"
-mine_url=$(sed -n 's/.*href="\([^"]*\)">My Work<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
+mine_url=$(sed -n 's/.*href="\([^"]*\)">My Tasks<\/a>.*/\1/p' "$temporary_directory/everyone-page-size.html" | head -n 1 | sed 's/&amp;/\&/g')
 test -n "$mine_url"
 case "$mine_url" in *per_page=*) echo 'Ownership links must not carry another view size.' >&2; exit 1 ;; esac
 curl -fsS -b "$editor_cookies" -c "$editor_cookies" -o "$temporary_directory/mine-page-size.html" "$base_url/$mine_url"
