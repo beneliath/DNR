@@ -55,9 +55,9 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional']):
-        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|verify]')
-    uiux_only = sys.argv[1:] in (['uiux'], ['functional'])
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions']):
+        raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|verify]')
+    uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
     reimbursements_only = sys.argv[1:] == ['reimbursements']
     scanning_only = sys.argv[1:] == ['scanning']
@@ -122,7 +122,7 @@ def main():
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
             if uiux_only:
-                for suite in (('functional_workflows_integration_test.php',) if sys.argv[1] == 'functional' else ('follow_up_tasks_integration_test.php', 'workflow_improvements_http_integration_test.php', 'functional_workflows_integration_test.php')):
+                for suite in (('bulk_delete_http_integration_test.php', 'short_links_http_integration_test.php') if sys.argv[1] == 'actions' else ('functional_workflows_integration_test.php',) if sys.argv[1] == 'functional' else ('follow_up_tasks_integration_test.php', 'workflow_improvements_http_integration_test.php', 'functional_workflows_integration_test.php')):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
                         '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                         '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-e', 'DNR_TEST_BASE_URL=http://127.0.0.1',
