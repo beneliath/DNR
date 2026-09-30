@@ -283,6 +283,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
     <?php endif; ?>
 
     <div class="list-controls">
+        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'organizations.php?status=active'); ?>
         <form method="get" action="organizations.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="name_sort" value="<?php echo htmlspecialchars($name_sort, ENT_QUOTES, 'UTF-8'); ?>">

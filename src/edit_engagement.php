@@ -572,6 +572,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $success_message .= ' ' . $canceled_task_count . ' open task'
                 . ($canceled_task_count === 1 ? ' was' : 's were') . ' canceled.';
         }
+        $_SESSION['clear_form_drafts'][] = 'edit_engagement.php:' . $engagement_id;
         $_SESSION['engagement_action_message'] = $success_message;
         applicationLog('info', 'Engagement updated', ['engagement_id' => $engagement_id]);
 
@@ -765,7 +766,7 @@ $document_scan_messages = documentScanMessages($conn, (int) $engagement_id);
         <div class="error"><?php echo htmlspecialchars($chron_action_error); ?></div>
     <?php endif; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
+    <form method="post" action="<?php echo htmlspecialchars($_SERVER['PHP_SELF'] . '?id=' . $engagement_id); ?>" class="engagement-form" id="engagement-edit-form" data-recoverable-draft="edit_engagement.php:<?php echo (int)$engagement_id; ?>" data-chunk-engagement="<?php echo (int) $engagement_id; ?>" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($record_edit_return, ENT_QUOTES, 'UTF-8'); ?>">
         <input type="hidden" name="engagement_version" value="<?php echo htmlspecialchars((string) $engagement['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">

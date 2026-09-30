@@ -27,7 +27,7 @@ function aiCoachPages(): array
         'reimbursement_setup.php' => 'Reimbursement Setup',
         'engagements.php' => 'Engagements', 'view_engagement.php' => 'Engagement Details',
         'edit_engagement.php' => 'Edit Engagement', 'index.php' => 'New Engagement',
-        'tasks.php' => 'Work Queue', 'add_task.php' => 'New Task', 'edit_task.php' => 'Edit Task',
+        'tasks.php' => 'Tasks', 'add_task.php' => 'New Task', 'edit_task.php' => 'Edit Task',
         'contacts.php' => 'Contacts', 'view_contact.php' => 'Contact Details', 'add_contact.php' => 'New Contact', 'edit_contact.php' => 'Edit Contact',
         'organizations.php' => 'Organizations', 'view_organization.php' => 'Organization Details', 'add_organization.php' => 'New Organization', 'edit_organization.php' => 'Edit Organization',
         'speakers.php' => 'Speakers', 'view_speaker.php' => 'Speaker Details', 'edit_speaker.php' => 'Edit Speaker',

@@ -290,10 +290,8 @@ if ($engagement_title === '') {
         <form method="post" action="restore_presentations.php?engagement_id=<?php echo $engagement_id; ?>" class="chron-restore-form">
             <?php echo csrfInput(); ?>
             <div class="chron-restore-toolbar">
-                <label class="chron-select-all">
-                    <input type="checkbox" id="select-all-presentations">
-                    Select All Archived Presentations
-                </label>
+                <button type="button" class="button-secondary" id="select-all-presentations">Select All Available</button>
+                <button type="button" class="button-secondary" id="select-all-presentations-clear" hidden>Clear Selection</button>
                 <button type="submit" name="restore_selected" value="1" class="restore-button">Restore Selected</button>
             </div>
 

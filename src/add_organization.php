@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
 require_once __DIR__ . '/organization_options_helpers.php';
@@ -107,13 +108,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
         $contacts_to_create[] = $normalized_contact['data'];
     }
 
+    $duplicateWarning = creationDuplicateWarning($conn, 'organization', $_POST);
+    if (!creationDuplicatesAcknowledged($duplicateWarning, $_POST)) $errorMessages[] = 'Review possible existing records, or confirm that this is a different record.';
     $error = !empty($errorMessages);
     if (!$error) {
         $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ?");
         $check_stmt->bind_param("s", $organization_name);
         $check_stmt->execute();
 
-        if ($check_stmt->get_result()->num_rows > 0) {
+        if ($check_stmt->get_result()->num_rows > 0 && !creationDuplicatesAcknowledged($duplicateWarning, $_POST)) {
             $error = true;
             $errorFieldIds[count($errorMessages)] = 'organization_name';
             $errorMessages[] = "An organization with this name already exists.";
@@ -257,7 +260,9 @@ if (isset($_SESSION['success_message'])) {
         <p>Search before filling the organization form. The results show up to 25 contacts.</p>
     </form></noscript>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="add_organization.php" class="organization-form">
+    <form method="post" action="add_organization.php" class="organization-form" data-duplicate-kind="organization">
+<?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'organization', $creation_return); ?>
+
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">

@@ -140,14 +140,14 @@ $priority_labels = followUpTaskPriorities();
 <body class="standard-tasks-body">
 <?php include 'templates/header.php'; ?>
 <main class="container standard-tasks-page">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><span>Standard Event Tasks</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><span>Standard Event Tasks</span></nav>
     <div class="page-heading standard-tasks-heading">
         <div>
             <h1><?php echo $show_archived ? 'Archived Standard Event Tasks' : 'Standard Event Tasks'; ?></h1>
             <p class="page-intro">Control the reusable work assigned automatically when new events are created.</p>
         </div>
         <div class="page-heading-actions">
-            <a href="tasks.php" class="button-secondary">Back to Work Queue</a>
+            <a href="tasks.php" class="button-secondary">Back to Tasks</a>
             <?php if (canManageFollowUpTasks($user_role)): ?><a href="add_standard_task.php" class="button-add">+ New Standard Task</a><?php endif; ?>
         </div>
     </div>

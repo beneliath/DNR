@@ -42,6 +42,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
             (string) ($_POST['inquiry_version'] ?? '')
         );
         $_SESSION['inquiry_action_message'] = 'Inquiry details updated.';
+        $_SESSION['clear_form_drafts'][] = 'edit_inquiry.php:' . $inquiry_id;
         header('Location: view_inquiry.php?id=' . $inquiry_id);
         exit();
     } catch (Throwable $exception) {

@@ -79,6 +79,7 @@ function reimbursementSubmitH(mixed $v): string { return htmlspecialchars((strin
 <div class="page-heading"><div><h1>Review Reimbursement Email</h1><p class="page-intro">Check the recipients, message, and ZIP package before submitting.</p></div></div>
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementSubmitH($error) ?></p><?php endif; ?>
 <?php if ($context && $message): ?>
+<?php $flowStep = 3; $flowRequestId = $id; $flowCount = count($context['items']); $flowTotal = array_sum(array_column($context['items'], 'amount_cents')); include __DIR__ . '/templates/reimbursement_progress.php'; ?>
 <section class="reimbursement-card"><h2>Email Details</h2>
 <dl class="reimbursement-email-details"><dt>To</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['to'] ?? [])) ?></dd><dt>Cc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['cc'] ?? [])) ?: 'None' ?></dd><dt>Bcc</dt><dd><?= reimbursementSubmitH(implode(', ', $recipients['bcc'] ?? [])) ?: 'None' ?></dd><dt>Subject</dt><dd><?= reimbursementSubmitH($message['subject']) ?></dd><dt>Attachments</dt><dd><?= reimbursementSubmitH($message['filename']) ?> (ZIP containing the expense report PDF, CSV, and all original receipts)</dd></dl>
 <p class="field-help">Bcc recipients are hidden from other recipients. Duplicate email addresses receive one copy.</p>

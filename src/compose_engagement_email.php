@@ -153,11 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (string) ($_SESSION['username'] ?? ''),
             speakerIds: $speakerIds,
             recipientTypes: $recipientTypes,
-            senderCopy: $senderCopy
+            senderCopy: $senderCopy,
+            followUpDate: isset($_POST['track_reply']) ? (string) ($_POST['follow_up_date'] ?? '') : null
         );
         $_SESSION['engagement_email_message'] = $mailTransport === 'log'
             ? 'The message was accepted by the development mail transport.'
             : 'The message was queued for delivery.';
+        $_SESSION['clear_form_drafts'][] = 'compose_engagement_email.php:' . $engagementId;
         header('Location: outbound_mail.php?id=' . $messageId);
         exit();
     } catch (InvalidArgumentException | DomainException $exception) {
@@ -223,7 +225,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <p class="warning" role="status">This engagement has no assigned contacts or speakers with a valid email address. Add an email to an assigned event contact or speaker before sending correspondence.</p>
     <?php endif; ?>
 
-    <form method="post" action="compose_engagement_email.php" class="engagement-email-form" data-engagement-email-form>
+    <form method="post" action="compose_engagement_email.php" class="engagement-email-form" data-recoverable-draft="compose_engagement_email.php:<?php echo (int)$engagementId; ?>" data-draft-version="<?php echo htmlspecialchars((string)($engagement['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-engagement-email-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="id" value="<?php echo $engagementId; ?>">
 
@@ -356,7 +358,11 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
             </details>
         </section>
 
-        <div class="email-compose-actions">
+        <fieldset><legend>Reply Follow-Up</legend>
+<label><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
+<label for="follow-up-date">Follow-Up Date</label><input id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+<p>The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p></fieldset>
+<div class="email-compose-actions">
             <a href="view_engagement.php?id=<?php echo $engagementId; ?>#correspondence" class="button-secondary">Cancel</a>
             <button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$hasRecipientsWithEmail ? ' disabled' : ''; ?> data-confirm="Queue this message for delivery to the selected recipients?">Queue Email</button>
         </div>

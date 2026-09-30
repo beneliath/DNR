@@ -371,6 +371,36 @@ The required built-in **Complete the event financial closeout** task cannot be e
 deleted; it is due seven days after the event end date and directs staff to finalize giving/income,
 lodging, and travel received.
 
+### Task-backed follow-up and recoverable drafts
+
+Inquiry next actions are linked Tasks. Editing their title, owner, due date, or status updates the
+pipeline summary; completing or archiving the task clears the active next action. Inquiry editing
+can designate another active linked task. Clearing the next-action fields removes the designation
+without deleting the task. Booking can carry the same task forward or resolve it with a reason.
+Existing active inquiry next actions are migrated into tasks and included in task totals.
+
+In either email composer, **Create a Task to Review the Reply** creates a waiting task assigned to
+the sender with a chosen follow-up date. The Tasks page and outbound message show **Awaiting reply**
+or **Reply received — review needed**. Reply detection requires a processed message filed to the
+same record, from an outbound recipient, with matching In-Reply-To or References headers. A reply
+never completes the task automatically; forwarded messages without those headers require manual review.
+
+Tasks supports bulk reassignment, due-date changes, and completion with a preview. Each task is
+checked again on Apply; changed, archived, or completed tasks are skipped and reported. Clearing a
+bulk due date removes dates, and manual due-date changes override checklist rescheduling. Selection
+buttons affect only the current page. Administrative bulk deletion retains its separate review and unlock.
+
+Engagement, inquiry, and email forms offer **Save Draft**, **Restore Draft**, and **Discard Draft**.
+Drafts are scoped to the signed-in user in this browser, expire after 30 days, and are cleared after
+a successful save or send. Changed record versions block automatic restoration and expose saved values
+for manual recovery. Uploaded files must be selected again; values from removed or newly added repeat
+rows are retained for manual recovery when matching controls are unavailable. Drafts do not save records
+or send mail, and browser storage must be available for recovery.
+
+New Contact and New Organization forms warn about likely existing records by name, email, and phone.
+Choose **Use Existing** or acknowledge that the matches are different records. The server repeats the
+check on Save; shared contact details do not cause automatic merging.
+
 ### Event contacts and roles
 
 Engagement create and edit forms can assign multiple contacts with one or more event-specific roles:

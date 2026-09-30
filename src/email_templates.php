@@ -106,7 +106,7 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
                         <td><a class="record-link" href="edit_email_template.php?id=<?php echo (int) $template['id']; ?><?php echo $contextQuery; ?>"><?php echo htmlspecialchars((string) $template['name'], ENT_QUOTES, 'UTF-8'); ?></a><small class="task-notes-preview"><?php echo htmlspecialchars((string) $template['subject_template'], ENT_QUOTES, 'UTF-8'); ?></small></td>
                         <td><?php echo htmlspecialchars($roles !== [] ? implode(' · ', array_map('engagementContactRoleLabel', $roles)) : 'Choose when composing', ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?php echo htmlspecialchars(applicationTimestampLabel($template['updated_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><div class="task-actions">
+                        <td><div class="task-actions email-template-actions" data-icon-only>
                             <a href="edit_email_template.php?id=<?php echo (int) $template['id']; ?><?php echo $contextQuery; ?>" class="action-button action-icon-button <?php echo $canManage && !$archived ? 'edit-button' : 'view-button'; ?>" aria-label="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?> Email Template" title="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>" data-tooltip="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>"><?php echo actionIconSvg($canManage && !$archived ? 'edit' : 'view'); ?></a>
                             <?php if ($canManage): ?>
                                 <form method="post" action="email_templates.php">

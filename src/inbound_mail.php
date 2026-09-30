@@ -180,7 +180,7 @@ $statusLabels = [
 ?>
 <!DOCTYPE html>
 <html lang="en">
-<?php renderPageHead(applicationPageTitle('Inbound Mail'), [
+<?php renderPageHead(applicationPageTitle('Inbox'), [
     'styles' => [
         'assets/css/style.min.css',
         'assets/css/modern.min.css',
@@ -193,7 +193,7 @@ $statusLabels = [
 <main class="container inbound-mail-page">
     <div class="page-heading inbound-mail-heading">
         <div>
-            <h1>Inbound Mail</h1>
+            <h1>Inbox</h1>
             <p class="page-intro">Read incoming mail, check its destinations, and save the conversation to Chron.</p>
         </div>
         <a class="button-secondary inbound-refresh" href="<?php echo htmlspecialchars('inbound_mail.php?' . http_build_query(array_merge($queueContext, $requestedId ? ['id' => $requestedId] : [])), ENT_QUOTES, 'UTF-8'); ?>">Refresh Inbox</a>
@@ -211,7 +211,8 @@ $statusLabels = [
         <?php endforeach; ?>
     </nav>
 
-    <form method="get" action="inbound_mail.php" class="inbound-queue-search" id="inbound-queue-search">
+    <?php renderListFilterSummary(['Status' => $statusLabels[$statusFilter], 'Search' => $queueSearch, 'Order' => $queueSort === 'oldest' ? 'Oldest first' : 'Newest first'], 'inbound_mail.php?status=review&sort=oldest'); ?>
+        <form method="get" action="inbound_mail.php" class="inbound-queue-search" id="inbound-queue-search">
         <input type="hidden" name="per_page" value="<?php echo $queuePageSize; ?>">
         <input type="hidden" name="status" value="<?php echo htmlspecialchars($statusFilter, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="inbound-search-field"><label for="inbox-search">Search Messages</label><input type="search" name="q" id="inbox-search" value="<?php echo htmlspecialchars($queueSearch, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Subject, Sender, or Message Content"></div>

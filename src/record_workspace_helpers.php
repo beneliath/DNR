@@ -33,7 +33,7 @@ function recordReturnLabel(string $url): string
         'dashboard.php' => 'Dashboard', 'engagements.php' => 'Engagements',
         'organizations.php' => 'Organizations', 'contacts.php' => 'Contacts',
         'map.php' => 'Map', 'view_calendar.php' => 'Calendar',
-        'inquiries.php' => 'Booking Pipeline', 'tasks.php' => 'Work Queue',
+        'inquiries.php' => 'Booking Pipeline', 'tasks.php' => 'Tasks',
         'inbound_mail.php' => 'Inbox', 'view_organization.php' => 'Organization',
         'view_contact.php' => 'Contact', 'view_engagement.php' => 'Engagement',
         'view_inquiry.php' => 'Inquiry', default => 'Previous Page',

@@ -314,7 +314,8 @@ $exportQuery = http_build_query(array_filter([
     <?php if ($notice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <form method="get" action="inquiries.php" class="inquiry-filter-bar" role="search" data-inquiry-filter>
+    <?php renderListFilterSummary(['Status' => ucfirst($view), 'Owner' => ucfirst($owner), 'Priority' => ucfirst($priority), 'Timing' => ucfirst(str_replace('_', ' ', $timing)), 'Search' => $search], 'inquiries.php'); ?>
+        <form method="get" action="inquiries.php" class="inquiry-filter-bar" role="search" data-inquiry-filter>
         <label class="inquiry-search-field"><span class="visually-hidden">Search Inquiries</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Inquiries, Organizations, or Contacts"></label>
         <div class="inquiry-filter-controls">
             <label><span class="visually-hidden">Owner</span><select name="owner" aria-label="Owner"><option value="">All</option><option value="mine_or_unassigned"<?php echo $owner === 'mine_or_unassigned' ? ' selected' : ''; ?>>Mine &amp; Unassigned</option><option value="me"<?php echo $owner === 'me' ? ' selected' : ''; ?>>My Inquiries</option><option value="unassigned"<?php echo $owner === 'unassigned' ? ' selected' : ''; ?>>Unassigned</option></select></label>

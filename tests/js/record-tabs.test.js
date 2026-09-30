@@ -15,7 +15,11 @@ function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initializ
 
     function node(id, attributes = {}) {
         const result = {
-            id, attributes, hidden: false, children: [], events: {}, scrolls: 0,
+            id, attributes, hidden: false, children: [], events: {}, scrolls: 0, textContent: id,
+            classList: { add() {} },
+            appendChild(child) { this.children.push(child); },
+            prepend(child) { this.children.unshift(child); },
+            add(option) { this.children.push(option); },
             getAttribute(name) { return this.attributes[name] ?? null; },
             setAttribute(name, value) { this.attributes[name] = value; },
             addEventListener(name, callback) { this.events[name] = callback; },
@@ -54,6 +58,7 @@ function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initializ
     };
     const document = {
         readyState: "loading",
+        createElement(tag) { return node("created-" + tag); },
         getElementById: id => nodes.get(id) || null,
         querySelector() { return null; },
         querySelectorAll(selector) {
@@ -77,7 +82,7 @@ function recordTabsFixture({ inquiry = false, hash = "", selected = 0, initializ
         panels, tabs, nodes, openNote, addNote, noteText, window,
         get focused() { return focused; },
         initialize() {
-            vm.runInNewContext(source, { document, window });
+            vm.runInNewContext(source, { document, window, Option: function (text, value) { this.textContent = text; this.value = value; } });
             documentEvents.DOMContentLoaded.forEach(callback => callback());
         },
         changeHash(value) {
@@ -206,4 +211,16 @@ test("selected tab survives leaving for statistics and returning to the history 
     // Initial deep links retain their nested target rather than replacing it.
     const nested = recordTabsFixture({ hash: '#follow-up-form' });
     assert.equal(nested.window.history.replacements.length, 0);
+});
+
+test('mobile section picker stays synchronized with fragments and desktop tabs', () => {
+    const fixture = recordTabsFixture({ hash: '#correspondence' });
+    const picker = fixture.nodes.get('created-select');
+    assert.equal(picker.value, '1');
+    picker.value = '2';
+    picker.events.change();
+    assertSelected(fixture, 2);
+    assert.equal(fixture.window.location.hash, '#engagement-tasks');
+    fixture.changeHash('#chron-log');
+    assert.equal(picker.value, '0');
 });

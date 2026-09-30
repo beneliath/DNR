@@ -175,7 +175,7 @@ $task_duplicate_url = 'add_task.php?' . http_build_query([
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><span>Edit Task</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><span>Edit Task</span></nav>
     <div class="page-heading form-page-heading"><div><h1>Edit Task</h1><p class="page-intro">Update the next action, owner, timing, or status.</p></div></div>
     <?php if ($error_message !== ''): ?>
         <p class="error"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p>

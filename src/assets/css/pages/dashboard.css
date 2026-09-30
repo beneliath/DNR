@@ -1,5 +1,5 @@
 .dashboard-page {
-    --dashboard-task-hover-bg: #ffd3a6;
+    --dashboard-task-hover-bg: var(--surface-hover);
     --dashboard-mail-color: #6941c6;
     --dashboard-mail-bg: #ede9fe;
     display: flex;
@@ -11,7 +11,7 @@
 }
 
 html.dark-mode .dashboard-page {
-    --dashboard-task-hover-bg: #713b10;
+    --dashboard-task-hover-bg: var(--surface-hover);
     --dashboard-mail-color: #bdb4fe;
     --dashboard-mail-bg: #463b78;
 }
@@ -281,25 +281,6 @@ html body .dashboard-panel-heading > a.dashboard-panel-button:focus-visible {
 
 .dashboard-task-list > li.task-row-overdue {
     background: var(--task-overdue-row-bg);
-}
-
-.dashboard-task-list > li.task-row-needs-attention {
-    background-color: var(--task-overdue-alert-bg);
-}
-
-.dashboard-task-list.task-attention-cascading > li.task-row-needs-attention {
-    background-color: var(--task-overdue-row-bg);
-}
-
-.dashboard-task-list > li.task-row-attention-current {
-    animation: task-overdue-attention var(--task-attention-step-duration, 1.44s) ease-in-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .dashboard-task-list > li.task-row-needs-attention {
-        animation: none;
-        background-color: var(--task-overdue-alert-bg) !important;
-    }
 }
 
 .dashboard-task-list > li.task-row-today {

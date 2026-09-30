@@ -38,6 +38,11 @@ parameters:
     bootstrapFiles:
         - src/functions.php
     scanFiles:
+        - src/workflow_task_helpers.php
+        - src/task_bulk_helpers.php
+        - src/duplicate_warning_helpers.php
+        - src/global_search_helpers.php
+        - src/list_ui_helpers.php
         - src/email_delivery_claim_helpers.php
         - src/legacy_powerpoint_helpers.php
         - src/native_backup_stream_helpers.php

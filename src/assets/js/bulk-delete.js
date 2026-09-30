@@ -13,14 +13,12 @@
         count.textContent = `${selected} selected`;
         submit.disabled = selected === 0;
         submit.textContent = selected ? `Delete selected (${selected})` : 'Delete Selected';
-        selectAll.checked = items.length > 0 && selected === items.length;
-        selectAll.indeterminate = selected > 0 && selected < items.length;
-        selectAll.disabled = items.length === 0;
+        selectAll.disabled = items.length === 0 || selected === items.length;
         clear.hidden = selected === 0;
     }
     items.forEach(item => item.addEventListener('change', update));
-    selectAll.addEventListener('change', function () {
-        items.forEach(item => { item.checked = selectAll.checked; });
+    selectAll.addEventListener('click', function () {
+        items.forEach(item => { item.checked = true; });
         update();
     });
     clear.addEventListener('click', function () {
