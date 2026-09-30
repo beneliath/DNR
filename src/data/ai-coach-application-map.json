@@ -30,7 +30,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "8500659d8f3f76c1765eb98e324001e8a9eb8988b55d924bc2c1a7407599a966",
+      "sha256": "21da425ea44d04f46e0ce5d8461713e5b99faf76a5235547729b223976761745",
       "controls": [
         {
           "kind": "a",
@@ -113,7 +113,7 @@
       ]
     },
     "add_inquiry.php": {
-      "sha256": "48e9f9c7c572f279740ffbd089f557286dd61f06a83915f6dcfef966d5dff24f",
+      "sha256": "689bc752b09e876935327964f5686d1241e22e5b7c2bdc2a377c023632265409",
       "controls": [
         {
           "kind": "a",
@@ -127,7 +127,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "7c71e3a9677d8e4fbca680e92cb00b9f576716994d3fbc9cc6eb1274e3eb7052",
+      "sha256": "5984ed8d54db2eb162425b9a23f6df962528591e48dae21eab6645cab896e515",
       "controls": [
         {
           "kind": "a",
@@ -383,11 +383,11 @@
       ]
     },
     "add_standard_task.php": {
-      "sha256": "26f398e234b7176866edcc975c156946fb9bafaf57c2a6f31101eea3cb460b45",
+      "sha256": "c43a9db1923a467a3584a23ce8a4a7d33a37982e3c49f18dd329306ea47209f5",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         },
         {
@@ -402,11 +402,11 @@
       ]
     },
     "add_task.php": {
-      "sha256": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
+      "sha256": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         }
       ]
@@ -654,7 +654,7 @@
       ]
     },
     "compose_engagement_email.php": {
-      "sha256": "aaab4f9b96cd1ba929dcfa6277fb9c794f3d622dc690a6c2f0381ec3494f408c",
+      "sha256": "417de857d5bd49b610c56bb80e9b8d09edd1b28cb364ed393fec1dd36af366d6",
       "controls": [
         {
           "kind": "a",
@@ -738,6 +738,19 @@
           "for": "body"
         },
         {
+          "kind": "legend",
+          "label": "Reply Follow-Up"
+        },
+        {
+          "kind": "label",
+          "label": "Create a Task to Review the Reply"
+        },
+        {
+          "kind": "label",
+          "label": "Follow-Up Date",
+          "for": "follow-up-date"
+        },
+        {
           "kind": "a",
           "label": "Cancel"
         },
@@ -748,7 +761,7 @@
       ]
     },
     "compose_inquiry_email.php": {
-      "sha256": "6898ace67f015fe0595506a3bf280dbdf3c65a3f3430853363d4d45e3fbc7057",
+      "sha256": "15f01e8a93c0a35f7f7e8b811a2cea62f877db6e3219d905948314f8320b4e45",
       "controls": [
         {
           "kind": "a",
@@ -795,6 +808,19 @@
           "for": "body"
         },
         {
+          "kind": "legend",
+          "label": "Reply Follow-Up"
+        },
+        {
+          "kind": "label",
+          "label": "Create a Task to Review the Reply"
+        },
+        {
+          "kind": "label",
+          "label": "Follow-Up Date",
+          "for": "follow-up-date"
+        },
+        {
           "kind": "a",
           "label": "Cancel"
         },
@@ -805,7 +831,7 @@
       ]
     },
     "contacts.php": {
-      "sha256": "1d8565ac4f79f35beaad119078e1e81b680267c1ae53afddcac5df96397540d4",
+      "sha256": "c2b6f09b4d239e6fd6367743de409af26d0efee6ddeccd2450bac610f6471c31",
       "controls": [
         {
           "kind": "a",
@@ -909,7 +935,7 @@
       ]
     },
     "dashboard.php": {
-      "sha256": "b62d0b3988606170a0acb28194a362ddfde832f73dd95e30b044bc38a4894d1a",
+      "sha256": "81f762344c0b5a487f8820386cf20da968ec0cceb88242ec2d2c3ee86a6d3a38",
       "controls": [
         {
           "kind": "h1",
@@ -917,7 +943,7 @@
         },
         {
           "kind": "a",
-          "label": "Open My Work"
+          "label": "Open My Tasks"
         },
         {
           "kind": "a",
@@ -935,15 +961,15 @@
         },
         {
           "kind": "a",
-          "label": "\u2261 All Active Work"
+          "label": "\u2261 All Active Tasks"
         },
         {
           "kind": "a",
-          "label": "\u2713 My Active Work"
+          "label": "\u2713 My Active Tasks"
         },
         {
           "kind": "a",
-          "label": "! My Overdue Work"
+          "label": "! My Overdue Tasks"
         },
         {
           "kind": "a",
@@ -959,12 +985,12 @@
         },
         {
           "kind": "h2",
-          "label": "My Work",
+          "label": "My Tasks",
           "id": "my-work-heading"
         },
         {
           "kind": "a",
-          "label": "Open Queue"
+          "label": "Open Tasks"
         },
         {
           "kind": "h2",
@@ -1200,7 +1226,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f",
+      "sha256": "29c43b665b7d6b19009341fcde81a47241e60b99c04cf7db0e856b500b638a7b",
       "controls": [
         {
           "kind": "a",
@@ -1376,7 +1402,7 @@
       ]
     },
     "edit_inquiry.php": {
-      "sha256": "62f28346ee5e632cb5c37c35f1e5aaac39774230af52f1bfefdef9d257b9181d",
+      "sha256": "caafb82a7b6cdb41158b71845d298eeb3f4938158241eb58259a8680d0e26672",
       "controls": [
         {
           "kind": "a",
@@ -1589,11 +1615,11 @@
       ]
     },
     "edit_standard_task.php": {
-      "sha256": "7b076ca2b1b29939a811773cffaa959f9854027e5990aa5de8439be073d31752",
+      "sha256": "2735bef3ceea85bd0b9cb25a265733056fd97c5dd884b898a693c8efa1aac8c6",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         },
         {
@@ -1608,11 +1634,11 @@
       ]
     },
     "edit_task.php": {
-      "sha256": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
+      "sha256": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         },
         {
@@ -1725,7 +1751,7 @@
       ]
     },
     "email_templates.php": {
-      "sha256": "f560c994980000376f76014876f453f9db4e9dd6a65cbde0e47126fa44906279",
+      "sha256": "87df089e4d1519ea36fd1ac593094a6e033b0bb748dcde4a5a74729c5693d770",
       "controls": [
         {
           "kind": "a",
@@ -1762,7 +1788,7 @@
       ]
     },
     "engagements.php": {
-      "sha256": "1ad90904d4bf68960a1742d7d624f51489b39c8665a28797765accc580e06406",
+      "sha256": "0e38b30c27575d744ba25ab17c1b63e685df06958b576dc917e8bbc8392e4f6b",
       "controls": [
         {
           "kind": "a",
@@ -1851,11 +1877,11 @@
       ]
     },
     "inbound_mail.php": {
-      "sha256": "864049597e2c375593e904cf2b2d6376191ff547bfc91615a51042f8664aa7eb",
+      "sha256": "dcc1a55d18361729c9c09a6a04d6445781d2f63d01baf4515f5bc541ddd678a1",
       "controls": [
         {
           "kind": "h1",
-          "label": "Inbound Mail"
+          "label": "Inbox"
         },
         {
           "kind": "a",
@@ -1959,7 +1985,7 @@
       ]
     },
     "index.php": {
-      "sha256": "8a86794d0390d8fb566219f75f631457671bc712cc1b1aa919b199ac1ba51ec4",
+      "sha256": "558259dcaa975b620add750eebc6d767f379dfb2ae93c0226ad656d775253869",
       "controls": [
         {
           "kind": "a",
@@ -2119,7 +2145,7 @@
       ]
     },
     "inquiries.php": {
-      "sha256": "ce2fb89ef3c2a94b119cf7569f7d54701611b47b24a15142dc34c469b5b4f54a",
+      "sha256": "9878d2a618abc8438691b33c6aa3f64c3bbabccb6ca14d6c3c047b6ab58bb675",
       "controls": [
         {
           "kind": "a",
@@ -2467,7 +2493,7 @@
       ]
     },
     "organizations.php": {
-      "sha256": "9232b88358e0ddedb235fd3e2f5bf05342c267b4f81a18a42876b405bd7f2635",
+      "sha256": "d265bf18adedb3f2e1d8f670cbf00f1be3689a4e383523023c325951d980499f",
       "controls": [
         {
           "kind": "a",
@@ -2502,8 +2528,21 @@
       ]
     },
     "outbound_mail.php": {
-      "sha256": "a77453f73f2c4b99b0b249aed181e22a07b229a3121665b5f4b8ed84e8392d80",
+      "sha256": "1ef4673dd5fc222261b2be5a19422b03c53eb17ad253946e198838fab7d604bf",
       "controls": [
+        {
+          "kind": "h2",
+          "label": "Reply Follow-Up"
+        },
+        {
+          "kind": "a",
+          "label": "Open Follow-Up Task"
+        },
+        {
+          "kind": "a",
+          "label": "the record\u2019s correspondence",
+          "href": ""
+        },
         {
           "kind": "a",
           "label": "Details",
@@ -2661,7 +2700,7 @@
       ]
     },
     "record_merge.php": {
-      "sha256": "881ce275e79480835dbc9862625c4368e337cceb2c723baaef8e0da304caf3d0",
+      "sha256": "c10fb8238ebabeba25887ea08ffb9c7bef935fd44a5b87319a6181eabc927036",
       "controls": [
         {
           "kind": "h1",
@@ -2951,7 +2990,7 @@
       ]
     },
     "reimbursement_request.php": {
-      "sha256": "f95a083dab19e9d124fd9b5db602f47b46759efc1fbf372c7d3d4bbc3bead51d",
+      "sha256": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
       "controls": [
         {
           "kind": "a",
@@ -3060,7 +3099,7 @@
       ]
     },
     "reimbursement_requests.php": {
-      "sha256": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b",
+      "sha256": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f",
       "controls": [
         {
           "kind": "a",
@@ -3172,7 +3211,7 @@
       ]
     },
     "reimbursement_submit.php": {
-      "sha256": "2d175d03f69f13859966299ff1ac6486ad4240e29e17b9c765cc7cd4b16ae8e7",
+      "sha256": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
       "controls": [
         {
           "kind": "a",
@@ -3242,7 +3281,7 @@
       ]
     },
     "reimbursements.php": {
-      "sha256": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
+      "sha256": "a26ee7e7d29cff5ef6cfdc1f991da08ad7d1937d971d090efc58e7864bc3b89c",
       "controls": [
         {
           "kind": "h1",
@@ -3388,7 +3427,7 @@
       ]
     },
     "restore_chron_entries.php": {
-      "sha256": "02642f9286b2f0b193ca8a1945d412be909a5b99d3ba4267df990846f33c90c2",
+      "sha256": "0b2c726d723d01b4d4838f7c28f75d5173a187c36381bb118691e7a7f45bdc45",
       "controls": [
         {
           "kind": "a",
@@ -3404,8 +3443,14 @@
           "label": "Restore Archived Chron Entries"
         },
         {
-          "kind": "label",
-          "label": "Select All Archived Entries"
+          "kind": "button",
+          "label": "Select All Available",
+          "id": "select-all-chron-entries"
+        },
+        {
+          "kind": "button",
+          "label": "Clear Selection",
+          "id": "select-all-chron-entries-clear"
         },
         {
           "kind": "button",
@@ -3427,7 +3472,7 @@
       ]
     },
     "restore_entity_chron_entries.php": {
-      "sha256": "c78e7066a0de40326155b941225e0adb00710c94796dbf692848c7d2473ece0a",
+      "sha256": "f3524a54ea382aa16dae7affc8150c67e84630ca72b93b4f12c3f501e68fe75c",
       "controls": [
         {
           "kind": "a",
@@ -3439,8 +3484,14 @@
           "label": "Restore Archived Chron Entries"
         },
         {
-          "kind": "label",
-          "label": "Select All Archived Entries"
+          "kind": "button",
+          "label": "Select All Available",
+          "id": "select-all-chron-entries"
+        },
+        {
+          "kind": "button",
+          "label": "Clear Selection",
+          "id": "select-all-chron-entries-clear"
         },
         {
           "kind": "button",
@@ -3464,7 +3515,7 @@
       ]
     },
     "restore_presentations.php": {
-      "sha256": "ee49539f87c774baebd95f7f8892db0a31a2804fc4883cde1e7073a2a36b1056",
+      "sha256": "8e99c03d034727f68a1cacd52f95b80611774cd1c2b8eb585834b31af4d89edd",
       "controls": [
         {
           "kind": "a",
@@ -3480,8 +3531,14 @@
           "label": "Restore Archived Presentations"
         },
         {
-          "kind": "label",
-          "label": "Select All Archived Presentations"
+          "kind": "button",
+          "label": "Select All Available",
+          "id": "select-all-presentations"
+        },
+        {
+          "kind": "button",
+          "label": "Clear Selection",
+          "id": "select-all-presentations-clear"
         },
         {
           "kind": "button",
@@ -3513,6 +3570,54 @@
         {
           "kind": "a",
           "label": "View Engagement"
+        }
+      ]
+    },
+    "search.php": {
+      "sha256": "f6b52136f8d203e88c0d422b43712e38e53f2d2aaa955f3a8101a719fdd65a4a",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Search All Records"
+        },
+        {
+          "kind": "label",
+          "label": "Search records",
+          "for": "global-query"
+        },
+        {
+          "kind": "label",
+          "label": "Record typeAll records",
+          "for": "search-type"
+        },
+        {
+          "kind": "button",
+          "label": "Search"
+        },
+        {
+          "kind": "a",
+          "label": "Clear Filters",
+          "href": "search.php"
+        },
+        {
+          "kind": "a",
+          "label": "More",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Previous",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "All Record Types",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Next",
+          "href": ""
         }
       ]
     },
@@ -3689,7 +3794,7 @@
       ]
     },
     "speakers.php": {
-      "sha256": "97094d2fa49879c5467546eac207196a187685e799d54c591c51e69234af04b7",
+      "sha256": "337b30568c74a23faf76b47420b72156ff1dbef4bd01301d789e678a493610f8",
       "controls": [
         {
           "kind": "h1",
@@ -3717,16 +3822,16 @@
       ]
     },
     "standard_tasks.php": {
-      "sha256": "cc8b3e2e3f5552f5d33b1d37c8e8e4f28997312557844089f0dc05fc67ea99a8",
+      "sha256": "4e416c2dcbefa8ea4cc6ae91c733ba0f0ed157dc2b0db1799bcebd08443c1c79",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         },
         {
           "kind": "a",
-          "label": "Back to Work Queue",
+          "label": "Back to Tasks",
           "href": "tasks.php"
         },
         {
@@ -3744,12 +3849,26 @@
         }
       ]
     },
+    "task_bulk.php": {
+      "sha256": "9c1c7665a26c9f6f0c21b81793249661abb38f1569a9a1a956ecaa50924fde27",
+      "controls": [
+        {
+          "kind": "button",
+          "label": "Apply Updates"
+        },
+        {
+          "kind": "a",
+          "label": "Back to Tasks",
+          "href": ""
+        }
+      ]
+    },
     "tasks.php": {
-      "sha256": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
+      "sha256": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
       "controls": [
         {
           "kind": "h1",
-          "label": "Work Queue"
+          "label": "Tasks"
         },
         {
           "kind": "a",
@@ -4026,12 +4145,8 @@
       ]
     },
     "view_contact.php": {
-      "sha256": "d15a684d7c357b87f32f2025aab880cd29bb8e479181731fbbc092da44eb2e7a",
+      "sha256": "a33341b9cc71808e40385b6e32e7476681489a1054cf96fb2039209d5c785a30",
       "controls": [
-        {
-          "kind": "a",
-          "label": "Review Possible Duplicates"
-        },
         {
           "kind": "h1",
           "label": "Archived"
@@ -4058,7 +4173,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+      "sha256": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
       "controls": [
         {
           "kind": "a",
@@ -4076,6 +4191,33 @@
         {
           "kind": "a",
           "label": "Open Source Inquiry"
+        },
+        {
+          "kind": "h2",
+          "label": "Next Action"
+        },
+        {
+          "kind": "a",
+          "label": "Update Next Action",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "Add Task",
+          "href": ""
+        },
+        {
+          "kind": "a",
+          "label": "View Tasks"
+        },
+        {
+          "kind": "h2",
+          "label": "Readiness"
+        },
+        {
+          "kind": "a",
+          "label": "Add Task",
+          "href": ""
         },
         {
           "kind": "a",
@@ -4173,7 +4315,11 @@
         },
         {
           "kind": "a",
-          "label": "Combined Presentation Statistics"
+          "label": "Statistics"
+        },
+        {
+          "kind": "a",
+          "label": "Download Selected QR Codes"
         },
         {
           "kind": "a",
@@ -4214,38 +4360,6 @@
         {
           "kind": "h3",
           "label": "Draft Received Amounts"
-        },
-        {
-          "kind": "h2",
-          "label": "Email Routing Marker",
-          "id": "engagement-routing-heading"
-        },
-        {
-          "kind": "h2",
-          "label": "Next Action"
-        },
-        {
-          "kind": "a",
-          "label": "Update Next Action",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "Add Task",
-          "href": ""
-        },
-        {
-          "kind": "a",
-          "label": "View Tasks"
-        },
-        {
-          "kind": "h2",
-          "label": "Readiness"
-        },
-        {
-          "kind": "a",
-          "label": "Add Task",
-          "href": ""
         },
         {
           "kind": "h2",
@@ -4516,11 +4630,11 @@
       ]
     },
     "view_standard_task.php": {
-      "sha256": "7cf5b1c5c82ce331b6d96daeaddaafe56af0bf2137e87de993310ea27d3d571a",
+      "sha256": "f0ebafd2cc38501835d37a50b5af5fa0057ab7e6dbd2fae57ce7ddabff7dac3a",
       "controls": [
         {
           "kind": "a",
-          "label": "Work Queue",
+          "label": "Tasks",
           "href": "tasks.php"
         },
         {

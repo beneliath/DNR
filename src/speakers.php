@@ -42,6 +42,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <div class="list-controls">
+        <?php renderListFilterSummary(['Search' => $search], 'speakers.php'); ?>
         <form method="get" action="speakers.php" class="list-search-form" role="search">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <input type="hidden" name="name_sort" value="<?php echo $name_sort; ?>">

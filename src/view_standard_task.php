@@ -50,7 +50,7 @@ unset($_SESSION['standard_task_action_message'], $_SESSION['standard_task_action
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>">Standard Event Tasks</a><span aria-hidden="true">/</span><span>Task Details</span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><a href="standard_tasks.php?status=<?php echo $is_archived ? 'archived' : 'active'; ?>">Standard Event Tasks</a><span aria-hidden="true">/</span><span>Task Details</span></nav>
     <div class="page-heading record-page-heading">
         <div>
             <h1><?php echo htmlspecialchars($standard_task['title'], ENT_QUOTES, 'UTF-8'); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>

@@ -5,6 +5,7 @@ require_once __DIR__ . '/../two_factor_helpers.php';
 $shell_current_page = basename($_SERVER['PHP_SELF'] ?? '');
 $nav_groups = [
     'dashboard' => ['dashboard.php'],
+    'search' => ['search.php'],
     'inquiries' => [
         'inquiries.php', 'add_inquiry.php', 'edit_inquiry.php',
         'view_inquiry.php', 'convert_inquiry.php', 'compose_inquiry_email.php',
@@ -112,6 +113,7 @@ if (!empty($_SESSION['user_id'])) {
         <a href="dashboard.php" class="mobile-brand" aria-label="<?php echo htmlspecialchars($shell_brand_label . ' home', ENT_QUOTES, 'UTF-8'); ?>">
             <img class="mobile-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=mobile-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=mobile-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="180" height="31">
         </a>
+        <a href="search.php" class="mobile-search-link" aria-label="Search all records">Search</a>
         <button type="button" class="mobile-theme-button" data-theme-toggle aria-label="Switch to Dark Theme">
             <svg class="theme-icon-light" aria-hidden="true" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"/></svg>
             <svg class="theme-icon-dark" aria-hidden="true" viewBox="0 0 24 24"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"/></svg>
@@ -168,6 +170,11 @@ if (!empty($_SESSION['user_id'])) {
             <img class="app-brand-logo" src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-theme-logo data-light-src="<?php echo htmlspecialchars(assetUrl($shell_logo_light . '?rev=sidebar-crop-1'), ENT_QUOTES, 'UTF-8'); ?>" data-dark-src="<?php echo htmlspecialchars(assetUrl($shell_logo_dark . '?rev=sidebar-dark-1'), ENT_QUOTES, 'UTF-8'); ?>" alt="" width="228" height="39">
         </a>
 
+        <form class="shell-search" action="search.php" method="get" role="search" aria-label="Search all records">
+            <label for="shell-query" class="visually-hidden">Search All Records</label>
+            <input id="shell-query" type="search" name="q" placeholder="Search records" minlength="2" maxlength="100" required>
+            <button type="submit" class="button-secondary" aria-label="Search all records"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>
+        </form>
         <div class="sidebar-scroll-area">
             <nav class="site-navigation" aria-label="Primary">
                 <details class="nav-group nav-group-disclosure" data-nav-group="work" open>
@@ -177,7 +184,7 @@ if (!empty($_SESSION['user_id'])) {
                         <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span>
                     </a></li>
                         <li><a href="tasks.php?owner=me" class="nav-link<?php echo $active_nav === 'tasks' ? ' active' : ''; ?>"<?php echo $active_nav === 'tasks' ? ' aria-current="page"' : ''; ?>>
-                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>My Work</span>
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="m8 10 2 2 4-4M8 17h8"/></svg><span>Tasks</span>
                         <?php if ($nav_task_count > 0): ?><span class="nav-notification-badge" aria-label="<?php echo $nav_task_count; ?> Active Tasks Assigned to You"><?php echo $nav_task_count > 99 ? '99+' : $nav_task_count; ?></span><?php endif; ?>
                     </a></li>
                         <li><a href="inquiries.php" class="nav-link<?php echo $active_nav === 'inquiries' ? ' active' : ''; ?>"<?php echo $active_nav === 'inquiries' ? ' aria-current="page"' : ''; ?>>

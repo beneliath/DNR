@@ -50,10 +50,16 @@ releaseApplicationSessionLock();
 <p>This source has already been merged into <a href="view_<?php echo $h($kind); ?>.php?id=<?php echo (int) $source['merged_into_id']; ?>">the surviving record</a>.</p>
 <?php else: ?>
 <?php if ($candidates): ?><p>Possible matches:</p><ul><?php foreach ($candidates as $candidate): ?><li><a href="record_merge.php?<?php echo $h(http_build_query(['kind' => $kind, 'source' => $sourceId, 'target' => $candidate['id']])); ?>"><?php echo $h($candidate['label']); ?></a> <?php echo $h($candidate['email']); ?></li><?php endforeach; ?></ul><?php endif; ?>
-<form method="get" action="record_merge.php">
+<form method="get" action="record_merge.php" class="record-merge-picker">
 <input type="hidden" name="kind" value="<?php echo $h($kind); ?>"><input type="hidden" name="source" value="<?php echo $sourceId; ?>">
-<label for="merge-search">Find the Record to Keep</label><input id="merge-search" type="search" name="q" value="<?php echo $h($_GET['q'] ?? ''); ?>"><button type="submit">Search</button>
-<label for="merge-target">Surviving Record</label><select id="merge-target" name="target"><option value="">Choose a Record</option><?php foreach (inquiryRelationshipFormOptions($search) as $option): if ((int) $option['id'] === $sourceId) continue; ?><option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $option['id'] === $targetId ? 'selected' : ''; ?>><?php echo $h($option['label']); ?></option><?php endforeach; ?></select><button type="submit">Preview Merge</button>
+<div class="record-merge-picker-field">
+<label for="merge-search">Find the Record to Keep</label>
+<div class="record-merge-picker-controls"><input id="merge-search" type="search" name="q" value="<?php echo $h($_GET['q'] ?? ''); ?>"><button type="submit">Search</button></div>
+</div>
+<div class="record-merge-picker-field">
+<label for="merge-target">Surviving Record</label>
+<div class="record-merge-picker-controls"><select id="merge-target" name="target"><option value="">Choose a Record</option><?php foreach (inquiryRelationshipFormOptions($search) as $option): if ((int) $option['id'] === $sourceId) continue; ?><option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $option['id'] === $targetId ? 'selected' : ''; ?>><?php echo $h($option['label']); ?></option><?php endforeach; ?></select><button type="submit">Preview Merge</button></div>
+</div>
 <?php if ($search['has_more']): ?><p>More matches are available. Refine the search.</p><?php endif; ?>
 </form>
 <?php if ($target && $targetId !== $sourceId && !$target['is_deleted'] && $target['merged_into_id'] === null): ?>

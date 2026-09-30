@@ -802,7 +802,8 @@ function setFollowUpTaskStatus(
     $task_id,
     $status,
     $expected_version,
-    $actor_user_id
+    $actor_user_id,
+    ?array &$completionUndo = null
 ) {
     $task_id = (int) $task_id;
     $actor_user_id = (int) $actor_user_id;
@@ -849,7 +850,8 @@ function setFollowUpTaskStatus(
         }
         $stmt = $conn->prepare(
             'UPDATE follow_up_tasks
-             SET status = ?, waiting_on = NULL, completed_by = ?, completed_at = ?
+             SET status = ?, waiting_on = NULL, completed_by = ?, completed_at = ?,
+                 updated_at = GREATEST(CURRENT_TIMESTAMP(6), DATE_ADD(updated_at, INTERVAL 1 MICROSECOND))
              WHERE id = ?'
         );
         if (!$stmt) {
@@ -860,8 +862,47 @@ function setFollowUpTaskStatus(
             throw new RuntimeException('Unable to update the task status.');
         }
         $stmt->close();
+        $updated = fetchFollowUpTask($conn, $task_id, true);
+        $receipt = $status === 'completed' && $task['status'] !== 'completed' ? [
+            'task_id' => $task_id, 'title' => $task['title'],
+            'status' => $task['status'], 'waiting_on' => $task['waiting_on'],
+            'version' => $updated['updated_at'],
+            'fingerprint' => hash('sha256', json_encode($updated, JSON_THROW_ON_ERROR)),
+            'actor' => $actor_user_id, 'expires' => time() + 600,
+        ] : null;
         $conn->commit();
+        $completionUndo = $receipt;
         return true;
+    } catch (Throwable $exception) {
+        $conn->rollback();
+        throw $exception;
+    }
+}
+
+/** Restore only the exact completion this session made; never overwrite a newer edit. */
+function undoFollowUpTaskCompletion(mysqli $conn, array $receipt, int $actorUserId): void
+{
+    if (($receipt['expires'] ?? 0) < time() || ($receipt['actor'] ?? 0) !== $actorUserId) {
+        throw new InvalidArgumentException('Undo expired. You can reopen the task from Tasks.');
+    }
+    $conn->begin_transaction();
+    try {
+        $hint = fetchFollowUpTask($conn, $receipt['task_id']);
+        if (!$hint) throw new InvalidArgumentException('That task is no longer available.');
+        lockFollowUpTaskEngagements($conn, [$hint['engagement_id'] ?? null]);
+        $task = fetchFollowUpTask($conn, $receipt['task_id'], true);
+        if (!$task || $task['status'] !== 'completed'
+            || !hash_equals($receipt['fingerprint'], hash('sha256', json_encode($task, JSON_THROW_ON_ERROR)))) {
+            throw new InvalidArgumentException('This task changed after completion. Open it to review the latest details.');
+        }
+        requireUnarchivedFollowUpTask($task);
+        $stmt = $conn->prepare('UPDATE follow_up_tasks SET status = ?, waiting_on = ?,
+            completed_by = NULL, completed_at = NULL,
+            updated_at = GREATEST(CURRENT_TIMESTAMP(6), DATE_ADD(updated_at, INTERVAL 1 MICROSECOND)) WHERE id = ?');
+        $stmt->bind_param('ssi', $receipt['status'], $receipt['waiting_on'], $receipt['task_id']);
+        $stmt->execute();
+        $stmt->close();
+        $conn->commit();
     } catch (Throwable $exception) {
         $conn->rollback();
         throw $exception;

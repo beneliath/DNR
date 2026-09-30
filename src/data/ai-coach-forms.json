@@ -12,7 +12,7 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "8a86794d0390d8fb566219f75f631457671bc712cc1b1aa919b199ac1ba51ec4"
+        "index.php": "558259dcaa975b620add750eebc6d767f379dfb2ae93c0226ad656d775253869"
       },
       "controls": {
         "new-organization": {
@@ -57,9 +57,9 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
         "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
-        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
+        "edit_engagement.php": "29c43b665b7d6b19009341fcde81a47241e60b99c04cf7db0e856b500b638a7b"
       },
       "controls": {
         "presentations-tab": {
@@ -93,14 +93,14 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
+      "entry": "Tasks → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
       "condition": "Related Record is a search: type at least three characters in Find a Related Record, then choose a result. Searching alone does not select it. Change Record reveals search for an existing selection. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
         "templates/follow_up_task_form.php": "fcb21b58fdd4ec6e4ac21dd8f0ab36b316f5c707bc1fd52c2df38b5f05129f4f",
-        "add_task.php": "4206ff4613eb79fbf5ff19944989e938c4d89d0c4e24eefbbda75b8b0cee70a3",
-        "edit_task.php": "be8cca063f837a4662f696c31968b60f6248b15a58143018392dff56b4f30c32",
+        "add_task.php": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
+        "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
-        "follow_up_task_helpers.php": "478d429c80a8e69a762f39bcea4cb5c4b2f59ae9a9a36ef2280387cb599383cf"
+        "follow_up_task_helpers.php": "da9c0a7528eb0f1a12d7fb42cc3ba7560acc0d5a43618219b9ffc0509fbc736b"
       },
       "controls": {
         "task-title": {
@@ -206,8 +206,8 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763",
-        "edit_engagement.php": "7a3fb6fdf79a0c1d600d8918778119b0993fcb3a3b9fa7ea1a9a6e2cc7f06b4f"
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd",
+        "edit_engagement.php": "29c43b665b7d6b19009341fcde81a47241e60b99c04cf7db0e856b500b638a7b"
       },
       "controls": {
         "edit-event": {
@@ -283,11 +283,11 @@
         "admin",
         "editor"
       ],
-      "entry": "My Work → + New Task, or event → Tasks → Add Task.",
+      "entry": "Tasks → + New Task, or event → Tasks → Add Task.",
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
-        "tasks.php": "2b44bffa8524f6b2ff6d6d274b74e0a34a884eb2bd8b55c24e83f972a2ecda74",
-        "view_engagement.php": "e93002f9dcbd95b5b23a6b86f555dc279d0f14172cc5734778b3183e51b5d763"
+        "tasks.php": "1532702a3dbd8faaf143f9384024ec3424f43082c65ae74f77f469a1ada4805d",
+        "view_engagement.php": "3c72af30ad987b7674b9d61e0255c7d1e5234a075426ab592747b02d9e4b6acd"
       },
       "controls": {
         "tasks-tab": {
@@ -306,7 +306,7 @@
       "facts": [
         "Completed is a task status; Archived is a separate flag. Completing a task does not automatically archive or delete it.",
         "Completed or canceled shows finished tasks that have not been archived. Archived is a separate view. A completed task can stay visible for reference.",
-        "The green check-mark opens Complete Task?; it is not an assignment control. Assigned to is in Edit Task."
+        "The green check-mark on Tasks completes the task immediately and offers Undo; it is not an assignment control. Assigned to is in Edit Task."
       ]
     },
     "reimbursement-expense": {
@@ -390,9 +390,9 @@
       "entry": "Reimbursements → select eligible expenses → Create Draft Request from Selected Expenses",
       "condition": "Only the signed-in owner can select unclaimed expenses or edit an active draft.",
       "source_files": {
-        "reimbursements.php": "1f2c2f6eb179e85df9268a30a392fdd7ae5284dea3c758ffca764685b40440b8",
-        "reimbursement_request.php": "f95a083dab19e9d124fd9b5db602f47b46759efc1fbf372c7d3d4bbc3bead51d",
-        "reimbursement_requests.php": "0988c72d50577ff6782ca43e34038e86524bcfa867561a8365b10efc8d31933b"
+        "reimbursements.php": "a26ee7e7d29cff5ef6cfdc1f991da08ad7d1937d971d090efc58e7864bc3b89c",
+        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41",
+        "reimbursement_requests.php": "43ec415554b2033b0399a1c6dd04c48ded00faea9e003f2fad683ddbc4aae09f"
       },
       "controls": {
         "reimbursement-select-all-available": {
@@ -440,9 +440,9 @@
       "entry": "Requests → Submit icon on your active draft, or request → Review and Submit",
       "condition": "Review recipients, report PDF, expense CSV, and receipts before confirming. Submission queues email and locks content.",
       "source_files": {
-        "reimbursement_submit.php": "2d175d03f69f13859966299ff1ac6486ad4240e29e17b9c765cc7cd4b16ae8e7",
+        "reimbursement_submit.php": "a17514c995aba74e9b8be28e15c3b14764ed7f95afd2218bb7d745b4ba642340",
         "reimbursement_submission_helpers.php": "b9681cf9cc42dff6308fe40236b08326cd059b0f81088759f2fa68c9ed80e6d5",
-        "reimbursement_request.php": "f95a083dab19e9d124fd9b5db602f47b46759efc1fbf372c7d3d4bbc3bead51d"
+        "reimbursement_request.php": "eea83a974594c97de888c24b1e21da3bc216024da76e7f21d1839ca00673fd41"
       },
       "controls": {
         "reimbursement-confirm": {

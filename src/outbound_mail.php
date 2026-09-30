@@ -34,6 +34,8 @@ if ($message === null) {
     http_response_code(404);
     exit('Outbound message not found.');
 }
+require_once __DIR__ . '/workflow_task_helpers.php';
+$followUp = emailFollowUpState($conn, $messageId);
 $isInquiryMessage = !empty($message['booking_inquiry_id']);
 $inquiryActive = $isInquiryMessage && in_array((string) ($message['inquiry_stage'] ?? ''), [
     'new', 'contacted', 'qualified', 'awaiting_details', 'proposal_sent',
@@ -112,6 +114,12 @@ $templateLabel = $isInquiryMessage
 <body>
 <?php include 'templates/header.php'; ?>
 <main class="container engagement-email-page outbound-message-page">
+<?php if ($followUp): ?><section class="form-section"><h2>Reply Follow-Up</h2>
+<p><strong><?php echo htmlspecialchars($followUp['label'], ENT_QUOTES, 'UTF-8'); ?></strong> · Due <?php echo htmlspecialchars((string) $followUp['due_date'], ENT_QUOTES, 'UTF-8'); ?></p>
+<a href="tasks.php?scope=everyone&amp;view=<?php echo in_array($followUp['task_status'], ['completed','canceled'], true) ? 'completed' : ($followUp['is_archived'] ? 'archived' : 'all'); ?>&amp;task_id=<?php echo (int) $followUp['follow_up_task_id']; ?>">Open Follow-Up Task</a>
+<?php if ($followUp['reply_id']): ?><p>Review the received reply in <a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>">the record’s correspondence</a>. The task remains open until you complete it.</p><?php endif; ?>
+</section><?php endif; ?>
+
     <nav class="breadcrumb" aria-label="Breadcrumb">
         <a href="<?php echo $isInquiryMessage ? 'inquiries.php' : 'engagements.php'; ?>"><?php echo $isInquiryMessage ? 'Booking Pipeline' : 'Engagements'; ?></a><span aria-hidden="true">/</span>
         <a href="<?php echo htmlspecialchars($parentUrl, ENT_QUOTES, 'UTF-8'); ?>"><?php echo $parentLabel; ?> Details</a><span aria-hidden="true">/</span>

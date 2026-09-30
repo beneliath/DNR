@@ -70,7 +70,7 @@ function reimbursementRequestsH(mixed $value): string { return htmlspecialchars(
     <div class="page-heading"><div><h1>Requests</h1><p class="page-intro">Review draft and submitted reimbursement requests.</p></div>
         <div class="page-heading-actions"><a class="button-secondary" href="reimbursements.php">Expenses</a><?php if ($canManage): ?><a class="button-secondary" href="reimbursement_cost_centers.php">Chart of Accounts</a><?php endif; ?></div></div>
     <?php if ($message): ?><p class="success" role="status"><?= reimbursementRequestsH($message) ?></p><?php endif; ?>
-    <section class="reimbursement-card"><form method="get" class="reimbursement-filter-form" data-reimbursement-filters>
+    <section class="reimbursement-card"><?php renderListFilterSummary(['Archive' => $showArchived ? 'Archived' : 'Active', 'Status' => $status ?: 'All', 'Search' => $search, 'Owner' => $filterOwner === 0 ? 'All users' : (array_column($owners, 'name', 'id')[$filterOwner] ?? 'Me'), 'From' => $start, 'Through' => $end], 'reimbursement_requests.php'); ?><form method="get" class="reimbursement-filter-form" data-reimbursement-filters>
 <input type="hidden" name="show" value="<?= $showArchived?'archived':'active' ?>">
 <label>Search Requests<input type="search" name="q" placeholder="Reference or Owner" value="<?= reimbursementRequestsH($search) ?>"></label>
 <?php if ($canViewAll): ?><label>Owner<select name="owner_id"><option value="0">All Users</option><?php foreach ($owners as $owner): ?><option value="<?= (int)$owner['id'] ?>"<?= $filterOwner===(int)$owner['id']?' selected':'' ?>><?= reimbursementRequestsH($owner['name']) ?></option><?php endforeach; ?></select></label><?php endif; ?>
