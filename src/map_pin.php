@@ -98,8 +98,8 @@ $escape = static fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'U
     <?php if (($location['matchedAddress'] ?? '') !== ''): ?><p class="map-list-help">Automatic match: <?php echo $escape($location['matchedAddress']); ?></p><?php endif; ?>
     <p>Zoom in and click the venue location, drag the pin, or enter coordinates. A confirmed pin takes priority over automatic lookups for this engagement.</p>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo $escape($error); ?></p><?php endif; ?>
-    <?php if ($address === ''): ?><p class="error">Enter the event address before saving a pin. <a href="edit_engagement.php?id=<?php echo $id; ?>">Edit engagement</a></p><?php endif; ?>
-    <div id="pin-editor-map" class="engagement-map" aria-label="Choose the venue location on the map"></div>
+    <?php if ($address === ''): ?><p class="error">Enter the event address before saving a pin. <a href="edit_engagement.php?id=<?php echo $id; ?>">Edit Engagement</a></p><?php endif; ?>
+    <div id="pin-editor-map" class="engagement-map" aria-label="Choose the Venue Location on the Map"></div>
     <p class="map-attribution-note">Map data © <a href="<?php echo $escape($pin_payload['attributionUrl']); ?>" target="_blank" rel="noopener noreferrer"><?php echo $escape($pin_payload['attributionText']); ?></a></p>
     <?php if (engagementMapGeocoderProvider() === 'geoapify' || ($location['provider'] ?? '') === 'geoapify'): ?><p class="map-attribution-note">Address lookup powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener noreferrer">Geoapify</a></p><?php endif; ?>
     <p id="pin-editor-feedback" class="map-feedback" role="status" aria-live="polite">Choose a location on the map or enter latitude and longitude</p>
@@ -113,8 +113,8 @@ $escape = static fn ($value) => htmlspecialchars((string) $value, ENT_QUOTES, 'U
         </div>
         <label class="map-pin-confirm"><input id="confirm-pin" type="checkbox" name="confirm_pin" value="yes" required> I have checked that this pin marks the correct venue</label>
         <p class="map-list-help">Changing the event address will require a new pin confirmation. Automatic lookups cannot move a confirmed pin.</p>
-        <div class="map-pin-actions"><a class="button-secondary" href="<?php echo $escape($return_to); ?>">Cancel</a><button type="submit" class="button-add">Save confirmed pin</button>
-        <?php if (($location['provider'] ?? '') === 'manual'): ?><button class="button-secondary" type="submit" name="action" value="clear" formnovalidate>Use automatic lookup</button><?php endif; ?></div>
+        <div class="map-pin-actions"><a class="button-secondary" href="<?php echo $escape($return_to); ?>">Cancel</a><button type="submit" class="button-add">Save Confirmed Pin</button>
+        <?php if (($location['provider'] ?? '') === 'manual'): ?><button class="button-secondary" type="submit" name="action" value="clear" formnovalidate>Use Automatic Lookup</button><?php endif; ?></div>
     </form>
 </main>
 <script nonce="<?php echo $escape(contentSecurityPolicyNonce()); ?>" type="application/json" id="pin-editor-data"><?php echo json_encode($pin_payload, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?></script>

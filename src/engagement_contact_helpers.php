@@ -6,8 +6,8 @@ declare(strict_types=1);
 function engagementContactRoles(): array
 {
     return [
-        'primary_host' => 'Primary host',
-        'on_site_contact' => 'On-site contact',
+        'primary_host' => 'Primary Host',
+        'on_site_contact' => 'On-Site Contact',
         'billing' => 'Billing',
         'travel' => 'Travel',
         'materials' => 'Materials',

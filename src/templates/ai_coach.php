@@ -2,7 +2,7 @@
 $coach_page = aiCoachPage();
 $coach_key = hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:' . (string) ($_SESSION['role'] ?? 'reviewer'));
 ?>
-<button type="button" class="coach-launcher button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">ai coach</button>
+<button type="button" class="coach-launcher button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">AI Coach</button>
 <aside id="moed-coach" class="coach-panel" aria-labelledby="coach-title" hidden
     data-page-label="<?php echo htmlspecialchars(aiCoachPages()[$coach_page], ENT_QUOTES, 'UTF-8'); ?>"
     data-coach data-page="<?php echo htmlspecialchars($coach_page, ENT_QUOTES, 'UTF-8'); ?>"
@@ -10,8 +10,8 @@ $coach_key = hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:
     data-storage-key="<?php echo $coach_key; ?>"
     data-endpoint="ai_coach.php" data-csrf-token="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>">
     <header class="coach-heading">
-        <div><h2 id="coach-title">ai coach</h2><p>Learn one step at a time</p></div>
-        <button type="button" class="coach-close button-secondary" data-coach-close aria-label="Minimize ai coach">−</button>
+        <div><h2 id="coach-title">AI Coach</h2><p>Learn one step at a time</p></div>
+        <button type="button" class="coach-close button-secondary" data-coach-close aria-label="Minimize AI Coach">−</button>
     </header>
     <div class="coach-context"><span data-coach-context>User Manual</span></div>
     <div class="coach-scroll">
@@ -25,15 +25,15 @@ $coach_key = hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:
             </div>
         </section>
         <div class="coach-messages" data-coach-messages role="log" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></div>
-        <section class="coach-step" data-coach-step hidden aria-label="Current guided step">
-            <div class="coach-step-heading"><strong data-coach-workflow-title></strong><button type="button" class="button-secondary" data-coach-end>end walkthrough</button></div>
+        <section class="coach-step" data-coach-step hidden aria-label="Current Guided Step">
+            <div class="coach-step-heading"><strong data-coach-workflow-title></strong><button type="button" class="button-secondary" data-coach-end>End Walkthrough</button></div>
             <p data-coach-step-message></p>
             <div class="coach-step-actions">
-                <button type="button" class="button-primary" data-coach-show hidden>show me</button>
+                <button type="button" class="button-primary" data-coach-show hidden>Show Me</button>
                 <a class="button-primary" data-coach-go hidden></a>
-                <button type="button" class="button-primary" data-coach-acknowledge hidden>i have reviewed the details</button>
-                <button type="button" class="button-secondary" data-coach-source>read in comprehensive manual</button>
-                <button type="button" class="button-secondary" data-coach-missing>i can’t see that control</button>
+                <button type="button" class="button-primary" data-coach-acknowledge hidden>I Have Reviewed the Details</button>
+                <button type="button" class="button-secondary" data-coach-source>Read in Comprehensive Manual</button>
+                <button type="button" class="button-secondary" data-coach-missing>I Can’t See That Control</button>
             </div>
             <p class="coach-step-note" data-coach-step-note>You make the changes; the coach follows your progress.</p>
         </section>
@@ -41,12 +41,12 @@ $coach_key = hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:
     <div class="coach-compose">
         <p class="coach-request-status" data-coach-status role="status" aria-live="polite"></p>
         <form data-coach-form>
-            <label for="coach-question">Ask the coach</label>
+            <label for="coach-question">Ask the Coach</label>
             <textarea id="coach-question" name="question" aria-describedby="coach-key-hint" rows="2" maxlength="1200" placeholder="How do I…?" required></textarea>
             <p class="coach-key-hint" id="coach-key-hint">Enter to ask · Shift+Enter for a new line</p>
             <div class="coach-compose-actions">
-                <button type="button" class="button-secondary" data-coach-reset>New conversation</button>
-                <button type="button" class="button-secondary" data-coach-stop hidden>Stop answer</button>
+                <button type="button" class="button-secondary" data-coach-reset>New Conversation</button>
+                <button type="button" class="button-secondary" data-coach-stop hidden>Stop Answer</button>
                 <button type="submit" class="button-primary" data-coach-send>Ask</button>
             </div>
         </form>

@@ -551,7 +551,7 @@
         if (!rows || !add || !rows.firstElementChild) return;
         const template = rows.firstElementChild.cloneNode(true);
         template.querySelectorAll('option').forEach(function (option) {
-            if (option.textContent === 'Previously selected contact is unavailable') option.remove();
+            if (option.textContent === 'Previously Selected Contact Is Unavailable') option.remove();
         });
         function update() {
             Array.from(rows.children).forEach(function (row, index) {
@@ -661,12 +661,12 @@
             {
                 start: document.getElementById('preferred-start'),
                 end: document.getElementById('preferred-end'),
-                label: 'Preferred range'
+                label: 'Preferred Range'
             },
             {
                 start: document.getElementById('alternate-start'),
                 end: document.getElementById('alternate-end'),
-                label: 'Alternate range'
+                label: 'Alternate Range'
             }
         ].filter(function (range) { return range.start && range.end; });
         inquiryDateRanges.forEach(function (range) {
@@ -740,12 +740,18 @@
         const selectAll = document.getElementById(selectAllId);
         const checkboxes = Array.from(document.querySelectorAll('input[name="' + inputName + '"]'));
         if (!selectAll || checkboxes.length === 0) return;
+        const clear = document.getElementById(selectAllId + '-clear');
         const synchronize = function () {
-            selectAll.checked = checkboxes.every(function (checkbox) { return checkbox.checked; });
-            selectAll.indeterminate = !selectAll.checked && checkboxes.some(function (checkbox) { return checkbox.checked; });
+            selectAll.disabled = checkboxes.every(function (checkbox) { return checkbox.checked || checkbox.disabled; });
+            if (clear) clear.hidden = !checkboxes.some(function (checkbox) { return checkbox.checked && !checkbox.disabled; });
         };
-        selectAll.addEventListener('change', function () {
-            checkboxes.forEach(function (checkbox) { checkbox.checked = selectAll.checked; });
+        selectAll.addEventListener('click', function () {
+            checkboxes.forEach(function (checkbox) { if (!checkbox.disabled) checkbox.checked = true; });
+            synchronize();
+        });
+        clear?.addEventListener('click', function () {
+            checkboxes.forEach(function (checkbox) { if (!checkbox.disabled) checkbox.checked = false; });
+            synchronize();
         });
         checkboxes.forEach(function (checkbox) { checkbox.addEventListener('change', synchronize); });
         synchronize();
@@ -785,15 +791,15 @@
                 try {
                     await copyText(button.dataset.copyText || '');
                     button.classList.add('is-copied');
-                    button.setAttribute('aria-label', 'Email routing marker copied');
+                    button.setAttribute('aria-label', 'Email Routing Marker Copied');
                     button.setAttribute('title', 'Copied');
                     button.dataset.tooltip = 'Copied';
                     if (status) status.textContent = 'Email routing marker copied to the clipboard.';
                 } catch (error) {
                     button.classList.add('is-copy-failed');
-                    button.setAttribute('aria-label', 'Email routing marker could not be copied');
-                    button.setAttribute('title', 'Copy failed');
-                    button.dataset.tooltip = 'Copy failed';
+                    button.setAttribute('aria-label', 'Email Routing Marker Could Not Be Copied');
+                    button.setAttribute('title', 'Copy Failed');
+                    button.dataset.tooltip = 'Copy Failed';
                     if (status) status.textContent = 'The email routing marker could not be copied.';
                 }
 
@@ -870,7 +876,7 @@
             qrCopyStatus(button, 'QR code preview is unavailable.', true);
             return;
         }
-        const buttonLabel = button.getAttribute('aria-label') || 'Copy QR code';
+        const buttonLabel = button.getAttribute('aria-label') || 'Copy QR Code';
         const qrContext = buttonLabel
             .replace(/^Copy\s+/i, '')
             .replace(/\s+QR code$/i, '')
@@ -937,6 +943,7 @@
         if (!dialog || !form) return;
         const options = document.getElementById('qr-pdf-options');
         const selectAll = document.getElementById('qr-pdf-select-all');
+        const clearSelection = document.getElementById('qr-pdf-clear-selection');
         const count = document.getElementById('qr-pdf-selection-count');
         const prepare = document.getElementById('prepare-qr-pdf');
         const empty = document.getElementById('qr-pdf-empty');
@@ -962,9 +969,8 @@
                 row.querySelector('[data-qr-pdf-drag]').disabled = rows.length < 2;
                 row.querySelector('[data-qr-pdf-position]').textContent = included ? String(++position) : '';
             });
-            selectAll.checked = selected > 0 && selected === checkboxes.length;
-            selectAll.indeterminate = selected > 0 && selected < checkboxes.length;
             selectAll.disabled = checkboxes.length === 0;
+            if (clearSelection) clearSelection.hidden = selected === 0;
             count.textContent = selected + ' of ' + checkboxes.length + ' selected';
             prepare.disabled = selected === 0;
             empty.hidden = checkboxes.length > 0;
@@ -1068,8 +1074,12 @@
             (selectAll.disabled ? document.getElementById('cancel-qr-pdf') : selectAll).focus();
         });
         options.addEventListener('change', updateSelection);
-        selectAll.addEventListener('change', function () {
-            checkboxes.forEach(function (input) { input.checked = selectAll.checked; });
+        selectAll.addEventListener('click', function () {
+            checkboxes.forEach(function (input) { input.checked = true; });
+            updateSelection();
+        });
+        clearSelection?.addEventListener('click', function () {
+            checkboxes.forEach(function (input) { input.checked = false; });
             updateSelection();
         });
         document.getElementById('cancel-qr-pdf').addEventListener('click', function () { dialog.close(); });
@@ -1107,7 +1117,7 @@
                         button.textContent = 'Copied!';
                         status.textContent = originalLabel + ' copied to the clipboard.';
                     } catch (error) {
-                        button.textContent = 'Copy failed';
+                        button.textContent = 'Copy Failed';
                         status.textContent = originalLabel + ' could not be copied.';
                     } finally {
                         button.disabled = false;
@@ -1134,7 +1144,7 @@
             const status = form.querySelector('[data-invitation-submit-status]');
             if (!button || !status) return;
             const idleLabel = button.textContent;
-            const submittingLabel = button.dataset.submittingLabel || 'Sending invitation…';
+            const submittingLabel = button.dataset.submittingLabel || 'Sending Invitation…';
 
             const reset = function () {
                 delete form.dataset.submitting;
@@ -1169,6 +1179,19 @@
             });
             if (tabs.length === 0 || panels.some(function (panel) { return !panel; })) return;
 
+            const pickerLabel = document.createElement('label');
+            pickerLabel.className = 'record-section-picker';
+            pickerLabel.textContent = 'Section';
+            const picker = document.createElement('select');
+            picker.setAttribute('aria-label', 'Record section');
+            tabs.forEach(function (tab, index) {
+                picker.add(new Option(tab.textContent.trim().replace(/\s+/g, ' '), String(index)));
+            });
+            pickerLabel.appendChild(picker);
+            group.prepend(pickerLabel);
+            group.classList.add('has-section-picker');
+            picker.addEventListener('change', function () { activate(Number(picker.value), false, true); });
+
             const activate = function (index, focus, remember) {
                 tabs.forEach(function (tab, tabIndex) {
                     const selected = tabIndex === index;
@@ -1178,6 +1201,7 @@
                 });
                 // Keep this history entry on the chosen tab without creating a
                 // Back-button step for every tab click or moving the scroll position.
+                picker.value = String(index);
                 if (remember) window.history.replaceState(window.history.state, '', '#' + panels[index].id);
                 if (focus) tabs[index].focus();
             };
@@ -1306,7 +1330,36 @@
         });
     }
 
+    function initializeIconTooltips() {
+        const selector = '.action-icon-button, [data-tooltip]';
+        function normalize(control) {
+            if (!control.matches(selector)) return;
+            const title = control.getAttribute('title');
+            if (title === null) return;
+            if (!control.getAttribute('data-tooltip')) control.setAttribute('data-tooltip', title);
+            if (!control.getAttribute('aria-label') && !control.getAttribute('aria-labelledby') && !control.textContent.trim()) {
+                control.setAttribute('aria-label', title);
+            }
+            control.removeAttribute('title');
+        }
+        document.querySelectorAll(selector).forEach(normalize);
+        // AJAX lists and copy controls can insert icons or update their titles.
+        if (typeof MutationObserver !== 'undefined') {
+            new MutationObserver(function (changes) {
+                changes.forEach(function (change) {
+                    if (change.type === 'attributes') normalize(change.target);
+                    else change.addedNodes.forEach(function (node) {
+                        if (node.nodeType !== 1) return;
+                        normalize(node);
+                        node.querySelectorAll(selector).forEach(normalize);
+                    });
+                });
+            }).observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['title', 'data-tooltip', 'class'] });
+        }
+    }
+
     function initialize() {
+        initializeIconTooltips();
         initializeStatusMessages();
         initializeContactRole();
         initializeMailingAddress();

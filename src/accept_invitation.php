@@ -132,7 +132,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $invitation) {
             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token, ENT_QUOTES, 'UTF-8'); ?>">
             <div class="form-group"><label for="password">Password</label><input type="password" name="password" id="password" autocomplete="new-password" minlength="12" maxlength="72" required autofocus></div>
             <div class="form-group"><label for="password_confirmation">Confirm Password</label><input type="password" name="password_confirmation" id="password_confirmation" autocomplete="new-password" minlength="12" maxlength="72" required></div>
-            <button type="submit" class="login-button">Activate account</button>
+            <button type="submit" class="login-button">Activate Account</button>
         </form>
     <?php endif; ?>
     <p class="login-secondary-link"><a href="login.php">Back to Login</a></p>

@@ -96,7 +96,7 @@ try {
         }
         $page = $entity === 'organization' ? 'organizations.php' : $entity . 's.php';
         $list = bulkHttp($page . ($entity === 'task' ? '?scope=everyone' : ''), $admin);
-        expectBulkHttp($list['status'] === 200 && str_contains($list['body'], 'data-bulk-item'), 'Admin list has checkboxes: ' . $page);
+        expectBulkHttp($list['status'] === 200 && str_contains($list['body'], $entity === 'task' ? 'data-task-selection' : 'data-bulk-item'), 'Admin list has checkboxes: ' . $page);
         expectBulkHttp(str_contains($list['body'], 'aria-label="Delete '), 'Individual deletion remains available: ' . $page);
         $return = $page . '?page=2&per_page=20';
         bulkElevation($admin, null);
@@ -143,7 +143,7 @@ try {
     }
     bulkElevation($admin, null);
     $usersPage = bulkHttp('users.php?per_page=100', $admin)['body'];
-    expectBulkHttp(str_contains($usersPage, '>Delete user</button>') && str_contains($usersPage, 'data-bulk-item'), 'Locked admins can discover individual and bulk user deletion.');
+    expectBulkHttp(str_contains($usersPage, '>Delete User</button>') && str_contains($usersPage, 'data-bulk-item'), 'Locked admins can discover individual and bulk user deletion.');
     $individual = ['csrf_token' => $admin[1], 'id' => $inactive[0], 'delete_confirmation' => 'DELETE USER'];
     expectBulkHttp(str_starts_with(bulkHttp('delete_user.php', $admin, $individual)['location'], 'admin_elevation.php?'), 'Individual user deletion requires unlock.');
     bulkElevation($admin, $deadlineStart);

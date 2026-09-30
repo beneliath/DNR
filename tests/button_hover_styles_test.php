@@ -164,7 +164,7 @@ expectHoverStyle(
         && str_contains($calendar_subscription_page, 'class="action-icon calendar-copied-icon"')
         && str_contains($calendar_subscription_styles, "#copy-calendar-url.is-copied .calendar-copied-icon {\n    display: block;")
         && str_contains($calendar_subscription_script, "copyButton.classList.add('is-copied');")
-        && str_contains($calendar_subscription_script, "copyButton.setAttribute('aria-label', 'Calendar URL copied');")
+        && str_contains($calendar_subscription_script, "copyButton.setAttribute('aria-label', 'Calendar URL Copied');")
         && !str_contains($calendar_subscription_script, 'copyButton.textContent'),
     'Copy URL should preserve its icons and show an accessible in-button success confirmation.'
 );

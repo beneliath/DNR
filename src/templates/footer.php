@@ -1,3 +1,16 @@
+<?php if (in_array($_SESSION['role'] ?? '', ['admin', 'editor'], true) && !empty($_SESSION['task_completion_undo']) && ($_SESSION['task_completion_undo']['expires'] ?? 0) >= time()): ?>
+<aside class="task-undo-notice" aria-label="Recent task completion">
+    <span role="status">Completed: <?php echo htmlspecialchars($_SESSION['task_completion_undo']['title'], ENT_QUOTES, 'UTF-8'); ?></span>
+    <form action="tasks.php" method="post">
+        <?php echo csrfInput(); ?>
+        <input type="hidden" name="action" value="undo_completion">
+        <input type="hidden" name="undo_token" value="<?php echo htmlspecialchars($_SESSION['task_completion_undo']['token'], ENT_QUOTES, 'UTF-8'); ?>">
+        <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($_SESSION['task_completion_undo']['return_to'], ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="submit" class="button-secondary">Undo</button>
+    </form>
+    <button type="button" class="button-secondary" data-dismiss-undo aria-label="Dismiss completion notice">Dismiss</button>
+</aside>
+<?php endif; ?>
 <?php
 require_once __DIR__ . '/../application_runtime.php';
 require_once __DIR__ . '/../github_version_helpers.php';
@@ -14,7 +27,7 @@ $footer_repository_url = githubRepositoryUrl();
 ?>
 <footer class="app-footer">
     <p>&copy; <?php echo date("Y"); ?> <a class="footer-link" href="<?php echo htmlspecialchars('https://github.com/' . rawurlencode($footer_repository_owner), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_owner, ENT_QUOTES, 'UTF-8'); ?></a> <span aria-hidden="true">·</span> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url, ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer"><?php echo htmlspecialchars($footer_repository_name, ENT_QUOTES, 'UTF-8'); ?> <?php echo htmlspecialchars($footer_version, ENT_QUOTES, 'UTF-8'); ?></a><?php if ($footer_push !== null): ?> <span aria-hidden="true">·</span> <time datetime="<?php echo htmlspecialchars($footer_push['pushed_at'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($footer_push_label, ENT_QUOTES, 'UTF-8'); ?></time> <a class="footer-link" href="<?php echo htmlspecialchars($footer_repository_url . '/commit/' . $footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener noreferrer" title="View commit <?php echo htmlspecialchars($footer_push['commit'], ENT_QUOTES, 'UTF-8'); ?> on GitHub">(<?php echo htmlspecialchars($footer_short_commit, ENT_QUOTES, 'UTF-8'); ?>)</a><?php endif; ?></p>
-    <pre class="footer-ascii-cat" aria-label="ASCII art cat">     ("`-''-/").___..--''"`-.
+    <pre class="footer-ascii-cat" aria-label="ASCII Art Cat">     ("`-''-/").___..--''"`-.
      `6_ 6  )   `-.  (     ).`-.__.`)
      (_Y_.)'  ._   )  `._ `. ``-..-'
    _..`--'_..-_/  /--'_.' ,'
@@ -58,7 +71,7 @@ Genesis 49:9,10 ... Revelation 5:5
     <h2 id="sensitive-action-confirmation-title">Confirm Sensitive Action</h2>
     <p id="sensitive-action-confirmation-message"></p>
     <label for="sensitive-action-confirmation-input" class="confirmation-dialog-label">
-        Type <code id="sensitive-action-confirmation-phrase"></code> to continue
+        Type <code id="sensitive-action-confirmation-phrase"></code> To Continue
     </label>
     <input type="text" id="sensitive-action-confirmation-input" class="confirmation-dialog-input" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-required="true" aria-describedby="sensitive-action-confirmation-help sensitive-action-confirmation-error">
     <p id="sensitive-action-confirmation-help" class="dialog-supporting-text">The phrase must match exactly.</p>
@@ -89,10 +102,11 @@ Genesis 49:9,10 ... Revelation 5:5
         <input type="hidden" name="presentation_id" id="qr-pdf-presentation-id">
         <input type="hidden" name="qr_selection" value="1">
         <div class="qr-pdf-selection-bar">
-            <label class="checkbox-label"><input type="checkbox" id="qr-pdf-select-all" autofocus> Select all</label>
+            <button type="button" class="button-secondary" id="qr-pdf-select-all">Select All Available</button>
+            <button type="button" class="button-secondary" id="qr-pdf-clear-selection" hidden>Clear Selection</button>
             <span id="qr-pdf-selection-count" class="dialog-supporting-text" role="status" aria-live="polite"></span>
         </div>
-        <div id="qr-pdf-options" class="qr-pdf-options" role="group" aria-label="QR codes to include"></div>
+        <div id="qr-pdf-options" class="qr-pdf-options" role="group" aria-label="QR Codes to Include"></div>
         <span id="qr-pdf-order-status" class="visually-hidden" role="status" aria-live="polite"></span>
         <p id="qr-pdf-empty" class="dialog-supporting-text" hidden>No QR codes are ready for this presentation yet.</p>
         <p id="qr-pdf-error" class="dialog-inline-error" role="alert" hidden>Select at least one QR code to prepare the PDF.</p>
@@ -105,8 +119,14 @@ Genesis 49:9,10 ... Revelation 5:5
 
 <?php renderScript('assets/js/page-actions.min.js'); ?>
 <?php renderScript('assets/js/footer.min.js'); ?>
+<?php renderScript('assets/js/workflow-ui.min.js'); ?>
 <?php if (function_exists('aiCoachEnabled') && aiCoachEnabled() && !empty($_SESSION['user_id'])) include __DIR__ . '/ai_coach.php'; ?>
 <?php if (!empty($_SESSION['user_id'])): ?>
 <span hidden data-network-performance data-endpoint="network_performance.php" data-csrf-token="<?php echo htmlspecialchars(generateCsrfToken(), ENT_QUOTES, 'UTF-8'); ?>"></span>
 <?php renderScript('assets/js/network-performance.min.js'); ?>
 <?php endif; ?>
+
+<?php foreach ($_SESSION['clear_form_drafts'] ?? [] as $draftKey): ?><span hidden data-clear-form-draft="<?php echo htmlspecialchars($draftKey, ENT_QUOTES, 'UTF-8'); ?>"></span><?php endforeach; unset($_SESSION['clear_form_drafts']); ?>
+<?php renderScript('assets/js/form-drafts.min.js'); ?>
+
+<?php renderScript('assets/js/creation-duplicates.min.js'); ?>

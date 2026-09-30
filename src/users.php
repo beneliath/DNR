@@ -144,7 +144,7 @@ $task_digest_day_options = [
                 </form>
             <?php endif; ?>
         </section>
-        <div class="users-admin-actions" aria-label="User administration actions">
+        <div class="users-admin-actions" aria-label="User Administration Actions">
             <a href="audit_log.php" class="button-add audit-log-link">Audit Log</a>
             <a href="register.php" class="button-add"<?php echo !$admin_actions_unlocked ? ' title="Preview the invitation form; administrator confirmation is required before sending"' : ''; ?>>+ Invite User</a>
         </div>
@@ -210,7 +210,7 @@ $task_digest_day_options = [
                 </div>
                 <div class="user-digest-summary">
                     <span class="user-digest-label">Daily Digest</span>
-                    <ul class="user-digest-days" aria-label="Daily Digest delivery days">
+                    <ul class="user-digest-days" aria-label="Daily Digest Delivery Days">
                         <?php foreach ($task_digest_day_options as $day_value => $day_option): ?>
                             <?php
                             $digest_day_selected = ($digest_delivery_days & $day_value) !== 0;
@@ -244,7 +244,7 @@ $task_digest_day_options = [
                 <div class="user-actions" aria-label="Actions for <?php echo htmlspecialchars($user['username'], ENT_QUOTES, 'UTF-8'); ?>">
                     <div class="user-actions-primary">
                         <?php if ($admin_actions_unlocked): ?>
-                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button">Edit user</a>
+                            <a href="edit_user.php?id=<?php echo (int) $user['id']; ?>" class="action-button edit-button">Edit User</a>
                         <?php endif; ?>
 
                         <?php if ($admin_actions_unlocked && (int) $user['id'] !== (int) $_SESSION['user_id'] && $user['account_status'] === 'active'): ?>
@@ -265,7 +265,7 @@ $task_digest_day_options = [
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="action" value="resend_invitation">
-                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending invitation&hellip;">Resend Invitation</button>
+                                <button type="submit" class="action-button reset-password-button" data-invitation-submit data-submitting-label="Resending Invitation&hellip;">Resend Invitation</button>
                                 <span class="invitation-submit-status invitation-submit-status-compact" role="status" aria-live="polite" data-invitation-submit-status hidden>
                                     <span class="invitation-submit-spinner" aria-hidden="true"></span>
                                     Emailing a new activation link&hellip;
@@ -291,7 +291,7 @@ $task_digest_day_options = [
                                 <?php echo csrfInput(); ?>
                                 <input type="hidden" name="id" value="<?php echo (int) $user['id']; ?>">
                                 <input type="hidden" name="delete_confirmation" value="">
-                                <button type="submit" class="action-button delete-button">Delete user</button>
+                                <button type="submit" class="action-button delete-button">Delete User</button>
                             </form>
                         <?php endif; ?>
                     </div>

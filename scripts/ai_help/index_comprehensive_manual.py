@@ -17,7 +17,7 @@ PDF = ROOT / 'src/assets/docs/moed-comprehensive-user-manual.pdf'
 OUTPUT = ROOT / 'src/data/ai-coach-comprehensive-manual.json'
 CHAPTERS = ['orientation', 'roles', 'dashboard', 'booking-pipeline', 'engagements',
             'organizations-contacts', 'work-queue', 'chron-mail', 'map-calendar',
-            'profile-security', 'mattermost', 'administration', 'troubleshooting']
+            'reimbursements', 'profile-security', 'mattermost', 'administration', 'troubleshooting']
 
 
 def compact(value: str) -> str:

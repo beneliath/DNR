@@ -2,8 +2,12 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/email_delivery_claim_helpers.php';
+require_once __DIR__ . '/email_inline_image_helpers.php';
 
 require_once __DIR__ . '/application_runtime.php';
+
+// Proton limits the complete outgoing message, measured in decimal bytes.
+const SMTP_MAX_MESSAGE_BYTES = 25_000_000;
 
 function normalizeAccountEmail($email)
 {
@@ -195,6 +199,24 @@ function consumeUserEmailToken(mysqli $conn, $token_id)
     $consumed = $stmt->affected_rows === 1;
     $stmt->close();
     return $consumed;
+}
+
+/** Use the public hosted artwork, with an override for local email delivery. */
+function emailBrandLogoUrl(): string
+{
+    $url = trim((string) (getenv('DNR_EMAIL_LOGO_URL') ?: ''));
+    if ($url === '') {
+        return applicationPublicUrl(applicationBrandEmailLogo(), [
+            'v' => applicationVersion(), 'rev' => 'transparent-1',
+        ]);
+    }
+    if (!filter_var($url, FILTER_VALIDATE_URL)
+        || parse_url($url, PHP_URL_SCHEME) !== 'https'
+        || parse_url($url, PHP_URL_USER) !== null
+        || parse_url($url, PHP_URL_PASS) !== null) {
+        throw new RuntimeException('DNR_EMAIL_LOGO_URL must be a public HTTPS image URL.');
+    }
+    return $url;
 }
 
 function applicationPublicUrl($path, array $query = [])
@@ -627,8 +649,56 @@ function smtpRecipientHeaders(string $recipient, ?array $visibleRecipients = nul
 /**
  * @return array{headers: list<string>, body: string}
  */
-function smtpMessageContent($plainTextBody, $htmlBody = null): array
+function smtpMessageContent($plainTextBody, $htmlBody = null, array $attachments = []): array
 {
+    if ($attachments !== []) {
+        $content = smtpMessageContent($plainTextBody, $htmlBody);
+        $inline = []; $files = []; $total = 0; $contentIds = [];
+        foreach ($attachments as $attachment) {
+            $name = $attachment['filename'] ?? '';
+            $type = $attachment['content_type'] ?? '';
+            $data = $attachment['data'] ?? null;
+            $cid = $attachment['content_id'] ?? null;
+            if (!is_string($name) || !preg_match('/\A[A-Za-z0-9._-]{1,200}\z/', $name) || !is_string($data)) {
+                throw new InvalidArgumentException('Invalid email attachment.');
+            }
+            if ($cid !== null) {
+                if (!is_string($cid) || !preg_match('/\A[A-Za-z0-9._-]+@[A-Za-z0-9.-]+\z/', $cid)
+                    || isset($contentIds[$cid]) || !in_array($type, ['image/png', 'image/jpeg'], true)
+                    || strlen($data) > 256 * 1024 || !str_contains((string) $htmlBody, 'cid:' . $cid)) {
+                    throw new InvalidArgumentException('Invalid inline email image.');
+                }
+                $contentIds[$cid] = true;
+                $inline[] = $attachment;
+            } else {
+                if (!in_array($type, ['application/zip', 'application/pdf', 'text/csv', 'image/jpeg', 'image/png', 'image/webp'], true)) {
+                    throw new InvalidArgumentException('Invalid email attachment type.');
+                }
+                $total += strlen($data);
+                if ($total > SMTP_MAX_MESSAGE_BYTES) throw new InvalidArgumentException('The complete encoded email exceeds 25 MB.');
+                $files[] = $attachment;
+            }
+        }
+        $wrap = static function (array $content, array $partsToAdd, string $subtype): array {
+            $boundary = '=_dnr_' . $subtype . '_' . bin2hex(random_bytes(18));
+            $parts = ['--' . $boundary, ...$content['headers'], '', $content['body']];
+            foreach ($partsToAdd as $attachment) {
+                $cid = $attachment['content_id'] ?? null;
+                array_push($parts, '--' . $boundary,
+                    'Content-Type: ' . $attachment['content_type'] . '; name="' . $attachment['filename'] . '"',
+                    'Content-Disposition: ' . ($cid === null ? 'attachment' : 'inline') . '; filename="' . $attachment['filename'] . '"');
+                if ($cid !== null) $parts[] = 'Content-ID: <' . $cid . '>';
+                array_push($parts, 'Content-Transfer-Encoding: base64', '',
+                    rtrim(chunk_split(base64_encode($attachment['data']), 76, "\n"), "\r\n"));
+            }
+            $parts[] = '--' . $boundary . '--';
+            return ['headers' => ['Content-Type: multipart/' . $subtype . '; boundary="' . $boundary . '"'
+                . ($subtype === 'related' ? '; type="multipart/alternative"' : '')], 'body' => implode("\n", $parts)];
+        };
+        if ($inline !== []) $content = $wrap($content, $inline, 'related');
+        if ($files !== []) $content = $wrap($content, $files, 'mixed');
+        return $content;
+    }
     if ($htmlBody === null || (string) $htmlBody === '') {
         return [
             'headers' => [
@@ -692,6 +762,32 @@ function smtpTlsStreamContext($host)
     }
 
     return stream_context_create(['ssl' => $ssl_options]);
+}
+
+/** Build the same complete MIME message for preflight and actual SMTP delivery. */
+function smtpMessageData(string $from, string $fromName, string $recipient, string $subject, string $body, string $replyTo = '', ?string $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = []): string
+{
+    $messageId ??= '<' . bin2hex(random_bytes(24)) . '@dnr.invalid>';
+    $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
+    $encoded_name = '=?UTF-8?B?' . base64_encode($fromName) . '?=';
+    $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
+    $content = smtpMessageContent($body, $htmlBody, $attachments);
+    $message = smtpNormalizeLineEndings(implode("\n", [
+        'From: ' . $encoded_name . ' <' . $from . '>',
+        ...smtpRecipientHeaders($recipient, $visibleRecipients),
+        ...($replyToHeader !== '' ? [$replyToHeader] : []),
+        'Subject: ' . $encoded_subject,
+        'Message-ID: ' . $messageId,
+        'MIME-Version: 1.0',
+        ...$content['headers'],
+        'Date: ' . gmdate(DATE_RFC2822),
+        '',
+        $content['body'],
+    ]));
+    if (strlen($message) + 2 > SMTP_MAX_MESSAGE_BYTES) {
+        throw new InvalidArgumentException('The complete encoded email exceeds 25 MB. Reduce receipt sizes or split this draft before submitting.');
+    }
+    return $message;
 }
 
 final class SmtpSession
@@ -759,7 +855,7 @@ final class SmtpSession
         }
     }
 
-    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null): bool
+    public function send($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = []): bool
     {
         if (!is_resource($this->stream)) {
             throw new RuntimeException('The SMTP session is closed.');
@@ -778,22 +874,8 @@ final class SmtpSession
             throw new InvalidArgumentException('Invalid SMTP Message-ID.');
         }
         $stream = $this->stream;
-        $encoded_subject = '=?UTF-8?B?' . base64_encode((string) $subject) . '?=';
-        $encoded_name = '=?UTF-8?B?' . base64_encode($this->fromName) . '?=';
-        $replyToHeader = $replyTo !== '' ? 'Reply-To: <' . $replyTo . '>' : '';
-        $content = smtpMessageContent($body, $htmlBody);
-        $message = smtpNormalizeLineEndings(implode("\n", [
-            'From: ' . $encoded_name . ' <' . $this->from . '>',
-            ...smtpRecipientHeaders($recipient, $visibleRecipients),
-            ...($replyToHeader !== '' ? [$replyToHeader] : []),
-            'Subject: ' . $encoded_subject,
-            'Message-ID: ' . $messageId,
-            'MIME-Version: 1.0',
-            ...$content['headers'],
-            'Date: ' . gmdate(DATE_RFC2822),
-            '',
-            $content['body'],
-        ]));
+        $message = smtpMessageData($this->from, $this->fromName, $recipient, (string) $subject, (string) $body,
+            $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
         $message = preg_replace('/(?m)^\./', '..', $message) ?? $message;
         try {
             smtpCommand($stream, 'MAIL FROM:<' . $this->from . '>', [250]);
@@ -883,17 +965,17 @@ final class SmtpSession
     }
 }
 
-function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null)
+function sendSmtpMessage($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [])
 {
     $session = new SmtpSession();
     try {
-        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
+        return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
     } finally {
         $session->close();
     }
 }
 
-function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null)
+function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $htmlBody = null, ?array $visibleRecipients = null, ?string $messageId = null, array $attachments = [])
 {
     $visibleRecipients = smtpNormalizeVisibleRecipients($visibleRecipients);
     $transport = accountMailTransport();
@@ -904,7 +986,7 @@ function deliverApplicationEmail($recipient, $subject, $body, $replyTo = '', $ht
         ]);
         return true;
     }
-    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
+    return sendSmtpMessage($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
 }
 
 function deliverApplicationEmailWithSession(
@@ -915,16 +997,17 @@ function deliverApplicationEmailWithSession(
     $replyTo = '',
     $htmlBody = null,
     ?array $visibleRecipients = null,
-    ?string $messageId = null
+    ?string $messageId = null,
+    array $attachments = []
 ): bool {
     if (accountMailTransport() === 'log') {
-        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
+        return deliverApplicationEmail($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
     }
     $reconnected = false;
     while (true) {
         $session ??= new SmtpSession();
         try {
-            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId);
+            return $session->send($recipient, $subject, $body, $replyTo, $htmlBody, $visibleRecipients, $messageId, $attachments);
         } catch (SmtpPreDataException $exception) {
             $session->close();
             $session = null;

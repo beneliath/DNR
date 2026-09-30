@@ -350,15 +350,48 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
     <?php if ($chron_action_error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($chron_action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($source_inquiry): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked from Inquiry #<?php echo (int) $source_inquiry['id']; ?></strong><span>The pre-booking history remains on the read-only source record.</span></div><a href="view_inquiry.php?id=<?php echo (int) $source_inquiry['id']; ?>" class="button-secondary">Open Source Inquiry</a></div><?php endif; ?>
 
-    <section class="engagement-card engagement-compact-overview" id="engagement-overview" aria-label="Engagement overview">
+    <div class="engagement-planning-summary">
+            <section class="engagement-card engagement-next-action-card">
+                <h2>Next Action</h2>
+                <div class="engagement-next-action-content">
+                    <span class="engagement-next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>
+                    <div>
+                        <strong><?php echo htmlspecialchars($next_task['title'] ?? 'No open follow-up tasks'); ?></strong>
+                        <?php if ($next_task !== null): ?>
+                            <?php $next_task_due = followUpTaskDueState($next_task['due_date']); ?>
+                            <p class="task-due task-due-<?php echo htmlspecialchars($next_task_due['key'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(empty($next_task['due_date']) ? 'No Due Date' : 'Due ' . engagementViewDateRange($next_task['due_date'], $next_task['due_date'])); ?></p>
+                            <p>Owner <b><?php echo htmlspecialchars($next_task['assignee_username'] ?: 'Unassigned'); ?></b></p>
+                            <?php if ($next_task['status'] === 'waiting' && !empty($next_task['waiting_on'])): ?><p>Waiting on <?php echo htmlspecialchars($next_task['waiting_on']); ?></p><?php endif; ?>
+                        <?php else: ?><p>The next open task will appear here.</p><?php endif; ?>
+                    </div>
+                </div>
+                <?php if ($next_task !== null && $context_task_can_manage): ?>
+                    <a href="<?php echo htmlspecialchars($next_task_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add engagement-card-action">Update Next Action</a>
+                <?php elseif ($context_task_can_manage && $context_task_subject_active): ?>
+                    <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add engagement-card-action">Add Task</a>
+                <?php else: ?><a href="#follow-up-work" class="button-secondary engagement-card-action">View Tasks</a><?php endif; ?>
+            </section>
+            <section class="engagement-card engagement-readiness-card">
+                <h2>Readiness</h2>
+                <ul>
+                    <?php foreach ($engagement_readiness as $item): ?>
+                        <li<?php echo $item['ready'] ? ' class="is-ready"' : ''; ?>><span><?php if (!$item['ready'] && $can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url]) . '#' . $item['target'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($item['action']); ?></a><?php else: ?><?php echo htmlspecialchars($item['label']); ?><?php endif; ?></span><strong aria-label="<?php echo $item['ready'] ? 'Recorded' : 'Not recorded'; ?>"><?php echo $item['ready'] ? '✓' : '!'; ?></strong></li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="engagement-card-empty">Details can be added as planning progresses.</p>
+                <?php if ($context_task_can_manage && $context_task_subject_active): ?><a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary engagement-card-action">Add Task</a><?php endif; ?>
+            </section>
+    </div>
+
+    <section class="engagement-card engagement-compact-overview" id="engagement-overview" aria-label="Engagement Overview">
         <dl class="engagement-overview-facts">
-            <div><dt>Event dates</dt><dd><?php echo htmlspecialchars(engagementViewDateRange($engagement['event_start_date'], $engagement['event_end_date'])); ?></dd></div>
-            <div><dt>Event type</dt><dd><?php echo htmlspecialchars(ucwords($event_type_label)); ?></dd></div>
-            <div><dt>Event contacts</dt><dd><a href="#engagement-contacts"><?php echo count($contacts); ?> assigned</a></dd></div>
+            <div><dt>Event Dates</dt><dd><?php echo htmlspecialchars(engagementViewDateRange($engagement['event_start_date'], $engagement['event_end_date'])); ?></dd></div>
+            <div><dt>Event Type</dt><dd><?php echo htmlspecialchars(ucwords($event_type_label)); ?></dd></div>
+            <div><dt>Event Contacts</dt><dd><a href="#engagement-contacts"><?php echo count($contacts); ?> assigned</a></dd></div>
             <div><dt>Presentations</dt><dd><a href="#engagement-presentations"><?php echo count($presentations); ?> added</a></dd></div>
         </dl>
         <?php if (!empty($engagement['event_description'])): ?>
-        <details class="engagement-description"><summary>Show description</summary><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></details>
+        <details class="engagement-description"><summary>Show Description</summary><p><?php echo nl2br(htmlspecialchars($engagement['event_description'])); ?></p></details>
         <?php endif; ?>
         <p class="engagement-overview-meta"><?php echo $event_address_parts ? implode(', ', array_map('htmlspecialchars', $event_address_parts)) : 'Location not recorded'; ?> · Caller: <?php echo htmlspecialchars($engagement['caller_name'] ?: 'Not assigned'); ?> · Updated <?php echo htmlspecialchars(applicationTimestampLabel($engagement['updated_at'], 'M j, Y')); ?></p>
     </section>
@@ -366,7 +399,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
     <div class="engagement-detail-layout">
         <div class="engagement-detail-main">
             <section class="engagement-card engagement-workspace" id="engagement-workspace" data-record-tabs>
-                <div class="engagement-tab-list" role="tablist" aria-label="Engagement work">
+                <div class="engagement-tab-list" role="tablist" aria-label="Engagement Work">
                     <button type="button" role="tab" id="engagement-activity-tab" aria-controls="chron-log" aria-selected="true">Activity <span><?php echo $chron_entry_count; ?></span></button>
                     <button type="button" role="tab" id="engagement-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($engagement_email_messages) === 10 ? '10+' : count($engagement_email_messages); ?></span></button>
                     <button type="button" role="tab" id="engagement-tasks-tab" aria-controls="engagement-tasks" aria-selected="false">Tasks <span><?php echo count($context_tasks); ?></span></button>
@@ -388,7 +421,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
 
         <?php if ($chron_edit_draft !== null && !$chron_edit_entry_found): ?>
             <div class="chron-view-editor">
-                <label for="engagement-unsaved-chron">Your unsaved Chron edit</label>
+                <label for="engagement-unsaved-chron">Your Unsaved Chron Edit</label>
                 <p>This entry cannot be edited here. Copy your draft before leaving this page.</p>
                 <textarea id="engagement-unsaved-chron" rows="6" readonly><?php echo htmlspecialchars($chron_edit_draft['text'], ENT_QUOTES, 'UTF-8'); ?></textarea>
             </div>
@@ -435,7 +468,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                         <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($chron_entry['entry_text']); ?></div>
                     <?php endif; ?>
                     <?php if ($can_manage_engagement): ?>
-                        <div class="chron-view-actions" role="group" aria-label="Chron Log Entry actions">
+                        <div class="chron-view-actions" role="group" aria-label="Chron Log Entry Actions">
                             <a href="<?php echo htmlspecialchars($chron_view_url . '&edit_chron=' . (int) $chron_entry['id'] . '#chron-log-entry-' . (int) $chron_entry['id'], ENT_QUOTES, 'UTF-8'); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Chron Log Entry" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                             <form method="post" action="<?php echo htmlspecialchars($chron_view_url . '#chron-log', ENT_QUOTES, 'UTF-8'); ?>" data-confirm="Archive this Chron Log Entry?">
                                 <?php echo csrfInput(); ?>
@@ -464,6 +497,28 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
         <?php endif; ?>
     </section>
     <section class="engagement-correspondence engagement-tab-panel" id="correspondence" role="tabpanel" aria-labelledby="engagement-correspondence-tab" tabindex="0">
+            <details class="engagement-routing-card"><summary>Email Routing Marker</summary>
+        <div class="detail-value engagement-email-marker">
+            <span class="engagement-email-marker-control">
+                <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
+                <button
+                    type="button"
+                    class="action-icon-button engagement-marker-copy"
+                    data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
+                    data-copy-status="engagement-marker-copy-status"
+                    data-tooltip="Copy Marker"
+                    aria-label="Copy Email Routing Marker"
+                    title="Copy Email Routing Marker"
+                >
+                    <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+                    <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                </button>
+            </span>
+            <span class="engagement-email-marker-help">Keep this marker in the email subject or plain-text body to route the message to this Engagement’s Chron log.</span>
+            <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
+        </div>
+            </details>
+
         <div class="engagement-correspondence-heading">
             <div>
                 <h2>Correspondence</h2>
@@ -480,9 +535,9 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 $email_status_labels = [
                     'sent' => 'Sent',
                     'failed' => 'Failed',
-                    'partial' => 'Partially sent',
+                    'partial' => 'Partially Sent',
                     'pending' => 'Pending',
-                    'delivery_uncertain' => 'Delivery uncertain',
+                    'delivery_uncertain' => 'Delivery Uncertain',
                 ];
                 ?>
                 <article class="engagement-email-history-item">
@@ -527,9 +582,11 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div>Actual attendance: <?php echo (int) $presentation['actual_attendance']; ?></div>
                 <?php endif; ?>
                 </div>
-                <a class="button-secondary presentation-combined-stats" href="short_links.php?presentation_id=<?php echo (int) $presentation['id']; ?>">Combined Presentation Statistics</a>
+                <a class="button-secondary presentation-combined-stats" href="short_links.php?presentation_id=<?php echo (int) $presentation['id']; ?>">Statistics</a>
+                <a class="button-add" href="presentation_qr_pdf_view.php?presentation_id=<?php echo (int) $presentation['id']; ?>" data-qr-pdf-presentation-id="<?php echo (int) $presentation['id']; ?>" aria-haspopup="dialog" aria-controls="presentation-qr-pdf-dialog" target="_blank" rel="noopener">Download Selected QR Codes</a>
                 </div>
-                <div class="presentation-view-assets">
+                <p class="presentation-readiness">Speaker notes: <?php echo !empty($presentation['has_speaker_notes']) ? 'Ready' : 'Not uploaded'; ?> · Slidedeck: <?php echo !empty($presentation['has_ppt_slidedeck']) ? 'Ready' : 'Not uploaded'; ?></p>
+                <details class="presentation-resources"><summary>Files and QR Codes</summary><div class="presentation-view-assets">
                     <div class="presentation-file-actions">
                     <?php if (!empty($presentation['has_speaker_notes'])): ?>
                         <a class="presentation-view-pdf" href="presentation_asset.php?id=<?php echo (int) $presentation['id']; ?>&amp;type=notes" target="_blank" rel="noopener">View PDF Speaker Notes</a>
@@ -546,6 +603,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     unset($short_link_show_pdf_action, $short_link_show_stats_action);
                     ?>
                 </div>
+                </details>
                 <?php include __DIR__ . '/templates/presentation_export_actions.php'; ?>
             </div>
             <?php endforeach; ?>
@@ -573,7 +631,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     ENT_QUOTES,
                     'UTF-8'
                 ); ?></a></strong></div>
-                <div class="event-contact-roles" aria-label="Event roles">
+                <div class="event-contact-roles" aria-label="Event Roles">
                     <?php foreach ((array) ($contact['engagement_contact_roles'] ?? []) as $event_contact_role): ?>
                         <span><?php echo htmlspecialchars(engagementContactRoleLabel($event_contact_role), ENT_QUOTES, 'UTF-8'); ?></span>
                     <?php endforeach; ?>
@@ -636,16 +694,16 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <p>Actual receipts recorded after the event; planning estimates above remain unchanged.</p>
             </div>
             <span class="financial-status <?php echo $financial_report ? 'is-finalized' : ($financial_closeout_applicable ? 'is-open' : 'is-not-applicable'); ?>">
-                <?php echo $financial_report ? 'Finalized' : ($financial_draft !== null ? 'Receipt draft' : ($financial_closeout_applicable ? 'Open' : 'Not applicable')); ?>
+                <?php echo $financial_report ? 'Finalized' : ($financial_draft !== null ? 'Receipt Draft' : ($financial_closeout_applicable ? 'Open' : 'Not Applicable')); ?>
             </span>
         </div>
 
         <?php if ($financial_report): ?>
             <div class="financial-amount-grid">
-                <div><small>Giving / income</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
+                <div><small>Giving / Income</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
                 <div><small>Lodging received</small><strong><?php echo formatFinancialAmount($financial_report['lodging_received']); ?></strong></div>
                 <div><small>Travel received</small><strong><?php echo formatFinancialAmount($financial_report['travel_received']); ?></strong></div>
-                <div class="financial-total"><small>Total received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
+                <div class="financial-total"><small>Total Received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
             </div>
             <?php
             $closed_timestamp = chronLogTimestampDetails($financial_report['closed_at']);
@@ -667,13 +725,13 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo renderTextWithLinks($financial_report['notes']); ?></p></div>
             <?php endif; ?>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
-                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct final report</a>
+                <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct Final Report</a>
             <?php endif; ?>
         <?php elseif ($financial_closeout_applicable): ?>
             <p class="financial-empty">No actual received amounts have been finalized for this event.</p>
             <?php if ($financial_draft !== null): ?>
                 <h3>Draft Received Amounts</h3><div class="financial-amount-grid">
-                <?php foreach (['giving_income_received' => 'Giving / income', 'lodging_received' => 'Lodging', 'travel_received' => 'Travel'] as $draft_field => $draft_label): ?><div><small><?php echo $draft_label; ?></small><strong><?php echo $financial_draft[$draft_field] === null ? 'Not entered' : formatFinancialAmount($financial_draft[$draft_field]); ?></strong></div><?php endforeach; ?>
+                <?php foreach (['giving_income_received' => 'Giving / Income', 'lodging_received' => 'Lodging', 'travel_received' => 'Travel'] as $draft_field => $draft_label): ?><div><small><?php echo $draft_label; ?></small><strong><?php echo $financial_draft[$draft_field] === null ? 'Not entered' : formatFinancialAmount($financial_draft[$draft_field]); ?></strong></div><?php endforeach; ?>
                 </div><p>Draft receipts are excluded from finalized giving history.</p>
             <?php endif; ?>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
@@ -686,58 +744,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
 
             </section>
         </div>
-        <aside class="engagement-detail-sidebar" aria-label="Engagement planning and actions">
-            <section class="engagement-card engagement-routing-card" aria-labelledby="engagement-routing-heading"><h2 id="engagement-routing-heading">Email Routing Marker</h2>
-        <div class="detail-value engagement-email-marker">
-            <span class="engagement-email-marker-control">
-                <code><?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?></code>
-                <button
-                    type="button"
-                    class="action-icon-button engagement-marker-copy"
-                    data-copy-text="<?php echo htmlspecialchars($engagement_marker, ENT_QUOTES, 'UTF-8'); ?>"
-                    data-copy-status="engagement-marker-copy-status"
-                    data-tooltip="Copy marker"
-                    aria-label="Copy email routing marker"
-                    title="Copy email routing marker"
-                >
-                    <svg class="action-icon engagement-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
-                    <svg class="action-icon engagement-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
-                </button>
-            </span>
-            <span class="engagement-email-marker-help">Keep this marker in the email subject or plain-text body to route the message to this Engagement’s Chron log.</span>
-            <span id="engagement-marker-copy-status" class="visually-hidden" role="status" aria-live="polite"></span>
-        </div>
-            </section>
-            <section class="engagement-card engagement-next-action-card">
-                <h2>Next Action</h2>
-                <div class="engagement-next-action-content">
-                    <span class="engagement-next-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18"/></svg></span>
-                    <div>
-                        <strong><?php echo htmlspecialchars($next_task['title'] ?? 'No open follow-up tasks'); ?></strong>
-                        <?php if ($next_task !== null): ?>
-                            <?php $next_task_due = followUpTaskDueState($next_task['due_date']); ?>
-                            <p class="task-due task-due-<?php echo htmlspecialchars($next_task_due['key'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(empty($next_task['due_date']) ? 'No due date' : 'Due ' . engagementViewDateRange($next_task['due_date'], $next_task['due_date'])); ?></p>
-                            <p>Owner <b><?php echo htmlspecialchars($next_task['assignee_username'] ?: 'Unassigned'); ?></b></p>
-                            <?php if ($next_task['status'] === 'waiting' && !empty($next_task['waiting_on'])): ?><p>Waiting on <?php echo htmlspecialchars($next_task['waiting_on']); ?></p><?php endif; ?>
-                        <?php else: ?><p>The next open task will appear here.</p><?php endif; ?>
-                    </div>
-                </div>
-                <?php if ($next_task !== null && $context_task_can_manage): ?>
-                    <a href="<?php echo htmlspecialchars($next_task_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add engagement-card-action">Update Next Action</a>
-                <?php elseif ($context_task_can_manage && $context_task_subject_active): ?>
-                    <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add engagement-card-action">Add Task</a>
-                <?php else: ?><a href="#follow-up-work" class="button-secondary engagement-card-action">View Tasks</a><?php endif; ?>
-            </section>
-            <section class="engagement-card engagement-readiness-card">
-                <h2>Readiness</h2>
-                <ul>
-                    <?php foreach ($engagement_readiness as $item): ?>
-                        <li<?php echo $item['ready'] ? ' class="is-ready"' : ''; ?>><span><?php echo htmlspecialchars($item['label']); ?></span><strong aria-label="<?php echo $item['ready'] ? 'Recorded' : 'Not recorded'; ?>"><?php echo $item['ready'] ? '✓' : '!'; ?></strong></li>
-                    <?php endforeach; ?>
-                </ul>
-                <p class="engagement-card-empty">Details can be added as planning progresses.</p>
-                <?php if ($context_task_can_manage && $context_task_subject_active): ?><a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary engagement-card-action">Add Task</a><?php endif; ?>
-            </section>
+        <aside class="engagement-detail-sidebar" aria-label="Engagement Planning and Actions">
             <section class="engagement-card engagement-workflow-card" id="workflow-controls">
                 <h2>Workflow</h2>
                 <dl class="engagement-detail-list"><div><dt>Confirmation</dt><dd><?php echo htmlspecialchars($confirmation_label); ?></dd></div></dl>

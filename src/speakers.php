@@ -42,15 +42,16 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     <?php if ($action_message !== ''): ?><p class="success"><?php echo htmlspecialchars($action_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($action_error !== ''): ?><p class="error"><?php echo htmlspecialchars($action_error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <div class="list-controls">
+        <?php renderListFilterSummary(['Search' => $search], 'speakers.php'); ?>
         <form method="get" action="speakers.php" class="list-search-form" role="search">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <input type="hidden" name="name_sort" value="<?php echo $name_sort; ?>">
-            <label class="visually-hidden" for="speaker-search">Search speakers</label>
+            <label class="visually-hidden" for="speaker-search">Search Speakers</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search speakers">
+            <input type="search" id="speaker-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Speakers">
             <?php if ($search !== ''): ?><a class="clear-search" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['q' => null, 'page' => 1]), ENT_QUOTES, 'UTF-8'); ?>">Clear</a><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Speaker sort order">
+        <div class="control-group" aria-label="Speaker Sort Order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
                 <a class="sort-button sort-selection active" aria-current="true" href="<?php echo htmlspecialchars(recordUrlWithQuery($list_current_url, ['page' => 1, 'name_sort' => $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>">Name <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?></a>
@@ -62,7 +63,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
     <?php renderPagination($total_speakers, $current_page, $page_size, $list_current_url, 'speakers', 'Speaker pages'); ?>
     <div class="contact-table-wrapper">
         <table class="contact-table speaker-table data-table">
-            <thead><tr><th scope="col">Speaker</th><th scope="col">Phone number</th><th scope="col">Email address</th><th scope="col">Actions</th></tr></thead>
+            <thead><tr><th scope="col">Speaker</th><th scope="col">Phone Number</th><th scope="col">Email Address</th><th scope="col">Actions</th></tr></thead>
             <tbody>
             <?php foreach ($speakers as $speaker): ?>
                 <tr>
@@ -74,8 +75,8 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
                     <td><a class="contact-phone-link" href="tel:<?php echo htmlspecialchars($speaker['phone'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(formatPhoneNumberForDisplay($speaker['phone']), ENT_QUOTES, 'UTF-8'); ?></a></td>
                     <td><a href="mailto:<?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($speaker['email'], ENT_QUOTES, 'UTF-8'); ?></a></td>
                     <td><div class="action-buttons">
-                        <a href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View speaker" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
-                        <?php if ($can_manage_speakers): ?><a href="edit_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit speaker" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a><?php endif; ?>
+                        <a href="view_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Speaker" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                        <?php if ($can_manage_speakers): ?><a href="edit_speaker.php?id=<?php echo (int) $speaker['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Speaker" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a><?php endif; ?>
                         <?php if (canDeleteEntries($_SESSION['role'] ?? null)): ?>
                             <form method="post" action="bulk_delete.php">
                                 <?php echo csrfInput(); ?>
@@ -83,7 +84,7 @@ $list_current_url = 'speakers.php?' . http_build_query(['page' => $current_page,
                                 <input type="hidden" name="entity" value="speaker">
                                 <input type="hidden" name="selected_ids[]" value="<?php echo (int) $speaker['id']; ?>">
                                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
-                                <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete speaker" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                                <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Speaker" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                             </form>
                         <?php endif; ?>
                     </div></td>

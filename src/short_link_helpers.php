@@ -525,7 +525,7 @@ function shortLinkLocalVisitBuckets(iterable $hours, string $start, string $end,
     $daily = [];
     foreach ($days as $label => $total) $daily[] = ['label' => $label, 'total' => $total];
     foreach ($other as $label => $total) {
-        $resources['other:' . $label] = ['label' => $label, 'total' => $total, 'summary_label' => 'Other resources'];
+        $resources['other:' . $label] = ['label' => $label, 'total' => $total, 'summary_label' => 'Other Resources'];
     }
     return ['day' => $daily, 'resources' => array_values($resources), 'resources_truncated' => $other !== []];
 }
@@ -562,7 +562,7 @@ function shortLinkReportData(array $stats, string $start, string $end): array
         }
         $remaining = $report['total'] - array_sum(array_column($report[$key], 'total'));
         if ($remaining > 0 && $key !== 'country') {
-            $label = ['referrer' => 'Other referrers', 'browser' => 'Other browsers', 'os' => 'Other operating systems'][$key];
+            $label = ['referrer' => 'Other Referrers', 'browser' => 'Other Browsers', 'os' => 'Other Operating Systems'][$key];
             $report[$key][] = ['label' => $label, 'total' => $remaining];
         }
     }

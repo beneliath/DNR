@@ -64,7 +64,7 @@ expectFollowUpTaskFeature(
     str_contains($queue, "'my' => 'My Active Work'") === false
         && str_contains($helpers, "'my' => 'My Active Work'")
         && str_contains($helpers, "'overdue' => 'Overdue'")
-        && str_contains($helpers, "'today' => 'Due today'")
+        && str_contains($helpers, "'today' => 'Due Today'")
         && str_contains($helpers, "'upcoming' => 'Next ' . \$upcomingDays . ' days'")
         && str_contains($helpers, "applicationWorkflowSetting('task_upcoming_days')")
         && str_contains($queue, 'assigned_to IS NULL')
@@ -75,7 +75,7 @@ expectFollowUpTaskFeature(
     str_contains($queue, 'followUpTaskQueueState($_GET')
         && str_contains($queue, '$summary_where = array_slice($where, 1)')
         && str_contains($queue, "'scope' => \$scope")
-        && str_contains($queue, 'aria-label="Work ownership"')
+        && str_contains($queue, 'aria-label="Task Ownership"')
         && !str_contains($queue, 'class="task-reminder-panel"'),
     'one ownership scope should drive both task counts and result destinations.'
 );
@@ -101,17 +101,17 @@ expectFollowUpTaskFeature(
     'queue rows should use the request business date and only mark active work as overdue or due today.'
 );
 expectFollowUpTaskFeature(
-    str_contains($styles, '--task-overdue-row-bg: #ffe8ee;')
-        && str_contains($styles, '--task-overdue-row-hover-bg: #ffdae4;')
-        && str_contains($styles, '--task-today-row-bg: #e4f2ff;')
-        && str_contains($styles, '--task-today-row-hover-bg: #d4e9ff;')
+    str_contains($styles, '--task-overdue-row-bg: var(--surface);')
+        && str_contains($styles, '--task-overdue-row-hover-bg: var(--surface-hover);')
+        && str_contains($styles, '--task-today-row-bg: var(--surface);')
+        && str_contains($styles, '--task-today-row-hover-bg: var(--surface-hover);')
         && str_contains($styles, '--task-overdue-row-accent: #d92d20;')
         && str_contains($styles, '--task-today-row-accent: #2563eb;')
         && str_contains($styles, '--task-highlight-row-muted: #475467;')
-        && str_contains($styles, '--task-overdue-row-bg: #42202b;')
-        && str_contains($styles, '--task-overdue-row-hover-bg: #361a23;')
-        && str_contains($styles, '--task-today-row-bg: #1d3150;')
-        && str_contains($styles, '--task-today-row-hover-bg: #172840;')
+        && str_contains($styles, '--task-overdue-row-bg: var(--surface);')
+        && str_contains($styles, '--task-overdue-row-hover-bg: var(--surface-hover);')
+        && str_contains($styles, '--task-today-row-bg: var(--surface);')
+        && str_contains($styles, '--task-today-row-hover-bg: var(--surface-hover);')
         && str_contains($styles, '--task-overdue-row-accent: #ff8c82;')
         && str_contains($styles, '--task-today-row-accent: #78a7ff;')
         && preg_match('/\.task-table tbody tr\.task-row-overdue\s*\{[^}]*var\(--task-overdue-row-bg\)[^}]*\}/s', $styles) === 1
@@ -121,7 +121,7 @@ expectFollowUpTaskFeature(
         && preg_match('/html:not\(\.dark-mode\) \.task-table tbody tr\.task-row-overdue,[^{]*\{[^}]*--warning:\s*#843600;/s', $styles) === 1
         && preg_match('/\.task-table tbody tr\.task-row-overdue > td:first-child\s*\{[^}]*var\(--task-overdue-row-accent\)[^}]*\}/s', $styles) === 1
         && preg_match('/\.task-table tbody tr\.task-row-today > td:first-child\s*\{[^}]*var\(--task-today-row-accent\)[^}]*\}/s', $styles) === 1,
-    'active overdue and due-today rows should have theme-aware highlights with stronger hover and keyboard-focus feedback.'
+    'active overdue and due-today rows should have neutral backgrounds with theme-aware edges, hover, and keyboard-focus feedback.'
 );
 expectFollowUpTaskFeature(
     str_contains($queue, 'class="task-priority-legend"')
@@ -219,7 +219,7 @@ expectFollowUpTaskFeature(
         && str_contains($header, "'add_standard_task.php'")
         && str_contains($header, "'view_standard_task.php'")
         && str_contains($header, "'edit_standard_task.php'")
-        && str_contains($header, '<span>My Work</span>')
+        && str_contains($header, '<span>Tasks</span>')
         && str_contains($header, 'href="tasks.php?owner=me"'),
     'the shared application shell should expose the work queue and mark all task pages active.'
 );

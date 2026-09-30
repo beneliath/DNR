@@ -103,7 +103,7 @@ function renderPresentationQrPdf(array $context, array $links, ?TCPDF $pdf = nul
     $isPresentation = isset($context['presentation_id']);
     $eventTitle = trim((string) ($context['event_title'] ?? '')) ?: 'Event';
     $title = $isPresentation
-        ? (trim((string) ($context['topic_title'] ?? '')) ?: 'Untitled presentation')
+        ? (trim((string) ($context['topic_title'] ?? '')) ?: 'Untitled Presentation')
         : $eventTitle;
     $pdf->SetTitle('Presentation QR Codes - ' . $title);
     $pdf->SetSubject('Labeled presentation QR codes');
@@ -199,7 +199,7 @@ function renderPresentationQrPdf(array $context, array $links, ?TCPDF $pdf = nul
             $pdf->MultiCell($labelWidth, $labelHeight, $label, 0, 'C', false, 1,
                 $x + $grid['padding'], $labelY, true, 0, false, true, $labelHeight, 'M', true);
             if ($isPresentation) continue;
-            $presentationLabel = (trim((string) $link['topic_title']) ?: 'Untitled presentation') . ' | ' . $link['speaker_name'];
+            $presentationLabel = (trim((string) $link['topic_title']) ?: 'Untitled Presentation') . ' | ' . $link['speaker_name'];
             $pdf->SetFont('dejavusans', '', min(8, max(4, $grid['label_height'] * 0.44)));
             $pdf->SetTextColor(102, 112, 133);
             $pdf->MultiCell($labelWidth, $grid['label_height'] * 0.48, $presentationLabel, 0, 'C', false, 1,

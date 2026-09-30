@@ -1,7 +1,9 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
+require_once __DIR__ . '/organization_options_helpers.php';
 startSecureSession();
 $creation_return = safeRecordReturnUrl($_POST['return_to'] ?? $_GET['return_to'] ?? null, '');
 
@@ -16,12 +18,16 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 
     $error = false;
     $errorMessages = array();
+    $errorFieldIds = [];
 
     $normalized_organization = \Dnr\Domain\OrganizationInput::normalize($_POST);
     foreach ($normalized_organization['data'] as $field_name => $field_value) {
         ${$field_name} = $field_value;
     }
     $errorMessages = $normalized_organization['errors'];
+    foreach ($normalized_organization['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $errorFieldIds[$index] = $field_id;
+    }
     $existing_contacts = [];
     try {
         $existing_contacts = normalizeOrganizationExistingContacts($_POST['existing_contacts'] ?? null);
@@ -90,20 +96,29 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             continue;
         }
         $normalized_contact = \Dnr\Domain\ContactInput::normalizeEmbedded($candidate);
-        foreach ($normalized_contact['errors'] as $contact_error) {
+        foreach ($normalized_contact['errors'] as $error_index => $contact_error) {
+            $contact_field = $normalized_contact['error_fields'][$error_index] ?? null;
+            if ($contact_field !== null) {
+                $errorFieldIds[count($errorMessages)] = $contact_index === 0
+                    ? 'contact_' . $contact_field
+                    : 'additional-' . $contact_index . '-' . $contact_field;
+            }
             $errorMessages[] = "Contact {$contact_number}: {$contact_error}";
         }
         $contacts_to_create[] = $normalized_contact['data'];
     }
 
+    $duplicateWarning = creationDuplicateWarning($conn, 'organization', $_POST);
+    if (!creationDuplicatesAcknowledged($duplicateWarning, $_POST)) $errorMessages[] = 'Review possible existing records, or confirm that this is a different record.';
     $error = !empty($errorMessages);
     if (!$error) {
         $check_stmt = $conn->prepare("SELECT id FROM organizations WHERE organization_name = ?");
         $check_stmt->bind_param("s", $organization_name);
         $check_stmt->execute();
 
-        if ($check_stmt->get_result()->num_rows > 0) {
+        if ($check_stmt->get_result()->num_rows > 0 && !creationDuplicatesAcknowledged($duplicateWarning, $_POST)) {
             $error = true;
+            $errorFieldIds[count($errorMessages)] = 'organization_name';
             $errorMessages[] = "An organization with this name already exists.";
         } else {
             $conn->begin_transaction();
@@ -195,11 +210,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
 }
 
 $existing_contact_rows = organizationExistingContactFormRows($_POST['existing_contacts'] ?? null);
-$existing_contact_options = $conn->query(
-    'SELECT c.id, c.contact_first_name, c.contact_last_name, c.contact_email, o.organization_name
-     FROM contacts c LEFT JOIN organizations o ON o.id = c.organization_id
-     WHERE c.is_deleted = 0 ORDER BY c.contact_last_name, c.contact_first_name, c.id'
-)->fetch_all(MYSQLI_ASSOC);
+$contact_search = \Dnr\Http\RequestInput::string($_GET, 'contact_search', '', 128);
+$existing_contact_options = boundedContactOptions(
+    $conn,
+    array_column($existing_contact_rows, 'contact_id'),
+    $contact_search
+);
 $existing_contact_option_ids = array_map('intval', array_column($existing_contact_options, 'id'));
 $phone_country_code_value = trim($_POST['phone_country_code'] ?? applicationDefaultPhoneCountryCode());
 [, $phone_local_value] = phoneNumberInputParts($_POST['phone'] ?? '', $phone_country_code_value);
@@ -227,16 +243,26 @@ if (isset($_SESSION['success_message'])) {
     'assets/css/pages/record_workspace.min.css',
     'assets/css/pages/add_organization.min.css',
   ),
+  'scripts' => ['assets/js/relationship-search.min.js'],
 )); ?>
 <body class="add-organization-body">
 <?php include 'templates/header.php'; ?>
 <div class="container add-organization-page" role="main">
     <?php if (isset($message)) echo "<p class='success'>$message</p>"; ?>
-    <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages); ?>
+    <?php if (isset($error) && $error && !empty($errorMessages)) echo formErrorSummary($errorMessages, $errorFieldIds); ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="organizations.php">Organizations</a><span aria-hidden="true">/</span><span>New Organization</span></nav>
     <div class="page-heading form-page-heading add-organization-heading"><div><h1>New Organization</h1><p class="page-intro">Start with a name; add contacts and address details as the relationship develops.</p></div></div>
+    <noscript><form method="get" action="add_organization.php" class="card">
+        <?php if ($creation_return !== ''): ?><input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
+        <label for="existing-contact-search-fallback">Find an Existing Contact</label>
+        <input id="existing-contact-search-fallback" name="contact_search" type="search" maxlength="128" value="<?php echo htmlspecialchars($contact_search, ENT_QUOTES, 'UTF-8'); ?>">
+        <button type="submit">Find Contacts</button>
+        <p>Search before filling the organization form. The results show up to 25 contacts.</p>
+    </form></noscript>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="add_organization.php" class="organization-form">
+    <form method="post" action="add_organization.php" class="organization-form" data-duplicate-kind="organization">
+<?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'organization', $creation_return); ?>
+
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
@@ -244,7 +270,7 @@ if (isset($_SESSION['success_message'])) {
             <input type="text" id="organization_name" name="organization_name" required value="<?php echo htmlspecialchars($_POST['organization_name'] ?? ''); ?>">
         </div>
 
-        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Organization details</summary>
+        <details class="record-form-section"<?php echo !empty($errorMessages) ? ' open' : ''; ?>><summary>Organization Details</summary>
         <div class="form-group">
             <label for="notes">Notes</label>
             <textarea id="notes" name="notes" rows="6"><?php echo htmlspecialchars($_POST['notes'] ?? ''); ?></textarea>
@@ -297,11 +323,11 @@ if (isset($_SESSION['success_message'])) {
             <h3>Physical Address</h3><p>Add the known address details now or complete them later.</p>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="physical_address_line_1">Address line 1</label>
+                    <label for="physical_address_line_1">Address Line 1</label>
                     <input type="text" id="physical_address_line_1" name="physical_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['physical_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="physical_address_line_2">Address line 2</label>
+                    <label for="physical_address_line_2">Address Line 2</label>
                     <input type="text" id="physical_address_line_2" name="physical_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['physical_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -309,11 +335,11 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" id="physical_city" name="physical_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['physical_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="physical" data-region-required="false">
-                    <label for="physical_state">State / province</label>
+                    <label for="physical_state">State / Province</label>
                     <input type="text" id="physical_state" name="physical_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['physical_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="physical_zipcode">Postal code</label>
+                    <label for="physical_zipcode">Postal Code</label>
                     <input type="text" id="physical_zipcode" name="physical_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['physical_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
@@ -331,11 +357,11 @@ if (isset($_SESSION['success_message'])) {
             <h3>Mailing Address</h3>
             <div class="address-grid">
                 <div class="address-full-width">
-                    <label for="mailing_address_line_1">Address line 1</label>
+                    <label for="mailing_address_line_1">Address Line 1</label>
                     <input type="text" id="mailing_address_line_1" name="mailing_address_line_1" placeholder="Address Line 1" value="<?php echo htmlspecialchars($_POST['mailing_address_line_1'] ?? ''); ?>">
                 </div>
                 <div class="address-full-width">
-                    <label for="mailing_address_line_2">Address line 2</label>
+                    <label for="mailing_address_line_2">Address Line 2</label>
                     <input type="text" id="mailing_address_line_2" name="mailing_address_line_2" placeholder="Address Line 2" value="<?php echo htmlspecialchars($_POST['mailing_address_line_2'] ?? ''); ?>">
                 </div>
                 <div>
@@ -343,11 +369,11 @@ if (isset($_SESSION['success_message'])) {
                     <input type="text" id="mailing_city" name="mailing_city" placeholder="City" value="<?php echo htmlspecialchars($_POST['mailing_city'] ?? ''); ?>">
                 </div>
                 <div data-address-region-control data-address-region-for="mailing" data-region-required="false">
-                    <label for="mailing_state">State / province</label>
+                    <label for="mailing_state">State / Province</label>
                     <input type="text" id="mailing_state" name="mailing_state" placeholder="State/Province" value="<?php echo htmlspecialchars($_POST['mailing_state'] ?? ''); ?>" data-address-region-input>
                 </div>
                 <div>
-                    <label for="mailing_zipcode">Postal code</label>
+                    <label for="mailing_zipcode">Postal Code</label>
                     <input type="text" id="mailing_zipcode" name="mailing_zipcode" placeholder="Zip/Postal" value="<?php echo htmlspecialchars($_POST['mailing_zipcode'] ?? ''); ?>">
                 </div>
                 <div>
@@ -370,10 +396,10 @@ if (isset($_SESSION['success_message'])) {
                     <div class="existing-organization-contact-row" data-existing-organization-contact-row>
                         <div class="form-group">
                             <label for="existing-contact-<?php echo $index; ?>">Existing Contact</label>
-                            <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select>
-                                <option value="">Select an existing contact</option>
+                            <select id="existing-contact-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][contact_id]" data-existing-contact-select data-contact-search>
+                                <option value="">Select an Existing Contact</option>
                                 <?php if ($row['contact_id'] !== '' && !in_array((int) $row['contact_id'], $existing_contact_option_ids, true)): ?>
-                                    <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously selected contact is unavailable</option>
+                                    <option value="<?php echo htmlspecialchars($row['contact_id'], ENT_QUOTES, 'UTF-8'); ?>" selected>Previously Selected Contact Is Unavailable</option>
                                 <?php endif; ?>
                                 <?php foreach ($existing_contact_options as $option): ?>
                                     <option value="<?php echo (int) $option['id']; ?>"<?php echo (string) $option['id'] === $row['contact_id'] ? ' selected' : ''; ?>><?php echo htmlspecialchars(
@@ -385,11 +411,11 @@ if (isset($_SESSION['success_message'])) {
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="existing-contact-role-<?php echo $index; ?>">Role With This Organization</label>
+                            <label for="existing-contact-role-<?php echo $index; ?>">Role with This Organization</label>
                             <input type="text" id="existing-contact-role-<?php echo $index; ?>" name="existing_contacts[<?php echo $index; ?>][role_title]"
                                 value="<?php echo htmlspecialchars($row['role_title'], ENT_QUOTES, 'UTF-8'); ?>" maxlength="255" placeholder="e.g., Board member" data-existing-contact-role>
                         </div>
-                        <button type="button" class="button-secondary" data-remove-existing-organization-contact aria-label="Remove existing contact">Remove</button>
+                        <button type="button" class="button-secondary" data-remove-existing-organization-contact aria-label="Remove Existing Contact">Remove</button>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -516,7 +542,7 @@ if (isset($_SESSION['success_message'])) {
         </details>
         <div class="form-group create-form-actions create-form-actions-end">
             <a href="<?php echo htmlspecialchars($creation_return ?: 'organizations.php', ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_org" value="Create organization" class="save-button">
+            <input type="submit" name="save_org" value="Create Organization" class="save-button">
         </div>
     </form>
 </div>

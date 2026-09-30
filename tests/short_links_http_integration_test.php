@@ -113,7 +113,7 @@ try{
   $engagementView=$request('view_engagement.php?id='.$event,null,$cookie);
   $viewDoc=new DOMDocument();@$viewDoc->loadHTML($engagementView['body']);$viewXpath=new DOMXPath($viewDoc);
   foreach($links as$generatedLink)expectLinkHttp($viewXpath->query('//div[contains(@class,"presentation-qr-display")]//a[@href="short_links.php?id='.$generatedLink['id'].'"]')->length===1,'Each presentation QR card opens its own statistics: '.$role);
-  expectLinkHttp($viewXpath->query('//a[@href="short_links.php?presentation_id='.$pid.'" and normalize-space()="Combined Presentation Statistics"]')->length===1,'Each presentation offers combined statistics alongside its per-code links');
+  expectLinkHttp($viewXpath->query('//a[@href="short_links.php?presentation_id='.$pid.'" and normalize-space()="Statistics"]')->length===1,'Each presentation offers combined statistics alongside its per-code links');
   expectLinkHttp($viewXpath->query('//a[@href="reset_presentation_stats.php?presentation_id='.$pid.'"]')->length===($role==='admin'?1:0),'Only admins see the separate presentation statistics reset action');
   expectLinkHttp($viewXpath->query('//a[@class="presentation-view-pdf" and @href="presentation_asset.php?id='.$pid.'&type=notes" and @target="_blank" and @rel="noopener" and normalize-space()="View PDF Speaker Notes"]')->length===1,'Each uploaded notes file has its own correctly labelled new-tab button: '.$role);
   $preview=$viewXpath->query('//div[contains(@class,"presentation-qr-display")]//img')->item(0);
@@ -149,7 +149,7 @@ try{
    $input=$xpath->query('//input[@type="file" and contains(@name,"[speaker_notes]")]')->item(0);
    expectLinkHttp($input instanceof DOMElement,'Notes upload field present');
    expectLinkHttp($xpath->query('//div[contains(@class,"presentation-entry")]//input[@type="file" and contains(@name,"[speaker_notes]")]')->length===1,'Exactly one PDF upload appears per presentation');
-   expectLinkHttp(str_contains($edit['body'],'No replacement selected'),'Saved PDF is distinguished from a pending replacement');
+   expectLinkHttp(str_contains($edit['body'],'No Replacement Selected'),'Saved PDF is distinguished from a pending replacement');
    $path=tempnam(sys_get_temp_dir(),'qr-notes-upload-');
    $uploadedPdf="%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\nxref\n0 2\n0000000000 65535 f \n0000000009 00000 n \ntrailer\n<< /Root 1 0 R /Size 2 >>\nstartxref\n52\n%%EOF\n";
    file_put_contents($path,$uploadedPdf);

@@ -32,7 +32,7 @@ expectEngagementContactHelper(
     'canonical assignments should map cleanly back to form controls.'
 );
 expectEngagementContactHelper(
-    engagementContactRoleLabel('on_site_contact') === 'On-site contact'
+    engagementContactRoleLabel('on_site_contact') === 'On-Site Contact'
         && organizationContactRoleLabel([
             'contact_role' => 'other',
             'contact_role_other' => 'Events director',

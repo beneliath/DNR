@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
 include 'contact_photo_helpers.php';
@@ -15,6 +16,8 @@ if (!hasRole(['admin', 'editor'])) {
 
 $success_message = '';
 $error_message = '';
+$error_messages = [];
+$error_field_ids = [];
 $requested_organization_id = \Dnr\Http\RequestInput::positiveInt($_GET, 'organization_id');
 $context_organization = null;
 if ($requested_organization_id !== null) {
@@ -44,7 +47,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     foreach ($normalized_contact['data'] as $field_name => $field_value) {
         ${$field_name} = $field_value;
     }
-    $validation_errors = $normalized_contact['errors'];
+    $error_messages = $normalized_contact['errors'];
+    foreach ($normalized_contact['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $error_field_ids[$index] = $field_id;
+    }
     $additional_organizations = [];
     try {
         $additional_organizations = normalizeContactOrganizationAffiliations(
@@ -52,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $organization_id
         );
     } catch (InvalidArgumentException $exception) {
-        $validation_errors[] = $exception->getMessage();
+        $error_messages[] = $exception->getMessage();
     }
     $photo_error = '';
     $contact_photo = null;
@@ -66,9 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     }
 
     if ($photo_error !== '') {
-        $error_message = $photo_error;
-    } elseif ($validation_errors) {
-        $error_message = $validation_errors[0];
+        $error_field_ids[count($error_messages)] = 'contact_photo';
+        $error_messages[] = $photo_error;
+    }
+    $duplicateWarning = creationDuplicateWarning($conn, 'contact', $_POST);
+    if (!creationDuplicatesAcknowledged($duplicateWarning, $_POST)) $error_messages[] = 'Review possible existing records, or confirm that this is a different record.';
+    if ($error_messages !== []) {
+        $error_message = $error_messages[0];
     } else {
         $conn->begin_transaction();
         try {
@@ -162,6 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
             $error_message = $exception instanceof InvalidArgumentException
                 ? $exception->getMessage()
                 : 'Unable to add the contact.';
+            $error_messages[] = $error_message;
         }
     }
 }
@@ -221,7 +232,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 <?php include 'templates/header.php'; ?>
 <main class="container add-contact-page">
     <?php if (!empty($error_message)): ?>
-        <?php echo formErrorSummary($error_message); ?>
+        <?php echo formErrorSummary($error_messages, $error_field_ids); ?>
     <?php endif; ?>
     <?php if (!empty($success_message)): ?>
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
@@ -233,24 +244,26 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
         : 'Connect a person with their organizations and roles.'; ?></p></div></div>
     <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form">
+    <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form" data-duplicate-kind="contact">
+<?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'contact', $creation_return); ?>
+
         <?php echo csrfInput(); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">
             <div class="form-group form-flex-one">
-                <label for="organization_id">Primary organization</label>
+                <label for="organization_id">Primary Organization</label>
                 <select name="organization_id" id="organization_id" data-organization-search>
-                    <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No organization</option>
+                    <option value="" <?php echo empty($selected_organization_id) ? 'selected' : ''; ?>>No Organization</option>
                     <?php foreach ($contact_organization_options as $row): ?>
                         <option value="<?php echo (int) $row['id']; ?>" <?php echo (int) $selected_organization_id === (int) $row['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($row['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
             <details class="inline-organization-creator" data-inline-organization>
-                <summary>New organization</summary>
-                <label for="inline-organization-name">Organization name</label>
+                <summary>New Organization</summary>
+                <label for="inline-organization-name">Organization Name</label>
                 <input id="inline-organization-name" type="text" maxlength="255" data-organization-name autocomplete="organization">
-                <button type="button" class="button-secondary" data-create-organization>Create and select</button>
+                <button type="button" class="button-secondary" data-create-organization>Create and Select</button>
                 <p data-organization-status role="status" aria-live="polite"></p>
                 <noscript><p>JavaScript is needed to create an organization here. You can save this contact without an organization and link it later.</p></noscript>
             </details>
@@ -269,7 +282,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 
         <div class="role-container">
             <div class="form-group contact-role-field">
-                <label for="contact_role" class="required">Primary role</label>
+                <label for="contact_role" class="required">Primary Role</label>
                 <select name="contact_role" id="contact_role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (!empty($error_message) && ($_POST['contact_role'] ?? '') === $role) ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -327,7 +340,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
 <br>
         <div class="form-group create-form-actions create-form-actions-flush">
             <a href="<?php echo htmlspecialchars($cancel_url, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button">Cancel</a>
-            <input type="submit" name="save_contact" value="Create contact" class="save-button save-button-flush">
+            <input type="submit" name="save_contact" value="Create Contact" class="save-button save-button-flush">
         </div>
     </form>
 </main>

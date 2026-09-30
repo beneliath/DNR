@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__ . '/email_ascii_footer.php';
 
 function dailyTaskDigestHtmlEscape(mixed $value): string
 {
@@ -317,7 +318,7 @@ function renderDailyTaskDigestHtml(
         ? followUpTaskStatuses()
         : [
             'open' => 'Open',
-            'in_progress' => 'In progress',
+            'in_progress' => 'In Progress',
             'waiting' => 'Waiting',
             'completed' => 'Completed',
             'canceled' => 'Canceled',
@@ -344,11 +345,7 @@ function renderDailyTaskDigestHtml(
         'return_to' => 'dashboard.php',
     ]);
     $newEngagementUrl = dailyTaskDigestHtmlUrl('index.php');
-    $mastheadLogoUrl = dailyTaskDigestHtmlEscape(applicationPublicUrl(
-        applicationBrandEmailLogo(),
-        // Refresh cached opaque artwork even before the next application release.
-        ['v' => applicationVersion(), 'rev' => 'transparent-1']
-    ));
+    $mastheadLogoUrl = dailyTaskDigestHtmlEscape(emailBrandLogoUrl());
 
     ob_start();
     ?>
@@ -488,7 +485,7 @@ function renderDailyTaskDigestHtml(
                                         <td width="50%" class="summary-cell" style="width:50%;padding-left:5px;vertical-align:top;">
                                             <table role="presentation" width="100%" class="email-surface" bgcolor="#ffffff" style="width:100%;border:1px solid #dfe4ec;border-radius:12px;background:#ffffff;color:#172033;">
                                                 <tr>
-                                                    <td style="vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#2457d6;font-size:16px;font-weight:800;">@</span><span style="color:#667085;font-size:11px;">Mail For Review</span></a></td>
+                                                    <td style="vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 0 14px 16px;color:#172033;"><span style="display:inline-block;margin-right:8px;color:#2457d6;font-size:16px;font-weight:800;">@</span><span style="color:#667085;font-size:11px;">Mail for Review</span></a></td>
                                                     <td align="right" width="52" style="width:52px;vertical-align:middle;"><a href="<?php echo $inboundUrl; ?>" style="display:block;padding:14px 16px 14px 0;"><strong style="color:<?php echo $inboundReviewCount > 0 ? '#9a5b05' : '#172033'; ?>;font-size:18px;"><?php echo $inboundReviewCount; ?></strong></a></td>
                                                 </tr>
                                             </table>
@@ -701,12 +698,7 @@ function renderDailyTaskDigestHtml(
                     </tr>
                     <tr>
                         <td align="center" style="padding:18px 8px 2px;">
-                            <pre aria-label="ASCII art cat" style="display:inline-block;margin:0;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:left;white-space:pre;opacity:0.35;filter:alpha(opacity=35);mso-line-height-rule:exactly;">     (&quot;`-''-/&quot;).___..--''&quot;`-.
-     `6_ 6  )   `-.  (     ).`-.__.`)
-     (_Y_.)'  ._   )  `._ `. ``-..-'
-   _..`--'_..-_/  /--'_.' ,'
-  (il),-''  (li),'  ((!.-'</pre>
-                            <div style="margin-top:6px;color:#667085;font-family:Menlo,Consolas,'Courier New',monospace;font-size:8px;line-height:1.35;text-align:center;opacity:0.35;filter:alpha(opacity=35);mso-line-height-rule:exactly;">Genesis 49:9,10 ... Revelation 5:5<br>Do you see Him?</div>
+                            <?php echo renderEmailAsciiFooter(); ?>
                         </td>
                     </tr>
                 </table>

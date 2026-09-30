@@ -151,16 +151,15 @@ $contact_stmt->close();
         <p class="success"><?php echo htmlspecialchars($success_message, ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
     <?php if ($record_note_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($record_note_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-    <?php if ($user_role === 'admin'): ?><p><a class="button-secondary" href="record_merge.php?kind=organization&amp;source=<?php echo (int) $org_id; ?>">Review Possible Duplicates</a></p><?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span><span>Organization Details</span></nav>
     <div class="page-heading record-page-heading view-organization-heading"><div><h1><?php echo htmlspecialchars($organization['organization_name']); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro">Relationships, activity, and upcoming engagements.</p></div><?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_organization.php?id=' . $org_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Edit Organization</a><a href="#add-note" class="button-add">Add Chron Log Entry</a><?php endif; ?></div>
 
     <div class="record-related-summary">
         <div><span>Contacts</span><strong><a href="#organization-contacts"><?php echo count($organization_contacts); ?> people</a></strong><?php if ($organization_contacts !== []): ?><a href="view_contact.php?id=<?php echo (int) $organization_contacts[0]['id']; ?>&amp;return_to=<?php echo rawurlencode($record_view_url . '#organization-contacts'); ?>"><?php echo htmlspecialchars(trim($organization_contacts[0]['contact_first_name'] . ' ' . $organization_contacts[0]['contact_last_name'])); ?></a><?php endif; ?></div>
-        <div><span>Next engagement</span><?php if ($next_organization_event): ?><strong><a href="view_engagement.php?id=<?php echo (int) $next_organization_event['id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>"><?php echo htmlspecialchars($next_organization_event['event_title'] ?: 'Upcoming engagement'); ?></a></strong><?php echo htmlspecialchars(engagementViewDateRange($next_organization_event['event_start_date'], $next_organization_event['event_end_date'])); ?><?php else: ?><strong>No upcoming engagement</strong><?php endif; ?></div>
-        <div><span>Follow-up</span><strong><a href="#organization-tasks">Open tasks</a></strong><?php if ($record_can_add_note): ?><a href="#add-note">Record a conversation</a><?php else: ?><a href="#chron-log">Read activity</a><?php endif; ?></div>
+        <div><span>Next engagement</span><?php if ($next_organization_event): ?><strong><a href="view_engagement.php?id=<?php echo (int) $next_organization_event['id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>"><?php echo htmlspecialchars($next_organization_event['event_title'] ?: 'Upcoming Engagement'); ?></a></strong><?php echo htmlspecialchars(engagementViewDateRange($next_organization_event['event_start_date'], $next_organization_event['event_end_date'])); ?><?php else: ?><strong>No upcoming engagement</strong><?php endif; ?></div>
+        <div><span>Follow-up</span><strong><a href="#organization-tasks">Open Tasks</a></strong><?php if ($record_can_add_note): ?><a href="#add-note">Record a Conversation</a><?php else: ?><a href="#chron-log">Read Activity</a><?php endif; ?></div>
     </div>
-    <details class="record-form-section" open><summary>Profile, addresses, and notes</summary>
+    <details class="record-form-section" open><summary>Profile, Addresses, and Notes</summary>
     <div class="organization-overview-grid">
         <div class="organization-details">
             <div class="detail-row">
@@ -234,7 +233,7 @@ $contact_stmt->close();
 
     </details>
     <div class="relationship-workspace" data-record-tabs>
-        <div class="record-section-links" role="tablist" aria-label="Organization work">
+        <div class="record-section-links" role="tablist" aria-label="Organization Work">
             <button type="button" role="tab" id="organization-activity-tab" aria-controls="chron-log" aria-selected="true">Activity</button>
             <button type="button" role="tab" id="organization-contacts-tab" aria-controls="organization-contacts" aria-selected="false">Contacts</button>
             <button type="button" role="tab" id="organization-events-tab" aria-controls="organization-events" aria-selected="false">Engagements</button>
@@ -269,11 +268,11 @@ $contact_stmt->close();
                             ); ?></a></h4>
                         <span class="contact-role">
                             <?php
-                            echo htmlspecialchars($contact['role_title'] ?: 'Role not specified', ENT_QUOTES, 'UTF-8');
+                            echo htmlspecialchars($contact['role_title'] ?: 'Role Not Specified', ENT_QUOTES, 'UTF-8');
                             ?>
                         </span>
                     </div>
-                    <p class="contact-affiliation-kind"><?php echo !empty($contact['is_primary']) ? 'Primary organization' : 'Additional organization'; ?></p>
+                    <p class="contact-affiliation-kind"><?php echo !empty($contact['is_primary']) ? 'Primary Organization' : 'Additional Organization'; ?></p>
                     <div class="contact-info">
                         <div><strong>Email:</strong> <a href="mailto:<?php echo htmlspecialchars($contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($contact['contact_email']); ?></a></div>
                         <?php if (!empty($contact['contact_phone'])): ?>
@@ -292,9 +291,9 @@ $contact_stmt->close();
         <h2>Engagements <span><?php echo $organization_event_count; ?></span></h2>
         <p>Upcoming and historical engagements, including archived records.</p>
         <?php renderPagination($organization_event_count, $organization_event_page, $organization_event_size, $record_pagination_url . '#organization-events', 'engagements', 'Organization engagement pages', 'events_page', 'events_per_page'); ?>
-        <div class="responsive-table-wrapper"><table class="data-table relationship-events"><thead><tr><th scope="col">Engagement</th><th scope="col">Event dates</th><th scope="col">Lifecycle</th><th scope="col">Confirmation</th></tr></thead><tbody>
+        <div class="responsive-table-wrapper"><table class="data-table relationship-events"><thead><tr><th scope="col">Engagement</th><th scope="col">Event Dates</th><th scope="col">Lifecycle</th><th scope="col">Confirmation</th></tr></thead><tbody>
         <?php foreach ($organization_events as $event): ?>
-            <tr><td><div class="relationship-event-title"><a href="<?php echo htmlspecialchars(recordUrlWithQuery('view_engagement.php?id=' . $event['id'], ['return_to' => $record_pagination_url . '#organization-events']), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['event_title'] ?: 'Untitled engagement', ENT_QUOTES, 'UTF-8'); ?></a><?php if ($event['is_deleted']): ?><span class="archive-status">Archived</span><?php endif; ?></div></td><td><?php echo htmlspecialchars(engagementViewDateRange($event['event_start_date'], $event['event_end_date'])); ?></td><td><?php echo htmlspecialchars(engagementLifecycleLabel($event['lifecycle_status'])); ?></td><td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $event['confirmation_status']))); ?></td></tr>
+            <tr><td><div class="relationship-event-title"><a href="<?php echo htmlspecialchars(recordUrlWithQuery('view_engagement.php?id=' . $event['id'], ['return_to' => $record_pagination_url . '#organization-events']), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($event['event_title'] ?: 'Untitled Engagement', ENT_QUOTES, 'UTF-8'); ?></a><?php if ($event['is_deleted']): ?><span class="archive-status">Archived</span><?php endif; ?></div></td><td><?php echo htmlspecialchars(engagementViewDateRange($event['event_start_date'], $event['event_end_date'])); ?></td><td><?php echo htmlspecialchars(engagementLifecycleLabel($event['lifecycle_status'])); ?></td><td><?php echo htmlspecialchars(ucwords(str_replace('_', ' ', $event['confirmation_status']))); ?></td></tr>
         <?php endforeach; ?>
         <?php if ($organization_events === []): ?><tr><td colspan="4">No engagements recorded</td></tr><?php endif; ?>
         </tbody></table></div>
@@ -318,18 +317,18 @@ $contact_stmt->close();
         </div>
         <div class="financial-summary-grid">
             <article class="financial-summary-card">
-                <small>Lifetime giving</small>
+                <small>Lifetime Giving</small>
                 <strong><?php echo formatFinancialAmount($financial_summary['lifetime_giving']); ?></strong>
             </article>
             <article class="financial-summary-card">
-                <small>Last event giving</small>
+                <small>Last Event Giving</small>
                 <strong><?php echo $financial_summary['last_event_giving'] === null ? '—' : formatFinancialAmount($financial_summary['last_event_giving']); ?></strong>
                 <?php if ($financial_summary['last_event_id'] !== null): ?>
-                    <a href="view_engagement.php?id=<?php echo (int) $financial_summary['last_event_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($financial_summary['last_event_title'] ?: 'Most recent event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                    <a href="view_engagement.php?id=<?php echo (int) $financial_summary['last_event_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($financial_summary['last_event_title'] ?: 'Most Recent Event'), ENT_QUOTES, 'UTF-8'); ?></a>
                 <?php endif; ?>
             </article>
             <article class="financial-summary-card">
-                <small>Average event giving</small>
+                <small>Average Event Giving</small>
                 <strong><?php echo (int) $financial_summary['closed_event_count'] === 0 ? '—' : formatFinancialAmount($financial_summary['average_event_giving']); ?></strong>
             </article>
             <article class="financial-summary-card">
@@ -352,17 +351,17 @@ $contact_stmt->close();
                         <tr>
                             <th>Event</th>
                             <th>Date</th>
-                            <th>Giving / income</th>
+                            <th>Giving / Income</th>
                             <th>Lodging</th>
                             <th>Travel</th>
-                            <th>Total received</th>
+                            <th>Total Received</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php foreach ($financial_history as $history_report): ?>
                             <tr>
                                 <td>
-                                    <a href="view_engagement.php?id=<?php echo (int) $history_report['engagement_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($history_report['event_title'] ?: 'Untitled event'), ENT_QUOTES, 'UTF-8'); ?></a>
+                                    <a href="view_engagement.php?id=<?php echo (int) $history_report['engagement_id']; ?>&amp;return_to=<?php echo rawurlencode($record_pagination_url . '#organization-events'); ?>#financial-closeout"><?php echo htmlspecialchars((string) ($history_report['event_title'] ?: 'Untitled Event'), ENT_QUOTES, 'UTF-8'); ?></a>
                                     <?php if (!empty($history_report['is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
                                 </td>
                                 <td><?php echo htmlspecialchars((string) $history_report['event_end_date'], ENT_QUOTES, 'UTF-8'); ?></td>

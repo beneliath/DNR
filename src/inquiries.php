@@ -240,7 +240,7 @@ if ($exportCsv) {
     if ($output === false) {
         abortApplication(503, 'The pipeline export could not be created.');
     }
-    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred dates', 'Next action', 'Due', 'Owner', 'Open tasks', 'Archived at (' . applicationTimezoneName() . ')'], ',', '"', '');
+    fputcsv($output, ['ID', 'Inquiry', 'Organization', 'Contact', 'Stage', 'Priority', 'Preferred Dates', 'Next action', 'Due', 'Owner', 'Open Tasks', 'Archived at (' . applicationTimezoneName() . ')'], ',', '"', '');
     foreach (\Dnr\Infrastructure\StatementRows::stream($stmt) as $inquiry) {
         $safe = static function (mixed $value): string {
             $text = trim((string) $value);
@@ -314,11 +314,12 @@ $exportQuery = http_build_query(array_filter([
     <?php if ($notice !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($notice, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <?php if ($error !== ''): ?><p class="error" role="alert"><?php echo htmlspecialchars($error, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
 
-    <form method="get" action="inquiries.php" class="inquiry-filter-bar" role="search" data-inquiry-filter>
-        <label class="inquiry-search-field"><span class="visually-hidden">Search inquiries</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search inquiries, organizations, or contacts"></label>
+    <?php renderListFilterSummary(['Status' => ucfirst($view), 'Owner' => ucfirst($owner), 'Priority' => ucfirst($priority), 'Timing' => ucfirst(str_replace('_', ' ', $timing)), 'Search' => $search], 'inquiries.php'); ?>
+        <form method="get" action="inquiries.php" class="inquiry-filter-bar" role="search" data-inquiry-filter>
+        <label class="inquiry-search-field"><span class="visually-hidden">Search Inquiries</span><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Inquiries, Organizations, or Contacts"></label>
         <div class="inquiry-filter-controls">
             <label><span class="visually-hidden">Owner</span><select name="owner" aria-label="Owner"><option value="">All</option><option value="mine_or_unassigned"<?php echo $owner === 'mine_or_unassigned' ? ' selected' : ''; ?>>Mine &amp; Unassigned</option><option value="me"<?php echo $owner === 'me' ? ' selected' : ''; ?>>My Inquiries</option><option value="unassigned"<?php echo $owner === 'unassigned' ? ' selected' : ''; ?>>Unassigned</option></select></label>
-            <label><span class="visually-hidden">Next action due</span><select name="timing" aria-label="Next action due"><option value="">Next action due</option><option value="overdue"<?php echo $timing === 'overdue' ? ' selected' : ''; ?>>Overdue</option><option value="today"<?php echo $timing === 'today' ? ' selected' : ''; ?>>Due Today</option><option value="next_7_days"<?php echo $timing === 'next_7_days' ? ' selected' : ''; ?>>Next 7 Days</option><option value="unscheduled"<?php echo $timing === 'unscheduled' ? ' selected' : ''; ?>>No action due date</option><option value="missing_action"<?php echo $timing === 'missing_action' ? ' selected' : ''; ?>>Missing Next Action</option></select></label>
+            <label><span class="visually-hidden">Next Action Due</span><select name="timing" aria-label="Next Action Due"><option value="">Next Action Due</option><option value="overdue"<?php echo $timing === 'overdue' ? ' selected' : ''; ?>>Overdue</option><option value="today"<?php echo $timing === 'today' ? ' selected' : ''; ?>>Due Today</option><option value="next_7_days"<?php echo $timing === 'next_7_days' ? ' selected' : ''; ?>>Next 7 Days</option><option value="unscheduled"<?php echo $timing === 'unscheduled' ? ' selected' : ''; ?>>No Action Due Date</option><option value="missing_action"<?php echo $timing === 'missing_action' ? ' selected' : ''; ?>>Missing Next Action</option></select></label>
             <label><span class="visually-hidden">Stage</span><select name="view" aria-label="Stage"><option value="active"<?php echo $view === 'active' ? ' selected' : ''; ?>>Stage</option><option value="booked"<?php echo $view === 'booked' ? ' selected' : ''; ?>>Booked</option><option value="declined"<?php echo $view === 'declined' ? ' selected' : ''; ?>>Declined</option><option value="all"<?php echo $view === 'all' ? ' selected' : ''; ?>>All Stages</option><option value="archived"<?php echo $view === 'archived' ? ' selected' : ''; ?>>Archived</option></select></label>
             <button type="submit" class="visually-hidden inquiry-filter-submit">Apply Filters</button>
             <?php if ($search !== '' || $owner !== '' || $priority !== '' || $timing !== '' || $view !== 'active'): ?><a href="inquiries.php" class="clear-search">Clear</a><?php endif; ?>
@@ -329,7 +330,7 @@ $exportQuery = http_build_query(array_filter([
     <div class="inquiry-kanban inquiry-kanban-columns-<?php echo count($displayStages); ?>">
         <?php foreach ($displayStages as $stage): ?>
             <section class="inquiry-kanban-column inquiry-stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>" aria-labelledby="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>">
-                <header><div><span class="inquiry-stage-icon" aria-hidden="true"><?php echo $stageIcons[$stage]; ?></span><h2 id="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryStages()[$stage], ENT_QUOTES, 'UTF-8'); ?></h2><strong><?php echo $displayCounts[$stage]; ?></strong></div><?php if ($canManage && $view !== 'archived'): ?><a href="add_inquiry.php" aria-label="Add an inquiry to the pipeline">+</a><?php endif; ?></header>
+                <header><div><span class="inquiry-stage-icon" aria-hidden="true"><?php echo $stageIcons[$stage]; ?></span><h2 id="stage-<?php echo htmlspecialchars($stage, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryStages()[$stage], ENT_QUOTES, 'UTF-8'); ?></h2><strong><?php echo $displayCounts[$stage]; ?></strong></div><?php if ($canManage && $view !== 'archived'): ?><a href="add_inquiry.php" aria-label="Add an Inquiry to the Pipeline">+</a><?php endif; ?></header>
                 <div class="inquiry-card-list">
                     <?php foreach ($byStage[$stage] as $inquiry): ?>
                         <?php

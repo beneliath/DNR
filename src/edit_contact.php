@@ -110,6 +110,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['chron_action'])) {
 }
 
 $error_messages = [];
+$error_field_ids = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST'
     && (isset($_POST['save_contact']) || isset($_POST['save_and_add_chron']))) {
@@ -128,6 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
     $contact_notes = (string) $normalized_contact['data']['contact_notes'];
     $contact_phone_country_code = (string) $normalized_contact['data']['contact_phone_country_code'];
     $error_messages = $normalized_contact['errors'];
+    foreach ($normalized_contact['error_fields'] as $index => $field_id) {
+        if ($field_id !== null) $error_field_ids[$index] = $field_id;
+    }
     $additional_organization_rows = $_POST['additional_organizations'] ?? [];
     $additional_organizations = [];
     try {
@@ -169,9 +173,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             throw new InvalidArgumentException('Choose either a new contact photo or remove the current photo.');
         }
     } catch (InvalidArgumentException $exception) {
+        $error_field_ids[count($error_messages)] = 'contact_photo';
         $error_messages[] = $exception->getMessage();
     } catch (Throwable $exception) {
         applicationLog('error', 'Unable to read contact photo upload', ['error' => $exception->getMessage()]);
+        $error_field_ids[count($error_messages)] = 'contact_photo';
         $error_messages[] = 'The contact photo could not be uploaded. Try again.';
     }
 
@@ -462,7 +468,7 @@ try {
     <div class="page-heading form-page-heading edit-contact-heading"><div><h1>Edit Contact</h1><p class="page-intro">Update contact information and roles at each organization.</p></div></div>
 
     <?php if ($error_messages): ?>
-        <?php echo formErrorSummary($error_messages); ?>
+        <?php echo formErrorSummary($error_messages, $error_field_ids); ?>
     <?php endif; ?>
     <?php if ($chron_action_message !== ''): ?>
         <p class="success"><?php echo htmlspecialchars($chron_action_message, ENT_QUOTES, 'UTF-8'); ?></p>
@@ -479,9 +485,9 @@ try {
         <input type="hidden" name="contact_version" value="<?php echo htmlspecialchars((string) $contact['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
 
         <div class="form-group">
-            <label for="organization_id">Primary organization</label>
+            <label for="organization_id">Primary Organization</label>
             <select name="organization_id" id="organization_id" data-organization-search>
-                <option value="" <?php echo $contact['organization_id'] === null ? 'selected' : ''; ?>>No organization</option>
+                <option value="" <?php echo $contact['organization_id'] === null ? 'selected' : ''; ?>>No Organization</option>
                 <?php foreach ($contact_organization_options as $organization): ?>
                     <?php if (!empty($organization['is_deleted'])) continue; ?>
                     <option value="<?php echo (int) $organization['id']; ?>" <?php echo (int) $contact['organization_id'] === (int) $organization['id'] ? 'selected' : ''; ?>>
@@ -504,7 +510,7 @@ try {
 
         <div class="form-row">
             <div class="form-group">
-                <label for="contact_role" class="required">Primary role</label>
+                <label for="contact_role" class="required">Primary Role</label>
                 <select name="contact_role" id="contact_role" required>
                     <?php foreach (\Dnr\Domain\ReferenceData::contactRoles() as $role): ?>
                         <option value="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $contact['contact_role'] === $role ? 'selected' : ''; ?>><?php echo htmlspecialchars(\Dnr\Domain\ReferenceData::label($role), ENT_QUOTES, 'UTF-8'); ?></option>
@@ -558,7 +564,7 @@ try {
                 <p class="field-help">JPEG, PNG, or WebP; maximum 5 MB.</p>
                 <p class="contact-photo-preview-status" hidden aria-live="polite" data-contact-photo-preview-status></p>
                 <?php if (!empty($contact['contact_photo_mime'])): ?>
-                    <label class="contact-photo-remove"><input type="checkbox" name="remove_contact_photo" value="1" <?php echo isset($_POST['remove_contact_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove current photo</label>
+                    <label class="contact-photo-remove"><input type="checkbox" name="remove_contact_photo" value="1" <?php echo isset($_POST['remove_contact_photo']) ? 'checked' : ''; ?> data-remove-contact-photo> Remove Current Photo</label>
                 <?php endif; ?>
             </div>
         </div>

@@ -44,6 +44,7 @@ services:
       MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_mail_dispatch_password
       DNR_2FA_ENCRYPTION_KEY_FILE: /run/secrets/dnr_2fa_encryption_key
       DNR_MAIL_TRANSPORT: smtp
+      DNR_EMAIL_LOGO_URL: ${DNR_EMAIL_LOGO_URL:-}
       DNR_PUBLIC_BASE_URL: ${DNR_PUBLIC_BASE_URL:-}
       DNR_REQUIRE_HTTPS: ${DNR_REQUIRE_HTTPS:-1}
       DNR_TIMEZONE: ${DNR_TIMEZONE:-}
@@ -65,6 +66,7 @@ services:
       DNR_BRAND_DISPLAY_NAME: ${DNR_BRAND_DISPLAY_NAME:-}
       DNR_CALENDAR_NAME: ${DNR_CALENDAR_NAME:-}
     volumes:
+      - uploaded_files:/var/lib/dnr/files:ro
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend, egress]
 

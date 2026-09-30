@@ -75,3 +75,13 @@
     width: auto;
     margin: 0;
 }
+
+.email-template-actions { display: flex; flex-flow: row nowrap; align-items: center; gap: .5rem; }
+.email-template-actions form { margin: 0; flex: 0 0 auto; }
+
+.email-templates-page .list-controls {
+    background: transparent !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    padding: 0;
+}

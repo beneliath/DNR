@@ -14,7 +14,7 @@ $organization_contact_role = organizationContactRoleLabel($organization_contact)
     </legend>
     <?php if ($engagement_contact_is_added): ?>
         <input type="hidden" name="engagement_added_contact_ids[]" value="<?php echo $organization_contact_id; ?>">
-        <button type="button" class="button-secondary engagement-contact-remove" data-remove-added-contact>Remove from event</button>
+        <button type="button" class="button-secondary engagement-contact-remove" data-remove-added-contact>Remove from Event</button>
     <?php endif; ?>
     <?php if (!empty($organization_contact['contact_email'])): ?>
         <p class="field-help engagement-contact-email"><?php echo htmlspecialchars((string) $organization_contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?></p>

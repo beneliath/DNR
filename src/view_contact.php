@@ -123,7 +123,6 @@ try {
     <?php endif; ?>
 
     <?php if ($record_note_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($record_note_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
-    <?php if ($user_role === 'admin'): ?><p><a class="button-secondary" href="record_merge.php?kind=contact&amp;source=<?php echo (int) $contact_id; ?>">Review Possible Duplicates</a></p><?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span><span>Contact Details</span></nav>
     <div class="page-heading record-page-heading view-contact-heading"><div><h1><?php echo htmlspecialchars(
             $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
@@ -146,7 +145,7 @@ try {
                                     <a href="view_organization.php?id=<?php echo (int) $affiliation['organization_id']; ?>"><?php echo htmlspecialchars($affiliation['organization_name'], ENT_QUOTES, 'UTF-8'); ?></a>
                                     <span class="contact-affiliation-kind"><?php echo !empty($affiliation['is_primary']) ? 'Primary' : 'Additional'; ?></span>
                                     <?php if (!empty($affiliation['organization_is_deleted'])): ?><span class="archive-status">Archived</span><?php endif; ?>
-                                    <small><?php echo htmlspecialchars($affiliation['role_title'] ?: 'Role not specified', ENT_QUOTES, 'UTF-8'); ?></small>
+                                    <small><?php echo htmlspecialchars($affiliation['role_title'] ?: 'Role Not Specified', ENT_QUOTES, 'UTF-8'); ?></small>
                                 </li>
                             <?php endforeach; ?>
                         </ul>

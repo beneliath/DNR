@@ -7,7 +7,7 @@ require_once __DIR__ . '/email_helpers.php';
 function userAccountStatusLabel($status)
 {
     return match ((string) $status) {
-        'invited' => 'Invitation pending',
+        'invited' => 'Invitation Pending',
         'inactive' => 'Inactive',
         default => 'Active',
     };

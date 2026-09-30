@@ -15,3 +15,5 @@ require_once __DIR__ . '/pagination_helpers.php';
 
 require_once __DIR__ . '/network_diagnostics_helpers.php';
 registerNetworkDocumentPerformance($conn);
+
+require_once __DIR__ . '/list_ui_helpers.php';

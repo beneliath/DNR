@@ -36,13 +36,13 @@
         const panel = document.createElement('section');
         panel.className = 'presentation-upload-progress';
         panel.hidden = true;
-        panel.setAttribute('aria-label', 'File upload progress');
+        panel.setAttribute('aria-label', 'File Upload Progress');
         const status = document.createElement('p');
         status.setAttribute('role', 'status');
         const bar = document.createElement('progress');
         bar.max = 100;
         bar.value = 0;
-        bar.setAttribute('aria-label', 'File upload progress');
+        bar.setAttribute('aria-label', 'File Upload Progress');
         const retry = document.createElement('button');
         retry.type = 'button';
         retry.textContent = 'Retry Save';

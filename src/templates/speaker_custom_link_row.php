@@ -12,5 +12,5 @@ $custom_value = static fn(string $field): string => htmlspecialchars(is_string($
         <label for="custom_link_<?php echo $custom_index; ?>_url">URL</label>
         <input type="url" id="custom_link_<?php echo $custom_index; ?>_url" name="custom_links[<?php echo $custom_index; ?>][url]" maxlength="<?php echo SPEAKER_URL_MAX_LENGTH; ?>" placeholder="https://example.com" value="<?php echo $custom_value('url'); ?>" aria-describedby="speaker-custom-links-help" data-custom-link-url>
     </div>
-    <button type="button" class="button-secondary" aria-label="Remove custom link" data-remove-custom-link>Remove</button>
+    <button type="button" class="button-secondary" aria-label="Remove Custom Link" data-remove-custom-link>Remove</button>
 </div>

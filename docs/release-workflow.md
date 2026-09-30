@@ -129,6 +129,9 @@ protected PR checks, final-main CI and image qualification, release mirror check
 five-minute save window, restore-verified backup, migrations, or public readiness
 verification described below. If a stage fails, it cancels only a preparation or
 pending notice; active/failed maintenance remains subject to recovery resolution.
+Before starting the deployment notice, the runner checks AI Coach procedure, form,
+and application-map source hashes. Refresh stale reviewed hashes and regenerate the
+application map before retrying the release.
 
 1. Start the deployment notice above, then fetch current `origin/main` and work on a feature/release branch. Near release preparation, run `scripts/prepare_release minor --base-ref origin/main` for a minor bump deployment, `scripts/prepare_release major --base-ref origin/main` for a major bump deployment, or `scripts/prepare_release super --base-ref origin/main` for a super bump deployment. The project vocabulary is `minor` = x.y.(z+1), `major` = x.(y+1).0, `super` = (x+1).0.0. Repeating the same preparation does not allocate another version. `scripts/prepare_release check` is read-only.
 2. If the plugin changes, add `--plugin-bump minor` (or the intended project bump). `mattermost-plugin/plugin.json` is authoritative; the Makefile and compiled client User-Agent derive their version from it.

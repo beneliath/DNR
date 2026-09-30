@@ -11,6 +11,7 @@ function expectRecordWorkspace(bool $condition, string $message): void
 $map = 'map.php?lifecycle=active&location=needs_address&page=2';
 expectRecordWorkspace(recordReturnLabel($map) === 'Map' && recordReturnLabel('view_organization.php?id=2') === 'Organization', 'Return labels identify the actual source screen');
 expectRecordWorkspace(safeRecordReturnUrl($map, 'engagements.php') === $map, 'Map filters must survive a section edit');
+expectRecordWorkspace(safeRecordReturnUrl('index.php', '') === 'index.php', 'Creating an organization can return to a new engagement.');
 $filtered = 'contacts.php?q=Church&sort_by=organization&cursor=abc&per_page=50';
 $detail = recordUrlWithQuery('view_contact.php?id=42#chron-log', ['return_to' => $filtered]);
 expectRecordWorkspace(safeRecordReturnUrl($detail, '') === $detail, 'Record activity may retain a nested list destination');

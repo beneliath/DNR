@@ -39,40 +39,40 @@ $manual_access_summary = match ($manual_role) {
         <section class="manual-hero-copy">
             <h1 id="manual-title" tabindex="-1">User Manual</h1>
             <?php if (aiCoachEnabled()): ?>
-                <button type="button" class="manual-coach-entry button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">Learn with ai coach</button>
+                <button type="button" class="manual-coach-entry button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">Learn with AI Coach</button>
             <?php endif; ?>
-            <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
-            <a class="manual-inline-link" href="<?php echo htmlspecialchars(assetUrl('assets/docs/moed-comprehensive-user-manual.pdf'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, opens in a new tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
+            <p>Everything you need to plan engagements, keep relationship history, coordinate follow-up work, and manage reimbursements, and protect the records entrusted to <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?>.</p>
+            <a class="manual-inline-link" href="<?php echo htmlspecialchars(assetUrl('assets/docs/moed-comprehensive-user-manual.pdf'), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener" aria-label="View Comprehensive User Guide (PDF, Opens in a New Tab)">View Comprehensive User Guide <span aria-hidden="true">↗</span></a>
         </section>
-        <section class="manual-role-summary" aria-label="Your access">
+        <section class="manual-role-summary" aria-label="Your Access">
             <span>Your Access</span>
             <strong><?php echo htmlspecialchars($manual_role_label, ENT_QUOTES, 'UTF-8'); ?></strong>
             <p><?php echo htmlspecialchars($manual_access_summary, ENT_QUOTES, 'UTF-8'); ?></p>
         </section>
         <form class="manual-search" role="search" data-manual-search-form>
-            <label for="manual-search-input">Search the manual</label>
+            <label for="manual-search-input">Search the Manual</label>
             <section class="manual-search-control">
                 <svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
-                <input type="search" id="manual-search-input" placeholder="Try “financial closeout”, “recovery codes”, or “archive”" autocomplete="off" data-manual-search>
+                <input type="search" id="manual-search-input" placeholder="Try “receipts”, “financial closeout”, or “archive”" autocomplete="off" data-manual-search>
                 <button type="button" data-manual-clear hidden>Clear</button>
             </section>
-            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 13 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
+            <p class="manual-search-hint"><span data-manual-status role="status" aria-live="polite">Showing all 14 chapters.</span><span>Press <kbd>/</kbd> to search</span></p>
             <section class="manual-search-results" data-manual-results hidden aria-labelledby="manual-results-title">
                 <h2 id="manual-results-title">Matching Topics</h2>
                 <p>Select a topic to jump to the highlighted text, or press <kbd>Enter</kbd> to open the first match.</p>
                 <ol data-manual-result-list></ol>
             </section>
         </form>
-        <nav class="manual-quick-links" aria-label="Popular help topics">
-            <a href="#booking-pipeline"><span>01</span><strong>Qualify an Inquiry</strong><small>Stages, next actions, booking</small></a>
-            <a href="#engagements"><span>02</span><strong>Plan an Engagement</strong><small>Schedule, people, presentations</small></a>
-            <a href="#work-queue"><span>03</span><strong>Manage Follow-Up</strong><small>Owners, due dates, reminders</small></a>
-            <a href="#chron-mail"><span>04</span><strong>Build the Chron</strong><small>Chron Log Entries and tracked email</small></a>
+        <nav class="manual-quick-links" aria-label="Popular Help Topics">
+            <a href="#booking-pipeline"><span>01</span><strong>Qualify an Inquiry</strong><small>Stages, Next Actions, Booking</small></a>
+            <a href="#engagements"><span>02</span><strong>Plan an Engagement</strong><small>Schedule, People, Presentations</small></a>
+            <a href="#work-queue"><span>03</span><strong>Manage Follow-Up</strong><small>Owners, Due Dates, Reminders</small></a>
+            <a href="#reimbursements"><span>04</span><strong>Submit Expenses</strong><small>Receipts, Review, and Delivery</small></a>
         </nav>
     </section>
 
     <section class="manual-shell">
-        <aside class="manual-toc" aria-label="Manual chapters">
+        <aside class="manual-toc" aria-label="Manual Chapters">
             <span class="manual-toc-label">On This Page</span>
             <nav>
                 <a href="#orientation" data-manual-toc><span>01</span>Getting Oriented</a>
@@ -84,10 +84,11 @@ $manual_access_summary = match ($manual_role) {
                 <a href="#work-queue" data-manual-toc><span>07</span>Work Queue</a>
                 <a href="#chron-mail" data-manual-toc><span>08</span>Chron and Email</a>
                 <a href="#map-calendar" data-manual-toc><span>09</span>Map and Calendar</a>
-                <a href="#profile-security" data-manual-toc><span>10</span>Profile and Security</a>
-                <a href="#mattermost" data-manual-toc><span>11</span>Mattermost</a>
-                <a href="#administration" data-manual-toc><span>12</span>Administration</a>
-                <a href="#troubleshooting" data-manual-toc><span>13</span>Troubleshooting</a>
+                <a href="#reimbursements" data-manual-toc><span>10</span>Reimbursements</a>
+                <a href="#profile-security" data-manual-toc><span>11</span>Profile and Security</a>
+                <a href="#mattermost" data-manual-toc><span>12</span>Mattermost</a>
+                <a href="#administration" data-manual-toc><span>13</span>Administration</a>
+                <a href="#troubleshooting" data-manual-toc><span>14</span>Troubleshooting</a>
             </nav>
         </aside>
 
@@ -138,7 +139,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection" id="using-ai-coach">
-                    <h3>Learn with ai coach</h3>
+                    <h3>Learn with AI Coach</h3>
                     <p>When enabled for your installation, <strong>ai coach</strong> helps you understand MOED and learn how to use its controls. Select the <strong>ai coach</strong> button on a signed-in application page, or <strong>Learn with ai coach</strong> at the top of this manual. On a wide screen the panel sits beside the page in the right margin; on a narrower screen it opens over the page. Use the minus button to minimize it and the ai coach button to reopen it.</p>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Ask about your goal.</strong><p>Type in <strong>How do I…?</strong>, then press <kbd>Enter</kbd> or select <strong>Ask</strong>. For example, ask “What does MOED do?” or “How do I add speaker notes to this presentation?” Use <kbd>Shift</kbd>+<kbd>Enter</kbd> for a new line.</p></section></li>
@@ -208,7 +209,7 @@ $manual_access_summary = match ($manual_role) {
                     <p class="manual-note"><strong>Archive first.</strong> Archiving is reversible and keeps history. Permanent deletion is limited to administrators, requires freshly confirmed administrator access, and cannot be undone.</p>
                     <p>In a task's related-record search or the Inbox engagement search, <strong>Enter</strong> runs the search without saving the task or filing the message. Choose the intended result, then use the explicit Save action. Enter on a focused button activates that button.</p>
                 </section>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-orientation-collapse-sidebar-sections">Collapse Sidebar Sections</h3><p>Select a sidebar section heading to collapse or expand its links. The app remembers your choice. Expand Work to reach Reimbursements; administrators find Reimbursement Setup under Administration. If a link seems missing, check the collapsed headings and scroll the menu. The account controls remain at the bottom.</p></section></section>
 
             <section class="manual-chapter" id="roles" data-manual-section data-keywords="roles reviewer editor administrator admin permissions access read only manage create edit archive restore delete elevated email correspondence">
                 <header class="manual-chapter-heading">
@@ -223,7 +224,7 @@ $manual_access_summary = match ($manual_role) {
                     <p><?php echo htmlspecialchars($manual_access_summary, ENT_QUOTES, 'UTF-8'); ?></p>
                 </article>
 
-                <section class="manual-table-wrap" tabindex="0" aria-label="Role permissions table">
+                <section class="manual-table-wrap" tabindex="0" aria-label="Role Permissions Table">
                     <table class="manual-table manual-role-table data-table">
                         <thead><tr><th>Capability</th><th>Reviewer</th><th>Editor</th><th>Administrator</th></tr></thead>
                         <tbody>
@@ -289,7 +290,7 @@ $manual_access_summary = match ($manual_role) {
                     </article>
                 </section>
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-dashboard-follow-dashboard-date-windows">Follow Dashboard Date Windows</h3><p>Dashboard links to inquiries and upcoming engagements carry the relevant view or date window into the destination list. Review the destination filters before interpreting its counts. On Engagements, change the start/end date filters or clear them to see a broader period.</p></section></section>
 
             <section class="manual-chapter" id="booking-pipeline" data-manual-section data-keywords="inquiry booking pipeline new contacted qualified awaiting details proposal sent booked declined next action owner priority source inbound email conversion schedule conflicts tasks chron reopen">
                 <header class="manual-chapter-heading">
@@ -407,7 +408,7 @@ $manual_access_summary = match ($manual_role) {
                         </article>
                         <article class="manual-card">
                             <h4>Speaker QR Codes</h4>
-                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck. Select a displayed code to copy its image. Select the <strong>Copy link</strong> icon beneath a code’s image to copy its web address for an email, message, or document. These controls appear when viewing or editing a presentation. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
+                            <p>Saving creates separate codes for each presentation’s available speaker resources: website, bio, donations, connection, blog, books, custom links, notes, and PPT Slidedeck. Select a displayed code to copy its image. Select the <strong>Copy Link</strong> icon beneath a code’s image to copy its web address for an email, message, or document. These controls appear when viewing or editing a presentation. Download PNG or SVG images when you prefer to save a file for your slides or handouts.</p>
                             <p>File codes appear after you upload and save the corresponding PDF or PowerPoint. Replacing a file keeps its existing QR code and link, so shared slides and handouts continue to work. Removing a file hides its code; uploading it again reuses the link and its statistics.</p>
                         </article>
                     </section>
@@ -437,7 +438,7 @@ $manual_access_summary = match ($manual_role) {
                     <ul class="manual-check-list">
                         <li>In the <strong>Presentations</strong> tab, select <strong>Statistics</strong> beneath a code to see its visits. Open a speaker’s record and choose <strong>Statistics</strong> for activity across that speaker’s presentations.</li>
                         <li>Choose a date range to focus on a recent event or a longer period. In the speaker view, use <strong>Link Type</strong> to focus on notes, donations, or <strong>Custom Links</strong>, then select <strong>Apply Filters</strong>.</li>
-                        <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count. Opening a shared QR link records a visit. Use <strong>Copy link</strong> to share that same link; copying an image or link does not itself add a visit.</li>
+                        <li>Use the charts to see when and where links were opened. Hover or tap for details, or expand the data tables for exact counts. These are visits to links, not an attendance count. Opening a shared QR link records a visit. Use <strong>Copy Link</strong> to share that same link; copying an image or link does not itself add a visit.</li>
                     </ul>
                     <p>To change where an existing code leads, editors and administrators can open that code’s <strong>Statistics</strong>, edit <strong>Destination</strong>, and select <strong>Save Link</strong>. The printed code continues to work. Clear <strong>Link enabled</strong> and save to stop access through that code. For Speaker Notes or PPT Slidedeck, replace the file on the presentation instead of editing a destination.</p>
                     <p>Select <strong>Combined Presentation Statistics</strong> in the upper-right of a presentation’s pane to see total visits, activity over time, and combined referrer, browser, country, and operating system breakdowns. Date filters use the configured local time zone, and <strong>Clear Filters</strong> keeps the report scoped to that presentation. Disabled codes and previous speakers’ codes retain their historical visits. A person opening multiple codes contributes multiple visits. Use <strong>Statistics</strong> on an individual code for its own report, or <strong>Back to Presentation</strong> to return to the presentation.</p>
@@ -449,7 +450,7 @@ $manual_access_summary = match ($manual_role) {
                     <p>Editors and administrators can send email from an active engagement. Use <strong>Send Email</strong> near the page heading or <strong>Send Message</strong> in the Correspondence section. Every message remains easy to find there afterward.</p>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Choose a starting template.</strong><p>Choose an active template from the shared library, or <strong>Custom message</strong> to write from scratch. Event fields are filled from this engagement. Template text is only a starting point; edit the subject and body before sending. Use <a href="#email-templates">Manage Email Templates</a> to learn how to maintain the library.</p></section></li>
-                        <li><span>02</span><section><strong>Select recipients.</strong><p>Use the Primary host, On-site contact, Billing, Travel, Materials, or Speaker shortcuts, or select individual recipient cards. Speakers assigned to active presentations are optional and unchecked by default. Choose the Speaker shortcut or check a speaker card to include them. You may send to speakers alone. Changing templates keeps your speaker selection. Choose <strong>To</strong>, <strong>Cc</strong>, or <strong>Bcc</strong> in each selected card. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden. Under <strong>Send yourself a copy</strong>, choose <strong>Cc me</strong> or <strong>Bcc me</strong> to include your account email. Only valid email addresses can receive a message. Matching addresses receive one copy; use the same recipient type for a shared address.</p></section></li>
+                        <li><span>02</span><section><strong>Select recipients.</strong><p>Use the Primary host, On-site contact, Billing, Travel, Materials, or Speaker shortcuts, or select individual recipient cards. Speakers assigned to active presentations are optional and unchecked by default. Choose the Speaker shortcut or check a speaker card to include them. You may send to speakers alone. Changing templates keeps your speaker selection. Choose <strong>To</strong>, <strong>Cc</strong>, or <strong>Bcc</strong> in each selected card. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden. Under <strong>Send yourself a copy</strong>, choose <strong>Cc Me</strong> or <strong>Bcc Me</strong> to include your account email. Only valid email addresses can receive a message. Matching addresses receive one copy; use the same recipient type for a shared address.</p></section></li>
                         <li><span>03</span><section><strong>Review the routing marker.</strong><p>The exact engagement marker is included in every template subject and is added automatically if removed. When inbound mail is enabled, replies return through the shared mailbox and the marker helps place them in the right engagement Chron.</p></section></li>
                         <li><span>04</span><section><strong>Optionally append the event brief.</strong><p>The share-safe brief includes the public event schedule, venue, description, and presentations. It deliberately excludes Chron, internal notes, compensation, giving, and financial-closeout information. Preview it before queuing.</p></section></li>
                         <li><span>05</span><section><strong>Send and check the result.</strong><p>Select <strong>Queue Email</strong>, then use the Correspondence list to see whether each recipient is waiting, sent, or failed. If a recipient remains failed, open the message and select <strong>Retry Failed Deliveries</strong>. If it says <strong>Delivery Uncertain</strong>, check with your mail provider or recipient before selecting <strong>Retry Reviewed Deliveries</strong>; the message may already have arrived.</p></section></li>
@@ -478,7 +479,7 @@ $manual_access_summary = match ($manual_role) {
                     <div class="manual-callout-body"><h3>Archive and Delete Carefully</h3><p>Archive removes the engagement from current views but keeps its history available for restoration. Permanent deletion removes the event and all event-specific information, including presentations, Chron, tasks, contact role assignments, and its financial report. Prefer archive unless removal is explicitly required.</p></div>
                 </article>
                 <p class="manual-open-area"><a href="engagements.php">Open Engagements <span aria-hidden="true">→</span></a></p>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-engagements-inspect-tracked-visit-details">Inspect Tracked Visit Details</h3><p>Presentation QR/resource cards show tracked visit totals. Open the event statistics and filter by Speaker, Link Type, From, and Through. Expand the detailed visits, group dates as offered, and select chart points or table rows to inspect the matching activity. Dates use the configured local time zone shown by the controls. A tracked visit is not proof that a person read a document; downloading a resource through its tracked link and directly opening an untracked file URL are different paths.</p></section></section>
 
             <section class="manual-chapter" id="organizations-contacts" data-manual-section data-keywords="organization contact speaker directory profile bio biography custom links resources QR statistics optional address country international flag state province Canada United States affiliation distinctives website phone fax email financial history giving photo role pastor admin other describe notes search archive dependencies move active">
                 <header class="manual-chapter-heading">
@@ -493,14 +494,14 @@ $manual_access_summary = match ($manual_role) {
                         <h3>Relationship Record</h3>
                         <p>Store the organization name, notes, affiliation, distinctives, website, phone, fax, and physical and mailing addresses. You can use one address for both or maintain them separately.</p>
                         <p>Only the organization name is required; add address and relationship details when known. A new organization can create its first contact at the same time, and can add more contacts before saving.</p>
-                        <?php if ($manual_can_manage): ?><a href="add_organization.php" class="manual-inline-link">Add an organization</a><?php endif; ?>
+                        <?php if ($manual_can_manage): ?><a href="add_organization.php" class="manual-inline-link">Add an Organization</a><?php endif; ?>
                     </article>
                     <article class="manual-definition-panel">
                         <span class="manual-kicker">Contact</span>
                         <h3>Person Record</h3>
                         <p>Store first and last name, optional primary organization, additional organization affiliations with their own roles or titles, email, phone, incidental notes, and an optional JPEG, PNG, or WebP photo up to 5 MB. A contact can be saved without an organization. Use Create Organization in the contact form to add a missing organization without losing the contact details or selected photo.</p>
                         <p>The organization role is Pastor, Admin, or Other. When you choose Other, enter the custom description in <strong>Describe Other Role</strong> beside the Role field. Additional organizations each have their own role or title, such as Pastor at a church and Chairman at a research center. Event-specific roles are assigned separately on each engagement.</p>
-                        <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a contact</a><?php endif; ?>
+                        <?php if ($manual_can_manage): ?><a href="add_contact.php" class="manual-inline-link">Add a Contact</a><?php endif; ?>
                     </article>
                 </section>
 
@@ -551,11 +552,11 @@ $manual_access_summary = match ($manual_role) {
                 </article>
 
                 <section class="manual-link-row">
-                    <a href="organizations.php"><strong>Organizations</strong><span>Search and review relationship records →</span></a>
-                    <a href="contacts.php"><strong>Contacts</strong><span>Find people and communication history →</span></a>
-                    <a href="speakers.php"><strong>Speakers</strong><span>Maintain profiles and audience resources →</span></a>
+                    <a href="organizations.php"><strong>Organizations</strong><span>Search and Review Relationship Records →</span></a>
+                    <a href="contacts.php"><strong>Contacts</strong><span>Find People and Communication History →</span></a>
+                    <a href="speakers.php"><strong>Speakers</strong><span>Maintain Profiles and Audience Resources →</span></a>
                 </section>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-organizations-contacts-find-relationships-in-large-lists">Find Relationships in Large Lists</h3><p>Organization and related-record selectors show bounded search results. If the item is missing, type a more specific name and use the search controls rather than assuming it was deleted. Validation summaries link to fields needing attention; correct those fields and save again.</p></section></section>
 
             <section class="manual-chapter" id="work-queue" data-manual-section data-keywords="work queue task follow up owner assigned caller creator engagement creation due overdue today next seven days waiting unassigned completed canceled priority low normal high urgent standard checklist digest reminder assign to me start complete reopen confirmation confirm cancel check mark duplicate copy another event destination pulsing blinking cascade orange hover reduced motion">
                 <header class="manual-chapter-heading">
@@ -602,7 +603,7 @@ $manual_access_summary = match ($manual_role) {
                     <p>Archiving an engagement or inquiry also hides its tasks from active work and reminders. Restoring the record brings back its <strong>Open</strong>, <strong>In Progress</strong>, and <strong>Waiting</strong> tasks. Completed, canceled, and individually archived tasks stay out of active work; all task details and statuses are preserved.</p>
                 </section>
 
-                <section class="manual-table-wrap" tabindex="0" aria-label="Task status reference">
+                <section class="manual-table-wrap" tabindex="0" aria-label="Task Status Reference">
                     <table class="manual-table data-table">
                         <thead><tr><th>Status</th><th>Use It When</th><th>What Happens Next</th></tr></thead>
                         <tbody>
@@ -662,7 +663,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Send</span>
                         <h3>Start from an Engagement</h3>
-                        <p>Open an active engagement and select <strong>Send Message</strong>. Choose assigned contacts or speakers as <strong>To</strong>, <strong>Cc</strong>, or <strong>Bcc</strong> recipients, and optionally use <strong>Cc me</strong> or <strong>Bcc me</strong> for your account email. To and Cc addresses are visible; Bcc addresses stay hidden. Review the message, then queue it. The engagement marker and related Chron history are handled for you. Check the Correspondence section for the result.</p>
+                        <p>Open an active engagement and select <strong>Send Message</strong>. Choose assigned contacts or speakers as <strong>To</strong>, <strong>Cc</strong>, or <strong>Bcc</strong> recipients, and optionally use <strong>Cc Me</strong> or <strong>Bcc Me</strong> for your account email. To and Cc addresses are visible; Bcc addresses stay hidden. Review the message, then queue it. The engagement marker and related Chron history are handled for you. Check the Correspondence section for the result.</p>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Receive</span>
@@ -718,7 +719,7 @@ $manual_access_summary = match ($manual_role) {
                         <h3>Engagement Map</h3>
                         <p>The initial view shows active engagements in a bounded date window. Filter by lifecycle, confirmation, and date. Pin colors show confirmation, with lifecycle shown by the outline or symbol. Select a pin for the event, organization, dates, lifecycle, and a link to details.</p>
                         <p>Use <strong>Fit visible pins</strong> after filtering. The companion list includes On map, Needs address, Awaiting lookup, and Not located views for the current page, with Edit location links. Find missing addresses searches the selected date and lifecycle scope; Previous and Next reach additional pages. A new address may take time to resolve.</p>
-                        <a href="map.php" class="manual-inline-link">Open the map</a>
+                        <a href="map.php" class="manual-inline-link">Open the Map</a>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">View</span>
@@ -726,20 +727,20 @@ $manual_access_summary = match ($manual_role) {
                         <p>The Calendar page opens to the current month. On a desktop, scroll up or down inside the calendar to see consecutive weeks across month boundaries, such as late October beside early November. More weeks and their items load as you scroll; weekday headings stay visible. Use <strong>Previous</strong> or <strong>Next</strong> to show the complete month before or after the month named in the heading. <strong>Today</strong> returns to the current month from its first week.</p>
                         <p>The current day has its own rose-colored cell and <strong>Today</strong> badge, distinct from every event and task color. Your content filter stays selected while you browse. If more weeks cannot load, use <strong>Retry loading weeks</strong> or try the month controls again.</p>
                         <p>Select an event to open its details. Tasks with due dates link to task work; editors and administrators return to the same calendar view after editing.</p>
-                        <a href="view_calendar.php#event-calendar" class="manual-inline-link">Open the month view</a>
+                        <a href="view_calendar.php#event-calendar" class="manual-inline-link">Open the Month View</a>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Subscribe</span>
                         <h3>Private Calendar</h3>
                         <p>Create a separate subscription for each device or service. The secret URL is shown only once; copy it or open it directly in a calendar app. Choose Events, Presentations, My Active Work, All Active Work, and/or Birthdays (from Contacts) for each link. All Active Work includes everyone’s due-dated active tasks and disables My Active Work. Events, Presentations, and Birthdays are selected by default.</p>
                         <p>Revoke one link without affecting the others. Revoked token records can be purged. Share a subscription URL only with the intended device or calendar service: it grants access to the selected schedule, task titles, and contact birthday names. Internal Chron, travel, lodging, and compensation are excluded.</p>
-                        <a href="view_calendar.php" class="manual-inline-link">Manage calendar links</a>
+                        <a href="view_calendar.php" class="manual-inline-link">Manage Calendar Links</a>
                     </article>
                 </section>
 
                 <section class="manual-subsection">
                     <h3>Choose What the Month Calendar Shows</h3>
-                    <section class="manual-table-wrap" tabindex="0" aria-label="Calendar display selector reference">
+                    <section class="manual-table-wrap" tabindex="0" aria-label="Calendar Display Selector Reference">
                         <table class="manual-table data-table">
                             <thead><tr><th>Selector</th><th>Calendar Content</th><th>Color Coding</th></tr></thead>
                             <tbody>
@@ -753,11 +754,27 @@ $manual_access_summary = match ($manual_role) {
                     </section>
                     <p>On a phone, the calendar becomes a daily agenda with previous/next day controls and Today. The selected filter remains active as you move between dates. The summary above the grid reports how many matching events and tasks fall in that month.</p>
                 </section>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-map-calendar-understand-the-map-provider">Understand the Map Provider</h3><p>The map uses Amazon Location when it is configured for the installation; otherwise the supported OpenStreetMap-based view remains available. Attribution identifies the actual provider. Expand map credits when needed. Date, lifecycle, confirmation, and location filters still control the same engagement records. An unavailable tile service is different from an event with a missing or unresolved address.</p></section></section>
 
-            <section class="manual-chapter" id="profile-security" data-manual-section data-keywords="profile picture name email verified password recovery notification digest dashboard snapshot upcoming engagement my work readiness closeout inbound mail review delivery time weekdays weekends phone security two factor 2FA authenticator QR setup key recovery codes change password disable login invitation reset theme">
+            <section class="manual-chapter" id="reimbursements" data-manual-section data-keywords="reimbursements expense receipt clipboard camera draft submit bookkeeper delivery retry correction ZIP report chart of accounts COA reviewer Bcc">
+<header class="manual-chapter-heading"><span>Chapter 10</span><h2>Reimbursements</h2><p>Record expenses, review receipts, and submit a complete package to the bookkeeper.</p></header>
+<section class="manual-card-grid manual-card-grid-three manual-reimbursement-pipeline" aria-label="Reimbursement Workflow">
+<article class="manual-card"><div class="manual-pipeline-step"><span class="manual-card-number">1</span><svg aria-hidden="true" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H5V3zM15 3v5h4M8 12h8M8 16h5"/></svg></div><h3>Record Expenses</h3><p>Enter the date, merchant, amount, and account. Upload, paste, or photograph the receipts, then save.</p><a class="manual-inline-link" href="#manual-topic-reimbursements-add-an-expense-and-receipts">Add an Expense and Receipts</a></article>
+<article class="manual-card"><div class="manual-pipeline-step"><span class="manual-card-number">2</span><svg aria-hidden="true" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="m7 9 2 2 4-4m-6 9 2 2 4-4M15 9h2M15 16h2"/></svg></div><h3>Build a Draft</h3><p>Select your available expenses, set the request dates, and check the totals and receipt filenames.</p><a class="manual-inline-link" href="#manual-topic-reimbursements-create-and-edit-a-draft-request">Create and Edit a Draft Request</a></article>
+<article class="manual-card"><div class="manual-pipeline-step"><span class="manual-card-number">3</span><svg aria-hidden="true" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="m21 3-7 18-4-7-7-4zM10 14 21 3"/></svg></div><h3>Review and Submit</h3><p>Check the recipients, email, and ZIP package. Confirm when ready, then follow the delivery history.</p><a class="manual-inline-link" href="#manual-topic-reimbursements-review-and-submit-a-reimbursement">Review and Submit a Reimbursement</a></article>
+</section>
+<article class="manual-callout manual-callout-accent"><div class="manual-callout-body"><h3>After Submission</h3><p>The request, expenses, and receipts are locked. <strong>Submitted is not a payment status.</strong> Check Email Delivery for email progress and coordinate corrections with the bookkeeper. Archive keeps the original package and history.</p><a class="manual-inline-link" href="#manual-topic-reimbursements-track-delivery-and-handle-corrections">Delivery and Corrections</a></div></article>
+
+<section class="manual-subsection"><h3 id="manual-topic-reimbursements-reimbursements-at-a-glance">Reimbursements at a Glance</h3><p>Use <strong>Reimbursements</strong> in the sidebar to record your own expenses, attach receipts, and send a reviewed request to the bookkeeper. Start with <strong>+ Add Expense</strong>; select available expenses to create a draft; open <strong>Requests</strong> to review and submit it. Payment tracking stays in the bookkeeper's system.</p><p>Editors and administrators can create and edit their own expenses and drafts. Reviewers have read-only access to their own records. Administrators can view other owners and manage shared settings, but viewing another owner does not permit changing or submitting that person's expenses. Submitted expenses stay locked.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-add-an-expense-and-receipts">Add an Expense and Receipts</h3><ol><li>Open <strong>Reimbursements → + Add Expense</strong>. Enter <strong>Expense Date</strong>, <strong>Merchant or Payee</strong>, <strong>Amount (USD)</strong>, and <strong>Account</strong>. Add a useful <strong>Description or Purpose</strong>.</li><li>Use <strong>Upload Receipt</strong>, drop files into the receipt area, select <strong>Paste Image</strong>, or use <strong>Take a Receipt Photo</strong> where available. If clipboard permission is denied, focus the paste area and use your normal paste shortcut.</li><li>Check the selected filenames, count, and size. Remove a staged file if it is wrong. Select <strong>Save Expense</strong> to store the expense and selected files. Selecting a file alone does not upload it.</li></ol><p>JPEG, PNG, WebP, and PDF are supported. An expense may have up to 20 receipts and 15 MB of receipt files in total. If a save fails, check the message; files may need to be selected again. A duplicate warning is advisory. If another tab changed the expense, reload and reconcile your changes before saving again.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-find-and-select-expenses">Find and Select Expenses</h3><p>Use <strong>Search Expenses</strong>, date filters, Active/Archived views, and sort controls to narrow the list. Administrators default to their own <strong>Expense Owner</strong> and can deliberately choose another owner or All Users. Open a row to view its expense; icons expose permitted View, Edit, Archive/Restore, and Delete actions.</p><p>Only your available active expenses can be included in a new draft. Draft and submitted entries are already assigned; submitted rows are light green. Select checkboxes, review the selected count, total, and missing-receipt count, and use <strong>Clear Selection</strong> above or below the list to start over. Selection can span pages in the same browser tab; changing filters clears it.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-create-and-edit-a-draft-request">Create and Edit a Draft Request</h3><ol><li>Select available expenses. Expand <strong>Dates for New Request</strong> if the proposed request dates need changing; these dates are separate from browsing filters.</li><li>Select <strong>Create Draft Request from Selected Expenses</strong>. It is disabled until an eligible expense is selected.</li><li>Open the draft and select <strong>Edit Draft</strong>. Use <strong>Request Date Range → Update Dates</strong>, <strong>Add an Expense in This Date Range → Add Expense</strong>, or <strong>Remove</strong> beside an included expense. The date range must cover all included expenses.</li><li>Check <strong>Download Report PDF</strong> or <strong>Download Package ZIP</strong>, then select <strong>Review and Submit</strong>.</li></ol><p>Removing an expense or deleting an eligible draft request keeps the expense and its receipts. Deleting an expense is a separate administrator action. Saving, editing, or downloading a draft does not send it.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-review-and-submit-a-reimbursement">Review and Submit a Reimbursement</h3><ol><li>From the Requests list, use the <strong>Submit</strong> icon beside your eligible draft reference, or open it and select <strong>Review and Submit</strong>.</li><li>Review <strong>Email Details</strong>, <strong>Email Preview</strong>, <strong>Submission Readiness</strong>, and <strong>Package Contents</strong>. The bookkeeper is To; the owner, personal reviewer, and settings Cc address receive Cc copies. The settings Bcc address receives a hidden copy.</li><li>Check the amounts and exact receipt filenames. The ZIP contains the expense report PDF and original receipts. Missing receipts are flagged; pending or rejected required security checks block submission.</li><li>Select <strong>I Have Reviewed the Recipients, Email, and Package</strong>, then <strong>Submit Reimbursement Request</strong>. If details changed after preview, review the refreshed content before trying again.</li></ol><p>Submission changes the request to Submitted and locks its expenses and receipts. Email delivery runs separately. Submitted does not mean paid, and <strong>Accepted by SMTP</strong> does not prove that the recipient read the email.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-track-delivery-and-handle-corrections">Track Delivery and Handle Corrections</h3><p>Open a submitted request to inspect <strong>Email Delivery</strong> and <strong>Request History</strong>. Known failures offer <strong>Retry Failed Delivery</strong>; accepted, uncertain, or cancelled copies may offer <strong>Send Another Copy</strong>. Read the history, check with the recipient/provider, enter a reason, and confirm before sending again. An uncertain copy may already have arrived.</p><p><strong>Record a Correction</strong> saves a reason and cancels only copies that have not started sending. It cannot recall email or unlock submitted expenses. After agreement with the bookkeeper, use <strong>Resolve Correction</strong> and record the resolution. Neither action submits a replacement. Recovery uses the original approved message and package for up to 365 days; older messages may lack a recoverable snapshot. Use the original package and contact the bookkeeper if recovery is unavailable.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-download-reports-and-match-receipts">Download Reports and Match Receipts</h3><p><strong>Download Submitted Package</strong> returns the original ZIP that was sent. The submitted PDF download comes from that same package. Later profile, account, settings, or template changes do not rewrite the original. Older records without a saved original package show an explanation rather than silently generating a substitute.</p><p>The report includes account subtotals, Total Amount Due, and Expense Detail. Each detail entry names its matching receipt files, including the expense number and amount. The <strong>Receipt Files</strong> index lists PDF and image originals; image preview pages do not replace the originals in the ZIP's receipts/ folder.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-manage-the-chart-of-accounts">Manage the Chart of Accounts</h3><p>Editors and administrators open <strong>Chart of Accounts</strong> from Reimbursements or Requests. Search by COA number or description; choose <strong>Active</strong>, <strong>In Use</strong>, or <strong>Archived</strong>; sort by <strong>COA Number</strong>, <strong>Description</strong>, or <strong>Expenses</strong> in either direction. Use <strong>Add Account</strong>, Edit, Archive, or Restore as appropriate.</p><p>COA numbers must be unique even among archived accounts. Administrators may delete unused accounts; accounts linked to expenses must be archived instead. An expense may keep its previously assigned archived account, but new assignments must use an active account.</p></section><section class="manual-subsection"><h3 id="manual-topic-reimbursements-set-reimbursement-recipients">Set Reimbursement Recipients</h3><section class="manual-card-grid manual-card-grid-three" aria-label="Reimbursement Email Recipients">
+<article class="manual-card"><h4>To: Bookkeeper</h4><p>The bookkeeper email in Reimbursement Setup receives the request for processing.</p></article>
+<article class="manual-card"><h4>Cc: Visible Copies</h4><p>The submitting user, personal reviewer, and setup Cc address receive copies, when configured.</p></article>
+<article class="manual-card"><h4>Bcc: Hidden Copy</h4><p>The setup Bcc address receives a hidden copy and is excluded from recipient-visible report content.</p></article>
+</section><p>Administrators open <strong>Reimbursement Setup</strong> in the sidebar. Set the organization name, bookkeeper first/last name, bookkeeper email and phone, <strong>Cc Email Address</strong>, and <strong>Bcc Email Address</strong>; save with administrator actions unlocked. The Bcc address is not printed in recipient-visible reports or email bodies.</p><p>Each user can open <strong>My Profile → Personal Details</strong>, set <strong>Reimbursement Reviewer Email</strong>, and save the profile. This person receives a Cc copy when that user submits. Verify the actual recipients on every submission preview. Settings changes affect new submissions, not previously approved messages.</p></section>
+</section>
+
+<section class="manual-chapter" id="profile-security" data-manual-section data-keywords="profile picture name email verified password recovery notification digest dashboard snapshot upcoming engagement my work readiness closeout inbound mail review delivery time weekdays weekends phone security two factor 2FA authenticator QR setup key recovery codes change password disable login invitation reset theme">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 10</span>
+                    <span>Chapter 11</span>
                     <h2>Profile and Security</h2>
                     <p>Your profile makes ownership recognizable; the security controls protect your identity and provide safe recovery paths.</p>
                 </header>
@@ -798,11 +815,11 @@ $manual_access_summary = match ($manual_role) {
                         <li><strong>New account:</strong> open the invitation link within seven days, create a private password, and complete required authenticator enrollment.</li>
                     </ul>
                 </section>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-profile-security-choose-a-reimbursement-reviewer">Choose a Reimbursement Reviewer</h3><p>In <strong>My Profile → Personal Details</strong>, set <strong>Reimbursement Reviewer Email</strong> and save. The address receives a Cc copy of your reimbursement submission. It is separate from your verified account/recovery email, and entering it does not create a MOED login.</p></section></section>
 
             <section class="manual-chapter" id="mattermost" data-manual-section data-keywords="mattermost moed plugin slash command connect link account code today tasks dashboard event search show link-event unlink-event channel engagement indicator chain card routing marker copy context menu create task save chron send email template recipient post thread preview delivery reply notification reaction receipt memo button assign start complete reopen permission reviewer editor administrator open in moed privacy">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 11</span>
+                    <span>Chapter 12</span>
                     <h2>Mattermost</h2>
                     <p>The MOED plugin brings daily summaries, engagement context, follow-up actions, and carefully reviewed engagement email into Mattermost while MOED remains the system of record.</p>
                 </header>
@@ -817,7 +834,7 @@ $manual_access_summary = match ($manual_role) {
 
                 <section class="manual-subsection">
                     <h3>Commands</h3>
-                    <div class="manual-table-wrap" tabindex="0" aria-label="Mattermost command reference">
+                    <div class="manual-table-wrap" tabindex="0" aria-label="Mattermost Command Reference">
                         <table class="manual-table data-table">
                             <thead><tr><th>Command</th><th>What It Does</th><th>Who Can Use It</th></tr></thead>
                             <tbody>
@@ -854,7 +871,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
-                    <h3>Send Engagement Email From Mattermost</h3>
+                    <h3>Send Engagement Email from Mattermost</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Start from the right engagement.</strong><p>In a linked channel, select the MOED chain icon and choose <strong>Send MOED email</strong>. To include a particular conversation, open that post's <strong>Message actions</strong> and choose <strong>Send via MOED email</strong>.</p></section></li>
                         <li><span>02</span><section><strong>Choose a starting point.</strong><p>Select an active template from the shared Email Templates library, or Custom message, then choose from the contacts already assigned to the engagement. To include an assigned speaker, use the engagement email composer in MOED. Each unique address receives a separate message.</p></section></li>
@@ -866,7 +883,7 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection">
-                    <h3>Turn a Mattermost Post Into MOED Work</h3>
+                    <h3>Turn a Mattermost Post into MOED Work</h3>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Link the channel.</strong><p>An editor or administrator runs <code>/moed link-event ID</code>. The link establishes which engagement receives work from that channel.</p></section></li>
                         <li><span>02</span><section><strong>Open Message actions.</strong><p>Hover over a channel post and choose <strong>Message actions</strong> using the grid/apps icon—not the three-dot menu. Then choose <strong>Add MOED task</strong>, <strong>Add to MOED Chron</strong>, or <strong>Send via MOED email</strong>.</p></section></li>
@@ -925,7 +942,7 @@ $manual_access_summary = match ($manual_role) {
 
             <section class="manual-chapter" id="administration" data-manual-section data-keywords="administrator users invite activation deactivate reactivate reset password reset 2FA delete audit log retention prune backup uploaded files photos documents database operations readiness migrations geocoding elevated five minutes countdown profile first last name phone picture crop upload network IPv4 IPv6 traffic statistics reset rose refresh latency TTFB contact images percentile ai coach requests improvements feedback review helpful needs work delete individual coach request clear log verified guidance approve revalidation">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 12</span>
+                    <span>Chapter 13</span>
                     <h2>Administration</h2>
                     <p>Administrator tools control identity, accountability, continuity, and deployment health. Use them deliberately and keep a second administrator available.</p>
                 </header>
@@ -938,7 +955,7 @@ $manual_access_summary = match ($manual_role) {
                 <?php endif; ?>
 
                 <section class="manual-subsection" id="coach-request-review">
-                    <h3>Review ai coach Requests</h3>
+                    <h3>Review AI Coach Requests</h3>
                     <p>Administrators can open <strong>ai coach Requests</strong> under Administration in the sidebar when the coach is enabled. The log shows each question and originating page, the requesting user and role, the date and time, the result and response duration, and the administrator’s assessment. <strong>Completed</strong> describes processing, not a guarantee that the answer was correct.</p>
                     <ol class="manual-steps">
                         <li><span>01</span><section><strong>Find a request.</strong><p>Use <strong>Search questions or corrections</strong> and the <strong>Assessment</strong> filter, then select <strong>Filter</strong>. Open the linked question to inspect its original answer, manual sources, user feedback, and page or walkthrough context.</p></section></li>
@@ -960,13 +977,13 @@ $manual_access_summary = match ($manual_role) {
                 </section>
 
                 <section class="manual-subsection" id="coach-delete-request">
-                    <h3>Delete an ai coach Request</h3>
+                    <h3>Delete an AI Coach Request</h3>
                     <p>Administrators can select <strong>Delete</strong> beside an entry in ai coach Requests, or <strong>Delete request</strong> on its detail page. Review the identified request, then select <strong>Delete request</strong> to confirm or <strong>Cancel</strong> to keep it.</p>
                     <p>Deletion permanently removes that question, its answer, feedback, review notes, and corrections. Linked improvement cases are kept. If the request is still being answered or has changed since confirmation, reload it before trying again. Deleting an entry does not clear the whole log, end an open conversation, or train the model.</p>
                 </section>
 
                 <section class="manual-subsection" id="coach-clear-log">
-                    <h3>Clear the ai coach Request Log</h3>
+                    <h3>Clear the AI Coach Request Log</h3>
                     <p>On the request list, select the red <strong>Clear request log</strong> button and review the number of entries in the confirmation. The final <strong>Delete entries</strong> button includes that count; select it to confirm or <strong>Cancel</strong> to keep the log.</p>
                     <p>This permanently removes the requests included in the confirmation and their answers, review notes, and corrections for <strong>all users</strong>, regardless of the current search or assessment filter. Requests still being answered and newly submitted requests are kept. Improvement cases and development-review records are preserved. Clearing the log does not clear anyone’s open conversation or change the model; new requests continue to be recorded.</p>
                 </section>
@@ -985,14 +1002,14 @@ $manual_access_summary = match ($manual_role) {
                         <p>Invite a username, verified-on-acceptance email, and Reviewer, Editor, or Admin role. Review account status, profile, email verification, 2FA, password-change requirement, and activity timestamps.</p>
                         <p>Each user card shows the <strong>Daily Digest</strong> delivery days and whether delivery is off or paused. Use <strong>Edit</strong> after unlocking administrator actions to review its time, time zone, and days; users can also adjust their own Notification Preferences in My Profile.</p>
                         <p>Elevated actions can resend invitations, edit profile details, username, role, and daily work digest settings, set a temporary password, reset another user’s 2FA, deactivate/activate, or delete an invited or inactive account. Deactivation revokes sessions and calendar links and unassigns tasks; activation does not restore those links or assignments.</p>
-                        <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage users</a><?php endif; ?>
+                        <?php if ($manual_is_admin): ?><a href="users.php" class="manual-inline-link">Manage Users</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Accountability</span>
                         <h3>Audit Log</h3>
                         <p>Inspect login, security, and database-change activity with actor, affected record, IP address, and local time. Filter by category, text, date range, and exact IP. Entries are newest first and append-only during normal use; individual records cannot be edited or deleted.</p>
                         <p>In the Retention panel, administrators choose how many days to keep and preview the exact local cutoff and affected count. Pruning requires freshly confirmed administrator access, the literal <code>PRUNE</code> phrase, and a final themed in-app confirmation. Deployment operators can use <code>./scripts/prune_audit_log.sh DAYS</code> for the equivalent preview-first terminal workflow. Either path records the completed operation in the log.</p>
-                        <?php if ($manual_is_admin): ?><a href="audit_log.php" class="manual-inline-link">Review the audit log</a><?php endif; ?>
+                        <?php if ($manual_is_admin): ?><a href="audit_log.php" class="manual-inline-link">Review the Audit Log</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Continuity</span>
@@ -1001,14 +1018,14 @@ $manual_access_summary = match ($manual_role) {
                         <p>Confirm the administrator password and a fresh factor, then choose and confirm a unique backup password of at least 16 characters. <?php echo htmlspecialchars($manual_brand, ENT_QUOTES, 'UTF-8'); ?> downloads the encrypted snapshot as a <code>.dnrbackup</code> file.</p>
                         <p>While the export runs, the page shows <strong>Creating Encrypted Backup</strong> and asks you to keep it open. A success message identifies the file, updates <strong>Last backup created</strong>, and confirms that the download started. Check your browser’s Downloads to verify the file finished saving. If confirmation is delayed, check Downloads before retrying with a fresh authenticator or recovery code.</p>
                         <p>Keep the file, its password, and the separate DNR 2FA encryption key securely backed up. None can be recovered from the others. Ask the deployment operator to restore records and uploaded files together; restoration is handled outside the web application.</p>
-                        <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a backup</a><?php endif; ?>
+                        <?php if ($manual_is_admin): ?><a href="database_maintenance.php" class="manual-inline-link">Export a Backup</a><?php endif; ?>
                     </article>
                     <article class="manual-card">
                         <span class="manual-kicker">Health</span>
                         <h3>Operations</h3>
                         <p>The internal operations view summarizes task backlog, geocoding retries, inbound mail review/failures, recent authentication failures, migration readiness, and the last encrypted backup. Use it to identify operational work that needs attention before it becomes a user-facing problem.</p>
                         <p><strong>Mail Ingestion</strong> shows the latest mailbox check and import separately, plus failures and historical messages awaiting review. Ask the deployment operator to resolve a failing scan or review historical mail; use Inbox for messages already imported that need routing.</p>
-                        <?php if ($manual_is_admin): ?><a href="operations.php" class="manual-inline-link">Open operations</a><?php endif; ?>
+                        <?php if ($manual_is_admin): ?><a href="operations.php" class="manual-inline-link">Open Operations</a><?php endif; ?>
                     </article>
                 </section>
 
@@ -1050,18 +1067,18 @@ $manual_access_summary = match ($manual_role) {
                     <span class="manual-callout-icon" aria-hidden="true">!</span>
                     <div class="manual-callout-body"><h3>Permanent Means Permanent</h3><p>Deleting an organization preserves contacts who have another organization affiliation, and removes its remaining contacts and engagements together with their Chron, tasks, presentations, contact assignments, and financial reports. Deleting an engagement removes the same event-specific data. Deleting a contact removes that contact’s Chron, tasks, and event role assignments. Active users must be deactivated before deletion; pending invitations can be deleted directly. Use archive for ordinary record retirement.</p><p>Administrators can use individual Delete actions or select multiple items on the Organizations, Contacts, Speakers, Engagements, Tasks, and Users lists. Select all applies only to the current page. Review the selected names and related data, complete admin unlock when needed, and confirm the “Are you sure?” dialog. For inactive or invited users, type DELETE USER for an individual account or DELETE USERS for a batch.</p></div>
                 </article>
-            </section>
+            <section class="manual-subsection"><h3 id="manual-topic-administration-review-document-and-recovery-health">Review Document and Recovery Health</h3><p>Network diagnostics includes <strong>Remote Document Responses</strong> for PDF and PowerPoint activity as well as page/image measurements. Read the response and timing labels before comparing servers. Operations shows deployment and ingestion status; failures require diagnosis, not repeated submission of financial records. Browser backups include uploaded files and report capacity issues. Follow the displayed recovery instructions if the browser cannot hold the backup.</p></section></section>
 
             <section class="manual-chapter" id="troubleshooting" data-manual-section data-keywords="troubleshooting cannot edit missing button search no result map pin missing email template archived deleted changed another session event fields speaker recipient did not route outbound failed waiting retry unavailable calendar item task owner caller checklist standard recurring unnecessary customize future events financial closeout restore filter month refresh QR paste copy link clipboard PDF PPT PowerPoint Slidedeck upload download save pending logout session invalid token error help FAQ ai coach missing control wrong answer slow unavailable walkthrough feedback">
                 <header class="manual-chapter-heading">
-                    <span>Chapter 13</span>
+                    <span>Chapter 14</span>
                     <h2>Troubleshooting and Good Practice</h2>
                     <p>Most surprises come from role limits, archived parent records, delayed background work, or intentionally strict safety checks.</p>
                 </header>
 
                 <section class="manual-faq">
                     <details id="coach-unavailable">
-                        <summary><span>ai coach Is Slow or Cannot Answer</span><i aria-hidden="true">+</i></summary>
+                        <summary><span>AI Coach Is Slow or Cannot Answer</span><i aria-hidden="true">+</i></summary>
                         <p>Keep the panel open or move to another MOED page in the same browser tab while the answer is being prepared. Use <strong>Stop answer</strong> if you want to cancel it. If it reports that it cannot answer, try the question again after the service recovers. The User Manual and supported guided walkthroughs remain available even when conversational answers are unavailable.</p>
                         <p>A failed answer does not mean your event or file was not saved; check the application’s own save confirmation. Administrators can open the request to inspect its result, duration, and failure details. If the ai coach button is absent throughout the application, ask an administrator whether the feature is enabled.</p>
                     </details>
@@ -1137,7 +1154,7 @@ $manual_access_summary = match ($manual_role) {
                     </details>
                     <details>
                         <summary><span>A QR Code Will Not Copy</span><i aria-hidden="true">+</i></summary>
-                        <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. To share a web address instead of an image, use the <strong>Copy link</strong> icon beneath the code’s image. If copying is blocked, allow clipboard access for this site and retry. Save the presentation first if its QR codes are not yet available.</p>
+                        <p>Use the PNG or SVG download links to save a generated code. You can also select the QR preview to copy it; if clipboard access is unavailable, the application opens a preview. To share a web address instead of an image, use the <strong>Copy Link</strong> icon beneath the code’s image. If copying is blocked, allow clipboard access for this site and retry. Save the presentation first if its QR codes are not yet available.</p>
                     </details>
                     <details>
                         <summary><span>A Presentation File or Its QR Code Is Missing</span><i aria-hidden="true">+</i></summary>
@@ -1173,7 +1190,7 @@ $manual_access_summary = match ($manual_role) {
 </main>
 <?php include 'templates/footer.php'; ?>
 <p class="manual-end" id="manual-end" tabindex="-1">End of User Manual</p>
-<nav class="manual-page-nav" aria-label="Manual page navigation">
+<nav class="manual-page-nav" aria-label="Manual Page Navigation">
     <span>User Manual</span>
     <a href="#manual-top"><span aria-hidden="true">↑</span> Top</a>
     <a href="#manual-end"><span aria-hidden="true">↓</span> Bottom</a>

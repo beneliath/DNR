@@ -20,7 +20,7 @@ function harness(draft = null, search = '') {
     const org = new Element('organization_id', '2', 'select-one');
     org.children = [option('', 'None'), option('2', 'Secondary host'), option('3', 'New host')];
     const contact = new Element('primary_contact_id', '8', 'select-one');
-    contact.children = [option('', 'None'), option('8', 'Existing contact', '1', 'Primary host'), option('9', 'Created contact', '7', 'Created host')];
+    contact.children = [option('', 'None'), option('8', 'Existing contact', '1', 'Primary Host'), option('9', 'Created contact', '7', 'Created host')];
     const orgSearch = new Element('organization_search');
     const contactSearch = new Element('contact_search');
     orgSearch.dataset.searchUrl = contactSearch.dataset.searchUrl = 'inquiry_relationship_search.php';

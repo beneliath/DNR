@@ -301,25 +301,26 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
     <?php endif; ?>
 
     <div class="list-controls">
+        <?php renderListFilterSummary(['Status' => ucfirst($list_status), 'Search' => $search], 'contacts.php?status=active'); ?>
         <form method="get" action="contacts.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo htmlspecialchars($list_status, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="per_page" value="<?php echo $page_size; ?>">
             <input type="hidden" name="sort_by" value="<?php echo htmlspecialchars($sort_column, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="last_name_sort" value="<?php echo htmlspecialchars($last_name_sort, ENT_QUOTES, 'UTF-8'); ?>">
             <input type="hidden" name="organization_sort" value="<?php echo htmlspecialchars($organization_sort, ENT_QUOTES, 'UTF-8'); ?>">
-            <label class="visually-hidden" for="contact-search">Search contacts</label>
+            <label class="visually-hidden" for="contact-search">Search Contacts</label>
             <span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search contacts">
+            <input type="search" id="contact-search" name="q" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Contacts">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, $list_status), ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Contact archive status">
+        <div class="control-group" aria-label="Contact Archive Status">
             <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'active', $search), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo !$show_archived ? ' active' : ''; ?>">Active</a>
             <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, $sort_column, $last_name_sort, $organization_sort, 'archived', $search), ENT_QUOTES, 'UTF-8'); ?>"
                class="sort-button<?php echo $show_archived ? ' active' : ''; ?>">Archived</a>
         </div>
 
-        <div class="control-group" aria-label="Contact sort order">
+        <div class="control-group" aria-label="Contact Sort Order">
             <span class="control-label">Sort:</span>
             <div class="sort-buttons">
                 <a href="<?php echo htmlspecialchars(contactsPageUrl(null, $page_size, 'last_name', $last_name_sort === 'asc' ? 'desc' : 'asc', $organization_sort, $list_status, $search), ENT_QUOTES, 'UTF-8'); ?>"
@@ -349,8 +350,8 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                 <tr>
                     <th>Contact</th>
                     <th>Organizations</th>
-                    <th>Phone number</th>
-                    <th>Email address</th>
+                    <th>Phone Number</th>
+                    <th>Email Address</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -415,9 +416,9 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                             </td>
                             <td>
                                 <div class="action-buttons">
-                                    <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
+                                    <a href="view_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Contact" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>
                                     <?php if (!$show_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>
-                                        <a href="edit_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit contact" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                                        <a href="edit_contact.php?id=<?php echo (int) $contact['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Contact" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                                     <?php endif; ?>
                                     <?php if (canArchiveEntries($user_role)): ?>
                                         <?php if ($show_archived): ?>
@@ -427,7 +428,7 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                                 <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                                 <input type="hidden" name="list_status" value="archived">
                                                 <input type="hidden" name="action" value="restore">
-                                                <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore contact" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
+                                                <button type="submit" class="action-button action-icon-button restore-button" aria-label="Restore Contact" title="Restore" data-tooltip="Restore"><?php echo actionIconSvg('restore'); ?></button>
                                             </form>
                                         <?php else: ?>
                                             <form method="post" action="contacts.php">
@@ -436,20 +437,20 @@ $list_current_url = contactsPageUrl($current_page, $page_size, $sort_column, $la
                                                 <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                                 <input type="hidden" name="list_status" value="active">
                                                 <input type="hidden" name="action" value="archive">
-                                                <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive contact" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
+                                                <button type="submit" class="action-button action-icon-button archive-button" aria-label="Archive Contact" title="Archive" data-tooltip="Archive"><?php echo actionIconSvg('archive'); ?></button>
                                             </form>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                     <?php if (canDeleteEntries($user_role)): ?>
                                         <form method="post" action="contacts.php"
                                               data-delete-confirmation="Permanently delete this contact?"
-                                              <?php if ($show_archived): ?>data-archive-button-label="Keep archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
+                                              <?php if ($show_archived): ?>data-archive-button-label="Keep Archived"<?php else: ?>data-archive-action="archive"<?php endif; ?>>
                                             <?php echo csrfInput(); ?>
                                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($list_current_url, ENT_QUOTES, 'UTF-8'); ?>">
                                             <input type="hidden" name="contact_id" value="<?php echo (int) $contact['id']; ?>">
                                             <input type="hidden" name="list_status" value="<?php echo $list_status; ?>">
                                             <input type="hidden" name="action" value="delete">
-                                            <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete contact" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                                            <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Contact" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                                         </form>
                                     <?php endif; ?>
                                 </div>

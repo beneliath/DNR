@@ -74,7 +74,7 @@ test("phone picker supports selected focus, arrow/typeahead navigation and singl
     const events = {};
     let focused = null;
     const trigger = {
-        attrs: {}, dataset: { phoneCountryLabel: 'Phone country code' },
+        attrs: {}, dataset: { phoneCountryLabel: 'Phone Country Code' },
         setAttribute(k, v) { this.attrs[k] = v; }, focus() { focused = this; }, closest() { return picker; }
     };
     const options = ['Argentina', 'Israel', 'United States / Canada'].map((countryName, index) => ({

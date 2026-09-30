@@ -247,10 +247,10 @@ if ($enrollment) {
             <form method="post" action="setup_2fa.php" class="security-form">
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="action" value="start">
-                <label for="password">Current password</label>
+                <label for="password">Current Password</label>
                 <input type="password" name="password" id="password" autocomplete="current-password" maxlength="72" required>
                 <?php if (!empty($user['two_factor_enabled'])): ?>
-                    <label for="current_code">Current authenticator code</label>
+                    <label for="current_code">Current Authenticator Code</label>
                     <input type="text" name="current_code" id="current_code" autocomplete="one-time-code" inputmode="numeric" required>
                 <?php endif; ?>
                 <div class="security-form-actions">
@@ -278,7 +278,7 @@ if ($enrollment) {
         <form method="post" action="setup_2fa.php" class="security-form confirmation-form">
             <?php echo csrfInput(); ?>
             <input type="hidden" name="action" value="confirm">
-            <label for="authentication_code">Six-digit authentication code</label>
+            <label for="authentication_code">Six-Digit Authentication Code</label>
             <input type="text" name="authentication_code" id="authentication_code" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required>
             <div class="security-form-actions">
                 <button type="submit" form="cancel-setup-form" class="button-secondary">Cancel</button>

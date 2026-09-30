@@ -95,7 +95,7 @@
             pendingForm = form;
             pendingSubmitter = event.submitter;
             confirmationMessage.textContent = form.dataset.deleteConfirmation;
-            archiveButton.textContent = form.dataset.archiveButtonLabel || 'Archive instead';
+            archiveButton.textContent = form.dataset.archiveButtonLabel || 'Archive Instead';
             confirmation.showModal();
         });
     });
@@ -264,7 +264,7 @@
             ? 'This user and their retained account history will be permanently deleted. This cannot be undone.'
             : 'The user’s current authenticator and recovery codes will stop working.';
         confirmationPhrase.textContent = requiredPhrase;
-        confirmButton.textContent = deleting ? 'Delete user' : 'Reset 2FA';
+        confirmButton.textContent = deleting ? 'Delete User' : 'Reset 2FA';
         confirmationInput.value = '';
         confirmationInput.removeAttribute('aria-invalid');
         confirmationError.hidden = true;

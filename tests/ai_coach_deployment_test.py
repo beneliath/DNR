@@ -41,7 +41,9 @@ class CoachDeployment(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         args = json.loads(result.stdout.splitlines()[-1])
         self.assertIn('docker-compose.ai-coach.yaml', args)
-        self.assertEqual(args[args.index('--profile') + 1], 'coach')
+        profiles = [args[i + 1] for i, arg in enumerate(args) if arg == '--profile']
+        self.assertIn('coach', profiles)
+        self.assertIn('reimbursements', profiles)
         self.assertIn('docker-compose.proton-bridge.yaml', args)
         self.assertEqual(args[-2:], ['config', '--quiet'])
 

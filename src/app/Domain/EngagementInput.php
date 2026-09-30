@@ -130,9 +130,9 @@ final class EngagementInput
             }
         }
         foreach ([
-            'event_description' => 'Event description',
-            'other_compensation' => 'Other compensation',
-            'other_housing' => 'Other lodging arrangement',
+            'event_description' => 'Event Description',
+            'other_compensation' => 'Other Compensation',
+            'other_housing' => 'Other Lodging Arrangement',
         ] as $field => $label) {
             $storage_error = InputText::textStorageError((string) $data[$field], $label);
             if ($storage_error !== null) {
@@ -142,7 +142,7 @@ final class EngagementInput
         $cancellation_length_error = InputText::lengthError(
             (string) $data['cancellation_reason'],
             1000,
-            'Cancellation reason'
+            'Cancellation Reason'
         );
         if ($cancellation_length_error !== null) {
             throw new \InvalidArgumentException($cancellation_length_error);

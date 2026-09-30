@@ -127,7 +127,7 @@ $page_title = $duplicate_mode ? 'Duplicate Task' : 'New Task';
 <body>
 <?php include 'templates/header.php'; ?>
 <div class="container" role="main">
-    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Work Queue</a><span aria-hidden="true">/</span><span><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></span></nav>
+    <nav class="breadcrumb" aria-label="Breadcrumb"><a href="tasks.php">Tasks</a><span aria-hidden="true">/</span><span><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></span></nav>
     <div class="page-heading form-page-heading"><div><h1><?php echo htmlspecialchars($page_title, ENT_QUOTES, 'UTF-8'); ?></h1><p class="page-intro"><?php echo $duplicate_mode ? 'Copy this task to a different event, then adjust its owner or timing.' : 'Make the next action, owner, and due date explicit.'; ?></p></div></div>
     <?php if ($error_message !== ''): ?>
         <p class="error"><?php echo htmlspecialchars($error_message, ENT_QUOTES, 'UTF-8'); ?></p>

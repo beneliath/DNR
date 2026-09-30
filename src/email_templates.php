@@ -84,11 +84,11 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
         <form method="get" action="email_templates.php" class="list-search-form" role="search">
             <input type="hidden" name="status" value="<?php echo $status; ?>">
             <?php if ($engagementId !== null): ?><input type="hidden" name="engagement_id" value="<?php echo $engagementId; ?>"><?php endif; ?>
-            <label class="visually-hidden" for="template-search">Search email templates</label><span class="search-icon" aria-hidden="true">⌕</span>
-            <input type="search" id="template-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search email templates">
+            <label class="visually-hidden" for="template-search">Search Email Templates</label><span class="search-icon" aria-hidden="true">⌕</span>
+            <input type="search" id="template-search" name="q" maxlength="255" value="<?php echo htmlspecialchars($search, ENT_QUOTES, 'UTF-8'); ?>" placeholder="Search Email Templates">
             <?php if ($search !== ''): ?><a href="<?php echo htmlspecialchars($listUrl, ENT_QUOTES, 'UTF-8'); ?>" class="clear-search">Clear</a><?php endif; ?>
         </form>
-        <div class="control-group" aria-label="Email template archive status">
+        <div class="control-group" aria-label="Email Template Archive Status">
             <a href="email_templates.php?status=active<?php echo $contextQuery; ?>" class="sort-button<?php echo !$archived ? ' active' : ''; ?>"<?php echo !$archived ? ' aria-current="page"' : ''; ?>>Active (<?php echo (int) ($counts['active_count'] ?? 0); ?>)</a>
             <a href="email_templates.php?status=archived<?php echo $contextQuery; ?>" class="sort-button<?php echo $archived ? ' active' : ''; ?>"<?php echo $archived ? ' aria-current="page"' : ''; ?>>Archived (<?php echo (int) ($counts['archived_count'] ?? 0); ?>)</a>
         </div>
@@ -97,7 +97,7 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
     <?php renderPagination($pagination['total'], $pagination['page'], $pageSize, $paginationUrl, 'email templates', 'Email template pages'); ?>
     <div class="email-template-table-wrapper">
         <table class="task-table data-table email-template-table">
-            <thead><tr><th scope="col">Order</th><th scope="col">Template</th><th scope="col">Suggested contacts</th><th scope="col">Updated</th><th scope="col">Actions</th></tr></thead>
+            <thead><tr><th scope="col">Order</th><th scope="col">Template</th><th scope="col">Suggested Contacts</th><th scope="col">Updated</th><th scope="col">Actions</th></tr></thead>
             <tbody>
                 <?php foreach ($templates as $template): ?>
                     <?php $roles = json_decode((string) $template['suggested_roles_json'], true); $roles = is_array($roles) ? $roles : []; ?>
@@ -106,18 +106,18 @@ $paginationUrl = $listUrl . '&' . http_build_query(['q' => $search, 'per_page' =
                         <td><a class="record-link" href="edit_email_template.php?id=<?php echo (int) $template['id']; ?><?php echo $contextQuery; ?>"><?php echo htmlspecialchars((string) $template['name'], ENT_QUOTES, 'UTF-8'); ?></a><small class="task-notes-preview"><?php echo htmlspecialchars((string) $template['subject_template'], ENT_QUOTES, 'UTF-8'); ?></small></td>
                         <td><?php echo htmlspecialchars($roles !== [] ? implode(' · ', array_map('engagementContactRoleLabel', $roles)) : 'Choose when composing', ENT_QUOTES, 'UTF-8'); ?></td>
                         <td><?php echo htmlspecialchars(applicationTimestampLabel($template['updated_at'], 'M j, Y'), ENT_QUOTES, 'UTF-8'); ?></td>
-                        <td><div class="task-actions">
-                            <a href="edit_email_template.php?id=<?php echo (int) $template['id']; ?><?php echo $contextQuery; ?>" class="action-button action-icon-button <?php echo $canManage && !$archived ? 'edit-button' : 'view-button'; ?>" aria-label="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?> email template" title="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>" data-tooltip="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>"><?php echo actionIconSvg($canManage && !$archived ? 'edit' : 'view'); ?></a>
+                        <td><div class="task-actions email-template-actions" data-icon-only>
+                            <a href="edit_email_template.php?id=<?php echo (int) $template['id']; ?><?php echo $contextQuery; ?>" class="action-button action-icon-button <?php echo $canManage && !$archived ? 'edit-button' : 'view-button'; ?>" aria-label="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?> Email Template" title="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>" data-tooltip="<?php echo $canManage && !$archived ? 'Edit' : 'View'; ?>"><?php echo actionIconSvg($canManage && !$archived ? 'edit' : 'view'); ?></a>
                             <?php if ($canManage): ?>
                                 <form method="post" action="email_templates.php">
                                     <?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $template['id']; ?>"><input type="hidden" name="version" value="<?php echo (int) $template['version']; ?>"><input type="hidden" name="status" value="<?php echo $status; ?>"><input type="hidden" name="engagement_id" value="<?php echo $engagementId ?? ''; ?>"><input type="hidden" name="action" value="<?php echo $archived ? 'restore' : 'archive'; ?>">
-                                    <button type="submit" class="action-button action-icon-button <?php echo $archived ? 'restore-button' : 'archive-button'; ?>" aria-label="<?php echo $archived ? 'Restore' : 'Archive'; ?> email template" title="<?php echo $archived ? 'Restore' : 'Archive'; ?>" data-tooltip="<?php echo $archived ? 'Restore' : 'Archive'; ?>"><?php echo actionIconSvg($archived ? 'restore' : 'archive'); ?></button>
+                                    <button type="submit" class="action-button action-icon-button <?php echo $archived ? 'restore-button' : 'archive-button'; ?>" aria-label="<?php echo $archived ? 'Restore' : 'Archive'; ?> Email Template" title="<?php echo $archived ? 'Restore' : 'Archive'; ?>" data-tooltip="<?php echo $archived ? 'Restore' : 'Archive'; ?>"><?php echo actionIconSvg($archived ? 'restore' : 'archive'); ?></button>
                                 </form>
                             <?php endif; ?>
                             <?php if ($archived && $canDelete): ?>
-                                <form method="post" action="email_templates.php" data-delete-confirmation="Permanently delete this email template? Sent messages and their history will remain available." data-archive-button-label="Keep archived">
+                                <form method="post" action="email_templates.php" data-delete-confirmation="Permanently delete this email template? Sent messages and their history will remain available." data-archive-button-label="Keep Archived">
                                     <?php echo csrfInput(); ?><input type="hidden" name="template_id" value="<?php echo (int) $template['id']; ?>"><input type="hidden" name="version" value="<?php echo (int) $template['version']; ?>"><input type="hidden" name="status" value="archived"><input type="hidden" name="engagement_id" value="<?php echo $engagementId ?? ''; ?>"><input type="hidden" name="action" value="delete">
-                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete email template" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                                    <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Email Template" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                                 </form>
                             <?php endif; ?>
                         </div></td>

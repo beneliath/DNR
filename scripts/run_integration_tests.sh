@@ -59,21 +59,31 @@ cleanup_isolated_backup() {
     fi
 }
 
-printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
+run_integration_suite() {
+    test_file=$1
     test_name=$(basename "$test_file")
     echo "Running ${test_name}"
+    if [ "$test_name" = 'reimbursement_workflow_http_integration_test.php' ]; then
+        # Receipts created by the fixture must have the same filesystem identity as Apache.
+        # Only this CLI fixture may launch the bounded receipt preview subprocess.
+        compose exec -T -u www-data \
+            -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
+            -e DNR_TEST_SOURCE_DIR=/var/www/html \
+            web php -d disable_functions=passthru,shell_exec,system,popen "/opt/dnr/${test_file}" </dev/null
+        return
+    fi
     if [ "$test_name" = 'review_improvements_integration_test.php' ]; then
         compose run --rm --no-deps --entrypoint php \
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_TEST_SOURCE_DIR=/var/www/html -v "${PWD}/src:/var/www/html:ro" \
             key-rotation "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'ai_coach_worker_integration_test.php' ]; then
         compose up -d --no-build --no-deps ai-coach-worker </dev/null
         compose exec -T -u www-data -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable -e DNR_TEST_SOURCE_DIR=/var/www/html web php "/opt/dnr/${test_file}" </dev/null
         compose stop ai-coach-worker </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'inbound_mailbox_sync_integration_test.php' ]; then
         # Maintenance creates/cleans fixtures; synchronization uses a separate
@@ -85,7 +95,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -v "${PWD}/src:/var/www/html:ro" \
             -v "${DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE:-${PWD}/secrets/mysql_mail_ingest_password}:/run/secrets/test_mail_ingest_password:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'inbound_worker_filing_integration_test.php' ]; then
         # The fixture driver creates records as web, but files every message
@@ -96,7 +106,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_TEST_MAIL_INGEST_PASSWORD_FILE=/run/secrets/test_mail_ingest_password \
             -v "${DNR_MYSQL_MAIL_INGEST_PASSWORD_FILE:-${PWD}/secrets/mysql_mail_ingest_password}:/run/secrets/test_mail_ingest_password:ro" \
             web "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'presentation_slidedeck_http_integration_test.php' ]; then
         # Exercise real ingress routing, shared login sessions and the dedicated download pool.
@@ -104,7 +114,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_TEST_SOURCE_DIR=/var/www/html -e DNR_TEST_BASE_URL=http://ingress \
             web php "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'ai_coach_http_integration_test.php' ] \
         || [ "$test_name" = 'bulk_delete_http_integration_test.php' ] \
@@ -133,7 +143,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_TEST_SOURCE_DIR=/var/www/html -e DNR_TEST_BASE_URL=http://127.0.0.1 \
             web php "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'mail_worker_bootstrap_integration_test.php' ]; then
         # Allow the disposable test driver to launch PHP; child workers retain
@@ -141,7 +151,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         compose exec -T \
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
             web php -d disable_functions= "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'database_backup_integration_test.php' ] \
         || [ "$test_name" = 'file_storage_maintenance_integration_test.php' ] \
@@ -171,7 +181,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         fi
         cleanup_isolated_backup
         trap - EXIT HUP INT TERM
-        continue
+        return
     fi
     if [ "$test_name" = 'notes_cache_http_integration_test.php' ] \
         || [ "$test_name" = 'notes_cache_integration_test.php' ] \
@@ -186,7 +196,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
             -v "${PWD}/src:/var/www/html:ro" \
             maintenance "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
     if [ "$test_name" = 'geocoder_worker_integration_test.php' ]; then
         compose run --rm --no-deps --entrypoint php \
@@ -194,7 +204,7 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
             -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_TEST_SOURCE_DIR=/var/www/html \
             geocoder "/opt/dnr/${test_file}" </dev/null
-        continue
+        return
     fi
 
     compose exec -T \
@@ -202,7 +212,27 @@ printf '%s\n' "$integration_test_files" | while IFS= read -r test_file; do
         -e DNR_INTEGRATION_TARGET=disposable \
         -e DNR_TEST_SOURCE_DIR=/var/www/html \
         web php "/opt/dnr/${test_file}" </dev/null
-done
+}
+
+# Run each suite with fail-fast semantics, but collect failures across suites so
+# one regression does not hide the remaining release blockers.
+failed_suites=
+while IFS= read -r test_file; do
+    set +e
+    (set -e; run_integration_suite "$test_file")
+    suite_status=$?
+    set -e
+    if [ "$suite_status" -ne 0 ]; then
+        failed_suites="$failed_suites $(basename "$test_file")"
+        echo "FAILED: $(basename "$test_file")" >&2
+    fi
+done <<EOF
+$integration_test_files
+EOF
+if [ -n "$failed_suites" ]; then
+    echo "Integration suites failed:$failed_suites" >&2
+    exit 1
+fi
 
 # Verify the real parser identity has only the account columns routing needs.
 compose run --rm --no-deps --entrypoint php \

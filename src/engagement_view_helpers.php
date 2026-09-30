@@ -55,7 +55,7 @@ function engagementViewProgress(array $engagement): array
     } elseif (in_array($lifecycle, ['postponed', 'canceled'], true)) {
         $exception = ['key' => $lifecycle, 'label' => ucfirst($lifecycle)];
     } elseif ($lifecycle !== 'active') {
-        $exception = ['key' => 'unknown_lifecycle', 'label' => 'Lifecycle not set'];
+        $exception = ['key' => 'unknown_lifecycle', 'label' => 'Lifecycle Not Set'];
     } else {
         $confirmation_index = array_search(
             $confirmation,
@@ -63,7 +63,7 @@ function engagementViewProgress(array $engagement): array
             true
         );
         if ($confirmation_index === false) {
-            $exception = ['key' => 'unknown_confirmation', 'label' => 'Confirmation not set'];
+            $exception = ['key' => 'unknown_confirmation', 'label' => 'Confirmation Not Set'];
         } else {
             $current_index = $confirmation_index;
         }
@@ -106,11 +106,11 @@ function engagementViewReadiness(array $engagement, array $contacts, array $pres
     }
 
     return [
-        ['label' => 'Organization Linked', 'ready' => (int) $organization_id > 0 && $organization_name !== ''],
-        ['label' => 'Event Dates Set', 'ready' => $start !== null && $end !== null && $start <= $end],
-        ['label' => 'Event Contacts Assigned', 'ready' => $contacts !== []],
-        ['label' => 'Presentation Added', 'ready' => $presentations !== []],
-        ['label' => 'Location Recorded', 'ready' => $location_recorded],
+        ['target' => 'organization_id', 'action' => 'Choose organization', 'label' => 'Organization Linked', 'ready' => (int) $organization_id > 0 && $organization_name !== ''],
+        ['target' => 'event_start_date', 'action' => 'Set event dates', 'label' => 'Event Dates Set', 'ready' => $start !== null && $end !== null && $start <= $end],
+        ['target' => 'engagement-contact-selector', 'action' => 'Assign event contacts', 'label' => 'Event Contacts Assigned', 'ready' => $contacts !== []],
+        ['target' => 'presentations-container', 'action' => 'Add presentation', 'label' => 'Presentation Added', 'ready' => $presentations !== []],
+        ['target' => 'event_address_line_1', 'action' => 'Add venue address', 'label' => 'Location Recorded', 'ready' => $location_recorded],
     ];
 }
 

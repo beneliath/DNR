@@ -147,6 +147,8 @@ function aiCoachRelevantTopics(array $request, array $ranked): array
     if (aiCoachPageExplanation($request)) {
         // A page overview should prefer its introduction over a keyword-heavy workflow.
         $pageTitle = aiCoachNormalize(aiCoachContextQuestion($request));
+        // The manual retains its Work Queue chapter title after the navigation rename.
+        if ($request['page'] === 'tasks.php') $pageTitle = 'work queue';
         foreach ([$pageTitle, 'browse ' . $pageTitle, 'daily ' . $pageTitle, 'monthly ' . $pageTitle] as $title) {
             $overview = array_filter(aiCoachManualTopics(), static fn($topic): bool => $topic['chapter'] !== 'operator-appendix'
                 && aiCoachNormalize($topic['title']) === $title);

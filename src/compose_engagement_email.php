@@ -153,11 +153,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             (string) ($_SESSION['username'] ?? ''),
             speakerIds: $speakerIds,
             recipientTypes: $recipientTypes,
-            senderCopy: $senderCopy
+            senderCopy: $senderCopy,
+            followUpDate: isset($_POST['track_reply']) ? (string) ($_POST['follow_up_date'] ?? '') : null
         );
         $_SESSION['engagement_email_message'] = $mailTransport === 'log'
             ? 'The message was accepted by the development mail transport.'
             : 'The message was queued for delivery.';
+        $_SESSION['clear_form_drafts'][] = 'compose_engagement_email.php:' . $engagementId;
         header('Location: outbound_mail.php?id=' . $messageId);
         exit();
     } catch (InvalidArgumentException | DomainException $exception) {
@@ -206,9 +208,9 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <a href="view_engagement.php?id=<?php echo $engagementId; ?>">Engagement Details</a><span aria-hidden="true">/</span>
         <span>Send Email</span>
     </nav>
+    <p class="eyebrow compose-engagement-email-eyebrow">Outbound Correspondence</p>
     <header class="page-heading compose-engagement-email-heading">
         <div>
-            <p class="eyebrow">Outbound Correspondence</p>
             <h1>Send an Engagement Email</h1>
             <p class="page-intro"><?php echo htmlspecialchars(engagementEmailEventLabel($engagement), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
@@ -223,7 +225,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <p class="warning" role="status">This engagement has no assigned contacts or speakers with a valid email address. Add an email to an assigned event contact or speaker before sending correspondence.</p>
     <?php endif; ?>
 
-    <form method="post" action="compose_engagement_email.php" class="engagement-email-form" data-engagement-email-form>
+    <form method="post" action="compose_engagement_email.php" class="engagement-email-form" data-recoverable-draft="compose_engagement_email.php:<?php echo (int)$engagementId; ?>" data-draft-version="<?php echo htmlspecialchars((string)($engagement['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" data-engagement-email-form>
         <?php echo csrfInput(); ?>
         <input type="hidden" name="id" value="<?php echo $engagementId; ?>">
 
@@ -232,7 +234,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <div><span>01</span><h2>Choose a Template</h2></div>
                 <p>Templates provide a starting point; subject and message remain editable.</p>
             </div>
-            <label for="template_key">Message template</label>
+            <label for="template_key">Message Template</label>
             <select name="template_key" id="template_key" data-email-template>
                 <?php foreach ($templates as $key => $template): ?>
                     <option value="<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $templateKey === $key ? ' selected' : ''; ?>><?php echo htmlspecialchars($template['label'], ENT_QUOTES, 'UTF-8'); ?></option>
@@ -246,7 +248,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <div><span>02</span><h2>Select Recipients</h2></div>
                 <p>Choose To, Cc, or Bcc for each selected recipient. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden.</p>
             </div>
-            <div class="recipient-shortcuts" aria-label="Recipient selection shortcuts">
+            <div class="recipient-shortcuts" aria-label="Recipient Selection Shortcuts">
                 <?php foreach (engagementContactRoles() as $role => $label): ?>
                     <button type="button" class="button-secondary" data-select-recipient-role="<?php echo htmlspecialchars($role, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?></button>
                 <?php endforeach; ?>
@@ -255,7 +257,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <button type="button" class="button-secondary" data-clear-recipients>Clear</button>
             </div>
             <fieldset class="recipient-list">
-                <legend class="visually-hidden">Event contacts and speakers</legend>
+                <legend class="visually-hidden">Event Contacts and Speakers</legend>
                 <?php foreach ($contacts as $contact): ?>
                     <?php
                     $contactId = (int) $contact['id'];
@@ -272,14 +274,14 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                                <?php echo !$contactEmailAvailable ? 'disabled' : ''; ?>>
                         <span class="recipient-copy">
                             <strong><?php echo htmlspecialchars($contactName !== '' ? $contactName : 'Unnamed contact', ENT_QUOTES, 'UTF-8'); ?></strong>
-                            <small><?php echo htmlspecialchars($contactEmailAvailable ? $contactEmail : 'No valid email address', ENT_QUOTES, 'UTF-8'); ?></small>
+                            <small><?php echo htmlspecialchars($contactEmailAvailable ? $contactEmail : 'No Valid Email Address', ENT_QUOTES, 'UTF-8'); ?></small>
                             <span class="recipient-role-list">
                                 <?php foreach ($contactRoles as $role): ?><span><?php echo htmlspecialchars(engagementContactRoleLabel($role), ENT_QUOTES, 'UTF-8'); ?></span><?php endforeach; ?>
                             </span>
                         </span>
                         </label>
-                        <label class="recipient-type">Send as:
-                            <select name="recipient_types[contact:<?php echo $contactId; ?>]" aria-label="Recipient type for <?php echo htmlspecialchars($contactName !== '' ? $contactName : $contactEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$contactEmailAvailable ? ' disabled' : ''; ?>>
+                        <label class="recipient-type">Send As:
+                            <select name="recipient_types[contact:<?php echo $contactId; ?>]" aria-label="Recipient Type for <?php echo htmlspecialchars($contactName !== '' ? $contactName : $contactEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$contactEmailAvailable ? ' disabled' : ''; ?>>
                                 <?php foreach (['to' => 'To', 'cc' => 'Cc', 'bcc' => 'Bcc'] as $type => $label): ?>
                                     <option value="<?php echo $type; ?>"<?php echo ($recipientTypes['contact:' . $contactId] ?? 'to') === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
                                 <?php endforeach; ?>
@@ -302,12 +304,12 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                                <?php echo !$speakerEmailAvailable ? 'disabled' : ''; ?>>
                         <span class="recipient-copy">
                             <strong><?php echo htmlspecialchars($speakerName !== '' ? $speakerName : 'Unnamed speaker', ENT_QUOTES, 'UTF-8'); ?></strong>
-                            <small><?php echo htmlspecialchars($speakerEmailAvailable ? $speakerEmail : 'No valid email address', ENT_QUOTES, 'UTF-8'); ?></small>
+                            <small><?php echo htmlspecialchars($speakerEmailAvailable ? $speakerEmail : 'No Valid Email Address', ENT_QUOTES, 'UTF-8'); ?></small>
                             <span class="recipient-role-list"><span>Speaker</span></span>
                         </span>
                         </label>
-                        <label class="recipient-type">Send as:
-                            <select name="recipient_types[speaker:<?php echo $speakerId; ?>]" aria-label="Recipient type for <?php echo htmlspecialchars($speakerName !== '' ? $speakerName : $speakerEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$speakerEmailAvailable ? ' disabled' : ''; ?>>
+                        <label class="recipient-type">Send As:
+                            <select name="recipient_types[speaker:<?php echo $speakerId; ?>]" aria-label="Recipient Type for <?php echo htmlspecialchars($speakerName !== '' ? $speakerName : $speakerEmail, ENT_QUOTES, 'UTF-8'); ?>"<?php echo !$speakerEmailAvailable ? ' disabled' : ''; ?>>
                                 <?php foreach (['to' => 'To', 'cc' => 'Cc', 'bcc' => 'Bcc'] as $type => $label): ?>
                                     <option value="<?php echo $type; ?>"<?php echo ($recipientTypes['speaker:' . $speakerId] ?? 'to') === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
                                 <?php endforeach; ?>
@@ -322,9 +324,9 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                     <strong>Send yourself a copy</strong>
                     <small id="sender-copy-email"><?php echo htmlspecialchars($senderEmailAvailable ? $senderEmail : 'Add a valid email address to your profile to receive a copy', ENT_QUOTES, 'UTF-8'); ?></small>
                 </div>
-                <label class="recipient-type" for="sender-copy">Your copy:
+                <label class="recipient-type" for="sender-copy">Your Copy:
                     <select id="sender-copy" name="sender_copy" data-email-sender-copy aria-describedby="sender-copy-email"<?php echo !$senderEmailAvailable ? ' disabled' : ''; ?>>
-                        <?php foreach (['' => 'No copy', 'cc' => 'Cc me', 'bcc' => 'Bcc me'] as $type => $label): ?>
+                        <?php foreach (['' => 'No Copy', 'cc' => 'Cc Me', 'bcc' => 'Bcc Me'] as $type => $label): ?>
                             <option value="<?php echo $type; ?>"<?php echo $senderCopy === $type ? ' selected' : ''; ?>><?php echo $label; ?></option>
                         <?php endforeach; ?>
                     </select>
@@ -343,12 +345,12 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
                 <input type="text" name="subject" id="subject" maxlength="255" required value="<?php echo htmlspecialchars($subject, ENT_QUOTES, 'UTF-8'); ?>" data-email-subject>
             </div>
             <div class="form-field">
-                <label for="body">Plain-text message <span class="required" aria-hidden="true">*</span></label>
+                <label for="body">Plain-Text Message <span class="required" aria-hidden="true">*</span></label>
                 <textarea name="body" id="body" rows="14" maxlength="100000" required data-email-body><?php echo htmlspecialchars($body, ENT_QUOTES, 'UTF-8'); ?></textarea>
             </div>
             <label class="email-brief-option">
                 <input type="checkbox" name="include_event_brief" value="1"<?php echo $includeEventBrief ? ' checked' : ''; ?>>
-                <span><strong>Append the share-safe event brief</strong><small>Includes schedule, venue, description, and presentations. It excludes Chron, internal notes, compensation, and financial information</small></span>
+                <span><strong>Append the Share-Safe Event Brief</strong><small>Includes schedule, venue, description, and presentations. It excludes Chron, internal notes, compensation, and financial information</small></span>
             </label>
             <details class="email-brief-preview">
                 <summary>Preview Event Brief</summary>
@@ -356,7 +358,11 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
             </details>
         </section>
 
-        <div class="email-compose-actions">
+        <fieldset class="reply-follow-up"><legend>Reply Follow-Up</legend>
+<label class="reply-follow-up-toggle"><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
+<label for="follow-up-date">Follow-Up Date</label><input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+<p>The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p></fieldset>
+<div class="email-compose-actions">
             <a href="view_engagement.php?id=<?php echo $engagementId; ?>#correspondence" class="button-secondary">Cancel</a>
             <button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$hasRecipientsWithEmail ? ' disabled' : ''; ?> data-confirm="Queue this message for delivery to the selected recipients?">Queue Email</button>
         </div>

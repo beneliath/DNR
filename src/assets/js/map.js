@@ -29,7 +29,7 @@ import {
     const emptyDescription = document.getElementById('map-empty-description');
     const retryFeedback = document.getElementById('map-retry-feedback');
     if (events.length === 0) {
-        feedbackElement.textContent = String(payload.emptyTitle || 'No matching engagements');
+        feedbackElement.textContent = String(payload.emptyTitle || 'No Matching Engagements');
         fitButton.disabled = true;
         return;
     }
@@ -111,7 +111,7 @@ import {
         mapElement.hidden = pinCount === 0;
         if (emptyElement) emptyElement.hidden = pinCount > 0;
         if (pinCount === 0 && emptyTitle && emptyDescription) {
-            emptyTitle.textContent = pendingCount > 0 ? 'Looking up locations' : String(payload.emptyTitle || 'No locations on the map yet');
+            emptyTitle.textContent = pendingCount > 0 ? 'Looking up locations' : String(payload.emptyTitle || 'No Locations on the Map Yet');
             emptyDescription.textContent = pendingCount > 0
                 ? 'Pins will appear here as the location lookups finish. You can keep reviewing the list below.'
                 : String(payload.emptyDescription || 'Check the addresses below or retry unresolved lookups.');
@@ -335,7 +335,7 @@ import {
             retryingIds.add(id);
             requestedRetryIds.add(id);
             button.disabled = true;
-            button.textContent = 'Retrying lookup';
+            button.textContent = 'Retrying Lookup';
             if (retryFeedback) retryFeedback.textContent = 'Requesting another location lookup…';
             try {
                 await requestLocationBatch(enqueueUrl, [id], true);
@@ -348,7 +348,7 @@ import {
             } finally {
                 retryingIds.delete(id);
                 button.disabled = false;
-                button.textContent = 'Retry lookup';
+                button.textContent = 'Retry Lookup';
             }
         });
     });

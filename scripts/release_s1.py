@@ -241,16 +241,19 @@ def main(argv=None):
     args = parse_args(argv)
     require_tools()
     branch = validate_checkout()
+    run(['python3', 'scripts/ai_help/check_source_hashes.py'], capture=True)
     if args.plan:
         print(json.dumps({
             'branch': branch,
             'bump': args.bump,
-            'stages': ['notice', 'prepare', 'commit', 'publish branch', 'protected PR checks',
+            'stages': ['AI Coach source hashes', 'notice', 'prepare', 'commit', 'publish branch', 'protected PR checks',
                        'merge', 'publish main', 'final-main CI', 'publish tag',
                        'verified backup and s1 deployment', 'receipt'],
             'polling': 'internal; one progress line every five minutes',
         }, indent=2))
         return
+
+    milestone('AI Coach source hashes match')
 
     notice_started = False
     completed = False
@@ -286,6 +289,7 @@ def main(argv=None):
             run(['git', 'push', remote, f'{head}:refs/heads/{branch}'])
         stage = 'protected PR checks and merge'
         pr = open_or_update_pr(branch, title, release_body(version, args.summary.strip()))
+        milestone('Release PR: ' + pr['url'])
         merged = wait_for_pr(pr['number'], head, args.ci_timeout_minutes)
         milestone(f'PR #{pr["number"]} merged as {merged[:12]}')
         run(['git', 'fetch', 'origin'])

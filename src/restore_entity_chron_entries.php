@@ -178,10 +178,8 @@ $restore_query = http_build_query([
         <form method="post" action="restore_entity_chron_entries.php?<?php echo htmlspecialchars($restore_query, ENT_QUOTES, 'UTF-8'); ?>" class="chron-restore-form">
             <?php echo csrfInput(); ?>
             <div class="chron-restore-toolbar">
-                <label class="chron-select-all">
-                    <input type="checkbox" id="select-all-chron-entries">
-                    Select all archived entries
-                </label>
+                <button type="button" class="button-secondary" id="select-all-chron-entries">Select All Available</button>
+                <button type="button" class="button-secondary" id="select-all-chron-entries-clear" hidden>Clear Selection</button>
                 <button type="submit" name="restore_selected" value="1" class="restore-button">Restore Selected</button>
             </div>
 
@@ -195,7 +193,7 @@ $restore_query = http_build_query([
                     <article class="chron-entry-card chron-restore-card">
                         <label class="chron-restore-selection">
                             <input type="checkbox" name="chron_entry_ids[]" value="<?php echo (int) $chron_entry['id']; ?>">
-                            <span>Select this entry</span>
+                            <span>Select This Entry</span>
                         </label>
                         <div class="chron-entry-meta">
                             <div>

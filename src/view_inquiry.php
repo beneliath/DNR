@@ -221,7 +221,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
     <?php if ($isBooked): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked</strong><span>This inquiry is now a read-only source record.</span></div><?php if (!empty($inquiry['converted_engagement_id'])): ?><a href="view_engagement.php?id=<?php echo (int) $inquiry['converted_engagement_id']; ?>" class="button-secondary">Open Engagement</a><?php endif; ?></div><?php elseif ($inquiry['stage'] === 'declined'): ?><div class="inquiry-terminal-banner"><div><strong>Declined</strong><span><?php echo htmlspecialchars((string) $inquiry['decline_reason'], ENT_QUOTES, 'UTF-8'); ?></span></div></div><?php endif; ?>
 
     <?php if ($isArchived || canArchiveBookingInquiry($inquiry)): ?>
-        <section class="inquiry-terminal-banner inquiry-archive-banner" aria-label="Inquiry archive">
+        <section class="inquiry-terminal-banner inquiry-archive-banner" aria-label="Inquiry Archive">
             <div>
                 <strong><?php echo $isArchived ? 'Archived Inquiry' : 'Archive This Inquiry'; ?></strong>
                 <span><?php echo $isArchived
@@ -241,7 +241,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
         </section>
     <?php endif; ?>
 
-    <section class="inquiry-stage-path" aria-label="Inquiry progression">
+    <section class="inquiry-stage-path" aria-label="Inquiry Progression">
         <?php foreach ($activeStages as $index => $stage): ?><?php $stageComplete = $index < $progressStageIndex || (!$isActive && $index <= $progressStageIndex); ?><div class="<?php echo $inquiry['stage'] === $stage ? 'is-current ' : ''; ?><?php echo $stageComplete ? 'is-complete' : ''; ?>"><span><?php echo $stageComplete ? '✓' : $index + 1; ?></span><strong><?php echo htmlspecialchars($stages[$stage], ENT_QUOTES, 'UTF-8'); ?></strong></div><?php endforeach; ?><div class="inquiry-terminal-stage <?php echo $isBooked ? 'is-current is-complete' : ''; ?>"><span><?php echo $isBooked ? '✓' : '6'; ?></span><strong>Booked</strong></div><div class="inquiry-terminal-stage is-declined <?php echo $inquiry['stage'] === 'declined' ? 'is-current' : ''; ?>"><span>!</span><strong>Declined</strong></div>
     </section>
 
@@ -249,11 +249,11 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
         <div class="inquiry-detail-main">
             <section class="record-section inquiry-overview-card" id="request-details"><div class="record-section-heading"><h2>Inquiry Overview</h2></div><dl class="inquiry-detail-list">
                 <div><dt>Organization</dt><dd><?php if (!empty($inquiry['organization_id'])): ?><a href="view_organization.php?id=<?php echo (int) $inquiry['organization_id']; ?>"><?php echo htmlspecialchars(bookingInquiryDisplayLabel($inquiry['organization_name']), ENT_QUOTES, 'UTF-8'); ?></a><?php else: ?>Not identified<?php endif; ?></dd></div>
-                <div><dt>Primary contact</dt><dd><?php if (!empty($inquiry['primary_contact_id'])): ?><a href="view_contact.php?id=<?php echo (int) $inquiry['primary_contact_id']; ?>"><?php echo htmlspecialchars((string) ($inquiry['contact_name'] ?: 'Contact'), ENT_QUOTES, 'UTF-8'); ?></a><?php if (!empty($inquiry['contact_email'])): ?><small><a href="mailto:<?php echo htmlspecialchars($inquiry['contact_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($inquiry['contact_email'], ENT_QUOTES, 'UTF-8'); ?></a></small><?php endif; ?><?php else: ?>Not identified<?php endif; ?></dd></div>
+                <div><dt>Primary Contact</dt><dd><?php if (!empty($inquiry['primary_contact_id'])): ?><a href="view_contact.php?id=<?php echo (int) $inquiry['primary_contact_id']; ?>"><?php echo htmlspecialchars((string) ($inquiry['contact_name'] ?: 'Contact'), ENT_QUOTES, 'UTF-8'); ?></a><?php if (!empty($inquiry['contact_email'])): ?><small><a href="mailto:<?php echo htmlspecialchars($inquiry['contact_email'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($inquiry['contact_email'], ENT_QUOTES, 'UTF-8'); ?></a></small><?php endif; ?><?php else: ?>Not identified<?php endif; ?></dd></div>
                 <div><dt>Request</dt><dd><?php echo !empty($inquiry['request_summary']) ? nl2br(htmlspecialchars($inquiry['request_summary'], ENT_QUOTES, 'UTF-8')) : 'No summary recorded.'; ?></dd></div>
-                <div><dt>Preferred dates</dt><dd><?php echo htmlspecialchars(bookingInquiryDateLabel($inquiry), ENT_QUOTES, 'UTF-8'); ?></dd></div>
-                <div><dt>Alternate dates</dt><dd><?php echo !empty($inquiry['alternate_start_date']) ? htmlspecialchars($alternateDateLabel, ENT_QUOTES, 'UTF-8') : 'None provided'; ?></dd></div>
-                <div><dt>Event type</dt><dd><?php echo htmlspecialchars($inquiry['event_type'] === 'other' ? (string) $inquiry['event_type_other'] : ucwords((string) $inquiry['event_type']), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Preferred Dates</dt><dd><?php echo htmlspecialchars(bookingInquiryDateLabel($inquiry), ENT_QUOTES, 'UTF-8'); ?></dd></div>
+                <div><dt>Alternate Dates</dt><dd><?php echo !empty($inquiry['alternate_start_date']) ? htmlspecialchars($alternateDateLabel, ENT_QUOTES, 'UTF-8') : 'None provided'; ?></dd></div>
+                <div><dt>Event Type</dt><dd><?php echo htmlspecialchars($inquiry['event_type'] === 'other' ? (string) $inquiry['event_type_other'] : ucwords((string) $inquiry['event_type']), ENT_QUOTES, 'UTF-8'); ?></dd></div>
                 <div><dt>Location</dt><dd><?php echo $address ? htmlspecialchars(implode(' · ', $address), ENT_QUOTES, 'UTF-8') : 'Not identified'; ?></dd></div>
                 <div><dt>Source</dt><dd><?php echo htmlspecialchars(bookingInquirySources()[$inquiry['source']], ENT_QUOTES, 'UTF-8'); ?><?php if (!empty($inquiry['source_detail'])): ?><small><?php echo htmlspecialchars($inquiry['source_detail'], ENT_QUOTES, 'UTF-8'); ?></small><?php endif; ?><?php if (!empty($inquiry['inbound_email_message_id'])): ?><small><a href="inbound_mail.php?status=all&amp;id=<?php echo (int) $inquiry['inbound_email_message_id']; ?>">Open Source Email</a></small><?php endif; ?></dd></div>
                 <div><dt>Owner</dt><dd><?php echo htmlspecialchars((string) ($inquiry['owner_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?></dd></div>
@@ -261,12 +261,12 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
             </dl></section>
 
             <section class="record-section inquiry-workspace" data-inquiry-tabs>
-                <div class="inquiry-tab-list" role="tablist" aria-label="Inquiry work"><button type="button" role="tab" id="inquiry-activity-tab" aria-controls="inquiry-activity" aria-selected="true">Activity</button><button type="button" role="tab" id="inquiry-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($correspondence); ?></span></button><button type="button" role="tab" id="inquiry-tasks-tab" aria-controls="follow-up-work" aria-selected="false">Tasks <span><?php echo count($tasks); ?></span></button></div>
+                <div class="inquiry-tab-list" role="tablist" aria-label="Inquiry Work"><button type="button" role="tab" id="inquiry-activity-tab" aria-controls="inquiry-activity" aria-selected="true">Activity</button><button type="button" role="tab" id="inquiry-correspondence-tab" aria-controls="correspondence" aria-selected="false">Correspondence <span><?php echo count($correspondence); ?></span></button><button type="button" role="tab" id="inquiry-tasks-tab" aria-controls="follow-up-work" aria-selected="false">Tasks <span><?php echo count($tasks); ?></span></button></div>
                 <div class="inquiry-tab-panel" id="inquiry-activity" role="tabpanel" aria-labelledby="inquiry-activity-tab">
                     <?php if ($canManage && !$isReadOnly): ?><details class="inquiry-add-note"><summary>Add Chron Log Entry</summary><form method="post" action="view_inquiry.php" class="inquiry-chron-form"><?php echo csrfInput(); ?><input type="hidden" name="id" value="<?php echo $inquiryId; ?>"><input type="hidden" name="action" value="add_chron"><label for="inquiry-chron-entry">Chron Log Entry</label><textarea id="inquiry-chron-entry" name="chron_entry" rows="4" maxlength="100000" required placeholder="Decision, conversation outcome, commitment, or context"></textarea><button type="submit" class="save-button inquiry-primary-action">Save Chron Log Entry</button></form></details><?php endif; ?>
                     <?php if ($chronDraft !== null && $editChronEntry === null): ?>
                         <div class="chron-view-editor">
-                            <label for="inquiry-unsaved-chron">Your unsaved Chron edit</label>
+                            <label for="inquiry-unsaved-chron">Your Unsaved Chron Edit</label>
                             <p>This entry cannot be edited here. Copy your draft before leaving this page.</p>
                             <textarea id="inquiry-unsaved-chron" rows="6" readonly><?php echo htmlspecialchars($chronDraft, ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
@@ -309,7 +309,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                                         <div class="chron-entry-text"><?php echo renderChronLogEntryHtml($entry['entry_text']); ?></div>
                                     <?php endif; ?>
                                     <?php if ($canManage && !$isReadOnly): ?>
-                                        <div class="chron-view-actions" role="group" aria-label="Chron Log Entry actions">
+                                        <div class="chron-view-actions" role="group" aria-label="Chron Log Entry Actions">
                                             <a href="view_inquiry.php?id=<?php echo $inquiryId; ?>&amp;edit_chron=<?php echo $entryId; ?>#chron-log-entry-<?php echo $entryId; ?>" class="action-button action-icon-button edit-button" aria-label="Edit Chron Log Entry" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                                             <form method="post" action="view_inquiry.php" data-confirm="Archive this Chron Log Entry?">
                                                 <?php echo csrfInput(); ?>
@@ -341,7 +341,7 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                     <div class="inquiry-correspondence-list"><?php foreach ($correspondence as $message): ?><article><div><a href="outbound_mail.php?id=<?php echo (int) $message['id']; ?>"><strong><?php echo htmlspecialchars($message['subject'], ENT_QUOTES, 'UTF-8'); ?></strong></a><span class="email-status email-status-<?php echo htmlspecialchars($message['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(ucfirst($message['status']), ENT_QUOTES, 'UTF-8'); ?></span></div><p>To <?php echo htmlspecialchars($message['recipient_name'] . ' <' . $message['recipient_email'] . '>', ENT_QUOTES, 'UTF-8'); ?></p><small><?php echo htmlspecialchars(applicationTimestampLabel($message['created_at'], 'M j, Y g:i A T') . ' · ' . ($message['created_by_username'] ?: 'Former user'), ENT_QUOTES, 'UTF-8'); ?></small><?php if (!empty($message['last_error'])): ?><p class="error"><?php echo htmlspecialchars($message['last_error'], ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?></article><?php endforeach; ?><?php if ($correspondence === []): ?><p class="empty-state">No outbound correspondence has been sent from this inquiry.</p><?php endif; ?></div>
                 </div>
                 <div class="inquiry-tab-panel" id="follow-up-work" role="tabpanel" aria-labelledby="inquiry-tasks-tab">
-                    <div class="inquiry-task-list"><?php foreach ($tasks as $task): ?><article><span class="task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryPriorities()[$task['priority']], ENT_QUOTES, 'UTF-8'); ?></span><div><a href="edit_task.php?id=<?php echo (int) $task['id']; ?>&amp;return_to=<?php echo urlencode($taskReturn); ?>"><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong></a><small><?php echo htmlspecialchars((string) ($task['assignee_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars(bookingInquirySingleDateLabel($task['due_date'] ?? null, 'No due date'), ENT_QUOTES, 'UTF-8'); ?></small></div><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(followUpTaskStatuses()[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></article><?php endforeach; ?><?php if ($tasks === []): ?><p class="empty-state">No active follow-up work is linked to this inquiry.</p><?php endif; ?></div>
+                    <div class="inquiry-task-list"><?php foreach ($tasks as $task): ?><article><span class="task-priority-<?php echo htmlspecialchars($task['priority'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(bookingInquiryPriorities()[$task['priority']], ENT_QUOTES, 'UTF-8'); ?></span><div><a href="edit_task.php?id=<?php echo (int) $task['id']; ?>&amp;return_to=<?php echo urlencode($taskReturn); ?>"><strong><?php echo htmlspecialchars($task['title'], ENT_QUOTES, 'UTF-8'); ?></strong></a><small><?php echo htmlspecialchars((string) ($task['assignee_username'] ?: 'Unassigned'), ENT_QUOTES, 'UTF-8'); ?> · <?php echo htmlspecialchars(bookingInquirySingleDateLabel($task['due_date'] ?? null, 'No Due Date'), ENT_QUOTES, 'UTF-8'); ?></small></div><span class="task-status task-status-<?php echo htmlspecialchars($task['status'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(followUpTaskStatuses()[$task['status']], ENT_QUOTES, 'UTF-8'); ?></span></article><?php endforeach; ?><?php if ($tasks === []): ?><p class="empty-state">No active follow-up work is linked to this inquiry.</p><?php endif; ?></div>
                 </div>
                 <footer class="inquiry-workspace-actions"><?php if ($canManage && !$isReadOnly): ?><button type="button" class="button-secondary" data-inquiry-open-note>Add Chron Log Entry</button><?php endif; ?><?php if ($canManage && $isActive && empty($inquiry['contact_deleted']) && !empty($inquiry['contact_email'])): ?><a href="compose_inquiry_email.php?id=<?php echo $inquiryId; ?>" class="button-secondary">Send Email</a><?php endif; ?></footer>
             </section>
@@ -361,9 +361,9 @@ $taskReturn = 'view_inquiry.php?id=' . $inquiryId . '#follow-up-work';
                             class="action-icon-button inquiry-marker-copy"
                             data-copy-text="<?php echo htmlspecialchars($marker, ENT_QUOTES, 'UTF-8'); ?>"
                             data-copy-status="inquiry-marker-copy-status"
-                            data-tooltip="Copy marker"
-                            aria-label="Copy email routing marker"
-                            title="Copy email routing marker"
+                            data-tooltip="Copy Marker"
+                            aria-label="Copy Email Routing Marker"
+                            title="Copy Email Routing Marker"
                         >
                             <svg class="action-icon inquiry-marker-copy-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
                             <svg class="action-icon inquiry-marker-copied-icon" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>

@@ -235,6 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                                 . ($standard_task_count === 1 ? ' was' : 's were')
                                 . ' added and assigned to ' . $standard_task_assignee_label . '.'
                             : '');
+        $_SESSION['clear_form_drafts'][] = 'index.php:new';
                     header('Location: engagements.php');
                     exit();
                 } else {
@@ -258,7 +259,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 $engagement_contact_role_options = engagementContactRoles();
 $selected_engagement_organization_id = !empty($error_message)
     ? (int) ($_POST['organization_id'] ?? 0)
-    : 0;
+    : (\Dnr\Http\RequestInput::positiveInt($_GET, 'created_organization_id') ?? 0);
+$organization_search = \Dnr\Http\RequestInput::string($_GET, 'organization_search', '', 128);
+require_once __DIR__ . '/organization_options_helpers.php';
+$engagement_organization_options = boundedOrganizationOptions(
+    $conn,
+    [$selected_engagement_organization_id],
+    $organization_search
+);
 try {
     $organization_contacts = fetchOrganizationContactOptions(
         $conn,
@@ -324,6 +332,9 @@ try {
     array (
       'path' => 'assets/js/main.min.js',
     ),
+    array (
+      'path' => 'assets/js/relationship-search.min.js',
+    ),
   ),
 )); ?>
 <body>
@@ -337,6 +348,7 @@ try {
             <p class="page-intro">Create the event, schedule, presentations, and logistics in one place.</p>
         </div>
     </div>
+    <?php include __DIR__ . '/templates/organization_search_fallback.php'; ?>
     <!-- Form for adding a new speaking engagement -->
     <?php if (!empty($error_message)): ?>
         <?php echo formErrorSummary($error_message); ?>
@@ -346,28 +358,23 @@ try {
     <?php endif; ?>
 
     <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-    <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" enctype="multipart/form-data">
+    <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
         <?php echo csrfInput(); ?>
         <section class="form-section">
         <h2>Event Details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
-    <select name="organization_id" id="organization_id" required>
-        <option value="" disabled <?php echo empty($_POST['organization_id']) || !empty($success_message) ? 'selected' : ''; ?>>select an organization</option>
-        <?php
-        // Fetch and display organizations in the dropdown
-        $orgs = $conn->query("SELECT id, organization_name FROM organizations WHERE is_deleted = 0 ORDER BY organization_name");
-        while ($row = $orgs->fetch_assoc()) {
-            $selected = !empty($error_message) && isset($_POST['organization_id']) && $_POST['organization_id'] == $row['id'] ? 'selected' : '';
-            echo "<option value='" . htmlspecialchars($row['id']) . "' {$selected}>" . htmlspecialchars($row['organization_name']) . "</option>";
-        }
-        ?>
+    <select name="organization_id" id="organization_id" data-organization-search required>
+        <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an Organization</option>
+        <?php foreach ($engagement_organization_options as $organization_option): ?>
+            <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
+        <?php endforeach; ?>
     </select>
-    <a href="add_organization.php" class="add-org-button">Add New Organization</a>
+    <a href="add_organization.php?return_to=index.php" class="add-org-button">Add New Organization</a>
 </div>
 
         <label for="event_title">Event Title</label>
-        <input type="text" name="event_title" id="event_title" maxlength="255" value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
+        <input type="text" name="event_title" id="event_title" maxlength="255" required value="<?php echo !empty($error_message) ? htmlspecialchars($_POST['event_title'] ?? '') : ''; ?>">
 
         <label for="event_description">Event Description</label>
         <textarea name="event_description" id="event_description" rows="10"><?php echo !empty($error_message) ? htmlspecialchars($_POST['event_description'] ?? '') : ''; ?></textarea>
@@ -429,13 +436,13 @@ try {
         <div class="checkbox-row">
             <div class="checkbox-group">
                 <label class="checkbox-label">
-                    <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> book table provided
+                    <input type="checkbox" name="book_table" <?php echo isset($_POST['book_table']) ? 'checked' : ''; ?>> Book Table Provided
                 </label>
                 <label class="checkbox-label">
-                    <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> brochures permitted
+                    <input type="checkbox" name="brochures" <?php echo isset($_POST['brochures']) ? 'checked' : ''; ?>> Brochures Permitted
                 </label>
             </div>
-            <fieldset class="radio-row"><legend>All travel covered</legend>
+            <fieldset class="radio-row"><legend>All Travel Covered</legend>
                 <div class="radio-options">
                     <?php
                     $travel_covered = $_POST['travel_covered'] ?? 'unknown';
@@ -562,7 +569,7 @@ try {
         <section class="form-section chron-log-section" id="chron-log">
             <h2>Chron Log</h2>
             <p class="field-help">Add an optional first entry. The system will timestamp it when the engagement is created.</p>
-            <label for="chron_entry">Initial Chron entry</label>
+            <label for="chron_entry">Initial Chron Entry</label>
             <textarea name="chron_entry" id="chron_entry" rows="6" maxlength="100000" placeholder="Add scheduling notes, important information, or reminders."><?php echo !empty($error_message) ? htmlspecialchars($_POST['chron_entry'] ?? '') : ''; ?></textarea>
         </section>
 
@@ -571,7 +578,7 @@ try {
                 <div class="form-field">
                     <label for="caller_user_id">Caller</label>
                     <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No caller selected</option>
+                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
                         <?php
                         // Fetch and display users in the dropdown
                         $users = $conn->query(

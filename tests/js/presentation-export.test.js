@@ -62,7 +62,7 @@ test('local HTTP fallback copies the selected presentation', async () => {
 test('copy failures are local and controls remain usable', async () => {
     const f = fixture({ fail: true });
     await f.groups[1].buttons[0].click();
-    assert.equal(f.groups[1].buttons[0].textContent, 'Copy failed');
+    assert.equal(f.groups[1].buttons[0].textContent, 'Copy Failed');
     assert.equal(f.groups[1].buttons[0].disabled, false);
     assert.equal(f.groups[0].status.textContent, '');
     assert.deepEqual(f.copied, []);

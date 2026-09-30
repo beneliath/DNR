@@ -29,7 +29,7 @@
     const retry = document.createElement('button');
     retry.type = 'button';
     retry.className = 'button-secondary';
-    retry.textContent = 'Retry loading weeks';
+    retry.textContent = 'Retry Loading Weeks';
     retry.hidden = true;
     status.after(retry);
     function remember(source) {

@@ -2,9 +2,10 @@
 
 require_once __DIR__ . '/follow_up_task_helpers.php';
 
-class DnrEngagementPdf extends TCPDF {
+class DnrEngagementPdf extends \setasign\Fpdi\Tcpdf\Fpdi {
     private $engagement_title = 'Engagement';
     private $document_label = 'ENGAGEMENT';
+    private $document_label_suffix = ' BRIEF';
     private $generated_date = '';
     private $brand_logo_path = '';
     private $brand_logo_type = '';
@@ -15,8 +16,9 @@ class DnrEngagementPdf extends TCPDF {
         $this->engagement_title = (string) $title;
     }
 
-    public function setDocumentLabel(string $label): void {
+    public function setDocumentLabel(string $label, bool $appendBrief = true): void {
         $this->document_label = $label;
+        $this->document_label_suffix = $appendBrief ? ' BRIEF' : '';
     }
 
     public function setGeneratedDate($generated_date) {
@@ -141,7 +143,7 @@ class DnrEngagementPdf extends TCPDF {
         $this->Cell(
             $this->GetPageWidth() - $this->rMargin - $label_x,
             5,
-            engagementPdfText($this->document_label . ' BRIEF'),
+            engagementPdfText($this->document_label . $this->document_label_suffix),
             0,
             1,
             'R'
@@ -219,7 +221,7 @@ function engagementPdfTaskDueDetails($due_date, $business_date = null) {
     if ($date_value === '') {
         return [
             'key' => 'none',
-            'label' => 'No due date',
+            'label' => 'No Due Date',
         ];
     }
 
@@ -286,7 +288,7 @@ function buildEngagementPdfTaskSection(
         $entries[] = [
             'kind' => 'task',
             'due_state' => $due['key'],
-            'title' => trim((string) ($task['title'] ?? '')) ?: 'Follow-up task',
+            'title' => trim((string) ($task['title'] ?? '')) ?: 'Follow-Up Task',
             'fields' => $fields,
         ];
     }
@@ -345,7 +347,7 @@ function engagementPdfTaskStatusPalette($status) {
             'text' => [154, 91, 5],
         ];
     }
-    if ($status === 'In progress') {
+    if ($status === 'In Progress') {
         return [
             'fill' => [239, 244, 255],
             'text' => [36, 87, 214],
@@ -367,14 +369,14 @@ function engagementPdfTaskEntryLayout(DnrEngagementPdf $pdf, array $entry) {
     $pdf->SetFont('dejavusans', 'B', 9.5);
     $title_height = max(5.5, $pdf->getStringHeight(
         $title_width,
-        engagementPdfText($entry['title'] ?? 'Follow-up task'),
+        engagementPdfText($entry['title'] ?? 'Follow-Up Task'),
         false,
         true,
         '',
         0
     ));
 
-    $due = engagementPdfEntryFieldValue($entry, 'Due', 'No due date');
+    $due = engagementPdfEntryFieldValue($entry, 'Due', 'No Due Date');
     $assignee = engagementPdfEntryFieldValue($entry, 'Assigned To', 'Unassigned');
     $priority = engagementPdfEntryFieldValue($entry, 'Priority', 'Normal');
     $meta = $due . '  |  Owner: ' . $assignee . '  |  ' . $priority . ' priority';
@@ -454,7 +456,7 @@ function addEngagementPdfTaskEntry(DnrEngagementPdf $pdf, array $entry) {
     $pdf->MultiCell(
         $layout['title_width'],
         5.5,
-        engagementPdfText($entry['title'] ?? 'Follow-up task'),
+        engagementPdfText($entry['title'] ?? 'Follow-Up Task'),
         0,
         'L',
         false,

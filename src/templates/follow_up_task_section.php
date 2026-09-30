@@ -91,7 +91,7 @@ $context_status_labels = followUpTaskStatuses();
                 </div>
                 <?php if ($context_task_can_manage): ?>
                 <div class="context-task-actions">
-                    <a href="<?php echo htmlspecialchars($context_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button action-icon-button edit-button" aria-label="Edit task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
+                    <a href="<?php echo htmlspecialchars($context_edit_url, ENT_QUOTES, 'UTF-8'); ?>" class="action-button action-icon-button edit-button" aria-label="Edit Task" title="Edit" data-tooltip="Edit"><?php echo actionIconSvg('edit'); ?></a>
                     <form method="post" action="tasks.php">
                         <?php echo csrfInput(); ?>
                         <input type="hidden" name="action" value="set_status">
@@ -99,7 +99,7 @@ $context_status_labels = followUpTaskStatuses();
                         <input type="hidden" name="task_id" value="<?php echo (int) $context_task['id']; ?>">
                         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($context_task['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete task" title="Complete" data-tooltip="Complete" data-confirm="Are you sure you want to mark this task complete?" data-confirm-title="Complete Task?" data-confirm-label="Complete Task"><?php echo actionIconSvg('complete'); ?></button>
+                        <button type="submit" class="action-button action-icon-button complete-button" aria-label="Complete Task" title="Complete" data-tooltip="Complete"><?php echo actionIconSvg('complete'); ?></button>
                     </form>
                     <?php
                     $archive_task = $context_task;
@@ -112,7 +112,7 @@ $context_status_labels = followUpTaskStatuses();
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="task_id" value="<?php echo (int) $context_task['id']; ?>">
                         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($context_task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
+                        <button type="submit" class="action-button action-icon-button delete-button" aria-label="Delete Task" title="Delete" data-tooltip="Delete"><?php echo actionIconSvg('delete'); ?></button>
                     </form>
                     <?php endif; ?>
                 </div>

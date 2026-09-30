@@ -128,7 +128,7 @@ $task_status_labels = followUpTaskStatuses();
             <p class="page-intro">Your day at a glance · <?php echo htmlspecialchars($business_date_label, ENT_QUOTES, 'UTF-8'); ?></p>
         </div>
         <div class="page-heading-actions">
-            <a href="tasks.php?view=my" class="button-secondary">Open My Work</a>
+            <a href="tasks.php?view=my" class="button-secondary">Open My Tasks</a>
             <?php if ($can_manage): ?>
                 <a href="add_inquiry.php" class="button-secondary">+ New Inquiry</a>
                 <a href="add_task.php?return_to=dashboard.php" class="button-secondary">+ New Task</a>
@@ -137,18 +137,18 @@ $task_status_labels = followUpTaskStatuses();
         </div>
     </div>
 
-    <div class="summary-grid dashboard-summary-grid" aria-label="Daily operations summary">
+    <div class="summary-grid dashboard-summary-grid" aria-label="Daily Operations Summary">
         <a class="summary-card dashboard-summary-card" href="tasks.php?view=all">
             <span class="summary-icon" aria-hidden="true">≡</span>
-            <span><small>All Active Work</small><strong><?php echo $task_summary['all']; ?></strong></span>
+            <span><small>All Active Tasks</small><strong><?php echo $task_summary['all']; ?></strong></span>
         </a>
         <a class="summary-card dashboard-summary-card" href="tasks.php?view=my">
             <span class="summary-icon" aria-hidden="true">✓</span>
-            <span><small>My Active Work</small><strong><?php echo $task_summary['active']; ?></strong></span>
+            <span><small>My Active Tasks</small><strong><?php echo $task_summary['active']; ?></strong></span>
         </a>
         <a class="summary-card dashboard-summary-card summary-danger" href="tasks.php?view=overdue&amp;owner=me">
             <span class="summary-icon" aria-hidden="true">!</span>
-            <span><small>My Overdue Work</small><strong><?php echo $task_summary['overdue']; ?></strong></span>
+            <span><small>My Overdue Tasks</small><strong><?php echo $task_summary['overdue']; ?></strong></span>
         </a>
         <a class="summary-card dashboard-summary-card" href="inquiries.php?view=active">
             <span class="summary-icon" aria-hidden="true">↗</span>
@@ -168,7 +168,7 @@ $task_status_labels = followUpTaskStatuses();
         <?php if ($can_manage): ?>
             <a class="summary-card dashboard-summary-card dashboard-summary-mail" href="inbound_mail.php?status=review">
                 <span class="summary-icon" aria-hidden="true">@</span>
-                <span><small>Mail For Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
+                <span><small>Mail for Review</small><strong><?php echo $inbound_review_count; ?></strong></span>
             </a>
         <?php endif; ?>
     </div>
@@ -177,10 +177,10 @@ $task_status_labels = followUpTaskStatuses();
         <section class="dashboard-panel" id="my-work" aria-labelledby="my-work-heading">
             <div class="dashboard-panel-heading">
                 <div>
-                    <h2 id="my-work-heading">My Work</h2>
+                    <h2 id="my-work-heading">My Tasks</h2>
                     <p><?php echo $task_summary['today']; ?> due today, ordered by urgency and due date.</p>
                 </div>
-                <a href="tasks.php?view=my" class="button-secondary dashboard-panel-button">Open Queue</a>
+                <a href="tasks.php?view=my" class="button-secondary dashboard-panel-button">Open Tasks</a>
             </div>
             <?php if ($my_tasks === []): ?>
                 <div class="dashboard-empty-state"><strong>No active assigned work</strong><span>You are caught up.</span></div>
@@ -313,8 +313,8 @@ $task_status_labels = followUpTaskStatuses();
             <?php endif; ?>
         </section>
     </div>
-    <details class="dashboard-pipeline-disclosure" open>
-        <summary>Booking pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
+    <details class="dashboard-pipeline-disclosure">
+        <summary>Booking Pipeline <span><?php echo $booking_inquiry_count; ?> active inquiries · <?php echo $booking_pipeline_health['overdue']; ?> overdue next actions</span></summary>
     <div class="dashboard-inquiry-grid">
     <section class="dashboard-panel" id="booking-inquiries" aria-labelledby="booking-inquiries-heading">
         <div class="dashboard-panel-heading">

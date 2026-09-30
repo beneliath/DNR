@@ -84,6 +84,47 @@ expectSmtpMessageFormat(
     'HTML messages should use multipart/alternative with intact plain-text and HTML parts.'
 );
 
+$reimbursementMime = smtpMessageContent('Report attached.', '<p>Report attached.</p>', [
+    ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => 'PK'],
+]);
+expectSmtpMessageFormat(
+    str_contains($reimbursementMime['headers'][0], 'multipart/mixed')
+        && substr_count($reimbursementMime['body'], 'Content-Disposition: attachment;') === 1
+        && str_contains($reimbursementMime['body'], 'Content-Type: application/zip; name="request.zip"'),
+    'Reimbursement email contains one ZIP attachment.'
+);
+
+// The provider limit applies after MIME encoding, including headers and body.
+$buildMessage = static fn(string $body, array $files = []) => smtpMessageData(
+    'sender@example.test', 'Sender', 'to@example.test', 'Reimbursement', $body,
+    attachments: $files
+);
+$zipFile = ['filename' => 'request.zip', 'content_type' => 'application/zip', 'data' => str_repeat('A', 18_000_000)];
+$encoded = $buildMessage('Report attached.', [$zipFile]);
+expectSmtpMessageFormat(strlen($encoded) < SMTP_MAX_MESSAGE_BYTES && strlen($encoded) > 24_000_000,
+    'An 18 MB ZIP fits after Base64 encoding and MIME headers.');
+unset($encoded);
+$zipFile['data'] = str_repeat('A', 19_000_000);
+try {
+    $buildMessage('Report attached.', [$zipFile]);
+    throw new RuntimeException('A 19 MB ZIP incorrectly passed the total email limit.');
+} catch (InvalidArgumentException $e) {
+    expectSmtpMessageFormat(str_contains($e->getMessage(), 'complete encoded email exceeds 25 MB'),
+        'Encoding overhead must reject oversized messages even when the ZIP is below 25 MB.');
+}
+unset($zipFile);
+$overhead = strlen($buildMessage('')) + 2;
+$boundaryBody = str_repeat('A', SMTP_MAX_MESSAGE_BYTES - $overhead);
+expectSmtpMessageFormat(strlen($buildMessage($boundaryBody)) + 2 === SMTP_MAX_MESSAGE_BYTES,
+    'The full message exactly at the limit is accepted, including headers and final CRLF.');
+try {
+    $buildMessage($boundaryBody . 'A');
+    throw new RuntimeException('A message one byte over the limit was accepted.');
+} catch (InvalidArgumentException $e) {
+    expectSmtpMessageFormat(str_contains($e->getMessage(), '25 MB'), 'Full message limit is enforced at the byte boundary.');
+}
+unset($boundaryBody);
+
 putenv('DNR_2FA_ENCRYPTION_KEY=' . base64_encode(str_repeat('M', 32)));
 $legacyCiphertext = \Dnr\Security\ApplicationKey::seal(json_encode([
     'recipient' => 'legacy@example.test',
@@ -122,7 +163,7 @@ expectSmtpMessageFormat(
     is_string($source)
         && str_contains($source, 'smtpNormalizeLineEndings(implode("\\n", [')
         && str_contains($source, "'Reply-To: <' . \$replyTo . '>'")
-        && str_contains($source, 'smtpMessageContent($body, $htmlBody)')
+        && str_contains($source, 'smtpMessageContent($body, $htmlBody, $attachments)')
         && !str_contains($source, '$message = str_replace("\\n", "\\r\\n", $message);'),
     'SMTP delivery should support validated Reply-To and optional HTML while normalizing the envelope exactly once.'
 );

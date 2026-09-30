@@ -59,11 +59,11 @@ expectDashboardFeature(
         && $summary_grid_position !== false
         && $booking_panel_position > $my_work_panel_start
         && $my_work_panel_start < strpos($dashboard, 'id="upcoming-engagements"')
-        && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure" open>')
+        && str_contains($dashboard, '<details class="dashboard-pipeline-disclosure">')
         && str_contains($dashboard, 'href="inquiries.php?view=active&amp;owner=me" class="button-secondary dashboard-panel-button">Open My Inquiries</a>')
         && str_contains($dashboard, '<small>Booking Inquiries</small>')
-        && str_contains($dashboard, '<small>All Active Work</small>')
-        && str_contains($dashboard, '<small>Mail For Review</small>')
+        && str_contains($dashboard, '<small>All Active Tasks</small>')
+        && str_contains($dashboard, '<small>Mail for Review</small>')
         && str_contains($dashboard, '<small>Financial Closeouts</small>'),
     'daily work should lead the upcoming schedule and the secondary pipeline should be expanded by default while remaining collapsible.'
 );
@@ -140,7 +140,7 @@ expectDashboardFeature(
         $dashboard,
         '<a class="summary-card dashboard-summary-card" href="tasks.php?view=all">'
     )
-        && str_contains($dashboard, '<small>All Active Work</small><strong><?php echo $task_summary[\'all\']; ?></strong>')
+        && str_contains($dashboard, '<small>All Active Tasks</small><strong><?php echo $task_summary[\'all\']; ?></strong>')
         && str_contains($helpers, 'COUNT(*) AS all_active_count')
         && str_contains($helpers, "status IN ('open', 'in_progress', 'waiting')"),
     'the All Active Work card should count and open every active Work Queue item.'
@@ -190,7 +190,7 @@ expectDashboardFeature(
         && preg_match('/\.dashboard-panel-heading > a:hover,[^{]*\{[^}]*background:\s*var\(--primary-subtle\);[^}]*transform:\s*translateY\(-1px\);/s', $styles) === 1
         && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Review All</a>')
         && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">View List</a>')
-        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Queue</a>')
+        && str_contains($dashboard, 'class="button-secondary dashboard-panel-button">Open Tasks</a>')
         && preg_match('/\.dashboard-panel-heading > a\.dashboard-panel-button:hover,[^{]*\{[^}]*transform:\s*none;/s', $styles) === 1
         && str_contains($styles, '@media (max-width: 760px)')
         && str_contains($styles, 'grid-template-columns: 1fr;'),

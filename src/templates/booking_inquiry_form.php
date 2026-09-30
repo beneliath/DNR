@@ -11,7 +11,7 @@ $inquiry_event_types = \Dnr\Domain\ReferenceData::eventTypes();
 $value = static fn(string $key, string $fallback = ''): string => (string) ($inquiry_form_values[$key] ?? $fallback);
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
-<form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form" data-inquiry-draft-key="<?php echo (int) ($_SESSION['user_id'] ?? 0); ?>:<?php echo !empty($inquiry_id) ? (int) $inquiry_id : 'new'; ?>" data-inquiry-form-submitted="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>">
+<form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form" data-recoverable-draft="<?php echo !empty($inquiry_id) ? 'edit_inquiry.php:' . (int)$inquiry_id : 'add_inquiry.php:new'; ?>" data-inquiry-draft-key="<?php echo (int) ($_SESSION['user_id'] ?? 0); ?>:<?php echo !empty($inquiry_id) ? (int) $inquiry_id : 'new'; ?>" data-inquiry-form-submitted="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>">
     <?php echo csrfInput(); ?>
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
@@ -25,7 +25,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
         <div class="inquiry-form-grid">
             <div class="form-group">
                 <label for="inquiry-organization">Organization</label>
-                <label class="visually-hidden" for="inquiry-organization-search">Search organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search organizations" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-organization-search">Search Organizations</label><input type="search" id="inquiry-organization-search" name="organization_search" value="<?php echo htmlspecialchars($value('organization_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Organizations" autocomplete="off">
                 <select id="inquiry-organization" name="organization_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_organizations as $organization): ?>
@@ -35,7 +35,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             </div>
             <div class="form-group">
                 <label for="inquiry-contact">Primary Contact</label>
-                <label class="visually-hidden" for="inquiry-contact-search">Search compatible contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search compatible contacts" autocomplete="off">
+                <label class="visually-hidden" for="inquiry-contact-search">Search Compatible Contacts</label><input type="search" id="inquiry-contact-search" name="contact_search" value="<?php echo htmlspecialchars($value('contact_search'), ENT_QUOTES, 'UTF-8'); ?>" data-search-url="inquiry_relationship_search.php" placeholder="Search Compatible Contacts" autocomplete="off">
                 <select id="inquiry-contact" name="primary_contact_id">
                     <option value="">Not Identified Yet</option>
                     <?php foreach ($inquiry_contacts as $contact): ?>
@@ -45,8 +45,8 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
                 </select>
             </div>
         </div>
-        <noscript><button type="submit" name="search_inquiry_relationships" value="1" formnovalidate>Search organizations and contacts</button></noscript>
-        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create contact</a></div>
+        <noscript><button type="submit" name="search_inquiry_relationships" value="1" formnovalidate>Search Organizations and Contacts</button></noscript>
+        <div class="inquiry-related-actions"><a class="button-secondary" data-inquiry-create="organization" href="add_organization.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Organization</a><a class="button-secondary" data-inquiry-create="contact" href="add_contact.php?return_to=<?php echo urlencode($inquiry_form_action); ?>">Create Contact</a></div>
         <p class="field-help" id="inquiry-relationship-status" role="status">Search by name to find a record. Up to 25 matches are shown. Choose an organization to narrow contacts. Standalone contacts can be selected when no organization is chosen. Creating a related record keeps this inquiry draft.</p>
         <div class="form-group inquiry-request-summary">
             <label for="inquiry-summary">What Is Being Requested?</label>
@@ -122,6 +122,15 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
             <div class="form-group inquiry-source-detail-field"><label for="inquiry-source-detail">Source Detail</label><input id="inquiry-source-detail" name="source_detail" maxlength="255" value="<?php echo htmlspecialchars($value('source_detail'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Referrer, mailbox, form, or campaign"></div>
         </div>
         <div class="inquiry-next-action-fields">
+            <?php if (!empty($inquiry_form_values['id'])):
+                require_once __DIR__ . '/../follow_up_task_helpers.php';
+                $nextActionOptions = fetchFollowUpTasksForSubject($conn, 'inquiry', (int) $inquiry_form_values['id']); ?>
+            <div class="form-group"><label for="next-action-task-choice">Use an Existing Task as the Next Action</label>
+            <select id="next-action-task-choice" name="next_action_task_choice"><option value="0">Use the Next Action Fields Below</option>
+            <?php foreach ($nextActionOptions as $option): if ($option['is_archived'] || !in_array($option['status'], ['open','in_progress','waiting'], true)) continue; ?>
+            <option value="<?php echo (int) $option['id']; ?>" <?php echo (int) $value('next_action_task_choice') === (int) $option['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($option['title'], ENT_QUOTES, 'UTF-8'); ?></option>
+            <?php endforeach; ?></select><p>Choosing an existing task uses its title, due date, and owner. Otherwise, the fields below create or update the linked task.</p></div>
+            <?php endif; ?>
             <div class="form-group inquiry-next-action-detail-field"><label for="inquiry-next-action">Next Action</label><input id="inquiry-next-action" name="next_action" maxlength="255" value="<?php echo htmlspecialchars($value('next_action'), ENT_QUOTES, 'UTF-8'); ?>" placeholder="Call host, request venue details, send proposal"></div>
             <div class="form-group"><label for="inquiry-next-action-due">Due</label><input type="date" id="inquiry-next-action-due" name="next_action_due_date" value="<?php echo htmlspecialchars($value('next_action_due_date'), ENT_QUOTES, 'UTF-8'); ?>"></div>
         </div>

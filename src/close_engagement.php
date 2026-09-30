@@ -295,7 +295,7 @@ try {
     $receipt_total_label = 'Total entered: ' . formatFinancialAmount($receipt_summary['total_received']);
     $receipt_entered_count = count(array_filter(array_intersect_key($receipt_summary, array_flip(['giving_income_received', 'lodging_received', 'travel_received'])), static fn($value) => $value !== null));
 } catch (InvalidArgumentException $exception) {
-    $receipt_total_label = 'Check receipt amounts';
+    $receipt_total_label = 'Check Receipt Amounts';
     $receipt_entered_count = 0;
 }
 $closed_timestamp = $is_correction
@@ -322,7 +322,7 @@ $closed_timestamp = $is_correction
 
     <div class="page-heading">
         <div>
-            <h1><?php echo $is_correction ? 'Correct final financial report' : 'Close out event'; ?></h1>
+            <h1><?php echo $is_correction ? 'Correct Final Financial Report' : 'Close Out Event'; ?></h1>
             <p class="page-intro">
                 <?php echo htmlspecialchars((string) $engagement['event_title'], ENT_QUOTES, 'UTF-8'); ?>
                 · <?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?>
@@ -380,13 +380,13 @@ $closed_timestamp = $is_correction
         <input type="hidden" name="report_version" value="<?php echo htmlspecialchars((string) ($financial_report['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 
         <fieldset>
-            <legend>Actual receipts</legend>
+            <legend>Actual Receipts</legend>
             <p class="field-help">Leave an amount blank when it is not known yet. Enter 0 only when you have confirmed no amount was received. Every category must be entered before finalizing.</p>
             <div class="financial-fields">
                 <?php foreach ([
-                    'giving_income_received' => 'Giving / income received',
-                    'lodging_received' => 'Lodging received',
-                    'travel_received' => 'Travel received',
+                    'giving_income_received' => 'Giving / Income Received',
+                    'lodging_received' => 'Lodging Received',
+                    'travel_received' => 'Travel Received',
                 ] as $field_name => $field_label): ?>
                     <div class="form-group">
                         <label for="<?php echo $field_name; ?>"><?php echo $field_label; ?> <span class="required" aria-hidden="true">*</span></label>
@@ -403,7 +403,7 @@ $closed_timestamp = $is_correction
 
         <div class="receipt-draft-total" role="status"><strong data-receipt-total><?php echo htmlspecialchars($receipt_total_label, ENT_QUOTES, 'UTF-8'); ?></strong><span data-receipt-completion><?php echo $receipt_entered_count; ?> of 3 categories entered</span></div>
         <div class="form-group">
-            <label for="notes">Closeout notes</label>
+            <label for="notes">Closeout Notes</label>
             <textarea id="notes" name="notes" rows="6" placeholder="Optional context, payment references, or correction reason"><?php echo htmlspecialchars((string) ($form_values['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
         </div>
 
@@ -416,8 +416,8 @@ $closed_timestamp = $is_correction
 
         <div class="form-actions">
             <a href="view_engagement.php?id=<?php echo $engagement_id; ?>#financial-closeout" class="action-button back-button">Cancel</a>
-            <?php if (!$is_correction): ?><button type="submit" name="action" value="save_draft" formnovalidate class="button-secondary">Save draft</button><?php endif; ?>
-            <button type="submit" name="action" value="finalize" class="action-button save-button"<?php echo $closeout_is_held ? ' disabled' : ''; ?>><?php echo $is_correction ? 'Save correction' : 'Finalize and close event'; ?></button>
+            <?php if (!$is_correction): ?><button type="submit" name="action" value="save_draft" formnovalidate class="button-secondary">Save Draft</button><?php endif; ?>
+            <button type="submit" name="action" value="finalize" class="action-button save-button"<?php echo $closeout_is_held ? ' disabled' : ''; ?>><?php echo $is_correction ? 'Save Correction' : 'Finalize and Close Event'; ?></button>
         </div>
     </form>
 </div>

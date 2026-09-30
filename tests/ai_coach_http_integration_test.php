@@ -110,12 +110,12 @@ try {
         && str_contains($list['body'], 'Engagement Details'), 'Request list includes the requesting user and readable page names');
     $failure = aiCoachFailureReply([], 'answer', new AiCoachModelFailure('timeout', 0, 28));
     coachHttpExpect(aiCoachCompleteRequest($conn, (int) $record['id'], $failure, 19000), 'Diagnostic failure is saved');
-    coachHttpExpect(str_contains($http('ai_coach_requests.php')['body'], 'Timed out'), 'Timeout has a distinct readable log result');
+    coachHttpExpect(str_contains($http('ai_coach_requests.php')['body'], 'Timed Out'), 'Timeout has a distinct readable log result');
     aiCoachCompleteRequest($conn, (int) $record['id'], aiCoachFailureReply([], 'route', new RuntimeException('Malformed answer')), 100);
     coachHttpExpect($conn->execute_query('SELECT outcome FROM ai_coach_requests WHERE id=?', [$record['id']])->fetch_row()[0] === 'error', 'Invalid model output is recorded as failure, not completed');
     $echo = ['message' => 'I cannot look up an answer right now. You can still use the guided steps and open the matching manual topics below.'];
     aiCoachCompleteRequest($conn, (int) $record['id'], $echo, 100);
-    coachHttpExpect(str_contains($http('ai_coach_requests.php')['body'], 'Invalid answer'), 'Historical failure echoes are flagged in the log without rewriting the original response');
+    coachHttpExpect(str_contains($http('ai_coach_requests.php')['body'], 'Invalid Answer'), 'Historical failure echoes are flagged in the log without rewriting the original response');
     coachHttpExpect($conn->execute_query('SELECT outcome FROM ai_coach_requests WHERE id=?', [$record['id']])->fetch_row()[0] === 'complete', 'Display classification preserves historical stored outcomes');
     aiCoachCompleteRequest($conn, (int) $record['id'], json_decode($record['response_json'], true), (int) $record['duration_ms']);
     $page = $http('ai_coach_requests.php?id=' . $record['id']);

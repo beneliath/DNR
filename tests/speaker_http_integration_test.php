@@ -109,7 +109,7 @@ try {
                 && speakerHidden($invalidLink['body'], 'website_url') === $input['website_url']
                 && str_contains($invalidLink['body'], $input['bio']), 'Invalid URLs preserve the other submitted fields.');
             $invalidPhone = $request('edit_speaker.php?id=' . $speakerId, array_replace($input, ['phone' => '123']));
-            expectSpeakerHttp($invalidPhone['status'] === 200 && str_contains($invalidPhone['body'], 'Enter a valid Phone number')
+            expectSpeakerHttp($invalidPhone['status'] === 200 && str_contains($invalidPhone['body'], 'Enter a valid Phone Number')
                 && speakerHidden($invalidPhone['body'], 'phone_country_code') === '+44'
                 && str_contains($invalidPhone['body'], $input['bio']), 'Validation preserves the country selection and biography.');
             expectSpeakerHttp($request('edit_speaker.php?id=' . $speakerId, $input)['status'] === 302, 'An editor can edit a speaker.');
@@ -173,8 +173,8 @@ try {
                 && substr_count($lastPage['body'], 'Showing 101–101 of 101 speakers') === 2, 'Both pagination tools describe the last page accurately.');
             $descending = $request('speakers.php?q=' . urlencode($paginationPrefix) . '&per_page=20&sort_by=name&name_sort=desc');
             expectSpeakerHttp(strpos($descending['body'], $paginationPrefix . ' 101') < strpos($descending['body'], $paginationPrefix . ' 100'), 'Name sorting applies before pagination.');
-            expectSpeakerHttp(str_contains($descending['body'], '+ New Speaker') && str_contains($descending['body'], 'aria-label="View speaker"')
-                && str_contains($descending['body'], 'aria-label="Edit speaker"'), 'The directory exposes the requested button and both action icons.');
+            expectSpeakerHttp(str_contains($descending['body'], '+ New Speaker') && str_contains($descending['body'], 'aria-label="View Speaker"')
+                && str_contains($descending['body'], 'aria-label="Edit Speaker"'), 'The directory exposes the requested button and both action icons.');
             $newEvent = $request('index.php');
             expectSpeakerHttp($newEvent['status'] === 200 && preg_match('/<select[^>]*name="presentations\[1\]\[speaker_id\]"/', $newEvent['body']) === 1
                 && str_contains($newEvent['body'], 'Updated HTTP speaker'), 'New presentation forms use the current speaker directory.');

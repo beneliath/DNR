@@ -1,6 +1,7 @@
 (function () {
     function lifecycleFieldState(status) {
         return {
+            confirmationVisible: status !== 'completed',
             cancellationVisible: status === 'canceled',
             rescheduleVisible: status === 'postponed' || status === 'canceled'
         };
@@ -13,6 +14,7 @@
 
     const section = document.querySelector('[data-engagement-lifecycle]');
     const lifecycle = document.getElementById('lifecycle_status');
+    const confirmationField = section?.querySelector('[data-confirmation-field]');
     const organization = document.getElementById('organization_id');
     const cancellationFields = section?.querySelector('[data-cancellation-fields]');
     const cancellationReason = document.getElementById('cancellation_reason');
@@ -20,7 +22,7 @@
     const rescheduleSelect = document.getElementById('rescheduled_to_engagement_id');
     const rescheduleStatus = section?.querySelector('[data-reschedule-status]');
     const badge = section?.querySelector('[data-lifecycle-badge]');
-    if (!section || !lifecycle || !organization || !cancellationFields
+    if (!section || !lifecycle || !confirmationField || !organization || !cancellationFields
         || !cancellationReason || !rescheduleFields || !rescheduleSelect
         || !rescheduleStatus || !badge) return;
 
@@ -35,20 +37,21 @@
     function synchronizeFields() {
         const status = lifecycle.value;
         const state = lifecycleFieldState(status);
+        confirmationField.hidden = !state.confirmationVisible;
         cancellationFields.hidden = !state.cancellationVisible;
         cancellationReason.disabled = !state.cancellationVisible;
         cancellationReason.required = state.cancellationVisible;
         rescheduleFields.hidden = !state.rescheduleVisible;
         rescheduleSelect.disabled = !state.rescheduleVisible;
         badge.className = 'lifecycle-badge lifecycle-' + status;
-        badge.textContent = labels[status] || 'Lifecycle not set';
+        badge.textContent = labels[status] || 'Lifecycle Not Set';
     }
 
     function replaceOptions(engagements) {
         const fragment = document.createDocumentFragment();
         const empty = document.createElement('option');
         empty.value = '';
-        empty.textContent = 'No replacement event linked';
+        empty.textContent = 'No Replacement Event Linked';
         fragment.appendChild(empty);
         engagements.forEach(function (engagement) {
             const option = document.createElement('option');

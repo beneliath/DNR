@@ -8,7 +8,7 @@ final class OrganizationInput
 {
     /**
      * @param array<string, mixed> $input
-     * @return array{data: array<string, bool|string>, errors: list<string>}
+     * @return array{data: array<string, bool|string>, errors: list<string>, error_fields: list<string|null>}
      */
     public static function normalize(array $input): array
     {
@@ -32,10 +32,16 @@ final class OrganizationInput
             : \applicationDefaultPhoneCountryCode();
 
         $errors = [];
+        $error_fields = [];
+        $add_error = static function (?string $field, string $message) use (&$errors, &$error_fields): void {
+            if (in_array($message, $errors, true)) return;
+            $errors[] = $message;
+            $error_fields[] = $field;
+        };
         if ($data['physical_country'] !== '') {
             $physical_country = \normalizeAddressCountryCode($data['physical_country']);
             if ($physical_country === null) {
-                $errors[] = 'Select a valid physical country.';
+                $add_error('physical_country', 'Select a valid physical country.');
             } else {
                 $data['physical_country'] = $physical_country;
             }
@@ -43,9 +49,9 @@ final class OrganizationInput
         if ($data['physical_state'] !== '') {
             $physical_state = \normalizeAddressRegion($data['physical_country'], $data['physical_state']);
             if ($physical_state === null) {
-                $errors[] = $data['physical_country'] === 'CA'
+                $add_error('physical_state', $data['physical_country'] === 'CA'
                     ? 'Select a valid physical province.'
-                    : 'Select a valid physical state.';
+                    : 'Select a valid physical state.');
             } else {
                 $data['physical_state'] = $physical_state;
             }
@@ -57,7 +63,7 @@ final class OrganizationInput
         } elseif ($data['mailing_country'] !== '') {
             $mailing_country = \normalizeAddressCountryCode($data['mailing_country']);
             if ($mailing_country === null) {
-                $errors[] = 'Select a valid mailing country.';
+                $add_error('mailing_country', 'Select a valid mailing country.');
             } else {
                 $data['mailing_country'] = $mailing_country;
             }
@@ -65,19 +71,19 @@ final class OrganizationInput
         if (!$data['same_address'] && $data['mailing_state'] !== '') {
             $mailing_state = \normalizeAddressRegion($data['mailing_country'], $data['mailing_state']);
             if ($mailing_state === null) {
-                $errors[] = $data['mailing_country'] === 'CA'
+                $add_error('mailing_state', $data['mailing_country'] === 'CA'
                     ? 'Select a valid mailing province.'
-                    : 'Select a valid mailing state.';
+                    : 'Select a valid mailing state.');
             } else {
                 $data['mailing_state'] = $mailing_state;
             }
         }
 
         if ($data['organization_name'] === '') {
-            $errors[] = 'Organization name is required.';
+            $add_error('organization_name', 'Organization name is required.');
         }
         foreach ([
-            'organization_name' => [255, 'Organization name'],
+            'organization_name' => [255, 'Organization Name'],
             'affiliation' => [255, 'Affiliation'],
             'distinctives' => [255, 'Distinctives'],
             'website_url' => [255, 'Website URL'],
@@ -96,16 +102,16 @@ final class OrganizationInput
         ] as $field => [$maximum, $label]) {
             $length_error = InputText::lengthError((string) $data[$field], $maximum, $label);
             if ($length_error !== null) {
-                $errors[] = $length_error;
+                $add_error($field, $length_error);
             }
         }
         $notes_error = InputText::textStorageError((string) $data['notes'], 'Organization notes');
         if ($notes_error !== null) {
-            $errors[] = $notes_error;
+            $add_error('notes', $notes_error);
         }
         $normalized_url = \normalizedHttpUrl($data['website_url']);
         if ($normalized_url === null) {
-            $errors[] = 'Please provide a valid website URL.';
+            $add_error('website_url', 'Please provide a valid website URL.');
         } else {
             $data['website_url'] = $normalized_url;
         }
@@ -114,10 +120,10 @@ final class OrganizationInput
             try {
                 $data[$field] = \normalizePhoneNumber($data[$country], $data[$field], $label);
             } catch (\InvalidArgumentException $exception) {
-                $errors[] = $exception->getMessage();
+                $add_error($field, $exception->getMessage());
             }
         }
 
-        return ['data' => $data, 'errors' => array_values(array_unique($errors))];
+        return ['data' => $data, 'errors' => $errors, 'error_fields' => $error_fields];
     }
 }

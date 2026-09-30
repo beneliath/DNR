@@ -53,10 +53,10 @@ expectMapFeature(
         && str_contains($map_page, "e.lifecycle_status = ?")
         && str_contains($map_page, 'e.event_end_date >= ?')
         && str_contains($map_page, 'e.event_start_date <= ?')
-        && str_contains($map_page, 'All statuses')
-        && str_contains($map_page, 'All lifecycle states')
+        && str_contains($map_page, 'All Statuses')
+        && str_contains($map_page, 'All Lifecycle States')
         && str_contains($map_page, '<fieldset class="map-date-window">')
-        && str_contains($map_page, '<legend>Date window</legend>'),
+        && str_contains($map_page, '<legend>Date Window</legend>'),
     'the Map page should filter statuses and events that overlap the selected date window.'
 );
 expectMapFeature(

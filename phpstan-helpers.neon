@@ -1,6 +1,11 @@
 parameters:
     level: 5
     paths:
+        - src/workflow_task_helpers.php
+        - src/task_bulk_helpers.php
+        - src/duplicate_warning_helpers.php
+        - src/global_search_helpers.php
+        - src/list_ui_helpers.php
         - src/data_maintenance_helpers.php
         - src/document_scanning_helpers.php
         - src/key_rotation_helpers.php
@@ -46,6 +51,8 @@ parameters:
         - src/engagement_lifecycle_helpers.php
         - src/engagement_search_helpers.php
         - src/email_helpers.php
+        - src/email_ascii_footer.php
+        - src/email_inline_image_helpers.php
         - src/account_email_change_helpers.php
         - src/follow_up_task_helpers.php
         - src/task_visibility_helpers.php

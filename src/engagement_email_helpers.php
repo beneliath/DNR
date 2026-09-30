@@ -52,7 +52,7 @@ function renderEngagementEmailTemplates(array $engagement, array $presentations,
             'suggested_roles' => $roles,
         ];
     }
-    $templates['custom'] = ['label' => 'Custom message', 'subject' => $marker, 'body' => '', 'suggested_roles' => []];
+    $templates['custom'] = ['label' => 'Custom Message', 'subject' => $marker, 'body' => '', 'suggested_roles' => []];
     return $templates;
 }
 
@@ -586,7 +586,8 @@ function queueEngagementEmail(
     string $mattermostPostId = '',
     array $speakerIds = [],
     ?array $recipientTypes = null,
-    string $senderCopy = ''
+    string $senderCopy = '',
+    ?string $followUpDate = null
 ): int {
     $transport = accountMailTransport();
     $engagementId = (int) ($engagement['id'] ?? 0);
@@ -814,6 +815,8 @@ function queueEngagementEmail(
         $organizationChron->close();
         $contactChron->close();
 
+        require_once __DIR__ . '/workflow_task_helpers.php';
+        createEmailFollowUpTask($conn, $messageId, 'engagement', $engagementId, $createdBy, $followUpDate);
         if ($mattermostPostId !== '') {
             queueMattermostPostReactionNotification(
                 $conn,
