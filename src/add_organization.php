@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
@@ -15,6 +17,7 @@ if (!hasRole(['admin', 'editor'])) {
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'organization', 'view_organization.php?id=', $creation_return);
 
     $error = false;
     $errorMessages = array();
@@ -122,7 +125,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
             $errorMessages[] = "An organization with this name already exists.";
         } else {
             $conn->begin_transaction();
+
             try {
+        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'organization');
+        if ($replayed_id !== null) { $conn->commit(); header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_organization_id' => $replayed_id]) : 'view_organization.php?id=' . $replayed_id), true, 303); exit(); }
                 $org_stmt = $conn->prepare(
                     "INSERT INTO organizations (
                         organization_name, notes, affiliation, distinctives, website_url, phone, fax,
@@ -190,7 +196,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['save_org'])) {
                     ensureContactOrganizationAffiliation($conn, (int) $existing_contact['contact_id'],
                         (int) $organization_id, $existing_contact['role_title']);
                 }
-                $conn->commit();
+                completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $organization_id);
+                    $conn->commit();
                 $_SESSION['success_message'] = !empty($contacts_to_create) || !empty($existing_contacts)
                     ? "Organization and contact information saved successfully."
                     : "Organization saved successfully.";
@@ -263,7 +270,7 @@ if (isset($_SESSION['success_message'])) {
     <form method="post" action="add_organization.php" class="organization-form" data-duplicate-kind="organization">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'organization', $creation_return); ?>
 
-        <?php echo csrfInput(); ?>
+        <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="form-group">
             <label class="required" for="organization_name">Organization Name</label>

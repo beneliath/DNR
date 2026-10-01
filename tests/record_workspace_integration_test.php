@@ -71,10 +71,13 @@ try {
             'Lifecycle preferences do not leak between users sharing a browser');
     }
     $orgName = 'Relationship HTTP ' . $suffix;
-    $inline = recordHttp('create_organization_inline.php', $editorSession, ['csrf_token' => $csrf, 'organization_name' => $orgName]);
+    $operationToken = bin2hex(random_bytes(16));
+    $inline = recordHttp('create_organization_inline.php', $editorSession, ['csrf_token' => $csrf, 'operation_token' => $operationToken, 'organization_name' => $orgName]);
     $created = json_decode($inline['body'], true);
     expectRecordHttp($inline['status'] === 200 && ($created['id'] ?? 0) > 0, 'Inline name-only organization must be persisted successfully');
     $orgId = $organizations[] = (int) $created['id'];
+    $retried = recordHttp('create_organization_inline.php', $editorSession, ['csrf_token' => $csrf, 'operation_token' => $operationToken, 'organization_name' => $orgName]);
+    expectRecordHttp($retried['status']===200 && (int)json_decode($retried['body'],true)['id']===$orgId,'An inline save retry returns the original organization');
     expectRecordHttp($conn->query('SELECT organization_name FROM organizations WHERE id = ' . $orgId)->fetch_assoc()['organization_name'] === $orgName, 'Inline name must be stored');
     $invalidCsrf = recordHttp('create_organization_inline.php', $editorSession, ['csrf_token' => 'invalid', 'organization_name' => $orgName . ' invalid']);
     expectRecordHttp($invalidCsrf['status'] === 400, 'Organization creation requires CSRF');
@@ -211,10 +214,10 @@ try {
     expectRecordHttp($conn->query('SELECT contact_email FROM contacts WHERE id = ' . $contactId)->fetch_assoc()['contact_email'] === 'record-' . $suffix . '@example.org', 'Note save cannot mutate contact fields');
     expectRecordHttp($conn->query('SELECT event_title FROM engagements WHERE id = ' . $eventId)->fetch_assoc()['event_title'] === 'Note scope ' . $suffix, 'Note save cannot mutate engagement fields');
     // Verify the creation return contract consumed by the inquiry draft controls.
-    $newOrg = recordHttp('add_organization.php', $editorSession, ['csrf_token' => $csrf, 'save_org' => '1', 'organization_name' => 'Form intake ' . $suffix, 'return_to' => 'edit_inquiry.php?id=999']);
+    $newOrg = recordHttp('add_organization.php', $editorSession, ['csrf_token' => $csrf, 'operation_token'=>bin2hex(random_bytes(16)), 'save_org' => '1', 'organization_name' => 'Form intake ' . $suffix, 'return_to' => 'edit_inquiry.php?id=999']);
     expectRecordHttp($newOrg['status'] === 302 && preg_match('/Location: edit_inquiry\.php\?id=999&created_organization_id=(\d+)/i', $newOrg['headers'], $createdMatch) === 1, 'Name-only organization form resumes the inquiry with its new ID');
     $organizations[] = (int) $createdMatch[1];
-    $newContact = recordHttp('add_contact.php', $editorSession, ['csrf_token' => $csrf, 'save_contact' => '1', 'contact_first_name' => 'One', 'contact_last_name' => 'Email', 'contact_role' => 'admin', 'contact_email' => 'one-' . $suffix . '@example.org', 'organization_id' => $orgId, 'return_to' => 'add_inquiry.php']);
+    $newContact = recordHttp('add_contact.php', $editorSession, ['csrf_token' => $csrf, 'operation_token'=>bin2hex(random_bytes(16)), 'save_contact' => '1', 'contact_first_name' => 'One', 'contact_last_name' => 'Email', 'contact_role' => 'admin', 'contact_email' => 'one-' . $suffix . '@example.org', 'organization_id' => $orgId, 'return_to' => 'add_inquiry.php']);
     expectRecordHttp($newContact['status'] === 302 && preg_match('/Location: add_inquiry\.php\?created_contact_id=(\d+)/i', $newContact['headers'], $contactMatch) === 1, 'A single email contact form resumes the inquiry with its new ID');
     $contacts[] = (int) $contactMatch[1];
 
@@ -357,7 +360,13 @@ try {
     echo "Record workspace HTTP integration tests passed.\n";
 } finally {
     foreach (['engagements' => $engagements, 'contacts' => $contacts, 'organizations' => $organizations, 'users' => $users] as $table => $ids) {
-        foreach ($ids as $id) $conn->query("DELETE FROM {$table} WHERE id = " . (int) $id);
+        foreach ($ids as $id) {
+            // Web fixtures obey financial retention; the disposable database
+            // owns final removal of their closed reports and parent records.
+            if ($table === 'engagements' && $conn->execute_query('SELECT 1 FROM engagement_financial_reports WHERE engagement_id=?',[$id])->fetch_row()) continue;
+            if ($table === 'organizations' && $conn->execute_query('SELECT 1 FROM engagements WHERE organization_id=? LIMIT 1',[$id])->fetch_row()) continue;
+            $conn->query("DELETE FROM {$table} WHERE id = " . (int) $id);
+        }
     }
     foreach ($sessions as [$id]) {
         $sessionPath = rtrim((string) ini_get('session.save_path'), '/') . '/sess_' . $id;

@@ -55,7 +55,7 @@ def main():
     if sys.argv[1:] == ['verify']:
         verify(os.environ.get('DNR_INTEGRATION_PROJECT', ''), os.environ.get('DNR_ISOLATION_TOKEN', ''))
         return
-    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions']):
+    if sys.argv[1:] not in ([], ['downloads'], ['coach'], ['uploads'], ['calendar'], ['maintenance'], ['recovery'], ['scanning'], ['reimbursements'], ['authenticated'], ['uiux'], ['functional'], ['actions'], ['data-management']):
         raise ValueError('Usage: integration_environment.py [downloads|coach|uploads|calendar|maintenance|recovery|scanning|reimbursements|authenticated|uiux|functional|actions|verify]')
     uiux_only = sys.argv[1:] in (['uiux'], ['functional'], ['actions'])
     authenticated_only = sys.argv[1:] == ['authenticated']
@@ -121,6 +121,24 @@ def main():
             subprocess.run(compose + ['up', '-d', '--no-build', '--wait', 'web', 'backup', 'ingress'], cwd=ROOT, env=env, check=True)
             verify(project, token)
             print('Verified isolated integration project: ' + project, flush=True)
+            if sys.argv[1:] == ['data-management']:
+                for suite in ('data_management_integration_test.php', 'review_improvements_integration_test.php',
+                              'contact_organizations_integration_test.php','data_maintenance_integration_test.php','financial_tracking_integration_test.php'):
+                    subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
+                        '-e', 'DNR_INTEGRATION_TARGET=disposable', '-e', 'DNR_INTEGRATION_TEST=1',
+                        '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-v', str(ROOT/'src')+':/var/www/html:ro',
+                        'key-rotation', '/opt/dnr/tests/'+suite], cwd=ROOT, env=env, check=True)
+                for suite in ('contact_affiliation_http_integration_test.php','engagement_contacts_http_integration_test.php',
+                              'record_workspace_integration_test.php','standard_task_generation_http_integration_test.php',
+                              'uiux_workflow_http_integration_test.php','functional_workflows_integration_test.php',
+                              'reimbursement_workflow_http_integration_test.php'):
+                    subprocess.run(compose + ['exec','-T','-u','www-data',
+                        '-e','DNR_INTEGRATION_TARGET=disposable','-e','DNR_INTEGRATION_TEST=1',
+                        '-e','DNR_TEST_SOURCE_DIR=/var/www/html','-e','DNR_TEST_BASE_URL=http://127.0.0.1',
+                        'web','php','-d','disable_functions=passthru,shell_exec,system,popen',
+                        '/opt/dnr/tests/'+suite],cwd=ROOT,env=env,check=True)
+                subprocess.run(compose + ['up','-d','--no-build','--wait','data-maintenance'],cwd=ROOT,env=env,check=True)
+                return
             if uiux_only:
                 for suite in (('bulk_delete_http_integration_test.php', 'short_links_http_integration_test.php') if sys.argv[1] == 'actions' else ('functional_workflows_integration_test.php',) if sys.argv[1] == 'functional' else ('follow_up_tasks_integration_test.php', 'workflow_improvements_http_integration_test.php', 'functional_workflows_integration_test.php')):
                     subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
@@ -149,14 +167,16 @@ def main():
                 db = subprocess.check_output(compose + ['ps', '-q', 'db'], cwd=ROOT, env=env, text=True).strip()
                 web = subprocess.check_output(compose + ['ps', '-q', 'web'], cwd=ROOT, env=env, text=True).strip()
                 env.update(DNR_INTEGRATION_TARGET='disposable', DNR_RECOVERY_TEST_DB=db,
-                           DNR_RECOVERY_TEST_WEB=web, DNR_RECOVERY_TEST_PASSWORD=values['DNR_BACKUP_PASSWORD_FILE'])
+                           DNR_RECOVERY_TEST_WEB=web, DNR_RECOVERY_TEST_PASSWORD=values['DNR_BACKUP_PASSWORD_FILE'],
+                           DNR_RECOVERY_DRILL_REPORT='/tmp/dnr-synthetic-restore-report.json')
                 subprocess.run([sys.executable, 'tests/online_recovery_integration_test.py'], cwd=ROOT, env=env, check=True)
                 return
             if maintenance_only:
-                subprocess.run(compose + ['exec', '-T', '-u', 'www-data',
+                subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html',
-                    'web', 'php', '/opt/dnr/tests/data_maintenance_integration_test.php'], cwd=ROOT, env=env, check=True)
+                    '-v', str(ROOT/'src')+':/var/www/html:ro',
+                    'key-rotation', '/opt/dnr/tests/data_maintenance_integration_test.php'], cwd=ROOT, env=env, check=True)
                 subprocess.run(compose + ['run', '--rm', '--no-deps', '--entrypoint', 'php',
                     '-e', 'DNR_INTEGRATION_TEST=1', '-e', 'DNR_INTEGRATION_TARGET=disposable',
                     '-e', 'DNR_TEST_SOURCE_DIR=/var/www/html', '-v', str(ROOT / 'src') + ':/var/www/html:ro',
@@ -197,7 +217,11 @@ def main():
             subprocess.run([sys.executable, 'tests/download_pool_capacity_test.py', 'http://' + address, fixture['path']], cwd=ROOT, env=env, check=True)
         except subprocess.CalledProcessError:
             # Preserve startup/test diagnostics before removing the disposable project.
-            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'migrator', 'file-migrator', 'web', 'ai-coach-worker', 'document-scanner'], cwd=ROOT, env=env, check=False)
+            subprocess.run(compose + ['logs', '--no-color', '--tail', '60', 'migrator', 'file-migrator', 'file-monitor', 'web', 'ai-coach-worker', 'document-scanner'], cwd=ROOT, env=env, check=False)
+            web_ids = subprocess.check_output(compose + ['ps', '-aq', 'web'], cwd=ROOT, env=env, text=True).split()
+            for identifier in web_ids:
+                info = json.loads(subprocess.check_output(['docker', 'inspect', identifier]))[0]
+                print('Web health diagnostics:', json.dumps(info['State'].get('Health', {})), flush=True)
             raise
         finally:
             # Project name is generated here, never supplied by a caller.

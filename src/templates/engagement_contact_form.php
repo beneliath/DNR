@@ -65,4 +65,25 @@
         </template>
     </div>
     </div>
+    <?php if (!empty($engagement_contact_show_caller)): ?>
+            <div class="engagement-contact-caller engagement-inline-row">
+                <div class="form-field">
+                    <label for="caller_user_id">Caller</label>
+                    <select name="caller_user_id" id="caller_user_id">
+                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
+                        <?php
+                        // Fetch and display users in the dropdown
+                        $users = $conn->query(
+                            "SELECT id, username FROM users WHERE account_status = 'active' ORDER BY username"
+                        );
+                        while ($row = $users->fetch_assoc()) {
+                            $selected = (int) ($_POST['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
+                            echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
+                        }
+                        ?>
+                    </select>
+                </div>
+
+            </div>
+    <?php endif; ?>
 </section>

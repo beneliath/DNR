@@ -115,7 +115,7 @@ $converted=convertBookingInquiry($conn,$id,$inquiry['updated_at'],true,[$linked]
 workflowExpect($converted['next_action_task_id']===$linked && $converted['moved_task_count']===1,'Conversion moves linked next action without duplicating it');
 workflowExpect((int)fetchFollowUpTask($conn,$linked)['engagement_id']===$converted['engagement_id'],'Converted task belongs to new event');
 $orgPage=$request('add_organization.php');
-$orgPost=['csrf_token'=>workflowHidden($orgPage['body'],'csrf_token'),'save_org'=>'1','organization_name'=>$suffix];
+$orgPost=['csrf_token'=>workflowHidden($orgPage['body'],'csrf_token'),'operation_token'=>workflowHidden($orgPage['body'],'operation_token'),'save_org'=>'1','organization_name'=>$suffix];
 $blocked=$request('add_organization.php',$orgPost);
 workflowExpect(str_contains($blocked['body'],'Review possible existing records'),'Duplicate submission blocked until acknowledged');
 $before=(int)$conn->execute_query('SELECT COUNT(*) AS total FROM organizations WHERE organization_name=?',[$suffix])->fetch_assoc()['total'];

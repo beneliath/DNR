@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 require_once __DIR__ . '/duplicate_warning_helpers.php';
 require_once __DIR__ . '/record_workspace_helpers.php';
 require_once __DIR__ . '/contact_organization_helpers.php';
@@ -42,6 +44,7 @@ if ($requested_organization_id !== null) {
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'contact', 'view_contact.php?id=', $creation_return);
 
     $normalized_contact = \Dnr\Domain\ContactInput::normalize($_POST);
     foreach ($normalized_contact['data'] as $field_name => $field_value) {
@@ -81,7 +84,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
         $error_message = $error_messages[0];
     } else {
         $conn->begin_transaction();
+
         try {
+        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'contact');
+        if ($replayed_id !== null) { $conn->commit(); header('Location: ' . ($creation_return !== '' ? recordUrlWithQuery($creation_return, ['created_contact_id' => $replayed_id]) : 'view_contact.php?id=' . $replayed_id), true, 303); exit(); }
             if ($organization_id !== null) {
                 requireActiveOrganization($conn, $organization_id, true);
             }
@@ -157,7 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_contact'])) {
                 $contact_role === 'other' ? $contact_role_other : ucfirst($contact_role),
                 $additional_organizations
             );
-            $conn->commit();
+            completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $contact_id);
+                    $conn->commit();
             $_SESSION['success_message'] = 'Contact added successfully.';
             $return_to_organization = $requested_organization_id !== null
                 && $organization_id === $requested_organization_id;
@@ -247,7 +254,7 @@ $cancel_url = $creation_return !== '' ? $creation_return : ($requested_organizat
     <form method="post" action="<?php echo htmlspecialchars($add_contact_action, ENT_QUOTES, 'UTF-8'); ?>" enctype="multipart/form-data" class="contact-form" data-duplicate-kind="contact">
 <?php renderCreationDuplicateWarning($duplicateWarning ?? ['matches'=>[], 'token'=>''], 'contact', $creation_return); ?>
 
-        <?php echo csrfInput(); ?>
+        <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
         <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($creation_return, ENT_QUOTES, 'UTF-8'); ?>">
         <div class="organization-container">
             <div class="form-group form-flex-one">

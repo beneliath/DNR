@@ -23,7 +23,7 @@ $task_subject_search_url = 'task_subject_search.php'
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="follow-up-task-form">
-    <?php echo csrfInput(); ?>
+    <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($task_return_to, ENT_QUOTES, 'UTF-8'); ?>">
     <?php if (!empty($task_form_values['updated_at'])): ?>
         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($task_form_values['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">

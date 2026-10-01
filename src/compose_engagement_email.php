@@ -48,7 +48,7 @@ if (!empty($engagement['is_deleted']) || !empty($engagement['organization_delete
 }
 
 try {
-    $contacts = fetchEngagementContacts($conn, $engagementId);
+    $contacts = fetchActiveEngagementEmailContacts($conn, $engagementId);
     $speakers = fetchEngagementEmailSpeakers($conn, $engagementId);
     $sender = fetchEngagementEmailSender($conn, (int) $_SESSION['user_id']);
     $presentationStmt = $conn->prepare(

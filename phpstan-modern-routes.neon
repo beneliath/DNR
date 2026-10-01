@@ -40,6 +40,7 @@ parameters:
     scanFiles:
         - src/workflow_task_helpers.php
         - src/task_bulk_helpers.php
+        - src/record_creation_helpers.php
         - src/duplicate_warning_helpers.php
         - src/global_search_helpers.php
         - src/list_ui_helpers.php

@@ -385,3 +385,20 @@ function saveEngagementFinancialDraft(mysqli $conn, int $engagement_id, array $i
         throw $exception;
     }
 }
+
+/** @return list<array<string,mixed>> */
+function fetchEngagementFinancialRevisions(mysqli $conn, int $engagementId): array
+{
+    return $conn->execute_query('SELECT r.*,u.username AS actor_name FROM engagement_financial_revisions r
+        LEFT JOIN users u ON u.id=r.actor_user_id WHERE r.engagement_id=? ORDER BY r.id DESC LIMIT 100', [$engagementId])->fetch_all(MYSQLI_ASSOC);
+}
+
+function requireDeletableFinancialParent(mysqli $conn, string $kind, int $id): void
+{
+    $query = $kind === 'organization'
+        ? 'SELECT 1 FROM engagement_financial_reports r JOIN engagements e ON e.id=r.engagement_id WHERE e.organization_id=? LIMIT 1'
+        : 'SELECT 1 FROM engagement_financial_reports WHERE engagement_id=? LIMIT 1';
+    if ($conn->execute_query($query, [$id])->fetch_row()) {
+        throw new InvalidArgumentException('Completed financial reports and their correction history are retained. Archive this record instead.');
+    }
+}

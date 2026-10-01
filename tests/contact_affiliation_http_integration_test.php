@@ -54,7 +54,9 @@ try {
         $organizations[] = (int) $conn->insert_id;
     }
     [$church, $research, $foundation] = $organizations;
-    $base = ['csrf_token' => $csrf, 'save_contact' => '1', 'contact_first_name' => 'Andy',
+    $createForm = affiliationHttp('add_contact.php', $sessionId);
+    preg_match('/name="operation_token"[^>]*value="([^"]+)"/', $createForm['body'], $operation);
+    $base = ['csrf_token' => $csrf, 'operation_token' => $operation[1], 'save_contact' => '1', 'contact_first_name' => 'Andy',
         'contact_last_name' => 'Affiliation' . $suffix, 'contact_role' => 'pastor',
         'contact_email' => 'affiliation-' . $suffix . '@example.org', 'organization_id' => $church,
         'additional_organizations' => [
@@ -113,7 +115,7 @@ try {
         && $conn->query('SELECT contact_first_name FROM contacts WHERE id = ' . $contactId)->fetch_assoc()['contact_first_name'] === 'Andy',
         'Affiliation validation failure must roll back contact fields and all relationship changes');
     $badEmail = 'invalid-affiliation-' . $suffix . '@example.org';
-    $invalidCreate = array_replace($base, ['contact_email' => $badEmail,
+    $invalidCreate = array_replace($base, ['operation_token' => bin2hex(random_bytes(16)), 'contact_email' => $badEmail,
         'additional_organizations' => [['organization_id' => 2147483647, 'role_title' => 'Invalid organization']]]);
     $failedCreate = affiliationHttp('add_contact.php', $sessionId, $invalidCreate);
     expectAffiliationHttp($failedCreate['status'] === 200
@@ -135,7 +137,8 @@ try {
         'New Organization must offer existing contacts and a role with the new organization.');
     $beforeLink = $conn->query('SELECT organization_id, contact_role, contact_role_other FROM contacts WHERE id = ' . $contactId)->fetch_assoc();
     $roleTitle = 'Advisory & Planning <Chair>';
-    $organizationPost = ['csrf_token' => $csrf, 'save_org' => '1',
+    preg_match('/name="operation_token"[^>]*value="([^"]+)"/', $organizationForm['body'], $operation);
+    $organizationPost = ['csrf_token' => $csrf, 'operation_token' => $operation[1], 'save_org' => '1',
         'organization_name' => 'Linked organization ' . $suffix,
         'existing_contacts' => [['contact_id' => $contactId, 'role_title' => $roleTitle]],
         'contact_first_name' => 'New', 'contact_last_name' => 'Colleague' . $suffix,
@@ -160,6 +163,7 @@ try {
         'The new organization must show the existing contact’s role with safe HTML escaping.');
 
     $invalidOrganization = array_replace($organizationPost, [
+        'operation_token' => bin2hex(random_bytes(16)),
         'organization_name' => 'Rejected linked organization ' . $suffix,
         'contact_email' => 'rejected-colleague-' . $suffix . '@example.test',
         'existing_contacts' => [
@@ -179,7 +183,7 @@ try {
             [$invalidOrganization['contact_email']])->fetch_assoc()['total'] === 0
         && affiliationSnapshot($conn, $contactId) === $afterLink,
         'A failed organization save must roll back the organization, new contacts, and additional affiliations together.');
-    $noRole = array_replace($organizationPost, ['existing_contacts' => [['contact_id' => $contactId, 'role_title' => '']]]);
+    $noRole = array_replace($organizationPost, ['operation_token' => bin2hex(random_bytes(16)), 'existing_contacts' => [['contact_id' => $contactId, 'role_title' => '']]]);
     expectAffiliationHttp(str_contains(affiliationHttp('add_organization.php', $sessionId, $noRole)['body'],
         'Describe each existing contact'), 'An existing contact needs a role with the new organization.');
     echo "Contact affiliation HTTP integration tests passed.\n";

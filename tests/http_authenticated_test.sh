@@ -276,6 +276,8 @@ grep -q 'name="per_page" value="100"' "$temporary_directory/organization-page-si
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add.html" "$base_url/add_organization.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add.html")
+organization_operation_token=$(field_from "$temporary_directory/editor-add.html" operation_token)
+test -n "$organization_operation_token"
 status=$(curl -sS -b "$editor_cookies" -o /dev/null -w '%{http_code}' \
     --data-urlencode 'save_org=1' \
     --data-urlencode "organization_name=HTTP Test Organization $fixture_suffix" \
@@ -284,6 +286,7 @@ expect_status "$status" '400' 'editor request without CSRF token'
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-create.headers" \
     -o "$temporary_directory/editor-create.html" -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode "operation_token=$organization_operation_token" \
     --data-urlencode 'save_org=1' \
     --data-urlencode "organization_name=HTTP Test Organization $fixture_suffix" \
     --data-urlencode 'same_address=yes' \
@@ -302,9 +305,12 @@ expect_location "$temporary_directory/editor-create.headers" "view_organization.
 # Exercise real contact and engagement creation, plus optimistic concurrency.
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-contact.html" "$base_url/add_contact.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-contact.html")
+contact_operation_token=$(field_from "$temporary_directory/editor-add-contact.html" operation_token)
+test -n "$contact_operation_token"
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-contact-create.headers" \
     -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode "operation_token=$contact_operation_token" \
     --data-urlencode 'save_contact=1' \
     --data-urlencode "organization_id=$organization_id" \
     --data-urlencode "contact_first_name=HTTP-$fixture_suffix" \
@@ -326,12 +332,15 @@ grep -q '"primary_host":"Primary Host"' "$temporary_directory/editor-organizatio
 
 curl -fsS -b "$editor_cookies" -o "$temporary_directory/editor-add-engagement.html" "$base_url/index.php"
 editor_csrf=$(csrf_from "$temporary_directory/editor-add-engagement.html")
+engagement_operation_token=$(field_from "$temporary_directory/editor-add-engagement.html" operation_token)
+test -n "$engagement_operation_token"
 grep -q 'data-address-region-for="event"' "$temporary_directory/editor-add-engagement.html"
 grep -q 'data-address-country="event"' "$temporary_directory/editor-add-engagement.html"
 grep -q '<option value="US" selected>' "$temporary_directory/editor-add-engagement.html"
 status=$(curl -sS -b "$editor_cookies" -D "$temporary_directory/editor-engagement-create.headers" \
     -o /dev/null -w '%{http_code}' \
     --data-urlencode "csrf_token=$editor_csrf" \
+    --data-urlencode "operation_token=$engagement_operation_token" \
     --data-urlencode 'save_engagement=1' \
     --data-urlencode "organization_id=$organization_id" \
     --data-urlencode "event_title=HTTP Test Engagement $fixture_suffix" \

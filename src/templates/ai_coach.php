@@ -1,6 +1,6 @@
 <?php
 $coach_page = aiCoachPage();
-$coach_key = hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:' . (string) ($_SESSION['role'] ?? 'reviewer'));
+$coach_key = aiCoachStorageKey();
 ?>
 <button type="button" class="coach-launcher button-secondary" data-coach-open aria-controls="moed-coach" aria-expanded="false">AI Coach</button>
 <aside id="moed-coach" class="coach-panel" aria-labelledby="coach-title" hidden

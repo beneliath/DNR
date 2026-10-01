@@ -126,7 +126,8 @@ function prepareEngagementContactAssignments(
     int $organization_id,
     array $assignments,
     array $added_contact_ids,
-    array $new_contacts
+    array $new_contacts,
+    int $engagement_id = 0
 ): array {
     $assignment_map = engagementContactAssignmentMap($assignments);
     foreach ($added_contact_ids as $contact_id) {
@@ -134,7 +135,7 @@ function prepareEngagementContactAssignments(
             ensureContactOrganizationAffiliation($conn, $contact_id, $organization_id);
         }
     }
-    validateEngagementContactAssignments($conn, $organization_id, $assignments);
+    validateEngagementContactAssignments($conn, $organization_id, $assignments, $engagement_id);
     foreach ($new_contacts as $contact) {
         $stmt = $conn->prepare(
             'INSERT INTO contacts (organization_id, contact_first_name, contact_last_name,

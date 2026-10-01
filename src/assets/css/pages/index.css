@@ -1,4 +1,174 @@
+html {
+    scrollbar-gutter: stable;
+}
+
+#new-engagement-form .form-draft-panel {
+    border-bottom: 0;
+}
+
+html:not(.has-js) #new-engagement-form :is([data-form-draft-panel], [data-relationship-search-input], [data-relationship-search-status]) {
+    display: none;
+}
+
+#new-engagement-form > .form-row {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent !important;
+    box-shadow: none;
+}
+
+#new-engagement-form .engagement-contact-caller {
+    margin-top: 22px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+}
+
+#new-engagement-form .engagement-contact-caller label {
+    display: block;
+    margin-bottom: 8px;
+}
+
+#new-engagement-form .engagement-schedule-section > h2,
+#new-engagement-form .engagement-logistics-section > h2,
+#new-engagement-form .engagement-location-section > h2,
+#new-engagement-form .engagement-details-section > h2 {
+    border-bottom: 0;
+}
+
+html body #new-engagement-form label[for="event_type_other"],
+html body #new-engagement-form label[for="event_type_other"] .required {
+    color: var(--danger) !important;
+}
+
+/* Pair the opening sections in equal columns. */
+#new-engagement-form .engagement-section-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px;
+    margin-bottom: 18px;
+}
+
+#new-engagement-form .engagement-section-row > .form-section,
+#new-engagement-form .engagement-contact-column > .form-section {
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+#new-engagement-form .engagement-contact-column {
+    display: grid;
+    min-width: 0;
+}
+
+#new-engagement-form .engagement-primary-row > .required-fields-note {
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
+}
+
+#new-engagement-form .engagement-primary-row > .engagement-details-section {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+#new-engagement-form .engagement-primary-row > .engagement-contact-column {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+#new-engagement-form .engagement-section-row :is(.organization-container, .date-fields, .event-row) {
+    flex-wrap: wrap;
+}
+
+#new-engagement-form .organization-container > [data-relationship-search-status] {
+    flex-basis: 100%;
+}
+
+#new-engagement-form .organization-container > [data-relationship-search-status]:empty {
+    display: none;
+}
+
+#new-engagement-form .engagement-logistics-section :is(.checkbox-row, .checkbox-group, .compensation-type-row, .amount-row, .amount-row .form-field) {
+    flex-wrap: wrap;
+}
+
+#new-engagement-form .engagement-logistics-section .form-field {
+    min-width: 0;
+}
+
+#new-engagement-form .engagement-logistics-section .form-field label {
+    white-space: normal;
+}
+
+#new-engagement-form .engagement-logistics-section .currency-input input[type="number"] {
+    margin: 0;
+}
+
+#new-engagement-form .engagement-logistics-section .amount-row .form-field {
+    flex: 1 1 360px;
+    flex-wrap: nowrap;
+    align-items: center;
+}
+
+#new-engagement-form .engagement-logistics-section .amount-row .form-field label {
+    flex: 1;
+}
+
+#new-engagement-form .engagement-logistics-section .currency-input {
+    flex: 0 0 auto;
+}
+
+#new-engagement-form .engagement-location-section .event-address-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#new-engagement-form .engagement-location-section .event-address-row > .form-field {
+    min-width: 0;
+}
+
+#new-engagement-form .engagement-location-section .event-address-country-field {
+    grid-column: 1 / -1;
+}
+
+#new-engagement-form .engagement-location-section :is(.form-field > label, #event-country-label) {
+    display: block;
+    margin-bottom: 8px;
+}
+
+@media (max-width: 1000px) {
+    #new-engagement-form .engagement-section-row {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    #new-engagement-form .engagement-primary-row > .engagement-details-section {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    #new-engagement-form .engagement-primary-row > .required-fields-note {
+        grid-column: 1;
+        grid-row: 2;
+    }
+    #new-engagement-form .engagement-primary-row > .engagement-contact-column {
+        grid-column: 1;
+        grid-row: 3;
+    }
+}
+
 /* Match nested section titles to the other new engagement headings. */
+#new-engagement-form .presentation-fields .speaker-row {
+    align-items: flex-start !important;
+}
+
+#new-engagement-form .presentation-fields .speaker-row :is(select, input[type="number"]) {
+    height: 44px;
+    min-height: 44px;
+    margin-bottom: 0 !important;
+}
+
+#new-engagement-form .presentation-fields :is(.topic, .speaker-row .form-field, .attendance-row .form-field) > label {
+    margin-bottom: 8px !important;
+}
+
 #new-engagement-form .engagement-contacts-heading h2,
 #new-engagement-form .engagement-lifecycle-heading h2 {
     font-size: 1.14rem;

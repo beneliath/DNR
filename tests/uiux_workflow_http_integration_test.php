@@ -125,6 +125,12 @@ try {
     $summary = fetchOrganizationFinancialSummary($conn, $organizationId);
     expectUiuxHttp($summary['closed_event_count'] === 1 && $summary['lifetime_giving'] === '123.45',
         'Finalized amounts should enter organization analytics exactly once');
+    $correction=array_replace($fields,['report_version'=>$report['updated_at'],'giving_income_received'=>'123.46','action'=>'finalize','confirm_final'=>'yes']);
+    $rejected=$request($path,$correction);
+    expectUiuxHttp($rejected['status']===200 && str_contains($rejected['body'],'Enter a correction reason'),'Financial correction requires a reason');
+    $corrected=$request($path,$correction+['correction_reason'=>'Corrected receipt by one cent']);
+    expectUiuxHttp($corrected['status']===302 && count(fetchEngagementFinancialRevisions($conn,$engagementId))===2
+        && fetchEngagementFinancialReport($conn,$engagementId)['giving_income_received']==='123.46','Correction preserves both revisions and exact decimal amounts');
 
     foreach ([0, 1, 2] as $moveCount) {
         $decision = $moveCount === 0 ? 'resolved' : 'carry_forward';
@@ -219,8 +225,12 @@ try {
     if ($userId > 0) { $conn->query("DELETE FROM follow_up_tasks WHERE created_by={$userId}"); }
     if ($organizationId > 0) {
         $conn->query("DELETE FROM booking_inquiries WHERE organization_id={$organizationId}");
-        $conn->query("DELETE FROM engagements WHERE organization_id={$organizationId}");
-        $conn->query("DELETE FROM organizations WHERE id={$organizationId}");
+        // The web account must respect financial retention even in fixtures.
+        // Retained synthetic parents disappear with the disposable test database.
+        $conn->query("DELETE FROM engagements WHERE organization_id={$organizationId} AND NOT EXISTS (SELECT 1 FROM engagement_financial_reports f WHERE f.engagement_id=engagements.id)");
+        if (!$conn->query("SELECT 1 FROM engagements WHERE organization_id={$organizationId} LIMIT 1")->fetch_row()) {
+            $conn->query("DELETE FROM organizations WHERE id={$organizationId}");
+        }
     }
     if ($userId > 0) { $conn->query("DELETE FROM users WHERE id={$userId}"); }
     if (is_string($cookieFile)) { @unlink($cookieFile); }

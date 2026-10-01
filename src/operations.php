@@ -52,6 +52,7 @@ try {
         FROM security_audit_log
         WHERE event_type = 'database_backup_created'
         ORDER BY created_at DESC, id DESC LIMIT 1");
+    $data_health = $conn->query('SELECT name,state_json,checked_at FROM data_management_health ORDER BY name')->fetch_all(MYSQLI_ASSOC);
     $migration = $metric($conn, 'SELECT COUNT(*) AS applied, MAX(applied_at) AS last_applied_at FROM schema_migrations');
 } catch (Throwable $exception) {
     applicationLog('error', 'Operational metrics failed', ['error' => $exception->getMessage()]);
@@ -95,6 +96,15 @@ try {
         <?php endforeach; ?>
         <p>Quarantined messages awaiting review: <?php echo (int) $quarantine['total']; ?>. Historical messages require an explicit import or ignore decision before they can enter the normal mail queue.</p>
         <p><a href="inbound_mail.php?status=all" class="button-secondary">View Inbound Mail</a></p>
+    </section>
+    <section class="record-section"><h2>Data and Recovery Health</h2>
+        <p>NAS recovery health comes from the external backup job and its read-back verification. A downloaded database backup is tracked separately below.</p>
+        <?php if (!$data_health): ?><p>No recovery or consistency report received yet.</p><?php endif; ?>
+        <?php foreach ($data_health as $health): ?>
+            <h3><?php echo htmlspecialchars(ucfirst($health['name']), ENT_QUOTES, 'UTF-8'); ?></h3>
+            <p>Checked <?php echo htmlspecialchars(applicationTimestampLabel($health['checked_at'], 'Y-m-d H:i:s T'), ENT_QUOTES, 'UTF-8'); ?><?php if (strtotime($health['checked_at'].' UTC') < time()-($health['name']==='recovery'?900:7200)): ?> — report overdue; displayed results may be stale<?php endif; ?></p>
+            <dl class="operations-details"><?php foreach (json_decode($health['state_json'], true, 16, JSON_THROW_ON_ERROR) as $label => $value): ?><div><dt><?php echo htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8'); ?></dt><dd><?php echo htmlspecialchars(is_scalar($value) ? (string)$value : json_encode($value, JSON_THROW_ON_ERROR), ENT_QUOTES, 'UTF-8'); ?></dd></div><?php endforeach; ?></dl>
+        <?php endforeach; ?>
     </section>
     <section class="record-section">
             <h2>Deployment State</h2>

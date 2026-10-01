@@ -126,7 +126,7 @@ $echo = $valid; $echo['message']['content'] = json_encode(['message' => $oldFail
 rejectsCoach(fn() => aiCoachDecodeReply($echo, $ppt));
 foreach ([new AiCoachModelFailure('connection', 0, 7), new AiCoachModelFailure('timeout', 0, 28), new RuntimeException('Bad answer')] as $failure) {
     $answer = aiCoachFailureReply([], 'answer', $failure);
-    expectCoach($answer['failure']['stage'] === 'answer' && count($answer['workflow_options']) === 8, 'Failures retain stage and offline guide choices');
+    expectCoach($answer['failure']['stage'] === 'answer' && count($answer['workflow_options']) === count(aiCoachWorkflows()), 'Failures retain stage and offline guide choices');
 }
 expectCoach(aiCoachFailureReply([], 'route', new RuntimeException('Bad route'))['reason'] === 'response_error', 'Invalid model output is not mislabeled as a lost connection');
 echo "Coach availability and failure-history regression tests passed.\n";

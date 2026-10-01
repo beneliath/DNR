@@ -1,0 +1,22 @@
+{
+  "encryption_verified": true,
+  "administrator_password_and_mfa_verified": true,
+  "record_pages_verified": true,
+  "verified_at": "2026-10-01T02:54:12.692256+00:00",
+  "database_matches": true,
+  "persistent_files": 100,
+  "source_restored": true,
+  "configuration_restored": true,
+  "application_ready": true,
+  "sign_in_page_verified": true,
+  "outbound_network_blocked": true,
+  "elapsed_seconds": 49.1,
+  "nas_readback_verified": true,
+  "including_transfer_elapsed_seconds": 74.0,
+  "temporary_copies_removed": true,
+  "cleanup_independently_verified": true,
+  "backup_key_source": "existing s1 backup key",
+  "container_image_source": "recorded production image contents imported from s1",
+  "independent_production_key_recovery_verified": false,
+  "authenticated_downloads_verified": false
+}

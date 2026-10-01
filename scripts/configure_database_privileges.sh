@@ -153,6 +153,11 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiries 
 GRANT SELECT, INSERT, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_stage_history TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.booking_inquiry_chron_entries TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_contacts TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_contact_history TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.engagement_financial_revisions TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.record_creation_operations TO '${MYSQL_USER}'@'%';
+GRANT SELECT, INSERT, UPDATE ON \`${MYSQL_DATABASE}\`.record_merge_journal TO '${MYSQL_USER}'@'%';
+GRANT SELECT ON \`${MYSQL_DATABASE}\`.data_management_health TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_reports TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT, UPDATE, DELETE ON \`${MYSQL_DATABASE}\`.engagement_financial_drafts TO '${MYSQL_USER}'@'%';
 GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.engagement_email_messages TO '${MYSQL_USER}'@'%';

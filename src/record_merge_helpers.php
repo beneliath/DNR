@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 require_once __DIR__ . '/functions.php';
+require_once __DIR__ . '/record_merge_journal_helpers.php';
 
 function mergeRecordTable(string $kind): string
 {
@@ -19,17 +20,19 @@ function recordDuplicateCandidates(mysqli $conn, string $kind, array $source): a
 {
     if ($kind === 'contact') {
         return $conn->execute_query("SELECT id, CONCAT(contact_first_name,' ',contact_last_name) AS label,
-            contact_email AS email FROM contacts WHERE id<>? AND is_deleted=0 AND merged_into_id IS NULL
+            contact_email AS email, contact_phone AS phone FROM contacts WHERE id<>? AND is_deleted=0 AND merged_into_id IS NULL
             AND ((contact_email<>'' AND LOWER(contact_email)=LOWER(?))
               OR (contact_phone<>'' AND contact_phone=?)
               OR (contact_first_name=? AND contact_last_name=?)) ORDER BY id LIMIT 25",
             [$source['id'], $source['contact_email'], $source['contact_phone'], $source['contact_first_name'], $source['contact_last_name']])->fetch_all(MYSQLI_ASSOC);
     }
-    return $conn->execute_query("SELECT id, organization_name AS label, email FROM organizations
+    return $conn->execute_query("SELECT id, organization_name AS label, email, phone, CONCAT_WS(', ', NULLIF(physical_city,''), NULLIF(physical_state,'')) AS location FROM organizations
         WHERE id<>? AND is_deleted=0 AND merged_into_id IS NULL
           AND ((email<>'' AND LOWER(email)=LOWER(?)) OR (phone<>'' AND phone=?)
-            OR organization_name LIKE ?) ORDER BY organization_name LIMIT 25",
-        [$source['id'], $source['email'], $source['phone'], addcslashes(mb_substr($source['organization_name'], 0, 20), '%_\\') . '%'])->fetch_all(MYSQLI_ASSOC);
+            OR organization_name LIKE ?
+            OR (physical_address_line_1<>'' AND physical_address_line_1=? AND physical_city=? AND physical_state=? AND physical_country=?)) ORDER BY organization_name LIMIT 25",
+        [$source['id'], $source['email'], $source['phone'], addcslashes(mb_substr($source['organization_name'], 0, 20), '%_\\') . '%',
+         $source['physical_address_line_1']??'', $source['physical_city']??'', $source['physical_state']??'', $source['physical_country']??''])->fetch_all(MYSQLI_ASSOC);
 }
 
 function mergeRecordFields(string $kind): array
@@ -88,6 +91,7 @@ function mergeRecords(mysqli $conn, string $kind, int $sourceId, int $targetId, 
         if (!hash_equals((string) $source['updated_at'], $sourceVersion) || !hash_equals((string) $target['updated_at'], $targetVersion)) {
             throw new InvalidArgumentException('A record changed after the preview. Reload and review the merge again.');
         }
+        $before = mergeJournalSnapshot($conn, $kind, $sourceId, $targetId);
         $values = mergeRecordValues($kind, $source, $target, $choices);
         $sets = implode(', ', array_map(static fn($field) => "$field=?", array_keys($values)));
         $conn->execute_query("UPDATE {$table} SET {$sets}, updated_at=UTC_TIMESTAMP(6) WHERE id=?", [...array_values($values), $targetId]);
@@ -109,8 +113,9 @@ function mergeRecords(mysqli $conn, string $kind, int $sourceId, int $targetId, 
                 ON DUPLICATE KEY UPDATE role_title=IF(role_title='',?,role_title)", [$contact, $organization, $title, $title]);
         }
         if ($kind === 'contact') {
-            $conn->execute_query('INSERT INTO engagement_contacts (engagement_id,contact_id,contact_role,created_by,created_at)
-                SELECT source.engagement_id,?,source.contact_role,source.created_by,source.created_at FROM engagement_contacts AS source WHERE source.contact_id=?
+            $conn->execute_query('SET @dnr_merge_source_contact_id=?',[$sourceId]);
+            $conn->execute_query('INSERT INTO engagement_contacts (engagement_id,contact_id,contact_role,created_by,created_at,organization_id_snapshot,contact_first_name_snapshot,contact_last_name_snapshot,contact_email_snapshot,contact_phone_snapshot,role_title_snapshot)
+                SELECT source.engagement_id,?,source.contact_role,source.created_by,source.created_at,source.organization_id_snapshot,source.contact_first_name_snapshot,source.contact_last_name_snapshot,source.contact_email_snapshot,source.contact_phone_snapshot,source.role_title_snapshot FROM engagement_contacts AS source WHERE source.contact_id=?
                 ON DUPLICATE KEY UPDATE engagement_id=engagement_contacts.engagement_id', [$targetId, $sourceId]);
             $conn->execute_query('DELETE FROM engagement_contacts WHERE contact_id=?', [$sourceId]);
             $relations = ['contact_chron_entries' => 'contact_id', 'follow_up_tasks' => 'contact_id',
@@ -130,6 +135,8 @@ function mergeRecords(mysqli $conn, string $kind, int $sourceId, int $targetId, 
             'details' => 'Merged ' . $kind . ' #' . $sourceId . ' into #' . $targetId . '. Original source field values retained on the archived source record.'])) {
             throw new RuntimeException('Unable to audit the merge.');
         }
+        journalRecordMerge($conn,$kind,$sourceId,$targetId,$actor,$before);
         $conn->commit();
     } catch (Throwable $exception) { $conn->rollback(); throw $exception; }
+    finally { $conn->query('SET @dnr_merge_source_contact_id=NULL'); }
 }

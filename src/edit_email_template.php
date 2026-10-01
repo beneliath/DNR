@@ -84,11 +84,15 @@ $pageTitle = $id === null ? 'New Email Template' : ($readOnly ? 'View Email Temp
         </section>
         <section class="form-section">
             <h2>Recipient Suggestions</h2>
-            <p class="field-help">Suggest event contacts when this template is selected. The sender can change recipients and include speakers before sending.</p>
-            <fieldset class="email-template-roles"<?php echo $readOnly ? ' disabled' : ''; ?>><legend class="visually-hidden">Suggested Event Contacts</legend>
-                <?php foreach (engagementContactRoles() as $role => $label): ?><label><input type="checkbox" name="suggested_roles[]" value="<?php echo $role; ?>"<?php echo in_array($role, $selectedRoles, true) ? ' checked' : ''; ?>><span><?php echo $label; ?></span></label><?php endforeach; ?>
-            </fieldset>
-            <div class="form-group"><label for="template-order">Display Order</label><input type="number" id="template-order" name="sort_order" min="0" max="65535" step="1" required value="<?php echo htmlspecialchars((string) $form['sort_order'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>><p class="field-help">Lower numbers appear first in the template library and email composer.</p></div>
+            <div class="email-template-recipient-settings">
+                <div>
+                    <p class="field-help">Suggest event contacts when this template is selected. The sender can change recipients and include speakers before sending.</p>
+                    <fieldset class="email-template-roles"<?php echo $readOnly ? ' disabled' : ''; ?>><legend class="visually-hidden">Suggested Event Contacts</legend>
+                        <?php foreach (engagementContactRoles() as $role => $label): ?><label><input type="checkbox" name="suggested_roles[]" value="<?php echo $role; ?>"<?php echo in_array($role, $selectedRoles, true) ? ' checked' : ''; ?>><span><?php echo $label; ?></span></label><?php endforeach; ?>
+                    </fieldset>
+                </div>
+                <div class="form-group email-template-order"><div class="email-template-order-control"><label for="template-order">Display Order</label><input type="number" id="template-order" name="sort_order" min="0" max="65535" step="1" required value="<?php echo htmlspecialchars((string) $form['sort_order'], ENT_QUOTES, 'UTF-8'); ?>"<?php echo $readOnly ? ' readonly' : ''; ?>></div><p class="field-help">Lower numbers appear first in the template library and email composer.</p></div>
+            </div>
         </section>
         <div class="engagement-page-actions">
             <a href="<?php echo htmlspecialchars($backUrl, ENT_QUOTES, 'UTF-8'); ?>" class="cancel-button"><?php echo $readOnly ? 'Back to Templates' : 'Cancel'; ?></a>

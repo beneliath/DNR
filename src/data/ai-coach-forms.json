@@ -12,7 +12,7 @@
       "entry": "Engagements → + New Engagement",
       "condition": "Choose Organization inside this form, not on Organization Details.",
       "source_files": {
-        "index.php": "558259dcaa975b620add750eebc6d767f379dfb2ae93c0226ad656d775253869"
+        "index.php": "76296f68781c79505fe6da3068c467aa1c7240f9603a0f36af0f2b9d6177b86f"
       },
       "controls": {
         "new-organization": {
@@ -57,9 +57,9 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
+        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
         "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
-        "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
+        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
         "presentations-tab": {
@@ -96,8 +96,8 @@
       "entry": "Tasks → + New Task, or event → Tasks → Add Task. For an existing task use Edit Task.",
       "condition": "Related Record is a search: type at least three characters in Find a Related Record, then choose a result. Searching alone does not select it. Change Record reveals search for an existing selection. Waiting On appears when Status is Waiting. Assigned To changes ownership; the check-mark completes work.",
       "source_files": {
-        "templates/follow_up_task_form.php": "963a91e272b3db578044785c80dd35a1c503fcf37a4c6b60f7ce9e54d5f28a4b",
-        "add_task.php": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
+        "templates/follow_up_task_form.php": "9e90f7ff49f7be6c4c8cf8690c13c46db1f94230bfe8c2281117bd2c46adb6b3",
+        "add_task.php": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
         "edit_task.php": "5a20c6ab29acd2c6f9e0321a363b74e9d302c1a3b7cba063e255f19a9a16f4b5",
         "assets/js/task-form.js": "a9a1c8e8302a891a969964b3f1e48b5717a70dd6bfb0b807e2011c5184c49830",
         "follow_up_task_helpers.php": "da9c0a7528eb0f1a12d7fb42cc3ba7560acc0d5a43618219b9ffc0509fbc736b"
@@ -206,8 +206,8 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
-        "edit_engagement.php": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c"
+        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
+        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
         "edit-event": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
-        "view_engagement.php": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19"
+        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28"
       },
       "controls": {
         "tasks-tab": {
@@ -321,7 +321,7 @@
       "condition": "Create and edit only your own active editable expenses; submitted content is locked.",
       "source_files": {
         "reimbursement_expense.php": "9fa19ed4b793ae11c552b0cf393d6e87201099e0a707608dfc4cfffc82cb1dd2",
-        "reimbursement_helpers.php": "be2ceaf1d024faac08684ff70450afaa1856ebee26e3edb20442caca91003507"
+        "reimbursement_helpers.php": "6015341b0d92c392bf278e24353b8c1fbcb3d153f2e20f70506f97d85d6a7f21"
       },
       "controls": {
         "reimbursement-expense-date": {
@@ -465,7 +465,7 @@
       "entry": "Administration → Reimbursement Setup",
       "condition": "Administrator access and recent administrator unlock are required to save.",
       "source_files": {
-        "reimbursement_setup.php": "4fe01188ab8638dfdbe4b0d338f086598d77adb84cf9cbe29ca651e0b3d941a3"
+        "reimbursement_setup.php": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe"
       },
       "controls": {
         "reimbursement-bookkeeper": {

@@ -41,17 +41,7 @@ final class FinancialReportInput
     /** @param list<string> $amounts */
     public static function total(array $amounts): string
     {
-        $total_cents = 0;
-        foreach ($amounts as $amount) {
-            $total_cents += self::canonicalAmountToCents($amount);
-        }
-
-        return intdiv($total_cents, 100) . '.' . str_pad(
-            (string) ($total_cents % 100),
-            2,
-            '0',
-            STR_PAD_LEFT
-        );
+        return Money::total($amounts);
     }
 
     private static function amount(mixed $value, string $label): string
@@ -63,29 +53,6 @@ final class FinancialReportInput
         if ($amount === '') {
             throw new \InvalidArgumentException("{$label} is required; enter 0 if none was received.");
         }
-        if (preg_match('/\A[0-9]+(?:\.[0-9]{1,2})?\z/', $amount) !== 1) {
-            throw new \InvalidArgumentException(
-                "{$label} must be a non-negative amount with no more than two decimal places."
-            );
-        }
-
-        [$whole, $fraction] = array_pad(explode('.', $amount, 2), 2, '');
-        $whole = ltrim($whole, '0');
-        $whole = $whole === '' ? '0' : $whole;
-        $fraction = str_pad($fraction, 2, '0');
-        $canonical = $whole . '.' . $fraction;
-        if (strlen($whole) > 10
-            || (strlen($whole) === 10 && strcmp($canonical, self::MAXIMUM_AMOUNT) > 0)
-        ) {
-            throw new \InvalidArgumentException("{$label} exceeds the maximum supported amount.");
-        }
-
-        return $canonical;
-    }
-
-    private static function canonicalAmountToCents(string $amount): int
-    {
-        [$whole, $fraction] = explode('.', $amount, 2);
-        return ((int) $whole * 100) + (int) $fraction;
+        return Money::amount($amount, $label, self::MAXIMUM_AMOUNT);
     }
 }

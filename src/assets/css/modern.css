@@ -3523,7 +3523,7 @@ textarea::placeholder {
   margin-bottom: 0;
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form),
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
 .security-card,
 .organization-details,
 .contact-details,
@@ -3536,7 +3536,7 @@ textarea::placeholder {
   box-shadow: var(--shadow-sm);
 }
 
-.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form) {
+.container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar) {
   padding: clamp(20px, 4vw, 32px);
 }
 
@@ -5508,7 +5508,7 @@ html.dark-mode .login-secondary-link a {
     padding-inline: 16px;
   }
 
-  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form),
+  .container > form:not(.footer-logout-form):not(.sidebar-logout-form):not(.engagement-form, .profile-form, .inquiry-conversion-form, .follow-up-task-form, .standard-event-task-form, [data-task-bulk], [data-email-template-editor], .bulk-delete-toolbar),
   .security-card,
   .organization-details,
   .contact-details {
@@ -6617,10 +6617,11 @@ html body .presentation-generated-links button.presentation-copy-link {
   flex-wrap: wrap;
   gap: 12px;
   margin: 20px 0 12px;
-  padding: 14px 16px;
-  background: var(--surface-subtle);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 .bulk-delete-select-all { display: inline-flex; align-items: center; gap: 8px; margin: 0; }
 .bulk-delete-toolbar input[type="checkbox"], input.bulk-delete-checkbox {
@@ -6637,7 +6638,7 @@ input.bulk-delete-checkbox { flex: 0 0 20px; margin: 0; }
 .bulk-delete-help { flex-basis: 100%; margin: 0; font-size: .875rem; color: var(--text-muted); }
 
 /* These record lists place controls directly on the page. */
-:is(.organizations-page, .contacts-page, .engagements-page) > .list-controls {
+:is(.organizations-page, .contacts-page, .engagements-page, .standard-tasks-page) > .list-controls {
   margin: 15px 0 20px !important;
   padding: 0;
   border: 0;
@@ -6645,11 +6646,11 @@ input.bulk-delete-checkbox { flex: 0 0 20px; margin: 0; }
   background: transparent !important;
   box-shadow: none;
 }
-:is(.organizations-page, .contacts-page, .engagements-page) > .bulk-delete-toolbar {
+html body form.bulk-delete-toolbar {
   padding: 0;
   border: 0;
   border-radius: 0;
-  background: transparent;
+  background: transparent !important;
   box-shadow: none;
 }
 

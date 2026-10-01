@@ -57,7 +57,7 @@ unset($_SESSION['_network_statistics_reset']);
     <div class="page-heading network-diagnostics-heading">
         <div>
             <h1>Remote Network Performance</h1>
-            <p class="page-intro">Compare actual MOED page loads and document responses from public IPv4 and IPv6 clients during the last <?php echo $windowDays; ?> day<?php echo $windowDays === 1 ? '' : 's'; ?>.</p>
+            <p class="page-intro">Compare signed-in browser page loads and document responses from public IPv4 and IPv6 clients during the last <?php echo $windowDays; ?> day<?php echo $windowDays === 1 ? '' : 's'; ?>.</p>
         </div>
         <div class="network-diagnostics-actions">
             <button type="button" class="button-add" data-network-refresh>Refresh</button>
@@ -94,9 +94,9 @@ unset($_SESSION['_network_statistics_reset']);
 
     <section class="network-diagnostics-summary" aria-labelledby="network-result-heading" data-network-summary data-state="pending">
         <div>
-            <p class="network-eyebrow">Remote assessment</p>
+            <p class="network-eyebrow">Browser page-load comparison</p>
             <h2 id="network-result-heading" data-network-summary-title>Loading Remote Measurements…</h2>
-            <p data-network-summary-detail>Local and private-address sessions are excluded.</p>
+            <p data-network-summary-detail>Page-load cards show signed-in browser measurements. Local and private-address sessions are excluded.</p>
         </div>
         <span class="network-status-pill" data-network-status role="status" aria-live="polite">Loading</span>
     </section>
@@ -105,12 +105,12 @@ unset($_SESSION['_network_statistics_reset']);
         <?php foreach (['IPv4', 'IPv6'] as $family): ?>
         <article class="network-metric-card" data-network-card="<?php echo strtolower($family); ?>" data-state="pending">
             <div class="network-card-heading">
-                <div><p class="network-eyebrow">Public Client Route</p><h2><?php echo $family; ?></h2></div>
+                <div><p class="network-eyebrow">Public Browser Page Loads</p><h2><?php echo $family; ?></h2></div>
                 <span class="network-path-state" data-network-state="<?php echo strtolower($family); ?>">Loading</span>
             </div>
             <p class="network-latency"><strong data-network-load="<?php echo strtolower($family); ?>">—</strong><span> ms median load</span></p>
             <dl class="network-route-details">
-                <div><dt>Remote Samples</dt><dd data-network-samples="<?php echo strtolower($family); ?>">0</dd></div>
+                <div><dt>Page-Load Samples</dt><dd data-network-samples="<?php echo strtolower($family); ?>">0</dd></div>
                 <div><dt>75th Percentile</dt><dd data-network-p75="<?php echo strtolower($family); ?>">—</dd></div>
                 <div><dt>Median TTFB</dt><dd data-network-ttfb="<?php echo strtolower($family); ?>">—</dd></div>
                 <div><dt>Most-Seen Edge</dt><dd data-network-colo="<?php echo strtolower($family); ?>">—</dd></div>
@@ -189,10 +189,10 @@ unset($_SESSION['_network_statistics_reset']);
             <li>Each authenticated remote browser reports its completed MOED navigation and same-origin image timings.</li>
             <li>The server determines IPv4 or IPv6 from the trusted client connection; browsers do not self-report their address.</li>
             <li>Measurements contain endpoint names, document formats, response sizes, and timings only. Client IP addresses and user identities are not stored.</li>
-            <li>Results appear after the updated application receives public traffic; an empty IPv6 card means no IPv6 sample has arrived yet.</li>
+            <li>An empty IPv4 or IPv6 card means no signed-in browser page-load measurements are available for that family in the selected window. It does not indicate a connectivity failure. Login pages and public document views do not contribute to these cards; document measurements appear separately.</li>
         </ul>
         <p data-network-coverage aria-live="polite"></p>
-        <p class="network-privacy-note">Samples older than 30 days are deleted automatically. This dashboard shows up to 5,000 of the newest measurements from the selected <?php echo $windowDays; ?>-day window and reports their actual coverage.</p>
+        <p class="network-privacy-note">Reset Statistics clears earlier measurements, including those within the selected window. Samples older than 30 days are deleted automatically. This dashboard shows up to 5,000 of the newest measurements from the selected <?php echo $windowDays; ?>-day window and reports their actual coverage.</p>
     </section>
 </main>
 <?php include 'templates/footer.php'; ?>

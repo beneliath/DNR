@@ -5,6 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import shutil
 import threading
 import time
 import unittest
@@ -14,6 +15,7 @@ from deployment_backup import query
 from recovery_host_files import host_recovery_files
 from recovery_key_setup import protect_key
 from replicate_verified_backup_test import FakeSMB
+from recovery_restore_drill import drill
 
 
 @unittest.skipUnless(os.getenv('DNR_INTEGRATION_TARGET') == 'disposable', 'isolated recovery fixture required')
@@ -49,8 +51,16 @@ storePersistentFile($conn, str_repeat('recovery fixture', 100), 'recovery-test.t
                 (fixture / '.env').write_text('TEST_CONFIGURATION=true\n')
                 (fixture / 'VERSION').write_text('test')
                 (fixture / 'secrets/test_key').write_text('synthetic recovery secret')
+                # Build the replacement source from this checkout, but use only
+                # this disposable project's synthetic secrets and data.
+                source = Path(__file__).resolve().parent.parent
+                shutil.copytree(source/'src', fixture/'src')
+                shutil.copytree(source/'migrations', fixture/'migrations')
+                for mount in inspect(web)['Mounts']:
+                    if mount['Destination'] in ('/run/secrets/dnr_2fa_encryption_key', '/run/secrets/dnr_inbound_routing_key'):
+                        shutil.copyfile(mount['Source'], fixture/'secrets'/Path(mount['Destination']).name)
                 subprocess.run(['git', 'init', '-q', str(fixture)], check=True)
-                subprocess.run(['git', '-C', str(fixture), 'add', 'VERSION'], check=True)
+                subprocess.run(['git', '-C', str(fixture), 'add', 'VERSION', 'src', 'migrations'], check=True)
                 subprocess.run(['git', '-C', str(fixture), '-c', 'user.name=Fixture', '-c', 'user.email=fixture@example.invalid', 'commit', '-qm', 'fixture'], check=True)
                 work = Path(receipt['backup_path']).parent
                 recovery = host_recovery_files(fixture, work, inspect(web)['Image'], Path(os.environ['DNR_RECOVERY_TEST_PASSWORD']))
@@ -70,6 +80,17 @@ storePersistentFile($conn, str_repeat('recovery fixture', 100), 'recovery-test.t
                 self.assertEqual({p.name for p in directory.iterdir()}, {'receipt.json', 'database.sql.gz.dnrenc', 'uploaded-files.tar.gz.dnrenc', 'recovery-config.tar.gz.dnrenc', 'application-source.tar.dnrenc'})
                 self.assertEqual(json.loads((directory / 'receipt.json').read_text()), receipt)
                 print('Online snapshot, continued writes and file verification passed in %.1fs' % (time.monotonic() - started))
+                receipt['recovery_files'] = recovery
+                (directory/'receipt.json').write_text(json.dumps(receipt))
+                result = drill(directory, os.environ['DNR_RECOVERY_TEST_PASSWORD'])
+                self.assertTrue(result['administrator_password_and_mfa_verified'])
+                self.assertTrue(result['record_pages_verified'])
+                self.assertTrue(result['database_matches'])
+                self.assertTrue(result['outbound_network_blocked'])
+                report = os.getenv('DNR_RECOVERY_DRILL_REPORT')
+                if report:
+                    Path(report).write_text(json.dumps(result,indent=2)+'\n')
+                print('Isolated replacement application restore passed: ' + json.dumps(result))
         finally:
             stopped.set(); thread.join(timeout=10)
             query(db, 'DROP TABLE dnr.recovery_test_counter')

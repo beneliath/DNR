@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -32,6 +34,7 @@ $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'standard_task', 'view_standard_task.php?id=');
     $generate_existing = ($_POST['generate_existing_engagements'] ?? '') === '1';
     if ($generate_existing && $user_role !== 'admin') {
         http_response_code(403);
@@ -41,11 +44,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_standard_task'])
     try {
         $created_by = (int) $_SESSION['user_id'];
         $conn->begin_transaction();
+        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'standard_task');
+        if ($replayed_id !== null) { $conn->commit(); header('Location: view_standard_task.php?id=' . $replayed_id, true, 303); exit(); }
         $template_id = createStandardEventTask($conn, $_POST, $created_by);
         $generated_count = $generate_existing
             ? generateStandardTaskForOpenEngagements($conn, $template_id, $created_by, false)
             : 0;
-        $conn->commit();
+        completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $template_id);
+                    $conn->commit();
         $_SESSION['standard_task_action_message'] = 'Standard task added. It will be included automatically when new events are created.'
             . ($generate_existing ? ' ' . standardTaskGenerationMessage($generated_count) : '');
         header('Location: view_standard_task.php?id=' . $template_id);

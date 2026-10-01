@@ -3,7 +3,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
 const fs = require('node:fs');
-function harness(kind = 'organization') {
+function harness(kind = 'organization', prerendered = false) {
     class Element {
         constructor(text = '', value = '') { this.textContent = text; this.value = value; this.listeners = {}; }
         addEventListener(event, callback) { this.listeners[event] = callback; }
@@ -19,6 +19,13 @@ function harness(kind = 'organization') {
         before: (node) => { input = node; }, after: (node) => { status = node; },
         querySelector: () => new Element('None', ''),
         replaceChildren(...options) { this.children = options; }};
+    if (prerendered) {
+        input = new Element(); status = new Element();
+        input.matches = status.matches = () => true;
+        select.previousElementSibling = input;
+        select.nextElementSibling = status;
+        select.before = select.after = () => { throw new Error('Existing search controls must stay in place'); };
+    }
     const pending = [];
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/relationship-search.js'), 'utf8'), {
         document: {body: {}, querySelectorAll: () => [select], createElement: () => new Element()},
@@ -61,4 +68,14 @@ test('contact lookup keeps a selected contact and displays bounded results with 
     assert.deepEqual(h.select.children.map(o=>o.value), ['', '999', '2']);
     assert.match(h.select.children[2].textContent, /Taylor Smith · taylor@example\.test · Host/);
     assert.match(h.status.textContent, /1 matching contacts/);
+});
+
+test('server-rendered search controls are reused and remain functional', async () => {
+    const h = harness('organization', true);
+    const request = h.search('Host');
+    h.pending[0].resolve({ok:true,json:async()=>({results:[{id:2,organization_name:'Host'}],has_more:false})});
+    await request;
+    assert.equal(h.select.value, '999');
+    assert.deepEqual(h.select.children.map(o=>o.value), ['', '999', '2']);
+    assert.match(h.status.textContent, /1 matching organizations/);
 });

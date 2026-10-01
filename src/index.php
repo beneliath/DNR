@@ -3,6 +3,8 @@
 // It handles form submissions for adding engagements and displays the dashboard interface.
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 include 'presentation_helpers.php';
 include 'map_helpers.php';
 include 'follow_up_task_helpers.php';
@@ -39,6 +41,7 @@ $submitted_engagement_new_contacts = [];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'engagement', 'view_engagement.php?id=');
 
     $chron_entry = trim($_POST['chron_entry'] ?? '');
 
@@ -97,7 +100,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
         // Start transaction
         $conn->begin_transaction();
 
+
         try {
+        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'engagement');
+        if ($replayed_id !== null) { $conn->commit(); header('Location: view_engagement.php?id=' . $replayed_id, true, 303); exit(); }
             requireActiveOrganization($conn, $organization_id, true);
             validateEngagementRescheduleLink(
                 $conn,
@@ -127,7 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
 
             if ($stmt) {
                 $stmt->bind_param(
-                    "issssssiisisssiisssssssdssssd",
+                    "issssssiisisssiisssssssssssss",
                     $organization_id,
                     $event_title,
                     $event_description,
@@ -228,6 +234,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_engagement'])) {
                         throw new RuntimeException('Unable to queue the engagement location.');
                     }
 
+                    completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $engagement_id);
                     $conn->commit();
                     $_SESSION['engagement_action_message'] = 'Engagement saved successfully.'
                         . ($standard_task_count > 0
@@ -337,7 +344,19 @@ try {
     ),
   ),
 )); ?>
-<body>
+<body class="has-app-shell<?php echo aiCoachEnabled() ? ' has-coach' : ''; ?>">
+<?php if (aiCoachEnabled()): ?>
+<script nonce="<?php echo htmlspecialchars(contentSecurityPolicyNonce(), ENT_QUOTES, 'UTF-8'); ?>">
+// Reserve the restored Coach width before the page content can paint.
+try {
+    const initialCoach = JSON.parse(sessionStorage.getItem('moed-coach-session') || '{}');
+    if (initialCoach.key === <?php echo json_encode(aiCoachStorageKey()); ?>
+        && initialCoach.open === true && !window.matchMedia('(max-width: 1100px)').matches) {
+        document.body.classList.add('coach-open');
+    }
+} catch (_) { /* Keep the minimized Coach layout when storage is unavailable. */ }
+</script>
+<?php endif; ?>
 <?php include 'templates/header.php'; ?>
 <!-- Main container for the dashboard content -->
 <div class="container" role="main">
@@ -357,19 +376,27 @@ try {
         <div class="success"><?php echo htmlspecialchars($success_message); ?></div>
     <?php endif; ?>
 
-    <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
     <form method="post" action="index.php" class="engagement-form" id="new-engagement-form" data-recoverable-draft="index.php:new" enctype="multipart/form-data">
-        <?php echo csrfInput(); ?>
-        <section class="form-section">
+        <?php echo csrfInput(); echo creationTokenInput($creation_operation_token); ?>
+        <section class="form-draft-panel" data-form-draft-panel>
+            <p role="status">No saved draft</p>
+            <button type="button" disabled>Save Draft</button>
+            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
+        </section>
+        <div class="engagement-section-row engagement-primary-row">
+            <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
+        <section class="form-section engagement-details-section">
         <h2>Event Details</h2>
 <div class="organization-container">
     <label for="organization_id">Organization</label>
+    <input type="search" placeholder="Find an organization…" aria-label="Find an organization for Organization" data-relationship-search-input>
     <select name="organization_id" id="organization_id" data-organization-search required>
         <option value="" disabled<?php echo $selected_engagement_organization_id < 1 ? ' selected' : ''; ?>>Select an Organization</option>
         <?php foreach ($engagement_organization_options as $organization_option): ?>
             <option value="<?php echo (int) $organization_option['id']; ?>"<?php echo (int) $organization_option['id'] === $selected_engagement_organization_id ? ' selected' : ''; ?><?php echo !empty($organization_option['is_deleted']) ? ' disabled' : ''; ?>><?php echo htmlspecialchars((string) $organization_option['organization_name'], ENT_QUOTES, 'UTF-8'); ?></option>
         <?php endforeach; ?>
     </select>
+    <p class="field-help" role="status" data-relationship-search-status></p>
     <a href="add_organization.php?return_to=index.php" class="add-org-button">Add New Organization</a>
 </div>
 
@@ -381,9 +408,17 @@ try {
 
         </section>
 
-        <?php include 'templates/engagement_contact_form.php'; ?>
+            <div class="engagement-contact-column">
+            <?php
+            $engagement_contact_show_caller = true;
+            include 'templates/engagement_contact_form.php';
+            unset($engagement_contact_show_caller);
+            ?>
+            </div>
+        </div>
 
-        <section class="form-section">
+        <div class="engagement-section-row">
+        <section class="form-section engagement-schedule-section">
         <h2>Schedule</h2>
 
         <div class="date-fields">
@@ -420,17 +455,11 @@ try {
             </div>
         </div>
         </section>
+            <?php include 'templates/engagement_lifecycle_form.php'; ?>
+        </div>
 
-
-
-        <?php
-        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
-            ? $_POST['presentations']
-            : [[]];
-        include 'templates/presentation_form.php';
-        ?>
-
-        <section class="form-section">
+        <div class="engagement-section-row">
+        <section class="form-section engagement-logistics-section">
         <h2>Logistics &amp; Compensation</h2>
 
         <div class="checkbox-row">
@@ -525,8 +554,10 @@ try {
             </div>
         </div>
 
-        <div class="address-section">
-            <h3>Event Location</h3>
+        </section>
+
+        <section class="form-section engagement-location-section">
+            <h2>Event Location</h2>
             <div class="address-fields">
                 <div class="form-field">
                     <label for="event_address_line_1">Address Line 1</label>
@@ -561,10 +592,15 @@ try {
                     </div>
                 </div>
             </div>
-        </div>
         </section>
+        </div>
 
-        <?php include 'templates/engagement_lifecycle_form.php'; ?>
+        <?php
+        $presentation_form_rows = !empty($error_message) && is_array($_POST['presentations'] ?? null)
+            ? $_POST['presentations']
+            : [[]];
+        include 'templates/presentation_form.php';
+        ?>
 
         <section class="form-section chron-log-section" id="chron-log">
             <h2>Chron Log</h2>
@@ -574,26 +610,6 @@ try {
         </section>
 
         <div class="form-row">
-            <div class="engagement-inline-row">
-                <div class="form-field">
-                    <label for="caller_user_id">Caller</label>
-                    <select name="caller_user_id" id="caller_user_id">
-                        <option value="" <?php echo empty($_POST['caller_user_id']) ? 'selected' : ''; ?>>No Caller Selected</option>
-                        <?php
-                        // Fetch and display users in the dropdown
-                        $users = $conn->query(
-                            "SELECT id, username FROM users WHERE account_status = 'active' ORDER BY username"
-                        );
-                        while ($row = $users->fetch_assoc()) {
-                            $selected = (int) ($_POST['caller_user_id'] ?? 0) === (int) $row['id'] ? 'selected' : '';
-                            echo "<option value='" . (int) $row['id'] . "' {$selected}>" . htmlspecialchars($row['username']) . "</option>";
-                        }
-                        ?>
-                    </select>
-                </div>
-
-            </div>
-
             <div class="form-group create-form-actions create-form-actions-flush">
                 <a href="engagements.php" class="cancel-button">Cancel</a>
                 <input type="submit" name="save_engagement" value="Create engagement" class="save-button save-button-flush">

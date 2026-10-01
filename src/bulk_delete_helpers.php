@@ -53,6 +53,8 @@ function bulkDeleteRecords(mysqli $conn, string $entity, array $ids, int $actor_
     $ids = bulkDeleteIds($ids);
     $placeholders = implode(',', array_fill(0, count($ids), '?'));
     $extra = $entity === 'user' ? ', account_status' : '';
+    if ($entity === 'engagement') $extra = ', EXISTS(SELECT 1 FROM engagement_financial_reports r WHERE r.engagement_id=engagements.id) AS financial_hold';
+    if ($entity === 'organization') $extra = ', EXISTS(SELECT 1 FROM engagement_financial_reports r JOIN engagements e ON e.id=r.engagement_id WHERE e.organization_id=organizations.id) AS financial_hold';
     if ($entity === 'speaker') {
         $extra = ', (EXISTS (SELECT 1 FROM presentations WHERE speaker_id = speakers.id)
             OR EXISTS (SELECT 1 FROM short_links WHERE speaker_id = speakers.id)
@@ -73,6 +75,8 @@ function bulkDeleteRecords(mysqli $conn, string $entity, array $ids, int $actor_
             $blocked = 'This item is no longer available.';
         } elseif ($entity === 'user' && ($id === $actor_id || $row['account_status'] === 'active')) {
             $blocked = 'Active accounts and your own account cannot be deleted.';
+        } elseif (!empty($row['financial_hold'])) {
+            $blocked = 'Completed financial records are retained. Archive this record instead.';
         } elseif ($entity === 'speaker' && $row['linked']) {
             $blocked = 'This speaker is still referenced by a presentation, link, or file.';
         }

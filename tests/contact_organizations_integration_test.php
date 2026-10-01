@@ -93,10 +93,10 @@ try {
     syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []);
     $afterAffiliationSave = $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'];
     expectContactOrganizationsIntegration($beforeAffiliationSave !== $afterAffiliationSave, 'affiliation-only removals invalidate stale contact forms.');
-    expectContactOrganizationsIntegration(fetchEngagementContactAssignments($conn, $events[0]) === [], 'removing an affiliation should prune its event assignments.');
+    expectContactOrganizationsIntegration(count(fetchEngagementContactAssignments($conn, $events[0])) === 1, 'removing an affiliation preserves historical event assignments.');
     expectContactOrganizationsIntegration(count(fetchEngagementContactAssignments($conn, $events[1])) === 1, 'removing another affiliation must retain valid event assignments.');
     $updated = $conn->query("SELECT updated_at FROM engagements WHERE id = {$events[0]}")->fetch_assoc()['updated_at'];
-    expectContactOrganizationsIntegration($updated !== '2026-01-01 00:00:00.000000', 'pruning assignments should invalidate stale event edit forms.');
+    expectContactOrganizationsIntegration($updated === '2026-01-01 00:00:00.000000', 'preserving unchanged assignments preserves the event edit version.');
     expectContactOrganizationsIntegration(!syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []), 'unchanged affiliations should avoid writes.');
     expectContactOrganizationsIntegration($afterAffiliationSave === $conn->query("SELECT updated_at FROM contacts WHERE id = {$contactId}")->fetch_assoc()['updated_at'], 'unchanged affiliations preserve the version.');
     syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', [['organization_id' => $orgs[0], 'role_title' => 'Pastor']]);
@@ -107,7 +107,7 @@ try {
     syncContactOrganizations($conn, $contactId, $orgs[1], 'Chairman', []);
 
     $conn->query("UPDATE engagements SET organization_id = {$orgs[2]} WHERE id = {$events[1]}");
-    expectContactOrganizationsIntegration(fetchEngagementContactAssignments($conn, $events[1]) === [], 'changing event organization should prune incompatible contacts.');
+    expectContactOrganizationsIntegration(count(fetchEngagementContactAssignments($conn, $events[1])) === 1, 'changing event organization preserves its contact history.');
 
     $conn->query("UPDATE organizations SET is_deleted = 1 WHERE id = {$orgs[0]}");
     $rejected = false;

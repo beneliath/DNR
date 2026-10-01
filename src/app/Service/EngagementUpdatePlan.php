@@ -160,16 +160,16 @@ final class EngagementUpdatePlan
         array $submitted,
         string $field
     ): void {
-        $value = $submitted[$field] === null ? null : (float) $submitted[$field];
+        $value = $submitted[$field] === null ? null : \Dnr\Domain\Money::amount($submitted[$field], 'Amount');
         $currentValue = ($current[$field] ?? null) === null || $current[$field] === ''
             ? null
-            : (float) $current[$field];
+            : \Dnr\Domain\Money::amount($current[$field], 'Amount');
         if ($value === $currentValue) {
             return;
         }
         $assignments[] = $field . ' = ?';
         $values[] = $value;
-        $types .= 'd';
+        $types .= 's';
     }
 
     /**

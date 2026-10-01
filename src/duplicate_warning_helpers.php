@@ -6,7 +6,7 @@ function creationDuplicateWarning(mysqli $conn, string $kind, array $input): arr
 {
     $read=static fn($key)=>is_scalar($input[$key]??null)?mb_substr(trim((string)$input[$key]),0,255):'';
     $source=['id'=>0];
-    $fields=$kind==='contact'?['contact_first_name','contact_last_name','contact_email','contact_phone']:['organization_name','email','phone'];
+    $fields=$kind==='contact'?['contact_first_name','contact_last_name','contact_email','contact_phone']:['organization_name','email','phone','physical_address_line_1','physical_city','physical_state','physical_country'];
     foreach($fields as $field) $source[$field]=$read($field);
     if($kind==='organization' && $source['organization_name']==='') return ['matches'=>[],'token'=>''];
     if($kind==='contact' && $source['contact_first_name']==='' && $source['contact_last_name']==='' && $source['contact_email']==='' && $source['contact_phone']==='') return ['matches'=>[],'token'=>''];
@@ -28,7 +28,7 @@ function renderCreationDuplicateWarning(array $warning, string $kind, string $re
     ?><section data-duplicate-warning <?php echo $warning['matches']?'':'hidden'; ?> class="form-section">
     <h2>Possible Existing Records</h2><p>Review these matches before creating another record. A shared name or email does not necessarily mean the same person or organization.</p>
     <ul data-duplicate-matches><?php foreach($warning['matches'] as $match): ?>
-    <li><a href="<?php echo $h(creationDuplicateDestination($kind,(int)$match['id'],$return)); ?>"><?php echo $h('Use Existing: '.$match['label']); ?></a> <?php echo $h($match['email']); ?></li><?php endforeach; ?></ul>
+    <li><a href="<?php echo $h(creationDuplicateDestination($kind,(int)$match['id'],$return)); ?>"><?php echo $h('Use Existing: '.$match['label']); ?></a> <?php echo $h(implode(' · ', array_filter([$match['email']??'', $match['phone']??'', $match['location']??'']))); ?></li><?php endforeach; ?></ul>
     <input type="hidden" name="duplicate_token" value="<?php echo $h($warning['token']); ?>">
     <label><input type="checkbox" name="duplicate_distinct" value="1"> These Are Different Records — Create a New One</label>
     </section><?php

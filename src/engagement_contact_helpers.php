@@ -104,7 +104,7 @@ function engagementContactAssignmentMap(array $assignments): array
 }
 
 /** @return list<array<string, mixed>> */
-function fetchOrganizationContactOptions(mysqli $conn, int $organization_id): array
+function fetchOrganizationContactOptions(mysqli $conn, int $organization_id, int $engagement_id = 0): array
 {
     if ($organization_id < 1) {
         return [];
@@ -125,6 +125,12 @@ function fetchOrganizationContactOptions(mysqli $conn, int $organization_id): ar
     $stmt->execute();
     $contacts = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     $stmt->close();
+    if ($engagement_id > 0) {
+        $ids = array_fill_keys(array_column($contacts, 'id'), true);
+        foreach (fetchEngagementContacts($conn, $engagement_id) as $contact) {
+            if (!isset($ids[$contact['id']])) $contacts[] = $contact;
+        }
+    }
     return $contacts;
 }
 
@@ -163,7 +169,8 @@ function searchEventContactOptions(mysqli $conn, int $organization_id, string $q
 function validateEngagementContactAssignments(
     mysqli $conn,
     int $organization_id,
-    array $assignments
+    array $assignments,
+    int $engagement_id = 0
 ): void {
     if ($assignments === []) {
         return;
@@ -172,7 +179,12 @@ function validateEngagementContactAssignments(
     foreach (fetchOrganizationContactOptions($conn, $organization_id) as $contact) {
         $available_contact_ids[(int) $contact['id']] = true;
     }
+    $existing = [];
+    if ($engagement_id > 0) foreach (fetchEngagementContactAssignments($conn, $engagement_id) as $row) {
+        $existing[$row['contact_id'] . ':' . $row['contact_role']] = true;
+    }
     foreach ($assignments as $assignment) {
+        if (isset($existing[$assignment['contact_id'] . ':' . $assignment['contact_role']])) continue;
         if (!isset($available_contact_ids[$assignment['contact_id']])) {
             throw new InvalidArgumentException(
                 'Select only active contacts from the engagement organization.'
@@ -185,16 +197,21 @@ function validateEngagementContactAssignments(
 function fetchEngagementContacts(mysqli $conn, int $engagement_id): array
 {
     $stmt = $conn->prepare(
-        "SELECT c.id, co.organization_id, c.contact_first_name, c.contact_last_name,
-                c.contact_role, c.contact_role_other, c.contact_email, c.contact_phone,
-                co.role_title AS organization_role_title,
+        "SELECT c.id, ec.organization_id_snapshot AS organization_id,
+                IF(co.contact_id IS NULL OR c.is_deleted=1,ec.contact_first_name_snapshot,c.contact_first_name) AS contact_first_name,
+                IF(co.contact_id IS NULL OR c.is_deleted=1,ec.contact_last_name_snapshot,c.contact_last_name) AS contact_last_name,
+                c.contact_role, c.contact_role_other,
+                IF(co.contact_id IS NULL OR c.is_deleted=1,ec.contact_email_snapshot,c.contact_email) AS contact_email,
+                IF(co.contact_id IS NULL OR c.is_deleted=1,ec.contact_phone_snapshot,c.contact_phone) AS contact_phone,
+                COALESCE(co.role_title,ec.role_title_snapshot) AS organization_role_title,
+                (co.contact_id IS NULL OR c.is_deleted=1) AS historical_affiliation,
                 ec.contact_role AS engagement_contact_role
          FROM engagement_contacts ec
          INNER JOIN engagements e ON e.id = ec.engagement_id
          INNER JOIN contacts c ON c.id = ec.contact_id
-         INNER JOIN contact_organizations co ON co.contact_id = c.id
+         LEFT JOIN contact_organizations co ON co.contact_id = c.id
              AND co.organization_id = e.organization_id
-         WHERE ec.engagement_id = ? AND c.is_deleted = 0
+         WHERE ec.engagement_id = ?
          ORDER BY FIELD(
                     ec.contact_role,
                     'primary_host', 'on_site_contact', 'billing', 'travel', 'materials'
@@ -225,6 +242,13 @@ function fetchEngagementContacts(mysqli $conn, int $engagement_id): array
         $engagement_contacts[] = $contact;
     }
     return $engagement_contacts;
+}
+
+/** Historical snapshots remain visible, but never supply live email recipients. */
+function fetchActiveEngagementEmailContacts(mysqli $conn, int $engagementId): array
+{
+    return array_values(array_filter(fetchEngagementContacts($conn,$engagementId),
+        static fn(array $contact): bool => empty($contact['historical_affiliation'])));
 }
 
 /** @return list<array{contact_id: int, contact_role: string}> */
@@ -269,44 +293,17 @@ function syncEngagementContacts(
         return false;
     }
 
-    $delete_stmt = $conn->prepare('DELETE FROM engagement_contacts WHERE engagement_id = ?');
-    if (!$delete_stmt) {
-        throw new RuntimeException('Unable to prepare the event contact changes.');
+    $current = [];
+    foreach ($current_assignments as $row) $current[$row['contact_id'] . ':' . $row['contact_role']] = $row;
+    $desired = [];
+    foreach ($assignments as $row) $desired[$row['contact_id'] . ':' . $row['contact_role']] = $row;
+    foreach (array_diff_key($current, $desired) as $row) {
+        $conn->execute_query('DELETE FROM engagement_contacts WHERE engagement_id=? AND contact_id=? AND contact_role=?',
+            [$engagement_id,$row['contact_id'],$row['contact_role']]);
     }
-    $delete_stmt->bind_param('i', $engagement_id);
-    if (!$delete_stmt->execute()) {
-        $delete_stmt->close();
-        throw new RuntimeException('Unable to clear the prior event contact assignments.');
-    }
-    $delete_stmt->close();
-
-    if ($assignments !== []) {
-        $insert_stmt = $conn->prepare(
-            'INSERT INTO engagement_contacts
-                (engagement_id, contact_id, contact_role, created_by)
-             VALUES (?, ?, ?, ?)'
-        );
-        if (!$insert_stmt) {
-            throw new RuntimeException('Unable to prepare the event contact assignments.');
-        }
-        $contact_id = 0;
-        $contact_role = '';
-        $insert_stmt->bind_param(
-            'iisi',
-            $engagement_id,
-            $contact_id,
-            $contact_role,
-            $created_by
-        );
-        foreach ($assignments as $assignment) {
-            $contact_id = $assignment['contact_id'];
-            $contact_role = $assignment['contact_role'];
-            if (!$insert_stmt->execute()) {
-                $insert_stmt->close();
-                throw new RuntimeException('Unable to save the event contact assignments.');
-            }
-        }
-        $insert_stmt->close();
+    foreach (array_diff_key($desired, $current) as $row) {
+        $conn->execute_query('INSERT INTO engagement_contacts (engagement_id,contact_id,contact_role,created_by) VALUES (?,?,?,?)',
+            [$engagement_id,$row['contact_id'],$row['contact_role'],$created_by]);
     }
 
     if ($touch_engagement) {
@@ -324,4 +321,10 @@ function syncEngagementContacts(
         $touch_stmt->close();
     }
     return true;
+}
+
+/** @return list<array<string,mixed>> */
+function fetchEngagementContactHistory(mysqli $conn, int $engagementId): array
+{
+    return $conn->execute_query('SELECT * FROM engagement_contact_history WHERE engagement_id=? ORDER BY ended_at DESC,id DESC LIMIT 100', [$engagementId])->fetch_all(MYSQLI_ASSOC);
 }

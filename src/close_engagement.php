@@ -144,6 +144,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $lodging_received = $submitted['lodging_received'];
             $travel_received = $submitted['travel_received'];
             if ($locked_report) {
+                $correctionReason = is_string($_POST['correction_reason'] ?? null) ? trim($_POST['correction_reason']) : '';
+                if ($correctionReason === '' || mb_strlen($correctionReason) > 1000) {
+                    throw new InvalidArgumentException('Enter a correction reason of 1–1000 characters.');
+                }
+                $conn->execute_query('SET @dnr_financial_correction_reason=?', [$correctionReason]);
                 if ($submitted_version === ''
                     || !hash_equals((string) $locked_report['updated_at'], $submitted_version)
                 ) {
@@ -250,10 +255,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             $conn->commit();
         } catch (Throwable $exception) {
+            $conn->query('SET @dnr_financial_correction_reason=NULL');
             $conn->rollback();
             throw $exception;
         }
 
+        $conn->query('SET @dnr_financial_correction_reason=NULL');
         $_SESSION['financial_report_message'] = $success_message;
         header('Location: view_engagement.php?id=' . $engagement_id . '#financial-closeout');
         exit();
@@ -377,6 +384,10 @@ $closed_timestamp = $is_correction
     <form method="post" action="close_engagement.php?id=<?php echo $engagement_id; ?>" class="closeout-form">
         <?php echo csrfInput(); ?>
         <input type="hidden" name="draft_version" value="<?php echo htmlspecialchars((string) ($_SERVER['REQUEST_METHOD'] === 'POST' && is_scalar($_POST['draft_version'] ?? null) ? $_POST['draft_version'] : ($financial_draft['updated_at'] ?? '')), ENT_QUOTES, 'UTF-8'); ?>">
+        <?php if ($is_correction): ?>
+        <div class="form-field"><label for="correction_reason" class="required">Correction Reason *</label>
+            <textarea id="correction_reason" name="correction_reason" rows="2" maxlength="1000" required><?php echo htmlspecialchars(is_string($_POST['correction_reason'] ?? null) ? $_POST['correction_reason'] : '', ENT_QUOTES, 'UTF-8'); ?></textarea></div>
+        <?php endif; ?>
         <input type="hidden" name="report_version" value="<?php echo htmlspecialchars((string) ($financial_report['updated_at'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 
         <fieldset>
