@@ -16,6 +16,15 @@ function harness(initialEvents, mapProvider = {}) {
     }
     const ids = ['engagement-map', 'engagement-map-data', 'map-feedback', 'fit-map-pins', 'map-empty-state', 'map-empty-title', 'map-empty-description', 'map-list-empty', 'map-retry-feedback'];
     const elements = Object.fromEntries(ids.map(id => [id, new Element()]));
+    const filterForm = new Element(), applyButton = new Element();
+    const filterFields = ['active', '', '2026-09-30', '2027-01-01', 'all'].map(value => ({value}));
+    const applyClasses = new Set();
+    applyButton.classList = {
+        toggle: (name, enabled) => enabled ? applyClasses.add(name) : applyClasses.delete(name),
+        contains: name => applyClasses.has(name)
+    };
+    filterForm.querySelectorAll = selector => selector === 'input, select' ? filterFields : [];
+    filterForm.querySelector = selector => selector === 'button[type="submit"]' ? applyButton : null;
     elements['engagement-map'].hidden = !initialEvents.some(event => event.locationState === 'found');
     elements['map-list-empty'].textContent = 'Every engagement matching your other filters has an address entered.';
     const rows = initialEvents.map(event => {
@@ -68,6 +77,7 @@ function harness(initialEvents, mapProvider = {}) {
     const context = {
         document: {
             getElementById: id => elements[id], createElement: () => new Element(), visibilityState: 'visible',
+            querySelector: selector => selector === '.map-filters' ? filterForm : null,
             querySelectorAll: selector => ({'[data-location-id]': rows, '[data-location-filter]': filters, '[data-retry-location]': rows.map(row => row.retry)})[selector] || [],
             addEventListener: (type, fn) => { documentListeners[type] = fn; },
             dispatchEvent: event => documentListeners[event.type]?.(event)
@@ -87,10 +97,35 @@ function harness(initialEvents, mapProvider = {}) {
     vm.createContext(context);
     vm.runInContext(fs.readFileSync('src/assets/js/map-list.js', 'utf8'), context);
     vm.runInContext(fs.readFileSync('src/assets/js/map.js', 'utf8').replace(/^import[\s\S]*?from 'maplibre-gl';/, ''), context);
-    return {elements, rows, filters, requests, mapCalls, markers, popups, load: () => loadCallbacks.splice(0).forEach(fn => fn()), responder: fn => { responder = fn; },
+    return {elements, rows, filters, filterForm, filterFields, applyButton, requests, mapCalls, markers, popups, load: () => loadCallbacks.splice(0).forEach(fn => fn()), responder: fn => { responder = fn; },
         poll: async () => { const first = timers.entries().next().value; assert.ok(first, 'A poll should be scheduled'); timers.delete(first[0]); await first[1](); }};
 }
 const unresolved = {id: 4, title: 'Conference', address: '960 S. US Highway 41', locationState: 'not_found', latitude: null, longitude: null};
+
+test('each unapplied map filter draws attention until all original selections are restored', () => {
+    const h = harness([]);
+    const reminding = () => h.applyButton.classList.contains('map-apply-reminder');
+    assert.equal(reminding(), false, 'applied filters should not flash on load');
+    for (const field of h.filterFields) {
+        const original = field.value;
+        field.value = original + '-changed';
+        h.filterForm.listeners.change();
+        assert.equal(reminding(), true, 'each filter should trigger the reminder');
+        field.value = original;
+        h.filterForm.listeners.input();
+        assert.equal(reminding(), false, 'restoring the selection should stop the reminder');
+    }
+    const originals = h.filterFields.slice(0, 2).map(field => field.value);
+    h.filterFields[0].value = 'all';
+    h.filterFields[1].value = 'under_review';
+    h.filterForm.listeners.change();
+    h.filterFields[0].value = originals[0];
+    h.filterForm.listeners.change();
+    assert.equal(reminding(), true, 'another unapplied filter should keep the reminder active');
+    h.filterFields[1].value = originals[1];
+    h.filterForm.listeners.input();
+    assert.equal(reminding(), false);
+});
 
 test('Amazon style replaces the raster source without changing engagement coordinates', () => {
     const styleUrl = 'https://maps.geo.us-east-2.amazonaws.com/v2/styles/Standard/descriptor?key=test';
