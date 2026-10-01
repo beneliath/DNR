@@ -6,10 +6,16 @@ parameters:
         - src/duplicate_warning_helpers.php
         - src/global_search_helpers.php
         - src/list_ui_helpers.php
+        - src/data_consistency_helpers.php
         - src/data_maintenance_helpers.php
         - src/document_scanning_helpers.php
         - src/key_rotation_helpers.php
         - src/organization_options_helpers.php
+        - src/record_creation_helpers.php
+        - src/reimbursement_admin_helpers.php
+        - src/reimbursement_workflow_helpers.php
+        - src/reimbursement_helpers.php
+        - src/record_merge_journal_helpers.php
         - src/record_merge_helpers.php
         - src/ai_coach_helpers.php
         - src/ai_coach_history_helpers.php

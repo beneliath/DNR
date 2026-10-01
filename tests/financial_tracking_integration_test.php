@@ -255,6 +255,12 @@ try {
     );
 } finally {
     if ($organizationId > 0) {
+        // Only the privileged fixture driver may remove retained synthetic
+        // financial records before deleting its disposable parent records.
+        foreach ($engagementIds as $fixtureId) {
+            $conn->execute_query('DELETE FROM engagement_financial_revisions WHERE engagement_id=?',[$fixtureId]);
+            $conn->execute_query('DELETE FROM engagement_financial_reports WHERE engagement_id=?',[$fixtureId]);
+        }
         $deleteEventsStmt = $conn->prepare('DELETE FROM engagements WHERE organization_id = ?');
         $deleteEventsStmt->bind_param('i', $organizationId);
         $deleteEventsStmt->execute();

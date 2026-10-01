@@ -19,6 +19,7 @@ $organization_contact_role = organizationContactRoleLabel($organization_contact)
     <?php if (!empty($organization_contact['contact_email'])): ?>
         <p class="field-help engagement-contact-email"><?php echo htmlspecialchars((string) $organization_contact['contact_email'], ENT_QUOTES, 'UTF-8'); ?></p>
     <?php endif; ?>
+    <?php if (!empty($organization_contact['historical_affiliation'])): ?><p class="field-help">Historical event assignment. Existing roles may be retained; add an active affiliation before assigning new roles.</p><?php endif; ?>
     <div class="engagement-contact-role-options">
         <?php foreach ($engagement_contact_role_options as $contact_role_value => $contact_role_label): ?>
             <label>

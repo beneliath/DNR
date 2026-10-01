@@ -164,6 +164,8 @@ try {
 
 try {
     $contacts = fetchEngagementContacts($conn, $engagement_id);
+    $contact_history = fetchEngagementContactHistory($conn, $engagement_id);
+    $financial_revisions = fetchEngagementFinancialRevisions($conn, $engagement_id);
 } catch (Throwable $exception) {
     abortApplication(503, 'The engagement contacts are temporarily unavailable.', [
         'engagement_id' => $engagement_id,
@@ -631,6 +633,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                     ENT_QUOTES,
                     'UTF-8'
                 ); ?></a></strong></div>
+                <?php if (!empty($contact['historical_affiliation'])): ?><p class="field-help">Historical assignment; this contact is no longer active at the event organization.</p><?php endif; ?>
                 <div class="event-contact-roles" aria-label="Event Roles">
                     <?php foreach ((array) ($contact['engagement_contact_roles'] ?? []) as $event_contact_role): ?>
                         <span><?php echo htmlspecialchars(engagementContactRoleLabel($event_contact_role), ENT_QUOTES, 'UTF-8'); ?></span>
@@ -653,6 +656,13 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <p class="engagement-contacts-empty">No event contacts have been assigned.</p>
             <?php endif; ?>
         </div>
+                <?php if ($contact_history): ?><details><summary>Previous Contact Assignments</summary>
+                <p>Most recent 100 assignments removed from this event. Contact details reflect the assignment snapshot.</p>
+                <ul><?php foreach ($contact_history as $entry): ?><li>
+                <?php echo htmlspecialchars(trim($entry['contact_first_name_snapshot'].' '.$entry['contact_last_name_snapshot']), ENT_QUOTES, 'UTF-8'); ?> —
+                <?php echo htmlspecialchars(engagementContactRoleLabel($entry['contact_role']), ENT_QUOTES, 'UTF-8'); ?>;
+                ended <?php echo htmlspecialchars(applicationTimestampLabel($entry['ended_at'], 'Y-m-d H:i T'), ENT_QUOTES, 'UTF-8'); ?>
+                </li><?php endforeach; ?></ul></details><?php endif; ?>
             </section>
             <section class="engagement-card engagement-tab-panel" id="engagement-logistics" role="tabpanel" aria-labelledby="engagement-logistics-tab" tabindex="0" hidden>
                 <div class="engagement-card-heading"><h2>Event Logistics</h2></div>
@@ -670,10 +680,10 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <div><strong>Details:</strong> <?php echo htmlspecialchars($engagement['other_compensation']); ?></div>
             <?php endif; ?>
             <?php if ($engagement['travel_amount'] !== null): ?>
-            <div><strong>Travel Amount:</strong> $<?php echo number_format((float) $engagement['travel_amount'], 2); ?></div>
+            <div><strong>Travel Amount:</strong> <?php echo formatFinancialAmount($engagement['travel_amount']); ?></div>
             <?php endif; ?>
             <?php if ($engagement['housing_amount'] !== null): ?>
-            <div><strong>Lodging Amount:</strong> $<?php echo number_format((float) $engagement['housing_amount'], 2); ?></div>
+            <div><strong>Lodging Amount:</strong> <?php echo formatFinancialAmount($engagement['housing_amount']); ?></div>
             <?php endif; ?>
             <?php if (!empty($engagement['housing_type'])): ?>
             <div><strong>Lodging Type:</strong> <?php echo htmlspecialchars($engagement['housing_type']); ?></div>
@@ -724,6 +734,13 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <?php if (!empty($financial_report['notes'])): ?>
                 <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo renderTextWithLinks($financial_report['notes']); ?></p></div>
             <?php endif; ?>
+            <details><summary>Financial Revision History</summary><p>Completed reports and revisions are retained indefinitely.</p>
+                <table class="data-table"><thead><tr><th>Date / Actor</th><th>Giving</th><th>Lodging</th><th>Travel</th><th>Reason</th></tr></thead><tbody>
+                <?php foreach ($financial_revisions as $revision): ?><tr>
+                <td><?php echo htmlspecialchars(applicationTimestampLabel($revision['recorded_at'],'Y-m-d H:i T').' · '.($revision['actor_name'] ?? 'Former user'),ENT_QUOTES,'UTF-8'); ?></td>
+                <?php foreach (['giving_income_received','lodging_received','travel_received'] as $amount): ?><td><?php echo formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
+                <td><?php echo htmlspecialchars($revision['correction_reason'],ENT_QUOTES,'UTF-8'); ?></td></tr><?php endforeach; ?>
+                </tbody></table><p>Most recent 100 revisions.</p></details>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
                 <a href="close_engagement.php?id=<?php echo $engagement_id; ?>" class="action-button edit-button">Correct Final Report</a>
             <?php endif; ?>

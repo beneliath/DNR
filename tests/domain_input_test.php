@@ -234,7 +234,7 @@ expectDomainInput(
     $engagement['event_type_other'] === 'Retreat'
         && $engagement['confirmation_status'] === 'work_in_progress'
         && $engagement['lifecycle_status'] === 'active'
-        && $engagement['travel_amount'] === 125.5
+        && $engagement['travel_amount'] === '125.50'
         && $engagement['event_city'] === 'Chicago'
         && $engagement['event_state'] === 'IL'
         && $engagement['event_country'] === 'US',

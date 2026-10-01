@@ -342,7 +342,7 @@ try {
 } catch (InvalidArgumentException $exception) {
     expectTrue(true, 'An inverted event date range was rejected.');
 }
-expectTrue(nullableNonNegativeAmount('0', 'travel') === 0.0, 'A zero amount must be preserved.');
+expectTrue(nullableNonNegativeAmount('0', 'travel') === '0.00', 'A zero amount must be preserved.');
 expectTrue(nullableNonNegativeAmount('', 'travel') === null, 'A blank amount should remain unset.');
 expectTrue(!nullableAmountsEqual(null, 0.0), 'Changing a blank amount to zero must be detected.');
 expectTrue(nullableAmountsEqual('0.00', 0.0), 'Equivalent stored and submitted zero amounts should compare equally.');

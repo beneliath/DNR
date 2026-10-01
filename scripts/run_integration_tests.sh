@@ -72,7 +72,7 @@ run_integration_suite() {
             web php -d disable_functions=passthru,shell_exec,system,popen "/opt/dnr/${test_file}" </dev/null
         return
     fi
-    if [ "$test_name" = 'review_improvements_integration_test.php' ]; then
+    if [ "$test_name" = 'review_improvements_integration_test.php' ] || [ "$test_name" = 'data_management_integration_test.php' ] || [ "$test_name" = 'data_maintenance_integration_test.php' ] || [ "$test_name" = 'financial_tracking_integration_test.php' ]; then
         compose run --rm --no-deps --entrypoint php \
             -e DNR_INTEGRATION_TEST=1 -e DNR_INTEGRATION_TARGET=disposable \
             -e DNR_TEST_SOURCE_DIR=/var/www/html -v "${PWD}/src:/var/www/html:ro" \

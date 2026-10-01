@@ -50,7 +50,8 @@ try {
     expectStandardTaskHttp($page['status'] === 200
         && preg_match('/<input[^>]*name="generate_existing_engagements"[^>]*>/', $page['body'], $checkbox) === 1
         && !str_contains($checkbox[0], ' checked'), 'the creation option should be available and unchecked by default');
-    $input = ['csrf_token' => $admin['csrf'], 'save_standard_task' => '1', 'title' => 'HTTP standard task', 'details' => 'Task notes',
+    preg_match('/name="operation_token"[^>]*value="([^"]+)"/', $page['body'], $operation);
+    $input = ['csrf_token' => $admin['csrf'], 'operation_token' => $operation[1], 'save_standard_task' => '1', 'title' => 'HTTP standard task', 'details' => 'Task notes',
         'priority' => 'high', 'due_anchor' => 'event_start', 'due_offset_days' => '-3', 'sort_order' => '62'];
     $save = $request('add_standard_task.php', $input, $admin['cookie']);
     expectStandardTaskHttp($save['status'] === 302 && preg_match('/Location: view_standard_task.php\?id=(\d+)/i', $save['headers'], $match) === 1, 'saving without the option should create the definition');
@@ -74,13 +75,13 @@ try {
     expectStandardTaskHttp($count > 0, 'the saved-definition action must create tasks');
     $request($path, $action, $admin['cookie']);
     expectStandardTaskHttp((int) fetchStandardEventTask($conn, $id)['generated_count'] === $count, 'repeated submissions must not duplicate tasks');
-    $save = $request('add_standard_task.php', array_replace($input, ['generate_existing_engagements' => '1']), $admin['cookie']);
+    $save = $request('add_standard_task.php', array_replace($input, ['operation_token'=>bin2hex(random_bytes(16)), 'generate_existing_engagements' => '1']), $admin['cookie']);
     expectStandardTaskHttp($save['status'] === 302 && preg_match('/Location: view_standard_task.php\?id=(\d+)/i', $save['headers'], $match) === 1, 'the checked option should save and generate in one request');
     expectStandardTaskHttp((int) fetchStandardEventTask($conn, (int) $match[1])['generated_count'] > 0, 'creating with the option must generate copies');
     $beforeTemplates = (int) $conn->query('SELECT COUNT(*) AS total FROM standard_event_tasks')->fetch_assoc()['total'];
     $beforeTasks = (int) $conn->query('SELECT COUNT(*) AS total FROM follow_up_tasks')->fetch_assoc()['total'];
     $conn->query("UPDATE engagements SET event_start_date = '9999-12-31', event_end_date = '9999-12-31' WHERE id = {$engagement}");
-    $invalid = $request('add_standard_task.php', array_replace($input, ['generate_existing_engagements' => '1', 'due_offset_days' => '7']), $admin['cookie']);
+    $invalid = $request('add_standard_task.php', array_replace($input, ['operation_token'=>bin2hex(random_bytes(16)), 'generate_existing_engagements' => '1', 'due_offset_days' => '7']), $admin['cookie']);
     expectStandardTaskHttp($invalid['status'] === 200 && str_contains($invalid['body'], 'outside the supported date range')
         && preg_match('/<input[^>]*name="generate_existing_engagements"[^>]* checked/', $invalid['body']) === 1
         && str_contains($invalid['body'], 'value="HTTP standard task"'), 'batch failures should preserve the draft and checked option');

@@ -437,7 +437,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
             $organization_id,
             $submitted_engagement_contacts,
             $submitted_engagement_added_contact_ids,
-            $submitted_engagement_new_contacts
+            $submitted_engagement_new_contacts,
+            $engagement_id
         );
         syncEngagementContacts(
             $conn,
@@ -664,7 +665,8 @@ $engagement_organization_options = boundedOrganizationOptions(
 try {
     $organization_contacts = fetchOrganizationContactOptions(
         $conn,
-        $selected_engagement_organization_id
+        $selected_engagement_organization_id,
+        $engagement_id
     );
     $engagement_added_contacts = fetchEngagementAddedContactOptions(
         $conn,

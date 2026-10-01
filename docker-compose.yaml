@@ -162,7 +162,9 @@ services:
       <<: *app-environment
       DNR_AI_HISTORY_RETENTION_DAYS: ${DNR_AI_HISTORY_RETENTION_DAYS:-90}
       DNR_STATISTICS_DETAIL_DAYS: ${DNR_STATISTICS_DETAIL_DAYS:-400}
-    secrets: [dnr_mysql_app_password]
+      MYSQL_USER: dnrmaintenance
+      MYSQL_PASSWORD_FILE: /run/secrets/dnr_mysql_maintenance_password
+    secrets: [dnr_mysql_maintenance_password]
     volumes:
       - ${DNR_CONFIG_FILE_HOST:-./deployments/moed/application.yaml}:/run/dnr/config/application.yaml:ro
     networks: [backend]

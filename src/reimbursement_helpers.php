@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/persistent_file_helpers.php';
 require_once __DIR__ . '/document_scanning_helpers.php';
 require_once __DIR__ . '/reimbursement_workflow_helpers.php';
+require_once __DIR__ . '/financial_report_helpers.php';
 
 function reimbursementSubmissionNote(mixed $value): string
 {
@@ -43,14 +44,14 @@ function reimbursementAmountCents(mixed $value): int
         throw new InvalidArgumentException('Enter a valid amount with no more than two decimal places.');
     }
     [$whole, $fraction] = array_pad(explode('.', $value, 2), 2, '');
-    $cents = (int) $whole * 100 + (int) str_pad($fraction, 2, '0');
-    if ($cents < 1 || $cents > 2147483647) throw new InvalidArgumentException('Amount is outside the supported range.');
+    $cents = \Dnr\Domain\Money::cents(\Dnr\Domain\Money::amount($value, 'Amount', '21474836.47'));
+    if ($cents < 1) throw new InvalidArgumentException('Amount is outside the supported range.');
     return $cents;
 }
 
 function reimbursementMoney(int $cents): string
 {
-    return '$' . number_format($cents / 100, 2);
+    return formatFinancialAmount(\Dnr\Domain\Money::fromCents($cents));
 }
 
 function reimbursementOwner(mysqli $conn, int $userId): array

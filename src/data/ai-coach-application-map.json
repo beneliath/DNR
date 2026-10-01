@@ -30,7 +30,7 @@
       ]
     },
     "add_contact.php": {
-      "sha256": "21da425ea44d04f46e0ce5d8461713e5b99faf76a5235547729b223976761745",
+      "sha256": "4840b10a10e5b18a2511f4d4f7db7e16df196256b245d0eea3a3ee1e31dacd10",
       "controls": [
         {
           "kind": "a",
@@ -113,7 +113,7 @@
       ]
     },
     "add_inquiry.php": {
-      "sha256": "689bc752b09e876935327964f5686d1241e22e5b7c2bdc2a377c023632265409",
+      "sha256": "94e98e72552af0ae46c9b6957dff6e3a27234328094b774c8c8c046fb47ddda1",
       "controls": [
         {
           "kind": "a",
@@ -127,7 +127,7 @@
       ]
     },
     "add_organization.php": {
-      "sha256": "5c6b65ee47f1fef66afc1e74608978d46401fceb83a8bd8861ca36250e468885",
+      "sha256": "779a3d18e235478e377c44257f015a235f8d42d1edae61c42c8f909c31a30519",
       "controls": [
         {
           "kind": "a",
@@ -383,7 +383,7 @@
       ]
     },
     "add_standard_task.php": {
-      "sha256": "c43a9db1923a467a3584a23ce8a4a7d33a37982e3c49f18dd329306ea47209f5",
+      "sha256": "101ac8aa842b856214e36512f8e126e70f86a21bc26627a05cae6e4c38d18474",
       "controls": [
         {
           "kind": "a",
@@ -402,7 +402,7 @@
       ]
     },
     "add_task.php": {
-      "sha256": "4b766fc0f24921d46c18e9f91c207f3eb51523ab7ac123b9ece426fd49cdc43d",
+      "sha256": "11ffec5b93d5ab34a77e22a242803f6e02951475548a4b70d2e6141a1f06709a",
       "controls": [
         {
           "kind": "a",
@@ -604,7 +604,7 @@
       ]
     },
     "close_engagement.php": {
-      "sha256": "86ef91a254d8b412618ecf679982641cab4cabfc9d3206c881d26a421a409717",
+      "sha256": "a94e06360bbe211eb28d623e93d64c940ff01f2cd5b35794cfb9b807d8daa95d",
       "controls": [
         {
           "kind": "a",
@@ -623,6 +623,11 @@
         {
           "kind": "a",
           "label": "Back to Event Tasks"
+        },
+        {
+          "kind": "label",
+          "label": "Correction Reason *",
+          "for": "correction_reason"
         },
         {
           "kind": "legend",
@@ -654,7 +659,7 @@
       ]
     },
     "compose_engagement_email.php": {
-      "sha256": "ea6a829bf025fba17b29c089c6bf5905c361308f7230589e43a952c59ec93911",
+      "sha256": "e844a143416d4726fa7c68be286ca6b3177a22acb2f2aef5ad681d912b5f74fb",
       "controls": [
         {
           "kind": "a",
@@ -1180,7 +1185,7 @@
       ]
     },
     "edit_email_template.php": {
-      "sha256": "ee84ab4209a80ed7b1da30a9cc85a16dac691dcf779bca4a3ac84ec183ff7de8",
+      "sha256": "b1b50db95a9f96bc38f0b0e1f07e5c4256cda3246d36ddc4db3d03c6b0f8b9e6",
       "controls": [
         {
           "kind": "a",
@@ -1226,7 +1231,7 @@
       ]
     },
     "edit_engagement.php": {
-      "sha256": "f44443e55b3da49cf2ebcf9093ec0db3022296cc007b9980c2c8a9047c0c537c",
+      "sha256": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
       "controls": [
         {
           "kind": "a",
@@ -1420,7 +1425,7 @@
       ]
     },
     "edit_organization.php": {
-      "sha256": "0637cdafc64220b6f13cebd9bc8b2812ebc826394d7bab9ef88f19f2a77a69b7",
+      "sha256": "147c46bb1250b69e47c30ce0520c2dd5ff225dbcffcaeee9ef0e3f42a5b323cf",
       "controls": [
         {
           "kind": "a",
@@ -1985,7 +1990,7 @@
       ]
     },
     "index.php": {
-      "sha256": "558259dcaa975b620add750eebc6d767f379dfb2ae93c0226ad656d775253869",
+      "sha256": "76296f68781c79505fe6da3068c467aa1c7240f9603a0f36af0f2b9d6177b86f",
       "controls": [
         {
           "kind": "a",
@@ -1995,6 +2000,10 @@
         {
           "kind": "h1",
           "label": "New Engagement"
+        },
+        {
+          "kind": "button",
+          "label": "Save Draft"
         },
         {
           "kind": "h2",
@@ -2090,7 +2099,7 @@
           "for": "other_housing"
         },
         {
-          "kind": "h3",
+          "kind": "h2",
           "label": "Event Location"
         },
         {
@@ -2126,11 +2135,6 @@
           "kind": "label",
           "label": "Initial Chron Entry",
           "for": "chron_entry"
-        },
-        {
-          "kind": "label",
-          "label": "Caller",
-          "for": "caller_user_id"
         },
         {
           "kind": "a",
@@ -2421,7 +2425,7 @@
       ]
     },
     "network_diagnostics.php": {
-      "sha256": "30984c720e2b5a42a6b37630ccb1d10a8332e56f7d4b3462c2e51fc3d7c7d2ca",
+      "sha256": "1052d7807586369f95d1e254e63723ed16d86a9d61e496cbce2d64e58905b1b0",
       "controls": [
         {
           "kind": "h1",
@@ -2476,7 +2480,7 @@
       ]
     },
     "operations.php": {
-      "sha256": "4851d1b3c24699965d3a11dc8f8205cd18e09f21c5afd2df6ae047c484d4e8c3",
+      "sha256": "240d3ae7376c92bdaa1ddce6456cb7567b08a10775f5e181bc01d4b8186a64fa",
       "controls": [
         {
           "kind": "h1",
@@ -2489,6 +2493,10 @@
         {
           "kind": "a",
           "label": "View Inbound Mail"
+        },
+        {
+          "kind": "h2",
+          "label": "Data and Recovery Health"
         },
         {
           "kind": "h2",
@@ -2708,6 +2716,52 @@
         }
       ]
     },
+    "record_merge.php": {
+      "sha256": "a491e9b34b0048620eea9aabffa0877854d8b8b83b012afc3d3c98aeec963b24",
+      "controls": [
+        {
+          "kind": "h1",
+          "label": "Review Record Merge"
+        },
+        {
+          "kind": "h2",
+          "label": "Source: (#)"
+        },
+        {
+          "kind": "label",
+          "label": "Surviving Record ID",
+          "for": "merge-target"
+        },
+        {
+          "kind": "button",
+          "label": "Review"
+        },
+        {
+          "kind": "a",
+          "label": "(#)"
+        },
+        {
+          "kind": "h2",
+          "label": "Survivor: (#)"
+        },
+        {
+          "kind": "h3",
+          "label": "Relationships Moving from Source"
+        },
+        {
+          "kind": "button",
+          "label": "Merge Records"
+        },
+        {
+          "kind": "h2",
+          "label": "Merge History"
+        },
+        {
+          "kind": "button",
+          "label": "Undo Merge"
+        }
+      ]
+    },
     "recover_password.php": {
       "sha256": "0b19541d854c5049d45aa94496c834b749da4a09905088a8ef1bbcebf3722ac8",
       "controls": [
@@ -2801,7 +2855,7 @@
       ]
     },
     "reimbursement_cost_centers.php": {
-      "sha256": "31d4076e6d23ee7f3904848382a128ab1ddeb5e18a37d43ee8c3c0b71a57f17d",
+      "sha256": "ff9f986ddce42208cbf24178417e4e79fdbd796313a92de51aa6d7ea84741227",
       "controls": [
         {
           "kind": "a",
@@ -3127,7 +3181,7 @@
       ]
     },
     "reimbursement_setup.php": {
-      "sha256": "4fe01188ab8638dfdbe4b0d338f086598d77adb84cf9cbe29ca651e0b3d941a3",
+      "sha256": "7fc8f3d0bf21911a782c02d330af8709d71c0eb1afa97fca9ca91e9a6edba9fe",
       "controls": [
         {
           "kind": "h1",
@@ -4103,7 +4157,7 @@
       ]
     },
     "view_contact.php": {
-      "sha256": "a33341b9cc71808e40385b6e32e7476681489a1054cf96fb2039209d5c785a30",
+      "sha256": "1e3ec7f02fe456458d882b24009d15f9b1b53f2ce4944e85f9b7bcff167884c0",
       "controls": [
         {
           "kind": "h1",
@@ -4119,6 +4173,10 @@
           "label": "Add Chron Log Entry"
         },
         {
+          "kind": "a",
+          "label": "Review Merge"
+        },
+        {
           "kind": "h2",
           "label": "Notes",
           "id": "contact-notes-heading"
@@ -4131,7 +4189,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "e3d50913f982004f63b3a47482e2b95efed4fd4a8f1de1940e447dc77ab44b19",
+      "sha256": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
       "controls": [
         {
           "kind": "a",
@@ -4469,7 +4527,7 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "21f4f60be0ba94a3f247cd3319d35b03507ca601d78b2ef8092600a41f32752e",
+      "sha256": "d3240f8baf5e3e6093971ff7b3cee1e78dbcf40545d9fd58619096414bfe4f60",
       "controls": [
         {
           "kind": "h1",
@@ -4483,6 +4541,10 @@
         {
           "kind": "a",
           "label": "Add Chron Log Entry"
+        },
+        {
+          "kind": "a",
+          "label": "Review Merge"
         },
         {
           "kind": "a",

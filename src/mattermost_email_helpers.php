@@ -48,7 +48,7 @@ function mattermostEmailContext(mysqli $conn, int $engagementId): array
     return [
         'engagement' => $engagement,
         'presentations' => $presentationRows,
-        'contacts' => fetchEngagementContacts($conn, $engagementId),
+        'contacts' => fetchActiveEngagementEmailContacts($conn, $engagementId),
     ];
 }
 

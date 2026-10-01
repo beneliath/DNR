@@ -5,25 +5,23 @@
         if (initialized.has(select)) return;
         initialized.add(select);
         const kind = select.dataset?.contactSearch !== undefined ? 'contact' : 'organization';
-        // Dynamic form rows are cloned with their controls. Remove the cloned
-        // search UI before connecting new listeners to the cloned selector.
-        if (select.previousElementSibling?.matches?.('[data-relationship-search-input]')) {
-            select.previousElementSibling.remove();
-        }
-        if (select.nextElementSibling?.matches?.('[data-relationship-search-status]')) {
-            select.nextElementSibling.remove();
-        }
-        const input = document.createElement('input');
+        // Reuse server-rendered or cloned search controls. Cloning does not
+        // copy listeners, so each new selector still needs its own binding.
+        const existingInput = select.previousElementSibling?.matches?.('[data-relationship-search-input]')
+            ? select.previousElementSibling : null;
+        const existingStatus = select.nextElementSibling?.matches?.('[data-relationship-search-status]')
+            ? select.nextElementSibling : null;
+        const input = existingInput || document.createElement('input');
         input.type = 'search';
         input.placeholder = kind === 'contact' ? 'Find a contact…' : 'Find an organization…';
         input.setAttribute('aria-label', 'Find a ' + kind + ' for ' + (select.labels?.[0]?.textContent || 'this field'));
         input.setAttribute('data-relationship-search-input', '');
-        const status = document.createElement('p');
+        const status = existingStatus || document.createElement('p');
         status.className = 'field-help';
         status.setAttribute('role', 'status');
         status.setAttribute('data-relationship-search-status', '');
-        select.before(input);
-        select.after(status);
+        if (!existingInput) select.before(input);
+        if (!existingStatus) select.after(status);
         let timer, controller, revision = 0;
         input.addEventListener('input', () => {
             clearTimeout(timer);

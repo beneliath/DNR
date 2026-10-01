@@ -23,7 +23,7 @@ function fixture(response = {ok: true, data: {id: 27, label: 'New organization'}
     const requests = [];
     class FormData {constructor() {this.entries = [];} append(key, value) {this.entries.push([key, value]);}}
     const document = {getElementById() {return details;}, querySelectorAll(selector) {return selector === '[data-inline-organization]' ? [panel] : [];}, createElement() {return {};}};
-    vm.runInNewContext(source, {window, document, FormData, Event: class {}, fetch: async (url, options) => {
+    vm.runInNewContext(source, {crypto: require('node:crypto').webcrypto, window, document, FormData, Event: class {}, fetch: async (url, options) => {
         requests.push({url, options});
         if (response instanceof Error) throw response;
         return {ok: response.ok, json: async () => response.data};
@@ -39,7 +39,9 @@ test('inline organization creation selects only the new organization and preserv
     assert.equal(f.select.children[0].textContent, 'New organization');
     assert.equal(f.email.value, 'draft@example.org');
     assert.equal(f.photo.files[0], photo);
-    assert.deepEqual(f.requests[0].options.body.entries, [['csrf_token', 'csrf-token'], ['organization_name', 'New organization']]);
+    assert.deepEqual(f.requests[0].options.body.entries.slice(0, 2), [['csrf_token', 'csrf-token'], ['organization_name', 'New organization']]);
+    assert.equal(f.requests[0].options.body.entries[2][0], 'operation_token');
+    assert.match(f.requests[0].options.body.entries[2][1], /^[a-f0-9]{32}$/);
     assert.equal(f.requests[0].options.credentials, 'same-origin');
     assert.equal(f.button.disabled, false);
     assert.equal(f.focused, f.select);

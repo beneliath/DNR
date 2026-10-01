@@ -223,7 +223,7 @@ expectMattermost(
         && str_contains($api, "if (\$action === 'email_compose')")
         && str_contains($api, "if (\$action === 'email_send')")
         && str_contains($emailHelpers, 'mattermostEmailContactPayload')
-        && str_contains($emailHelpers, 'fetchEngagementContacts')
+        && str_contains($emailHelpers, 'fetchActiveEngagementEmailContacts')
         && str_contains($pluginNotifications, 'GetDirectChannel')
         && str_contains($pluginNotifications, 'The message was routed privately')
         && str_contains($documentation, '**Message actions**')

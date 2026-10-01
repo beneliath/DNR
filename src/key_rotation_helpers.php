@@ -11,6 +11,7 @@ const APPLICATION_ENCRYPTED_COLUMNS = [
     'engagement_email_deliveries' => 'payload_ciphertext',
     'reimbursement_email_deliveries' => 'payload_ciphertext',
     'reimbursement_submissions' => 'snapshot_ciphertext',
+    'record_merge_journal' => 'snapshot_ciphertext',
 ];
 
 /** Repeat with next_id; rerunning an applied batch is harmless. Never log plaintext. */

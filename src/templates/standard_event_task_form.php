@@ -13,7 +13,7 @@ $selected_anchor = (string) ($standard_task_form_values['due_anchor'] ?? 'event_
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($standard_task_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="standard-event-task-form">
-    <?php echo csrfInput(); ?>
+    <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <?php if (!empty($standard_task_form_values['updated_at'])): ?>
         <input type="hidden" name="task_version" value="<?php echo htmlspecialchars($standard_task_form_values['updated_at'], ENT_QUOTES, 'UTF-8'); ?>">
     <?php endif; ?>

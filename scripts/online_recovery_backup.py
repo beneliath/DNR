@@ -64,12 +64,18 @@ def pin_files(image, volume, name, owner):
 
 
 @contextlib.contextmanager
-def restored_database(archive, database_image, app_image, password_file, working, owner):
+def restored_database(archive, database_image, app_image, password_file, working, owner, network='none'):
+    network_options = []
+    if network != 'none':
+        info = json.loads(subprocess.check_output(['docker','network','inspect',network]))[0]
+        if not info.get('Internal') or info.get('Labels',{}).get('org.dnr.restore-drill') != owner:
+            raise ValueError('Only an owned internal restore-drill network is allowed')
+        network_options = ['--network-alias','db']
     root_password = working / 'restore-root-password'
     root_password.write_text(secrets.token_hex(32)); root_password.chmod(0o600)
     container = 'dnr-online-restore-' + working.name.lower()
     try:
-        subprocess.run(['docker', 'run', '-d', '--name', container, '--network', 'none',
+        subprocess.run(['docker', 'run', '-d', '--name', container, '--network', network, *network_options,
             '--memory', '2g', '--cpus', '1', '--pids-limit', '256',
             '--label', 'org.dnr.recovery-owner=' + owner,
             '--mount', 'type=bind,src=' + str(root_password) + ',dst=/run/secrets/root-password,readonly',

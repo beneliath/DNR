@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
-require_once __DIR__ . '/reimbursement_helpers.php';
+require_once __DIR__ . '/reimbursement_admin_helpers.php';
 startSecureSession();
 requireLogin();
 if (!hasRole(['admin', 'editor'])) { http_response_code(403); exit('Forbidden.'); }
@@ -30,49 +30,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string) ($_POST['action'] ?? '');
     $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]) ?: null;
     try {
-        if ($action === 'save') {
-            $number = trim((string) ($_POST['coa_number'] ?? ''));
-            $description = trim((string) ($_POST['description'] ?? ''));
-            if (!preg_match('/\A[A-Za-z0-9.-]{1,20}\z/D', $number) || $description === '' || mb_strlen($description) > 120) {
-                throw new InvalidArgumentException('Enter a COA number (letters, digits, period, or hyphen) and a description up to 120 characters.');
-            }
-            if ((int) ($conn->query("SELECT GET_LOCK('dnr_reimbursement_coa_number', 10)")->fetch_row()[0] ?? 0) !== 1) {
-                throw new InvalidArgumentException('The chart of accounts is being updated. Please try again.');
-            }
-            try {
-                $existing = $id ? $conn->execute_query('SELECT coa_number FROM reimbursement_cost_centers WHERE id = ?', [$id])->fetch_assoc() : null;
-                if ($id && !$existing) throw new InvalidArgumentException('Account not found.');
-                if (!$existing || strcasecmp((string) $existing['coa_number'], $number) !== 0) {
-                    if ($conn->execute_query('SELECT id FROM reimbursement_cost_centers WHERE coa_number = ? LIMIT 1', [$number])->fetch_row()) {
-                        throw new InvalidArgumentException('That COA number already exists. Edit the existing account or choose a different number.');
-                    }
-                }
-                if ($id) {
-                    $conn->execute_query('UPDATE reimbursement_cost_centers SET coa_number = ?, description = ? WHERE id = ?', [$number, $description, $id]);
-                } else {
-                    $conn->execute_query('INSERT INTO reimbursement_cost_centers (coa_number, description, created_by) VALUES (?, ?, ?)', [$number, $description, (int) $_SESSION['user_id']]);
-                    $id=(int)$conn->insert_id;
-                }
-            } finally {
-                $conn->query("SELECT RELEASE_LOCK('dnr_reimbursement_coa_number')");
-            }
-            $_SESSION['reimbursement_center_message'] = 'Account saved.';
-        } elseif ($action === 'archive' || $action === 'restore') {
-            if (!$id) throw new InvalidArgumentException('Choose a account.');
-            $conn->execute_query('UPDATE reimbursement_cost_centers SET is_archived = ? WHERE id = ?', [$action === 'archive' ? 1 : 0, $id]);
-            $_SESSION['reimbursement_center_message'] = $action === 'archive' ? 'Account archived.' : 'Account restored.';
-        } elseif ($action === 'delete') {
+        if ($action === 'delete') {
             if (!hasRole(['admin'])) { http_response_code(403); exit('Forbidden.'); }
             require_once __DIR__ . '/two_factor_helpers.php';
             requireRecentAdminElevation($listUrl);
-            if (!$id) throw new InvalidArgumentException('Choose a account.');
-            if ($conn->execute_query('SELECT id FROM reimbursement_expenses WHERE cost_center_id = ? LIMIT 1', [$id])->fetch_row()) {
-                throw new InvalidArgumentException('This account has expenses. Archive it to preserve their history.');
-            }
-            $conn->execute_query('DELETE FROM reimbursement_cost_centers WHERE id = ?', [$id]);
-            $_SESSION['reimbursement_center_message'] = 'Account deleted.';
-        } else throw new InvalidArgumentException('Unknown action.');
-        reimbursementEvent($conn,'cost_center',$id ?: (int)$conn->insert_id,$action);
+        }
+        $id = changeReimbursementCostCenter($conn,$action,$id,$_POST,(int)$_SESSION['user_id']);
+        $_SESSION['reimbursement_center_message'] = $action === 'save' ? 'Account saved.' : ($action === 'delete' ? 'Account deleted.' : ($action === 'archive' ? 'Account archived.' : 'Account restored.'));
         header('Location: ' . $listUrl); exit();
     } catch (InvalidArgumentException $e) { $error = $e->getMessage(); }
     catch (mysqli_sql_exception $e) { $error = $e->getCode() === 1062 ? 'That COA number already exists.' : 'Unable to save the account.'; }
@@ -93,6 +57,7 @@ $formValues = $editingCenter ?: ['coa_number' => '', 'description' => ''];
 if ($error && ($_POST['action'] ?? '') === 'save') {
     $formValues['coa_number'] = (string) ($_POST['coa_number'] ?? '');
     $formValues['description'] = (string) ($_POST['description'] ?? '');
+    $formValues['version'] = is_scalar($_POST['version'] ?? null) ? (string) $_POST['version'] : '0';
 }
 function reimbursementCenterH(mixed $value): string { return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'); }
 ?>
@@ -106,7 +71,7 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <h2><?= $editingCenter ? 'Edit Account' : 'Add Account' ?></h2>
 <form method="post" class="reimbursement-inline-form reimbursement-add-center-form">
 <?= csrfInput() ?><input type="hidden" name="action" value="save">
-<?php if ($editingCenter): ?><input type="hidden" name="id" value="<?= (int) $editingCenter['id'] ?>"><?php endif; ?>
+<?php if ($editingCenter): ?><input type="hidden" name="id" value="<?= (int) $editingCenter['id'] ?>"><input type="hidden" name="version" value="<?= reimbursementCenterH($formValues['version']) ?>"><?php endif; ?>
 <label>COA Number <input type="text" name="coa_number" maxlength="20" required value="<?= reimbursementCenterH($formValues['coa_number']) ?>"></label>
 <label>Description <input type="text" name="description" maxlength="120" required value="<?= reimbursementCenterH($formValues['description']) ?>"></label>
 <div class="reimbursement-actions"><button class="save-button" type="submit"><?= $editingCenter ? 'Save Account' : 'Add Account' ?></button><?php if ($editingCenter): ?><a class="button-secondary" href="<?= reimbursementCenterH($listUrl) ?>">Cancel</a><?php endif; ?></div>
@@ -142,8 +107,8 @@ function reimbursementCenterH(mixed $value): string { return htmlspecialchars((s
 <?php foreach ($centers as $center): ?>
 <tr><td><?= reimbursementCenterH($center['coa_number']) ?></td><td><?= reimbursementCenterH($center['description']) ?></td><td><?= (int) $center['expense_count'] ?></td><td><div class="reimbursement-row-actions">
 <a class="action-button action-icon-button edit-button" href="<?= reimbursementCenterH($listLink(['edit' => (int) $center['id']])) ?>#cost-center-editor" aria-label="Edit Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="Edit"><?= actionIconSvg('edit') ?></a>
-<form method="post" action="<?= reimbursementCenterH($listUrl) ?>"><?= csrfInput() ?><input type="hidden" name="action" value="<?= $showArchived ? 'restore' : 'archive' ?>"><input type="hidden" name="id" value="<?= (int) $center['id'] ?>"><button class="action-button action-icon-button <?= $showArchived ? 'restore-button' : 'archive-button' ?>" type="submit" aria-label="<?= $showArchived ? 'Restore' : 'Archive' ?> Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="<?= $showArchived ? 'Restore' : 'Archive' ?>"><?= actionIconSvg($showArchived ? 'restore' : 'archive') ?></button></form>
-<?php if (hasRole(['admin']) && !(int) $center['expense_count']): ?><form method="post" action="<?= reimbursementCenterH($listUrl) ?>" data-confirm="This action is permanent and cannot be undone." data-confirm-title="Delete Account?" data-confirm-label="Delete Account" data-confirm-tone="danger" data-admin-unlock-required><?= csrfInput() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $center['id'] ?>"><button class="action-button action-icon-button delete-button" type="submit" aria-label="Delete Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="Delete"><?= actionIconSvg('delete') ?></button></form><?php endif; ?>
+<form method="post" action="<?= reimbursementCenterH($listUrl) ?>"><?= csrfInput() ?><input type="hidden" name="action" value="<?= $showArchived ? 'restore' : 'archive' ?>"><input type="hidden" name="id" value="<?= (int) $center['id'] ?>"><input type="hidden" name="version" value="<?= (int) $center['version'] ?>"><button class="action-button action-icon-button <?= $showArchived ? 'restore-button' : 'archive-button' ?>" type="submit" aria-label="<?= $showArchived ? 'Restore' : 'Archive' ?> Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="<?= $showArchived ? 'Restore' : 'Archive' ?>"><?= actionIconSvg($showArchived ? 'restore' : 'archive') ?></button></form>
+<?php if (hasRole(['admin']) && !(int) $center['expense_count']): ?><form method="post" action="<?= reimbursementCenterH($listUrl) ?>" data-confirm="This action is permanent and cannot be undone." data-confirm-title="Delete Account?" data-confirm-label="Delete Account" data-confirm-tone="danger" data-admin-unlock-required><?= csrfInput() ?><input type="hidden" name="action" value="delete"><input type="hidden" name="id" value="<?= (int) $center['id'] ?>"><input type="hidden" name="version" value="<?= (int) $center['version'] ?>"><button class="action-button action-icon-button delete-button" type="submit" aria-label="Delete Account <?= reimbursementCenterH($center['coa_number']) ?>" data-tooltip="Delete"><?= actionIconSvg('delete') ?></button></form><?php endif; ?>
 </div></td></tr>
 <?php endforeach; ?>
 <?php if (!$centers): ?><tr><td colspan="4">No accounts match this view<?= $search !== '' ? ' and search' : '' ?>.</td></tr><?php endif; ?>

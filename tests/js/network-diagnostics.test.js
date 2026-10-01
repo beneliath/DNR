@@ -10,7 +10,7 @@ test('assessment refuses to infer IPv6 health from IPv4-only traffic', () => {
         IPv4: { sample_count: 3, median_load_ms: 180 },
         IPv6: { sample_count: 0 },
     });
-    assert.equal(ipv4Only.status, 'IPv4 only');
+    assert.equal(ipv4Only.status, 'IPv4 page measurements only');
     assert.match(ipv4Only.detail, /does not establish whether IPv6 is healthy/);
 });
 

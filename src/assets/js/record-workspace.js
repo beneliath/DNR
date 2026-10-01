@@ -127,6 +127,7 @@
         const status = panel.querySelector('[data-organization-status]');
         const form = panel.closest('form');
         const select = form.querySelector('[name="organization_id"]');
+        let operationToken = crypto.randomUUID().replaceAll('-', '');
         button.addEventListener('click', async function () {
             if (!name.value.trim()) {
                 status.textContent = 'Enter an organization name';
@@ -139,6 +140,7 @@
             const csrf = form.querySelector('[name="csrf_token"]');
             if (csrf) data.append('csrf_token', csrf.value);
             data.append('organization_name', name.value.trim());
+            data.append('operation_token', operationToken);
             try {
                 const response = await fetch('create_organization_inline.php', {method: 'POST', body: data, credentials: 'same-origin'});
                 const result = await response.json();
@@ -158,6 +160,7 @@
                 select.dispatchEvent(new Event('change', {bubbles: true}));
                 status.textContent = result.label + ' created and selected';
                 name.value = '';
+                operationToken = crypto.randomUUID().replaceAll('-', '');
                 select.focus();
             } catch (error) {
                 status.textContent = error.message || 'Unable to create the organization. Your contact draft is preserved.';

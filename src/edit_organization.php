@@ -162,17 +162,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST'
                 );
             }
 
-            $check_stmt = $conn->prepare('SELECT id FROM organizations WHERE organization_name = ? AND id != ?');
-            if (!$check_stmt) throw new RuntimeException('Unable to check the organization name.');
-            $check_stmt->bind_param('si', $organization_name, $org_id);
-            $check_stmt->execute();
-            $duplicate = $check_stmt->get_result()->num_rows > 0;
-            $check_stmt->close();
-            if ($duplicate) {
-                $errorFieldIds[count($errorMessages)] = 'organization_name';
-                throw new InvalidArgumentException('An organization with this name already exists.');
-            }
-
         $update_stmt = $conn->prepare(
             "UPDATE organizations SET
                 organization_name = ?, notes = ?, affiliation = ?, distinctives = ?, website_url = ?,

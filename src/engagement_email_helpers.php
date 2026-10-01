@@ -666,7 +666,7 @@ function queueEngagementEmail(
         }
 
         $templateLabel = emailMessageTemplateLabelForSend($conn, $templateKey);
-        $availableContacts = fetchEngagementContacts($conn, $engagementId);
+        $availableContacts = fetchActiveEngagementEmailContacts($conn, $engagementId);
         $availableSpeakers = $speakerIds !== [] ? fetchEngagementEmailSpeakers($conn, $engagementId) : [];
         $sender = $senderCopy !== '' ? fetchEngagementEmailSender($conn, $createdBy) : null;
         $resolved = engagementEmailResolveRecipients($availableContacts, $contactIds, $availableSpeakers, $speakerIds,

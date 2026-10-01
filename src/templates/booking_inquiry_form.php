@@ -12,7 +12,7 @@ $value = static fn(string $key, string $fallback = ''): string => (string) ($inq
 ?>
 <p class="required-fields-note"><span aria-hidden="true">*</span> Required fields</p>
 <form method="post" action="<?php echo htmlspecialchars($inquiry_form_action, ENT_QUOTES, 'UTF-8'); ?>" class="inquiry-form" data-recoverable-draft="<?php echo !empty($inquiry_id) ? 'edit_inquiry.php:' . (int)$inquiry_id : 'add_inquiry.php:new'; ?>" data-inquiry-draft-key="<?php echo (int) ($_SESSION['user_id'] ?? 0); ?>:<?php echo !empty($inquiry_id) ? (int) $inquiry_id : 'new'; ?>" data-inquiry-form-submitted="<?php echo $_SERVER['REQUEST_METHOD'] === 'POST' ? 'true' : 'false'; ?>">
-    <?php echo csrfInput(); ?>
+    <?php echo csrfInput(); if (isset($creation_operation_token)) echo creationTokenInput($creation_operation_token); ?>
     <?php if (!empty($inquiry_id)): ?><input type="hidden" name="id" value="<?php echo (int) $inquiry_id; ?>"><?php endif; ?>
     <?php if ($value('updated_at') !== ''): ?><input type="hidden" name="inquiry_version" value="<?php echo htmlspecialchars($value('updated_at'), ENT_QUOTES, 'UTF-8'); ?>"><?php endif; ?>
     <?php if (!empty($inbound_email_message_id)): ?><input type="hidden" name="inbound_email_message_id" value="<?php echo (int) $inbound_email_message_id; ?>"><?php endif; ?>

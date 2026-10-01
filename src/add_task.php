@@ -1,5 +1,7 @@
 <?php
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 include 'follow_up_task_helpers.php';
 startSecureSession();
 requireLogin();
@@ -65,18 +67,22 @@ $error_message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_task'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'task', 'tasks.php?created=');
     $task_form_values = $_POST;
     $task_selected_subject = (string) ($_POST['subject'] ?? 'general');
     $transaction_started = false;
     try {
         $conn->begin_transaction();
         $transaction_started = true;
+        $replayed_id = beginRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, 'task');
+        if ($replayed_id !== null) { $conn->commit(); header('Location: tasks.php?created=' . $replayed_id, true, 303); exit(); }
         $task = normalizeFollowUpTaskInput($conn, $_POST);
         if ($duplicate_mode) {
             requireDifferentEngagementForTaskDuplicate($duplicate_source, $task);
         }
         $created_by = (int) $_SESSION['user_id'];
-        insertFollowUpTask($conn, $task, $created_by);
+        $created_task_id = insertFollowUpTask($conn, $task, $created_by);
+        completeRecordCreation($conn, (int) $_SESSION['user_id'], $creation_operation_token, (int) $created_task_id);
         $conn->commit();
         $transaction_started = false;
         $_SESSION['task_action_message'] = $duplicate_mode ? 'Task duplicated.' : 'Task added.';

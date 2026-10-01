@@ -66,13 +66,13 @@ try {
     expectReimbursement(str_contains($centerPage['body'], '<table class="data-table">') && str_contains($centerPage['body'], '?edit=' . $centerId), 'Accounts use a table and edit actions');
     $editCenterPath = 'reimbursement_cost_centers.php?edit=' . $centerId;
     expectReimbursement(str_contains($editor($editCenterPath)['body'], 'value="TEST-' . $suffix . '"'), 'Account edit loads selected values');
-    $centerSave = $editor($editCenterPath, ['csrf_token' => $centerCsrf, 'action' => 'save', 'id' => $centerId, 'coa_number' => 'TEST-' . $suffix, 'description' => 'Updated workflow fixture']);
+    $centerSave = $editor($editCenterPath, ['csrf_token' => $centerCsrf, 'version' => '1', 'action' => 'save', 'id' => $centerId, 'coa_number' => 'TEST-' . $suffix, 'description' => 'Updated workflow fixture']);
     expectReimbursement($centerSave['status'] === 302 && $conn->execute_query('SELECT description FROM reimbursement_cost_centers WHERE id = ?', [$centerId])->fetch_row()[0] === 'Updated workflow fixture', 'Account edits persist');
-    $editor('reimbursement_cost_centers.php', ['csrf_token' => $centerCsrf, 'action' => 'archive', 'id' => $centerId]);
+    $editor('reimbursement_cost_centers.php', ['csrf_token' => $centerCsrf, 'version' => '2', 'action' => 'archive', 'id' => $centerId]);
     expectReimbursement(!str_contains($editor('reimbursement_cost_centers.php')['body'], 'TEST-' . $suffix), 'Active account filter excludes archived entries');
     $archivedCentersPage = $editor('reimbursement_cost_centers.php?show=archived');
     expectReimbursement(str_contains($archivedCentersPage['body'], 'TEST-' . $suffix) && str_contains($archivedCentersPage['body'], 'value="restore"'), 'Archived account filter includes restore action');
-    $restoreCenter = $editor('reimbursement_cost_centers.php?show=archived', ['csrf_token' => $centerCsrf, 'action' => 'restore', 'id' => $centerId]);
+    $restoreCenter = $editor('reimbursement_cost_centers.php?show=archived', ['csrf_token' => $centerCsrf, 'version' => '3', 'action' => 'restore', 'id' => $centerId]);
     expectReimbursement(str_contains($restoreCenter['headers'], 'Location: reimbursement_cost_centers.php?show=archived') && !str_contains($editor('reimbursement_cost_centers.php?show=archived')['body'], 'TEST-' . $suffix), 'Restoring preserves filter and removes entry from archived view');
     $input = ['expense_date' => '2026-06-10', 'merchant' => 'Workflow fixture', 'description' => 'Synthetic receipt', 'amount' => '65.40', 'cost_center_id' => $centerId];
     $expenseId = saveReimbursementExpense($conn, $users['editor'], $input, [], null); $expenses[] = $expenseId;

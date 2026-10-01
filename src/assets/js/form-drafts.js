@@ -16,14 +16,16 @@
         let saved = null;
         let timer;
         let submitting = false;
-        const panel = document.createElement('section'); panel.className = 'form-draft-panel';
+        const existingPanel = form.querySelector('[data-form-draft-panel]');
+        const panel = existingPanel || document.createElement('section'); panel.className = 'form-draft-panel';
         const status = document.createElement('p'); status.setAttribute('role','status');
         const save = document.createElement('button'); save.type='button'; save.textContent='Save Draft';
         const restore = document.createElement('button'); restore.type='button'; restore.textContent='Restore Draft';
         const discard = document.createElement('button'); discard.type='button'; discard.textContent='Discard Draft';
         const recovery = document.createElement('textarea'); recovery.readOnly=true; recovery.hidden=true; recovery.rows=8; recovery.setAttribute('aria-label','Saved draft values for manual recovery');
         const note=document.createElement('p'); note.textContent='Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.';
-        panel.append(status,save,restore,discard,note,recovery); form.prepend(panel);
+        panel.replaceChildren(status,save,restore,discard,note,recovery);
+        if (!existingPanel) form.prepend(panel);
         try {
             saved=JSON.parse(localStorage.getItem(key) || 'null');
             if (saved && (!Array.isArray(saved.fields) || saved.expires<Date.now())) { localStorage.removeItem(key); saved=null; }

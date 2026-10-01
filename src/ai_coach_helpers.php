@@ -17,6 +17,11 @@ function aiCoachEnabled(): bool
     return filter_var(getenv('DNR_AI_COACH_ENABLED') ?: '0', FILTER_VALIDATE_BOOL);
 }
 
+function aiCoachStorageKey(): string
+{
+    return hash('sha256', generateCsrfToken() . ':conversational-workflows-v2:' . (string) ($_SESSION['role'] ?? 'reviewer'));
+}
+
 function aiCoachPages(): array
 {
     return [

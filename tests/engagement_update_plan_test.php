@@ -94,8 +94,8 @@ expectEngagementUpdatePlan(
     'changed fields should retain deterministic SQL assignment order.'
 );
 expectEngagementUpdatePlan(
-    $changed['types'] === 'issisidd'
-        && $changed['values'] === [8, 'Updated event', '2026-09-11', 1, '', null, null, 50.5]
+    $changed['types'] === 'issisiss'
+        && $changed['values'] === [8, 'Updated event', '2026-09-11', 1, '', null, null, '50.50']
         && $changed['date_range_changed'],
     'the plan should preserve binding types, nullable values, and date-range changes.'
 );

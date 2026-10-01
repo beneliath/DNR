@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
-require_once __DIR__ . '/reimbursement_helpers.php';
+require_once __DIR__ . '/reimbursement_admin_helpers.php';
 startSecureSession();
 requireAdmin();
 $conn = applicationDatabaseConnection();
@@ -53,9 +53,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($error === '') {
         try {
             $conn->begin_transaction();
+            $locked = $conn->query('SELECT * FROM reimbursement_setup WHERE id=1 FOR UPDATE')->fetch_assoc();
+            if (!$locked) throw new InvalidArgumentException('Reimbursement setup is unavailable.');
+            requireReimbursementAdminVersion($locked,$_POST['version'] ?? null);
             $conn->execute_query('UPDATE reimbursement_setup SET organization_name = ?, bookkeeper_first_name = ?,
                 bookkeeper_last_name = ?, bookkeeper_email = ?, bookkeeper_phone = ?,
-                reviewer_email = ?, cc_email = ? WHERE id = 1',
+                reviewer_email = ?, cc_email = ?, version=version+1 WHERE id = 1',
                 [$setup['organization_name'], $setup['bookkeeper_first_name'], $setup['bookkeeper_last_name'],
                  $setup['bookkeeper_email'], $setup['bookkeeper_phone'], $setup['reviewer_email'], $setup['cc_email']]);
             reimbursementEvent($conn,'setup',1,'updated','Global organization and recipient settings updated.');
@@ -65,7 +68,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Throwable $exception) {
             $conn->rollback();
             applicationLog('error', 'Unable to save reimbursement setup', ['error' => $exception->getMessage()]);
-            $error = 'Unable to save reimbursement setup. Try again.';
+            $error = $exception instanceof InvalidArgumentException ? $exception->getMessage() : 'Unable to save reimbursement setup. Try again.';
         }
     }
 }
@@ -84,6 +87,7 @@ function reimbursementSetupH(mixed $value): string { return htmlspecialchars((st
 <?php if ($error !== ''): ?><p class="error" role="alert"><?= reimbursementSetupH($error) ?></p><?php endif; ?>
 <?php if ($saved): ?><p class="success" role="status">Reimbursement setup saved.</p><?php endif; ?>
 <section class="reimbursement-card"><form method="post" class="reimbursement-setup-form" data-admin-unlock-required><?= csrfInput() ?>
+<input type="hidden" name="version" value="<?= reimbursementSetupH($_SERVER['REQUEST_METHOD'] === 'POST' ? (is_scalar($_POST['version'] ?? null) ? $_POST['version'] : 0) : $setup['version']) ?>">
 <div class="reimbursement-form-grid">
 <label class="reimbursement-setup-wide">Organization Name <input type="text" name="organization_name" autocomplete="organization" maxlength="160" value="<?= reimbursementSetupH($setup['organization_name']) ?>"></label>
 <label>Bookkeeper First Name <input type="text" name="bookkeeper_first_name" autocomplete="given-name" maxlength="80" value="<?= reimbursementSetupH($setup['bookkeeper_first_name']) ?>"></label>

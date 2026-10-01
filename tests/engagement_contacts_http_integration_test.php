@@ -78,7 +78,7 @@ try {
     $newRow = static fn(string $name): array => ['first_name' => $name, 'last_name' => 'Fixture',
         'email' => strtolower($name) . '-' . $suffix . '@example.test', 'role_title' => 'Coordinator',
         'roles' => ['on_site_contact', 'travel']];
-    $post = ['csrf_token' => eventContactsHidden($form['body'], 'csrf_token'), 'save_engagement' => '1',
+    $post = ['csrf_token' => eventContactsHidden($form['body'], 'csrf_token'), 'operation_token' => eventContactsHidden($form['body'], 'operation_token'), 'save_engagement' => '1',
         'organization_id' => $organizationId, 'event_title' => 'Contact HTTP event ' . $suffix,
         'event_start_date' => '2099-09-10', 'event_end_date' => '2099-09-11', 'event_type' => 'conference',
         'confirmation_status' => 'work_in_progress', 'lifecycle_status' => 'active',
@@ -98,6 +98,11 @@ try {
     $saved = $request('index.php', $post);
     expectEventContactsHttp($saved['status'] === 302, 'Create should save multiple existing and new contacts: ' . strip_tags($saved['body']));
     $engagementId = (int) $conn->query("SELECT id FROM engagements WHERE organization_id={$organizationId}")->fetch_assoc()['id'];
+    $replayed = $request('index.php',$post);
+    expectEventContactsHttp($replayed['status']===303
+        && (int)$conn->query("SELECT COUNT(*) FROM engagements WHERE organization_id={$organizationId}")->fetch_row()[0]===1
+        && count(fetchEngagementContacts($conn,$engagementId))===4,
+        'Retrying a completed event save must not duplicate the event or its new contacts');
     $assignments = fetchEngagementContactAssignments($conn, $engagementId);
     expectEventContactsHttp(count($assignments) === 6 && count(fetchEngagementContacts($conn, $engagementId)) === 4,
         'Created event should have four contacts and all six selected roles');

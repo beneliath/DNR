@@ -416,10 +416,16 @@ function createBookingInquiry(
     int $userId,
     string $username,
     ?int $inboundEmailMessageId = null,
-    ?string $initialChron = null
+    ?string $initialChron = null,
+    ?string $operationToken = null
 ): int {
     $conn->begin_transaction();
     try {
+        if ($operationToken !== null) {
+            require_once __DIR__ . '/record_creation_helpers.php';
+            $existing = beginRecordCreation($conn, $userId, $operationToken, 'inquiry');
+            if ($existing !== null) { $conn->commit(); return $existing; }
+        }
         lockBookingInquiryRelationships($conn, $data);
         $sourceMessage = null;
         if ($inboundEmailMessageId !== null) {
@@ -521,6 +527,7 @@ function createBookingInquiry(
             $completeSource->execute();
             $completeSource->close();
         }
+        if ($operationToken !== null) completeRecordCreation($conn, $userId, $operationToken, $inquiryId);
         $conn->commit();
         return $inquiryId;
     } catch (Throwable $exception) {

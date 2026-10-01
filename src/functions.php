@@ -330,7 +330,7 @@ function nullableNonNegativeAmount($value, $label) {
     if (!preg_match('/\A(?:0|[1-9][0-9]{0,7})(?:\.[0-9]{1,2})?\z/', $value)) {
         throw new InvalidArgumentException("Enter a non-negative {$label} amount with no more than two decimal places.");
     }
-    return (float) $value;
+    return \Dnr\Domain\Money::amount($value, ucfirst($label), '99999999.99');
 }
 
 function fulltextSearchQuery($search, $maximum_terms = 8) {
@@ -356,7 +356,7 @@ function nullableAmountsEqual($left, $right) {
     if ($right === null || $right === '') {
         return false;
     }
-    return (float) $left === (float) $right;
+    return \Dnr\Domain\Money::amount($left, 'Amount') === \Dnr\Domain\Money::amount($right, 'Amount');
 }
 
 function normalizedHttpUrl($url) {
@@ -1091,6 +1091,7 @@ function safeRolePreviewReturnUrl($return_url, $role) {
         'network_diagnostics.php',
         'reimbursement_setup.php',
         'operations.php',
+        'record_merge.php',
         'register.php',
         'reset_presentation_stats.php',
         'reset_user_password.php',
@@ -1961,6 +1962,8 @@ function permanentlyDeleteEntity(mysqli $conn, $entity, $id) {
 }
 
 function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
+    require_once __DIR__ . '/financial_report_helpers.php';
+    requireDeletableFinancialParent($conn, 'engagement', (int) $engagement_id);
     if (!$conn->begin_transaction()) {
         return false;
     }
@@ -2008,6 +2011,8 @@ function permanentlyDeleteEngagement(mysqli $conn, $engagement_id) {
 }
 
 function permanentlyDeleteOrganization(mysqli $conn, $organization_id) {
+    require_once __DIR__ . '/financial_report_helpers.php';
+    requireDeletableFinancialParent($conn, 'organization', (int) $organization_id);
     if (!$conn->begin_transaction()) {
         return false;
     }

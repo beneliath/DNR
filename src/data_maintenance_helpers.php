@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+require_once __DIR__.'/data_consistency_helpers.php';
 
 /** Ordinary conversations expire after 90 days; explicit zero disables retention. */
 function aiHistoryRetentionDays(): int
@@ -40,6 +41,9 @@ function maintainApplicationData(mysqli $conn, int $batch = 1000): array
     $result['scan_history_pruned'] = $conn->affected_rows;
     $result['ai_retention_days'] = $days;
     $result['statistics_archived'] = archiveShortLinkStatistics($conn, min(1000, $batch));
+    $conn->execute_query('UPDATE record_merge_journal SET snapshot_ciphertext=NULL WHERE expires_at<UTC_TIMESTAMP(6) AND snapshot_ciphertext IS NOT NULL ORDER BY expires_at,id LIMIT ?',[$batch]);
+    $result['merge_snapshots_expired']=$conn->affected_rows;
+    $result['consistency_refreshed']=refreshApplicationDataConsistency($conn);
     return $result;
 }
 

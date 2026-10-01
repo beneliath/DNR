@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/bootstrap.php';
+require_once __DIR__ . '/record_creation_helpers.php';
+$creation_operation_token = creationFormToken();
 $conn = applicationDatabaseConnection();
 require_once __DIR__ . '/booking_inquiry_helpers.php';
 require_once __DIR__ . '/inquiry_relationship_helpers.php';
@@ -64,6 +66,7 @@ $error = '';
 $inquiry_form_values = $defaults;
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
     requireValidCsrfToken();
+    $creation_operation_token = redirectCompletedRecordCreation($conn, 'inquiry', 'view_inquiry.php?id=');
     $inquiry_form_values = array_merge($defaults, $_POST);
     try {
         $data = normalizeBookingInquiryInput($conn, $_POST);
@@ -73,7 +76,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_inquiry'])) {
             (int) $_SESSION['user_id'],
             (string) $_SESSION['username'],
             $inbound_email_message_id,
-            $sourceChron
+            $sourceChron,
+            $creation_operation_token
         );
         $_SESSION['inquiry_action_message'] = $sourceMessage
             ? 'Inquiry created from inbound mail with the source correspondence preserved.'
