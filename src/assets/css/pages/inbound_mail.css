@@ -116,7 +116,7 @@ html body .inbound-queue-search > button { margin: 0; min-height: 42px !importan
 .inbound-queue .page-direction-label { display: none; }
 .inbound-queue .page-control { min-width: 28px; min-height: 32px; padding: 5px; font-size: .75rem; }
 html body .inbound-queue .page-size-button { min-width: 30px; min-height: 30px !important; padding: 5px !important; font-size: .75rem !important; }
-.inbound-message-detail { min-width: 0; min-height: 520px; border-left: 1px solid var(--border); background: var(--surface) !important; scroll-margin-top: 16px; }
+.inbound-message-detail { align-self: stretch; min-width: 0; min-height: 520px; border-left: 1px solid var(--border); background: var(--surface) !important; scroll-margin-top: 16px; }
 .inbound-detail-toolbar { display: flex; align-items: center; gap: 12px; padding: 15px 24px; border-bottom: 1px solid var(--border); }
 .inbound-message-id { margin-left: auto; color: var(--text-muted); font-size: .75rem; }
 .inbound-back-link { display: none; font-size: .85rem; }

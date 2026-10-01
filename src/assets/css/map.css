@@ -1,5 +1,19 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
+@keyframes map-apply-blink {
+  0%, 49% { opacity: 1; box-shadow: 0 0 0 3px var(--primary); }
+  50%, 100% { opacity: .45; box-shadow: none; }
+}
+html body .map-apply-reminder {
+  background: var(--primary) !important;
+  border-color: var(--primary) !important;
+  color: #fff !important;
+  animation: map-apply-blink 1.2s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  html body .map-apply-reminder { animation: none; }
+}
+
 .map-page {
   width: min(100%, var(--app-content-max));
   max-width: var(--app-content-max);

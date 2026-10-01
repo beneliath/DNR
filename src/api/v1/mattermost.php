@@ -20,14 +20,23 @@ function mattermostApiRespond(array $payload, int $status = 200): never
 }
 function mattermostApiBody(): array
 {
+    $maximumBodyBytes = 32768;
     $contentLength = (int) ($_SERVER['CONTENT_LENGTH'] ?? 0);
-    if ($contentLength > 32768) {
+    if ($contentLength > $maximumBodyBytes) {
         mattermostApiRespond([
             'error' => 'Request body is too large.',
             'code' => 'body_too_large',
         ], 413);
     }
-    $raw = (string) file_get_contents('php://input');
+    // Chunked requests may omit Content-Length. Bound the read itself and
+    // inspect one extra byte to distinguish an exact-limit body from overflow.
+    $raw = (string) file_get_contents('php://input', false, null, 0, $maximumBodyBytes + 1);
+    if (strlen($raw) > $maximumBodyBytes) {
+        mattermostApiRespond([
+            'error' => 'Request body is too large.',
+            'code' => 'body_too_large',
+        ], 413);
+    }
     if ($raw === '') {
         return [];
     }

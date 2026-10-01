@@ -1,4 +1,16 @@
 (function () {
+    const filterForm = document.querySelector('.map-filters');
+    if (filterForm) {
+        const fields = Array.from(filterForm.querySelectorAll('input, select'));
+        const apply = filterForm.querySelector('button[type="submit"]');
+        const appliedValues = fields.map(field => field.value);
+        function updateApplyReminder() {
+            const changed = fields.some((field, index) => field.value !== appliedValues[index]);
+            if (apply) apply.classList.toggle('map-apply-reminder', changed);
+        }
+        filterForm.addEventListener('input', updateApplyReminder);
+        filterForm.addEventListener('change', updateApplyReminder);
+    }
     const rows = Array.from(document.querySelectorAll('[data-location-id]'));
     const buttons = Array.from(document.querySelectorAll('[data-location-filter]'));
     const empty = document.getElementById('map-list-empty');
