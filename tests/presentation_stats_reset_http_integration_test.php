@@ -98,7 +98,12 @@ try {
         session_write_close();
         $post = ['csrf_token' => $csrf, 'action' => 'reset_statistics'];
         $view = $request('view_engagement.php?id=' . $engagementId, null, $cookie);
-        expectStatsReset(str_contains($view['body'], $path) === ($role === 'admin'), 'Only admins see presentation reset controls: ' . $role);
+        expectStatsReset(!str_contains($view['body'], 'reset_presentation_stats.php?'), 'View Engagement hides every reset control: ' . $role);
+        if ($role !== 'reviewer') {
+            $edit = $request('edit_engagement.php?id=' . $engagementId, null, $cookie);
+            expectStatsReset(str_contains($edit['body'], $path) === ($role === 'admin'), 'Only admins see reset controls in Edit Engagement: ' . $role);
+            expectStatsReset(str_contains($edit['body'], 'Reset Link Statistics') === ($role === 'admin'), 'Only admins see individual link reset controls in Edit Engagement: ' . $role);
+        }
         if ($role !== 'admin') {
             expectStatsReset($request($path, null, $cookie)['status'] === 403 && $request($path, $post, $cookie)['status'] === 403 && $targetVisits() === 28, 'Non-admin GET and POST must be denied');
             continue;
