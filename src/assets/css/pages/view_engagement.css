@@ -717,7 +717,7 @@ html body .edit-presentations-button:not(:hover):not(:focus-visible) {
     line-height: 1.55;
 }
 
-.engagement-detail-sidebar .engagement-card > h2 {
+.engagement-workflow-card > h2 {
     margin-bottom: 18px;
 }
 
@@ -1166,11 +1166,32 @@ html body #engagement-workspace .engagement-tab-list button:focus-visible {
 }
 
 /* Put commitments before history, with every workspace section in plain sight. */
-.engagement-planning-summary { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; margin: 0 0 24px; }
-.engagement-planning-summary .engagement-card { margin: 0; }
+.engagement-planning-summary {
+    display: grid;
+    grid-template-columns: minmax(0, .85fr) minmax(0, 1.5fr) minmax(0, 1fr);
+    align-items: stretch;
+    gap: 20px;
+    margin: 0 0 24px;
+}
+.engagement-planning-summary > .engagement-card {
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    max-width: none;
+    height: auto;
+    align-self: stretch;
+    margin: 0;
+}
+.view-engagement-page .engagement-planning-summary .engagement-card-action:first-of-type {
+    margin-top: auto;
+}
+.engagement-planning-summary .engagement-next-action-content,
+.engagement-planning-summary .engagement-workflow-card > .detail-value,
+.engagement-planning-summary .engagement-readiness-card > p:last-of-type {
+    margin-bottom: 16px;
+}
 .engagement-planning-summary .engagement-readiness-card ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; }
 .view-engagement-page .engagement-detail-layout { display: block; }
-.view-engagement-page .engagement-detail-sidebar { display: block; margin-top: 20px; }
 .view-engagement-page .engagement-tab-list { flex-wrap: wrap; overflow: visible; gap: 8px 24px; }
 .engagement-routing-card { border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 20px; }
 .engagement-routing-card > summary, .presentation-resources > summary, .presentation-management > summary { cursor: pointer; font-weight: 650; padding: 10px 0; min-height: 44px; }

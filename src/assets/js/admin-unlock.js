@@ -3,7 +3,7 @@
 
     function adminUnlockCountdown(expiresAt, serverNow) {
         if (!Number.isFinite(expiresAt) || !Number.isFinite(serverNow)) return '';
-        const remaining = Math.max(0, Math.min(300, Math.ceil(expiresAt - serverNow)));
+        const remaining = Math.max(0, Math.ceil(expiresAt - serverNow));
         return remaining ? `${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, '0')}` : '';
     }
 
@@ -54,30 +54,42 @@
     }
 
     if (lockForm) {
-        const button = lockForm.querySelector('button');
+        const button = lockForm.querySelector('[data-admin-lock-button]');
+        const extendButton = lockForm.querySelector('[data-admin-extend-button]');
         const errorMessage = lockForm.querySelector('[data-admin-lock-error]');
         lockForm.addEventListener('submit', async function (event) {
             event.preventDefault();
             if (button.disabled) return;
             statusRevision++;
+            const extending = event.submitter === extendButton;
             button.disabled = true;
+            if (extendButton) extendButton.disabled = true;
             errorMessage.hidden = true;
             try {
-                const response = await fetch(lockForm.action, {
+                const response = await fetch(extending ? extendButton.formAction : lockForm.action, {
                     method: 'POST', credentials: 'same-origin', cache: 'no-store',
                     headers: { Accept: 'application/json' }, body: new URLSearchParams(new FormData(lockForm))
                 });
-                if (!response.ok || response.redirected || (await response.json()).locked !== true) {
-                    throw new Error('Lock request failed');
+                if (!response.ok || response.redirected) throw new Error('Unlock action failed');
+                const status = await response.json();
+                if (extending) {
+                    if (status.unlocked !== true || !Number.isFinite(status.expires_at) || !Number.isFinite(status.server_now)) throw new Error('Invalid extension response');
+                    expiresAt = status.expires_at;
+                    clockOffset = Date.now() - status.server_now * 1000;
+                    window.clearInterval(tick);
+                    tick = window.setInterval(render, 250);
+                } else {
+                    if (status.locked !== true) throw new Error('Lock request failed');
+                    expiresAt = 0;
                 }
-                expiresAt = 0;
                 statusRevision++;
                 render();
             } catch (error) {
-                errorMessage.textContent = 'Unable to lock admin actions. Please try again.';
+                errorMessage.textContent = extending ? 'Unable to add time. Please try again, or unlock admin actions if the timer expired.' : 'Unable to lock admin actions. Please try again.';
                 errorMessage.hidden = false;
             } finally {
                 button.disabled = false;
+                if (extendButton) extendButton.disabled = false;
             }
         });
     }

@@ -98,7 +98,12 @@ try {
         session_write_close();
         $post = ['csrf_token' => $csrf, 'action' => 'reset_statistics'];
         $view = $request('view_engagement.php?id=' . $engagementId, null, $cookie);
-        expectStatsReset(str_contains($view['body'], $path) === ($role === 'admin'), 'Only admins see presentation reset controls: ' . $role);
+        expectStatsReset(!str_contains($view['body'], 'reset_presentation_stats.php?'), 'View Engagement hides every reset control: ' . $role);
+        if ($role !== 'reviewer') {
+            $edit = $request('edit_engagement.php?id=' . $engagementId, null, $cookie);
+            expectStatsReset(str_contains($edit['body'], $path) === ($role === 'admin'), 'Only admins see reset controls in Edit Engagement: ' . $role);
+            expectStatsReset(str_contains($edit['body'], 'Reset Link Statistics') === ($role === 'admin'), 'Only admins see individual link reset controls in Edit Engagement: ' . $role);
+        }
         if ($role !== 'admin') {
             expectStatsReset($request($path, null, $cookie)['status'] === 403 && $request($path, $post, $cookie)['status'] === 403 && $targetVisits() === 28, 'Non-admin GET and POST must be denied');
             continue;
@@ -143,8 +148,28 @@ try {
         startSecureSession();
         $_SESSION['_admin_elevated_at'] = time();
         session_write_close();
-        $done = $request($path, $post, $cookie);
-        expectStatsReset($done['status'] === 302 && str_contains($done['headers'], 'Location: short_links.php?presentation_id=' . $presentationId), 'Confirmed reset must return to presentation statistics');
+        $editReturn = 'edit_engagement.php?id=' . $engagementId . '&return_to=engagements.php%3Farchived%3D0#presentation-links-' . $presentationId;
+        $linkPath = $path . '&link_id=' . $linkIds[0] . '&return_to=' . rawurlencode($editReturn);
+        expectStatsReset($request($linkPath, null, $cookie)['status'] === 200 && $targetVisits() === 28, 'Individual reset GET only shows confirmation');
+        $unsafeReturn = $request($path . '&return_to=' . rawurlencode('https://example.org/'), null, $cookie);
+        expectStatsReset(!str_contains($unsafeReturn['body'], 'https://example.org/'), 'External return destinations are rejected');
+        expectStatsReset($request($path . '&link_id[]=1', null, $cookie)['status'] === 400, 'Array-shaped link IDs are rejected');
+        expectStatsReset($request($path . '&link_id=' . $linkIds[2], $post, $cookie)['status'] === 404 && $targetVisits() === 28, 'A link from another presentation cannot be reset');
+        expectStatsReset($request($linkPath, array_replace($post, ['csrf_token' => 'invalid']), $cookie)['status'] === 400 && $targetVisits() === 28, 'Individual reset requires valid CSRF');
+        $conn->execute_query('INSERT INTO short_link_stats_archive (link_id,visit_hour,visits) VALUES (?, ?, ?)', [$linkIds[0], '2019-01-01 00:00:00', 9]);
+        $linkDone = $request($linkPath, $post, $cookie);
+        expectStatsReset($linkDone['status'] === 302 && str_contains($linkDone['headers'], 'Location: ' . $editReturn), 'Individual reset returns to the originating edit view and presentation section');
+        expectStatsReset($targetVisits() === 14, 'Individual reset preserves sibling link visits');
+        expectStatsReset((int) $conn->execute_query('SELECT COUNT(*) AS n FROM short_link_stats_archive WHERE link_id = ?', [$linkIds[0]])->fetch_assoc()['n'] === 0, 'Individual reset clears archived visits');
+        expectStatsReset($snapshot() === $before, 'Individual reset preserves links, QR images, files, and presentation details');
+        $linkReport = $request('short_links.php?id=' . $linkIds[0], null, $cookie);
+        expectStatsReset(str_contains($linkReport['body'], 'Link statistics reset to zero.'), 'Individual reset displays its success message');
+        $viewReturn = 'view_engagement.php?id=' . $engagementId . '#presentation-links-' . $presentationId;
+        $returnPath = $path . '&return_to=' . rawurlencode($viewReturn);
+        $returnConfirmation = $request($returnPath, null, $cookie);
+        expectStatsReset(str_contains($returnConfirmation['body'], rawurlencode($viewReturn)), 'Confirmation preserves the originating view in its POST action');
+        $done = $request($returnPath, $post, $cookie);
+        expectStatsReset($done['status'] === 302 && str_contains($done['headers'], 'Location: ' . $viewReturn), 'All-statistics reset returns to the originating view and presentation section');
         expectStatsReset($targetVisits() === 0, 'All dates and disabled link counts must reset to zero');
         expectStatsReset((int) $conn->query('SELECT SUM(visits) AS n FROM short_link_stats WHERE link_id=' . $linkIds[2])->fetch_assoc()['n'] === 14, 'Other presentations retain all statistics');
         expectStatsReset($snapshot() === $before, 'Reset must preserve presentations, links, destinations, QR bytes, notes, and timestamps');
