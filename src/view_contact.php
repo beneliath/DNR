@@ -124,11 +124,22 @@ try {
 
     <?php if ($record_note_message !== ''): ?><p class="success" role="status"><?php echo htmlspecialchars($record_note_message, ENT_QUOTES, 'UTF-8'); ?></p><?php endif; ?>
     <nav class="breadcrumb" aria-label="Breadcrumb"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a><span aria-hidden="true">/</span><span>Contact Details</span></nav>
-    <div class="page-heading record-page-heading view-contact-heading"><div><h1><?php echo htmlspecialchars(
-            $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
-            ENT_QUOTES,
-            'UTF-8'
-        ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1><p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?><?php if ($contact['organization_id'] !== null): ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p></div><?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_contact.php?id=' . $contact_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Edit Contact</a><a href="#add-note" class="button-add">Add Chron Log Entry</a><?php if ($user_role === 'admin'): ?><a href="record_merge.php?kind=contact&amp;source=<?php echo (int) $contact_id; ?>" class="button-secondary">Review Merge</a><?php endif; ?><?php endif; ?></div>
+    <div class="page-heading record-page-heading view-contact-heading">
+        <div>
+            <h1><?php echo htmlspecialchars(
+                $contact['contact_last_name'] . ', ' . $contact['contact_first_name'],
+                ENT_QUOTES,
+                'UTF-8'
+            ); ?><?php if ($is_archived): ?><span class="archive-status">Archived</span><?php endif; ?></h1>
+            <p class="page-intro"><?php echo htmlspecialchars($display_role, ENT_QUOTES, 'UTF-8'); ?><?php if ($contact['organization_id'] !== null): ?> at <?php echo htmlspecialchars($contact['organization_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?></p>
+        </div>
+        <?php if (!$is_archived && empty($contact['organization_is_archived']) && ($user_role === 'admin' || $user_role === 'editor')): ?>
+            <div class="page-heading-actions">
+                <a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_contact.php?id=' . $contact_id, ['return_to' => $record_view_url]), ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Edit Contact</a>
+                <a href="#add-note" class="button-add">Add Chron Log Entry</a>
+            </div>
+        <?php endif; ?>
+    </div>
 
     <div class="contact-overview-grid">
         <div class="contact-details contact-details-layout">

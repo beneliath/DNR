@@ -229,23 +229,41 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
         <?php echo csrfInput(); ?>
         <input type="hidden" name="id" value="<?php echo $engagementId; ?>">
 
-        <section class="email-compose-card">
-            <div class="email-section-heading">
-                <div><span>01</span><h2>Choose a Template</h2></div>
-                <p>Templates provide a starting point; subject and message remain editable.</p>
-            </div>
-            <label for="template_key">Message Template</label>
-            <select name="template_key" id="template_key" data-email-template>
-                <?php foreach ($templates as $key => $template): ?>
-                    <option value="<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $templateKey === $key ? ' selected' : ''; ?>><?php echo htmlspecialchars($template['label'], ENT_QUOTES, 'UTF-8'); ?></option>
-                <?php endforeach; ?>
-            </select>
-            <p class="field-help"><a href="email_templates.php?engagement_id=<?php echo $engagementId; ?>">Manage Email Templates</a></p>
+        <section class="form-draft-panel" data-form-draft-panel>
+            <p role="status">No saved draft</p>
+            <button type="button" disabled>Save Draft</button>
+            <p>Drafts are saved for 30 days in this browser. Files must be selected again. Saving a draft does not save the record or send email.</p>
         </section>
+
+        <div class="email-compose-options">
+            <section class="email-compose-card">
+                <div class="email-section-heading">
+                    <div><span>01</span><h2>Choose a Template</h2></div>
+                    <p>Templates provide a starting point; subject and message remain editable.</p>
+                </div>
+                <label for="template_key">Message Template</label>
+                <select name="template_key" id="template_key" data-email-template>
+                    <?php foreach ($templates as $key => $template): ?>
+                        <option value="<?php echo htmlspecialchars($key, ENT_QUOTES, 'UTF-8'); ?>"<?php echo $templateKey === $key ? ' selected' : ''; ?>><?php echo htmlspecialchars($template['label'], ENT_QUOTES, 'UTF-8'); ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="field-help"><a href="email_templates.php?engagement_id=<?php echo $engagementId; ?>">Manage Email Templates</a></p>
+            </section>
+
+            <section class="email-compose-card reply-follow-up">
+                <div class="email-section-heading">
+                    <div><span>02</span><h2>Reply Follow-Up</h2></div>
+                </div>
+                <label class="reply-follow-up-toggle"><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
+                <label for="follow-up-date">Follow-Up Date</label>
+                <input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
+                <p class="field-help">The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p>
+            </section>
+        </div>
 
         <section class="email-compose-card">
             <div class="email-section-heading">
-                <div><span>02</span><h2>Select Recipients</h2></div>
+                <div><span>03</span><h2>Select Recipients</h2></div>
                 <p>Choose To, Cc, or Bcc for each selected recipient. To and Cc addresses are visible to everyone receiving the email; Bcc addresses stay hidden.</p>
             </div>
             <div class="recipient-shortcuts" aria-label="Recipient Selection Shortcuts">
@@ -337,7 +355,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
 
         <section class="email-compose-card">
             <div class="email-section-heading">
-                <div><span>03</span><h2>Write the Message</h2></div>
+                <div><span>04</span><h2>Write the Message</h2></div>
                 <p>The engagement routing marker is required and will be appended automatically if removed.</p>
             </div>
             <div class="form-field">
@@ -358,11 +376,7 @@ $safeBrief = engagementEmailSafeEventBrief($engagement, $presentations);
             </details>
         </section>
 
-        <fieldset class="reply-follow-up"><legend>Reply Follow-Up</legend>
-<label class="reply-follow-up-toggle"><input type="checkbox" name="track_reply" value="1" <?php echo isset($_POST['track_reply']) ? 'checked' : ''; ?>> Create a Task to Review the Reply</label>
-<label for="follow-up-date">Follow-Up Date</label><input class="reply-follow-up-date" id="follow-up-date" name="follow_up_date" type="date" value="<?php echo htmlspecialchars((string) ($_POST['follow_up_date'] ?? date('Y-m-d', strtotime(applicationBusinessDate() . ' +3 days'))), ENT_QUOTES, 'UTF-8'); ?>">
-<p>The task is assigned to you. Receiving a reply does not complete it; review the correspondence before marking it complete.</p></fieldset>
-<div class="email-compose-actions">
+        <div class="email-compose-actions">
             <a href="view_engagement.php?id=<?php echo $engagementId; ?>#correspondence" class="button-secondary">Cancel</a>
             <button type="submit" class="save-button"<?php echo !$deliveryAvailable || !$hasRecipientsWithEmail ? ' disabled' : ''; ?> data-confirm="Queue this message for delivery to the selected recipients?">Queue Email</button>
         </div>
