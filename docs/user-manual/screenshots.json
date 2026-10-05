@@ -2,23 +2,21 @@
   {
     "chapter": 1,
     "id": "manual",
-    "title": "The online manual and navigation",
+    "title": "Find help by task",
     "route": "help.php",
     "steps": [
-      "Open User Manual near the bottom of the scrollable sidebar. Its 14 chapters match this PDF.",
-      "Use the chapter rail and topic cards to browse, or press / to focus Search the manual.",
-      "The fixed bottom bar keeps Top and Bottom available while you read. They jump to either end of the page."
+      "Open User Manual from the sidebar. Browse the 14 chapters or choose a popular help topic.",
+      "Open View Comprehensive User Guide for the illustrated PDF."
     ],
-    "shell": true,
-    "file": "screenshots/manual.png",
-    "captured_at": "2026-09-22",
+    "file": "screenshots/manual.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
       0,
       0,
-      1265,
-      712
+      1270,
+      1030
     ],
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 1,
@@ -110,23 +108,21 @@
   {
     "chapter": 3,
     "id": "dashboard",
-    "title": "Start the day on the Dashboard",
+    "title": "Dashboard work and task timing",
     "route": "dashboard.php",
     "steps": [
-      "Scan the summary cards for work, booking inquiries, financial closeouts, and the purple Mail For Review indicator.",
-      "Work through My Work and promptly follow up on overdue items, then review upcoming engagements and incomplete details.",
-      "Review Needs Attention: the mail-review alert is purple and Financial Closeouts is gold. Select a record row or card to open it; separate controls keep their own actions."
+      "Use the task counts and My Tasks rows to choose work.",
+      "Deadline bars show timing and urgency alongside the written due date; open a task for its details."
     ],
-    "file": "screenshots/dashboard.png",
+    "file": "screenshots/dashboard.jpg",
     "crop": [
-      290,
-      24,
-      1014,
-      1080
+      270,
+      50,
+      990,
+      1000
     ],
-    "captured_at": "2026-09-22",
-    "note": "Fictional task dates illustrate prompt follow-up: the oldest overdue example is five days late.",
-    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form."
+    "captured_at": "2026-10-05",
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 4,
@@ -316,57 +312,62 @@
   {
     "chapter": 5,
     "id": "engagement",
-    "title": "Use the engagement workspace",
-    "route": "view_engagement.php?id=13",
+    "title": "Planning overview and record tabs",
+    "route": "view_engagement.php?id=1",
     "steps": [
-      "Read the event summary and right-side readiness and next-action information.",
-      "Switch among Activity, Correspondence, Tasks, Presentations, Contacts, Logistics, and Financials.",
-      "Use the nearby routing-marker copy control when continuing a conversation in another email application."
+      "Review Workflow, Readiness, and Next Action together.",
+      "Choose the relevant tab for activity, correspondence, tasks, presentations, contacts, logistics, or financials."
     ],
-    "file": "screenshots/engagement.png",
+    "file": "screenshots/engagement.jpg",
     "crop": [
-      0,
-      0,
-      1515,
-      636
+      270,
+      100,
+      990,
+      950
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 5,
     "id": "engagement-form",
-    "title": "Edit event details and schedule",
-    "route": "edit_engagement.php?id=13",
+    "title": "Edit an engagement in focused cards",
+    "route": "edit_engagement.php?id=1",
     "steps": [
-      "Choose an active organization and enter the event title and description.",
-      "Set valid start and end dates. Choose Other and describe the type when presets do not fit.",
-      "Assign a Caller for the initial checklist; later Caller changes do not transfer existing tasks.",
-      "Save Changes and Cancel remain visible in the bottom bar while you scroll. Save Changes saves the entire form, including presentation edits and pending file changes."
+      "Work through Event Details & Schedule and the related cards.",
+      "Keep unsaved changes in this browser with Save Draft where offered, or save the record using Save Changes."
     ],
-    "file": "screenshots/engagement-form.png",
+    "file": "screenshots/engagement-form.jpg",
     "crop": [
-      280,
-      22,
-      1048,
-      1287
+      270,
+      100,
+      990,
+      950
     ],
-    "framing": "Original 1351 by 1309 browser capture. Crop frames the documented controls; scroll in the application to continue the form.",
-    "captured_at": "2026-09-22",
-    "note": "The fixed bottom bar stays available as the longer form continues below the viewport."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 5,
     "id": "event-contacts",
-    "title": "Assign event-specific contact roles",
-    "route": "view_engagement.php?id=13",
+    "title": "Read retained event contact assignments",
+    "route": "view_engagement.php?id=1#engagement-contacts",
     "steps": [
-      "Open Contacts to see the people assigned to this event and their roles.",
-      "In Edit Engagement, add existing contacts or create new people. Assign Primary host, On-site contact, Billing, Travel, and Materials as applicable.",
-      "These roles are separate from a contact's organization affiliations."
+      "Open Contacts on the engagement.",
+      "Historical assignment identifies a contact whose event role is retained after their organization affiliation changes.",
+      "Use current affiliations when choosing recipients or assigning new roles."
     ],
     "tab": "Contacts",
     "focus": "#engagement-workspace",
-    "file": "screenshots/event-contacts.png"
+    "file": "screenshots/event-contacts.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      40,
+      990,
+      1040
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 5,
@@ -679,21 +680,21 @@
   {
     "chapter": 6,
     "id": "organization",
-    "title": "Review relationship history",
-    "route": "view_organization.php?id=36",
+    "title": "Organization record actions and follow-up",
+    "route": "view_organization.php?id=1",
     "steps": [
-      "Use Activity for organization-level Chron.",
-      "Switch to Contacts, Engagements, Tasks, or Financials for related information.",
-      "Use Edit Organization to maintain details and add or move contacts."
+      "Use Edit Organization and Add Chron Log Entry at the top.",
+      "Open Contacts, Next engagement, or Open Tasks from the summary; record a conversation to keep context with the relationship."
     ],
-    "file": "screenshots/organization.png",
+    "file": "screenshots/organization.jpg",
     "crop": [
-      0,
-      0,
-      1515,
-      1163
+      270,
+      100,
+      990,
+      980
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 6,
@@ -759,21 +760,21 @@
   {
     "chapter": 6,
     "id": "contact",
-    "title": "Read a contact record",
-    "route": "view_contact.php?id=54",
+    "title": "Contact details and related work",
+    "route": "view_contact.php?id=1",
     "steps": [
-      "Check name, role, email, phone, photo, and organization links.",
-      "Keep person-specific conversations in this contact's Chron.",
-      "Create follow-up work here to retain the relationship context."
+      "Use Edit Contact or Add Chron Log Entry from the header.",
+      "Review Organizations and roles before assigning the person to new work; historical event roles can remain after an affiliation ends."
     ],
-    "file": "screenshots/contact.png",
+    "file": "screenshots/contact.jpg",
     "crop": [
-      0,
-      0,
-      1515,
-      1210
+      270,
+      100,
+      990,
+      980
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 6,
@@ -873,43 +874,41 @@
   {
     "chapter": 7,
     "id": "tasks",
-    "title": "Work the queue",
+    "title": "Filter and select work",
     "route": "tasks.php?owner=me",
     "steps": [
-      "Choose My work, Everyone’s work, or Unassigned work, then a due-date/status filter.",
-      "Read the date and its timing label: overdue, Due today, Due tomorrow, or Upcoming. Dates use the application time zone.",
-      "Select the task to edit it, or the green check-mark to review completion. Archive preserves its status and details; use Archived to restore it."
+      "Choose My Tasks, Everyone’s Tasks, or Unassigned Tasks. Apply status/date filters and review the visible filter summary.",
+      "Filters are remembered in this browser. Use Clear Filters to return to the default view.",
+      "Select tasks for a bulk update and review the planned changes before applying."
     ],
-    "file": "screenshots/tasks.png",
-    "captured_at": "2026-09-19",
+    "file": "screenshots/tasks.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      291,
-      46,
-      925,
-      595
+      270,
+      100,
+      990,
+      950
     ],
-    "framing": "Complete controls or form sections from the original browser screenshot; decorative footer excluded.",
-    "note": "This fictional task is due the day after capture. Due tomorrow is separate from its High Priority and In progress labels."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 7,
     "id": "task-form",
     "title": "Edit a task",
-    "route": "edit_task.php?id=10",
+    "route": "edit_task.php?id=11",
     "steps": [
-      "Write a concrete title and notes.",
-      "Search at least three characters and select the intended related record, or use general work.",
-      "Set assignee, due date, priority, and status. Waiting work should name the person or decision it needs.",
-      "Save task to persist the change."
+      "Choose or change a related record using the relationship picker.",
+      "Review owner, due date, priority, status, and Waiting On before Save Changes. Use Duplicate Task when separate follow-up is needed."
     ],
-    "file": "screenshots/task-form.png",
+    "file": "screenshots/task-form.jpg",
     "crop": [
-      0,
-      0,
-      1515,
-      1210
+      270,
+      100,
+      990,
+      950
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 7,
@@ -998,42 +997,41 @@
   {
     "chapter": 8,
     "id": "email",
-    "title": "Choose To, Cc, Bcc, and a self-copy",
-    "route": "compose_engagement_email.php?id=28",
+    "title": "Compose an email and plan reply follow-up",
+    "route": "compose_engagement_email.php?id=1",
     "steps": [
-      "Choose an active template or Custom message, then select assigned contacts and optional speakers. Changing templates preserves selected speakers.",
-      "Choose To, Cc, or Bcc on each selected recipient card. To and Cc addresses are visible to all recipients; Bcc addresses stay hidden.",
-      "Under Send yourself a copy, choose Cc me or Bcc me for your account email. Matching addresses receive one copy and must use the same recipient type.",
-      "Review the subject, message, and optional brief before Queue Email. Check Correspondence for the delivery result."
+      "Choose an active template or Custom Message.",
+      "In Reply Follow-Up, choose Create a Task to Review the Reply and check Follow-Up Date. The task is assigned to you; receiving a reply does not complete it.",
+      "Review recipients and message before Queue Email. Saving a browser draft does not send."
     ],
-    "note": "Fictional recipients demonstrate To, Cc, Bcc, and Bcc me. No email was queued during capture.",
-    "file": "screenshots/email.png",
+    "file": "screenshots/email.jpg",
     "captured_on": "2026-09-13",
     "action": "email-recipients",
     "crop": [
-      285,
-      20,
-      930,
-      570
-    ]
+      270,
+      50,
+      990,
+      1000
+    ],
+    "captured_at": "2026-10-05",
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 8,
     "id": "email-message",
-    "title": "Review the message and brief",
-    "route": "compose_engagement_email.php?id=13",
+    "title": "Review recipient visibility and sender copies",
+    "route": "compose_engagement_email.php?id=1",
     "steps": [
-      "Edit the plain-text message for the event.",
-      "Expand Preview Event Brief to inspect the optional share-safe information before including it.",
-      "The event marker is maintained for routing. A sent checklist email does not complete its related task automatically."
+      "Choose To, Cc, or Bcc for each selected person. To and Cc are visible; Bcc is hidden.",
+      "Set Your Copy separately. Check the message and optional share-safe event brief before queueing."
     ],
     "focus": "#body",
-    "file": "screenshots/email-message.png",
+    "file": "screenshots/email-message.jpg",
     "crop": [
-      0,
-      102,
-      1515,
-      1061
+      270,
+      50,
+      990,
+      1040
     ],
     "copyright_line_box": [
       44,
@@ -1042,7 +1040,8 @@
       1148
     ],
     "footer_removed": true,
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 8,
@@ -1068,24 +1067,22 @@
   {
     "chapter": 8,
     "id": "inbound-message",
-    "title": "Read a message and choose its Chron Logs",
-    "route": "inbound_mail.php?id=2",
+    "title": "Read an inbound message beside its filing choices",
+    "route": "inbound_mail.php?id=1",
     "steps": [
-      "Read the sender, subject, and message. Expand Message details for recipients, sent time, and attachment names; open Routing details for matching reasons.",
-      "Review the reason in the right-hand filing panel. Choose the intended Contact, Organization, or Inquiry suggestions when available. Scroll down to search and select an active Engagement.",
-      "Check the selected Chron log count, then choose Save to Chron logs. Processed messages show Message status and Saved to Chron so you can review their destinations.",
-      "Find matches again checks routing after record corrections. Other actions contains Reject message. Administrators can expand Manage retained email below the reader to purge the retained source after confirmation."
+      "Choose a message in Inbox. The divider separates the reader from Message Filing.",
+      "Read the message, review selected Chron logs, and correct destinations before Save to Chron Logs."
     ],
-    "file": "screenshots/inbound-message.png",
-    "shell": true,
+    "file": "screenshots/inbound-message.jpg",
     "focus": "#inbound-queue-search",
     "crop": [
-      280,
-      0,
-      960,
-      701
+      270,
+      50,
+      990,
+      1070
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 9,
@@ -1336,7 +1333,7 @@
     "steps": [
       "The Are you sure? dialog appears after the review, including when you use Enter in the confirmation field.",
       "Select Delete permanently only when ready. Cancel closes the dialog without deleting accounts.",
-      "Read the result counts on the user list. Deletion checks administrator access and the original unlock deadline again."
+      "Read the result counts on the user list. Deletion checks administrator access and the current unlock deadline again."
     ],
     "note": "Enter was verified to open this dialog. The batch was canceled; no accounts were deleted.",
     "file": "screenshots/bulk-user-confirmation.png",
@@ -1441,45 +1438,40 @@
   {
     "chapter": 12,
     "id": "operations",
-    "title": "Review mail ingestion health",
+    "title": "Review data and recovery health",
     "route": "operations.php",
     "steps": [
-      "Open Operations from the Administration chapter and scroll to Mail Ingestion. The summary above covers task backlog and other queues.",
-      "Compare Last checked with Last imported: a successful check need not import a new message.",
-      "Ask the deployment operator to investigate failures, overdue checks, or historical mail awaiting review. Use Inbox for imported messages that need routing.",
-      "Scroll to Deployment State for migration readiness and the last recorded encrypted backup."
+      "Administrators can inspect workload, Mail Ingestion, and Data and Recovery Health.",
+      "No report received means no reported result. A downloaded database backup is tracked separately; an operator must verify recovery before treating it as ready."
     ],
-    "file": "screenshots/operations.png",
+    "file": "screenshots/operations.jpg",
     "crop": [
-      278,
-      4,
-      950,
-      560
+      270,
+      100,
+      990,
+      930
     ],
-    "captured_at": "2026-09-15",
-    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
-    "note": "Synthetic mailbox state illustrates an overdue check and one historical message awaiting review. No mailbox service is connected to this preview."
+    "captured_at": "2026-10-05",
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 13,
     "id": "manual-search",
-    "title": "Find a specific manual topic",
+    "title": "Search for presentation deletion",
     "route": "help.php",
     "steps": [
-      "Enter a phrase in Search the manual. Results show specific topic titles, their chapter, and an excerpt with matching words highlighted.",
-      "Select a result, or press Enter for the first match. The page jumps to that topic and opens matching troubleshooting entries.",
-      "Use Clear or press Esc in the search field to restore the full manual. Use your PDF reader’s Find command to search this guide."
+      "Search the Manual for delete a presentation.",
+      "Choose Archive or Delete a Presentation to jump to instructions for the buttons within each saved presentation block."
     ],
-    "shell": false,
-    "file": "screenshots/manual-search.png",
-    "captured_at": "2026-09-22",
+    "file": "screenshots/manual-search.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      330,
-      36,
-      850,
-      395
+      270,
+      45,
+      990,
+      1040
     ],
-    "framing": "Complete search field and matching topic result from the original browser screenshot."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 5,
@@ -1527,16 +1519,22 @@
   {
     "chapter": 5,
     "id": "reset-statistics",
-    "title": "Reset one presentation's statistics",
-    "route": "reset_presentation_stats.php?presentation_id=25",
+    "title": "Clear all links of one presentation",
+    "route": "reset_presentation_stats.php?presentation_id=1",
     "steps": [
-      "Administrators open Reset Presentation Statistics on the presentation card.",
-      "Confirm the exact presentation and obtain fresh administrator access.",
-      "Reset Statistics to Zero permanently clears all dates and all its links, including disabled links and previous speakers.",
-      "Codes, destinations, uploaded files, and other presentations stay intact; new visits start at zero."
+      "Choose Reset All Presentation Statistics at the bottom of the presentation block.",
+      "Review the scope: all visits for that presentation, including disabled and previous-speaker links.",
+      "Confirm only when the permanent loss of visit history is intended. Other presentations, files, and QR destinations stay intact."
     ],
-    "note": "The reset review screen is illustrated; no statistics were deleted.",
-    "file": "screenshots/reset-statistics.png"
+    "file": "screenshots/reset-statistics.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      590
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 5,
@@ -1723,44 +1721,41 @@
   {
     "chapter": 12,
     "id": "network",
-    "title": "Compare remote IPv4 and IPv6 traffic",
-    "route": "network_diagnostics.php",
+    "title": "Choose the network comparison window",
+    "route": "network_diagnostics.php?days=7",
     "steps": [
-      "Open Network in the administrator sidebar. Read median page load, 75th percentile, median TTFB, and sample counts for each family.",
-      "Compare both sample counts and page mix. An empty family has no received samples, not a measured speed.",
-      "Review the slowest contact-image metric and per-page detail below. Refresh updates immediately; the page also refreshes every 30 seconds."
+      "Choose a Data Window from 1 through 7 days and select Apply.",
+      "Browser page-load and document-response measurements are separate. No public-client samples in this isolated preview is not evidence of a network failure."
     ],
-    "note": "Synthetic timing samples illustrate the comparison; they do not describe a real network.",
-    "file": "screenshots/network.png",
-    "captured_at": "2026-09-14",
+    "file": "screenshots/network.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
       270,
-      0,
-      980,
-      835
-    ]
+      50,
+      990,
+      1070
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 12,
     "id": "admin-countdown",
-    "title": "Unlock temporarily and lock again when finished",
+    "title": "Extend or lock administrator actions",
     "route": "users.php",
     "steps": [
-      "The orange banner shows Automatically locks in and the remaining minutes and seconds.",
-      "Navigation, user deactivation, and individual or bulk user deletion keep the original five-minute deadline. Other sessions do not inherit the unlock.",
-      "Select Lock Admin Actions as soon as sensitive work is finished. At expiry or explicit locking, protected actions require fresh confirmation."
+      "Fresh confirmation begins a five-minute unlock in this signed-in session.",
+      "While unlocked, Add 5 Minutes extends the current deadline. Lock Admin Actions ends access immediately; expiration requires fresh confirmation."
     ],
     "elevated": true,
-    "file": "screenshots/admin-countdown.png",
-    "captured_at": "2026-09-15",
+    "file": "screenshots/admin-countdown.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      278,
+      270,
       0,
-      950,
-      405
+      990,
+      310
     ],
-    "framing": "Complete controls and sections framed from the original screenshot; decorative footer excluded.",
-    "note": "The countdown is from a disposable preview."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 12,
@@ -1788,46 +1783,41 @@
   {
     "chapter": 14,
     "id": "reimbursement-expenses",
-    "title": "Find and Filter Expenses",
+    "title": "Expenses, saved selection, and workflow progress",
     "route": "reimbursements.php",
     "steps": [
-      "Open Reimbursements from the sidebar. Use + Add Expense to record a new expense, Requests to review packages, or Chart of Accounts to manage account choices.",
-      "Choose Active or Archived. Search by merchant or purpose and set the date range. Administrators also have Expense Owner. Select Apply.",
-      "Use the sort controls to change ordering. The rows below contain expense status, receipts, amounts, and actions. Scroll horizontally on smaller screens to see the remaining columns."
+      "Follow Select Expenses, Review Request, Review Email, and Submit at the top.",
+      "Apply owner/date/state filters and check the current summary. View opens read-only detail; Edit returns through the allowed expense list."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-expenses.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-expenses.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      290,
-      28,
-      885,
-      575
+      270,
+      50,
+      990,
+      1040
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
     "id": "reimbursement-selection",
-    "title": "Select Expenses for a New Draft",
+    "title": "Select available expenses across pages",
     "route": "reimbursements.php",
     "steps": [
-      "Select only your available, unclaimed expenses. Draft or submitted expenses cannot be selected again.",
-      "Check the selection count, Selected Total, and missing-receipt count. Clear Selection removes the current selection.",
-      "Expand Dates for New Request to set the request range, then select Create Draft Request from Selected Expenses. Server validation rechecks eligibility and totals."
+      "Choose Select All Available to include eligible expenses across pages of the current filters.",
+      "Check selected count, total, and missing-receipt count. Changing filters clears selection; Clear Selection starts over.",
+      "Review Dates for New Request before Create Draft Request from Selected Expenses."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-selection.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-selection.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      300,
-      25,
-      875,
-      650
+      270,
+      200,
+      990,
+      845
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
@@ -1898,90 +1888,80 @@
   {
     "chapter": 14,
     "id": "reimbursement-draft",
-    "title": "Adjust a Draft Request",
+    "title": "Edit dates, expenses, and a bookkeeper note",
     "route": "reimbursement_request.php?id=1&mode=edit",
     "steps": [
-      "Use Download Report PDF or Download Package ZIP to inspect a draft without submitting it.",
-      "Set Start Date and End Date in Request Date Range, then Update Dates. Existing included expenses must remain within the range.",
-      "Choose an eligible Available Expense and select Add Expense. Continue to the expense table to check filenames and totals, then Review and Submit."
+      "Save the optional Note to the Bookkeeper before reviewing the email.",
+      "Use Update Dates, Add Expense, or Remove as needed. Removing an expense preserves its original receipts.",
+      "Download Report PDF or Download Package ZIP for review, then Review and Submit."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-draft.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-draft.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      290,
-      25,
-      880,
-      515
+      270,
+      50,
+      990,
+      1000
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
     "id": "reimbursement-detail",
-    "title": "Match Expense Amounts to Receipt Files",
-    "route": "reimbursement_request.php?id=1&mode=edit",
+    "title": "Read expense details and preview a PDF receipt",
+    "route": "reimbursement_expense.php?id=2&mode=view",
     "steps": [
-      "The expense table identifies the date, merchant, account, exact package receipt filenames, and amount together.",
-      "Remove detaches an expense from a draft; it does not delete the underlying expense or receipt files.",
-      "Compare filenames with the ZIP receipts/ folder and verify Total Amount Due. Request History records the workflow; submitted downloads preserve the original approved package."
+      "Expense links open read-only details and receipt previews.",
+      "Open Original Receipt for the complete file. Choose Edit Expense only when you own the editable expense."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-detail.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-detail.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      290,
-      0,
-      880,
-      580
+      270,
+      100,
+      990,
+      950
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
     "id": "reimbursement-review",
-    "title": "Review Email Recipients and Attachment",
+    "title": "Review the email and ZIP attachment",
     "route": "reimbursement_submit.php?id=1",
     "steps": [
-      "Open Review and Submit from your draft, or use its Submit icon in Requests.",
-      "Check Email Details: To is the bookkeeper; Cc includes the owner and configured visible copies; Bcc is hidden from other recipients.",
-      "Download Package for Review and inspect the Email Preview below. Use User Profile or Reimbursement Setup to correct routing before submission."
+      "Check To, Cc, Bcc, and the readable Email Preview, including your saved note.",
+      "Only one ZIP is attached; it contains the report PDF, expense CSV, and original receipts. Download it before submitting."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-review.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-review.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      290,
-      25,
-      880,
-      545
+      270,
+      50,
+      990,
+      1070
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Fictional documentation records. The screen continues below the illustrated area."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
     "id": "reimbursement-confirm",
-    "title": "Check the Package and Confirm Submission",
+    "title": "Check package contents and both email limits",
     "route": "reimbursement_submit.php?id=1",
     "steps": [
-      "Review Submission Readiness, including expense count, total, receipt count, and file size. The final ZIP must fit the 15 MB limit.",
-      "Expand Package Contents by expense and compare exact filenames and original receipt names with the report.",
-      "After checking recipients, email, and package, select the confirmation checkbox and Submit Reimbursement Request. This queues delivery and locks the request; downloading alone does not submit."
+      "The gauge shows usage of the 18 MB ZIP limit. The encoded email, including headers and message, must also fit within 25 MB.",
+      "Match the PDF, CSV, and original receipt filenames to the expense list. The request also limits original files to 15 MB and 100 receipts.",
+      "Check I Have Reviewed the Recipients, Email, and Package, then Submit Reimbursement Request. Wait for progress and check delivery afterward; Submitted does not mean paid."
     ],
-    "shell": false,
-    "file": "screenshots/reimbursement-confirm.png",
-    "captured_at": "2026-09-29",
+    "file": "screenshots/reimbursement-confirm.jpg",
+    "captured_at": "2026-10-05",
     "crop": [
-      290,
-      105,
-      880,
-      607
+      270,
+      50,
+      990,
+      990
     ],
-    "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
-    "note": "Scrolled submission review. No confirmation or send button was activated during capture."
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
   },
   {
     "chapter": 14,
@@ -2070,5 +2050,277 @@
     ],
     "framing": "Original browser screenshot from an isolated current-source preview; crop frames the documented controls.",
     "note": "Personal Details crop from the current profile screen, with fictional example.org addresses."
+  },
+  {
+    "chapter": 3,
+    "id": "dashboard-timing",
+    "title": "Financial follow-up since the event",
+    "route": "dashboard.php",
+    "steps": [
+      "Review Needs Attention and Financial Closeouts.",
+      "Read the elapsed time since the event alongside its dates, then open the event to finish its report."
+    ],
+    "file": "screenshots/dashboard-timing.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      660,
+      990,
+      460
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 1,
+    "id": "browser-draft-recovery",
+    "title": "Recover a local browser draft",
+    "route": "compose_engagement_email.php?id=1",
+    "steps": [
+      "Use Save Draft to keep supported form text in this browser.",
+      "On return, choose Restore Draft to bring it back, or Discard Draft to clear it.",
+      "Review restored text against the current record; files and changes on another browser are not restored."
+    ],
+    "file": "screenshots/browser-draft-recovery.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      1000
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-management",
+    "title": "Archive or delete the correct presentation",
+    "route": "edit_engagement.php?id=1&tab=presentations",
+    "steps": [
+      "Open Presentations, then Edit Presentations. Check the numbered block, topic, and speaker.",
+      "Find Archive and Delete at the bottom of that saved presentation block. Archive keeps a restorable record; Delete is permanent and requires administrator access.",
+      "These actions do not save other unsaved edits. Remove on an unsaved block and file-removal checkboxes are different actions."
+    ],
+    "file": "screenshots/presentation-management.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      290,
+      365,
+      900,
+      380
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-delete-confirmation",
+    "title": "Review permanent presentation deletion",
+    "route": "edit_engagement.php?id=1&tab=presentations",
+    "steps": [
+      "Select Delete on the intended saved presentation; unlock admin actions first if asked.",
+      "Read the dialog. Cancel leaves the presentation in place; Archive Instead keeps it restorable.",
+      "Select Delete Permanently only when its resources and visit history should also be removed. This cannot be undone."
+    ],
+    "file": "screenshots/presentation-delete-confirmation.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      300,
+      390,
+      900,
+      475
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-restore",
+    "title": "Restore archived presentations",
+    "route": "restore_presentations.php?engagement_id=1",
+    "steps": [
+      "Open Restore Archived Presentations from the engagement editor.",
+      "Select the intended presentation and check that its date/time fits the engagement. Choose Restore Selected.",
+      "An administrator can delete an archived presentation permanently; it has no restore path afterward."
+    ],
+    "file": "screenshots/presentation-restore.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      730
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "presentation-link-reset",
+    "title": "Clear visits for one QR link",
+    "route": "reset_presentation_stats.php?presentation_id=1&link_id=1",
+    "steps": [
+      "Choose Reset Link Statistics for the intended resource.",
+      "Review the named presentation and link. Other links remain unaffected.",
+      "Cancel or confirm Reset Statistics to Zero. This clears visit history permanently, while keeping the QR link and resource."
+    ],
+    "file": "screenshots/presentation-link-reset.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      620
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "financial-history",
+    "title": "Inspect financial correction history",
+    "route": "view_engagement.php?id=2#engagement-financials",
+    "steps": [
+      "Open Financials, then expand Financial Revision History.",
+      "Compare the original and corrected totals and the recorded reason. Finalized history is retained; archive a protected event instead of deleting it."
+    ],
+    "file": "screenshots/financial-history.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      1020
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 5,
+    "id": "financial-correction",
+    "title": "Correct a final financial report with a reason",
+    "route": "close_engagement.php?id=2",
+    "steps": [
+      "Open Correct Final Financial Report.",
+      "Enter Correction Reason and check each amount before Save Correction. Prior revisions remain available."
+    ],
+    "file": "screenshots/financial-correction.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      800
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 6,
+    "id": "duplicate-record-warning",
+    "title": "Check possible existing records",
+    "route": "add_organization.php",
+    "steps": [
+      "Review Possible Existing Records before creating another organization or contact.",
+      "Open Use Existing when a match is correct. If these are distinct records, explicitly acknowledge that before creating the new one."
+    ],
+    "file": "screenshots/duplicate-record-warning.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      920
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 6,
+    "id": "record-merge",
+    "title": "Review a merge and its undo boundary",
+    "route": "record_merge.php?kind=organization&source=2&target=1",
+    "steps": [
+      "An administrator compares the source and surviving record, chooses field values, and reviews relationships before merging.",
+      "Merge History offers Undo Merge for an eligible merge for up to 90 days. Later changes to either record or affected relationships prevent undo.",
+      "Review errors and reload if the record changed; do not assume a failed operation completed."
+    ],
+    "file": "screenshots/record-merge.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      1030
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 7,
+    "id": "task-bulk-preview",
+    "title": "Review several task updates together",
+    "route": "task_bulk.php",
+    "steps": [
+      "Select tasks and the bulk change, then preview.",
+      "Check each affected task, owner, status, and date. Apply Updates only when the review matches your intent."
+    ],
+    "file": "screenshots/task-bulk-preview.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      690
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 7,
+    "id": "standard-task-details",
+    "title": "Understand reusable event task timing",
+    "route": "view_standard_task.php?id=1",
+    "steps": [
+      "Open a standard task to check its due rule, priority, and generated-work count.",
+      "Edits affect future copies. Existing event tasks remain independent; review them separately when timing changes."
+    ],
+    "file": "screenshots/standard-task-details.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      100,
+      990,
+      800
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 9,
+    "id": "map-pending-filters",
+    "title": "Apply pending map filter changes",
+    "route": "map.php",
+    "steps": [
+      "Change Lifecycle, Confirmation, dates, or Location.",
+      "The highlighted Apply Filters button indicates that changes have not yet updated the results. Select it to refresh; Clear returns to the defaults."
+    ],
+    "file": "screenshots/map-pending-filters.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      270,
+      50,
+      990,
+      830
+    ],
+    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+  },
+  {
+    "chapter": 14,
+    "id": "reimbursement-report-receipt",
+    "title": "PDF receipt pages within the report",
+    "route": "download_reimbursement.php?id=1&format=pdf",
+    "steps": [
+      "This page is rendered from the actual fictional request report. The receipt heading identifies its expense, amount, account, original filename, and PDF page.",
+      "Review embedded receipt pages alongside Expense Detail and Receipt Files. The original receipt and CSV remain inside the ZIP."
+    ],
+    "file": "screenshots/reimbursement-report-receipt.jpg",
+    "captured_at": "2026-10-05",
+    "crop": [
+      0,
+      0,
+      1004,
+      1300
+    ],
+    "framing": "Actual generated reimbursement PDF page rendered with Poppler; no application controls fabricated."
   }
 ]

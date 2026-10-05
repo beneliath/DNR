@@ -113,11 +113,14 @@ expectAuditLogPurgeFeature(
     str_contains($page, "'audit_log_pruned' => 'Audit Log Pruned'")
         && str_contains($page, "'audit_log_prune_batch' => 'Audit Log Pruning Batch'")
         && str_contains($manual, 'In the Retention panel')
-        && str_contains($manual, './scripts/prune_audit_log.sh DAYS')
+        && str_contains($manual, 'preview the exact local cutoff and affected count')
+        && str_contains($manual, 'freshly confirmed administrator access')
+        && str_contains($manual, '<code>PRUNE</code>')
+        && str_contains($manual, 'final themed in-app confirmation')
         && str_contains($readme, '### Audit-log retention')
         && str_contains($readme, '**Users → Audit Log**')
         && str_contains($readme, './scripts/prune_audit_log.sh 365 PRUNE'),
-    'the Audit Log, user manual, and deployment guide should explain and label both UI and terminal pruning.'
+    'the Audit Log and user manual should explain confirmed UI pruning, while the operator README retains the terminal pruning command.'
 );
 expectAuditLogPurgeFeature(
     str_contains($grants, 'GRANT SELECT, INSERT ON \`${MYSQL_DATABASE}\`.security_audit_log')

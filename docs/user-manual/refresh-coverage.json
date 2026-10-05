@@ -1,0 +1,205 @@
+{
+  "release": "2.4.16",
+  "updated": "2026-10-05",
+  "baseline_pdf": "2.4.0",
+  "features": [
+    {
+      "feature": "Find help by task",
+      "figure": "manual",
+      "route": "help.php"
+    },
+    {
+      "feature": "Search for presentation deletion",
+      "figure": "manual-search",
+      "route": "help.php"
+    },
+    {
+      "feature": "Task deadline bars",
+      "figure": "dashboard",
+      "route": "dashboard.php"
+    },
+    {
+      "feature": "Financial follow-up since the event",
+      "figure": "dashboard-timing",
+      "route": "dashboard.php"
+    },
+    {
+      "feature": "Planning overview and record tabs",
+      "figure": "engagement",
+      "route": "view_engagement.php?id=1"
+    },
+    {
+      "feature": "Edit an engagement in focused cards",
+      "figure": "engagement-form",
+      "route": "edit_engagement.php?id=1"
+    },
+    {
+      "feature": "Recover a local browser draft",
+      "figure": "browser-draft-recovery",
+      "route": "compose_engagement_email.php?id=1"
+    },
+    {
+      "feature": "Archive or delete the correct presentation",
+      "figure": "presentation-management",
+      "route": "edit_engagement.php?id=1&tab=presentations"
+    },
+    {
+      "feature": "Review permanent presentation deletion",
+      "figure": "presentation-delete-confirmation",
+      "route": "edit_engagement.php?id=1&tab=presentations"
+    },
+    {
+      "feature": "Restore archived presentations",
+      "figure": "presentation-restore",
+      "route": "restore_presentations.php?engagement_id=1"
+    },
+    {
+      "feature": "Clear visits for one QR link",
+      "figure": "presentation-link-reset",
+      "route": "reset_presentation_stats.php?presentation_id=1&link_id=1"
+    },
+    {
+      "feature": "Clear all links of one presentation",
+      "figure": "reset-statistics",
+      "route": "reset_presentation_stats.php?presentation_id=1"
+    },
+    {
+      "feature": "Read retained event contact assignments",
+      "figure": "event-contacts",
+      "route": "view_engagement.php?id=1#engagement-contacts"
+    },
+    {
+      "feature": "Inspect financial correction history",
+      "figure": "financial-history",
+      "route": "view_engagement.php?id=2#engagement-financials"
+    },
+    {
+      "feature": "Correct a final financial report with a reason",
+      "figure": "financial-correction",
+      "route": "close_engagement.php?id=2"
+    },
+    {
+      "feature": "Organization record actions and follow-up",
+      "figure": "organization",
+      "route": "view_organization.php?id=1"
+    },
+    {
+      "feature": "Contact details and related work",
+      "figure": "contact",
+      "route": "view_contact.php?id=1"
+    },
+    {
+      "feature": "Check possible existing records",
+      "figure": "duplicate-record-warning",
+      "route": "add_organization.php"
+    },
+    {
+      "feature": "Review a merge and its undo boundary",
+      "figure": "record-merge",
+      "route": "record_merge.php?kind=organization&source=2&target=1"
+    },
+    {
+      "feature": "Filter and select work",
+      "figure": "tasks",
+      "route": "tasks.php?owner=me"
+    },
+    {
+      "feature": "Task relationships, ownership, and timing",
+      "figure": "task-form",
+      "route": "edit_task.php?id=11"
+    },
+    {
+      "feature": "Review several task updates together",
+      "figure": "task-bulk-preview",
+      "route": "task_bulk.php"
+    },
+    {
+      "feature": "Understand reusable event task timing",
+      "figure": "standard-task-details",
+      "route": "view_standard_task.php?id=1"
+    },
+    {
+      "feature": "Compose an email and plan reply follow-up",
+      "figure": "email",
+      "route": "compose_engagement_email.php?id=1"
+    },
+    {
+      "feature": "Review recipient visibility and sender copies",
+      "figure": "email-message",
+      "route": "compose_engagement_email.php?id=1"
+    },
+    {
+      "feature": "Read an inbound message beside its filing choices",
+      "figure": "inbound-message",
+      "route": "inbound_mail.php?id=1"
+    },
+    {
+      "feature": "Apply pending map filter changes",
+      "figure": "map-pending-filters",
+      "route": "map.php"
+    },
+    {
+      "feature": "Choose the network comparison window",
+      "figure": "network",
+      "route": "network_diagnostics.php?days=7"
+    },
+    {
+      "feature": "Extend or lock administrator actions",
+      "figure": "admin-countdown",
+      "route": "users.php"
+    },
+    {
+      "feature": "Review data and recovery health",
+      "figure": "operations",
+      "route": "operations.php"
+    },
+    {
+      "feature": "Expenses, saved selection, and workflow progress",
+      "figure": "reimbursement-expenses",
+      "route": "reimbursements.php"
+    },
+    {
+      "feature": "Select available expenses across pages",
+      "figure": "reimbursement-selection",
+      "route": "reimbursements.php"
+    },
+    {
+      "feature": "Edit dates, expenses, and a bookkeeper note",
+      "figure": "reimbursement-draft",
+      "route": "reimbursement_request.php?id=1&mode=edit"
+    },
+    {
+      "feature": "Read expense details and preview a PDF receipt",
+      "figure": "reimbursement-detail",
+      "route": "reimbursement_expense.php?id=2&mode=view"
+    },
+    {
+      "feature": "Review the email and ZIP attachment",
+      "figure": "reimbursement-review",
+      "route": "reimbursement_submit.php?id=1"
+    },
+    {
+      "feature": "Check package contents and both email limits",
+      "figure": "reimbursement-confirm",
+      "route": "reimbursement_submit.php?id=1"
+    },
+    {
+      "feature": "PDF receipt pages within the report",
+      "figure": "reimbursement-report-receipt",
+      "route": "download_reimbursement.php?id=1&format=pdf"
+    }
+  ],
+  "validation_notes": [
+    "Fictional isolated preview; no external email sent or production changes made.",
+    "Merge review and source-confirmed undo boundary illustrated. A separate merge fixture failed on a database privilege check and rolled back; no undo operation is claimed as tested."
+  ],
+  "validation": {
+    "pdf_pages": 187,
+    "figures": 114,
+    "internal_links": 1622,
+    "php_manual_check": "passed",
+    "manual_search_tests": "6 passed",
+    "pdf_structure_and_layout": "passed",
+    "visual_review": "all pages inspected; revised screenshot crops checked at full size"
+  }
+}

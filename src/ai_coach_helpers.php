@@ -31,7 +31,7 @@ function aiCoachPages(): array
         'reimbursement_submit.php' => 'Review Reimbursement Email', 'reimbursement_cost_centers.php' => 'Chart of Accounts',
         'reimbursement_setup.php' => 'Reimbursement Setup',
         'engagements.php' => 'Engagements', 'view_engagement.php' => 'Engagement Details',
-        'edit_engagement.php' => 'Edit Engagement', 'index.php' => 'New Engagement',
+        'admin_elevation.php' => 'Confirm Administrator Access', 'edit_engagement.php' => 'Edit Engagement', 'index.php' => 'New Engagement',
         'tasks.php' => 'Tasks', 'add_task.php' => 'New Task', 'edit_task.php' => 'Edit Task',
         'contacts.php' => 'Contacts', 'view_contact.php' => 'Contact Details', 'add_contact.php' => 'New Contact', 'edit_contact.php' => 'Edit Contact',
         'organizations.php' => 'Organizations', 'view_organization.php' => 'Organization Details', 'add_organization.php' => 'New Organization', 'edit_organization.php' => 'Edit Organization',

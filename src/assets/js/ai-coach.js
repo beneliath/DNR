@@ -50,6 +50,16 @@
         return '';
     }
 
+    function presentationDeletionConfirmed(form, prevented) {
+        return !prevented && form.matches('form[id^="delete-presentation-"]')
+            && form.dataset.deleteConfirmed === 'true'
+            && form.querySelector('input[name="action"]')?.value === 'delete';
+    }
+
+    function presentationDeletionDialog(dialog, message) {
+        return !!dialog?.open && message?.textContent === 'Permanently delete this presentation?';
+    }
+
     function presentationsAreOpen(tab, panel) {
         // Layout boxes exist before record tabs initialize; selection is authoritative.
         return !!tab && tab.getAttribute('aria-selected') === 'true' && !!panel && !panel.hidden;
@@ -111,7 +121,7 @@
         return { request_id: id, question: text, history: history, page: page, step: step, ui: ui, topic: topic };
     }
 
-    if (typeof module === 'object' && module.exports) module.exports = { nextStep, safeMessages, presentationsAreOpen, shouldSubmitQuestion, safePending, replyText, questionRequest };
+    if (typeof module === 'object' && module.exports) module.exports = { nextStep, safeMessages, presentationDeletionConfirmed, presentationDeletionDialog, presentationsAreOpen, shouldSubmitQuestion, safePending, replyText, questionRequest };
     if (typeof document === 'undefined') return;
     const panel = document.querySelector('[data-coach]');
     if (!panel) return;
@@ -222,6 +232,10 @@
             waiting: !!status && status.value === 'waiting', waitingFilled: !!waiting && waiting.value.trim() !== '',
             presentationsVisible: presentationsAreOpen(document.getElementById('engagement-presentations-tab'), presentations),
             tasksVisible: presentationsAreOpen(document.getElementById('engagement-tasks-tab'), document.getElementById('engagement-tasks')),
+            presentationDeletionAllowed: role === 'admin',
+            presentationDeleteAvailable: !!targetFor('presentation-delete'),
+            presentationDeleteDialogVisible: presentationDeletionDialog(document.getElementById('delete-confirmation'), document.getElementById('delete-confirmation-message')),
+            presentationDeleteSubmitted: submittedRecord === 'presentation-delete:' + (new URL(window.location.href).searchParams.get('id') || ''),
             taskTitleFilled: !!value('task-title'), taskSubmitted: submittedRecord === 'task',
             datesSubmitted: submittedRecord === 'event-dates:' + (new URL(window.location.href).searchParams.get('id') || ''),
             calendarDeviceFilled: !!value('subscription-label'), calendarLinkVisible: !!targetFor('calendar-copy'),
@@ -489,6 +503,8 @@
         const content = document.getElementById(tab.getAttribute('aria-controls'));
         if (content) tabObserver.observe(content, { attributes: true, attributeFilter: ['hidden'] });
     });
+    const presentationDeleteDialog = document.getElementById('delete-confirmation');
+    if (presentationDeleteDialog) tabObserver.observe(presentationDeleteDialog, { attributes: true, attributeFilter: ['open'] });
     document.addEventListener('change', function (event) {
         if (!panel.contains(event.target)) detailsReviewed = false;
         updateStep();
@@ -498,6 +514,12 @@
         if (!panel.contains(event.target)) window.setTimeout(updateStep, 0);
     });
     document.addEventListener('submit', function (event) {
+        if (workflow === 'delete-saved-presentation' && presentationDeletionConfirmed(event.target, event.defaultPrevented)) {
+            // Record an attempt only after the application's final confirmation.
+            // The return step still asks the user to verify the application's result.
+            submittedRecord = 'presentation-delete:' + (new URL(window.location.href).searchParams.get('id') || '');
+            persist();
+        }
         if (['create-task','assign-task'].includes(workflow) && event.target.matches('.follow-up-task-form')) { submittedRecord='task'; persist(); }
         if (workflow === 'edit-event-dates' && event.target.id === 'engagement-edit-form') { submittedRecord='event-dates:' + (new URL(window.location.href).searchParams.get('id') || ''); persist(); }
         if (workflow === 'engagement' && event.target.id === 'new-engagement-form') { submittedRecord = 'new-engagement'; persist(); }

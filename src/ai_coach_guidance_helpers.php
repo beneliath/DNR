@@ -198,6 +198,27 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
             'question' => '', 'sources' => [], 'mode' => 'conversation', 'engine' => 'conversation'];
     }
     $contextQuestion = aiCoachContextQuestion($request);
+    $presentationDelete = aiCoachProcedureReply($request);
+    if (($presentationDelete['procedure'] ?? '') === 'delete-saved-presentation') {
+        if ($request['role'] !== 'admin') {
+            $presentationDelete['message'] = 'Only an administrator can permanently Delete a presentation. Editors can Archive it instead and restore it later. Ask an administrator to review permanent removal; your current role cannot perform it.';
+            $presentationDelete['engine'] = 'verified-permissions';
+        }
+        return $presentationDelete;
+    }
+    if (in_array(aiCoachIntentMode($request), ['perform', 'navigate'], true)) {
+        foreach (aiCoachProcedures() as $procedure) {
+            if (!in_array($procedure['id'], ['record-presentation-attendance', 'delete-saved-presentation'], true)
+                || in_array($request['role'], $procedure['roles'], true)
+                || !aiCoachProcedureScopeMatches($procedure, aiCoachNormalize($contextQuestion))) continue;
+            foreach ($procedure['patterns'] as $pattern) if (!preg_match('~'.$pattern.'~', aiCoachNormalize($contextQuestion))) continue 2;
+            return ['message'=>$procedure['id'] === 'delete-saved-presentation'
+                ? 'Only an administrator can permanently delete a presentation. Your current role cannot perform this action.'
+                : 'An editor or administrator must record Actual Attendance. Your current role can view the records but cannot change them.',
+                'question'=>'', 'sources'=>aiCoachSources([aiCoachManualTopics()[$procedure['topic']]]),
+                'mode'=>'guide', 'engine'=>'verified-permissions'];
+        }
+    }
     if ($request['role'] === 'reviewer' && in_array(aiCoachIntentMode($request), ['perform','navigate'], true) && (aiCoachMutationIntent($contextQuestion) || aiCoachMatchWorkflow($contextQuestion) !== '')
         && !aiCoachPersonalCalendarIntent($contextQuestion)
         && !(preg_match('/\b(reimbursement|expense)\b/', $q) && preg_match('/\breviewer\b/', $q) && preg_match('/\b(my|own)\b/', $q) && !preg_match('/\b(other|another|someone)\b/', $q))
@@ -251,7 +272,7 @@ function aiCoachImmediateReply(array $request, bool $includeWorkflows = true): ?
         return ['message'=>'If you selected the intended file for the correct presentation, select Save Changes in the bottom bar. Selection alone has not saved the file. Check MOED’s save confirmation and the presentation’s saved filename afterward.', 'question'=>'',
             'sources'=>aiCoachSources([aiCoachManualTopics()['manual-topic-engagements-save-a-pending-presentation-file-change']]), 'mode'=>'guide','engine'=>'verified-file-save'];
     }
-    if ($request['page'] === 'view_engagement.php' && preg_match('/\b(next|can t see|cannot see|cannot find|can t find|where is)\b/', $q)
+    if ($request['page'] === 'view_engagement.php' && !str_starts_with($request['step'], 'presentation-delete-') && preg_match('/\b(next|can t see|cannot see|cannot find|can t find|where is)\b/', $q)
         && preg_match('/\b(presentations|speaker notes|powerpoint)\b/', aiCoachNormalize($contextQuestion))) {
         $selected = ($request['ui']['active_tab'] ?? '') === 'presentations' || preg_match('/\b(selected|opened) the presentations tab\b/', $q);
         if ($selected && preg_match('/\b(cannot find|can t find|cannot see|can t see)\b/', $q)
@@ -294,6 +315,14 @@ function aiCoachProcedures(): array
     return $procedures;
 }
 
+/** Positive subject constraints apply equally to direct and model-selected procedures. */
+function aiCoachProcedureScopeMatches(array $procedure, string $question): bool
+{
+    foreach ($procedure['required_patterns'] ?? [] as $pattern) if (!preg_match('~'.$pattern.'~', $question)) return false;
+    foreach ($procedure['excluded_patterns'] ?? [] as $pattern) if (preg_match('~'.$pattern.'~', $question)) return false;
+    return true;
+}
+
 function aiCoachProcedureReply(array $request): ?array
 {
     $q = aiCoachNormalize(aiCoachContextQuestion($request));
@@ -303,6 +332,7 @@ function aiCoachProcedureReply(array $request): ?array
     $matches = [];
     foreach (aiCoachProcedures() as $procedure) {
         if (!in_array($request['role'],$procedure['roles'],true)) continue;
+        if (!aiCoachProcedureScopeMatches($procedure, $q)) continue;
         foreach ($procedure['patterns'] as $pattern) if (!preg_match('~'.$pattern.'~', $q)) continue 2;
         // Adding existing related records is different from creating those records.
         if (in_array($procedure['id'],['create-contact','create-organization'],true) && preg_match('/\b(event|engagement|existing)\b/',$q)) continue;
