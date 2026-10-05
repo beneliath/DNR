@@ -3,7 +3,7 @@
     "title": "MOED Comprehensive User Manual",
     "subject": "Illustrated application reference, version 2.4.16, updated October 5, 2026",
     "path": "assets/docs/moed-comprehensive-user-manual.pdf",
-    "sha256": "04377a01ba6d590342bfe91213c90cc879a69c132261afbfeeb74e1bbc7885d3",
+    "sha256": "92f5d47a5402f6a0f4758c541223743d3d837019644096f065c3ea3f2ba9be33",
     "pages": 187,
     "index_version": 1
   },
@@ -1224,13 +1224,13 @@
       "end_page": 79,
       "text": "Figure 58. Filter and select work. Actual preview screen; fictional records. 01 Choose My Tasks, Everyone's Tasks, or Unassigned Tasks. Apply status/date filters and review the visible filter summary. 02 Filters are remembered in this browser. Use Clear Filters to return to the default view. 03 Select tasks for a bulk update and review the planned changes before applying. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 95)"
     },
-    "manual-topic-work-queue-task-relationships-ownership-and-timing": {
-      "id": "manual-topic-work-queue-task-relationships-ownership-and-timing",
+    "manual-topic-work-queue-edit-a-task": {
+      "id": "manual-topic-work-queue-edit-a-task",
       "chapter": "work-queue",
-      "title": "Task relationships, ownership, and timing",
+      "title": "Edit a task",
       "page": 80,
       "end_page": 80,
-      "text": "Figure 59. Task relationships, ownership, and timing. Actual preview screen; fictional records. 01 Choose or change a related record using the relationship picker. 02 Review owner, due date, priority, status, and Waiting On before Save Changes. Use Duplicate Task when separate follow-up is needed. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 95)"
+      "text": "Figure 59. Edit a task. Actual preview screen; fictional records. 01 Choose or change a related record using the relationship picker. 02 Review owner, due date, priority, status, and Waiting On before Save Changes. Use Duplicate Task when separate follow-up is needed. Related chapters: Daily dashboard (p. 13) / Engagements (p. 26) / Map and calendar (p. 95)"
     },
     "manual-topic-work-queue-duplicate-a-task-to-another-event-2": {
       "id": "manual-topic-work-queue-duplicate-a-task-to-another-event-2",

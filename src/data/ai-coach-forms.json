@@ -481,6 +481,42 @@
           "selector": "input[name=\"reviewer_email\"]"
         }
       }
+    },
+    "presentation-deletion": {
+      "pages": [
+        "view_engagement.php",
+        "edit_engagement.php",
+        "admin_elevation.php"
+      ],
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "entry": "Engagements → event → Presentations → Edit Presentations → bottom of the intended saved presentation block",
+      "condition": "Only administrators can permanently delete a saved presentation, after fresh administrator confirmation. Editors may archive instead. Archive/Delete do not save unrelated edits. Remove on an unsaved block and file-removal checkboxes are separate actions. Confirm only the intended presentation; the coach must not select a Delete button among multiple blocks.",
+      "source_files": {
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
+        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
+        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
+        "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
+        "assets/js/footer.js": "cca79e927adfc78231c43b9cac6c5a98c2afbf5d9ad6b45ce8180629f99e2798",
+        "admin_elevation.php": "867c2d7251a5b186913faa33be65cb7cfc658d049cd194ba78aa525e1e047322"
+      },
+      "controls": {
+        "presentation-blocks": {
+          "label": "Presentation Blocks",
+          "selector": "#presentations-container"
+        },
+        "presentation-delete": {
+          "label": "Delete",
+          "selector": "button[form^=\"delete-presentation-\"]"
+        },
+        "presentation-unlock": {
+          "label": "Confirm Administrator Access",
+          "selector": "#admin_password"
+        }
+      }
     }
   }
 }

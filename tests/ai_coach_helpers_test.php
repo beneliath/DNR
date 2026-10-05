@@ -65,7 +65,7 @@ expectCoach(aiCoachKnowledge()['document']['pages'] === $manualBuild['pages']
 expectCoach(str_contains($topics['manual-topic-map-calendar-monthly-calendar']['text'], 'first week')
     && str_contains($topics['manual-topic-map-calendar-monthly-calendar']['text'], 'month boundaries'), 'Calendar retrieval includes continuous scrolling and Today behavior');
 expectCoach(str_contains($topics['manual-topic-administration-delete-an-ai-coach-request']['text'], 'Linked improvement cases are kept'), 'Individual deletion guidance preserves improvement cases');
-expectCoach($topics['manual-topic-engagements-create-or-edit-an-engagement']['page'] === 24, 'PDF page citation retained');
+expectCoach($topics['manual-topic-engagements-create-or-edit-an-engagement']['page'] === $manualBuild['destinations']['topic-5-create-or-edit-an-engagement'], 'PDF page citation retained');
 expectCoach(str_contains($topics['manual-topic-engagements-create-or-edit-an-engagement']['text'], '06 Set planning states'), 'Complete numbered creation workflow retained');
 expectCoach(count(aiCoachApplicationContext('index.php')['static_controls_not_live_visibility']) > 10, 'Application source index supplies actual form labels');
 putenv('DNR_AI_COACH_URL=');
@@ -192,7 +192,7 @@ $context=json_decode($payload['messages'][1]['content'],true);
 expectCoach(in_array('assign-task',array_column($context['known_procedures'],'id'),true),'Assignment is offered to the interpreter');
 expectCoach(str_contains(json_encode($context['target_form_evidence']),'Find a Related Record'), 'Evidence names the real search control');
 expectCoach(!str_contains(json_encode($context['target_form_evidence']),'selector'), 'Browser selectors do not enter model evidence');
-expectCoach(count(aiCoachForms())===count(json_decode(file_get_contents(__DIR__.'/../src/data/ai-coach-forms.json'),true)['forms']) && count(aiCoachInteractiveProcedures())===4, 'All reviewed form and interactive procedure source hashes match');
+expectCoach(count(aiCoachForms())===count(json_decode(file_get_contents(__DIR__.'/../src/data/ai-coach-forms.json'),true)['forms']) && count(aiCoachInteractiveProcedures())===5, 'All reviewed form and interactive procedure source hashes match');
 foreach (aiCoachInteractiveProcedures() as $procedure) foreach ($procedure['walkthrough']['steps'] as $step) {
     expectCoach(!isset($step['target']) || isset(aiCoachControlCatalog()[$step['target']]), 'Every new highlight target comes from a reviewed control');
 }

@@ -191,3 +191,35 @@ test('a new question retains the previous step while stopping the active walkthr
     assert.equal(request.step, 'waiting-description');
     assert.equal(request.question, 'Why is that required?');
 });
+
+
+test('presentation deletion respects role, tab, review, final confirmation and return state', () => {
+    const next = (page, state = {}, role = 'admin') => nextStep(page, 'delete-saved-presentation', {presentationDeletionAllowed:role === 'admin', ...state}, role, definitions);
+    assert.equal(definitions['delete-saved-presentation'].label, 'Delete a Presentation');
+    assert.equal(next('help.php'), 'presentation-delete-start');
+    assert.equal(next('engagements.php'), 'presentation-delete-record');
+    assert.equal(next('view_engagement.php', {presentationsVisible:false}), 'presentation-delete-tab');
+    assert.equal(next('view_engagement.php', {presentationsVisible:true}), 'presentation-delete-edit');
+    assert.equal(next('edit_engagement.php', {presentationDeleteAvailable:false}), 'presentation-delete-empty');
+    assert.equal(next('edit_engagement.php', {presentationDeleteAvailable:true,detailsReviewed:false}), 'presentation-delete-review');
+    assert.equal(next('edit_engagement.php', {presentationDeleteAvailable:true,detailsReviewed:true}), 'presentation-delete-action');
+    assert.equal(next('admin_elevation.php'), 'presentation-delete-unlock');
+    assert.equal(next('edit_engagement.php', {presentationDeleteDialogVisible:true,detailsReviewed:true}), 'presentation-delete-confirm');
+    assert.equal(next('edit_engagement.php', {presentationDeleteSubmitted:true,presentationDeleteAvailable:false}), 'presentation-delete-check');
+    assert.equal(next('edit_engagement.php', {formErrors:true,presentationDeleteSubmitted:true}), 'presentation-delete-errors');
+    for (const role of ['editor','reviewer']) assert.equal(next('edit_engagement.php', {presentationDeleteDialogVisible:true}, role), 'presentation-delete-access');
+});
+
+test('opening or cancelling deletion, archiving instead and other record forms are not deletion submissions', () => {
+    const {presentationDeletionConfirmed, presentationDeletionDialog} = require('../../src/assets/js/ai-coach.js');
+    const form = (confirmed, action, matches = true) => ({matches:()=>matches,dataset:{deleteConfirmed:confirmed},querySelector:()=>({value:action})});
+    assert.equal(presentationDeletionConfirmed(form('true','delete'), false), true);
+    assert.equal(presentationDeletionConfirmed(form('true','delete'), true), false);
+    assert.equal(presentationDeletionConfirmed(form('false','delete'), true), false);
+    assert.equal(presentationDeletionConfirmed(form('true','archive'), false), false);
+    assert.equal(presentationDeletionConfirmed(form('true','delete',false), false), false);
+    assert.equal(presentationDeletionDialog({open:true},{textContent:'Permanently delete this presentation?'}), true);
+    assert.equal(presentationDeletionDialog({open:false},{textContent:'Permanently delete this presentation?'}), false);
+    assert.equal(presentationDeletionDialog({open:true},{textContent:'Permanently delete this Chron entry?'}), false);
+    assert.equal(presentationDeletionDialog(null,null), false);
+});

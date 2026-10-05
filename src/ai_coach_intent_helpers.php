@@ -104,6 +104,7 @@ function aiCoachProcedureCandidates(array $request): array
     $ranked = [];
     foreach (aiCoachProcedures() as $procedure) {
         if (!in_array($request['role'], $procedure['roles'], true)) continue;
+        if (!aiCoachProcedureScopeMatches($procedure, $q)) continue;
         $subject = false;
         foreach ($procedure['subjects'] ?? [] as $word) {
             if (preg_match('/\b'.preg_quote($word,'/').'s?\b/', $q)) $subject = true;

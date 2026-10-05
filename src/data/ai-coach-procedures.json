@@ -175,7 +175,10 @@
         "view_engagement.php": [
           "edit-event"
         ]
-      }
+      },
+      "required_patterns": [
+        "\\b(date|dates|day|days|reschedule|extend|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\\b"
+      ]
     },
     {
       "id": "assign-task",
@@ -1288,6 +1291,249 @@
         "receipt"
       ],
       "forms": []
+    },
+    {
+      "id": "record-presentation-attendance",
+      "patterns": [
+        "\\battendance\\b",
+        "\\b(actual|final)\\b",
+        "\\b(enter|record|update|change|edit|set|save|add)\\b"
+      ],
+      "topic": "manual-topic-engagements-edit-presentation-details",
+      "roles": [
+        "admin",
+        "editor"
+      ],
+      "steps": [
+        "Open Engagements, open the event, and select Edit Engagement.",
+        "Find the intended presentation by its topic and speaker. Enter Actual Attendance for that presentation; zero is valid when nobody attended.",
+        "Select Save Changes in the bottom bar to save the engagement form, including any other edits. Check the save confirmation."
+      ],
+      "on_pages": {
+        "edit_engagement.php": "You are already in Edit Engagement. Find the intended presentation."
+      },
+      "subjects": [
+        "attendance"
+      ],
+      "required_patterns": [
+        "\\battendance\\b",
+        "\\b(actual|final)\\b"
+      ],
+      "excluded_patterns": [
+        "\\bexpected\\b"
+      ],
+      "forms": [],
+      "source_files": {
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
+        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
+        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
+        "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
+        "functions.php": "b8d23c750125face609f6962ab5d5d7c3d81357c908c5653a28968f129a3b8b4"
+      }
+    },
+    {
+      "id": "delete-saved-presentation",
+      "patterns": [
+        "\\b(?:delet(?:e|ing)|remove)\\s+(?:(?:a|an|the|this|that|my|our|existing|saved|active)\\s+){0,3}presentation\\b",
+        "^(?!.*\\b(?:file|pdf|powerpoint|ppt|pptx|slidedeck|slides|notes)\\b).+$"
+      ],
+      "topic": "manual-topic-engagements-archive-or-delete-a-presentation",
+      "roles": [
+        "admin",
+        "editor",
+        "reviewer"
+      ],
+      "steps": [
+        "Only an administrator can permanently Delete a saved presentation. Editors can Archive instead to keep it restorable.",
+        "Open the engagement, select Presentations, then Edit Presentations. Check the intended numbered presentation block, topic, speaker, and date.",
+        "Use Delete at the bottom of that block. If prompted, complete Admin Unlock (Confirm Administrator Access) and select Delete again. These actions do not save other unsaved edits.",
+        "Read the confirmation: Cancel keeps the presentation; Archive Instead preserves it for restoration; Delete Permanently removes it, its resources, and visit history and cannot be undone.",
+        "Check the application confirmation afterward. Remove on an unsaved block and removing a PDF or PowerPoint are different actions."
+      ],
+      "on_pages": {},
+      "source_files": {
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
+        "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a",
+        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
+        "presentation_helpers.php": "aee24db6fb6171ff1c576ab141878d388a6d1e4ba59a10630eea06190994901c",
+        "functions.php": "b8d23c750125face609f6962ab5d5d7c3d81357c908c5653a28968f129a3b8b4",
+        "templates/footer.php": "fd4e9c714801fc8c4e7a183fd42198ba0d8d5f7bf1bbfe000aa51930ca0f7713",
+        "assets/js/footer.js": "cca79e927adfc78231c43b9cac6c5a98c2afbf5d9ad6b45ce8180629f99e2798",
+        "admin_elevation.php": "867c2d7251a5b186913faa33be65cb7cfc658d049cd194ba78aa525e1e047322",
+        "ai_coach_guidance_helpers.php": "2ae52ac22fb959b8b9110673d690ae3367e98debb2fdd384a5895bf8ce1626e2"
+      },
+      "subjects": [
+        "presentation",
+        "delete",
+        "deletion"
+      ],
+      "forms": [
+        "presentations",
+        "presentation-deletion"
+      ],
+      "walkthrough": {
+        "label": "Delete a Presentation",
+        "request": "How do I delete a presentation?",
+        "rules": [
+          {
+            "pages": [
+              "dashboard.php",
+              "help.php",
+              "engagements.php",
+              "view_engagement.php",
+              "edit_engagement.php",
+              "admin_elevation.php",
+              "other"
+            ],
+            "conditions": {
+              "presentationDeletionAllowed": false
+            },
+            "step": "presentation-delete-access"
+          },
+          {
+            "pages": [
+              "admin_elevation.php"
+            ],
+            "conditions": {},
+            "step": "presentation-delete-unlock"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "formErrors": true
+            },
+            "step": "presentation-delete-errors"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "presentationDeleteDialogVisible": true
+            },
+            "step": "presentation-delete-confirm"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "presentationDeleteSubmitted": true
+            },
+            "step": "presentation-delete-check"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "presentationDeleteAvailable": false
+            },
+            "step": "presentation-delete-empty"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {
+              "detailsReviewed": false
+            },
+            "step": "presentation-delete-review"
+          },
+          {
+            "pages": [
+              "edit_engagement.php"
+            ],
+            "conditions": {},
+            "step": "presentation-delete-action"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {
+              "presentationsVisible": false
+            },
+            "step": "presentation-delete-tab"
+          },
+          {
+            "pages": [
+              "view_engagement.php"
+            ],
+            "conditions": {},
+            "step": "presentation-delete-edit"
+          },
+          {
+            "pages": [
+              "engagements.php"
+            ],
+            "conditions": {},
+            "step": "presentation-delete-record"
+          }
+        ],
+        "default_step": "presentation-delete-start",
+        "steps": {
+          "presentation-delete-access": {
+            "message": "Only an administrator can permanently Delete a presentation. Editors can Archive it instead and restore it later. Ask an administrator to review permanent removal; your current role cannot perform it."
+          },
+          "presentation-delete-start": {
+            "message": "Open Engagements and choose the event containing the presentation. Permanent Delete requires administrator access. Archive keeps a restorable record.",
+            "href": "engagements.php",
+            "label": "Open Engagements"
+          },
+          "presentation-delete-record": {
+            "message": "Open the intended engagement. Check its title and dates before choosing a presentation."
+          },
+          "presentation-delete-tab": {
+            "message": "Select Presentations on this engagement. Edit Presentations is inside that tab.",
+            "target": "presentations-tab",
+            "label": "Show Presentations"
+          },
+          "presentation-delete-edit": {
+            "message": "Select Edit Presentations to find the numbered presentation blocks.",
+            "target": "edit-presentations",
+            "label": "Show Edit Presentations"
+          },
+          "presentation-delete-review": {
+            "message": "Find the intended saved presentation and check its number, topic, speaker, and date. Archive keeps it available to restore. Delete permanently removes it, its resources, and visit history. These buttons do not save unrelated edits. Review that choice, then select I Have Reviewed the Details.",
+            "target": "presentation-blocks",
+            "label": "Show Presentation Blocks",
+            "acknowledge": true
+          },
+          "presentation-delete-action": {
+            "message": "At the bottom of the presentation block you checked, select Delete. Do not select Remove on an unsaved block or the PDF/PowerPoint file-removal checkboxes. If prompted, confirm administrator access, return here, and select Delete again. The coach does not choose or click a Delete button for you."
+          },
+          "presentation-delete-unlock": {
+            "message": "Confirm administrator access using your current password and a fresh authenticator or recovery code. Enter credentials only in the application form, never in the coach. After returning to the engagement, check the presentation again and select its Delete button."
+          },
+          "presentation-delete-confirm": {
+            "message": "The presentation deletion dialog is open. Cancel keeps it unchanged; Archive Instead preserves a restorable record. Choose Delete Permanently only if you intend to remove this presentation and its resources and visit history. This cannot be undone. You make the final choice."
+          },
+          "presentation-delete-empty": {
+            "message": "No saved presentation Delete button is visible here. Check that you opened the intended event and saved presentation. An unsaved block uses Remove; archived presentations are managed through Restore Archived Presentations. Do not substitute file removal or deleting the whole engagement."
+          },
+          "presentation-delete-errors": {
+            "message": "Read the application error or validation message. Do not assume the presentation was removed. Check the current record and administrator access before trying again."
+          },
+          "presentation-delete-check": {
+            "message": "Check the application confirmation and that the intended presentation is absent. A page change alone does not prove deletion succeeded. If the last active presentation was removed from a confirmed active event, its confirmation returns to Under Review. Permanent deletion cannot be undone; an archived presentation can be restored."
+          }
+        }
+      },
+      "required_on_page": {
+        "view_engagement.php": [
+          "presentations-tab"
+        ]
+      },
+      "required_patterns": [
+        "\\bpresentation\\b",
+        "\\b(delete|deleting|remove)\\b"
+      ],
+      "excluded_patterns": [
+        "\\b(archived|unsaved|new|pdf|ppt|pptx|powerpoint|file|files|notes|slidedeck|statistics|stats|qr|link|links)\\b"
+      ]
     }
   ]
 }

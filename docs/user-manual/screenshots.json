@@ -894,7 +894,7 @@
   {
     "chapter": 7,
     "id": "task-form",
-    "title": "Task relationships, ownership, and timing",
+    "title": "Edit a task",
     "route": "edit_task.php?id=11",
     "steps": [
       "Choose or change a related record using the relationship picker.",
