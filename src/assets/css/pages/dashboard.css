@@ -510,6 +510,14 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
     gap: 14px;
 }
 
+.dashboard-closeout-list > li.task-row-overdue {
+    box-shadow: inset 4px 0 0 var(--task-overdue-row-accent);
+}
+
+.dashboard-closeout-list > li:is(.task-row-today, .task-row-upcoming) {
+    box-shadow: inset 4px 0 0 var(--task-today-row-accent);
+}
+
 .dashboard-closeout-list > li > div {
     display: flex;
     min-width: 0;
@@ -524,9 +532,13 @@ html:not(.dark-mode) .dashboard-task-list > li.task-row-today {
 
 .dashboard-closeout-list > li > strong {
     flex: 0 0 auto;
-    color: var(--danger);
+    color: var(--text-muted);
     font-size: .72rem;
     white-space: nowrap;
+}
+
+.dashboard-closeout-list > li.task-row-overdue > strong {
+    color: var(--danger);
 }
 
 @media (max-width: 1020px) {

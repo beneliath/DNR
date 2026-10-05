@@ -331,12 +331,23 @@ function fetchDashboardFinancialCloseouts(
     $stmt = $conn->prepare(
         "SELECT e.id, e.event_title, e.event_start_date, e.event_end_date,
                 o.organization_name,
+                CASE WHEN closeout_task.id IS NOT NULL THEN closeout_task.due_date
+                     ELSE DATE_ADD(
+                         CASE WHEN closeout_template.due_anchor = 'event_start'
+                              THEN e.event_start_date ELSE e.event_end_date END,
+                         INTERVAL COALESCE(closeout_template.due_offset_days, 7) DAY
+                     ) END AS closeout_due_date,
                 DATEDIFF(?, e.event_end_date) AS days_overdue,
                 COUNT(*) OVER() AS dashboard_total
          FROM engagements e
          INNER JOIN organizations o ON o.id = e.organization_id
          LEFT JOIN engagement_financial_reports report
                 ON report.engagement_id = e.id
+         LEFT JOIN follow_up_tasks closeout_task
+                ON closeout_task.engagement_id = e.id
+               AND closeout_task.template_key = 'standard.financial_closeout'
+         LEFT JOIN standard_event_tasks closeout_template
+                ON closeout_template.template_key = 'standard.financial_closeout'
          WHERE e.is_deleted = 0
            AND e.lifecycle_status IN ('active', 'completed')
            AND e.event_end_date < ?

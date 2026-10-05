@@ -301,12 +301,13 @@ $task_status_labels = followUpTaskStatuses();
             <?php else: ?>
                 <ul class="dashboard-attention-list dashboard-closeout-list">
                     <?php foreach ($financial_closeouts as $engagement): ?>
-                        <li>
+                        <?php $closeout_due = followUpTaskDueState($engagement['closeout_due_date'], $business_date); ?>
+                        <li class="task-row-<?php echo htmlspecialchars($closeout_due['key'], ENT_QUOTES, 'UTF-8'); ?>">
                             <div>
                                 <a class="record-link" href="<?php echo $can_manage ? 'close_engagement.php' : 'view_engagement.php'; ?>?id=<?php echo (int) $engagement['id']; ?>"><?php echo htmlspecialchars(dashboardEngagementLabel($engagement), ENT_QUOTES, 'UTF-8'); ?></a>
                                 <span><?php echo htmlspecialchars((string) $engagement['organization_name'], ENT_QUOTES, 'UTF-8'); ?> · ended <?php echo htmlspecialchars(dashboardDateRangeLabel($engagement['event_end_date'] ?: $engagement['event_start_date'], null), ENT_QUOTES, 'UTF-8'); ?></span>
                             </div>
-                            <strong><?php echo (int) $engagement['days_overdue']; ?> day<?php echo (int) $engagement['days_overdue'] === 1 ? '' : 's'; ?></strong>
+                            <strong>since event: <?php echo (int) $engagement['days_overdue']; ?> day<?php echo (int) $engagement['days_overdue'] === 1 ? '' : 's'; ?></strong>
                         </li>
                     <?php endforeach; ?>
                 </ul>
