@@ -92,7 +92,7 @@ return [
     "assets/dnr-logo-dark.svg" => "ccc37a706f9d",
     "assets/dnr-logo-email.png" => "36fd424721f2",
     "assets/dnr-logo.svg" => "4b43544ed2d5",
-    "assets/docs/moed-comprehensive-user-manual.pdf" => "92f5d47a5402",
+    "assets/docs/moed-comprehensive-user-manual.pdf" => "eeb3359a9f92",
     "assets/favicon.svg" => "0d988a10c4dc",
     "assets/fonts/rubik-OFL.txt" => "3cb6a6084f5d",
     "assets/fonts/rubik-hebrew-700.woff2" => "485979f7b0cd",

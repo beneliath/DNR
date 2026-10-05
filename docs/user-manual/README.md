@@ -35,7 +35,7 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The October 5, 2026 edition applies to application version **2.4.16** and
+The October 5, 2026 edition applies to application version **2.4.17** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
 
