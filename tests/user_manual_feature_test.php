@@ -193,7 +193,7 @@ expectUserManual(
         && str_contains($manual, 'Mine, Everyone, or Unassigned')
         && str_contains($manual, 'same ownership scope, search, and related-record filter')
         && str_contains($manual, 'Confirm that the amounts are final')
-        && str_contains($manual, 'all event-specific information')
+        && str_contains($manual, 'Finalized financial history prevents permanent deletion')
         && str_contains($manual, 'Deleting a contact removes')
         && str_contains($manual, 'pending invitations can be deleted directly'),
     'the manual should prioritize accurate scheduling, ownership, reminders, and data-safety guidance.'

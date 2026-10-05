@@ -35,25 +35,26 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The September 29, 2026 edition applies to application version **2.4.0**. The
-cover, scope and edition notes, README appendix version reference, and PDF
-metadata use the current `VERSION` value.
+The October 5, 2026 edition applies to application version **2.4.16** and
+covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
+high-level; the PDF adds illustrated steps for the same current workflows.
 
-The September 29 refresh adds Reimbursements as Chapter 10, between Map and
-Calendar and Profile and Security. The online manual uses a numbered three-step
-pipeline, recipient cards, concise instructions, and searchable topics. The PDF
-adds screen-by-screen references for expenses, receipts, request registers,
-drafts, email review, delivery recovery, corrections, Chart of Accounts, setup,
-and the personal reviewer email. Payment tracking remains external.
+The existing 14-chapter layout, topic index, PDF bookmarks, and separate operator
+appendix remain useful. The opening task chooser now leads readers to common
+jobs. New reference pages cover presentation Archive/Delete/restore, scoped QR
+resets, planning cards, financial history, historical contacts, dashboard timing,
+task bulk review and filters, browser drafts, duplicate acknowledgement and merge
+undo limits, email reply follow-up, Inbox filing, pending map filters, network
+windows, administrator unlock extension, and reimbursement selection, notes,
+progress, CSV/receipt packages, and mail size checks.
 
-Other additions cover sidebar preferences, engagement date filters, short-link
-visit details, duplicate merges, bounded relationship selectors, Amazon Location
-with map fallback, document/network diagnostics, and recovery safeguards.
-Thirteen new Reimbursements figures show the current application in an isolated
-preview with fictional expenses, receipts, and example.org recipients. Captures
-cover filters, selection, expense entry, receipts, requests, draft editing,
-filename matching, email review, readiness, delivery, accounts, setup, and profile.
-No external email was sent. Existing screenshots are retained where relevant.
+37 refreshed or new illustrations show the current application or an actual
+generated report using fictional records in an isolated preview. Existing figures
+are retained only for unchanged controls. No external email was sent. See
+`refresh-coverage.json` for the feature-to-figure inventory and limitations.
+The merge review documents the 90-day undo boundary; the preview merge fixture
+rolled back on a database privilege error, so a completed merge/undo is not
+represented as verified by this documentation refresh.
 
 Run `scripts/manual/export-online.py` before building to export the current sidebar
 chapters without a database or user session. `release-supplements.json` supplies
