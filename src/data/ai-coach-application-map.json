@@ -659,7 +659,7 @@
       ]
     },
     "compose_engagement_email.php": {
-      "sha256": "e844a143416d4726fa7c68be286ca6b3177a22acb2f2aef5ad681d912b5f74fb",
+      "sha256": "ce9db018cafdafe8399311d214a6f471664148fd0f31e858dd47b8717aa401d7",
       "controls": [
         {
           "kind": "a",
@@ -679,6 +679,10 @@
           "label": "Cancel"
         },
         {
+          "kind": "button",
+          "label": "Save Draft"
+        },
+        {
           "kind": "h2",
           "label": "Choose a Template"
         },
@@ -690,6 +694,19 @@
         {
           "kind": "a",
           "label": "Manage Email Templates"
+        },
+        {
+          "kind": "h2",
+          "label": "Reply Follow-Up"
+        },
+        {
+          "kind": "label",
+          "label": "Create a Task to Review the Reply"
+        },
+        {
+          "kind": "label",
+          "label": "Follow-Up Date",
+          "for": "follow-up-date"
         },
         {
           "kind": "h2",
@@ -741,19 +758,6 @@
           "kind": "label",
           "label": "Plain-Text Message *",
           "for": "body"
-        },
-        {
-          "kind": "legend",
-          "label": "Reply Follow-Up"
-        },
-        {
-          "kind": "label",
-          "label": "Create a Task to Review the Reply"
-        },
-        {
-          "kind": "label",
-          "label": "Follow-Up Date",
-          "for": "follow-up-date"
         },
         {
           "kind": "a",
@@ -4153,7 +4157,7 @@
       ]
     },
     "view_contact.php": {
-      "sha256": "1e3ec7f02fe456458d882b24009d15f9b1b53f2ce4944e85f9b7bcff167884c0",
+      "sha256": "e3cc41cda57cd431da0794ae52db8672734910f32323d1395b78ae390cbe1990",
       "controls": [
         {
           "kind": "h1",
@@ -4167,10 +4171,6 @@
         {
           "kind": "a",
           "label": "Add Chron Log Entry"
-        },
-        {
-          "kind": "a",
-          "label": "Review Merge"
         },
         {
           "kind": "h2",
@@ -4523,7 +4523,7 @@
       ]
     },
     "view_organization.php": {
-      "sha256": "d3240f8baf5e3e6093971ff7b3cee1e78dbcf40545d9fd58619096414bfe4f60",
+      "sha256": "ec6389087710087cca7fff8bdcacf82959a1bee5137952a1efaddc6aa099637a",
       "controls": [
         {
           "kind": "h1",
@@ -4537,10 +4537,6 @@
         {
           "kind": "a",
           "label": "Add Chron Log Entry"
-        },
-        {
-          "kind": "a",
-          "label": "Review Merge"
         },
         {
           "kind": "a",
