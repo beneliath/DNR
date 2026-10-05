@@ -55,6 +55,7 @@ try {
     foreach (['help.php', 'tasks.php', 'profile.php'] as $page) {
         $response = $http($page);
         coachHttpExpect($response['status'] === 200 && str_contains($response['body'], 'id="moed-coach"'), 'Coach is available on ' . $page);
+        coachHttpExpect(str_contains($response['body'], 'Delete a Presentation'), 'The presentation deletion starter uses Title Case on ' . $page);
     }
     $reply = $http('ai_coach.php', ['question' => 'How do calendar subscriptions work?', 'page' => 'help.php'], $csrf);
     $data = json_decode($reply['body'], true, 32, JSON_THROW_ON_ERROR);
@@ -68,7 +69,8 @@ try {
     coachHttpExpect($reply['status'] === 200 && str_contains($data['message'], 'individual presentation'), 'PowerPoint relationship is established by the application');
     session_id($session); session_start(); unset($_SESSION['_ai_coach_last_request']); session_write_close();
     $menu = json_decode($http('ai_coach.php', ['question' => 'what are the available walkthroughs?'], $csrf)['body'], true);
-    coachHttpExpect(($menu['engine'] ?? '') === 'verified-capabilities' && count($menu['workflow_options']) === 8, 'Guide catalog works over HTTP without a model service');
+    coachHttpExpect(($menu['engine'] ?? '') === 'verified-capabilities' && count($menu['workflow_options']) === 9
+        && in_array('delete-saved-presentation', $menu['workflow_options'], true), 'Guide catalog includes the presentation deletion walkthrough over HTTP without a model service');
     session_id($session); session_start(); unset($_SESSION['_ai_coach_last_request']); session_write_close();
     $trackedQuestion = ['request_id' => 'b50fd519-d9a7-4d83-b6d6-00358ac3c134', 'question' => 'on this page, how do i add speaker notes PDF?', 'page' => 'view_engagement.php'];
     $reply = $http('ai_coach.php', $trackedQuestion, $csrf);
