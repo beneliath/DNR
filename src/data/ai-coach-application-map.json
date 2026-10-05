@@ -3393,12 +3393,8 @@
       ]
     },
     "reset_presentation_stats.php": {
-      "sha256": "69aaf4be76da8e86a455dd3db4459cc17a644f437c7f86ff61acb5104fc26230",
+      "sha256": "f4c25d966c5a2301a4918441bee1d03c373d0b8a17e1372fd073db753ef23230",
       "controls": [
-        {
-          "kind": "h1",
-          "label": "Reset Presentation Statistics"
-        },
         {
           "kind": "a",
           "label": "Cancel",
@@ -3674,7 +3670,7 @@
       ]
     },
     "short_links.php": {
-      "sha256": "1a5af1b3ba00af487bd1e876985214fa44f2e099b809994733e5541b632da9ad",
+      "sha256": "55e16f5ce632a34388fcf61c6b7e442f38a1fc1d5fbb79871b2eb8ac7523563f",
       "controls": [
         {
           "kind": "a",
@@ -4189,7 +4185,7 @@
       ]
     },
     "view_engagement.php": {
-      "sha256": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
+      "sha256": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
       "controls": [
         {
           "kind": "a",
@@ -4210,6 +4206,27 @@
         },
         {
           "kind": "h2",
+          "label": "Workflow"
+        },
+        {
+          "kind": "a",
+          "label": "Update Status"
+        },
+        {
+          "kind": "a",
+          "label": "View Financial Closeout"
+        },
+        {
+          "kind": "h2",
+          "label": "Readiness"
+        },
+        {
+          "kind": "a",
+          "label": "Add Task",
+          "href": ""
+        },
+        {
+          "kind": "h2",
           "label": "Next Action"
         },
         {
@@ -4225,15 +4242,6 @@
         {
           "kind": "a",
           "label": "View Tasks"
-        },
-        {
-          "kind": "h2",
-          "label": "Readiness"
-        },
-        {
-          "kind": "a",
-          "label": "Add Task",
-          "href": ""
         },
         {
           "kind": "a",
@@ -4376,18 +4384,6 @@
         {
           "kind": "h3",
           "label": "Draft Received Amounts"
-        },
-        {
-          "kind": "h2",
-          "label": "Workflow"
-        },
-        {
-          "kind": "a",
-          "label": "Update Status"
-        },
-        {
-          "kind": "a",
-          "label": "View Financial Closeout"
         },
         {
           "kind": "a",

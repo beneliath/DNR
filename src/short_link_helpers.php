@@ -166,9 +166,9 @@ function updateShortLink(mysqli $conn, int $id, int $version, string $target, bo
 }
 
 /** Reset all historical visit aggregates, keeping the presentation and its links intact. */
-function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int $actorId): void
+function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int $actorId, ?int $linkId = null): void
 {
-    if ($presentationId < 1 || $actorId < 1) {
+    if ($presentationId < 1 || $actorId < 1 || ($linkId !== null && $linkId < 1)) {
         throw new InvalidArgumentException('Select a valid presentation.');
     }
     $conn->begin_transaction();
@@ -182,24 +182,30 @@ function resetPresentationShortLinkStats(mysqli $conn, int $presentationId, int 
         }
         // Match the presentation-edit lock order and include disabled links and
         // links retained for previous speakers, not just the visible QR cards.
-        $links = $conn->prepare('SELECT id FROM short_links WHERE presentation_id = ? ORDER BY id FOR UPDATE');
-        $links->bind_param('i', $presentationId);
+        $scope = $linkId === null ? '' : ' AND id = ?';
+        $parameters = $linkId === null ? [$presentationId] : [$presentationId, $linkId];
+        $links = $conn->prepare('SELECT id FROM short_links WHERE presentation_id = ?' . $scope . ' ORDER BY id FOR UPDATE');
+        $links->bind_param($linkId === null ? 'i' : 'ii', ...$parameters);
         $links->execute();
         $linkCount = $links->get_result()->num_rows;
+        if ($linkId !== null && $linkCount !== 1) {
+            throw new InvalidArgumentException('Link not found in this presentation.');
+        }
+        $deleteScope = $linkId === null ? '' : ' AND l.id = ?';
         $delete = $conn->prepare('DELETE v FROM short_link_stats v
-            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?');
-        $delete->bind_param('i', $presentationId);
+            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?' . $deleteScope);
+        $delete->bind_param($linkId === null ? 'i' : 'ii', ...$parameters);
         $delete->execute();
         $conn->execute_query('DELETE v FROM short_link_stats_archive v
-            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?', [$presentationId]);
+            JOIN short_links l ON l.id = v.link_id WHERE l.presentation_id = ?' . $deleteScope, $parameters);
         if (!recordAuditEvent($conn, [
             'event_category' => 'database_change',
-            'event_type' => 'presentation_statistics_reset',
+            'event_type' => $linkId === null ? 'presentation_statistics_reset' : 'link_statistics_reset',
             'actor_user_id' => $actorId,
             'entity_type' => 'presentations',
             'entity_id' => $presentationId,
             'entity_label' => mb_strcut((string) $presentation['topic_title'], 0, 255, 'UTF-8'),
-            'details' => 'Reset all visit statistics for ' . $linkCount . ' links; removed '
+            'details' => ($linkId === null ? 'Reset all visit statistics for ' : 'Reset link #' . $linkId . ' visit statistics for ') . $linkCount . ' links; removed '
                 . $delete->affected_rows . ' hourly statistic groups.',
         ])) {
             throw new RuntimeException('Unable to audit the statistics reset.');

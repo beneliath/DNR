@@ -46,6 +46,7 @@ if (!$lockForm instanceof DOMElement || $lockForm->getAttribute('method') !== 'p
     || $lockForm->getAttribute('action') !== 'admin_lock.php'
     || $xpath->query('.//input[@name="csrf_token" and string-length(@value) > 0]', $lockForm)->length !== 1
     || $xpath->query('.//button[@type="submit" and normalize-space(.)="Lock Admin Actions"]', $lockForm)->length !== 1
+    || $xpath->query('.//button[@type="submit" and @formaction="admin_extend.php" and normalize-space(.)="Add 5 Minutes"]', $lockForm)->length !== 1
 ) {
     throw new RuntimeException('The unlock banner needs a CSRF-protected early-lock button.');
 }

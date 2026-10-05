@@ -84,4 +84,13 @@ expectTwoFactor(adminElevationExpiresAt(300, 1000) === null, 'Malformed elevatio
 unset($_SESSION['_admin_elevated_at']);
 expectTwoFactor(!hasRecentAdminElevation(), 'Consumed elevation must immediately be locked.');
 
+$_SESSION = ['_admin_elevated_at' => 1000];
+expectTwoFactor(extendAdminElevation(1120) === 1600, 'Adding time must add five minutes to the remaining deadline.');
+expectTwoFactor(adminElevationExpiresAt(300, 1400) === 1600, 'Extended time survives the original five-minute window.');
+expectTwoFactor(extendAdminElevation(1400) === 1900, 'Repeated extensions add five minutes each.');
+expectTwoFactor(extendAdminElevation(1900) === null, 'An expired unlock cannot be extended.');
+unset($_SESSION['_admin_elevated_at']);
+expectTwoFactor(adminElevationExpiresAt(300, 1500) === null, 'An extension cannot unlock a session without elevation.');
+$_SESSION = [];
+
 echo "Two-factor helper tests passed.\n";

@@ -58,6 +58,10 @@ if (isset($filters['presentation_id']) && ($_SESSION['_presentation_stats_reset'
     $message = 'Presentation statistics reset to zero. New visits will be counted from now on.';
     unset($_SESSION['_presentation_stats_reset']);
 }
+if (isset($filters['id']) && ($_SESSION['_link_stats_reset'] ?? null) === $filters['id']) {
+    $message = 'Link statistics reset to zero. New visits will be counted from now on.';
+    unset($_SESSION['_link_stats_reset']);
+}
 // Persist flash changes and CSRF before slow reads release this user's session.
 generateCsrfToken();
 releaseApplicationSessionLock();

@@ -382,10 +382,23 @@ function hasRecentAdminElevation($maximum_age_seconds = 300) {
 function adminElevationExpiresAt($maximum_age_seconds = 300, ?int $now = null): ?int {
     $now ??= time();
     $elevated_at = $_SESSION['_admin_elevated_at'] ?? null;
-    if (!is_int($elevated_at) || $elevated_at > $now || $now >= $elevated_at + $maximum_age_seconds) {
+    $expires_at = $elevated_at;
+    if (is_int($elevated_at)) {
+        $expires_at = $elevated_at + $maximum_age_seconds;
+        $extended = $_SESSION['_admin_elevation_expires_at'] ?? null;
+        if ($maximum_age_seconds === 300 && is_int($extended)) $expires_at = max($expires_at, $extended);
+    }
+    if (!is_int($elevated_at) || $elevated_at > $now || $now >= $expires_at) {
         return null;
     }
-    return $elevated_at + $maximum_age_seconds;
+    return $expires_at;
+}
+
+function extendAdminElevation(?int $now = null): ?int {
+    $expires_at = adminElevationExpiresAt(300, $now);
+    if ($expires_at === null) return null;
+    $_SESSION['_admin_elevation_expires_at'] = $expires_at + 300;
+    return $_SESSION['_admin_elevation_expires_at'];
 }
 
 function attemptAdminElevation(mysqli $conn, $password, $code) {
@@ -422,6 +435,7 @@ function attemptAdminElevation(mysqli $conn, $password, $code) {
     resetAuthenticationFailures($conn, $user_id, 'two_factor');
     session_regenerate_id(true);
     $_SESSION['_admin_elevated_at'] = time();
+    unset($_SESSION['_admin_elevation_expires_at']);
     $_SESSION['_csrf_token'] = bin2hex(random_bytes(32));
     logSecurityEvent($conn, 'admin_elevation_succeeded', $user_id, $user_id);
     return true;

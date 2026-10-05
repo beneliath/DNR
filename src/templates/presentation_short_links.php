@@ -1,5 +1,8 @@
 <?php
 require_once dirname(__DIR__) . '/short_link_helpers.php';
+require_once dirname(__DIR__) . '/record_workspace_helpers.php';
+$short_link_reset_return = recordCurrentUrl('view_engagement.php?id=' . (int) $engagement_id)
+    . '#presentation-links-' . (int) $short_link_presentation_id;
 $short_links = fetchPresentationShortLinks($conn, $short_link_presentation_id);
 $short_links = array_values(array_filter($short_links, static fn(array $link): bool =>
     (int) $link['speaker_id'] === (int) $link['current_speaker_id']
@@ -7,7 +10,7 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
     && ($link['link_type'] !== 'slidedeck' || (bool) $link['has_slidedeck'])
 ));
 ?>
-<div class="presentation-generated-links">
+<div class="presentation-generated-links" id="presentation-links-<?php echo (int) $short_link_presentation_id; ?>">
     <?php if (($short_link_show_pdf_action ?? true) || ($short_link_show_stats_action ?? true)): ?>
     <div class="presentation-qr-actions">
         <?php if ($short_link_show_pdf_action ?? true): ?>
@@ -57,11 +60,14 @@ $short_links = array_values(array_filter($short_links, static fn(array $link): b
                 <?php else: ?><p>QR images awaiting setup</p><?php endif; ?>
                 <div class="presentation-qr-visits" title="All-Time Tracked Visits">Tracked visits: <strong><?php echo number_format((int) $short_link['tracked_visits']); ?></strong></div>
                 <a class="button-secondary" href="short_links.php?id=<?php echo (int) $short_link['id']; ?>" aria-label="<?php echo htmlspecialchars($label); ?> QR Code Statistics">Statistics</a>
+                <?php if (($short_link_show_link_reset_action ?? false) && hasRole(['admin'])): ?>
+                <a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;link_id=<?php echo (int) $short_link['id']; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>" aria-label="Reset <?php echo htmlspecialchars($label, ENT_QUOTES, 'UTF-8'); ?> Link Statistics">Reset Link Statistics</a>
+                <?php endif; ?>
             </div>
         <?php endforeach; ?>
     </div>
     <p>Each code is unique to this presentation. Select Combined Presentation Statistics for activity across all its codes, or Statistics on a code to review its visits and manage its destination. Speaker Notes and PPT Slidedeck codes are added after their files are uploaded. Use Copy link to copy the URL encoded in a QR code.</p>
-    <?php if (($short_link_show_reset_action ?? true) && hasRole(['admin'])): ?>
-        <details class="presentation-management"><summary>Manage Presentation</summary><p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>">Reset Presentation Statistics</a></p></details>
+    <?php if (($short_link_show_reset_action ?? false) && hasRole(['admin'])): ?>
+        <details class="presentation-management"><summary>Manage Presentation</summary><p><a class="button-secondary presentation-stats-reset" href="reset_presentation_stats.php?presentation_id=<?php echo (int) $short_link_presentation_id; ?>&amp;return_to=<?php echo rawurlencode($short_link_reset_return); ?>">Reset All Presentation Statistics</a></p></details>
     <?php endif; ?>
 </div>

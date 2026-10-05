@@ -10,7 +10,7 @@ test('countdown uses the existing deadline across navigation and expires at zero
     assert.equal(adminUnlockCountdown(1300, 1299.2), '0:01');
     assert.equal(adminUnlockCountdown(1300, 1300), '');
     assert.equal(adminUnlockCountdown(1300, 1500), '');
-    assert.equal(adminUnlockCountdown(1300, 900), '5:00');
+    assert.equal(adminUnlockCountdown(1300, 900), '6:40');
     assert.equal(adminUnlockCountdown(NaN, 1000), '');
     assert.equal(adminUnlockCountdown(1300, NaN), '');
 });
@@ -18,11 +18,12 @@ test('countdown uses the existing deadline across navigation and expires at zero
 function createBrowser(serverNow = 1000, request = async () => { throw new Error('Offline'); }) {
     const timer = { textContent: '' };
     const button = { disabled: false };
+    const extendButton = { disabled: false, formAction: 'admin_extend.php' };
     const error = { hidden: true, textContent: '' };
     const csrf = { value: 'original-token' };
     let submit;
     const form = { action: 'admin_lock.php', querySelector: selector => ({
-        button, '[data-admin-lock-error]': error, '[name="csrf_token"]': csrf
+        '[data-admin-lock-button]': button, '[data-admin-extend-button]': extendButton, '[data-admin-lock-error]': error, '[name="csrf_token"]': csrf
     }[selector]), addEventListener: (name, callback) => { submit = callback; } };
     const banner = { hidden: true, offsetHeight: 68,
         dataset: { expiresAt: '1300', serverNow: String(serverNow) },
@@ -46,8 +47,9 @@ function createBrowser(serverNow = 1000, request = async () => { throw new Error
         FormData: class { constructor() { return [['csrf_token', csrf.value]]; } },
     };
     vm.runInNewContext(fs.readFileSync(require.resolve('../../src/assets/js/admin-unlock.js'), 'utf8'), context);
-    return { banner, timer, button, error, csrf, classes, styles, events, tick: () => tick(),
+    return { banner, timer, button, extendButton, error, csrf, classes, styles, events, tick: () => tick(),
         lock: () => submit({ preventDefault() {} }),
+        extend: () => submit({ preventDefault() {}, submitter: extendButton }),
         advance: milliseconds => { now += milliseconds; }, cleared: () => cleared };
 }
 
@@ -126,4 +128,38 @@ test('background tabs and restored pages use elapsed time instead of counting ti
         assert.equal(page.classes.has('admin-unlock-active'), false);
     }
     assert.equal(createBrowser(1300).banner.hidden, true);
+});
+
+test('adding time posts CSRF and renders the extended server deadline without navigation', async () => {
+    let resolve;
+    const requests = [];
+    const page = createBrowser(1000, (url, options) => {
+        requests.push({ url, options });
+        return new Promise(done => { resolve = done; });
+    });
+    page.advance(120000);
+    const pending = page.extend();
+    await page.lock();
+    await page.extend();
+    assert.equal(requests.length, 1, 'serialize extension and lock requests');
+    assert.equal(requests[0].url, 'admin_extend.php');
+    assert.equal(requests[0].options.method, 'POST');
+    assert.equal(requests[0].options.body.get('csrf_token'), 'original-token');
+    resolve({ ok: true, json: async () => ({ unlocked: true, expires_at: 1600, server_now: 1120 }) });
+    await pending;
+    assert.equal(page.timer.textContent, '8:00');
+    assert.equal(page.banner.hidden, false);
+    assert.equal(page.extendButton.disabled, false);
+    page.advance(480000);
+    page.tick();
+    assert.equal(page.banner.hidden, true);
+});
+
+test('failed extension keeps the existing deadline and shows a retry message', async () => {
+    const page = createBrowser(1000, async () => ({ ok: false }));
+    await page.extend();
+    assert.equal(page.timer.textContent, '5:00');
+    assert.equal(page.error.hidden, false);
+    assert.match(page.error.textContent, /Unable to add time/);
+    assert.equal(page.extendButton.disabled, false);
 });

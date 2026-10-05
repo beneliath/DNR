@@ -147,7 +147,8 @@ if (!empty($_SESSION['user_id'])) {
             <form method="post" action="admin_lock.php" class="admin-unlock-lock-form" data-admin-lock-form>
                 <?php echo csrfInput(); ?>
                 <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($role_preview_return_url, ENT_QUOTES, 'UTF-8'); ?>">
-                <button type="submit" class="admin-unlock-lock-button">Lock Admin Actions</button>
+                <button type="submit" class="admin-unlock-lock-button" formaction="admin_extend.php" data-admin-extend-button>Add 5 Minutes</button>
+                <button type="submit" class="admin-unlock-lock-button" data-admin-lock-button>Lock Admin Actions</button>
                 <span data-admin-lock-error role="alert" hidden></span>
             </form>
             <div class="admin-unlock-countdown">

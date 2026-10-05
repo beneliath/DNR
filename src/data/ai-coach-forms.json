@@ -57,8 +57,8 @@
       "entry": "Engagements → event → Presentations tab → Edit Presentations",
       "condition": "Edit Presentations is visible only on the Presentations tab. Select the intended presentation; files attach to it, not to the whole event. When private document scanning is enabled, the new file stays pending until its scan passes; the previous approved file remains available. Check the status in Edit Presentations.",
       "source_files": {
-        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
-        "templates/presentation_form.php": "c3792ddab982d0380110219087d96f0b7b477231faeed1e8731491213b3ee754",
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
+        "templates/presentation_form.php": "444c5481df11e319a8993caf8e2d68bbfffb0457085130d99204a6dbcfa8abd7",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
@@ -206,7 +206,7 @@
       "entry": "Engagements → existing event → Edit Engagement",
       "condition": "Edit the event Start and End, keeping presentations within the date range. Do not create another event to change its dates.",
       "source_files": {
-        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28",
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e",
         "edit_engagement.php": "b44eb47b6a411562599f9e594af6149b90ea7977c4b7e9ad40e773e6df69a52a"
       },
       "controls": {
@@ -287,7 +287,7 @@
       "condition": "Select Tasks before using the Add Task link inside its panel.",
       "source_files": {
         "tasks.php": "5a638f2697932e461daedb5cb0e098ceedca830de0481f3cd34c1e2235d3de81",
-        "view_engagement.php": "343de43f486a01dc1f7a5db19acd99d3ce20d51937e7c0a68604fc9a3800dc28"
+        "view_engagement.php": "c04effb819d8db662f0e333f863a5c7583bf4e8abf580f04cc72b13ef45a8e3e"
       },
       "controls": {
         "tasks-tab": {

@@ -353,6 +353,38 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
     <?php if ($source_inquiry): ?><div class="inquiry-terminal-banner inquiry-booked-banner"><div><strong>Booked from Inquiry #<?php echo (int) $source_inquiry['id']; ?></strong><span>The pre-booking history remains on the read-only source record.</span></div><a href="view_inquiry.php?id=<?php echo (int) $source_inquiry['id']; ?>" class="button-secondary">Open Source Inquiry</a></div><?php endif; ?>
 
     <div class="engagement-planning-summary">
+            <section class="engagement-card engagement-workflow-card" id="workflow-controls">
+                <h2>Workflow</h2>
+                <dl class="engagement-detail-list"><div><dt>Confirmation</dt><dd><?php echo htmlspecialchars($confirmation_label); ?></dd></div></dl>
+        <div class="detail-value">
+            <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span>
+            <?php if (!empty($engagement['cancellation_reason'])): ?>
+                <p class="lifecycle-reason"><strong>Cancellation reason:</strong> <?php echo htmlspecialchars((string) $engagement['cancellation_reason'], ENT_QUOTES, 'UTF-8'); ?></p>
+            <?php endif; ?>
+            <?php if ($rescheduled_target !== null || $rescheduled_sources !== []): ?>
+                <div class="lifecycle-links">
+                    <?php if ($rescheduled_target !== null): ?>
+                        <span><strong>Rescheduled as:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_target['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_target), ENT_QUOTES, 'UTF-8'); ?></a></span>
+                    <?php endif; ?>
+                    <?php foreach ($rescheduled_sources as $rescheduled_source): ?>
+                        <span><strong>Rescheduled from:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_source['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_source), ENT_QUOTES, 'UTF-8'); ?></a></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+                <?php if ($can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url . '#workflow-controls']), ENT_QUOTES, 'UTF-8'); ?>#lifecycle_status" class="button-secondary engagement-card-action">Update Status</a><?php endif; ?>
+                <a href="#financial-closeout" class="button-secondary engagement-card-action">View Financial Closeout</a>
+            </section>
+            <section class="engagement-card engagement-readiness-card">
+                <h2>Readiness</h2>
+                <ul>
+                    <?php foreach ($engagement_readiness as $item): ?>
+                        <li<?php echo $item['ready'] ? ' class="is-ready"' : ''; ?>><span><?php if (!$item['ready'] && $can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url]) . '#' . $item['target'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($item['action']); ?></a><?php else: ?><?php echo htmlspecialchars($item['label']); ?><?php endif; ?></span><strong aria-label="<?php echo $item['ready'] ? 'Recorded' : 'Not recorded'; ?>"><?php echo $item['ready'] ? '✓' : '!'; ?></strong></li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="engagement-card-empty">Details can be added as planning progresses.</p>
+                <?php if ($context_task_can_manage && $context_task_subject_active): ?><a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary engagement-card-action">Add Task</a><?php endif; ?>
+            </section>
             <section class="engagement-card engagement-next-action-card">
                 <h2>Next Action</h2>
                 <div class="engagement-next-action-content">
@@ -372,16 +404,6 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <?php elseif ($context_task_can_manage && $context_task_subject_active): ?>
                     <a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-add engagement-card-action">Add Task</a>
                 <?php else: ?><a href="#follow-up-work" class="button-secondary engagement-card-action">View Tasks</a><?php endif; ?>
-            </section>
-            <section class="engagement-card engagement-readiness-card">
-                <h2>Readiness</h2>
-                <ul>
-                    <?php foreach ($engagement_readiness as $item): ?>
-                        <li<?php echo $item['ready'] ? ' class="is-ready"' : ''; ?>><span><?php if (!$item['ready'] && $can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url]) . '#' . $item['target'], ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($item['action']); ?></a><?php else: ?><?php echo htmlspecialchars($item['label']); ?><?php endif; ?></span><strong aria-label="<?php echo $item['ready'] ? 'Recorded' : 'Not recorded'; ?>"><?php echo $item['ready'] ? '✓' : '!'; ?></strong></li>
-                    <?php endforeach; ?>
-                </ul>
-                <p class="engagement-card-empty">Details can be added as planning progresses.</p>
-                <?php if ($context_task_can_manage && $context_task_subject_active): ?><a href="<?php echo htmlspecialchars($context_task_add_url, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary engagement-card-action">Add Task</a><?php endif; ?>
             </section>
     </div>
 
@@ -761,31 +783,6 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
 
             </section>
         </div>
-        <aside class="engagement-detail-sidebar" aria-label="Engagement Planning and Actions">
-            <section class="engagement-card engagement-workflow-card" id="workflow-controls">
-                <h2>Workflow</h2>
-                <dl class="engagement-detail-list"><div><dt>Confirmation</dt><dd><?php echo htmlspecialchars($confirmation_label); ?></dd></div></dl>
-        <div class="detail-value">
-            <span class="lifecycle-badge lifecycle-<?php echo htmlspecialchars((string) ($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars(engagementLifecycleLabel($engagement['lifecycle_status'] ?? 'active'), ENT_QUOTES, 'UTF-8'); ?></span>
-            <?php if (!empty($engagement['cancellation_reason'])): ?>
-                <p class="lifecycle-reason"><strong>Cancellation reason:</strong> <?php echo htmlspecialchars((string) $engagement['cancellation_reason'], ENT_QUOTES, 'UTF-8'); ?></p>
-            <?php endif; ?>
-            <?php if ($rescheduled_target !== null || $rescheduled_sources !== []): ?>
-                <div class="lifecycle-links">
-                    <?php if ($rescheduled_target !== null): ?>
-                        <span><strong>Rescheduled as:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_target['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_target), ENT_QUOTES, 'UTF-8'); ?></a></span>
-                    <?php endif; ?>
-                    <?php foreach ($rescheduled_sources as $rescheduled_source): ?>
-                        <span><strong>Rescheduled from:</strong> <a href="view_engagement.php?id=<?php echo (int) $rescheduled_source['id']; ?>"><?php echo htmlspecialchars(engagementReferenceLabel($rescheduled_source), ENT_QUOTES, 'UTF-8'); ?></a></span>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-                <?php if ($can_manage_engagement): ?><a href="<?php echo htmlspecialchars(recordUrlWithQuery('edit_engagement.php?id=' . $engagement_id, ['return_to' => $record_view_url . '#workflow-controls']), ENT_QUOTES, 'UTF-8'); ?>#lifecycle_status" class="button-secondary engagement-card-action">Update Status</a><?php endif; ?>
-                <a href="#financial-closeout" class="button-secondary engagement-card-action">View Financial Closeout</a>
-            </section>
-
-        </aside>
     </div>
     <div class="action-buttons"><a href="<?php echo htmlspecialchars($record_list_return, ENT_QUOTES, 'UTF-8'); ?>" class="button-secondary">Back to <?php echo htmlspecialchars(recordReturnLabel($record_list_return), ENT_QUOTES, 'UTF-8'); ?></a></div>
 </main>
