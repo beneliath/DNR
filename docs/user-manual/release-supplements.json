@@ -95,6 +95,13 @@
         "Short-link statistics offers Speaker, Link Type, From and Through dates in the configured local time zone, Apply Filters, totals, and Referrers/Browsers/Countries/Operating Systems charts. Detailed visit rows identify event/resource context and use date grouping and chart highlighting where available. Presentation resource/QR cards show their tracked totals. Reset Statistics retains its separate administrator confirmation; viewing or filtering is read-only.",
         "Network → Remote Document Responses adds response/timing measurements for PDF and PowerPoint traffic. These operational counts are not equivalent to tracked public-link visits. Direct downloads and tracked link opens have different analytics paths."
       ]
+    ],
+    [
+      "Financial Closeout: Four Required Receipt Categories",
+      [
+        "Before finalizing an event, enter Giving Received, Lodging Received, Travel Received, and Book Table Received. Leave unknown amounts blank when saving a draft; enter 0 only after confirming no amount was received. The completion indicator counts all four categories, and the total includes book-table receipts.",
+        "Book-table amounts remain separate from giving in organization totals and appear in final reports and correction history. Older finalized reports have no recorded book-table amount; MOED shows Not recorded rather than inventing zero. When correcting a report, enter every receipt category and explain the correction. Earlier revisions retain their original amounts."
+      ]
     ]
   ],
   "6": [],

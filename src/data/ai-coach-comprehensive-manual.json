@@ -1,9 +1,9 @@
 {
   "document": {
     "title": "MOED Comprehensive User Manual",
-    "subject": "Illustrated application reference, version 2.4.17, updated October 5, 2026",
+    "subject": "Illustrated application reference, version 2.4.18, updated October 5, 2026",
     "path": "assets/docs/moed-comprehensive-user-manual.pdf",
-    "sha256": "eeb3359a9f924f41717683eb3661af40a88ca5b8da5d45b566feb442a5e9e42c",
+    "sha256": "570776b4ea596a982ca9f5d95872cf8db1f797c98902ea10b2cf2251ae2adc59",
     "pages": 187,
     "index_version": 1
   },
@@ -278,7 +278,7 @@
       "title": "Event Readiness",
       "page": 13,
       "end_page": 13,
-      "text": "Readiness flags an unconfirmed event, missing venue address, missing presentation, or missing event contact assignment. Open the event to complete the missing details. Financial Closeouts Ended events remain here until actual giving/income, lodging, and travel receipts are finalized. The age indicator shows how many days the report has been waiting."
+      "text": "Readiness flags an unconfirmed event, missing venue address, missing presentation, or missing event contact assignment. Open the event to complete the missing details. Financial Closeouts Ended events remain here until actual giving, lodging, travel, and book-table receipts are finalized. The age indicator shows how many days the report has been waiting."
     },
     "manual-topic-dashboard-follow-dashboard-date-windows": {
       "id": "manual-topic-dashboard-follow-dashboard-date-windows",
@@ -622,7 +622,7 @@
       "title": "View QR Codes PDF",
       "page": 29,
       "end_page": 29,
-      "text": "Lets you choose which of that presentation's QR codes to include, then opens a themed landscape sheet. Editors and administrators can use Financial Closeout to save a receipt draft while work is still pending. Leave unknown amounts blank; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; canceled tasks still block until truthfully resolved, while later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update."
+      "text": "Lets you choose which of that presentation's QR codes to include, then opens a themed landscape sheet. Editors and administrators can use Financial Closeout to save a receipt draft while work is still pending. Enter Giving Received, Lodging Received, Travel Received, and Book Table Received before finalizing. Leave unknown amounts blank while saving a draft; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; canceled tasks still block until truthfully resolved, while later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update."
     },
     "manual-topic-engagements-archive-and-delete-carefully": {
       "id": "manual-topic-engagements-archive-and-delete-carefully",
@@ -703,6 +703,14 @@
       "page": 31,
       "end_page": 31,
       "text": "Engagements provides start/end date filtering in addition to existing search/status controls. Links from dashboard upcoming-event and inquiry panes retain the relevant destination view. Clear or broaden filters before concluding a record is absent. Short-link statistics offers Speaker, Link Type, From and Through dates in the configured local time zone, Apply Filters, totals, and Referrers/Browsers/Countries/Operating Systems charts. Detailed visit rows identify event/resource context and use date grouping and chart highlighting where available. Presentation resource/QR cards show their tracked totals. Reset Statistics retains its separate administrator confirmation; viewing or filtering is read-only. Network > Remote Document Responses adds response/timing measurements for PDF and PowerPoint traffic. These operational counts are not equivalent to tracked public-link visits. Direct downloads and tracked link opens have different analytics paths."
+    },
+    "manual-topic-engagements-financial-closeout-four-required-receipt-categories": {
+      "id": "manual-topic-engagements-financial-closeout-four-required-receipt-categories",
+      "chapter": "engagements",
+      "title": "Financial Closeout: Four Required Receipt Categories",
+      "page": 31,
+      "end_page": 31,
+      "text": "Before finalizing an event, enter Giving Received, Lodging Received, Travel Received, and Book Table Received. Leave unknown amounts blank when saving a draft; enter 0 only after confirming no amount was received. The completion indicator counts all four categories, and the total includes book-table receipts. Book-table amounts remain separate from giving in organization totals and appear in final reports and correction history. Older finalized reports have no recorded book-table amount; MOED shows Not recorded rather than inventing zero. When correcting a report, enter every receipt category and explain the correction. Earlier revisions retain their original amounts."
     },
     "manual-topic-engagements-find-an-engagement": {
       "id": "manual-topic-engagements-find-an-engagement",
@@ -814,7 +822,7 @@
       "title": "Review financial closeout",
       "page": 45,
       "end_page": 45,
-      "text": "Figure 29. Review financial closeout. Actual preview screen; fictional records. 01 Open Financials to see whether a report is open, a draft, or final. 02 Use Financial Closeout to enter giving/income, lodging, and travel actually received. 03 A draft does not enter finalized organization financial history. Related chapters: People and organizations (p. 61) / Work queue (p. 76) / Chron and email (p. 88) / Map and calendar (p. 95)"
+      "text": "Figure 29. Review financial closeout. Actual preview screen; fictional records. 01 Open Financials to see whether a report is open, a draft, or final. 02 Use Financial Closeout to enter giving, lodging, travel, and book-table amounts actually received. 03 A draft does not enter finalized organization financial history. Related chapters: People and organizations (p. 61) / Work queue (p. 76) / Chron and email (p. 88) / Map and calendar (p. 95)"
     },
     "manual-topic-engagements-draft-and-finalize-received-amounts": {
       "id": "manual-topic-engagements-draft-and-finalize-received-amounts",
@@ -878,7 +886,7 @@
       "title": "Enter actual receipts",
       "page": 53,
       "end_page": 53,
-      "text": "Figure 37. Enter actual receipts. Actual preview screen; fictional records. 01 Enter known Giving/income, Lodging, and Travel received amounts. 02 The draft total shows the entered values and completion state. 03 Save draft while prerequisites remain unresolved. Enter all three amounts and confirm they are final before finalizing. Related chapters: People and organizations (p. 61) / Work queue (p. 76) / Chron and email (p. 88) / Map and calendar (p. 95)"
+      "text": "Figure 37. Enter actual receipts. Actual preview screen; fictional records. 01 Enter known Giving, Lodging, Travel, and Book Table received amounts. 02 The draft total shows the entered values and completion state. 03 Save draft while prerequisites remain unresolved. Enter all four amounts and confirm they are final before finalizing. Related chapters: People and organizations (p. 61) / Work queue (p. 76) / Chron and email (p. 88) / Map and calendar (p. 95)"
     },
     "manual-topic-engagements-read-a-finalized-financial-report": {
       "id": "manual-topic-engagements-read-a-finalized-financial-report",
@@ -1054,7 +1062,7 @@
       "title": "Read organization financial history",
       "page": 65,
       "end_page": 65,
-      "text": "Figure 47. Read organization financial history. Actual preview screen; fictional records. 01 Open Financials for finalized giving, lodging, travel, and event reports. 02 Draft closeout amounts do not affect these totals. 03 Open an event report for the underlying figures and correction history. Screenshot context: Amounts are fictional examples. Related chapters: Booking pipeline (p. 16) / Engagements (p. 26) / Chron and email (p. 88)"
+      "text": "Figure 47. Read organization financial history. Actual preview screen; fictional records. 01 Open Financials for finalized giving, lodging, travel, book-table amounts, and event reports. 02 Draft closeout amounts do not affect these totals. 03 Open an event report for the underlying figures and correction history. Screenshot context: Amounts are fictional examples. Related chapters: Booking pipeline (p. 16) / Engagements (p. 26) / Chron and email (p. 88)"
     },
     "manual-topic-organizations-contacts-organization-identity-and-addresses": {
       "id": "manual-topic-organizations-contacts-organization-identity-and-addresses",
@@ -2646,7 +2654,7 @@
       "title": "Edition and source notes",
       "page": 161,
       "end_page": 162,
-      "text": "Application version: MOED / DNR 2.4.17. Guide updated: October 5, 2026. This refresh covers application changes from 2.4.1 through 2.4.17: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. Unchanged workflows retain their previous illustrations. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
+      "text": "Application version: MOED / DNR 2.4.18. Guide updated: October 5, 2026. This refresh covers application changes from 2.4.1 through 2.4.18: presentation archive/delete and scoped visit resets, planning cards, retained event contacts and financial corrections, dashboard timing, task filters and bulk updates, local browser drafts, duplicate acknowledgement and bounded merge undo, email reply follow-up and recipient cards, Inbox filing layout, pending map filters, reimbursement selection, notes, CSV/receipt packages and size limits, progress steps, network date windows, and administrator unlock extension. Unchanged workflows retain their previous illustrations. Current figures use fictional records in an isolated preview; capture dates are recorded per figure. The report receipt illustration comes from an actual generated sample PDF. Source basis: src/help.php, current application forms/controllers, and the Mattermost integration guide. The PDF follows the sidebar guide, including private-calendar content options, birthdays, recovery-email verification, account editing, and network diagnostics. The PDF adds illustrated walkthroughs and operational details, omitting decorative application footers and their associated lines. Infrastructure-only procedures are referenced at the point where a deployment operator is required. Document build and screenshots: scripts/manual/ and docs/user-manual/. Rebuild with the included instructions when the application changes. Navigation is internal to this PDF; links do not depend on the sample preview being available. Return to contents APPENDIX A / CURRENT REPOSITORY README"
     },
     "manual-topic-operator-appendix-readme-md": {
       "id": "manual-topic-operator-appendix-readme-md",
@@ -2654,7 +2662,7 @@
       "title": "README.md",
       "page": 162,
       "end_page": 163,
-      "text": "Complete README for application source 2.4.17 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 108,441 bytes · October 5, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 163 Application workflows - p. 166 Email and integrations - p. 170 Configuration reference - p. 176 Security and operations - p. 181 Development and contributing - p. 186 License - p. 187 Storage and delivery hardening - p. 187 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
+      "text": "Complete README for application source 2.4.18 The following pages reproduce the full current README, including deployment procedures and command examples. Long code lines wrap to fit the page. The original, unmodified README.md is also embedded as a PDF attachment for copying commands exactly. Source: README.md · 108,441 bytes · October 5, 2026. The build records its SHA-256 checksum. Select a section below, or expand Appendix A in the PDF bookmarks. Getting started and deployment - p. 163 Application workflows - p. 166 Email and integrations - p. 170 Configuration reference - p. 176 Security and operations - p. 181 Development and contributing - p. 186 License - p. 187 Storage and delivery hardening - p. 187 מֹוֵעד is a web-based application for managing speaking engagements, presentations, and organizational contacts. Under active development. Use the sidebar User Manual for day-to-day application help, or download the Comprehensive Guide (src/assets/docs/moed-comprehensive-user-manual.pdf). This README covers installation, workflows, configuration, operations, and development. •"
     },
     "manual-topic-operator-appendix-getting-started-and-deployment": {
       "id": "manual-topic-operator-appendix-getting-started-and-deployment",

@@ -37,7 +37,9 @@ foreach ([
 $draft = normalizeFinancialDraftInput(['giving_income_received' => '12.30', 'lodging_received' => '', 'travel_received' => '0']);
 expectUiux($draft['giving_income_received'] === '12.30' && $draft['lodging_received'] === null && $draft['travel_received'] === '0.00', 'Drafts distinguish unknown from confirmed zero');
 expectUiux($draft['total_received'] === '12.30', 'Draft total includes entered amounts only');
-expectUiux(normalizeFinancialDraftInput([])['giving_income_received'] === null, 'Empty drafts do not invent zero receipts');
+expectUiux(normalizeFinancialDraftInput([])['giving_income_received'] === null && $draft['book_table_received'] === null, 'Empty drafts do not invent zero receipts, including book-table receipts');
+expectUiux(normalizeFinancialDraftInput(['book_table_received' => '4.56'])['total_received'] === '4.56', 'Draft totals include entered book-table receipts');
+expectUiux(normalizeFinancialDraftInput(['book_table_received' => '0'])['book_table_received'] === '0.00', 'Book-table drafts retain confirmed zero');
 expectUiuxInvalid(fn() => normalizeFinancialDraftInput(['giving_income_received' => '-1']), 'Drafts enforce non-negative amounts');
 expectUiuxInvalid(fn() => Dnr\Domain\FinancialReportInput::normalize($draft), 'An incomplete draft cannot finalize');
 requireFinancialDraftVersion(null, '');

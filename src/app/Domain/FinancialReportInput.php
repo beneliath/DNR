@@ -14,15 +14,17 @@ final class FinancialReportInput
      *     giving_income_received: string,
      *     lodging_received: string,
      *     travel_received: string,
+     *     book_table_received: string,
      *     notes: string,
      *     total_received: string
      * }
      */
     public static function normalize(array $input): array
     {
-        $giving = self::amount($input['giving_income_received'] ?? null, 'Giving / Income Received');
+        $giving = self::amount($input['giving_income_received'] ?? null, 'Giving Received');
         $lodging = self::amount($input['lodging_received'] ?? null, 'Lodging Received');
         $travel = self::amount($input['travel_received'] ?? null, 'Travel Received');
+        $bookTable = self::amount($input['book_table_received'] ?? null, 'Book Table Received');
         $notes = InputText::value($input, 'notes');
         $notes_error = InputText::textStorageError($notes, 'Financial report notes');
         if ($notes_error !== null) {
@@ -33,8 +35,9 @@ final class FinancialReportInput
             'giving_income_received' => $giving,
             'lodging_received' => $lodging,
             'travel_received' => $travel,
+            'book_table_received' => $bookTable,
             'notes' => $notes,
-            'total_received' => self::total([$giving, $lodging, $travel]),
+            'total_received' => self::total([$giving, $lodging, $travel, $bookTable]),
         ];
     }
 

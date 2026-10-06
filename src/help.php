@@ -287,7 +287,7 @@ $manual_access_summary = match ($manual_role) {
                     <article class="manual-card">
                         <span class="manual-kicker">Close</span>
                         <h3>Financial Closeouts</h3>
-                        <p>Ended events remain here until actual giving/income, lodging, and travel receipts are finalized. The age indicator shows how many days the report has been waiting.</p>
+                        <p>Ended events remain here until actual giving, lodging, travel, and book-table receipts are finalized. The age indicator shows how many days the report has been waiting.</p>
                     </article>
                 </section>
                 <p class="manual-open-area"><a href="dashboard.php">Open the Dashboard <span aria-hidden="true">→</span></a></p>
@@ -473,7 +473,7 @@ $manual_access_summary = match ($manual_role) {
                         <article class="manual-card"><h4>View PDF</h4><p>Opens a branded brief for the selected presentation in your browser for viewing, saving, or printing.</p></article>
                         <article class="manual-card"><h4>View QR Codes PDF</h4><p>Lets you choose which of that presentation’s QR codes to include, then opens a themed landscape sheet.</p></article>
                     </section>
-                    <p>Editors and administrators can use <strong>Financial Closeout</strong> to save a receipt draft while work is still pending. Leave unknown amounts blank; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; canceled tasks still block until truthfully resolved, while later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
+                    <p>Editors and administrators can use <strong>Financial Closeout</strong> to save a receipt draft while work is still pending. Enter Giving Received, Lodging Received, Travel Received, and Book Table Received before finalizing. Leave unknown amounts blank while saving a draft; enter zero only when nothing was received. Drafts are excluded from finalized financial history. The original planning estimates remain unchanged. Every event task due on or before the last active presentation must first be marked Completed; canceled tasks still block until truthfully resolved, while later and undated tasks do not hold closeout. Confirm that the amounts are final to complete the engagement; later corrections retain the original close date and record the update.</p>
                 </section>
 
                 <article class="manual-callout manual-callout-warning">

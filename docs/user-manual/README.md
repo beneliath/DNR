@@ -35,9 +35,11 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The October 5, 2026 edition applies to application version **2.4.17** and
+The October 5, 2026 edition applies to application version **2.4.18** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
+
+The financial closeout now requires Giving Received, Lodging Received, Travel Received, and Book Table Received before finalization. Drafts retain unknown amounts, confirmed zero remains explicit, and book-table amounts are included in totals and correction history. Existing finalized reports retain an unrecorded book-table amount until corrected.
 
 The existing 14-chapter layout, topic index, PDF bookmarks, and separate operator
 appendix remain useful. The opening task chooser now leads readers to common

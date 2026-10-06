@@ -564,15 +564,23 @@
     "chapter": 5,
     "id": "financial",
     "title": "Review financial closeout",
-    "route": "view_engagement.php?id=13",
+    "route": "view_engagement.php?id=1#financial-closeout",
     "steps": [
       "Open Financials to see whether a report is open, a draft, or final.",
-      "Use Financial Closeout to enter giving/income, lodging, and travel actually received.",
+      "Use Financial Closeout to enter giving, lodging, travel, and book-table amounts actually received.",
       "A draft does not enter finalized organization financial history."
     ],
     "tab": "Financials",
     "focus": "#engagement-workspace",
-    "file": "screenshots/financial.png"
+    "file": "screenshots/financial.jpg",
+    "crop": [
+      298,
+      817,
+      874,
+      233
+    ],
+    "captured_at": "2026-10-05",
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained."
   },
   {
     "chapter": 5,
@@ -700,23 +708,24 @@
     "chapter": 6,
     "id": "organization-financial",
     "title": "Read organization financial history",
-    "route": "view_organization.php?id=36",
+    "route": "view_organization.php?id=1#organization-financials",
     "steps": [
-      "Open Financials for finalized giving, lodging, travel, and event reports.",
+      "Open Financials for finalized giving, lodging, travel, book-table amounts, and event reports.",
       "Draft closeout amounts do not affect these totals.",
       "Open an event report for the underlying figures and correction history."
     ],
     "tab": "Financials",
     "focus": "#organization-financials",
     "note": "Amounts are fictional examples.",
-    "file": "screenshots/organization-financial.png",
+    "file": "screenshots/organization-financial.jpg",
     "crop": [
-      0,
-      340,
-      1515,
-      734
+      298,
+      1022,
+      874,
+      483
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 6,
@@ -1540,27 +1549,28 @@
     "chapter": 5,
     "id": "closeout-amounts",
     "title": "Enter actual receipts",
-    "route": "close_engagement.php?id=13",
+    "route": "close_engagement.php?id=1",
     "steps": [
-      "Enter known Giving/income, Lodging, and Travel received amounts.",
+      "Enter known Giving, Lodging, Travel, and Book Table received amounts.",
       "The draft total shows the entered values and completion state.",
-      "Save draft while prerequisites remain unresolved. Enter all three amounts and confirm they are final before finalizing."
+      "Save draft while prerequisites remain unresolved. Enter all four amounts and confirm they are final before finalizing."
     ],
     "focus": ".closeout-form",
-    "file": "screenshots/closeout-amounts.png",
+    "file": "screenshots/closeout-amounts.jpg",
     "crop": [
-      130,
-      70,
-      1250,
-      980
+      260,
+      0,
+      951,
+      1034
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 5,
     "id": "final-report",
     "title": "Read a finalized financial report",
-    "route": "view_engagement.php?id=14",
+    "route": "view_engagement.php?id=2#financial-closeout",
     "steps": [
       "Open Financials on the completed event to see its final received amounts.",
       "The report contributes to the organization's finalized financial history.",
@@ -1569,14 +1579,15 @@
     "tab": "Financials",
     "focus": "#engagement-workspace",
     "note": "This completed report contains fictional amounts.",
-    "file": "screenshots/final-report.png",
+    "file": "screenshots/final-report.jpg",
     "crop": [
-      28,
-      128,
-      940,
-      747
+      298,
+      787,
+      874,
+      648
     ],
-    "framing": "Complete rows or form sections; adjacent partial content excluded."
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained.",
+    "captured_at": "2026-10-05"
   },
   {
     "chapter": 12,
@@ -2174,7 +2185,7 @@
     "chapter": 5,
     "id": "financial-history",
     "title": "Inspect financial correction history",
-    "route": "view_engagement.php?id=2#engagement-financials",
+    "route": "view_engagement.php?id=2#financial-closeout",
     "steps": [
       "Open Financials, then expand Financial Revision History.",
       "Compare the original and corrected totals and the recorded reason. Finalized history is retained; archive a protected event instead of deleting it."
@@ -2182,12 +2193,12 @@
     "file": "screenshots/financial-history.jpg",
     "captured_at": "2026-10-05",
     "crop": [
-      270,
-      100,
-      990,
-      1020
+      298,
+      787,
+      874,
+      888
     ],
-    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained."
   },
   {
     "chapter": 5,
@@ -2201,12 +2212,12 @@
     "file": "screenshots/financial-correction.jpg",
     "captured_at": "2026-10-05",
     "crop": [
-      270,
-      100,
-      990,
-      800
+      260,
+      0,
+      951,
+      1182
     ],
-    "framing": "Actual current application view in an isolated preview with fictional records; complete relevant controls retained."
+    "framing": "Current financial controls captured from an isolated feature preview with fictional records; full relevant sections retained."
   },
   {
     "chapter": 6,

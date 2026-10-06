@@ -93,7 +93,7 @@ expectFinancialTracking(
 expectFinancialTracking(
     is_string($engagementView)
         && str_contains($engagementView, 'id="financial-closeout"')
-        && str_contains($engagementView, 'Giving / Income')
+        && str_contains($engagementView, 'Giving Received')
         && str_contains($engagementView, 'Total Received')
         && str_contains($engagementView, 'close_engagement.php?id=')
         && is_string($engagementList)
@@ -118,7 +118,8 @@ expectFinancialTracking(
         'giving_income_received' => '100.10',
         'lodging_received' => '20.20',
         'travel_received' => '3.03',
-    ]) === '123.33',
+        'book_table_received' => '6.67',
+    ]) === '130.00',
     'display totals should use the same exact fixed-precision arithmetic as input normalization.'
 );
 expectFinancialTracking(
