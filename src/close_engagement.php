@@ -69,6 +69,7 @@ $form_values = $financial_report ?: $financial_draft ?: [
     'giving_income_received' => null,
     'lodging_received' => null,
     'travel_received' => null,
+    'book_table_received' => null,
     'notes' => '',
 ];
 $form_error = '';
@@ -77,7 +78,7 @@ unset($_SESSION['financial_draft_message']);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     requireValidCsrfToken();
-    $form_values = array_merge($form_values, array_filter(array_intersect_key($_POST, array_flip(['giving_income_received', 'lodging_received', 'travel_received', 'notes'])), 'is_scalar'));
+    $form_values = array_merge($form_values, array_filter(array_intersect_key($_POST, array_flip(['giving_income_received', 'lodging_received', 'travel_received', 'book_table_received', 'notes'])), 'is_scalar'));
     try {
         if (($_POST['action'] ?? '') === 'save_draft') {
             saveEngagementFinancialDraft($conn, $engagement_id, $_POST,
@@ -143,6 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $giving_received = $submitted['giving_income_received'];
             $lodging_received = $submitted['lodging_received'];
             $travel_received = $submitted['travel_received'];
+            $book_table_received = $submitted['book_table_received'];
             if ($locked_report) {
                 $correctionReason = is_string($_POST['correction_reason'] ?? null) ? trim($_POST['correction_reason']) : '';
                 if ($correctionReason === '' || mb_strlen($correctionReason) > 1000) {
@@ -159,7 +161,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $save_stmt = $conn->prepare(
                     'UPDATE engagement_financial_reports
                      SET giving_income_received = ?, lodging_received = ?,
-                         travel_received = ?, notes = ?, updated_by = ?,
+                         travel_received = ?, book_table_received = ?, notes = ?, updated_by = ?,
                          updated_at = UTC_TIMESTAMP(6)
                      WHERE engagement_id = ?'
                 );
@@ -167,10 +169,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     throw new RuntimeException('Unable to prepare the financial report correction.');
                 }
                 $save_stmt->bind_param(
-                    'ssssii',
+                    'sssssii',
                     $giving_received,
                     $lodging_received,
                     $travel_received,
+                    $book_table_received,
                     $notes,
                     $current_user_id,
                     $engagement_id
@@ -201,18 +204,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $save_stmt = $conn->prepare(
                     'INSERT INTO engagement_financial_reports
                         (engagement_id, giving_income_received, lodging_received,
-                         travel_received, notes, closed_by, updated_by)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)'
+                         travel_received, book_table_received, notes, closed_by, updated_by)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
                 );
                 if (!$save_stmt) {
                     throw new RuntimeException('Unable to prepare the financial report.');
                 }
                 $save_stmt->bind_param(
-                    'issssii',
+                    'isssssii',
                     $engagement_id,
                     $giving_received,
                     $lodging_received,
                     $travel_received,
+                    $book_table_received,
                     $notes,
                     $current_user_id,
                     $current_user_id
@@ -300,7 +304,7 @@ if ($closeout_is_held && $form_error === $task_hold_message) {
 try {
     $receipt_summary = normalizeFinancialDraftInput($form_values);
     $receipt_total_label = 'Total entered: ' . formatFinancialAmount($receipt_summary['total_received']);
-    $receipt_entered_count = count(array_filter(array_intersect_key($receipt_summary, array_flip(['giving_income_received', 'lodging_received', 'travel_received'])), static fn($value) => $value !== null));
+    $receipt_entered_count = count(array_filter(array_intersect_key($receipt_summary, array_flip(['giving_income_received', 'lodging_received', 'travel_received', 'book_table_received'])), static fn($value) => $value !== null));
 } catch (InvalidArgumentException $exception) {
     $receipt_total_label = 'Check Receipt Amounts';
     $receipt_entered_count = 0;
@@ -395,9 +399,10 @@ $closed_timestamp = $is_correction
             <p class="field-help">Leave an amount blank when it is not known yet. Enter 0 only when you have confirmed no amount was received. Every category must be entered before finalizing.</p>
             <div class="financial-fields">
                 <?php foreach ([
-                    'giving_income_received' => 'Giving / Income Received',
+                    'giving_income_received' => 'Giving Received',
                     'lodging_received' => 'Lodging Received',
                     'travel_received' => 'Travel Received',
+                    'book_table_received' => 'Book Table Received',
                 ] as $field_name => $field_label): ?>
                     <div class="form-group">
                         <label for="<?php echo $field_name; ?>"><?php echo $field_label; ?> <span class="required" aria-hidden="true">*</span></label>
@@ -412,7 +417,7 @@ $closed_timestamp = $is_correction
             </div>
         </fieldset>
 
-        <div class="receipt-draft-total" role="status"><strong data-receipt-total><?php echo htmlspecialchars($receipt_total_label, ENT_QUOTES, 'UTF-8'); ?></strong><span data-receipt-completion><?php echo $receipt_entered_count; ?> of 3 categories entered</span></div>
+        <div class="receipt-draft-total" role="status"><strong data-receipt-total><?php echo htmlspecialchars($receipt_total_label, ENT_QUOTES, 'UTF-8'); ?></strong><span data-receipt-completion><?php echo $receipt_entered_count; ?> of 4 categories entered</span></div>
         <div class="form-group">
             <label for="notes">Closeout Notes</label>
             <textarea id="notes" name="notes" rows="6" placeholder="Optional context, payment references, or correction reason"><?php echo htmlspecialchars((string) ($form_values['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>

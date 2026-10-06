@@ -123,6 +123,7 @@ function financialReportTotal(array $report): string
         (string) ($report['giving_income_received'] ?? '0.00'),
         (string) ($report['lodging_received'] ?? '0.00'),
         (string) ($report['travel_received'] ?? '0.00'),
+        (string) ($report['book_table_received'] ?? '0.00'),
     ]);
 }
 
@@ -188,6 +189,7 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
             'average_event_giving' => '0.00',
             'lifetime_lodging' => '0.00',
             'lifetime_travel' => '0.00',
+            'lifetime_book_table' => '0.00',
             'last_event_giving' => null,
             'last_event_id' => null,
             'last_event_title' => null,
@@ -203,7 +205,8 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
                 SUM(report.giving_income_received) AS lifetime_giving,
                 AVG(report.giving_income_received) AS average_event_giving,
                 SUM(report.lodging_received) AS lifetime_lodging,
-                SUM(report.travel_received) AS lifetime_travel
+                SUM(report.travel_received) AS lifetime_travel,
+                COALESCE(SUM(report.book_table_received), 0) AS lifetime_book_table
          FROM engagement_financial_reports report
          INNER JOIN engagements engagement ON engagement.id = report.engagement_id
          WHERE engagement.organization_id IN ({$placeholders})
@@ -296,6 +299,7 @@ function fetchOrganizationFinancialHistory(
                 report.giving_income_received,
                 report.lodging_received,
                 report.travel_received,
+                report.book_table_received,
                 report.closed_at
          FROM engagement_financial_reports report
          INNER JOIN engagements engagement ON engagement.id = report.engagement_id
@@ -320,7 +324,7 @@ function fetchOrganizationFinancialHistory(
 function normalizeFinancialDraftInput(array $input): array
 {
     $unknown = [];
-    foreach (['giving_income_received', 'lodging_received', 'travel_received'] as $field) {
+    foreach (['giving_income_received', 'lodging_received', 'travel_received', 'book_table_received'] as $field) {
         $value = $input[$field] ?? null;
         if ($value === null || (is_scalar($value) && trim((string) $value) === '')) {
             $unknown[] = $field;
@@ -371,12 +375,13 @@ function saveEngagementFinancialDraft(mysqli $conn, int $engagement_id, array $i
         }
         requireFinancialDraftVersion(fetchEngagementFinancialDraft($conn, $engagement_id, true), $expected_version);
         $stmt = $conn->prepare('INSERT INTO engagement_financial_drafts
-            (engagement_id, giving_income_received, lodging_received, travel_received, notes, updated_by)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (engagement_id, giving_income_received, lodging_received, travel_received, book_table_received, notes, updated_by)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE giving_income_received = VALUES(giving_income_received),
             lodging_received = VALUES(lodging_received), travel_received = VALUES(travel_received),
+            book_table_received = VALUES(book_table_received),
             notes = VALUES(notes), updated_by = VALUES(updated_by), updated_at = UTC_TIMESTAMP(6)');
-        $stmt->bind_param('issssi', $engagement_id, $draft['giving_income_received'], $draft['lodging_received'], $draft['travel_received'], $draft['notes'], $user_id);
+        $stmt->bind_param('isssssi', $engagement_id, $draft['giving_income_received'], $draft['lodging_received'], $draft['travel_received'], $draft['book_table_received'], $draft['notes'], $user_id);
         $stmt->execute();
         $stmt->close();
         $conn->commit();

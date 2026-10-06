@@ -350,6 +350,10 @@ $contact_stmt->close();
                 <small>Travel received</small>
                 <strong><?php echo formatFinancialAmount($financial_summary['lifetime_travel']); ?></strong>
             </article>
+            <article class="financial-summary-card">
+                <small>Book Table Received</small>
+                <strong><?php echo formatFinancialAmount($financial_summary['lifetime_book_table']); ?></strong>
+            </article>
         </div>
 
         <?php if ($financial_history !== []): ?>
@@ -362,9 +366,10 @@ $contact_stmt->close();
                         <tr>
                             <th>Event</th>
                             <th>Date</th>
-                            <th>Giving / Income</th>
+                            <th>Giving Received</th>
                             <th>Lodging</th>
                             <th>Travel</th>
+                            <th>Book Table</th>
                             <th>Total Received</th>
                         </tr>
                     </thead>
@@ -379,6 +384,7 @@ $contact_stmt->close();
                                 <td><?php echo formatFinancialAmount($history_report['giving_income_received']); ?></td>
                                 <td><?php echo formatFinancialAmount($history_report['lodging_received']); ?></td>
                                 <td><?php echo formatFinancialAmount($history_report['travel_received']); ?></td>
+                                <td><?php echo $history_report['book_table_received'] === null ? 'Not recorded' : formatFinancialAmount($history_report['book_table_received']); ?></td>
                                 <td><strong><?php echo formatFinancialAmount(financialReportTotal($history_report)); ?></strong></td>
                             </tr>
                         <?php endforeach; ?>

@@ -1,5 +1,5 @@
 {
-  "version": "2.4.17",
+  "version": "2.4.18",
   "edition_date": "October 5, 2026",
   "pages": 187,
   "screenshots": 114,
@@ -110,6 +110,7 @@
     "topic-5-reset-presentation-statistics": 31,
     "topic-5-restore-archived-presentations": 31,
     "topic-5-engagement-filters-and-visit-reporting": 31,
+    "topic-5-financial-closeout-four-required-receipt-categories": 31,
     "shot-engagement-list": 32,
     "end-shot-engagement-list": 32,
     "shot-engagement": 33,
@@ -517,8 +518,8 @@
     "readme-section-62": 187,
     "__total__": 187
   },
-  "outline_entries": 395,
-  "edition_scope": "Application release 2.4.17",
+  "outline_entries": 396,
+  "edition_scope": "Application release 2.4.18",
   "sources": [
     "src/bulk_delete.php",
     "src/bulk_delete_helpers.php",

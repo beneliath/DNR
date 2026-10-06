@@ -84,17 +84,18 @@ try {
         'Closeout form should expose the canceled prerequisite');
     $fields = ['csrf_token' => uiuxHidden($form['body'], 'csrf_token'), 'draft_version' => '',
         'report_version' => '', 'giving_income_received' => '123.45', 'lodging_received' => '',
-        'travel_received' => '0', 'notes' => 'Awaiting lodging'];
+        'travel_received' => '0', 'book_table_received' => '', 'notes' => 'Awaiting lodging'];
     $saved = $request($path, $fields + ['action' => 'save_draft']);
     expectUiuxHttp($saved['status'] === 302, 'Partial receipt draft should save despite the task hold');
     $draft = fetchEngagementFinancialDraft($conn, $engagementId);
     expectUiuxHttp($draft !== null && $draft['giving_income_received'] === '123.45'
-        && $draft['lodging_received'] === null && $draft['travel_received'] === '0.00',
+        && $draft['lodging_received'] === null && $draft['travel_received'] === '0.00' && $draft['book_table_received'] === null,
         'The submitted form should persist blank as NULL and confirmed zero as 0.00');
     expectUiuxHttp(fetchOrganizationFinancialSummary($conn, $organizationId)['closed_event_count'] === 0,
         'Draft receipts should be excluded from finalized organization totals');
     $fields['draft_version'] = $draft['updated_at'];
     $fields['lodging_received'] = '15';
+    $fields['book_table_received'] = '7.55';
     $held = $request($path, $fields + ['action' => 'finalize', 'confirm_final' => 'yes']);
     expectUiuxHttp($held['status'] === 200 && str_contains($held['body'], 'must be marked completed')
         && fetchEngagementFinancialReport($conn, $engagementId) === null,
@@ -108,7 +109,13 @@ try {
         'Finalization should reject a missing amount after prerequisites are satisfied');
     $unconfirmed = $request($path, $fields + ['action' => 'finalize']);
     expectUiuxHttp($unconfirmed['status'] === 200 && str_contains($unconfirmed['body'], 'Confirm that these are the final'),
-        'All three entered amounts still require explicit final confirmation');
+        'All four entered amounts still require explicit final confirmation');
+    $missingBookTable = $fields;
+    unset($missingBookTable['book_table_received']);
+    $rejected = $request($path, $missingBookTable + ['action' => 'finalize', 'confirm_final' => 'yes']);
+    expectUiuxHttp($rejected['status'] === 200 && str_contains($rejected['body'], 'Book Table Received is required')
+        && fetchEngagementFinancialReport($conn, $engagementId) === null,
+        'A submission bypassing the browser must still supply Book Table Received');
     $stale = $fields;
     $stale['draft_version'] = '';
     $rejected = $request($path, $stale + ['action' => 'finalize', 'confirm_final' => 'yes']);
@@ -119,18 +126,21 @@ try {
     $lifecycle = $conn->query("SELECT lifecycle_status FROM engagements WHERE id={$engagementId}")->fetch_assoc();
     expectUiuxHttp($final['status'] === 302 && $report !== null
         && $report['giving_income_received'] === '123.45' && $report['lodging_received'] === '15.00'
-        && $report['travel_received'] === '0.00' && fetchEngagementFinancialDraft($conn, $engagementId) === null
+        && $report['travel_received'] === '0.00' && $report['book_table_received'] === '7.55'
+        && financialReportTotal($report) === '146.00' && fetchEngagementFinancialDraft($conn, $engagementId) === null
         && $lifecycle['lifecycle_status'] === 'completed',
         'Finalization should atomically create the confirmed report, remove the draft, and complete the event');
     $summary = fetchOrganizationFinancialSummary($conn, $organizationId);
-    expectUiuxHttp($summary['closed_event_count'] === 1 && $summary['lifetime_giving'] === '123.45',
+    expectUiuxHttp($summary['closed_event_count'] === 1 && $summary['lifetime_giving'] === '123.45' && $summary['lifetime_book_table'] === '7.55',
         'Finalized amounts should enter organization analytics exactly once');
-    $correction=array_replace($fields,['report_version'=>$report['updated_at'],'giving_income_received'=>'123.46','action'=>'finalize','confirm_final'=>'yes']);
+    $correction=array_replace($fields,['report_version'=>$report['updated_at'],'book_table_received'=>'0','action'=>'finalize','confirm_final'=>'yes']);
     $rejected=$request($path,$correction);
     expectUiuxHttp($rejected['status']===200 && str_contains($rejected['body'],'Enter a correction reason'),'Financial correction requires a reason');
-    $corrected=$request($path,$correction+['correction_reason'=>'Corrected receipt by one cent']);
+    $corrected=$request($path,$correction+['correction_reason'=>'Confirmed no book-table receipts']);
     expectUiuxHttp($corrected['status']===302 && count(fetchEngagementFinancialRevisions($conn,$engagementId))===2
-        && fetchEngagementFinancialReport($conn,$engagementId)['giving_income_received']==='123.46','Correction preserves both revisions and exact decimal amounts');
+        && fetchEngagementFinancialReport($conn,$engagementId)['book_table_received']==='0.00','Correction preserves both revisions and confirmed zero book-table receipts');
+    $revisions=fetchEngagementFinancialRevisions($conn,$engagementId);
+    expectUiuxHttp($revisions[0]['book_table_received']==='0.00' && $revisions[1]['book_table_received']==='7.55', 'Book-table-only corrections retain the original amount in revision history');
 
     foreach ([0, 1, 2] as $moveCount) {
         $decision = $moveCount === 0 ? 'resolved' : 'carry_forward';

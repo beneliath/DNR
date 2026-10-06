@@ -732,9 +732,10 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
 
         <?php if ($financial_report): ?>
             <div class="financial-amount-grid">
-                <div><small>Giving / Income</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
+                <div><small>Giving Received</small><strong><?php echo formatFinancialAmount($financial_report['giving_income_received']); ?></strong></div>
                 <div><small>Lodging received</small><strong><?php echo formatFinancialAmount($financial_report['lodging_received']); ?></strong></div>
                 <div><small>Travel received</small><strong><?php echo formatFinancialAmount($financial_report['travel_received']); ?></strong></div>
+                <div><small>Book Table Received</small><strong><?php echo $financial_report['book_table_received'] === null ? 'Not recorded' : formatFinancialAmount($financial_report['book_table_received']); ?></strong></div>
                 <div class="financial-total"><small>Total Received</small><strong><?php echo formatFinancialAmount(financialReportTotal($financial_report)); ?></strong></div>
             </div>
             <?php
@@ -757,10 +758,10 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
                 <div class="financial-notes"><strong>Closeout notes</strong><p><?php echo renderTextWithLinks($financial_report['notes']); ?></p></div>
             <?php endif; ?>
             <details><summary>Financial Revision History</summary><p>Completed reports and revisions are retained indefinitely.</p>
-                <table class="data-table"><thead><tr><th>Date / Actor</th><th>Giving</th><th>Lodging</th><th>Travel</th><th>Reason</th></tr></thead><tbody>
+                <table class="data-table"><thead><tr><th>Date / Actor</th><th>Giving</th><th>Lodging</th><th>Travel</th><th>Book Table</th><th>Reason</th></tr></thead><tbody>
                 <?php foreach ($financial_revisions as $revision): ?><tr>
                 <td><?php echo htmlspecialchars(applicationTimestampLabel($revision['recorded_at'],'Y-m-d H:i T').' · '.($revision['actor_name'] ?? 'Former user'),ENT_QUOTES,'UTF-8'); ?></td>
-                <?php foreach (['giving_income_received','lodging_received','travel_received'] as $amount): ?><td><?php echo formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
+                <?php foreach (['giving_income_received','lodging_received','travel_received','book_table_received'] as $amount): ?><td><?php echo $revision[$amount] === null ? 'Not recorded' : formatFinancialAmount($revision[$amount]); ?></td><?php endforeach; ?>
                 <td><?php echo htmlspecialchars($revision['correction_reason'],ENT_QUOTES,'UTF-8'); ?></td></tr><?php endforeach; ?>
                 </tbody></table><p>Most recent 100 revisions.</p></details>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>
@@ -770,7 +771,7 @@ $next_task_edit_url = $next_task === null ? '' : 'edit_task.php?' . http_build_q
             <p class="financial-empty">No actual received amounts have been finalized for this event.</p>
             <?php if ($financial_draft !== null): ?>
                 <h3>Draft Received Amounts</h3><div class="financial-amount-grid">
-                <?php foreach (['giving_income_received' => 'Giving / Income', 'lodging_received' => 'Lodging', 'travel_received' => 'Travel'] as $draft_field => $draft_label): ?><div><small><?php echo $draft_label; ?></small><strong><?php echo $financial_draft[$draft_field] === null ? 'Not entered' : formatFinancialAmount($financial_draft[$draft_field]); ?></strong></div><?php endforeach; ?>
+                <?php foreach (['giving_income_received' => 'Giving Received', 'lodging_received' => 'Lodging', 'travel_received' => 'Travel', 'book_table_received' => 'Book Table'] as $draft_field => $draft_label): ?><div><small><?php echo $draft_label; ?></small><strong><?php echo $financial_draft[$draft_field] === null ? 'Not entered' : formatFinancialAmount($financial_draft[$draft_field]); ?></strong></div><?php endforeach; ?>
                 </div><p>Draft receipts are excluded from finalized giving history.</p>
             <?php endif; ?>
             <?php if (!$is_archived && in_array($user_role, ['admin', 'editor'], true)): ?>

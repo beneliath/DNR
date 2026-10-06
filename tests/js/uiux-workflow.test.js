@@ -9,6 +9,7 @@ test('receipt totals distinguish blank from zero and use exact cents', function 
     assert.deepEqual(receiptSummary(['', '0', '12.30']), { valid: true, entered: 2, total: '12.30' });
     assert.deepEqual(receiptSummary(['0.10', '0.20', '']), { valid: true, entered: 2, total: '0.30' });
     assert.deepEqual(receiptSummary(['', '', '']), { valid: true, entered: 0, total: '0.00' });
+    assert.deepEqual(receiptSummary(['123.45', '15', '0', '7.55']), { valid: true, entered: 4, total: '146.00' });
     assert.equal(receiptSummary(['-1']).valid, false);
     assert.equal(receiptSummary(['1.234']).valid, false);
 });

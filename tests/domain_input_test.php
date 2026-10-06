@@ -354,13 +354,15 @@ $financialReport = FinancialReportInput::normalize([
     'giving_income_received' => '001250.5',
     'lodging_received' => '275.25',
     'travel_received' => '0',
+    'book_table_received' => '24.25',
     'notes' => 'Final check received.',
 ]);
 expectDomainInput(
     $financialReport['giving_income_received'] === '1250.50'
         && $financialReport['lodging_received'] === '275.25'
         && $financialReport['travel_received'] === '0.00'
-        && $financialReport['total_received'] === '1525.75',
+        && $financialReport['book_table_received'] === '24.25'
+        && $financialReport['total_received'] === '1550.00',
     'final financial amounts should remain exact fixed-precision values and calculate an exact total.'
 );
 
@@ -371,7 +373,7 @@ foreach ([
     [['giving_income_received' => '10000000000.00', 'lodging_received' => '0', 'travel_received' => '0'], 'maximum'],
 ] as [$submission, $expectedMessage]) {
     expectDomainInputFailure(
-        static fn () => FinancialReportInput::normalize($submission),
+        static fn () => FinancialReportInput::normalize($submission + ['book_table_received' => '0']),
         $expectedMessage,
         'invalid final financial amounts should be rejected before database writes.'
     );
@@ -382,10 +384,26 @@ expectDomainInputFailure(
         'giving_income_received' => '0',
         'lodging_received' => '0',
         'travel_received' => '0',
+        'book_table_received' => '0',
         'notes' => str_repeat('🚀', 16384),
     ]),
     'too long',
     'oversized final financial notes should be rejected before database writes.'
 );
+
+foreach ([null, '', '-0.01', '0.001', '10000000000.00', []] as $bookTable) {
+    expectDomainInputFailure(
+        static fn () => FinancialReportInput::normalize([
+            'giving_income_received' => '0', 'lodging_received' => '0', 'travel_received' => '0',
+            'book_table_received' => $bookTable,
+        ]),
+        'Book Table Received',
+        'Book table receipts must be explicitly entered and follow the same amount limits.'
+    );
+}
+expectDomainInput(FinancialReportInput::normalize([
+    'giving_income_received' => '0', 'lodging_received' => '0', 'travel_received' => '0',
+    'book_table_received' => '0',
+])['book_table_received'] === '0.00', 'Confirmed zero book-table receipts are valid.');
 
 echo "Domain input tests passed.\n";

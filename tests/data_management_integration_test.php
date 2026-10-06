@@ -36,6 +36,14 @@ try {
     $conn->query("SET @dnr_financial_correction_reason='Corrected receipt'");
     $conn->execute_query('UPDATE engagement_financial_reports SET giving_income_received=101.01 WHERE engagement_id=?',[$event]); $conn->query('SET @dnr_financial_correction_reason=NULL');
     dataExpect((int)$conn->execute_query('SELECT COUNT(*) FROM engagement_financial_revisions WHERE engagement_id=?',[$event])->fetch_row()[0]===2,'Financial correction must preserve both amounts.');
+    dataExpect($conn->execute_query('SELECT book_table_received FROM engagement_financial_reports WHERE engagement_id=?',[$event])->fetch_row()[0]===null,'Older closeouts must retain an unrecorded book-table amount.');
+    dataReject(fn()=>$conn->execute_query('UPDATE engagement_financial_reports SET book_table_received=5.67 WHERE engagement_id=?',[$event]));
+    $conn->query("SET @dnr_financial_correction_reason='Record book-table receipt'");
+    dataReject(fn()=>$conn->execute_query('UPDATE engagement_financial_reports SET book_table_received=-0.01 WHERE engagement_id=?',[$event]));
+    $conn->execute_query('UPDATE engagement_financial_reports SET book_table_received=5.67 WHERE engagement_id=?',[$event]);
+    $conn->query('SET @dnr_financial_correction_reason=NULL');
+    $bookRevisions=fetchEngagementFinancialRevisions($conn,$event);
+    dataExpect(count($bookRevisions)===3 && $bookRevisions[0]['book_table_received']==='5.67' && $bookRevisions[1]['book_table_received']===null,'Book-table-only corrections must retain unknown history and the exact new amount.');
     dataReject(fn()=>$conn->execute_query('DELETE FROM engagements WHERE id=?',[$event]));
     dataReject(fn()=>$conn->execute_query('DELETE FROM organizations WHERE id=?',[$orgs[1]]));
     $token=bin2hex(random_bytes(16)); $conn->begin_transaction(); dataExpect(beginRecordCreation($conn,$actor,$token,'contact')===null,'First save claim'); completeRecordCreation($conn,$actor,$token,$contacts[0]); $conn->commit();
@@ -66,7 +74,7 @@ try {
     $journal=(int)$conn->query('SELECT MAX(id) FROM record_merge_journal')->fetch_row()[0];
     undoRecordMerge($conn,$journal,$actor);
     dataExpect((int)$conn->execute_query('SELECT organization_id FROM engagements WHERE id=?',[$event])->fetch_row()[0]===$orgs[1]
-        && (int)$conn->execute_query('SELECT COUNT(*) FROM engagement_financial_revisions WHERE engagement_id=?',[$event])->fetch_row()[0]===2,
+        && (int)$conn->execute_query('SELECT COUNT(*) FROM engagement_financial_revisions WHERE engagement_id=?',[$event])->fetch_row()[0]===3,
         'Organization undo must preserve the engagement and its financial history');
     dataExpect(refreshApplicationDataConsistency($conn,true),'Consistency report not recorded');
     echo "Data management integration passed: history, financial revisions and retention, retry receipts, optimistic locking, merge undo and later-edit rejection.\n";
