@@ -66,7 +66,9 @@ try {
         'Secondary affiliated contacts must appear in organization-filtered searches');
     $results = searchInquiryRelationships($conn, 'contact', $suffix, $organizations[1], $contactId);
     expectInquiryLookup($results['results'] === [] && $results['selected'] === null, 'Unrelated contacts must not appear');
-    expectInquiryLookup(searchInquiryRelationships($conn, 'organization', 'x\' OR 1=1 --')['results'] === [], 'SQL punctuation is search data');
+    // A unique missing term avoids legitimate fulltext matches for the numeric prefix in 1=1.
+    $sqlPunctuationQuery = 'missing' . $suffix . '\' OR 1=1 --';
+    expectInquiryLookup(searchInquiryRelationships($conn, 'organization', $sqlPunctuationQuery)['results'] === [], 'SQL punctuation is search data');
 
     $conn->query("INSERT INTO engagements (organization_id,event_title,event_start_date,event_end_date,event_type)
         VALUES ($firstOrg,'Annual Summit $suffix','2026-10-01','2026-10-02','conference')");
