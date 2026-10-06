@@ -282,16 +282,17 @@ try {
                 'Changing the page size keeps the request within the available pages');
         }
     }
-    // Giving sorts must use finalized amounts across the whole result set.
-    $addFinancialEvent = static function (int $organizationId, string $date, ?string $giving, int $archived = 0) use ($conn, &$engagements): int {
+    // Receipt sorts must use all four finalized categories across the whole result set.
+    $addFinancialEvent = static function (int $organizationId, string $date, ?array $receipts, int $archived = 0) use ($conn, &$engagements): int {
         $conn->execute_query("INSERT INTO engagements (organization_id, event_title, event_start_date, event_end_date,
             event_type, confirmation_status, lifecycle_status, is_deleted)
             VALUES (?, 'Financial sort fixture', ?, ?, 'conference', 'confirmed', 'completed', ?)",
             [$organizationId, $date, $date, $archived]);
         $id = $engagements[] = (int) $conn->insert_id;
-        if ($giving !== null) {
-            $conn->execute_query("INSERT INTO engagement_financial_reports (engagement_id, giving_income_received, closed_at)
-                VALUES (?, ?, ?)", [$id, $giving, $archived ? '2026-09-01 12:00:00' : '2026-08-21 12:00:00']);
+        if ($receipts !== null) {
+            $conn->execute_query("INSERT INTO engagement_financial_reports
+                (engagement_id, giving_income_received, lodging_received, travel_received, book_table_received, closed_at)
+                VALUES (?, ?, ?, ?, ?, ?)", [$id, ...$receipts, $archived ? '2026-09-01 12:00:00' : '2026-08-21 12:00:00']);
         }
         return $id;
     };
@@ -299,14 +300,17 @@ try {
     foreach ($sortOrganizationIds as $n => $id) {
         $conn->execute_query('UPDATE organizations SET organization_name = ? WHERE id = ?', [$givingKeyword . ' Organization ' . $n, $id]);
         if ($n === 27) continue; // No finalized report is distinct from confirmed zero.
-        $addFinancialEvent($id, '2026-08-20', (string) ($n === 26 ? 0 : min($n, 24) * 100));
+        $receipts = ['0.00', '0.00', '0.00', '0.00'];
+        $receipts[($n - 1) % 4] = (string) ($n === 26 ? 0 : min($n, 24) * 100);
+        $addFinancialEvent($id, '2026-08-20', $receipts);
     }
-    $addFinancialEvent($sortOrganizationIds[1], '2026-01-01', '9000.00', 1);
+    $addFinancialEvent($sortOrganizationIds[1], '2026-01-01', ['9000.00', '0.00', '0.00', null], 1);
     // Same event dates use the newer event ID, including cents in the ordering.
-    $addFinancialEvent($sortOrganizationIds[3], '2026-08-20', '25.25');
+    $addFinancialEvent($sortOrganizationIds[3], '2026-08-20', ['1.01', '2.02', '3.03', '19.19']);
     $draftId = $addFinancialEvent($sortOrganizationIds[2], '2026-08-30', null);
-    $conn->execute_query('INSERT INTO engagement_financial_drafts (engagement_id, giving_income_received, updated_by) VALUES (?, ?, ?)',
-        [$draftId, '99999.99', $users[0]]);
+    $conn->execute_query('INSERT INTO engagement_financial_drafts
+        (engagement_id, giving_income_received, lodging_received, travel_received, book_table_received, updated_by)
+        VALUES (?, ?, ?, ?, ?, ?)', [$draftId, '99999.99', '99999.99', '99999.99', '99999.99', $users[0]]);
     $givingCases = [
         ['last_giving', 'desc', [24, 25, ...range(23, 4), 2, 1, 3, 26, 27]],
         ['last_giving', 'asc', [26, 3, 1, 2, ...range(4, 23), 24, 25, 27]],
@@ -320,9 +324,25 @@ try {
             $response = recordHttp($url . '&page=' . $page, $editorSession);
             expectRecordHttp($response['status'] === 200, 'Financial organization sort renders');
             $dom = new DOMDocument(); @$dom->loadHTML($response['body']); $xpath = new DOMXPath($dom);
+            expectRecordHttp($xpath->evaluate('string(//thead/tr/th[4])') === 'Last Receipts'
+                && $xpath->evaluate('string(//thead/tr/th[5])') === 'Lifetime Receipts',
+                'Organization columns identify combined receipts');
             foreach ($xpath->query('//tbody//a[@class="record-link"]') as $link) {
                 parse_str((string) parse_url($link->getAttribute('href'), PHP_URL_QUERY), $query);
                 $foundIds[] = (int) $query['id'];
+                $position = array_search((int) $query['id'], $sortOrganizationIds, true);
+                expectRecordHttp($position !== false, 'Receipt rows belong to the test fixtures');
+                $lastExpected = match ($position) {
+                    3 => '25.25', 26 => '0.00', 27 => '—',
+                    default => sprintf('%d.00', min($position, 24) * 100),
+                };
+                $lifetimeExpected = match ($position) {
+                    1 => '9100.00', 3 => '325.25', 26, 27 => '0.00',
+                    default => sprintf('%d.00', min($position, 24) * 100),
+                };
+                expectRecordHttp(str_replace(['$', ','], '', trim($xpath->evaluate('string(ancestor::tr[1]/td[4])', $link))) === $lastExpected
+                    && str_replace(['$', ','], '', trim($xpath->evaluate('string(ancestor::tr[1]/td[5])', $link))) === $lifetimeExpected,
+                    'Displayed receipts combine all categories with exact cents, latest-event ordering, legacy book-table values, and empty/zero distinctions');
                 parse_str((string) parse_url($query['return_to'], PHP_URL_QUERY), $returnQuery);
                 expectRecordHttp($returnQuery['sort_by'] === $column && $returnQuery[$column . '_sort'] === $direction,
                     'Opening a record preserves the giving sort');

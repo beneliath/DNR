@@ -75,19 +75,20 @@ try {
     $reportStmt = $conn->prepare(
         'INSERT INTO engagement_financial_reports
             (engagement_id, giving_income_received, lodging_received,
-             travel_received, closed_by, updated_by, closed_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
+             travel_received, book_table_received, closed_by, updated_by, closed_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     foreach ([
-        [$engagementIds[0], '100.00', '10.00', '20.00', '2026-08-20 12:00:00.000000'],
-        [$engagementIds[1], '300.00', '20.00', '50.00', '2026-08-19 12:00:00.000000'],
-    ] as [$engagementId, $giving, $lodging, $travel, $closedAt]) {
+        [$engagementIds[0], '100.00', '10.00', '20.00', null, '2026-08-20 12:00:00.000000'],
+        [$engagementIds[1], '300.00', '20.00', '50.00', '5.05', '2026-08-19 12:00:00.000000'],
+    ] as [$engagementId, $giving, $lodging, $travel, $bookTable, $closedAt]) {
         $reportStmt->bind_param(
-            'isssiis',
+            'issssiis',
             $engagementId,
             $giving,
             $lodging,
             $travel,
+            $bookTable,
             $userId,
             $userId,
             $closedAt
@@ -252,6 +253,11 @@ try {
         (float) $summary['lifetime_lodging'] === 30.0
             && (float) $summary['lifetime_travel'] === 70.0,
         'lodging and travel receipts should aggregate independently from giving.'
+    );
+    expectFinancialTrackingIntegration(
+        $summary['last_event_receipts'] === '375.05'
+            && $summary['lifetime_receipts'] === '505.05',
+        'combined receipts include all four categories and retain legacy reports without recorded book table receipts.'
     );
 } finally {
     if ($organizationId > 0) {

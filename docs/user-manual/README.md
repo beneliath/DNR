@@ -35,11 +35,13 @@ checks performed against the finished PDF.
 
 ## Current edition
 
-The October 5, 2026 edition applies to application version **2.4.18** and
+The October 5, 2026 edition applies to application version **2.4.19** and
 covers user-visible changes since the 2.4.0 PDF. The sidebar manual stays
 high-level; the PDF adds illustrated steps for the same current workflows.
 
 The financial closeout now requires Giving Received, Lodging Received, Travel Received, and Book Table Received before finalization. Drafts retain unknown amounts, confirmed zero remains explicit, and book-table amounts are included in totals and correction history. Existing finalized reports retain an unrecorded book-table amount until corrected.
+
+The Organizations list shows Last Receipts and Lifetime Receipts, combining giving, lodging, travel, and book-table amounts. Last Receipts follows the latest finalized event by event date; Lifetime Receipts includes all finalized history. Sorting uses those same combined amounts, and drafts do not contribute.
 
 The existing 14-chapter layout, topic index, PDF bookmarks, and separate operator
 appendix remain useful. The opening task chooser now leads readers to common
@@ -50,7 +52,7 @@ undo limits, email reply follow-up, Inbox filing, pending map filters, network
 windows, administrator unlock extension, and reimbursement selection, notes,
 progress, CSV/receipt packages, and mail size checks.
 
-37 refreshed or new illustrations show the current application or an actual
+38 refreshed or new illustrations show the current application or an actual
 generated report using fictional records in an isolated preview. Existing figures
 are retained only for unchanged controls. No external email was sent. See
 `refresh-coverage.json` for the feature-to-figure inventory and limitations.

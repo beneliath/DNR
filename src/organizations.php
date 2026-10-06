@@ -97,11 +97,15 @@ $order_direction = $sort_direction === 'asc' ? 'ASC' : 'DESC';
 $financial_sort_join = '';
 $order_clause = "o.organization_name {$order_direction}, o.id {$order_direction}";
 if ($sort_column !== 'name') {
+    // Preserve existing sort URL keys while sorting both columns by combined receipts.
     // Match the displayed financial summaries: only finalized reports count,
     // and the latest event is determined by event dates, not closeout entry time.
     $financial_sort_join = ' LEFT JOIN (
-        SELECT engagement.organization_id, report.giving_income_received AS last_event_giving,
-               SUM(report.giving_income_received) OVER (PARTITION BY engagement.organization_id) AS lifetime_giving,
+        SELECT engagement.organization_id,
+               (report.giving_income_received + report.lodging_received + report.travel_received
+                   + COALESCE(report.book_table_received, 0)) AS last_event_receipts,
+               SUM(report.giving_income_received + report.lodging_received + report.travel_received
+                   + COALESCE(report.book_table_received, 0)) OVER (PARTITION BY engagement.organization_id) AS lifetime_receipts,
                ROW_NUMBER() OVER (
                    PARTITION BY engagement.organization_id
                    ORDER BY engagement.event_end_date DESC, engagement.event_start_date DESC, engagement.id DESC
@@ -110,8 +114,8 @@ if ($sort_column !== 'name') {
         INNER JOIN engagements engagement ON engagement.id = report.engagement_id
     ) financial ON financial.organization_id = o.id AND financial.financial_position = 1';
     $order_clause = $sort_column === 'last_giving'
-        ? "financial.last_event_giving IS NULL ASC, financial.last_event_giving {$order_direction}, o.organization_name ASC, o.id ASC"
-        : "COALESCE(financial.lifetime_giving, 0) {$order_direction}, o.organization_name ASC, o.id ASC";
+        ? "financial.last_event_receipts IS NULL ASC, financial.last_event_receipts {$order_direction}, o.organization_name ASC, o.id ASC"
+        : "COALESCE(financial.lifetime_receipts, 0) {$order_direction}, o.organization_name ASC, o.id ASC";
 }
 $search = \Dnr\Http\RequestInput::string($_GET, 'q', '', 256);
 $fulltext_query = fulltextSearchQuery($search);
@@ -233,8 +237,8 @@ if ($organizations !== []) {
     }
     foreach ($organizations as &$organization) {
         $financial_summary = $financial_summaries[(int) $organization['id']];
-        $organization['lifetime_giving'] = $financial_summary['lifetime_giving'];
-        $organization['last_event_giving'] = $financial_summary['last_event_giving'];
+        $organization['lifetime_receipts'] = $financial_summary['lifetime_receipts'];
+        $organization['last_event_receipts'] = $financial_summary['last_event_receipts'];
     }
     unset($organization);
 }
@@ -307,7 +311,7 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                 <a href="<?php echo htmlspecialchars($list_url(['sort_by' => 'name', 'name_sort' => $sort_column === 'name' && $name_sort === 'asc' ? 'desc' : 'asc']), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === 'name' ? ' active' : ''; ?>"<?php echo $sort_column === 'name' ? ' aria-current="true"' : ''; ?>>
                     Organization <?php echo $name_sort === 'asc' ? '↑' : '↓'; ?>
                 </a>
-                <?php foreach (['last_giving' => ['Last Giving', $last_giving_sort], 'lifetime_giving' => ['Lifetime Giving', $lifetime_giving_sort]] as $giving_column => [$giving_label, $giving_direction]): ?>
+                <?php foreach (['last_giving' => ['Last Receipts', $last_giving_sort], 'lifetime_giving' => ['Lifetime Receipts', $lifetime_giving_sort]] as $giving_column => [$giving_label, $giving_direction]): ?>
                     <a href="<?php echo htmlspecialchars($list_url(['sort_by' => $giving_column, $giving_column . '_sort' => $sort_column === $giving_column ? ($giving_direction === 'asc' ? 'desc' : 'asc') : $giving_direction]), ENT_QUOTES, 'UTF-8'); ?>" class="sort-button<?php echo $sort_column === $giving_column ? ' active' : ''; ?>"<?php echo $sort_column === $giving_column ? ' aria-current="true"' : ''; ?>>
                         <?php echo $giving_label . ' ' . ($giving_direction === 'asc' ? '↑' : '↓'); ?>
                     </a>
@@ -329,8 +333,8 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                 <th>Organization</th>
                 <th>Location</th>
                 <th>Contact(s)</th>
-                <th>Last Giving</th>
-                <th>Lifetime Giving</th>
+                <th>Last Receipts</th>
+                <th>Lifetime Receipts</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -352,8 +356,8 @@ $list_current_url = paginationUrl($list_url(), $current_page, $page_size);
                     <td>
                         <?php echo htmlspecialchars($org['contact_names'] ?? '', ENT_QUOTES, 'UTF-8'); ?>
                     </td>
-                    <td class="money-column"><?php echo $org['last_event_giving'] === null ? '—' : formatFinancialAmount($org['last_event_giving']); ?></td>
-                    <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_giving']); ?></strong></td>
+                    <td class="money-column"><?php echo $org['last_event_receipts'] === null ? '—' : formatFinancialAmount($org['last_event_receipts']); ?></td>
+                    <td class="money-column"><strong><?php echo formatFinancialAmount($org['lifetime_receipts']); ?></strong></td>
                     <td>
                         <div class="action-buttons">
                             <a href="view_organization.php?id=<?php echo $org['id']; ?>&amp;return_to=<?php echo urlencode($list_current_url); ?>" class="action-button action-icon-button view-button" aria-label="View Organization" title="View" data-tooltip="View"><?php echo actionIconSvg('view'); ?></a>

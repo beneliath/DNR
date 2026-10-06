@@ -190,7 +190,9 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
             'lifetime_lodging' => '0.00',
             'lifetime_travel' => '0.00',
             'lifetime_book_table' => '0.00',
+            'lifetime_receipts' => '0.00',
             'last_event_giving' => null,
+            'last_event_receipts' => null,
             'last_event_id' => null,
             'last_event_title' => null,
             'last_event_start_date' => null,
@@ -206,7 +208,9 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
                 AVG(report.giving_income_received) AS average_event_giving,
                 SUM(report.lodging_received) AS lifetime_lodging,
                 SUM(report.travel_received) AS lifetime_travel,
-                COALESCE(SUM(report.book_table_received), 0) AS lifetime_book_table
+                COALESCE(SUM(report.book_table_received), 0) AS lifetime_book_table,
+                SUM(report.giving_income_received + report.lodging_received + report.travel_received
+                    + COALESCE(report.book_table_received, 0)) AS lifetime_receipts
          FROM engagement_financial_reports report
          INNER JOIN engagements engagement ON engagement.id = report.engagement_id
          WHERE engagement.organization_id IN ({$placeholders})
@@ -232,7 +236,7 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
     $latest_stmt = $conn->prepare(
         "SELECT ranked.organization_id, ranked.engagement_id, ranked.event_title,
                 ranked.event_start_date, ranked.event_end_date,
-                ranked.giving_income_received
+                ranked.giving_income_received, ranked.total_receipts
          FROM (
              SELECT engagement.organization_id,
                     engagement.id AS engagement_id,
@@ -240,6 +244,8 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
                     engagement.event_start_date,
                     engagement.event_end_date,
                     report.giving_income_received,
+                    (report.giving_income_received + report.lodging_received + report.travel_received
+                        + COALESCE(report.book_table_received, 0)) AS total_receipts,
                     ROW_NUMBER() OVER (
                         PARTITION BY engagement.organization_id
                         ORDER BY engagement.event_end_date DESC,
@@ -266,6 +272,7 @@ function fetchOrganizationFinancialSummaries(mysqli $conn, array $organization_i
     foreach ($latest_stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row) {
         $organization_id = (int) $row['organization_id'];
         $summaries[$organization_id]['last_event_giving'] = $row['giving_income_received'];
+        $summaries[$organization_id]['last_event_receipts'] = $row['total_receipts'];
         $summaries[$organization_id]['last_event_id'] = (int) $row['engagement_id'];
         $summaries[$organization_id]['last_event_title'] = $row['event_title'];
         $summaries[$organization_id]['last_event_start_date'] = $row['event_start_date'];
