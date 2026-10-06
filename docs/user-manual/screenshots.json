@@ -664,26 +664,22 @@
     "chapter": 6,
     "id": "organizations",
     "title": "Browse organizations",
-    "route": "organizations.php?q=Cedar",
+    "route": "organizations.php",
     "steps": [
       "Search by organization details or active contact information.",
-      "Review location, active contacts, last giving, and lifetime giving.",
+      "Review Last Receipts and Lifetime Receipts: both combine finalized giving, lodging, travel, and book-table amounts.",
       "Use Active/Archived, sorting, and Records per page to manage a longer directory."
     ],
     "file": "screenshots/organizations.png",
     "crop": [
       0,
       0,
-      1515,
-      675
+      966,
+      491
     ],
-    "copyright_line_box": [
-      44,
-      643,
-      654,
-      660
-    ],
-    "footer_removed": true
+    "footer_removed": true,
+    "captured_at": "2026-10-05",
+    "framing": "Current organization receipt columns captured from an isolated preview with fictional records; the complete main section is retained and the footer is outside the frame."
   },
   {
     "chapter": 6,

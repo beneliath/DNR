@@ -104,7 +104,15 @@
       ]
     ]
   ],
-  "6": [],
+  "6": [
+    [
+      "Organization Receipt Totals",
+      [
+        "Last Receipts and Lifetime Receipts on Organizations combine Giving Received, Lodging Received, Travel Received, and Book Table Received. Use the corresponding sort buttons to order the entire filtered directory by those same combined amounts; sorting remains consistent across pages.",
+        "Last Receipts comes from the latest finalized event by event end date, then start date and event ID when dates tie. Lifetime Receipts includes every finalized event report, including archived event history. Drafts are excluded. No finalized history shows a dash for Last Receipts and $0.00 for Lifetime Receipts; confirmed zero remains $0.00. Older reports without a recorded book-table amount still contribute their recorded giving, lodging, and travel receipts."
+      ]
+    ]
+  ],
   "9": [
     [
       "Amazon Location and Map Fallback",

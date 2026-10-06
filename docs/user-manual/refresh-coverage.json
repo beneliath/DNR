@@ -1,5 +1,5 @@
 {
-  "release": "2.4.16",
+  "release": "2.4.19",
   "updated": "2026-10-05",
   "baseline_pdf": "2.4.0",
   "features": [
@@ -187,6 +187,11 @@
       "feature": "PDF receipt pages within the report",
       "figure": "reimbursement-report-receipt",
       "route": "download_reimbursement.php?id=1&format=pdf"
+    },
+    {
+      "feature": "Compare combined last and lifetime organization receipts",
+      "figure": "organizations",
+      "route": "organizations.php"
     }
   ],
   "validation_notes": [
@@ -194,12 +199,12 @@
     "Merge review and source-confirmed undo boundary illustrated. A separate merge fixture failed on a database privilege check and rolled back; no undo operation is claimed as tested."
   ],
   "validation": {
-    "pdf_pages": 187,
+    "pdf_pages": 188,
     "figures": 114,
-    "internal_links": 1622,
+    "internal_links": 1627,
     "php_manual_check": "passed",
     "manual_search_tests": "6 passed",
     "pdf_structure_and_layout": "passed",
-    "visual_review": "all pages inspected; revised screenshot crops checked at full size"
+    "visual_review": "Cover, revised receipt guidance, and organization walkthrough inspected; retained illustrations preserve their earlier review."
   }
 }

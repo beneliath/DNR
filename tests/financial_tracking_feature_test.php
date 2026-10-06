@@ -108,8 +108,8 @@ expectFinancialTracking(
         && str_contains($organizationView, 'Average Event Giving')
         && str_contains($organizationView, 'financial-history-table')
         && is_string($organizationList)
-        && str_contains($organizationList, '<th>Last Giving</th>')
-        && str_contains($organizationList, '<th>Lifetime Giving</th>'),
+        && str_contains($organizationList, '<th>Last Receipts</th>')
+        && str_contains($organizationList, '<th>Lifetime Receipts</th>'),
     'event and organization screens should expose the final report and required giving metrics.'
 );
 
